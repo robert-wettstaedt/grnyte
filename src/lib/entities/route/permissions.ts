@@ -9,7 +9,7 @@ export function canAddRoute(userRegions: UserRegion[], block: RoutePermissionTar
 }
 
 /** Region DELETE, or an EDITor removing what they themselves created (mirrors v1, and matches
- *  {@link canDeleteArea} / {@link canDeleteBlock} - all three hard-delete only a bare row). */
+ *  {@link canDeleteArea} / {@link canDeleteBlock}: all three hard-delete only a bare row). */
 export function canDeleteRoute(
   userRegions: UserRegion[],
   userId: number | undefined,
@@ -26,7 +26,7 @@ export function canDeleteRoute(
 /**
  * Editing a route's own fields requires EDIT. The routes UPDATE policy additionally grants
  * READ, but only so a member logging an ascent can have their grade/rating opinion folded
- * into the route's community values (see recalcUserGradeAndRating) - not to edit route content.
+ * into the route's community values (see recalcUserGradeAndRating): not to edit route content.
  */
 export function canEditRoute(userRegions: UserRegion[], route: RoutePermissionTarget): boolean {
   return checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], route.regionFk)

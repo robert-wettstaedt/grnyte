@@ -4,7 +4,7 @@
  * Not one write site. Every other domain answers "what does this mutation say"; this one answers
  * "what happens when two of them arrive minutes apart", which is a decision `groupEvents` makes at
  * read time and no writer can see. The cases below still name the site that emitted each event,
- * because a fold that stops matching the way a writer really writes is a fixture and not a case.
+ * because a fold that stops matching the way a writer writes is a fixture and not a case.
  *
  * The three windows in play, all different, and most of the surprises here come from mixing them
  * up: the SERVER folds a second call on the same object into the open event inside 15 minutes

@@ -9,8 +9,8 @@ const basicAuth = `Basic ${Buffer.from(`${NEXTCLOUD_USER_NAME}:${NEXTCLOUD_USER_
 const statusOf = (error: unknown): number | undefined => (error as null | { status?: number })?.status
 
 // The WebDAV client is a private detail of this provider. The image provider is
-// the app's only Nextcloud boundary — originals, thumbnails, and future
-// uploads/deletes all go through here — so nothing else talks to it directly.
+// the app's only Nextcloud boundary: originals, thumbnails, and future
+// uploads/deletes all go through here, so nothing else talks to it directly.
 let client: undefined | WebDAVClient
 const dav = (): WebDAVClient =>
   (client ??= createClient(`${NEXTCLOUD_URL}/remote.php/dav/files`, {
@@ -41,7 +41,7 @@ function create(): ImageProvider {
     },
 
     async fetchThumbnail(path: string, options: ThumbnailOptions): Promise<ImagePayload> {
-      // Two tiers: a pre-generated webp derivative sibling first (quality-first —
+      // Two tiers: a pre-generated webp derivative sibling first (quality-first:
       // visibly better than Nextcloud's jpeg previews at the same bytes, #472),
       // then the Nextcloud preview for files without one (older uploads, failed
       // generation, non-images).
@@ -63,11 +63,11 @@ function create(): ImageProvider {
           statusText: res.statusText,
         }
       } catch {
-        // Derivative missing — fall through to the preview.
+        // Derivative missing, fall through to the preview.
       }
 
       // Nextcloud generates and disk-caches previews itself, so we hand the resize
-      // off entirely — no fetching the full-res original just to shrink it here.
+      // off entirely: no fetching the full-res original to shrink it here.
       // `a=1` preserves the aspect ratio, so the topo line drawn against the
       // original's proportions still aligns once the tile crops it client-side.
       const preview = new URL('/index.php/core/preview.png', NEXTCLOUD_URL)
@@ -98,7 +98,7 @@ function create(): ImageProvider {
       try {
         await dav().putFileContents(target, data)
       } catch (putError) {
-        // A missing parent folder (404/409) is the one recoverable failure —
+        // A missing parent folder (404/409) is the one recoverable failure:
         // create it and retry once. Everything else (auth, quota, 5xx) surfaces as-is.
         if (statusOf(putError) !== 404 && statusOf(putError) !== 409) {
           throw putError
@@ -106,7 +106,7 @@ function create(): ImageProvider {
         try {
           await dav().createDirectory(target.slice(0, target.lastIndexOf('/')), { recursive: true })
         } catch (mkcolError) {
-          // 405 = a concurrent store() won the race to create it — just as good.
+          // 405 = a concurrent store() won the race to create it: equally good.
           if (statusOf(mkcolError) !== 405) {
             throw mkcolError
           }

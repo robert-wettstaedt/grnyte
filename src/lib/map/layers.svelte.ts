@@ -27,7 +27,7 @@ const EMPTY_GRADE_COUNTS: Map<number, number> = new Map<number, number>()
 
 // The data layers are created once (empty) and kept stable; only their features are
 // rebuilt when the corresponding data changes (see Map.svelte). Recreating a layer
-// reloads its styles — including the expensive donut data-URI icons below — which
+// reloads its styles, including the expensive donut data-URI icons below, which
 // flashes the map, so we never do that on a data update.
 
 // The outermost area grouping, drawn when zoomed out so the far view isn't cluttered with

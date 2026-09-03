@@ -3,7 +3,7 @@ import { initZero } from '$lib/zero/z.svelte'
 import { createBrowserClient } from '@supabase/ssr'
 import type { LayoutLoad } from './$types'
 
-// The authenticated app renders client-side only — Zero is a browser-only sync
+// The authenticated app renders client-side only: Zero is a browser-only sync
 // engine. ssr=false also guarantees this load runs on the client every time the
 // (app) group is entered (e.g. navigating in from the SSR'd landing page), which
 // is why Zero is initialized here rather than in a root load whose client-run

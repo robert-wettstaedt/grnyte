@@ -116,7 +116,7 @@ export interface EventReactionBar {
  * against the new shape would reproduce all of that from scratch and re-derive the tests, with
  * every difference showing up as a wrong sentence on a card rather than as a failure.
  *
- * What events actually change is the INPUT, not the reasoning: an event knows its own entity, so
+ * What events change is the INPUT, not the reasoning: an event knows its own entity, so
  * the hydration map is built here from what the rows already carried. Everything downstream is
  * unchanged, which is the point. `line.ts` expands an event into the lines a card speaks, and this
  * hands them to the decider.

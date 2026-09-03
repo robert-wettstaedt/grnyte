@@ -31,7 +31,7 @@ const sourceUrl = z
   .url({ error: formError('form_urlInvalid'), protocol: /^https?$/ })
   .check(z.maxLength(500, { error: formError('form_charsMax', { count: 500 }) }))
 
-/** The FK column linking a `files` row to its target entity — mirrors the columns on `files`. */
+/** The FK column linking a `files` row to its target entity: mirrors the columns on `files`. */
 const entityFks = (type: FileEntityType, id: number) => ({
   areaFk: type === 'area' ? id : undefined,
   ascentFk: type === 'ascent' ? id : undefined,
@@ -88,9 +88,9 @@ const finalizeImageSchema = z.object({
  * Supabase staging bucket into image storage (original + webp derivatives) and
  * attach it to an entity as a `files` row.
  *
- * RLS scopes both sides — the staging download only succeeds inside the
+ * RLS scopes both sides: the staging download only succeeds inside the
  * caller's own uid folder, and the `files` insert requires read permission in
- * the entity's region — so there are no explicit permission checks here.
+ * the entity's region, so there are no explicit permission checks here.
  * Ordering makes it retryable: the staging object is deleted last, so any
  * failure before that leaves it in place for another attempt.
  */
@@ -100,7 +100,7 @@ export const finalizeImage = command(
     // Hand-wired auth + RLS instead of authedCommand: this pipeline is dominated
     // by storage work (staging download, HEIC convert, sharp encodes, WebDAV
     // PUTs), which must not run inside authedCommand's handler-wide transaction
-    // holding a pooled connection — DB access happens in the two short `rls`
+    // holding a pooled connection: DB access happens in the two short `rls`
     // transactions below instead.
     const { rls, supabase, user, userRegions } = await authedRls()
 
@@ -155,13 +155,13 @@ export const finalizeImage = command(
     try {
       await store(path, buffer)
       // The app serves the JPEG, but the pristine HEIC is kept as an `.orig.*`
-      // sibling (the migrate-promote-originals convention — never derivatized).
+      // sibling (the migrate-promote-originals convention, never derivatized).
       if (isHeic(stagingPath)) {
         await store(`${folder}/${id}.orig.${extensionOf(stagingPath)}`, Buffer.from(uploaded))
       }
       for (const size of DERIVATIVE_SIZES) {
         const webp = await sharp(buffer)
-          // Bake the EXIF orientation in — the resized derivative carries no metadata.
+          // Bake the EXIF orientation in: the resized derivative carries no metadata.
           .rotate()
           .resize({ fit: 'inside', height: size, width: size, withoutEnlargement: true })
           .webp({ quality: DERIVATIVE_QUALITY })
@@ -169,7 +169,7 @@ export const finalizeImage = command(
         await store(derivativePath(path, size), webp)
       }
 
-      // A short RLS transaction of its own — the storage work above must not
+      // A short RLS transaction of its own: the storage work above must not
       // hold a pooled connection (a submit finalizes several images at once).
       const [inserted] = await rls(async (db) => {
         const rows = await db
@@ -211,7 +211,7 @@ export const finalizeImage = command(
  * First half of the video upload flow: create the video object at the host
  * (grouped under the caller's collection) and presign its upload, which the
  * browser then runs directly against the host. Plain `command` with a
- * hand-wired auth gate — pure video-host API round-trips that must not hold a
+ * hand-wired auth gate: pure video-host API round-trips that must not hold a
  * pooled connection (authedCommand wraps the handler in an RLS transaction).
  * Region permissions are checked at finalize; worst case an authed user
  * creates orphaned empty video objects, swept later by
@@ -364,14 +364,14 @@ const finalizeVideoSchema = z.object({
   source: z.optional(sourceUrl),
   /** Ownership proof minted by `createBunnyVideo` alongside the GUID. */
   token: z.string(),
-  /** Bunny video GUID — doubles as the `bunnyStreams` row id. */
+  /** Bunny video GUID: doubles as the `bunnyStreams` row id. */
   videoId: z.uuid(),
 })
 
 /**
  * Second half: attach a fully-uploaded Bunny video to an entity (an ascent
  * clip, a route beta video, …). Unlike `finalizeImage` there is no storage
- * work — the client awaited TUS completion and Bunny already has the bytes —
+ * work (the client awaited TUS completion and Bunny already has the bytes)
  * so a standard authedCommand (one RLS transaction, atomic rollback) fits.
  */
 export const finalizeVideo = authedCommand(
@@ -380,7 +380,7 @@ export const finalizeVideo = authedCommand(
     { entityId, entityType, source, token, videoId },
     { db, user, userRegions },
   ): Promise<MutationResult<File>> => {
-    // The GUID is client-supplied — the token proves this user created this
+    // The GUID is client-supplied: the token proves this user created this
     // video via createBunnyVideo, so made-up or foreign GUIDs can't be attached.
     if (!getVideoProvider().verifyUpload(videoId, user.authUserFk, token)) {
       error(403, 'Unknown video')
@@ -393,9 +393,9 @@ export const finalizeVideo = authedCommand(
     // files.bunnyStreamFk and bunnyStreams.fileFk are circular, and the
     // bunny_streams UPDATE policy can never pass a NULL -> value file_fk
     // transition (its USING clause requires file_fk to already point at an
-    // own-ascent file). So: insert the file first (path '' — the convention
+    // own-ascent file). So: insert the file first (path '': the convention
     // for video rows; the media lives at Bunny), insert the stream row with
-    // file_fk already set, then complete the link on files — whose
+    // file_fk already set, then complete the link on files: whose
     // own-ascent/EDIT update policies do pass.
     const [file] = await db
       .insert(files)
@@ -407,7 +407,7 @@ export const finalizeVideo = authedCommand(
     await insertUploadEvent(db, { entityType, fileId: file.id, regionFk, userFk: user.id })
 
     if (linked == null) {
-      // Safety net — the checks above should make this unreachable; if RLS
+      // Safety net: the checks above should make this unreachable; if RLS
       // still swallows the update, roll the whole attach back rather than
       // leave a file without its video.
       error(403, 'Not allowed to attach videos here')

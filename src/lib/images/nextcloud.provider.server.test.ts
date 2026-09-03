@@ -8,7 +8,7 @@ vi.mock('webdav', () => ({ createClient: () => ({ getFileContents }) }))
 
 import { getNextcloudImageProvider } from './nextcloud.provider.server'
 
-describe('nextcloud image provider — fetchThumbnail', () => {
+describe('nextcloud image provider: fetchThumbnail', () => {
   afterEach(() => {
     getFileContents.mockReset()
     vi.unstubAllGlobals()

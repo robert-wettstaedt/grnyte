@@ -34,10 +34,10 @@ import drizzleConfig from '../../../../drizzle.config'
 import * as schema from '../schema'
 
 // Markdown links, single-line, excluding image embeds. Captures title and URL (URL capture
-// stops at whitespace so `[t](url "title")` yields just the URL).
+// stops at whitespace so `[t](url "title")` yields only the URL).
 const linkPattern = /(?<!!)\[([^\]\n]*)\]\( *([^)\s]+)[^)\n]*\)/g
 const titlePattern = /beta|video/i
-// Any subdomain (www., m., ...) — a missed variant would bypass the stray-URL ambiguity guard.
+// Any subdomain (www., m., ...): a missed variant would bypass the stray-URL ambiguity guard.
 const videoHostPattern =
   /https?:\/\/(?:[\w-]+\.)*(?:youtube\.com|youtu\.be|youtube-nocookie\.com|instagram\.com|instagr\.am|vimeo\.com)\/[^\s)\]]*/gi
 
@@ -91,7 +91,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     videosByRoute.set(row.route_id, [...(videosByRoute.get(row.route_id) ?? []), row])
   }
 
-  // Small table — fetch all routes and analyze in JS rather than prefiltering in SQL.
+  // Small table: fetch all routes and analyze in JS rather than prefiltering in SQL.
   const routes = (await db.execute(sql`
     select id, name, description from routes order by id
   `)) as unknown as { description: null | string; id: number; name: string }[]
@@ -128,7 +128,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
 
     const sourced = videos.length - targets.length
     console.warn(
-      `  ⚠ ${label}: left as is — ${links.length} matching link(s), ${targets.length} unsourced bunny video(s)` +
+      `  ⚠ ${label}: left as is, ${links.length} matching link(s), ${targets.length} unsourced bunny video(s)` +
         (sourced > 0 ? ` (+${sourced} already sourced)` : '') +
         (strayVideoUrls.length > 0 ? `, stray video URL(s): ${strayVideoUrls.join(' ')}` : '') +
         (links.length > 0 ? `, link(s): ${links.map((link) => link.text).join(' ')}` : ''),
@@ -137,7 +137,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   }
 
   console.log(
-    `\n${dryRun ? 'DRY RUN — ' : ''}migrated ${migrated} route video source(s), flagged ${flagged} for manual review.`,
+    `\n${dryRun ? 'DRY RUN: ' : ''}migrated ${migrated} route video source(s), flagged ${flagged} for manual review.`,
   )
 }
 

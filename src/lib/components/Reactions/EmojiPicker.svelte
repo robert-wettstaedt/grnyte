@@ -24,7 +24,7 @@
   // `cldr` build is the one both locales ship, and is half the size of the emojibase one.
   //
   // ponytail: the picker's own chrome (its search placeholder, its category names) stays English.
-  // Its `i18n` option is a dozen more strings to translate, and the emoji names people actually
+  // Its `i18n` option is a dozen more strings to translate, and the emoji names people
   // type at are in the data above. Fill it in when somebody notices.
   const DATA: Record<Locale, string> = { de: deData, en: enData }
 

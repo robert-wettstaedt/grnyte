@@ -7,7 +7,7 @@
     children?: Snippet
     /** Show a pulsing placeholder instead of initials while the name is still loading. */
     loading?: boolean
-    /** Display name — initials come from the first two words. */
+    /** Display name. Initials come from the first two words. */
     name?: string
     /** Diameter in px. */
     size?: number

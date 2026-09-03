@@ -29,11 +29,11 @@ const blockActionSchema = z.object({
   name: z._default(z.optional(z.string().check(z.trim())), ''),
 })
 
-/** Field shape the shared add/edit-block form binds to — `id` is set only when editing. */
+/** Field shape the shared add/edit-block form binds to: `id` is set only when editing. */
 export type BlockFormInput = z.input<typeof blockActionSchema>
 
 /** Create a block under a crag (or a still-untyped area, which a block turns into a crag).
- *  Location is optional — when given, a geolocation row is created and linked both ways. */
+ *  Location is optional: when given, a geolocation row is created and linked both ways. */
 export const createBlock = authedForm(
   blockActionSchema,
   async (value, { afterCommit, db, user, userRegions }, issue) => {
@@ -326,7 +326,7 @@ type DeleteBlockSnapshot =
   | { blockId: number; mode: 'soft' }
 
 /** Hard-delete a bare block: drop its pin (FK-linked both ways) then the row. Returns the
- *  snapshot — including `order` — that {@link restoreBlock} recreates it from. */
+ *  snapshot (including `order`) that {@link restoreBlock} recreates it from. */
 async function hardDeleteBlock(db: Context['db'], block: Block): Promise<DeleteBlockSnapshot> {
   const geolocation =
     block.geolocationFk == null
@@ -480,7 +480,7 @@ async function hardRestoreBlock(
   await shiftBlockOrdersUp(db, area.id, snapshot.block.order)
 
   // Placement comes from the STORED area, not the client-supplied snapshot: `restoreBlock` ran
-  // `canAddBlock` against that row, so `area.regionFk` is the region actually authorized.
+  // `canAddBlock` against that row, so `area.regionFk` is the region authorized.
   // `createdBy` is the caller, so an undo cannot forge authorship.
   const [created] = await db
     .insert(blocks)
@@ -542,12 +542,12 @@ async function softRestoreBlock(db: Context['db'], block: Block): Promise<void> 
 }
 
 /** Undo a {@link deleteBlock}: recreate the hard-deleted block (with its pin) or clear the
- *  `deletedAt` the soft delete stamped — either way slotting it back at its original order, and
+ *  `deletedAt` the soft delete stamped: either way slotting it back at its original order, and
  *  erasing the delete event so the timeline reads as if it never happened. */
 export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
     // The snapshot is client-supplied, so re-validate placement the way createBlock does: the target
-    // area must exist and be in the region the caller claims - otherwise a block could be restored
+    // area must exist and be in the region the caller claims: otherwise a block could be restored
     // into another region's area (and shiftBlockOrdersUp would renumber that area's order).
     const area = await db.query.areas.findFirst({ where: eq(areas.id, snapshot.areaFk) })
 
@@ -558,7 +558,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
       error(403, formError('form_noPermission'))
     }
     // A hard restore inserts a brand new row, so it is a create and gates like one. Gating on
-    // canDeleteBlock instead would deny the undo to the EDITor who just deleted their own block:
+    // canDeleteBlock instead would deny the undo to the EDITor who has now deleted their own block:
     // the snapshot carries no `createdBy`, so that predicate's own-created branch can never fire.
     if (!canAddBlock(userRegions, area)) {
       error(403, formError('form_noPermission'))
@@ -609,7 +609,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
   }
 })
 
-/** Persist a new block order for an area — `orderedIds` is the full sequence of its (visible)
+/** Persist a new block order for an area: `orderedIds` is the full sequence of its (visible)
  *  blocks, top to bottom. Used by the reorder page (drag + "sort by distance"). Foreign/stale
  *  ids are ignored so a client can't renumber blocks outside the area. */
 export const reorderBlocks = authedCommand(
@@ -632,7 +632,7 @@ export const reorderBlocks = authedCommand(
     const belongsToArea = new Set(areaBlocks.map((row) => row.id))
 
     // `order` is 0-based and not uniquely constrained, so each block can be set to its slot
-    // directly. ponytail: one UPDATE per block — fine for the handful of blocks an area has; a
+    // directly. ponytail: one UPDATE per block, fine for the handful of blocks an area has; a
     // single CASE update is the upgrade if an area ever holds hundreds.
     let order = 0
     for (const id of orderedIds) {

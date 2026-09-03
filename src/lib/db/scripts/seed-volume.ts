@@ -16,11 +16,11 @@
  *   WITH_MEDIA=true   REGION_NAME='Volume Test'   SEED=42   RESET=false
  *
  * Additive by default (re-running stacks more data). RESET=true first wipes the
- * target region's existing content. Throwaway/dev DBs only - never a real one.
+ * target region's existing content. Throwaway/dev DBs only: never a real one.
  *
  * ponytail: no `event` rows are written, so the global feed won't list this
  * content (profile / area / route / explore views will). Add event seeding
- * if the feed specifically needs volume. Media paths are placeholders - the DB
+ * if the feed specifically needs volume. Media paths are placeholders: the DB
  * structure exists but images won't render without real storage objects.
  */
 import postgres from 'postgres'
@@ -207,7 +207,7 @@ const routeRows = blockIds.flatMap((blockId, bi) => {
   const areaFks = [cragId, areaId]
   const areaIds = areaFks.map((id) => `^${id}$`).join(',')
   return Array.from({ length: ROUTES_PER_BLOCK }, (_, i) => {
-    // user_grade_fk / user_rating are the COMMUNITY values the UI actually
+    // user_grade_fk / user_rating are the COMMUNITY values the UI
     // displays (grade_fk / rating are the original, shown only in the breakdown).
     // Seed both so grades/ratings render and histograms populate.
     const g = grade()

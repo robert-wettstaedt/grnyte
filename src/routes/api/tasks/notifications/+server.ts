@@ -130,7 +130,7 @@ const OUT_OF_BAND = new Set<NotificationSourceType>(['invitation_received', 'mem
  * The source types that also go out as email: the role you hold, and the access you no longer
  * have. Unconditional, ignoring the six push switches, which govern push and nothing else.
  *
- * `invitation_received` is deliberately absent - the invitation mail has already gone out, carries
+ * `invitation_received` is deliberately absent: the invitation mail has already gone out, carries
  * the token, and reaches addresses with no account at all.
  */
 const MAILED = new Set<NotificationSourceType>(['membership_removed', 'role_changed'])
@@ -267,7 +267,7 @@ function safeMark(scanned: readonly { createdAt: Date }[], truncated: boolean): 
  * One thing a timestamp floor cannot promise that the old id one could: an event whose author
  * keeps editing it inside the 15-minute fold window has its `created_at` bumped by the fold, so an
  * event already counted can rise back above the mark and be counted again. That is one repeat of a
- * card the reader has genuinely just changed, which is the lesser half of the trade the fold buys
+ * card the reader has genuinely changed moments ago, which is the lesser half of the trade the fold buys
  * everywhere else, and it is why this no longer claims a push never repeats itself.
  */
 async function sendDigests(nowMs: number): Promise<number> {
@@ -285,7 +285,7 @@ async function sendDigests(nowMs: number): Promise<number> {
     })
     .from(pushSubscriptions)
     // INNER, not LEFT. A subscriber with no `user_settings` row has no watermark to move, and an
-    // UPDATE against a row that does not exist affects nothing and reports success - which would
+    // UPDATE against a row that does not exist affects nothing and reports success, which would
     // make the same digest go out every five minutes, forever. `subscribeToPush` creates the row,
     // so this only skips accounts whose settings went missing, and only until they touch settings.
     .innerJoin(userSettings, eq(userSettings.userFk, pushSubscriptions.userFk))
@@ -543,7 +543,7 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
     guarded(row.id, () => sendMembershipEmail(row, contactLocale(row.contactLocale), origin)),
   )
 
-  // Everything below is the push pass, and all of it - three queries before a payload is built -
+  // Everything below is the push pass, and all of it (three queries before a payload is built)
   // is dead work without keys to sign with.
   let sent = 0
 
@@ -598,7 +598,7 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
   }
 
   /**
-   * What this run actually dispatched, which is what may be stamped. Everything when push is
+   * What this run dispatched, which is what may be stamped. Everything when push is
    * configured, only the mailed rows when it is not: stamping the rest would burn a backlog the
    * deployment could not push, and adding VAPID later would never deliver it.
    */
@@ -718,7 +718,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
     // Not an error, and no longer a reason to stop: the membership half of `sendDirected` goes out
     // by MAIL, whose secret is a different one. An environment with Resend configured and VAPID
     // not (a staging box, a key rotation) still owes people the sentence about their own
-    // membership, and `sendDirected` stamps only what it actually dispatched, so everything it
+    // membership, and `sendDirected` stamps only what it dispatched, so everything it
     // could not push is still waiting when the keys appear.
     console.log('[notifications] no VAPID keys configured, sending mail only')
   }
@@ -726,7 +726,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
   const nowMs = Date.now()
   // Serially, because both halves read `notifications` and the directed half writes to it.
   // The deployment's own origin, which is what the pg_cron caller posted to. No env var for it:
-  // the mail's logo and CTA then follow whichever environment actually ran the job.
+  // the mail's logo and CTA then follow whichever environment ran the job.
   const directed = await sendDirected(nowMs, url.origin, configured)
   // Nothing to do without push: a digest has no second channel, and running it anyway would
   // advance everybody's watermark past events nobody was told about.

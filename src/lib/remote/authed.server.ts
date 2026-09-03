@@ -126,8 +126,8 @@ async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
       await task()
     } catch (e) {
       // Logged, never rethrown. The transaction has committed, so letting a notification fan-out
-      // fail here would report a mutation that actually succeeded as a failure, and the user would
-      // resubmit into a duplicate-name error for the row they just created.
+      // fail here would report a mutation that succeeded as a failure, and the user would
+      // resubmit into a duplicate-name error for the row they created.
       console.error('[remote] afterCommit task failed', e)
     }
   }

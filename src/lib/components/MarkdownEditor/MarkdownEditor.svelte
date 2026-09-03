@@ -30,7 +30,7 @@
     compact?: boolean
     /** Swallowed: `field.as('text')` ships it, but we seed from `value`. */
     defaultValue?: number | string
-    /** Form field name — when set, the markdown is submitted via a hidden input. */
+    /** Form field name: when set, the markdown is submitted via a hidden input. */
     name?: string
     /**
      * Enter sends, and Shift+Enter breaks the line, as every chat box does. Never on a soft
@@ -45,7 +45,7 @@
     placeholder?: string
     /** Region whose members may be `@`-mentioned (enables the People group). */
     regionFk?: number
-    /** Markdown string — bindable, the editor's single source of truth. */
+    /** Markdown string, bindable: the editor's single source of truth. */
     value?: number | string
   }
 
@@ -71,7 +71,7 @@
    *
    * `LinkModal` renders its dialog through a `<Portal>`, so the field the reader is typing a URL
    * into is NOT inside this wrapper: focus leaves, `focused` goes false, and the toolbar folds
-   * away underneath the dialog it just opened. The toolbar is that dialog's own trigger, so it has
+   * away underneath the dialog it opened. The toolbar is that dialog's own trigger, so it has
    * to outlive it.
    */
   let linkOpen = $state(false)
@@ -269,7 +269,7 @@
 
   // Re-seed the document when `value` changes from outside the editor. This
   // component is reused across area navigations and the parent seeds the form
-  // field in an effect that runs *after* mount, so `initialValue` is stale —
+  // field in an effect that runs *after* mount, so `initialValue` is stale:
   // without this the editor shows the previous area's description (or nothing).
   $effect(() => {
     const editor = editorState.editor
@@ -280,7 +280,7 @@
     }
   })
 
-  // Stored markdown is just `!type:id!`, so chips parse with empty labels — the
+  // Stored markdown is only `!type:id!`, so chips parse with empty labels: the
   // same id→name resolver the read-only renderer uses fills them in as Zero
   // syncs the names down. Label changes don't affect the markdown output, so
   // patching the nodes here neither loops nor dirties the form value.
@@ -460,7 +460,7 @@
     <input type="hidden" {name} value={String(value)} {@attach publish} />
   {/if}
 
-  <!-- In-flow reference picker (per design — not a caret-floating popover) -->
+  <!-- In-flow reference picker (per design, not a caret-floating popover) -->
   {#if picker.open}
     <!-- See `keepFocus`: pressing a name must not take focus (and with it the phone's keyboard, and
          with that the sheet the composer is in) out of the editor.

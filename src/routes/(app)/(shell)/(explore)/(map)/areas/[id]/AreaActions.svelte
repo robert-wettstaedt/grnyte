@@ -34,8 +34,8 @@
   const showAdd = $derived(canAddAreaHere || canAddBlockHere || canAddParkingHere)
   const showManage = $derived(canEdit || canAdmin)
 
-  // Drive to the parking lot — the address you actually drive to — or, for a crag, fall back
-  // to the mean of its blocks (a name search would just send people to the wrong place).
+  // Drive to the parking lot: the address you drive to, or for a crag, fall back
+  // to the mean of its blocks (a name search would send people to the wrong place).
   // `area`-type areas (nested sub-areas, no direct blocks) hide the button entirely.
   const blocks = blockList(() => ({ areaId: area.id }))
   const destination = $derived.by(() => {

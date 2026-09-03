@@ -12,7 +12,7 @@ const line = (routeFk: number, over: Partial<{ name: string; path: string; topTy
 describe('stringifyTopoLines', () => {
   it('round-trips a line whole', () => {
     // The path survives verbatim, which is what lets the feed draw the state rather than
-    // just say how many lines it had.
+    // only say how many lines it had.
     expect(parseTopoLines(stringifyTopoLines([line(7)]))).toEqual([line(7)])
   })
 

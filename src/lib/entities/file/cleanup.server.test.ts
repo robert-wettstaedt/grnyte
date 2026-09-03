@@ -9,7 +9,7 @@
  *    the stream row behind, orphaning a hosted video that nothing points at any more. The unlink
  *    -> streams -> files order is what prevents that, and only a real database shows it.
  *  - **The DELETE `returning` is the source of truth.** Storage targets come from the rows that
- *    actually came back, not the rows passed in, so a row RLS silently kept keeps its bytes. Get
+ *    came back, not the rows passed in, so a row RLS silently kept keeps its bytes. Get
  *    this wrong and a read-only member's failed delete still wipes the media off the host.
  *
  * So every case runs impersonated (`request.jwt.claims` + `set local role app_writer`, exactly

@@ -32,7 +32,7 @@
 
   const blockId = $derived(Number(page.params.id))
 
-  // Getter keeps the resource live across navigation between blocks — the query
+  // Getter keeps the resource live across navigation between blocks: the query
   // re-targets as the param changes.
   const block = blockDetail(() => blockId)
 
@@ -59,7 +59,7 @@
 
   // The shared Modal renders its header from sheetState, so feed it the title
   // (name + Block tag), the area trail as the subtitle, and the prev/next nav as
-  // floating controls pinned just above the sheet's top edge.
+  // floating controls pinned directly above the sheet's top edge.
   $effect(() => {
     const data = block.data
     sheetState.title = title

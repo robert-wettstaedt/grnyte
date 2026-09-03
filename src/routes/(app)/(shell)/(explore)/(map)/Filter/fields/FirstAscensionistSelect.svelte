@@ -25,7 +25,7 @@
   )
   const mineSelected = $derived(myIds.length > 0 && myIds.every((id) => value.includes(id)))
 
-  // A row's presence depends only on the search term — never on selection — so
+  // A row's presence depends only on the search term (never on selection), so
   // toggling a row keeps it mounted. svelte-bottom-sheet closes when a click's
   // target leaves the DOM, so removing the clicked node here would dismiss the
   // sheet before "Apply" can be pressed.

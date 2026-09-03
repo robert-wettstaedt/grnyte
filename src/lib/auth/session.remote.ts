@@ -31,7 +31,7 @@ export const signOut = form(z.object({ redirectTo: returnPath }), async ({ redir
   // ponytail: this path cannot release the browser's push subscription (it is a server form, and
   // the endpoint only exists client-side). The next sign-in on this browser takes the row over,
   // which is what `subscribeToPush`'s endpoint delete is for. Upgrade = make this a client action
-  // if a shared-device leak is ever actually reported.
+  // if a shared-device leak is ever reported.
   await supabase.auth.signOut()
 
   redirect(303, redirectTo)

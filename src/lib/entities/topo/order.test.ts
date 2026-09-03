@@ -21,7 +21,7 @@ describe('orderRoutesByTopo', () => {
     expect(ordered.map((r) => r.id)).toEqual([20, 10])
   })
 
-  it('keeps topos in order — all of topo 0 before topo 1', () => {
+  it('keeps topos in order: all of topo 0 before topo 1', () => {
     const views = [view(1, line(10, 'M900,900 L900,200 Z')), view(2, line(20, 'M100,900 L100,200 Z'))]
     const ordered = orderRoutesByTopo([{ id: 20 }, { id: 10 }], views)
     expect(ordered.map((r) => r.id)).toEqual([10, 20])

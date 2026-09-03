@@ -11,7 +11,7 @@ import type { UserRegion } from './dto'
  *
  * Membership is the only thing that grants this, deliberately: `app.admin` is not a
  * superuser here. It carries no region permission, `authorize_in_region` never consults
- * it, and Zero scopes every sync on `region_members` - so an app admin with no membership
+ * it, and Zero scopes every sync on `region_members`: so an app admin with no membership
  * cannot even load the screen. The `app.admin` policies on `regions` and `region_members`
  * stay, which makes app admins a database-level back office rather than an in-app one.
  */
@@ -33,8 +33,8 @@ export function canReadRegion(userRegions: UserRegion[], regionFk: number): bool
 }
 
 /**
- * Whether taking the admin role away from `userFk` - by demotion, removal or their own
- * departure - would leave the region with nobody able to administer it. Only an admin can
+ * Whether taking the admin role away from `userFk` (by demotion, removal or their own
+ * departure) would leave the region with nobody able to administer it. Only an admin can
  * promote anyone, and no in-app path exists to rescue such a region (see {@link canEditRegion}
  * on why app admins are not one), so it would have to be fixed in the database.
  *

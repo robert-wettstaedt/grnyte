@@ -38,7 +38,7 @@ export function markdownReferences(ids: () => MarkdownReferencesIds) {
   )
 
   // Users resolve by their (region-agnostic) ids already embedded in the
-  // content — `usersByIds` is the by-id resolver, not the picker enumerator.
+  // content: `usersByIds` is the by-id resolver, not the picker enumerator.
   const users = createResource(
     () => queries.usersByIds({ id: ids().users }),
     (rows) => rows.map((row): MarkdownReference => ({ id: row.id, name: row.username, type: 'users' })),
@@ -51,8 +51,8 @@ export function markdownReferences(ids: () => MarkdownReferencesIds) {
    * A completed result is authoritative: the id is not there because the target was deleted, so it
    * gets a tombstone. Offline nothing ever completes (Zero only calls a query complete once the
    * server says so, and re-earns that on every connect), so an id missing from the local replica
-   * gets the softer "not available" instead: it may be perfectly alive, on a device that simply
-   * never synced it.
+   * gets the softer "not available" instead: it may be perfectly alive, on a device that never
+   * synced it.
    *
    * Still loading and online is neither: return nothing and let the name arrive. The alternative is
    * a placeholder that flashes in the middle of a sentence and is then replaced.
@@ -72,9 +72,9 @@ export function markdownReferences(ids: () => MarkdownReferencesIds) {
     // `availability`, not `isComplete`. Completeness is a fact about the transport: Zero clears it
     // on every disconnect, including the one it performs itself after five minutes in a background
     // tab, so a reference that had rendered a proper tombstone would silently downgrade to "not
-    // available" on a pocketed phone. `ready` is the judgement we actually want - this device holds
+    // available" on a pocketed phone. `ready` is the judgement we want: this device holds
     // the answer, whether because the server confirmed it or because the guidebook is preloaded and
-    // synced - and it is the same judgement every other offline surface reads.
+    // synced, and it is the same judgement every other offline surface reads.
     const authoritative = resource.availability === 'ready'
 
     return requested

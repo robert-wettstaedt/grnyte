@@ -56,7 +56,7 @@
   }: Props = $props()
   const id = $props.id()
 
-  // Tile mode (has a target): render just the Add tile, sized to sit in a media strip.
+  // Tile mode (has a target): render only the Add tile, sized to sit in a media strip.
   // The uploads finalize on pick and their tiles show on the target page, so this field
   // drops its own tile grid, constraints line, and inline rejections.
   const tile = $derived(target != null)

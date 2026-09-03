@@ -59,7 +59,7 @@
 />
 
 <!-- Real topo thumbnail with the route's line, in the normalized 0–1 format (legacy
-     pixel paths are skipped in the tile — their original photo size isn't known). -->
+     pixel paths are skipped in the tile: their original photo size isn't known). -->
 <Story
   name="With topo"
   args={{

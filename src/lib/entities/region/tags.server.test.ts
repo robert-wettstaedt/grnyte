@@ -5,7 +5,7 @@
  * Real database, real fixtures, for the same reason as `guards.server.test.ts`: every function here
  * is a statement, and the one thing worth asserting is a primary-key collision that only a real
  * database can raise. The connection is the superuser one (RLS bypassed) because these run inside
- * an already RLS-scoped transaction in production - the question here is the statement, not the
+ * an already RLS-scoped transaction in production: the question here is the statement, not the
  * policy.
  *
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.

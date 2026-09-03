@@ -41,7 +41,7 @@ vi.mock('./files.remote', () => ({
 
 const { ImageUpload } = await import('./upload-manager.svelte')
 
-/** The live fake XHRs, newest last — each test drives the transfer through these. */
+/** The live fake XHRs, newest last: each test drives the transfer through these. */
 let sent: FakeXhr[] = []
 
 /** Enough of XMLHttpRequest for uploadToStaging: the test decides when bytes land. */
@@ -109,7 +109,7 @@ describe('transfer', () => {
   })
 
   it('does not reject unhandled when nobody awaits a failed transfer', async () => {
-    // Actually watch for the rejection. The status/error assertions below are already made by
+    // Watch for the rejection. The status/error assertions below are already made by
     // 're-runs the transfer when the bytes never landed' on this same fail() setup, so on their
     // own they left the internal `.catch(() => {})` free to be deleted, with the regression
     // riding on whether vitest happened to surface a process-level unhandled rejection.

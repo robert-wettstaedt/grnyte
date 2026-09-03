@@ -22,7 +22,7 @@
   }: {
     compact?: boolean
     /**
-     * True for data we deliberately do not keep offline, false for data that simply was not synced
+     * True for data we deliberately do not keep offline, false for data that was not synced
      * to this device yet. Both are "not here", but only the second one comes back on its own, and
      * telling a reader to reconnect is only honest in that case.
      */

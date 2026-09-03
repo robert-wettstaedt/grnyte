@@ -248,13 +248,13 @@ export const reorderTopos = authedCommand(
       error(403, 'Not allowed to edit topos here')
     }
 
-    // Only reorder the block's own topos — a stale client snapshot (or a crafted call)
+    // Only reorder the block's own topos: a stale client snapshot (or a crafted call)
     // may contain ids of deleted topos or of another block entirely.
     const own = await db.query.topos.findMany({ columns: { id: true, order: true }, where: eq(topos.blockFk, blockId) })
     const ownIds = new Set(own.map((topo) => topo.id))
 
     // Renumber ALL of the block's topos 0..n-1: the client's order first, then any own topos
-    // it omitted (a stale snapshot missing a just-created photo) appended in their current order.
+    // it omitted (a stale snapshot missing a newly created photo) appended in their current order.
     // Numbering only the listed ids would leave an omitted topo on a stale `order` that collides
     // with a new index.
     const wanted = orderedIds.filter((id) => ownIds.has(id))
@@ -282,7 +282,7 @@ const topoLineSchema = z.object({
 })
 
 /**
- * Save the full line set for a topo in one shot — the batched dirty session's Save. Upserts each
+ * Save the full line set for a topo in one shot: the batched dirty session's Save. Upserts each
  * line by `routeFk` (a route has at most one line per photo) and deletes lines no longer present.
  */
 export const saveTopoLines = authedCommand(
@@ -296,7 +296,7 @@ export const saveTopoLines = authedCommand(
       error(403, 'Not allowed to edit topos here')
     }
 
-    // Lines may only reference one of the block's own LIVE routes — regionFk is stamped from
+    // Lines may only reference one of the block's own LIVE routes: regionFk is stamped from
     // the topo, so an unchecked routeFk would let a crafted call attach a foreign route, and a
     // soft-deleted route must not gain a fresh line (it is on its way out, see the delete loop).
     const blockRoutes =
@@ -336,7 +336,7 @@ export const saveTopoLines = authedCommand(
       }
     }
 
-    // Delete only lines the user could actually see and remove: a drawn line (non-empty path)
+    // Delete only lines the user could see and remove: a drawn line (non-empty path)
     // on a live route that is no longer in the set. Path-less association rows and rows for
     // soft-deleted routes are invisible in the editor, so leave them (a path-less row would be
     // hard-deleted out from under `deleteRoute`; a deleted route's line must survive for restore).

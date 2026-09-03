@@ -7,8 +7,8 @@ import { describe, expect, it } from 'vitest'
  * `src/sw.ts` is a second application. Vite builds it separately (`configFile: false`, so
  * `build.target` does not reach it either, see AGENTS.md), it imports freely from `$lib`, and
  * nothing about it appears in the app's bundle report. One transitive import of `zod` for a
- * five-field push payload put **309 KB** into `sw.js` - the whole library, localized validation
- * messages for every locale included - and the build said nothing at all.
+ * five-field push payload put **309 KB** into `sw.js` (the whole library, localized validation
+ * messages for every locale included), and the build said nothing at all.
  *
  * That cost lands where it hurts most: a worker script is re-parsed every time the browser starts
  * it, which it does aggressively, and re-downloaded on every deploy, on the low-end phones the
@@ -24,7 +24,7 @@ const BUILT_SHELL = 'build/prerendered/offline.html'
 
 describe('the built service worker', () => {
   // Skipped rather than failed when there is no build: `npm test` runs constantly without one, and a
-  // test that demanded `npm run build` first would just be turned off. CI builds before testing.
+  // test that demanded `npm run build` first would be turned off. CI builds before testing.
   const withBuild = it.runIf(existsSync(BUILT_WORKER))
 
   withBuild(`stays under ${MAX_BYTES / 1024} KB`, () => {
@@ -35,7 +35,7 @@ describe('the built service worker', () => {
     // The shell is the whole offline story: every offline navigation is answered with it, and
     // `sw.ts` reads it straight out of the precache with no second copy behind it. It gets there
     // only by being prerendered (`src/routes/offline/+page.ts`), so a config change that stopped
-    // prerendering it would take offline with it - silently, because nothing else would fail.
+    // prerendering it would take offline with it: silently, because nothing else would fail.
     expect(readFileSync(BUILT_WORKER, 'utf-8')).toContain('"url":"offline"')
   })
 })
@@ -74,7 +74,7 @@ describe('the prerendered offline shell', () => {
 
   // `sw.ts` answers a navigation to `/areas/594` with this file, so its asset URLs have to be
   // absolute: a relative one resolves against whatever path it is answering for and 404s a level
-  // too deep. SvelteKit guarantees that only for its own SPA fallback, which this is not - here it
+  // too deep. SvelteKit guarantees that only for its own SPA fallback, which this is not: here it
   // holds because `svelte.config.js` pins `paths.relative: false`, and Kit's default is `true`.
   // Nothing else fails if that pin goes: the shell is still prerendered, still precached, still
   // served, and boots only at `/offline` itself.

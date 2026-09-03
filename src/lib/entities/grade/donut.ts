@@ -39,7 +39,7 @@ export function buildGradeDonutSvg(countByGrade: Map<number, number>, total: num
     )
     .join('')
 
-  // Dark backing ring (visible through the gaps between arcs) plus a white disc just big
+  // Dark backing ring (visible through the gaps between arcs) plus a white disc precisely big
   // enough to fill the hole behind the count, so it reads on top of the map. The ring is
   // dark so the light end of the grade scale (very-easy peach) still contrasts against it.
   const hole = r - sw / 2

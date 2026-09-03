@@ -130,7 +130,7 @@
   </a>
 </div>
 
-<!-- The route being ticked, so the form never loses its subject. -->
+<!-- The route being logged, so the form never loses its subject. -->
 <a
   class="border-surface-200-800 bg-surface-50-950 hover:bg-surface-100-900 flex items-center gap-3 rounded-2xl border px-3.5 py-3"
   href={resolve('/(app)/routes/[id]', { id: String(route.id) })}

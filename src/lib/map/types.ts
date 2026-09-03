@@ -10,7 +10,7 @@ export interface BlocksMapProps {
   /** Per-block route counts keyed by grade id (`gradeFk`), feeding the area/crag donut markers. */
   gradeCountByBlock?: Map<number, Map<number, number>>
   lineStrings?: null | string[]
-  /** Fired synchronously when a tapped feature is about to navigate to its detail sheet —
+  /** Fired synchronously when a tapped feature is about to navigate to its detail sheet,
    *  before the click bubbles to document, so the sheet can suppress its outside-click collapse. */
   onfeatureopen?: () => void
   /** Fired with the pressed `[lat, lng]` on touch long-press or mouse right-click

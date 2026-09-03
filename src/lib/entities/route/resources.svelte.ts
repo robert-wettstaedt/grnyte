@@ -40,7 +40,7 @@ export function routeList(filter: () => RouteListFilter = () => ({}), opts?: { e
   )
 }
 
-/** Slim route rows for the map (no related trees synced) — see `listRoutesForMap`. */
+/** Slim route rows for the map (no related trees synced): see `listRoutesForMap`. */
 export function routeMapList(filter: () => RouteListFilter = () => ({})) {
   return createResource(
     () => queries.listRoutesForMap(filter()),
@@ -49,7 +49,7 @@ export function routeMapList(filter: () => RouteListFilter = () => ({})) {
 }
 
 /**
- * Full route rows (with topo) for a set of ids — the profile's project and
+ * Full route rows (with topo) for a set of ids: the profile's project and
  * favorite lists hydrate their derived id sets through this. Skipped while the
  * id set is empty; callers reorder the result by their own list.
  */

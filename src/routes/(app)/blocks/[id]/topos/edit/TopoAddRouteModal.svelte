@@ -14,7 +14,7 @@
   import { flip } from 'svelte/animate'
   import { slide } from 'svelte/transition'
 
-  /** The block-route-list shape (a subset of RouteListItem) — enough for the picker rows. */
+  /** The block-route-list shape (a subset of RouteListItem): enough for the picker rows. */
   type RouteCandidate = Pick<RouteListItem, 'description' | 'gradeFk' | 'id' | 'name' | 'rating' | 'tags'>
 
   interface Props {
@@ -68,7 +68,7 @@
   }
 
   // Both "Quick line" (step 1) and the new-route form (step 2) submit createRoute; the
-  // new-route fields only exist in the DOM on step 2, so a quick line posts just blockId
+  // new-route fields only exist in the DOM on step 2, so a quick line posts only blockId
   // (empty name, no grade). Only one of the two forms is ever mounted at a time.
   const submit = createRoute.enhance(async ({ submit }) => {
     const ok = await submit()

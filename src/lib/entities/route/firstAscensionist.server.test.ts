@@ -75,7 +75,7 @@ describe.skipIf(!reachable)('resolveFirstAscensionists self-claim', () => {
       insert into public.first_ascensionists (name, region_fk, user_fk)
       values ('Alice', ${regionId}, ${users.stranger.userId}) returning id`
 
-    // An editor (the caller) re-submits "alice" while editing a route - matches by name, no new row,
+    // An editor (the caller) re-submits "alice" while editing a route: matches by name, no new row,
     // the existing link is untouched. The stray userFk they send is irrelevant.
     const resolved = await resolveFirstAscensionists(
       db,

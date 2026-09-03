@@ -40,8 +40,8 @@ export function deriveStats(ascents: readonly UserAscentDetail[]): ProfileStats 
 
 /**
  * Route counts per community grade (grade id → count), one vote per route via its
- * best tick — the grade histogram's input. `flashOnly` narrows to routes flashed;
- * otherwise every sent route (any non-attempt tick) counts. Ungraded routes drop out.
+ * best send: the grade histogram's input. `flashOnly` narrows to routes flashed;
+ * otherwise every sent route (any non-attempt send) counts. Ungraded routes drop out.
  */
 export function gradeCounts(ascents: readonly UserAscentDetail[], flashOnly: boolean): Map<number, number> {
   const status = ascentStatusByRoute(ascents)

@@ -8,7 +8,7 @@
   interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
     children: Snippet<[HTMLAttributes<HTMLElement>]>
     class?: ClassValue
-    /** The remote-form field (or array/object field container) — only its issues are read. */
+    /** The remote-form field (or array/object field container): only its issues are read. */
     field: { issues(): RemoteFormIssue[] | undefined }
     hint?: string
     label?: string

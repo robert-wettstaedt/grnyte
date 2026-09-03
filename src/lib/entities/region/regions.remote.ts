@@ -61,7 +61,7 @@ export const createRegion = authedForm(
   regionCreateSchema,
   async ({ name }, { user }): Promise<MutationResult<{ regionId: number }>> => {
     // The friendly, bannered version of the cap. `createRegionForUser` re-checks it inside its own
-    // transaction, and that check is the one that actually enforces it.
+    // transaction, and that check is the one that enforces it.
     if ((await listOwnedRegions(user.id)).length >= MAX_OWNED_REGIONS) {
       invalid(formError('region_capReached', { count: MAX_OWNED_REGIONS }))
     }
@@ -390,7 +390,7 @@ export const acceptRegionInvitation = authedCommand(
  *
  * A plain `query` rather than `authedQuery`: it reads over the base `db` (see
  * `listInvitationsForEmail`), so there is no RLS transaction to open, and a signed-out caller is
- * an empty list rather than a 401 - the settings screen is behind the auth guard anyway.
+ * an empty list rather than a 401: the settings screen is behind the auth guard anyway.
  */
 export const listMyInvitations = query(async (): Promise<UserInvitationItem[]> => {
   const email = getRequestEvent().locals.claims?.email
@@ -449,7 +449,7 @@ export const updateRegionMemberRole = authedCommand(
       regionFk,
     })
 
-    // What you can do in a region just changed, and the feed card says it in the third person to
+    // What you can do in a region has changed, and the feed card says it in the third person to
     // everybody. `metadata` carries the role because the sentence needs to name it and the user
     // row the notification points at cannot: a person holds a different role per region.
     //
@@ -500,7 +500,7 @@ export const removeRegionMember = authedCommand(
     })
 
     // Queued, not sent: the row waits out `DIRECTED_DEBOUNCE_MS`, and the Undo this returns a
-    // snapshot for deletes it inside that window - which is why that snackbar is the one place in
+    // snapshot for deletes it inside that window, which is why that snackbar is the one place in
     // the app with a bounded duration. `notifyOutOfBand` rather than `notify`, because the
     // recipient is no longer a member and `notify` would find nobody to tell.
     afterCommit(() => notifyOutOfBand({ actorFk: user.id, regionFk, sourceType: 'membership_removed', userFk }))

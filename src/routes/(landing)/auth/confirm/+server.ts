@@ -27,14 +27,14 @@ export const GET: RequestHandler = async ({ locals, url }) => {
   }
 
   if (locals.claims != null) {
-    // Refresh so a just-confirmed change (e.g. a new email) lands in the session claims. No
+    // Refresh so a newly confirmed change (e.g. a new email) lands in the session claims. No
     // argument: the client reads the current session out of the request cookies itself, and the
     // one this server trusts is the verified token, which is not the shape `refreshSession` takes.
     await locals.supabase.auth.refreshSession()
 
     // Supabase can verify the link on its own side and bounce here with the tokens in the URL
     // fragment, which never reaches the server. A signed-in caller arriving without a token has
-    // therefore already been confirmed — pass them through instead of crying error.
+    // therefore already been confirmed: pass them through instead of crying error.
     if (token_hash == null) {
       redirectTo.searchParams.delete('next')
       redirect(303, redirectTo)

@@ -2,7 +2,7 @@ import { browser } from '$app/environment'
 import { base } from '$app/paths'
 
 /**
- * Whether the app can actually reach anything.
+ * Whether the app can reach anything.
  *
  * Two signals, because neither is sufficient on its own.
  *
@@ -119,7 +119,7 @@ export function connectionVerdict(name: string): 'no-evidence' | 'reachable' | '
   //
   // The answer may come from zero-cache rather than our own app (a 401/403 on its call to
   // `get-queries` raises this too), so it means "something upstream answered", not specifically
-  // "your token is bad" - enough for a network signal, too vague to key user-facing copy on.
+  // "your token is bad": enough for a network signal, too vague to key user-facing copy on.
   if (name === 'needs-auth') {
     return 'reachable'
   }
@@ -209,7 +209,7 @@ export function reportConnectionState(state: { name: string }): void {
  *
  * The query string is load-bearing. `_app/version.json` is in the precache manifest, so requesting
  * it plainly is answered by the service worker from Cache Storage with a cheerful 200 while the
- * network is dead - measured, not assumed. Workbox only ignores `utm_*` and `fbclid` when matching a
+ * network is dead: measured, not assumed. Workbox only ignores `utm_*` and `fbclid` when matching a
  * precached URL, so any other parameter misses the cache and goes to the network, which is what we
  * need to test.
  *

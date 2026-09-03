@@ -10,7 +10,7 @@ import { filteredRouteList } from './filteredRoutes.svelte'
 import type { MapData } from './types'
 
 /**
- * The /explore map dataset — all blocks/areas/parking/paths plus the per-block
+ * The /explore map dataset: all blocks/areas/parking/paths plus the per-block
  * route & grade counts that feed the donut markers. Shared so the parking
  * picker renders the exact same map as /explore.
  */
@@ -29,10 +29,10 @@ export function createExploreMapData(
   const areasResult = areaList(() => ({}))
 
   // Each field is its own $derived so it only recomputes when its own source query
-  // changes — a parking mutation re-emits only the areas query, so `parkingLocations`
+  // changes: a parking mutation re-emits only the areas query, so `parkingLocations`
   // and `lineStrings` update while `blocks`/route counts (and the donut markers they
   // feed) keep stable references. That keeps the map's per-layer effects granular: an
-  // update touches just the affected layer instead of rebuilding (and flashing) them all.
+  // update touches only the affected layer instead of rebuilding (and flashing) them all.
   const routeCountByBlock = $derived.by(() => {
     const counts = new Map<number, number>()
     for (const route of routes.data) {
@@ -58,7 +58,7 @@ export function createExploreMapData(
   // Search scope: blocks matching the query by their own name or any ancestor area
   // name (the `areas` chain is already synced, so no extra query). `null` when not
   // searching, so the map stays untouched.
-  // ponytail: name/area match only — a bare route-name search shows the route in the
+  // ponytail: name/area match only: a bare route-name search shows the route in the
   // list, not on the map; couple `content` into `routeMapList` above if that's wanted.
   const searchBlockIds = $derived.by(() => {
     const needle = search().trim().toLowerCase()
@@ -77,7 +77,7 @@ export function createExploreMapData(
 
   // Search narrows to name/area matches; a route filter then narrows those to blocks
   // holding matching routes (so search + filter compose). Without either, every block
-  // shows — a just-created block has no routes yet, but must still appear. The
+  // shows: a newly created block has no routes yet, but must still appear. The
   // untouched path returns the source array by reference so the map layer doesn't flash.
   const blocks = $derived.by(() => {
     const searchIds = searchBlockIds
@@ -90,7 +90,7 @@ export function createExploreMapData(
   const parkingLocations = $derived(areasResult.data.flatMap((area) => area.parkingLocations))
   const lineStrings = $derived(areasResult.data.flatMap((area) => area.geoPaths))
 
-  // True only while nothing is renderable yet — local-first preloads flip the
+  // True only while nothing is renderable yet: local-first preloads flip the
   // source queries to `ready` fast, so this is the cold-load case (no markers).
   const isLoading = $derived(
     routes.status === 'loading' || blocksResult.status === 'loading' || areasResult.status === 'loading',
@@ -98,7 +98,7 @@ export function createExploreMapData(
 
   // A stable object with per-field reactive getters. Callers bind each field to `<Map>`
   // individually (never spread), so a field whose source query didn't change keeps a
-  // stable reference and its map layer's effect doesn't re-run — only the changed layer does.
+  // stable reference and its map layer's effect doesn't re-run: only the changed layer does.
   return {
     get blocks() {
       return blocks

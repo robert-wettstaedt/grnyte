@@ -60,7 +60,7 @@ export const convertPathToPoints = (path: string): TopoPoint[] => {
 }
 
 /**
- * The row `toTopoViews` maps — derived from the query's own `.related(...)` chain (topos →
+ * The row `toTopoViews` maps: derived from the query's own `.related(...)` chain (topos →
  * routes + file, plus the block's own routes) so the mapper's input can never drift from
  * the query that feeds it.
  *
@@ -77,7 +77,7 @@ type BlockRow = QueryRow<typeof queries.blockTopos>
  */
 /**
  * From a route's own `topoRoutes` rows, pick the most complete drawn line and its
- * image — the thumbnail a route row shows. Mirrors {@link selectTopoForRoute}'s
+ * image: the thumbnail a route row shows. Mirrors {@link selectTopoForRoute}'s
  * "most points wins", but reads straight off the route (no block context needed).
  */
 export function routeTopoThumb(
@@ -127,7 +127,7 @@ export function toTopoViews(block: Pick<BlockRow, 'routes' | 'topos'>): TopoView
         imageWidth: topo.file?.width ?? undefined,
         lines: (topo.routes ?? [])
           // `routesById` holds only the block's live routes (the query filters deletedAt), so a
-          // row whose route is missing here belongs to a soft-deleted route — drop it, or it
+          // row whose route is missing here belongs to a soft-deleted route: drop it, or it
           // renders as a nameless grey ghost line that survives "Delete route everywhere".
           .filter((tr) => tr.routeFk != null && tr.path != null && tr.path.trim() !== '' && routesById.has(tr.routeFk))
           .map((tr): TopoLine => {

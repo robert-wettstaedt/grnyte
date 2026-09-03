@@ -15,7 +15,7 @@
   import RowDescription from './RowDescription.svelte'
   import type { AscentStatus } from './types'
 
-  /** The slice of a route the row renders — a `RouteListItem` satisfies it. */
+  /** The slice of a route the row renders: a `RouteListItem` satisfies it. */
   type RouteRowData = Pick<
     RouteListItem,
     'description' | 'gradeFk' | 'name' | 'rating' | 'tags' | 'topoImagePath' | 'topoPoints'
@@ -24,19 +24,19 @@
   interface Props {
     /** Trailing action inside the card (e.g. a remove button). */
     action?: Snippet
-    /** Selected state — highlights the card and expands the tags/actions line. */
+    /** Selected state: highlights the card and expands the tags/actions line. */
     active?: boolean
     /** Breadcrumb path, e.g. "Roadside · The Arch". */
     crumbs?: string | string[]
-    /** Pre-resolved route detail href — the "Details" action of the expanded row. */
+    /** Pre-resolved route detail href: the "Details" action of the expanded row. */
     detailsHref?: string
     /** Display grade in the user's scale, e.g. "7a+". */
     grade: string
     /** Render as a link. */
     href?: string
-    /** Pre-resolved block detail href — the "Show on map" action of the expanded row. */
+    /** Pre-resolved block detail href: the "Show on map" action of the expanded row. */
     mapHref?: string
-    /** Guidebook line number — shown in the thumb instead of a topo preview. */
+    /** Guidebook line number: shown in the thumb instead of a topo preview. */
     number?: number
     /** Tap handler when rendered as a button. */
     onclick?: (event: MouseEvent) => void
@@ -64,7 +64,7 @@
     variant = 'card',
   }: Props = $props()
 
-  // The selected card grows an extra line (tags + actions) — only when there's
+  // The selected card grows an extra line (tags + actions), only when there's
   // something to put in it.
   const expanded = $derived(active && (route.tags.length > 0 || mapHref != null || detailsHref != null))
 
@@ -83,7 +83,7 @@
 
   // Only normalized (0–1) paths can be drawn here: the tile loads a resized
   // preview, and legacy pixel paths are in the original photo's coordinate
-  // space, whose dimensions aren't stored — there's no way to scale them to the
+  // space, whose dimensions aren't stored, so there's no way to scale them to the
   // preview. Those rows show the plain photo without a line.
   // ponytail: fixes itself once legacy paths are migrated to 0–1 fractions.
   const line = $derived(

@@ -11,7 +11,7 @@ export interface ThreadTarget {
 }
 
 /** Cap on how many pages a permalink pulls to reach an old comment; beyond 150 comments, manual
- *  scrolling beats syncing the rest of a long thread just to find one link. */
+ *  scrolling beats syncing the rest of a long thread to find one link. */
 const HIGHLIGHT_MAX_PAGES = 5
 
 /**

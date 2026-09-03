@@ -2,7 +2,7 @@ import { toAreaListItem, type AreaAncestor } from '$lib/entities/area/mapper'
 import type { Row } from '$lib/zero/types'
 import type { Geolocation, ParkingDetail } from './dto'
 
-/** What `toParkingDetail` reads — a geolocation row with its `area` relation. */
+/** What `toParkingDetail` reads: a geolocation row with its `area` relation. */
 interface ParkingDetailRow {
   readonly area?: AreaAncestor | undefined
   readonly id: number

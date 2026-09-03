@@ -47,11 +47,11 @@ const CLAIM_CHECK_MS = 2_000
  * `immutable, max-age=31536000`.
  *
  * Gated rather than unconditional: a 2.0 page reloads itself at its next navigation, and on a first
- * install the page that just registered this worker is a window client too.
+ * install the page that registered this worker a moment ago is a window client too.
  *
  * A retired tab lands where it was **opened**, not where the reader is. `Client.url` is the load URL,
  * and MDN is explicit it "is not updated ... if a single-page app intercepts a navigation event",
- * which is every navigation here. Nothing can ask an uncooperative client where it actually is.
+ * which is every navigation here. Nothing can ask an uncooperative client where it is.
  */
 async function claimAndRetireStaleClients(): Promise<void> {
   await self.clients.claim()
@@ -138,8 +138,8 @@ const DYNAMIC_ENV = '/_app/env.js'
 self.addEventListener('install', (event) => {
   // No `catch`. This used to swallow its own rejection, on the reasoning that losing the env module
   // should not also cost us the shell, and that had it backwards: a shell without the env module is
-  // not a degraded offline mode, it is a shell that hangs forever on an import nobody can see fail -
-  // no console error, no visible failure, just a page that never boots.
+  // not a degraded offline mode, it is a shell that hangs forever on an import nobody can see fail:
+  // no console error, no visible failure, only a page that never boots.
   //
   // Failing the install is the recoverable outcome. The worker does not activate, the previous one
   // stays, and the browser retries on a later navigation. Half-installing is the one that strands
@@ -187,8 +187,8 @@ self.addEventListener('fetch', (event) => {
       //
       // The manifest records this URL relative (`offline`, no leading slash) and the constant here
       // has a leading slash, which looks like it should matter and does not: Workbox absolutises
-      // both sides with `new URL(x, location.href)` - on ingest in `createCacheKey` and on lookup in
-      // `getCacheKeyForURL` - so the relative form never survives ingest. `location.href` in a worker
+      // both sides with `new URL(x, location.href)` (on ingest in `createCacheKey` and on lookup in
+      // `getCacheKeyForURL`), so the relative form never survives ingest. `location.href` in a worker
       // is the worker's own URL, and this one is served from the origin root, so both resolve to
       // `<origin>/offline`. The one thing that would break that is moving the worker into a
       // subdirectory, i.e. setting `paths.base`, and `app-server-loads.test.ts`'s neighbour asserts
@@ -209,7 +209,7 @@ self.addEventListener('fetch', (event) => {
  * guaranteed to be there. CacheFirst puts them somewhere we control.
  *
  * Matches only same-origin `?w=` requests, i.e. the generated derivatives, which the route
- * serves as `immutable` because they are stable per (path, width) - exactly what CacheFirst
+ * serves as `immutable` because they are stable per (path, width): exactly what CacheFirst
  * needs to be correct. A bare `/image/<path>` is the full-res original the viewer loads;
  * caching those would evict the whole bucket for one photo. Bunny video thumbnails are
  * cross-origin (opaque responses, charged at full padded size), so they stay out too.
@@ -220,7 +220,7 @@ self.addEventListener('fetch', (event) => {
  * intersects with it over one shared IndexedDB store and the stricter limit wins. That 30 days was
  * an offline wall rather than staleness: `Date` on a cached response never refreshes, so a month
  * after a topo was last fetched the plugin refuses the cached copy and CacheFirst falls through to
- * the network, which offline is precisely the thing that cannot happen. The topo was simply gone on
+ * the network, which offline is precisely the thing that cannot happen. The topo was gone on
  * the one day of the year it was needed.
  *
  * `cacheName` is load-bearing twice over: ExpirationPlugin throws if it gets the default runtime
@@ -242,7 +242,7 @@ registerRoute(
 /**
  * Map tiles, which is the one thing at a crag that a refresh could lose.
  *
- * The HTTP cache does not cover it, for two reasons that are easy to conflate. It is best-effort
+ * The HTTP cache does not cover it, for two reasons that get conflated. It is best-effort
  * storage the browser may drop at any time, and its entries expire on OSM's schedule rather than
  * ours: `max-age` measured 2026-08-29 ran from 3.2 hours to 147 across two samples, varying per
  * tile rather than per zoom (a busy area is re-rendered more often), with
@@ -326,7 +326,7 @@ self.addEventListener('push', (event) => {
 
       // `focused`, not `visibilityState`: a tab can be the visible one in its own window while
       // the reader is working in another application entirely, and that person should still be
-      // told. Only somebody actually looking at the app is spared the buzz.
+      // told. Only somebody looking at the app is spared the buzz.
       const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' })
       await showFor(
         payload,
@@ -341,7 +341,7 @@ self.addEventListener('push', (event) => {
  *
  * `PushMessageData.json()` throws on a body this deployment did not write (a sender from an older
  * release, a probe, a partially decrypted body), and a throw inside the push listener means no
- * notification at all - which is exactly the silent push the subscription promised never to send.
+ * notification at all: exactly the silent push the subscription promised never to send.
  */
 function readJson(data: PushMessageData): unknown {
   try {
@@ -368,7 +368,7 @@ function showFor(payload: PushPayload, focused: boolean): Promise<void> {
     data: { pathname: payload.pathname },
     icon: '/pwa-192x192.png',
     // Alert again on replacement. `renotify` defaults to false, which would make every digest
-    // after the first silently swap the text under a notification nobody looked at - and with
+    // after the first silently swap the text under a notification nobody looked at, and with
     // a 20-minute quiet period, replacement is the normal case rather than the exception. It
     // requires a tag, which the payload schema makes mandatory.
     renotify: !focused,
@@ -389,7 +389,7 @@ self.addEventListener('notificationclick', (event) => {
     return
   }
 
-  // If no specific action, just focus on the app if it's open
+  // If no specific action, focus on the app if it's open
   event.waitUntil(
     self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then(async (windowClients) => {
       if (windowClients.at(0) == null) {

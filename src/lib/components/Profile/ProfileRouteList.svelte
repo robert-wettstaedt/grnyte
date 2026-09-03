@@ -24,7 +24,7 @@
     /** Route ids in display order; routes not (yet) synced are skipped. Defaults to the resource order. */
     order?: number[]
     resource: QueryResource<RouteListItem[]>
-    /** The user's tick per route, for the row's status glyph. */
+    /** The user’s ascent per route, for the row’s status glyph. */
     status?: Map<number, AscentType>
   }
 

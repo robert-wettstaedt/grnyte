@@ -28,15 +28,15 @@
   }
 
   // Grade strings carry the scale as a redundant prefix (e.g. `FB 6A+`); drop it
-  // so the axis reads as just `6A+`. The V scale (`V5`) has no prefix to strip.
+  // so the axis reads as only `6A+`. The V scale (`V5`) has no prefix to strip.
   const stripScale = (value: string): string =>
     value.startsWith(`${gradingScale} `) ? value.slice(gradingScale.length + 1) : value
 
-  // Grades that actually have routes, low → high. Drives both the histogram's
+  // Grades that have routes, low → high. Drives both the histogram's
   // visible span and the sparse-data chip fallback.
   const occupiedGrades = $derived(grades.filter((grade) => (countByGrade.get(grade.id) ?? 0) > 0))
 
-  // Restrict the chart to the span of grades that actually occur — empty tails
+  // Restrict the chart to the span of grades that occur: empty tails
   // at either end of the full scale would otherwise flatten the visible
   // distribution. Internal gaps are kept so the shape stays honest. Ungraded
   // routes are held out of the chart and counted separately below.

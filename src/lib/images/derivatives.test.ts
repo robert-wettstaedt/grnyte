@@ -41,7 +41,7 @@ describe('imageSrc', () => {
   it('only ever emits a width that has a derivative behind it', () => {
     // The regression: `?w=512` used to typecheck, then the server rounded it up to the 1024
     // file, so three call sites shipped 4x the pixels they displayed. @ts-expect-error is the
-    // guard now - if DerivativeSize ever widens to `number`, this line stops erroring and fails.
+    // guard now: if DerivativeSize ever widens to `number`, this line stops erroring and fails.
     // @ts-expect-error -- 512 is not a DerivativeSize
     expect(imageSrc('/topos/138.jpg', 512)).toBe('/image/topos/138.jpg?w=512')
     for (const size of DERIVATIVE_SIZES) {

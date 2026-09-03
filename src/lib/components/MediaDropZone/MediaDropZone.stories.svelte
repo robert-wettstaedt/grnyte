@@ -27,7 +27,7 @@
     return upload
   }
 
-  // Constructor only creates the preview object URL — start() is never called,
+  // Constructor only creates the preview object URL: start() is never called,
   // so no Bunny traffic. The fake bytes aren't a decodable video, so the
   // <video> thumbnail renders as a dark box, which is fine for eyeballing.
   const fakeVideo = (name: string, status: MediaUploadStatus, patch: { error?: string; progress?: number } = {}) => {
@@ -38,14 +38,14 @@
     return upload
   }
 
-  // Dropping a file here starts a real upload, which fails without a backend —
+  // Dropping a file here starts a real upload, which fails without a backend,
   // handy for eyeballing the failed state; the full flow needs the app.
   const states = [
     fake('boulder-topo.jpg', 'uploading', { progress: 0.45 }),
     fake('IMG_2041.heic', 'staged', { progress: 1 }),
     fake('crux-beta.png', 'finalizing'),
     fake('sunset-session.jpg', 'done'),
-    fake('flaky-connection.jpg', 'failed', { error: 'Network error — check your connection' }),
+    fake('flaky-connection.jpg', 'failed', { error: 'Network error: check your connection' }),
   ]
 
   const videoStates = [

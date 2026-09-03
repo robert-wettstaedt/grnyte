@@ -248,7 +248,7 @@ export const deleteAscent = command(
       // the logbook and the grade recalc. Saying nothing left that card standing as the only
       // account of a send that no longer exists.
       //
-      // Nothing at all is written for a mistake inside the grace window, because the cascade just
+      // Nothing at all is written for a mistake inside the grace window, because the cascade has already
       // removed the event this would hang beside, which is what makes that path leave no trace.
       if (!erasable) {
         // Whose ascent this was, in metadata: on a soft delete the row survives so the card could

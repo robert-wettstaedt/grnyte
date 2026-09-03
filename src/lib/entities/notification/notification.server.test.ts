@@ -8,7 +8,7 @@
  * 1. **The recipient set is exactly who can read the region.** `notificationRecipients` mirrors
  *    the `events` SELECT policy by hand, and a hand-written mirror is the kind of thing that
  *    drifts silently. So it is not asserted against a list written out here: it is asserted
- *    against who can really `SELECT` a row in that region, impersonated the way `createDrizzle`
+ *    against who can `SELECT` a row in that region, impersonated the way `createDrizzle`
  *    does. Loosen the helper and this fails.
  * 2. **A repeated event does not repeat the notification.** For an event that can genuinely happen
  *    twice the unique index is what collapses it; for a mention, which cannot, the diff against
@@ -260,7 +260,7 @@ describe.skipIf(!reachable)('notify', () => {
     // Still one row: the same event in the same place, not a second entry in the inbox.
     expect(written).toHaveLength(1)
     expect(written[0].readAt).toBeNull()
-    // Undelivered again, or the cron would never push what it just revived.
+    // Undelivered again, or the cron would never push what it revived.
     expect(written[0].pushedAt).toBeNull()
   })
 
@@ -427,7 +427,7 @@ describe.skipIf(!reachable)('notifyOutOfBand', () => {
   /**
    * The property the whole design rests on: the row exists for the cron and for nobody else.
    *
-   * Asserted against what the recipient can really `SELECT`, the same way the recipient rule is,
+   * Asserted against what the recipient can `SELECT`, the same way the recipient rule is,
    * rather than against a policy written out here. Widen the SELECT policy and this fails, which
    * is the point: a visible row would be an inbox entry whose only action is a link into a region
    * the reader cannot open.

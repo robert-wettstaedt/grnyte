@@ -163,7 +163,7 @@ describe.skipIf(!usable)('event_promotion_threshold scales with the region', () 
   it('floors at three, so two mates in a tiny region are not the community', async () => {
     await seed(2)
 
-    // A third of two rounds to one. Three of a very small region is what turning up looks like.
+    // A third of two rounds to one. Three of a small region is what turning up looks like.
     expect(await threshold()).toBe(3)
   })
 

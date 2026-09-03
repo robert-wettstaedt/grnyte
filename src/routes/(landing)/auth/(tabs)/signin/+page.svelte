@@ -8,7 +8,7 @@
   import { signIn } from './signin.remote'
 
   // The invited address, when the accept screen sent them here. The invitation is keyed on it, so
-  // signing in as somebody else just lands them back on the wrong-account state.
+  // signing in as somebody else lands them back on the wrong-account state.
   const invited = page.url.searchParams.get('email')
 
   // Where to go after signing in, carried in from whatever sent them here (the invitation accept

@@ -9,7 +9,7 @@
   interface Props {
     /** Trailing action inside the card (e.g. a remove button). */
     action?: Snippet
-    /** Route counts keyed by grade id (`gradeFk`) — drives the donut. */
+    /** Route counts keyed by grade id (`gradeFk`), drives the donut. */
     countByGrade?: Map<number, number>
     /** Breadcrumb path of parent areas. */
     crumbs?: string | string[]

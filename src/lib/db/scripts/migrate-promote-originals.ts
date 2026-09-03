@@ -87,7 +87,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     if (!dryRun) {
       try {
         await dav.moveFile(`${NEXTCLOUD_USER_NAME}${orig}`, `${NEXTCLOUD_USER_NAME}${path}`)
-        // Keep the cached listing truthful — the orig is consumed now.
+        // Keep the cached listing truthful: the orig is consumed now.
         siblings.delete(nameOf(orig))
       } catch (err) {
         failed.push(path)
@@ -99,7 +99,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   }
 
   console.log(
-    `\n${dryRun ? 'DRY RUN — ' : ''}promoted ${promoted} of ${paths.length} image path(s); ${withoutOrig} had no .orig sibling.`,
+    `\n${dryRun ? 'DRY RUN: ' : ''}promoted ${promoted} of ${paths.length} image path(s); ${withoutOrig} had no .orig sibling.`,
   )
   if (failed.length > 0) {
     console.log(`Failed: ${failed.join(', ')}`)

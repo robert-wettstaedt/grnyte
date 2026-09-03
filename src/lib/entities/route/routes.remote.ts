@@ -365,7 +365,7 @@ export const deleteRoute = authedCommand(
       await db.delete(routesToFirstAscensionists).where(eq(routesToFirstAscensionists.routeFk, id))
 
       // External resources are scraped from the providers, so they're deleted without a
-      // snapshot (a restored route just re-syncs them). The circular FKs (route ↔ resources
+      // snapshot (a restored route only re-syncs them). The circular FKs (route ↔ resources
       // ↔ provider rows) are broken by nulling the nullable sides before deleting.
       const externalResourceRows = await db.query.routeExternalResources.findMany({
         columns: { id: true },
@@ -476,7 +476,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
       error(404, formError('blocks_notFound'))
     }
     // A hard restore inserts a brand new row, so it is a create and gates like one (see createRoute).
-    // Gating on canDeleteRoute instead would deny the undo to the EDITor who just deleted their own
+    // Gating on canDeleteRoute instead would deny the undo to the EDITor who has now deleted their own
     // route: the snapshot carries no `createdBy`, so that predicate's own-created branch can't fire.
     if (!canAddRoute(userRegions, block)) {
       error(403, formError('form_noPermission'))

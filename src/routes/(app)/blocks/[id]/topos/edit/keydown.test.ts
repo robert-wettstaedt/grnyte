@@ -3,7 +3,7 @@ import { TopoEditor, type EditLine } from '$lib/entities/topo/editor.svelte'
 import { describe, expect, it, vi } from 'vitest'
 import { topoEditorKeydown } from './keydown'
 
-/** A minimal fake keydown event — the handler only reads these fields. */
+/** A minimal fake keydown event: the handler only reads these fields. */
 function press(key: string, opts: Partial<KeyboardEvent> = {}): KeyboardEvent {
   return {
     ctrlKey: false,

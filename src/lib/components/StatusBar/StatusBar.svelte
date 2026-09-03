@@ -97,8 +97,8 @@
   // All four props exist only so the story can show states that are near-impossible
   // to trigger live (`needs-auth`, `closed`, an announcement). Unset, the bar reads
   // the real device, the real Zero connection and the ANNOUNCEMENT constant. The
-  // announcement comes in whole rather than as bare copy so that dismissing it -
-  // which needs the id - works the same in the story as it does in production.
+  // announcement comes in whole rather than as bare copy so that dismissing it
+  // (which needs the id) works the same in the story as it does in production.
   interface Props {
     announcement?: Announcement
     connectionState?: { name: string }

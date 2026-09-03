@@ -26,7 +26,7 @@ export const toggleReaction = authedCommand(
     eventId: z.int().check(z.positive()),
   }),
   async ({ commentId, emoji, eventId }, { afterCommit, db, user }) => {
-    // Read under RLS, so an event in a region the reactor cannot open is simply not here and this
+    // Read under RLS, so an event in a region the reactor cannot open is not here and this
     // is a 404 rather than a reaction on something unreadable. The gate reads the STORED row, so
     // neither the self-check nor the region the reaction is stamped with comes from the request.
     const event = await requireRow(

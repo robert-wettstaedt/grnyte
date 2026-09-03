@@ -156,18 +156,18 @@
 
   const selectedRoute = $derived(editor.selectedRouteFk == null ? undefined : routeById.get(editor.selectedRouteFk))
 
-  // 1-based position of the shown photo in the strip — for the routes sheet subtitle and
+  // 1-based position of the shown photo in the strip: for the routes sheet subtitle and
   // the per-photo actions title.
   const currentTopoIndex = $derived(topos.data.findIndex((topo) => topo.id === currentTopo?.id))
 
-  // Block routes not yet on this photo — the add-route picker's candidates. Empty lines don't
+  // Block routes not yet on this photo: the add-route picker's candidates. Empty lines don't
   // count as drawn: a route picked and then abandoned without placing points must stay pickable,
   // or it would be stranded (in no list, not dirty, unreachable).
   const drawnFks = $derived(
     new Set(editor.currentLines.filter((line) => line.points.length > 0).map((line) => line.routeFk)),
   )
   const candidates = $derived(routes.data.filter((route) => !drawnFks.has(route.id)))
-  // Gate on the selected route itself, not just its region: canDeleteRoute also grants an EDITor
+  // Gate on the selected route itself, not only its region: canDeleteRoute also grants an EDITor
   // the routes they created, and that branch needs the row's `createdBy`.
   const canDeleteSelectedRoute = $derived(
     selectedRoute != null && canDeleteRoute(global.userRegions, global.user?.id, selectedRoute),
@@ -203,10 +203,10 @@
     const id = selectedRoute.id
     try {
       // Not runCommand/withUndo: deleteRoute's envelope redirects to the block page (right
-      // for the route screen, wrong here) — stay in the editor, keep the undo snackbar.
+      // for the route screen, wrong here): stay in the editor, keep the undo snackbar.
       const result = await deleteRoute({ id })
       // Purge the route from every local doc and history only after the delete commits, so
-      // neither Save nor undo can resurrect a line pointing at the deleted route — and a
+      // neither Save nor undo can resurrect a line pointing at the deleted route, and a
       // failed delete leaves the drawn line intact instead of silently dropping it.
       editor.removeRouteEverywhere(id)
       if (result?.data != null) {
@@ -285,7 +285,7 @@
   async function estimateLocationFromPhotos(files: File[]) {
     if (block.data == null) return
 
-    // Loaded here, not at module scope: EXIF is only ever read once someone actually picks a
+    // Loaded here, not at module scope: EXIF is only ever read once someone picks a
     // photo, so keeping the parser off the page chunk costs the picker one round trip and saves
     // every other visit to this editor the whole download.
     //
@@ -350,7 +350,7 @@
   }
 
   // Topos saved but not yet echoed back by Zero. Their local docs are kept until the
-  // committed lines catch up (isDirty flips false), then dropped — discarding right after
+  // committed lines catch up (isDirty flips false), then dropped. Discarding right after
   // the command would flash the stale pre-save lines for the replication-lag window.
   let pendingSync = $state<number[]>([])
 
@@ -375,7 +375,7 @@
 
   $effect(() => {
     // Drop an id once the committed lines catch up (forget its doc), or once the editor no
-    // longer tracks it at all (discardAll/forget already dropped the doc) — otherwise a
+    // longer tracks it at all (discardAll/forget already dropped the doc). Otherwise a
     // Discard right after Save would strand the id here for the page's lifetime.
     const done = pendingSync.filter((id) => !editor.hasDoc(id) || editor.syncedWithCommitted(id))
     if (done.length > 0) {
@@ -388,7 +388,7 @@
     back(blockHref)
   }
 
-  // Guards every way out (back button, browser back, breadcrumbs), not just `leave`.
+  // Guards every way out (back button, browser back, breadcrumbs), not only `leave`.
   beforeNavigate((navigation) => {
     if (editor.dirty && !confirm(m.topo_leaveConfirm())) {
       navigation.cancel()

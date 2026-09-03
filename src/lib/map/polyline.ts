@@ -13,7 +13,7 @@ export function decodePath(encoded: string): [number, number][] {
 }
 
 /**
- * Encode a `[lat, lng]` path as a Google-polyline string — the exact inverse of how
+ * Encode a `[lat, lng]` path as a Google-polyline string: the exact inverse of how
  * `createPathLayer` decodes `areas.geoPaths`, so a saved path round-trips and renders
  * back where it was drawn. Kept out of `map.ts` so `ol/*` doesn't leak into the
  * non-map code that imports the lightweight helpers there.

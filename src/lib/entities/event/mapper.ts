@@ -74,7 +74,7 @@ export interface EventListItem {
    * Whether enough of the community turned up for the card to say so.
    *
    * Stored rather than counted here: reactions sync as related rows, so an event with 200 of them
-   * would ship 200 rows to every reader just to answer this. The trigger already knows.
+   * would ship 200 rows to every reader only to answer this. The trigger already knows.
    */
   promoted: boolean
   /** The emoji sent on THIS event. A card shows one bar per event, not one per card. */

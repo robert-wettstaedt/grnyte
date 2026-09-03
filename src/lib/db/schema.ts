@@ -54,7 +54,7 @@ const baseFields = {
 }
 
 /**
- * ACCEPTED, and it applies to every attribution column in this file, not just this one:
+ * ACCEPTED, and it applies to every attribution column in this file, not only this one:
  * `created_by` here, plus `user_fk`, `auth_user_fk`, `actor_fk` and the `region_invitations`
  * identity columns, are all MUTABLE at the database level. No policy binds a row to its author, and
  * no trigger pins one after the fact.
@@ -159,7 +159,7 @@ export const users = table(
     // somebody else's settings row, which would make the server read their preferences as yours
     // (the client reads settings through this link while the digest reads by `user_fk`).
     // Latent rather than live: the only writers are `writeUserSettings` and the signup path, both of
-    // which set it from a row they just created. A handler that ever takes it from a request has to
+    // which set it from a row they created. A handler that ever takes it from a request has to
     // validate it, because the database will not.
     policy('users can update own users', getOwnEntryPolicyConfig('update', table.authUserFk)),
   ],
@@ -355,7 +355,7 @@ export const regions = table(
       ),
     ),
     // `regions.id` rather than the helper's default `region_fk`: this table does not have one,
-    // it is the region. Deleting stays app.admin-only via the policy above - a region delete
+    // it is the region. Deleting stays app.admin-only via the policy above: a region delete
     // cascades through every piece of content in it.
     policy(
       `${REGION_PERMISSION_ADMIN} can update regions they administer`,
@@ -414,8 +414,8 @@ export const regionMembers = table(
       }),
     ),
     // Scoped to the reader's own regions, not `true`: this table is what tenancy is made of, and a
-    // blanket read let any signed-in user enumerate every region's membership - who is in it, their
-    // role and their auth uid - including regions whose `regions` row they cannot see.
+    // blanket read let any signed-in user enumerate every region's membership (who is in it, their
+    // role and their auth uid) including regions whose `regions` row they cannot see.
     policy(
       `${REGION_PERMISSION_READ} can read region_members`,
       getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
@@ -435,7 +435,7 @@ export const regionMembersRelations = relations(regionMembers, ({ one }) => ({
   invitedBy: one(users, { fields: [regionMembers.invitedByFk], references: [users.id] }),
   region: one(regions, { fields: [regionMembers.regionFk], references: [regions.id] }),
   rolePermission: one(rolePermissions, { fields: [regionMembers.role], references: [rolePermissions.role] }),
-  // region_members has two FKs into users, so `users.regionMemberships` cannot pair itself - without
+  // region_members has two FKs into users, so `users.regionMemberships` cannot pair itself: without
   // the relationName it silently binds to whichever drizzle resolves first (it flipped to invited_by
   // once regions gained an author relation, which would have made user search match by inviter).
   user: one(users, { fields: [regionMembers.userFk], references: [users.id], relationName: 'region-member-user' }),
@@ -654,9 +654,9 @@ export const routes = table(
       `${REGION_PERMISSION_EDIT} can delete routes`,
       getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT, table.regionFk),
     ),
-    // The one table where UPDATE really is looser than its TS gate, and it has to be: logging an
+    // The one table where UPDATE is looser than its TS gate, and it has to be: logging an
     // ascent folds the member's grade/rating into the route (recalcUserGradeAndRating), and a plain
-    // member holds only read. Editing route CONTENT still requires edit - see canEditRoute.
+    // member holds only read. Editing route CONTENT still requires edit: see canEditRoute.
     //
     // ACCEPTED, and the widest gap in the schema: this grants UPDATE on EVERY column, because a
     // policy cannot name one. A read-only member can in principle rewrite a route's name,
@@ -1050,13 +1050,13 @@ export const files = table(
     createdBy: baseContentFields.createdBy,
 
     height: integer('height'),
-    // '' for video rows — the media lives at the video host (see finalizeVideo);
+    // '' for video rows: the media lives at the video host (see finalizeVideo);
     // discriminate on bunnyStreamFk before treating the path as a storage location.
     path: text('path').notNull(),
     routeFk: integer('route_fk').references((): AnyColumn => routes.id),
     visibility: text('visibility', { enum: areaVisibilityEnum }),
     // EXIF-oriented pixel size of the image at `path` (what browsers display).
-    // Consumers treat it as aspect ratio + coordinate space — the actually loaded
+    // Consumers treat it as aspect ratio + coordinate space: the loaded
     // image may be a smaller derivative. Null for non-images or unread files.
     width: integer('width'),
   },
@@ -1572,7 +1572,7 @@ export const events = table(
     verb: text('verb', { enum: eventVerb }).notNull(),
   },
   (table) => [
-    // What the feed actually reads: the reader's regions, newest first. Two single-column
+    // What the feed reads: the reader's regions, newest first. Two single-column
     // indexes cannot serve that as an index scan, so it degrades to a bitmap scan plus a sort on
     // the table that will grow fastest here.
     index('events_region_fk_created_at_idx').on(table.regionFk, table.createdAt.desc()),
@@ -1650,7 +1650,7 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
 }))
 
 /**
- * One changed column under an event. This is `activities` with everything that was really about
+ * One changed column under an event. This is `activities` with everything that was about
  * the action lifted up to the event, where exactly one copy of it lives.
  *
  * Only exists for `verb: 'update'`. Roughly 90% of today's activity rows carry no diff at all and
@@ -1897,7 +1897,7 @@ export const reactionsRelations = relations(reactions, ({ many, one }) => ({
  *
  * `membership_removed` and `invitation_received` are a SEND QUEUE, not inbox entries, and this is
  * the one place that says so in full. Both are aimed at somebody outside the region the row names
- * - a member who was just removed, an invitee who has not joined - so there is no inbox they could
+ * (a member who was removed, an invitee who has not joined), so there is no inbox they could
  * be shown in. `listNotifications` excludes both outright and `unreadCounts` does not count them;
  * that exclusion is the guarantee, NOT the region gate, which stops being true the moment somebody
  * accepts or is added back. Living in this table anyway is what buys them the debounce, the unique
@@ -1964,7 +1964,7 @@ export const notifications = table(
      * object the way the feed does instead of joining a polymorphic pair in memory.
      *
      * At most one, not exactly one: a row whose object was already gone when the backfill ran
-     * carries none, keeps its sentence and simply offers no entity row underneath it, which is
+     * carries none, keeps its sentence and offers no entity row underneath it, which is
      * what the three source types that never had one already look like.
      *
      * `file_fk` exists to keep the shape identical to `events`, and `objectOf` with it. Nothing
@@ -2024,7 +2024,7 @@ export const notifications = table(
     // object does not imply a region. A mention on a route names a route, and a route lives in
     // one region, so for those this column is functionally determined and changes nothing. A
     // membership sentence names a PERSON, and a person holds a membership per region: without
-    // this, changing Ada's role in two regions, or removing her from two, is one row - and the
+    // this, changing Ada's role in two regions, or removing her from two, is one row, and the
     // second one either vanishes or overwrites the first's region and announces the wrong place.
     unique('notifications_source_idx')
       .on(
@@ -2146,7 +2146,7 @@ export const favorites = table(
     // Saving something twice is not a thing a person can mean, and `toggleFavorite` reads before it
     // writes, so two devices tapping Save at the same moment used to leave two rows: the count said
     // two, and the next tap deleted one of them and left the button stuck on saved. Partial so each
-    // index only covers the rows that actually carry that key.
+    // index only covers the rows that carry that key.
     uniqueIndex('favorites_user_area_idx')
       .on(table.userFk, table.areaFk)
       .where(sql`area_fk is not null`),

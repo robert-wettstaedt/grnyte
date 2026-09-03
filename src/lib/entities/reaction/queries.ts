@@ -15,7 +15,7 @@ export const reactionsQueryDefs = {
    *
    * Comments are deliberately NOT part of `listEvents`' relation tree: a body is up to 5000
    * characters and the feed syncs a window of 50 events twice over, so keeping them there would
-   * land the text of every conversation in the region on every reader's device just to render a
+   * land the text of every conversation in the region on every reader's device only to render a
    * number. That number comes off `events.comment_count`; this query is what the sheet opens.
    *
    * Ordered newest first and reversed for display, rather than ordered as it reads. A thread is

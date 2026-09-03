@@ -12,7 +12,7 @@ import * as z from './zod'
  *
  * It is worth a test rather than trust because the failure is invisible from inside a process that
  * has also loaded classic zod: the two share one global config, so classic's side effect configures
- * mini as well. A comparison harness that imports both - the obvious way to check a migration -
+ * mini as well. A comparison harness that imports both (the obvious way to check a migration)
  * reports no difference at all while production has none of it. That is exactly how this shipped
  * once. These assertions hold whatever else the process has loaded, which is the point.
  */

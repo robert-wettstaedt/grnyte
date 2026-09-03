@@ -6,7 +6,7 @@
   const loadDesktop = () => import('./Modal.desktop.svelte')
   const loadMobile = () => import('./Modal.mobile.svelte')
 
-  // Fetch only the branch this viewport can actually show, so a desktop that can never render a
+  // Fetch only the branch this viewport can show, so a desktop that can never render a
   // sheet stops carrying svelte-bottom-sheet. Statically importing both put the sheet and the
   // dialog in one chunk, which every visitor paid for whatever screen they were on.
   //

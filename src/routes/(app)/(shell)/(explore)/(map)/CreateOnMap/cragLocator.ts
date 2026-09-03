@@ -3,7 +3,7 @@ import type { Geolocation } from '$lib/entities/geolocation/dto'
 import { haversineMetres, type Coords } from '$lib/map/map'
 
 export interface LocatableBlock {
-  /** Ancestor chain, outermost first — the crag is the entry with `type === 'crag'`. */
+  /** Ancestor chain, outermost first: the crag is the entry with `type === 'crag'`. */
   areas: AreaListItem[]
   geolocation: Geolocation | undefined
 }
@@ -11,7 +11,7 @@ export interface LocatableBlock {
 /**
  * The crag whose nearest geolocated block is closest to `point`, or null when none is
  * within `maxMeters`. Callers pre-filter `blocks` to the regions the user can edit.
- * ponytail: nearest-block distance stands in for point-in-crag-bounds — at boulder
+ * ponytail: nearest-block distance stands in for point-in-crag-bounds. At boulder
  * spacing a 500 m radius covers containment; bbox hit-testing is the upgrade.
  */
 export function findNearestCrag(

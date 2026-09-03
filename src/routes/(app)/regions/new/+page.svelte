@@ -15,7 +15,7 @@
 
   // One route, two framings. With no memberships the authGuard sent them here and there is nothing
   // else in the app for them yet, so the screen introduces itself and offers the two other doors
-  // (a missed invitation, the demo). With memberships they came from settings and just want the
+  // (a missed invitation, the demo). With memberships they came from settings and only want the
   // form. The cap state outranks both.
   const { data }: PageProps = $props()
   const global = getGlobalState()

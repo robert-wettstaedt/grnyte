@@ -174,7 +174,7 @@ export function photo(id: string): MediaFile {
 }
 
 /**
- * A hydrated route, named the way the feed really gets one.
+ * A hydrated route, named the way the feed gets one.
  *
  * Through `routeDisplayName`, because the mapper has already swapped a blank name for the
  * `common_unnamed` placeholder by the time a card sees it: a fixture passing `''` would be

@@ -31,8 +31,8 @@
 
   // The route itself is preloaded and renders offline; everyone's ascents on it are not kept, and
   // the replica holds whatever fragment other preloads left behind. Every number on this screen is
-  // derived from that list - the header tally, the filter chip counts, the "community" heading, and
-  // "no ascents yet" - so unless the list is trustworthy none of them may be shown. Rendering them
+  // derived from that list: the header tally, the filter chip counts, the "community" heading, and
+  // "no ascents yet", so unless the list is trustworthy none of them may be shown. Rendering them
   // anyway said "0 ascents" on a route with fifty, and dropped the community section in silence.
   const ascentsUnavailable = $derived(ascents.availability !== 'ready')
 
@@ -47,7 +47,7 @@
     return counts
   })
 
-  // Filter chips: everything, or one ascent type. "All" is just the first chip.
+  // Filter chips: everything, or one ascent type. "All" is only the first chip.
   const chips = $derived([
     { color: 'var(--color-primary-400)', count: ascents.data.length, key: 'all' as const, label: m.ascents_filterAll },
     ...ASCENT_TYPES.map(({ label, type }) => ({

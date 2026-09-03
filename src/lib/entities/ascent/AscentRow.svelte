@@ -38,7 +38,7 @@
     /** DOM id, so a deep link (?ascent=) can scroll the row into view. */
     id?: string
     /** Logbook mode (the profile's session list): show the route as the row's label
-     *  and drop the author avatar — the author is the profile itself. */
+     *  and drop the author avatar: the author is the profile itself. */
     route?: { href: string; name: string }
     /** The route's name: the delete confirmation text. */
     routeName?: string

@@ -342,7 +342,7 @@ function locationPoints(from: null | StoredCoords, to: null | StoredCoords): Cha
 /**
  * A description edit as one text: what stayed, what went, what arrived.
  *
- * Word granularity, because that is where an edit to prose actually happens. `undefined` when
+ * Word granularity, because that is where an edit to prose happens. `undefined` when
  * either side is empty: "Not set" against the text says more than a whole description marked
  * as one long insertion.
  *

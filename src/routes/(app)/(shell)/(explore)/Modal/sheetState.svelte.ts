@@ -40,7 +40,7 @@ export const sheetState = {
   },
   /** Where the mobile sheet opens (default 0.75). Read once when the sheet mounts,
    *  so pages that want to start low (e.g. the topo viewer) must set it in their
-   *  script body — before their Modal child initialises — not in an effect. */
+   *  script body (before their Modal child initialises), not in an effect. */
   get startingSnap() {
     return _startingSnap
   },

@@ -3,7 +3,7 @@
   import { m } from '$lib/paraglide/messages'
 
   interface Props {
-    /** Selected tick status; `''` means no filter ("any"). */
+    /** Selected ascent status; `''` means no filter ("any"). */
     value: '' | AscentStatus
   }
 

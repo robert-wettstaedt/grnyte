@@ -8,7 +8,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
 
   // The last link of the chain, and the only one that was missing: a block with no routes is the
-  // blankest screen in the app. One CTA on purpose - the other thing offered here is the topo
+  // blankest screen in the app. One CTA on purpose: the other thing offered here is the topo
   // editor, and a topo has nothing to draw a line for until a route exists.
   interface Props {
     block: BlockDetail

@@ -41,7 +41,7 @@
    * `complete` only while the server has confirmed it, and Zero clears that on every disconnect
    * including the one it performs itself after five minutes in a background tab. So a button that
    * had settled would start spinning again because the phone went in a pocket. `loading` is the
-   * question actually being asked here, and the resource only reports it while online.
+   * question being asked here, and the resource only reports it while online.
    *
    * Offline we show what the local replica knows and disable the write, which is the honest state
    * either way: `toggleFavorite` is a remote function and cannot land without a connection.
@@ -53,7 +53,7 @@
     savedOverride = next
     try {
       // The handler's answer, not the request's. The flip above is optimistic, and this is the
-      // state the row is actually in once the write lands.
+      // state the row is in once the write lands.
       const result = await toggleFavorite({ entityId, entityType })
       savedOverride = result?.data ?? next
     } catch {

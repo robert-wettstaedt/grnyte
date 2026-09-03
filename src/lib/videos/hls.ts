@@ -7,7 +7,7 @@ import type { Attachment } from 'svelte/attachments'
  * play here: a decode glitch gets one in-place recovery, but anything else (a 404
  * manifest for a missing or still-encoding video, an unrecoverable network fault) calls
  * `onFail` so the caller can drop to Bunny's iframe embed, which renders its own state and
- * plays whenever the video actually exists. (Retrying a missing manifest via startLoad
+ * plays whenever the video exists. (Retrying a missing manifest via startLoad
  * never recovers and, in Firefox, silently stalls on an empty player.) We own the play()
  * promise so an aborted autoplay (a failed source, or teardown detaching the media) is
  * swallowed instead of surfacing as an uncaught DOMException.

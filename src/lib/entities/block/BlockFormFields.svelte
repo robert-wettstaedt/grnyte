@@ -52,7 +52,7 @@
 <input name="long" type="hidden" value={location?.long ?? ''} />
 <input name="estimated" type="hidden" value={location != null && estimated ? 'true' : ''} />
 
-<!-- Present only when editing — the create form leaves `id` unset. -->
+<!-- Present only when editing: the create form leaves `id` unset. -->
 {#if form.fields.id.value() != null}
   <input type="hidden" {...form.fields.id.as('text')} />
 {/if}

@@ -56,7 +56,7 @@ async function clearAccolades(db: Db, userFk: number, routeFk: number): Promise<
     return
   }
 
-  // Every claim the edit could have falsified, not just this route's. A ceiling is measured across
+  // Every claim the edit could have falsified, not only this route's. A ceiling is measured across
   // the climber's routes, so a grade a maintainer changed here can make a banner false over there;
   // clearing only the edited route left exactly the cross-route hole `loadTargets` exists to close.
   await db
@@ -148,7 +148,7 @@ async function loadTargets(
 
 /**
  * Write the claim a climber's ascent on this route has earned, for that ascent and for the send it
- * may have just changed.
+ * may have changed.
  *
  * Two rows rather than one, because attempts are commonly logged AFTER the send they belong to:
  * somebody tops their project, then backfills the twenty sessions it took. Only recomputing the
@@ -201,7 +201,7 @@ async function syncAccolades(db: Db, userFk: number, routeFk: number): Promise<v
     })
     const next = accolade == null ? null : JSON.stringify(accolade)
 
-    // Only when it actually moved. Without this every ascent on the route is rewritten on every
+    // Only when it moved. Without this every ascent on the route is rewritten on every
     // save, which churns the rows Zero replicates for no change a reader could see.
     if (next === (target.accolade ?? null)) {
       continue

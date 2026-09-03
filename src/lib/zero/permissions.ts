@@ -60,7 +60,7 @@ const addRegionCheck = <
 ): TReturnQuery => {
   // Two callers, and only one of them is a trust boundary. On the client these same definitions
   // run against the local replica, whose contents the server already filtered, and the context
-  // there is `{ authUserId }` with no memberships - so returning the query unfiltered can only
+  // there is `{ authUserId }` with no memberships, so returning the query unfiltered can only
   // ever reach rows this device was already allowed to have. On the server, `get-queries` is what
   // decides access, and it refuses to serve a context without memberships rather than reaching
   // this branch. Do not "harden" this into a throw: it breaks every region query in the browser.

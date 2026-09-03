@@ -3,14 +3,14 @@
   import { m } from '$lib/paraglide/messages'
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
 
-  // Confirm saving a block that has no location — a real, focus-trapped dialog
+  // Confirm saving a block that has no location: a real, focus-trapped dialog
   // (bottom-anchored sheet on mobile, centred modal on desktop). Copy defaults to the
   // add flow; the edit flow overrides it with "Save …" wording.
   interface Props {
     body?: string
     /** Label for the "save without a location" action. */
     confirmLabel?: string
-    /** Dismiss (the secondary "go back" path — also fires on backdrop tap / Escape). */
+    /** Dismiss (the secondary "go back" path, also fires on backdrop tap / Escape). */
     onCancel: () => void
     onConfirm: () => void
     onPinNow: () => void

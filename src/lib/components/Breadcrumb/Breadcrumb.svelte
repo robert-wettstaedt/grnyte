@@ -8,7 +8,7 @@
     area: AreaDetail | AreaListItem
     /** Append `area` itself as the final crumb (e.g. when it's the parent of a new child). */
     includeSelf?: boolean
-    /** The signed-in user's memberships — names the region only when there's more than one. */
+    /** The signed-in user's memberships: names the region only when there's more than one. */
     userRegions: UserRegion[]
   }
 
@@ -18,8 +18,8 @@
   // nearest the current area; anything above collapses to an ellipsis.
   const maxAncestors = 2
 
-  // Only worth naming the region when the user belongs to more than one — with a
-  // single region it's implied and would just be noise in the breadcrumb.
+  // Only worth naming the region when the user belongs to more than one. With a
+  // single region it's implied and would be noise in the breadcrumb.
   const regionName = $derived.by(() => {
     if (userRegions.length <= 1) {
       return null

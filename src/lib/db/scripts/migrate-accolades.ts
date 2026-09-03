@@ -11,7 +11,7 @@
  * the time and quietly withhold them from the ones that were.
  *
  * Runs as part of `npm run migrate` (via `migrate.ts`). Idempotent: it recomputes every send and
- * writes only the rows whose stored value actually changes, so a second run is a no-op.
+ * writes only the rows whose stored value changes, so a second run is a no-op.
  */
 import { asc, eq, isNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'

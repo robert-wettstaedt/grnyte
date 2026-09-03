@@ -148,7 +148,7 @@ describe('TopoEditor', () => {
     const line2 = () => editor.currentLines.find((l) => l.routeFk === 2)!
     const pointId = line2().points[0].id
 
-    // Nudged to within the snap radius of route 1's point — it must land exactly, not snap onto (0.5, 0.5).
+    // Nudged to within the snap radius of route 1's point: it must land exactly, not snap onto (0.5, 0.5).
     editor.movePointBy(pointId, -0.09, 0)
     expect(line2().points[0].x).toBeCloseTo(0.51)
     expect(line2().points[0].y).toBeCloseTo(0.5)

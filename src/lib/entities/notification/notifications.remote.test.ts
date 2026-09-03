@@ -3,11 +3,11 @@
  *
  * The case that matters: the privileged pre-delete demands endpoint + auth + p256dh, which is proof
  * the caller IS that device, and the `ON CONFLICT (endpoint) DO UPDATE` right after it demands
- * nothing at all. An endpoint is a string a request can simply state, so a caller stating somebody
+ * nothing at all. An endpoint is a string a request can state, so a caller stating somebody
  * else's endpoint has the upsert rewrite `user_fk` to them: the real owner stops receiving their
  * pushes, and their browser starts receiving payloads it cannot decrypt.
  *
- * Three cases, because the fix has an ordering that is easy to get backwards:
+ * Three cases, because the fix has an ordering prone to reversal:
  *  - a stated endpoint the caller cannot prove possession of must be refused (the hole),
  *  - the same endpoint WITH the stored keys must still move accounts (the re-subscribe the
  *    pre-delete exists for, which an ownership check placed before that delete would 403),

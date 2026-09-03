@@ -2,7 +2,7 @@
  * Name-match relevance for the mixed "Top results" ranking, 0 (no name hit) …
  * 100 (exact). Case-insensitive. Zero/Postgres `ILIKE` only tells us *that* a
  * row matched, never how well, and the four entity types are separate queries
- * that can't be sorted against each other server-side — so the merged list is
+ * that can't be sorted against each other server-side, so the merged list is
  * ranked here, client-side, from the loaded rows.
  *
  * ponytail: this is the tunable knob. Tiers are deliberately coarse (exact >

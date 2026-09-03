@@ -18,7 +18,7 @@
   import { m } from '$lib/paraglide/messages'
 
   interface Props {
-    /** The signed-in user, the subject of "Just me". */
+    /** The signed-in user, the subject of "Only me". */
     currentUserFk?: number
     /** Whether anything is narrowed, decided by the host, which is the only place that holds
      *  every filter value (the category lives on the segmented control, not in here). */

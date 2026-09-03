@@ -42,7 +42,7 @@ describe('withSearchParams', () => {
     const twice = withSearchParams(once, { region: 2 })
 
     expect(twice.search).toBe(once.search)
-    // The property `syncSearchParams` actually guards on: what it builds is already in the one
+    // The property `syncSearchParams` guards on: what it builds is already in the one
     // serialisation the browser hands back, so the second pass has nothing to write. Asserted
     // against `URLSearchParams` rather than against `new URL(once)`, which only re-parses a
     // string WHATWG already guarantees is a fixed point and so can never fail.

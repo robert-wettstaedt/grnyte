@@ -39,7 +39,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
   // Supabase's own internals, and the key that names it is server-side only, so it is out of scope
   // rather than overlooked. "Closed" here means closed to anything a browser can hold.
   //
-  // Everything, not just the write verbs: TRUNCATE is destructive and row-level security does not
+  // Everything, not only the write verbs: TRUNCATE is destructive and row-level security does not
   // gate it at all, and SELECT is the half that made every policy load-bearing on its own.
   await db.execute(sql`REVOKE ALL ON ALL TABLES IN SCHEMA public FROM authenticated`)
   // The reads `authenticated` used to carry through membership. Schema-wide, because it is exactly
@@ -65,7 +65,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
   }
 
   // Two exceptions, both tables whose writes belong to the privileged handle. `notifications` DOES
-  // carry a write policy (`users can update own notifications`), so the loop above just granted it
+  // carry a write policy (`users can update own notifications`), so the loop above granted it
   // the whole table: these two lines are what narrows that back to the single column the reader
   // owns, which is not something a policy can say. `user_roles` decides `app.admin` and is written
   // by the auth hook; it has no write policy today, so its line is what stops adding one from

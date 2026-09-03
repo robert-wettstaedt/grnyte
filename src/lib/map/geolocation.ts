@@ -49,7 +49,7 @@ export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallb
   geolocation.on('error', (event) => {
     callbacks.setError(event.code)
     callbacks.setIsTracking(false)
-    // Required, not redundant: OL only re-arms watchPosition when TRACKING actually
+    // Required, not redundant: OL only re-arms watchPosition when TRACKING
     // changes value. Left true, the retry click's setTracking(true) is a silent no-op.
     geolocation.setTracking(false)
   })

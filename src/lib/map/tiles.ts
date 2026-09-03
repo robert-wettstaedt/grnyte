@@ -18,7 +18,7 @@ import type { Coords } from './map'
  * same thing, and a reader who opens the map after seeing a card has to find what the card showed
  * them.
  *
- * It sits here rather than beside `createPathLayer`, which is the renderer that actually paints it
+ * It sits here rather than beside `createPathLayer`, which is the renderer that paints it
  * on the map: see the note above the import in `layers.svelte.ts` for why that direction is the
  * only safe one.
  */

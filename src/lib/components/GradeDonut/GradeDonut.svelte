@@ -6,7 +6,7 @@
     countByGrade: Map<number, number>
     /** Diameter in pixels. */
     size?: number
-    /** Number shown in the donut's center — total routes in the area. */
+    /** Number shown in the donut's center: total routes in the area. */
     total: number
   }
 

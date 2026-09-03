@@ -408,7 +408,7 @@ describe('topo', () => {
     const after = stringifyTopoLines([{ name: 'Kante direkt', path: '   ', routeFk: 501, topType: 'top' }])
     const redraw = topo({ metadata: metadata('lines', 700), newValue: after, oldValue: '' }, topoView())
 
-    // Still named by a chip: the edit happened, it just cannot be drawn.
+    // Still named by a chip: the edit happened, it cannot be drawn.
     expect(redraw).toMatchObject({ added: [{ name: 'Kante direkt', routeFk: 501 }], lines: [] })
   })
 })

@@ -2,7 +2,7 @@ import { toGeolocation } from '$lib/entities/geolocation/mapper'
 import type { Row } from '$lib/zero/types'
 import type { AreaDetail, AreaListItem } from './dto'
 
-/** Minimal shape of an area node walked when collecting ancestors — satisfied
+/** Minimal shape of an area node walked when collecting ancestors: satisfied
  * by an area row or any query's `area`/`parent` relation, however deeply nested. */
 export interface AreaAncestor {
   readonly id: number
@@ -13,7 +13,7 @@ export interface AreaAncestor {
   readonly type: 'area' | 'crag' | null
 }
 
-/** What `toAreaDetail` reads — satisfied by both the list and the single-area query. */
+/** What `toAreaDetail` reads: satisfied by both the list and the single-area query. */
 export interface AreaDetailRow extends AreaAncestor {
   readonly createdAt: null | number
   readonly createdBy: number

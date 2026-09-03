@@ -10,7 +10,7 @@ import { authenticatedRole, supabaseAuthAdminRole } from 'drizzle-orm/supabase'
  * Both of the worst bugs this file has carried were unreadable by construction, and both came from
  * the same thing: a column written as a string. `region_fk` inside `EXISTS (SELECT ... FROM events
  * e ...)` is a name that exists on both tables, so SQL scoping bound it to the inner one and the
- * test became `e.region_fk = e.region_fk` - always true, permitting exactly what it was added to
+ * test became `e.region_fk = e.region_fk`: always true, permitting exactly what it was added to
  * prevent. Postgres cannot complain: it is valid SQL, and the qualified form it stores afterwards
  * makes the wrong binding look deliberate.
  *
@@ -130,7 +130,7 @@ export const getOwnRowPolicyConfig = (
  * region one, which would let any member of a region rewrite or delete anybody's diff, or forge
  * "changed grade from 6a to 8c" onto somebody else's event.
  *
- * Every write here is the fold: it inserts changes under the event it just opened, overwrites
+ * Every write here is the fold: it inserts changes under the event it opened, overwrites
  * `new_value` when the same column moves again, and deletes the row when an edit returns to where
  * it started. All three are the same person on their own event, which is exactly this predicate.
  */

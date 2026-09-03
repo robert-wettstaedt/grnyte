@@ -53,7 +53,7 @@
   let currentIndex = $state((() => Math.max(0, findSiblingIndex(file.id)))())
   // The open file id we last reset stage state for. A background change to `siblings`
   // (a sibling syncing, an in-viewer visibility toggle) re-runs this effect with the
-  // SAME open file, so only reset zoom/fallback when the open file actually changed;
+  // SAME open file, so only reset zoom/fallback when the open file changed;
   // otherwise a zoomed image would snap back and a fallen-back video would lose the
   // nav arrows it needs (the iframe swallows swipes).
   let syncedFileId = (() => file.id)()

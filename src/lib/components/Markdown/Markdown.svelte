@@ -27,7 +27,7 @@
       ? markdown.replaceAll('\n', ' ').replaceAll('\r', '')
       : markdown
 
-    // Reference-free markdown (the common case) skips the enrich pass — and
+    // Reference-free markdown (the common case) skips the enrich pass, and
     // with it the lazily-evaluated Zero resources behind `references.data`, so
     // it renders without a Zero client (Storybook).
     const enrichedMarkdown = hasReferences ? enrichMarkdownWithReferences(value, references.data) : value

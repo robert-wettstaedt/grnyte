@@ -12,16 +12,16 @@ import type { EmailContent } from './shell'
  * (which renders in our own code, per recipient) the templates localise by swapping these
  * strings for `m.*` calls and nothing else changes.
  *
- * Voice: warm, terse, second person. No em-dashes, no exclamation marks, no "click here",
- * no apologies. `grnyte` always lowercase.
+ * Voice: warm, terse, second person, contractions. No em-dashes, no exclamation marks, no
+ * "click here", no apologies. `grnyte` always lowercase.
  */
 
 const SITE = '{{ .SiteURL }}'
 
 /**
  * Always link through our own `/auth/confirm` handler with `token_hash`, never
- * `{{ .ConfirmationURL }}`: that one hits Supabase's `/auth/v1/verify` and hands the session
- * back in the URL *fragment*, which never reaches the server, so SSR cannot see it.
+ * `{{ .ConfirmationURL }}`: that one hits Supabase's `/auth/v1/verify` and returns the session
+ * in the URL *fragment*, which never reaches the server, so SSR cannot see it.
  *
  * `next` must be a path, never `{{ .RedirectTo }}` (an absolute URL), because the handler
  * assigns it straight to `redirectTo.pathname`. Typed as a {@link Pathname} for that reason: these
@@ -46,12 +46,12 @@ const auth = {
     action: { label: 'Confirm my email', url: confirmUrl('signup', '/') },
     body: [
       'Somebody signed up for grnyte with this address. Open the link to confirm it and finish setting up your account.',
-      'Once you are in you can join a region, or start one of your own and invite people.',
+      'Once you’re in, you can join a region or start one of your own and invite people.',
     ],
     footerReason: 'signup',
     // Not "no account is created": GoTrue inserts the unconfirmed auth.users row before it
     // sends this. Ignoring the mail leaves that row unconfirmed, it does not prevent it.
-    footnote: `${expiresIn} If you did not sign up, ignore this email. The address is never confirmed and the account stays unusable.`,
+    footnote: `${expiresIn} If you didn’t sign up, ignore this email. The address stays unconfirmed and the account unusable.`,
     meta: `SIGN UP · LINK EXPIRES IN ${EXPIRY}`,
     preheader: 'One link to confirm this address and your grnyte account is live.',
     subject: 'Confirm your email address',
@@ -72,7 +72,7 @@ const auth = {
       'We sent a link to the old address and to the new one. Open both to complete the change.',
     ],
     footerReason: 'account',
-    footnote: `${expiresIn} If you did not ask to change your email, ignore this email. Nothing changes until both links are opened.`,
+    footnote: `${expiresIn} If you didn’t ask to change your email, ignore this email. Nothing changes until you open both links.`,
     meta: `EMAIL CHANGE · LINK EXPIRES IN ${EXPIRY}`,
     preheader: 'Open the link at both addresses to finish the change.',
     subject: 'Confirm your email change',
@@ -82,26 +82,26 @@ const auth = {
   invite: {
     action: { label: 'Claim your seat', url: confirmUrl('invite', SET_PASSWORD) },
     body: [
-      'You were invited to a private region on grnyte. Areas, topos and session logs, visible only to the people in it.',
-      'Claim the seat and pick a password. Takes about a minute.',
+      'Somebody invited you to a private region on grnyte. Only the people in it can see its areas, topos and ascents.',
+      'Claim the seat and pick a password.',
     ],
     footerReason: 'invite',
     // Not "no account exists until you open the link": `internal/api/invite.go` creates the
     // user row and the email identity inside the same transaction that sends this.
-    footnote: `${expiresIn} If you were not expecting this, ignore this email. The invite expires and the seat is never claimed.`,
+    footnote: `${expiresIn} If you weren’t expecting this, ignore this email. The invite expires and the seat goes unclaimed.`,
     meta: `INVITE · LINK EXPIRES IN ${EXPIRY}`,
     preheader: 'Open the link to claim your seat. It works once and expires in 24 hours.',
-    subject: 'You are invited to grnyte',
-    title: 'Someone saved you a seat',
+    subject: 'Somebody invited you to grnyte',
+    title: 'Somebody saved you a seat',
   },
 
   magic_link: {
     action: { label: 'Sign in to grnyte', url: confirmUrl('magiclink', '/') },
     body: ['Open the link to sign in to grnyte on this device. No password needed.'],
     footerReason: 'account',
-    footnote: `${expiresIn} If you did not ask to sign in, ignore this email and nothing happens.`,
+    footnote: `${expiresIn} If you didn’t ask to sign in, ignore this email. Nothing happens.`,
     meta: `SIGN IN · LINK EXPIRES IN ${EXPIRY}`,
-    preheader: 'One link and you are back in. It works once and expires in 24 hours.',
+    preheader: 'One link and you’re back in. It works once and expires in 24 hours.',
     subject: 'Your sign-in link',
     title: 'Your sign-in link',
   },
@@ -115,11 +115,11 @@ const auth = {
     code: '{{ .Token }}',
     footerReason: 'account',
     footnote:
-      'The code works once. If you did not start a change in grnyte, ignore this email and do not share the code with anyone.',
+      'The code works once. If you didn’t start a change in grnyte, ignore this email and never share the code with anyone.',
     meta: 'VERIFICATION CODE · ONE TIME USE',
-    preheader: 'Enter this code in grnyte to confirm it is you.',
+    preheader: 'Enter this code in grnyte to confirm it’s you.',
     subject: '{{ .Token }} is your grnyte verification code',
-    title: 'Confirm it is you',
+    title: 'Confirm it’s you',
   },
 
   recovery: {
@@ -129,7 +129,7 @@ const auth = {
       'Your current password keeps working until you set the new one.',
     ],
     footerReason: 'account',
-    footnote: `${expiresIn} If you did not ask for this, ignore this email. Your password stays as it is.`,
+    footnote: `${expiresIn} If you didn’t ask for this, ignore this email. Your password stays as it is.`,
     meta: `PASSWORD RESET · LINK EXPIRES IN ${EXPIRY}`,
     preheader: 'Open the link to set a new password. It works once and expires in 24 hours.',
     subject: 'Reset your password',
@@ -143,7 +143,7 @@ const auth = {
  * link to settings and the footnote is the recovery path rather than an expiry note.
  */
 const SETTINGS = { label: 'Open your settings', url: `${SITE}/settings` }
-const notMe = 'If this was not you, reset your password right away and check what is signed in to your account.'
+const notMe = 'If this wasn’t you, reset your password right away.'
 
 const notifications = {
   email_changed_notification: {
@@ -153,72 +153,72 @@ const notifications = {
       'Sign-in links and notifications now go to the new address.',
     ],
     footerReason: 'account',
-    // GoTrue sends this to the OLD address only, so the reader is whoever just lost the
+    // GoTrue sends this to the OLD address only, so the reader is whoever has now lost the
     // account. Do not tell them to act "from the new address": in the takeover case that is
     // the mailbox the attacker controls, and it is not one they can reach either way.
     footnote:
-      'If this was not you, somebody else controls the account now. Get in touch at once, sign-in links no longer reach you.',
+      'If this wasn’t you, somebody else controls the account now. Write to info@grnyte.rocks at once: sign-in links no longer reach you.',
     meta: 'SECURITY · EMAIL CHANGED',
-    preheader: 'The address on your grnyte account was just changed.',
-    subject: 'Your email address was changed',
-    title: 'Your email address was changed',
+    preheader: 'The address on your grnyte account changed.',
+    subject: 'Your email address changed',
+    title: 'Your email address changed',
   },
 
   identity_linked_notification: {
     action: SETTINGS,
-    body: ['{{ .Provider }} can now be used to sign in to your grnyte account.'],
+    body: ['You can now sign in to your grnyte account with {{ .Provider }}.'],
     footerReason: 'account',
     footnote: notMe,
     meta: 'SECURITY · SIGN-IN METHOD LINKED',
-    preheader: 'A new way to sign in was added to your grnyte account.',
-    subject: 'A new sign-in method was linked to your account',
-    title: 'A sign-in method was linked',
+    preheader: 'Your grnyte account has a new way to sign in.',
+    subject: 'A new sign-in method on your account',
+    title: 'A new sign-in method',
   },
 
   identity_unlinked_notification: {
     action: SETTINGS,
-    body: ['{{ .Provider }} can no longer be used to sign in to your grnyte account.'],
+    body: ['You can no longer sign in to your grnyte account with {{ .Provider }}.'],
     footerReason: 'account',
     footnote: notMe,
     meta: 'SECURITY · SIGN-IN METHOD REMOVED',
-    preheader: 'A way to sign in was removed from your grnyte account.',
-    subject: 'A sign-in method was removed from your account',
-    title: 'A sign-in method was removed',
+    preheader: 'Your grnyte account has one less way to sign in.',
+    subject: 'One less sign-in method on your account',
+    title: 'One less sign-in method',
   },
 
   mfa_factor_enrolled_notification: {
     action: SETTINGS,
     body: [
-      'A new verification method ({{ .FactorType }}) was added to your grnyte account. You will be asked for it when you sign in.',
+      'Your grnyte account has a new verification method ({{ .FactorType }}). You’ll need it the next time you sign in.',
     ],
     footerReason: 'account',
     footnote: notMe,
     meta: 'SECURITY · VERIFICATION METHOD ADDED',
-    preheader: 'You will be asked for {{ .FactorType }} the next time you sign in.',
-    subject: 'A new verification method was added to your account',
-    title: 'A verification method was added',
+    preheader: 'You’ll need {{ .FactorType }} the next time you sign in.',
+    subject: 'A new verification method on your account',
+    title: 'A new verification method',
   },
 
   mfa_factor_unenrolled_notification: {
     action: SETTINGS,
-    body: ['The verification method ({{ .FactorType }}) was removed from your grnyte account.'],
+    body: ['You no longer need {{ .FactorType }} to sign in to grnyte.'],
     footerReason: 'account',
     footnote: notMe,
     meta: 'SECURITY · VERIFICATION METHOD REMOVED',
-    preheader: '{{ .FactorType }} will no longer be asked for when you sign in.',
-    subject: 'A verification method was removed from your account',
-    title: 'A verification method was removed',
+    preheader: 'You won’t need {{ .FactorType }} when you sign in.',
+    subject: 'One less verification method on your account',
+    title: 'One less verification method',
   },
 
   password_changed_notification: {
     action: SETTINGS,
-    body: ['The password for your grnyte account was just changed.', 'If that was you, there is nothing to do.'],
+    body: ['The password for your grnyte account changed.', 'If that was you, there’s nothing to do.'],
     footerReason: 'account',
     footnote: notMe,
     meta: 'SECURITY · PASSWORD CHANGED',
-    preheader: 'The password on your grnyte account was just changed.',
-    subject: 'Your password was changed',
-    title: 'Your password was changed',
+    preheader: 'The password on your grnyte account changed.',
+    subject: 'Your password changed',
+    title: 'Your password changed',
   },
 
   phone_changed_notification: {
@@ -227,9 +227,9 @@ const notifications = {
     footerReason: 'account',
     footnote: notMe,
     meta: 'SECURITY · PHONE CHANGED',
-    preheader: 'The phone number on your grnyte account was just changed.',
-    subject: 'Your phone number was changed',
-    title: 'Your phone number was changed',
+    preheader: 'The phone number on your grnyte account changed.',
+    subject: 'Your phone number changed',
+    title: 'Your phone number changed',
   },
 } as const satisfies Record<string, EmailContent>
 

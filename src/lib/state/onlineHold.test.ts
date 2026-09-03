@@ -4,7 +4,7 @@ import { isOnline, reportConnectionState } from './online.svelte'
 /**
  * The adapter half of `online.svelte`: the ten-second hold, the change-dedupe, and the visibility
  * gate. `connectionVerdict` is pure and covered in `offlineRules.test.ts`; this covers the parts
- * around it, which is where the two worst regressions of this feature actually lived.
+ * around it, which is where the two worst regressions of this feature lived.
  *
  * Written against the module singleton rather than a seam, because that singleton is the thing with
  * the bugs. Each test drives it back to a known state through `connected`, which is the one input

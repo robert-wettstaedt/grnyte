@@ -57,7 +57,7 @@
 
   const global = getGlobalState()
 
-  // Whether any filter is applied lives here rather than the layout — it's pure
+  // Whether any filter is applied lives here rather than the layout: it's pure
   // filter knowledge, derived from the same params the controls read.
   const active = $derived(isFilterActive(page.url.searchParams))
 

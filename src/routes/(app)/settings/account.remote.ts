@@ -10,8 +10,8 @@ import { error, invalid } from '@sveltejs/kit'
  * writes auth cookies, so signing in through it would swap the live session out from under the
  * user; this throwaway client persists nothing and its own session is revoked right after.
  *
- * `scope: 'local'` matters — the default ('global') would revoke every refresh token the user has,
- * signing them out of all their devices just for typing their password.
+ * `scope: 'local'` matters: the default ('global') would revoke every refresh token the user has,
+ * signing them out of all their devices only for typing their password.
  */
 async function verifyPassword(email: string, password: string): Promise<boolean> {
   const client = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {

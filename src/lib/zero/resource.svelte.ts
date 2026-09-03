@@ -14,7 +14,7 @@ import type { Schema } from './zero-schema'
  * - `excluded`: offline, and this is data we deliberately do not keep (see `OFFLINE_QUERIES`).
  *   It is not coming until the connection does, and whatever rows are locally present are a
  *   fragment left by some other query's preload rather than the answer.
- * - `unsynced`: offline, and this simply is not on the device. It may exist; we cannot say.
+ * - `unsynced`: offline, and this is not on the device. It may exist; we cannot say.
  * - `error`: the server rejected or failed it. A fact rather than an absence, but it belongs in the
  *   same union so that a caller asking "may I state this number" gets one answer and not four.
  *
@@ -32,7 +32,7 @@ export type Availability = 'error' | 'excluded' | 'loading' | 'ready' | 'unsynce
  *
  * Status semantics follow Zero's result types (local-first):
  * - `loading`: nothing usable yet (result still `unknown` and empty)
- * - `ready`:   data to show — possibly local/optimistic; `isComplete` flips
+ * - `ready`:   data to show: possibly local/optimistic; `isComplete` flips
  *              true once the server confirmed it (`isSyncing` is the inverse,
  *              for subtle "syncing…" indicators)
  * - `error`:   the server rejected or failed the query. Zero exposes no error
@@ -93,7 +93,7 @@ class Resource<
   #request: () => QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>
 
   // Recreated whenever the request getter's dependencies change (route params,
-  // filters) or the Zero client is swapped on login/logout — `getZ()` is a
+  // filters) or the Zero client is swapped on login/logout: `getZ()` is a
   // reactive read. The ViewStore inside zero-svelte dedupes identical queries
   // and defers cleanup, so this is cheap.
   #query = $derived.by(() => {
@@ -108,7 +108,7 @@ class Resource<
     // (`undefined`/`[]`, `type: 'unknown'`) for the life of the page, which this layer reports as
     // `loading` and the app renders as a spinner that never resolves. On a direct load of an entity
     // page that was reliably `currentUser`, and `isLoading` in the global state turns one stuck
-    // query into a blank app — the "stuck loading" that looked like a Zero sync failure and was not:
+    // query into a blank app, the "stuck loading" that looked like a Zero sync failure and was not:
     // `z.run()` and `z.materialize()` answer the same query from the same replica in milliseconds.
     //
     // `ensureSubscribed()` is the wrapper's own escape hatch for exactly this. Calling it inside a
@@ -170,14 +170,14 @@ class Resource<
  * a reactive resource. Entity modules wrap this in page-facing factories
  * (src/lib/entities/&lt;name&gt;/resources.svelte.ts); pages never call it directly.
  *
- * @param request reactive getter producing the query request — referenced
+ * @param request reactive getter producing the query request: referenced
  *   state (route params, filters) re-targets the underlying query when it
  *   changes.
  * @param select maps the raw Zero rows to DTOs; runs memoized inside
  *   `$derived`, keeping Zero's reactivity.
  * @param opts.enabled gate for dependent queries that aren't ready to run yet.
  * @param opts.offline overrides the query's entry in `OFFLINE_QUERIES` for this one usage. Only for
- *   a query whose policy genuinely depends on its arguments - somebody else's logbook is not kept
+ *   a query whose policy genuinely depends on its arguments: somebody else's logbook is not kept
  *   offline while your own is, from the same query.
  */
 export function createResource<
@@ -200,7 +200,7 @@ export function createResource<
  *
  * Six inputs, five outputs, and an order between the branches that is load-bearing twice. It lived
  * inside a class getter reading three module singletons, so it could not be constructed and could
- * not be asserted - and every bug found in it was a case a truth table would have caught first:
+ * not be asserted, and every bug found in it was a case a truth table would have caught first:
  * `ready` on a fragment, `always`/`field` sitting dead, `error` folded into `ready`, and a `field`
  * gate leaning on a stamp that was about the reference data rather than the guidebook.
  *
@@ -246,7 +246,7 @@ export function resolveAvailability(input: {
   }
 
   // Offline and empty. Empty is an *answer* here rather than a gap, but only on a device that
-  // actually finished the preload which would have filled it. Without this an area that genuinely
+  // finished the preload which would have filled it. Without this an area that genuinely
   // has no routes told a reader with a fully synced guidebook to reconnect and download it: the same
   // wrong claim as the fragment above, with the sign flipped.
   if (input.policy === 'always' && input.referenceSynced) {
@@ -263,10 +263,10 @@ export function resolveAvailability(input: {
 /**
  * Resolve once the query has a row satisfying `isReady` in the local store, or
  * after `timeoutMs`. A server write (Drizzle) reaches Zero only after the sync
- * engine replicates it, so navigating to a just-restored entity races that lag
+ * engine replicates it, so navigating to a newly restored entity races that lag
  * and flashes "not found". Awaiting this before navigation defers it until the
  * row is there. Entity modules wrap it as `waitForArea`/`waitForBlock`/etc.
- * ponytail: 5s cap is the ceiling — a slower sync just navigates to the loading state.
+ * ponytail: 5s cap is the ceiling, a slower sync only navigates to the loading state.
  */
 export function waitForRow<
   TTable extends keyof Schema['tables'] & string,

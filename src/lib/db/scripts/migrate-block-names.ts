@@ -4,9 +4,9 @@
  * (e.g. "Block 3"); an unnamed block instead renders as "Block {order + 1}" via the mapper, so
  * emptying these names lets the live (reorder-aware) numbering take over.
  *
- * Only names matching `^Block \d+$` exactly are reset — "Block B", "Block 4 - Hauptblock",
+ * Only names matching `^Block \d+$` exactly are reset: "Block B", "Block 4 - Hauptblock",
  * "Block 10 (Teekesselblock)" etc. are real names and left untouched. Blocks in (or nested under)
- * any area named "Frankenjura" are excluded — their names are curated and shouldn't be reset.
+ * any area named "Frankenjura" are excluded: their names are curated and shouldn't be reset.
  *
  * Runs as part of `npm run migrate` (via `migrate.ts`). Standalone preview:
  *   npx tsx src/lib/db/scripts/migrate-block-names.ts --dry-run
@@ -20,7 +20,7 @@ import Database from 'postgres'
 import drizzleConfig from '../../../../drizzle.config'
 import * as schema from '../schema'
 
-// Areas in or nested under any area named "Frankenjura" — excluded from the name reset. Reused
+// Areas in or nested under any area named "Frankenjura": excluded from the name reset. Reused
 // as a leading CTE so each statement can filter `area_fk not in (select id from frankenjura)`.
 const frankenjuraCte = sql`recursive frankenjura(id) as (
     select id from areas where name = ${'Frankenjura'}
@@ -28,7 +28,7 @@ const frankenjuraCte = sql`recursive frankenjura(id) as (
     select a.id from areas a join frankenjura f on a.parent_fk = f.id
   )`
 
-// POSIX regex (`\d` isn't supported — use `[0-9]`): the literal "Block " followed by digits only.
+// POSIX regex (`\d` isn't supported: use `[0-9]`): the literal "Block " followed by digits only.
 const numberedNamePattern = '^Block [0-9]+$'
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
@@ -51,7 +51,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     `)
   }
 
-  console.log(`\n${dryRun ? 'DRY RUN — ' : ''}reset ${matches.length} legacy "Block N" name(s).`)
+  console.log(`\n${dryRun ? 'DRY RUN: ' : ''}reset ${matches.length} legacy "Block N" name(s).`)
 }
 
 // Standalone preview: `npx tsx src/lib/db/scripts/migrate-block-names.ts [--dry-run]`.

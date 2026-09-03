@@ -53,7 +53,7 @@
     try {
       await postComment({ body, eventId: thread.eventId, parentId: thread.replyTo?.id })
       // Cleared only on success, so a refused post leaves the words in the box rather than
-      // throwing away something somebody just wrote.
+      // throwing away something somebody wrote a moment ago.
       thread.draft = ''
       thread.replyTo = undefined
     } catch {

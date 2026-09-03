@@ -83,7 +83,7 @@ describe('tileView', () => {
 })
 
 describe('isStorableTile', () => {
-  // Header values as read out of the browser's cache on 2026-08-29, i.e. what OSM actually sent.
+  // Header values as read out of the browser's cache on 2026-08-29, i.e. what OSM sent.
   const tile = (init: ResponseInit) => new Response(new Blob(), init)
 
   it('keeps a map', () => {

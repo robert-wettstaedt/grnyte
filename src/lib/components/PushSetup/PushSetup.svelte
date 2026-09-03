@@ -29,12 +29,12 @@
 
   const status = $derived(pushState())
 
-  // Whether installing would actually change the answer. On a touch device with no Push API this
+  // Whether installing would change the answer. On a touch device with no Push API this
   // is the iOS case and the install IS the fix; on a desktop browser that cannot do push, telling
-  // somebody to add the app to their Home Screen is simply wrong.
+  // somebody to add the app to their Home Screen is wrong.
   const installable = $derived(installPromoMode({ permanent: true }) !== 'none')
-  // `denied` is in here too. The native prompt is one shot, so a declined permission is permanent
-  // - which would otherwise pin an unremovable "notifications are blocked" card to the top of the
+  // `denied` is in here too. The native prompt is one shot, so a declined permission is permanent,
+  // which would otherwise pin an unremovable "notifications are blocked" card to the top of the
   // inbox forever, on a screen the reader opened to read something else. Settings still shows it,
   // because that is where somebody goes looking for exactly that answer.
   const hidden = $derived(

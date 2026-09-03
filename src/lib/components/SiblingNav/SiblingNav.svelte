@@ -1,5 +1,5 @@
 <!-- Prev/next nav controls: two chevron links around a position/total counter. Presentational
-     only — the caller owns the nav data (SheetNav) and the surrounding flex chrome (the sheet's
+     only: the caller owns the nav data (SheetNav) and the surrounding flex chrome (the sheet's
      mobile pill / desktop footer, the route detail page's sticky footer). On the desktop/keyboard
      surfaces the chevrons carry hover tooltips with the j/l keybind hints. -->
 <script lang="ts">

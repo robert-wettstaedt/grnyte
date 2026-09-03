@@ -12,7 +12,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
  * at all ends up NULL.
  *
  * Runs for one route after an ascent/route mutation, or for all routes when
- * `routeId` is omitted (the migration). Only rows whose values actually change
+ * `routeId` is omitted (the migration). Only rows whose values change
  * are written, so the all-routes pass doesn't churn Zero replication.
  */
 export async function recalcUserGradeAndRating(db: PostgresJsDatabase<typeof schema>, routeId?: number): Promise<void> {

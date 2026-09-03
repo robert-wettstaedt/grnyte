@@ -6,7 +6,7 @@
  * recomputed once.
  *
  * Runs as part of `npm run migrate` (via `migrate.ts`). Idempotent: the UPDATE
- * only touches rows whose values actually change.
+ * only touches rows whose values change.
  */
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { recalcUserGradeAndRating } from '../../entities/route/user-grade.server'

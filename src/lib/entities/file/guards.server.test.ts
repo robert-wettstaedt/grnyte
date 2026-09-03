@@ -5,12 +5,12 @@
  *  - `finalizeImage` attached images with NO permission check, while `finalizeVideo` required EDIT.
  *    `resolveAttachRegion` is now the single gate both share, so image and video attach cannot
  *    diverge again. The files INSERT RLS is only READ, so this app gate is the effective one.
- *  - `setFileVisibility` (publish/unpublish) had no server gate at all - only the UI hid it. Its
+ *  - `setFileVisibility` (publish/unpublish) had no server gate at all: only the UI hid it. Its
  *    `canEditFile` rule is deliberately stricter than the files UPDATE RLS for ascent media, because
  *    publishing an ascent file exposes the whole ascent.
  *
  * Superuser connection (RLS bypassed) because these are the APP gates, above RLS. `userRegions` and
- * `userId` are constructed - they are the caller identity the mutation trusts. Skipped when
+ * `userId` are constructed: they are the caller identity the mutation trusts. Skipped when
  * DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
 import { db } from '$lib/db/db.server'
@@ -84,7 +84,7 @@ afterAll(async () => {
 })
 
 describe.skipIf(!reachable)('resolveAttachRegion', () => {
-  // The status, not just any throw: `resolveAttachRegion` 404s on a missing row immediately before
+  // The status, not merely any throw: `resolveAttachRegion` 404s on a missing row immediately before
   // it checks the permission, so a drifted fixture (a failed insert leaving `areaId` at 0, a new
   // deletedAt filter) would keep a bare `rejects.toThrow()` green while the authz branch these
   // tests exist for never runs.

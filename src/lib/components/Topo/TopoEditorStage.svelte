@@ -22,7 +22,7 @@
   interface Props {
     alt: string
     class?: ClassValue
-    /** The drawing controller — the stage calls its place/drag/delete ops. */
+    /** The drawing controller: the stage calls its place/drag/delete ops. */
     editor: TopoEditor
     height?: number
     imagePath: string

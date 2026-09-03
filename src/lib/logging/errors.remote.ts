@@ -7,7 +7,7 @@ import { error as httpError } from '@sveltejs/kit'
 import { desc, sql } from 'drizzle-orm'
 
 // Persists a client-side error. Deliberately not `authedCommand`: errors can happen
-// logged-out, and the table has RLS on with no insert policy — so we use the
+// logged-out, and the table has RLS on with no insert policy, so we use the
 // privileged db client and take `createdBy` from the server session, never the client.
 // ponytail: open endpoint with a capped payload; add rate-limiting if it gets abused.
 export const logClientError = command(

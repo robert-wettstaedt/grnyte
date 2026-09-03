@@ -8,7 +8,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
 
   /**
-   * The end of the onboarding chain: the founder just made the first route in their region, so the
+   * The end of the onboarding chain: the founder made the first route in their region, so the
    * region is now a real, shareable thing. Sits on top of the route they built rather than
    * replacing it, so the celebration has the work behind it.
    *

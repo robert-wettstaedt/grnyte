@@ -26,7 +26,7 @@ export function currentUserRole() {
   )
 }
 
-/** A single user's id + username by id — the public profile header. */
+/** A single user's id + username by id: the public profile header. */
 export function userById(id: () => number) {
   return createResource(
     () => queries.usersByIds({ id: [id()] }),
@@ -43,7 +43,7 @@ export function userList(filter: () => UserListFilter, opts?: { enabled?: () => 
   )
 }
 
-/** Several users by id — the activity feed's rows that name a person (a role grant, a rename). */
+/** Several users by id: the activity feed's rows that name a person (a role grant, a rename). */
 export function usersByIds(ids: () => number[]) {
   return createResource(
     () => queries.usersByIds({ id: ids() }),

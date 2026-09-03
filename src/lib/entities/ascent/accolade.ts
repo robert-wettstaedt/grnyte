@@ -128,7 +128,7 @@ export function deriveAccolade(ascent: AccoladeAscent, history: AccoladeHistory)
  * Whether this send is also the hardest of its own kind inside the window.
  *
  * Two pools, not four (see `ceilingPool`): a flash competes only with flashes, and a redpoint and
- * a repeat compete with each other. Strictly harder, and only against grades that are actually
+ * a repeat compete with each other. Strictly harder, and only against grades that are
  * recorded.
  *
  * At least one earlier send in the same pool has to exist, or the claim is vacuous: the first

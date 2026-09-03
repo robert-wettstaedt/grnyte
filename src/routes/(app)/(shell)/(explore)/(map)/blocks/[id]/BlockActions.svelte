@@ -44,9 +44,9 @@
 </script>
 
 <div class="space-y-2">
-  <!-- An estimated pin still gets directions below — but flag it loudly, and turn the banner
+  <!-- An estimated pin still gets directions below, but flag it loudly, and turn the banner
        into the "confirm the spot" CTA. It links to the edit form (not the move picker): only
-       its explicit checkbox clears the flag — moving the pin alone may just be a better guess. -->
+       its explicit checkbox clears the flag: moving the pin alone may only be a better guess. -->
   {#if block.geolocation?.estimated}
     {#if canEdit}
       <a

@@ -59,7 +59,7 @@ describe('groupEvents', () => {
       event({ createdAt: noon, objectId: 1, verb: 'delete', ...underBlock }),
       event({ createdAt: noon - MINUTE, objectId: 2, verb: 'delete', ...underBlock }),
       event({ createdAt: noon - 2 * MINUTE, objectId: 1, ...underBlock }),
-      // Removing a photo really is an edit: the entity is still there, its photo is not. That is
+      // Removing a photo is an edit: the entity is still there, its photo is not. That is
       // `remove` now, where the old shape had to say "deleted, but with a column".
       event({ createdAt: noon - 3 * MINUTE, objectId: 2, verb: 'remove', ...underBlock }),
     ])
@@ -193,7 +193,7 @@ describe('groupEvents', () => {
     const groups = groupEvents([
       ascent({ createdAt: day(1, 12), objectId: 10 }),
       ascent({ createdAt: day(1, 11), objectId: 11 }),
-      // Media housekeeping, not a send. Shaped the way the writer actually produces it: a file
+      // Media housekeeping, not a send. Shaped the way the writer produces it: a file
       // removal logs on the PARENT, because the file row is gone by then, so this is an event
       // ABOUT the ascent. An earlier version of this test used `objectType: 'file'`, which no
       // writer ever emits, and so passed while the real case counted photo deletions as sends.
@@ -299,7 +299,7 @@ describe('groupEvents', () => {
     ])
 
     // Same day, same ascent, thirteen hours apart. A card never moves to its newest event (see
-    // `mergeCreatedWithMedia`), so folding this one in would have hidden an upload the reader just
+    // `mergeCreatedWithMedia`), so folding this one in would have hidden an upload the reader
     // made behind a card dated that morning, where the feed had already carried it past.
     expect(groups.map((group) => group.kind)).toEqual(['single', 'single'])
     expect(groups[0].createdAt).toBe(day(1, 21))

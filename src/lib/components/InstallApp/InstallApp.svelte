@@ -35,8 +35,8 @@
   const { class: className = '', dismissible = false, offline = false, permanent = false }: Props = $props()
 
   // Every input is a browser fact, so on a server-rendered page this would resolve to 'none' and
-  // then change under hydration. Not a problem at any of today's call sites - the (app) group is
-  // `ssr = false`, and the invite screen only mounts this after a click - but a future caller on
+  // then change under hydration. Not a problem at any of today's call sites: the (app) group is
+  // `ssr = false`, and the invite screen only mounts this after a click. But a future caller on
   // an SSR'd page needs to gate this behind a mounted flag.
   const mode: InstallMode = $derived(installPromoMode({ dismissible, permanent }))
 

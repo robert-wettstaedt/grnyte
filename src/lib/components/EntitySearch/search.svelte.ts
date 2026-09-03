@@ -83,12 +83,12 @@ const PER_GROUP_LIMIT = 6
 interface EntitySearchOptions {
   /** Per-type row cap pushed into each query as a `limit`; defaults to {@link PER_GROUP_LIMIT}. */
   limit?: number
-  /** Only query while the picker is open — keeps it idle (and synced-down) otherwise. */
+  /** Only query while the picker is open: keeps it idle (and synced-down) otherwise. */
   open: () => boolean
   /** Current query (the text typed after the `@` trigger, or into the search bar). */
   query: () => string
   /**
-   * When set, prepends a region name to each candidate's crumbs — used by the
+   * When set, prepends a region name to each candidate's crumbs: used by the
    * global search when the signed-in user spans more than one region. Returning
    * `undefined` (or omitting the option) leaves crumbs untouched.
    */
@@ -107,7 +107,7 @@ interface UserRow {
  * containment chain, with blanks dropped.
  *
  * Exported so the `?q=` results page builds the same line as the dropdown. An empty
- * segment has to go, not just a null one: a parent area with no name would otherwise
+ * segment has to go, not only a null one: a parent area with no name would otherwise
  * render as a stray separator between two crumbs.
  */
 export function entityCrumbs(region: string | undefined, rest: Array<null | string | undefined>): string[] {
@@ -161,7 +161,7 @@ export function entityMappers(regionCrumb?: (regionFk: number) => string | undef
 
     users: (row: UserRow): EntityCandidate => ({
       // A user isn't in one place, so its crumb is the region(s) it shares with the
-      // searcher — only shown when `regionCrumb` opts in.
+      // searcher: only shown when `regionCrumb` opts in.
       context: crumbs(
         null,
         (row.regionMemberships ?? []).map((membership) => regionCrumb?.(membership.regionFk)),
@@ -177,7 +177,7 @@ export function entityMappers(regionCrumb?: (regionFk: number) => string | undef
  * Reactive entity search. The search term and a per-type `limit` are pushed
  * **into** the Zero queries (`content` ILIKE + `limit`), so each keystroke
  * materialises at most `PER_GROUP_LIMIT` rows per type rather than the whole
- * region — no client-side scan. Queries are gated on `open`, so nothing runs
+ * region, no client-side scan. Queries are gated on `open`, so nothing runs
  * (and `users` never syncs over the network) until the caller opts in.
  */
 export function entitySearch({ limit, open, query, regionCrumb, regionFks }: EntitySearchOptions) {
@@ -216,7 +216,7 @@ export function entitySearch({ limit, open, query, regionCrumb, regionFks }: Ent
   })
 
   return {
-    /** Flattened candidates in display order — drives keyboard navigation. */
+    /** Flattened candidates in display order: drives keyboard navigation. */
     get flat(): EntityCandidate[] {
       return this.groups.flatMap((group) => group.items)
     },

@@ -9,7 +9,7 @@
  *
  * The mail is covered here too, as data: the browser test never opens the invite mail (it goes to
  * a real inbox), so this is where the accept URL, the region, the inviter and the recipient locale
- * are actually asserted.
+ * are asserted.
  *
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */

@@ -7,7 +7,7 @@ export type BlockDetail = {
   /** Markdown, with entity references and user mentions. '' when unset, never null. */
   description: string
   geolocation: Geolocation | undefined
-  /** The stored name as typed — empty for auto-numbered blocks. `name` is the display
+  /** The stored name as typed: empty for auto-numbered blocks. `name` is the display
    *  fallback ("Block 2"); editing must prefill from this so a blank block stays blank. */
   rawName: string
   /** One entry per topo image, in topo order: the `topos` row id (links to the

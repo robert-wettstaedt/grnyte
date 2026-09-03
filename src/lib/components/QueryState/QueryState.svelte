@@ -44,7 +44,7 @@
   //
   // Which of the two messages to show is the resource's judgement now, not this component's. It is
   // the only layer that knows which query it is running and therefore whether the data is missing
-  // because we chose not to keep it or because this device simply has not got it. The
+  // because we chose not to keep it or because this device has not got it. The
   // `offlineExcluded` prop that used to carry that answer in from six call sites is gone.
   const availability = $derived(forceState == null ? resource.availability : 'ready')
 </script>

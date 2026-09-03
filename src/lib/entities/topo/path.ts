@@ -8,8 +8,8 @@ interface Point {
 
 /**
  * Whether a line's points are 0–1 fractions (the current, resolution-independent
- * format — scales with any image size) rather than legacy absolute pixels.
- * ponytail: heuristic — a path is one or the other, and a pixel path never sits
+ * format: scales with any image size) rather than legacy absolute pixels.
+ * ponytail: heuristic, a path is one or the other, and a pixel path never sits
  * entirely within 0–1.5. Revisit if a px-only sub-1.5 convention ever appears.
  */
 export const isNormalized = (points: TopoPoint[]): boolean =>
@@ -28,13 +28,13 @@ export const normalizePoints = (points: TopoPoint[], width?: number, height?: nu
 /**
  * Whether a line can be safely edited: its points end up cleanly in 0-1 space after normalization.
  * Legacy pixel paths with no (or mismatched) image dimensions can't be normalized, so editing them
- * would mix pixel and fraction coords and Save would overwrite the stored path with garbage — the
+ * would mix pixel and fraction coords and Save would overwrite the stored path with garbage: the
  * editor renders those read-only instead. An empty line is trivially editable (nothing to mangle).
  */
 export const canEditPoints = (points: TopoPoint[], width?: number, height?: number): boolean =>
   points.length === 0 || isNormalized(normalizePoints(points, width, height))
 
-/** Split points into sub-paths — a new one begins at each `start`. */
+/** Split points into sub-paths: a new one begins at each `start`. */
 const toSubPaths = (points: Point[]): Point[][] => {
   const subPaths: Point[][] = []
   for (const point of points) {
@@ -48,7 +48,7 @@ const toSubPaths = (points: Point[]): Point[][] => {
 }
 
 /**
- * Serialize typed points back into the stored path format (`M x,y L x,y … Z`) —
+ * Serialize typed points back into the stored path format (`M x,y L x,y … Z`):
  * the inverse of `convertPathToPoints`. Each `start` opens a sub-path (`M`), the
  * rest are `L`, and a `top` closes its sub-path with a trailing `Z` marker. So a
  * two-hold start reads `M s1 L m1 L top Z M s2`. Coordinates are rounded to 5
@@ -74,7 +74,7 @@ const straightPath = (points: Point[]): string =>
   points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x},${point.y}`).join(' ')
 
 /**
- * Smooth `d` that passes through every point — a Catmull-Rom spline converted to
+ * Smooth `d` that passes through every point: a Catmull-Rom spline converted to
  * cubic béziers, so the line reads as a natural climbing line. Two points come
  * out straight; ponytail: uniform Catmull-Rom can overshoot on sharp kinks, swap
  * the /6 control math for a centripetal variant if a line bulges off-rock.
@@ -103,7 +103,7 @@ const smoothPath = (points: Point[]): string => {
   return d
 }
 
-/** Average position of a set of points — the anchor the route line rises from. */
+/** Average position of a set of points: the anchor the route line rises from. */
 const centroid = (points: Point[]): Point => ({
   type: 'start',
   x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
@@ -132,7 +132,7 @@ export interface BuiltLine {
   bracket: string
   /** The route line: one path rising from the centre of the start holds to the top. */
   d: string
-  /** One point per sub-path — each a starting handhold (deduped across lines by the caller). */
+  /** One point per sub-path: each a starting handhold (deduped across lines by the caller). */
   starts: Point[]
   /** The top-out point, for the end marker. */
   top: Point | undefined
@@ -145,7 +145,7 @@ export interface BuiltLine {
  * Renders the "bracket + line from centre" style: the start holds are grouped by
  * a bracket bar (drawn once as rings by the caller), and a single line rises from
  * their centroid through the trunk's waypoints to the top. Decoupling the hold
- * grouping from the line keeps shared starts across routes legible — overlapping
+ * grouping from the line keeps shared starts across routes legible: overlapping
  * brackets read cleanly where forks would tangle.
  */
 export const buildLine = (points: TopoPoint[], curved: boolean, imgWidth = 1, imgHeight = 1): BuiltLine => {

@@ -3,6 +3,7 @@
   import { gradeVar, type GradeBand } from '$lib/entities/grade/color'
   import type { TopoPoint } from '$lib/entities/topo/dto'
   import { buildLine } from '$lib/entities/topo/path'
+  import { m } from '$lib/paraglide/messages'
   import type { ClassValue } from 'svelte/elements'
   import { panzoom } from './panzoom'
   import TopoLine from './TopoLine.svelte'
@@ -17,7 +18,7 @@
     /** Guidebook-style number badged at the base of the line. */
     number?: number
     points: TopoPoint[]
-    /** How the route finishes — drives the end marker. */
+    /** How the route finishes: drives the end marker. */
     topType?: 'top' | 'topout'
   }
 
@@ -36,7 +37,7 @@
     interactive?: boolean
     /** Route lines to draw, each coloured by its grade band. */
     lines: LineInput[]
-    /** Stored pixel width of the topo image (`files.width`) — gives the box its
+    /** Stored pixel width of the topo image (`files.width`), gives the box its
      *  aspect ratio and the overlay its coordinate space before the photo loads. */
     width?: number
     /** Let the user pinch / wheel zoom and drag to pan, to inspect holds. */
@@ -58,12 +59,12 @@
 
   // The stored dims are the authoritative viewBox: they are the ORIGINAL's pixel
   // space, which legacy pixel paths (any the migration couldn't convert) were
-  // drawn against — the loaded image is a smaller derivative, so its natural size
+  // drawn against: the loaded image is a smaller derivative, so its natural size
   // is the wrong space for them. 0–1 fraction paths are scale-invariant and the
   // aspect ratio is identical either way, so stored-dims-first is also free for
   // the normal case, and box + overlay render before the image arrives. Natural
   // size (bound to the loaded image) is only the fallback for files without
-  // backfilled dims — there the overlay waits for the load, as before. The Image
+  // backfilled dims, there the overlay waits for the load, as before. The Image
   // is keyed on `imagePath` so a topo switch remounts it and resets these to 0.
   let naturalWidth = $state(0)
   let naturalHeight = $state(0)
@@ -103,8 +104,8 @@
   )
 
   // Start holds: dedupe across all lines and draw once. A shared hold records every
-  // line through it (for highlight dimming) and takes the band of the last line —
-  // i.e. the top-most line at that point — so the marker matches the line above it.
+  // line through it (for highlight dimming) and takes the band of the last line:
+  // the top-most line at that point, so the marker matches the line above it.
   const holds = $derived.by(() => {
     const seen: Record<string, { band: GradeBand | undefined; ids: number[]; key: string; x: number; y: number }> = {}
     for (const line of rendered) {
@@ -128,7 +129,7 @@
   }
 
   // A shared hold steps through its lines on each tap, then clears after the
-  // last — for a single-line hold that reduces to a plain toggle.
+  // last, for a single-line hold that reduces to a plain toggle.
   function cycleHold(ids: number[]) {
     const index = highlightId == null ? -1 : ids.indexOf(highlightId)
     highlightId = ids[index + 1]
@@ -199,7 +200,7 @@
                 {...press(() => toggle(line.id))}
                 style="pointer-events: stroke; cursor: pointer"
                 aria-pressed={line.id === highlightId}
-                aria-label="Toggle route line"
+                aria-label={m.topo_toggleLine()}
               />
             {/if}
 
@@ -213,7 +214,7 @@
                 ? {
                     class: 'select-none',
                     ...press(() => toggle(line.id)),
-                    'aria-label': 'Toggle route line',
+                    'aria-label': m.topo_toggleLine(),
                     'aria-pressed': line.id === highlightId,
                   }
                 : { class: 'select-none pointer-events-none' }}
@@ -229,7 +230,7 @@
             opacity={dimmed ? 0.25 : 1}
             {...interactive ? press(() => cycleHold(hold.ids)) : {}}
             aria-pressed={interactive ? !dimmed && highlightId != null : undefined}
-            aria-label={interactive ? 'Toggle route line' : undefined}
+            aria-label={interactive ? m.topo_toggleLine() : undefined}
           >
             <circle
               cx={hold.x}

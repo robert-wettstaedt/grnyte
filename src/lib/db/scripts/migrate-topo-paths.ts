@@ -6,7 +6,7 @@
  * because the original's dimensions aren't stored anywhere.
  *
  * Each image's dimensions come from the `files` table (`width`/`height`,
- * EXIF-oriented — legacy points were drawn against the browser-oriented image;
+ * EXIF-oriented: legacy points were drawn against the browser-oriented image;
  * backfilled by migrate-image-derivatives, which runs first) and every
  * coordinate is divided by the oriented size.
  *
@@ -34,7 +34,7 @@ const tokenRegex = /^([ML])(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/i
  * preserving the token structure (`M`/`L` letters, trailing `Z` marker).
  * Returns `null` when the path needs no migration or can't be converted safely:
  * already normalized, unparsable, or coordinates outside the image (dimension
- * mismatch — converting would corrupt it). `reason` says which.
+ * mismatch: converting would corrupt it). `reason` says which.
  */
 export const normalizePath = (
   path: string,
@@ -64,7 +64,7 @@ export const normalizePath = (
     return { next: null, reason: 'empty' }
   }
 
-  // Same heuristic the renderer gates on — using it here guarantees the two agree.
+  // Same heuristic the renderer gates on: using it here guarantees the two agree.
   if (isNormalized(points.map((point) => ({ id: '', type: 'middle' as const, x: point.x, y: point.y })))) {
     return { next: null, reason: 'normalized' }
   }
@@ -91,7 +91,7 @@ export const normalizePath = (
   return { next }
 }
 
-/** 5 decimals ≈ 0.05px error on a 4000px photo — plenty, and keeps paths short. */
+/** 5 decimals ≈ 0.05px error on a 4000px photo: plenty, and keeps paths short. */
 const round = (value: number): number => Number(value.toFixed(5))
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
@@ -146,7 +146,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     }
   }
 
-  console.log(`\n${dryRun ? 'DRY RUN — ' : ''}converted ${converted} of ${rows.length} path(s).`)
+  console.log(`\n${dryRun ? 'DRY RUN: ' : ''}converted ${converted} of ${rows.length} path(s).`)
   for (const [reason, ids] of Object.entries(skipped)) {
     console.log(`Skipped (${reason}): #${ids.join(', #')}`)
   }

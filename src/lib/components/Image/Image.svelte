@@ -7,7 +7,7 @@
 
   interface Props extends Omit<HTMLImgAttributes, 'alt' | 'class' | 'onerror' | 'onload' | 'src'> {
     /**
-     * Alternative text — also announced when the image fails to load. An empty
+     * Alternative text: also announced when the image fails to load. An empty
      * string marks the image decorative; the failure placeholder is then
      * hidden from screen readers too.
      */
@@ -21,7 +21,7 @@
     error?: Snippet
     /** How the photo fills the box (`object-fit`). A prop rather than an `imgClass`
      *  override because two object-* utilities on one element resolve by stylesheet
-     *  order, not class order — cover silently won over a passed object-contain. */
+     *  order, not class order: cover silently won over a passed object-contain. */
     fit?: 'contain' | 'cover'
     /** Classes for the inner `<img>`. */
     imgClass?: ClassValue
@@ -32,7 +32,7 @@
     /** Path of the file as stored on the `files` record (leading slash optional). */
     path: string
     /**
-     * Request a resized, cacheable derivative instead of the full-res image — for list
+     * Request a resized, cacheable derivative instead of the full-res image, for list
      * tiles and other small renders. Aspect-preserving. 256 for thumbnails, 1024 for
      * anything filling a viewport; omit only where the untouched original is wanted.
      */
@@ -80,7 +80,7 @@
   <!--
     The image stays mounted in every state (except an explicit retry remount):
     it loads behind the skeleton, and when `src` changes it keeps showing the
-    previous image until the new one resolves (or errors) — no flash back to
+    previous image until the new one resolves (or errors). No flash back to
     the skeleton between images.
   -->
   {#key retry}

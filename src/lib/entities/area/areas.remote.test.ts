@@ -128,7 +128,7 @@ describe.skipIf(!reachable)('updateArea', () => {
     // `data.areas.at(-1)?.id`, which is undefined at the top level, and the field then submits ''.
     //
     // `stringToInt.optional()` admits undefined and nothing else, so '' was rejected with
-    // `form_numInvalid` on a field the edit form does not render - the user pressed Save, the page
+    // `form_numInvalid` on a field the edit form does not render: the user pressed Save, the page
     // did not move, and nothing on screen said why. A silent refusal is worse than a loud one, and
     // no gate test can catch it: the handler was never reached.
     await submit({

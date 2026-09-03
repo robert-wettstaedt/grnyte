@@ -11,9 +11,9 @@
 
   const { area }: Props = $props()
 
-  // Each card owns a query for every route beneath its area — the `areaId`
+  // Each card owns a query for every route beneath its area: the `areaId`
   // filter matches descendants via the route's `areaIds`, so the donut reflects
-  // the whole sub-tree, not just routes attached directly to this area.
+  // the whole sub-tree, not only routes attached directly to this area.
   const routes = routeList(() => ({ areaId: area.id }))
 
   const countByGrade = $derived.by(() => {

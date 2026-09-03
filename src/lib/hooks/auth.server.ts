@@ -254,7 +254,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   }
 
   // A signed-in user with no regions whose address has a live invitation goes straight to it.
-  // '/explore' as well as '/', because `signIn` redirects to /explore - without it this could
+  // '/explore' as well as '/', because `signIn` redirects to /explore. Without it this could
   // never fire after a fresh sign in. That plus the email-keyed lookup is what makes "sign up,
   // then immediately join" work without threading the token through signup and its confirmation
   // mail. Same validity predicate as everywhere else: pending AND not expired.
@@ -264,11 +264,11 @@ export const authGuard: Handle = async ({ event, resolve }) => {
 
     // The create screen on top of the shared list so an invitation still wins once somebody is
     // standing on it. The (app) group is `ssr = false` with no server loads, so an in-app
-    // navigation never reaches this hook at all and the layout has to do its own bounce - and the
+    // navigation never reaches this hook at all and the layout has to do its own bounce, and the
     // client cannot see invitations. Landing here is what gives this the chance to correct that.
     if (REGIONLESS_PATHS.some((regionless) => regionless === path) || path === REGION_CREATE_PATH) {
       // The lookup is what may fail (a dropped connection on a hook that runs for every request);
-      // the redirect itself throws by design, so it stays OUTSIDE the catch - swallowing it left
+      // the redirect itself throws by design, so it stays OUTSIDE the catch: swallowing it left
       // the invitee on an empty page with the invitation unmentioned.
       let token: string | undefined
       try {

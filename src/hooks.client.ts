@@ -13,6 +13,6 @@ export const handleError: HandleClientError = ({ error }) => {
 window.addEventListener('unhandledrejection', (event) => reportClientError(event.reason))
 window.addEventListener('error', (event) => {
   // Only real JS exceptions carry `error`; resource-load failures (img/script/css)
-  // fire here too with no error object — ignore those to keep the log clean.
+  // fire here too with no error object. Ignore those to keep the log clean.
   if (event.error != null) reportClientError(event.error)
 })

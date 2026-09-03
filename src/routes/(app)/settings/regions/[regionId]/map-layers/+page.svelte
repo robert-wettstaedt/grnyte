@@ -21,11 +21,11 @@
   const regionId = Number(page.params.regionId)
 
   // Region settings are admin-only, and the link into here is too, so this only catches somebody
-  // typing the URL. The server rejects them either way - this is so they find out before typing.
+  // typing the URL. The server rejects them either way: this is so they find out before typing.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 
   // Seeded once at init from the memberships the app shell already has, the same way the name page
-  // reads global.userRegions. No async load, so `Form` stays the route's direct child - wrapping it
+  // reads global.userRegions. No async load, so `Form` stays the route's direct child: wrapping it
   // in a QueryState puts a flex container between it and the page and breaks its sticky header.
   const stored = global.userRegions.find((region) => region.regionFk === regionId)?.settings?.mapLayers ?? []
 

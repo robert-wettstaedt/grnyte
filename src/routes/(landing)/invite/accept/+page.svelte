@@ -112,8 +112,8 @@
       await acceptRegionInvitation({ token })
 
       // Straight in, unless there is something worth one screen first. This is the highest-intent
-      // moment in the app - the invitee has just committed, on what is already a click-driven
-      // confirmation - and on the platform where installing gates push it is the natural home for
+      // moment in the app (the invitee has now committed, on what is already a click-driven
+      // confirmation), and on the platform where installing gates push it is the natural home for
       // the Add to Home Screen instructions.
       if (installPromoMode(promo) === 'none') {
         enter()

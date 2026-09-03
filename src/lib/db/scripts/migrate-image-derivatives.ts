@@ -2,7 +2,7 @@
  * One-time backfill for image files: store the EXIF-oriented pixel dimensions
  * on the `files` row and generate the webp derivatives (`<base>.256.webp`,
  * `<base>.1024.webp`) that are served for `?w=` requests (#472). Both concerns
- * share one download per image — the download dominates the cost.
+ * share one download per image: the download dominates the cost.
  *
  * Runs as part of `npm run migrate` (via `migrate.ts`), after
  * migrate-promote-originals so derivatives come from the pristine source and
@@ -12,7 +12,7 @@
  *
  * Idempotent: rows with stored dimensions whose derivatives all exist are
  * skipped. Unreadable images and failed uploads are warned and left for a
- * re-run — a missing derivative degrades to the Nextcloud-preview fallback at
+ * re-run: a missing derivative degrades to the Nextcloud-preview fallback at
  * serve time, it never breaks.
  */
 import { eq } from 'drizzle-orm'
@@ -76,7 +76,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   const skipped: Record<string, string[]> = {}
   const skip = (reason: string, ids: string[]) => (skipped[reason] ??= []).push(...ids)
 
-  // `files` contains duplicate rows for the same storage path — download and
+  // `files` contains duplicate rows for the same storage path: download and
   // encode once per path, but write dims to every row sharing it.
   const byPath = new Map<string, typeof rows>()
   for (const row of rows) {
@@ -142,7 +142,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     for (const size of missingSizes) {
       try {
         const webp = await sharp(buffer)
-          // Bake the EXIF orientation in — the resized derivative carries no metadata.
+          // Bake the EXIF orientation in: the resized derivative carries no metadata.
           .rotate()
           .resize({ fit: 'inside', height: size, width: size, withoutEnlargement: true })
           .webp({ quality: DERIVATIVE_QUALITY })
@@ -155,7 +155,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     }
   }
 
-  // Simple worker pool: downloads dominate, sharp encodes are fast — a handful
+  // Simple worker pool: downloads dominate, sharp encodes are fast; a handful
   // of files in flight saturates the connection without hammering Nextcloud.
   let cursor = 0
   await Promise.all(
@@ -166,7 +166,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     }),
   )
 
-  console.log(`\n${dryRun ? 'DRY RUN — ' : ''}processed ${processed} of ${paths.length} image path(s).`)
+  console.log(`\n${dryRun ? 'DRY RUN: ' : ''}processed ${processed} of ${paths.length} image path(s).`)
   for (const [reason, ids] of Object.entries(skipped)) {
     console.log(`Skipped (${reason}): #${ids.join(', #')}`)
   }

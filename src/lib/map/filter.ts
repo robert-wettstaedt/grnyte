@@ -17,7 +17,7 @@ export const FILTER_PARAM_KEYS = [
 ] as const
 
 export interface ParsedRouteFilter {
-  /** Tick status, filtered client-side from the signed-in user's ascents. */
+  /** Ascent status, filtered client-side from the signed-in user's ascents. */
   ascentStatus: AscentStatus | undefined
   /** Whether to keep only the user's favorited routes (client-side). */
   favoritesOnly: boolean

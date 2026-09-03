@@ -14,9 +14,9 @@
   const { area }: Props = $props()
   const global = getGlobalState()
 
-  // A null-type area is undetermined: its first child fixes the type — a sub-area
+  // A null-type area is undetermined: its first child fixes the type. A sub-area
   // makes it an 'area', a block makes it a 'crag'. With edit rights both adds are
-  // allowed here, so the empty state is the fork; without them it's just a notice.
+  // allowed here, so the empty state is the fork; without them it's only a notice.
   // Per the design a block is the primary path (quickest way to actual routes).
   const canAddAreaHere = $derived(canAddArea(global.userRegions, area))
   const canAddBlockHere = $derived(canAddBlock(global.userRegions, area))

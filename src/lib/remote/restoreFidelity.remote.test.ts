@@ -5,7 +5,7 @@
  * rather than taking from a snapshot that has been through the client. This file asks the other
  * one, which nothing else does: does a hard delete followed by Undo LOSE anything.
  *
- * It can lose things because an entity's field list is written out four times over - the snapshot
+ * It can lose things because an entity's field list is written out four times over: the snapshot
  * type, the delete that fills it, the zod schema that validates it coming back, and the insert that
  * replays it. Add a column to `areas` and touch none of them and undo silently drops it: the row
  * comes back without its description, nothing errors, and the person who wrote that text finds it

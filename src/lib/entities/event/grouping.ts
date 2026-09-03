@@ -215,7 +215,7 @@ function joinsCreate(create: EventListItem, uploads: EventGroup): boolean {
 
 function kindOf(event: EventListItem): EventGroupKind {
   // A deletion is the one thing on a card nobody may have to infer from a tombstone row, so it is
-  // kept out of the edit bursts: a column-scoped delete (a photo, a parking pin) is really an edit,
+  // kept out of the edit bursts: a column-scoped delete (a photo, a parking pin) is an edit,
   // and is written as `remove` or `update` rather than `delete`, so the verb says it outright.
   if (event.verb === 'delete') {
     return 'removal'

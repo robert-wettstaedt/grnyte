@@ -8,7 +8,8 @@ import { locales } from '$lib/paraglide/runtime'
  *
  * Why it looks like 1999 HTML: Outlook on Windows renders mail with the Word engine,
  * which has no flexbox, no grid, no `max-width`, and treats `height` on a `<td>` as a
- * hint. Gmail strips `<style>` in some contexts and force-inverts colors in others.
+ * hint. Gmail strips `<style>` in its mobile app for non-Gmail accounts, and force-inverts
+ * colors in dark mode.
  * So: nested `role="presentation"` tables, every color inline AND mirrored in a class
  * so the dark-mode block can override it, literal 6-digit hex only.
  *
@@ -175,7 +176,7 @@ const darkRules = (prefix: string) =>
 
 /**
  * Everything in here is an enhancement. The email must stay fully legible with this
- * whole block deleted, because some clients drop it. Test that before shipping changes.
+ * whole block deleted, because not every client keeps it. Test that before shipping changes.
  */
 const styleBlock = `
 :root{color-scheme:light dark;supported-color-schemes:light dark;}

@@ -8,7 +8,7 @@
 
   // `back` (set by Panel for viewer routes) swaps the close X on the right for a
   // back arrow on the left, matching the desktop panel's header. `collapseOnOutsideClick`
-  // is the map behaviour — a tap on the map drops the sheet to its title; viewer
+  // is the map behaviour: a tap on the map drops the sheet to its title; viewer
   // routes turn it off so interacting with the stage leaves the sheet alone.
   let {
     back = false,
@@ -22,11 +22,11 @@
   let innerHeight = $state(window.innerHeight)
   let sheet = $state<ReturnType<TypeOfBottomSheet> | undefined>(undefined)
 
-  // Viewport offset of the sheet's top edge, so `floating` controls can sit just
+  // Viewport offset of the sheet's top edge, so `floating` controls can sit right
   // above it and follow as it's dragged. The sheet grows from the bottom via
   // `max-height`, so a ResizeObserver fires on every drag/snap frame. Published on
   // sheetState so the page behind can size itself to the uncovered area.
-  // ponytail: at a near-full drag the buttons translate off the top — acceptable.
+  // ponytail: at a near-full drag the buttons translate off the top. Acceptable.
   $effect(() => {
     const sheetEl = titleEl?.closest('.bottom-sheet')
     if (sheetEl == null) return
@@ -58,7 +58,7 @@
     // A button inside the sheet that removes itself on click (e.g. a "Show all"
     // toggle) leaves `target` detached by the time this bubbles to the document,
     // so `.closest()` finds nothing and the sheet would wrongly collapse. A
-    // detached node is never a real tap on the map behind the sheet — ignore it.
+    // detached node is never a real tap on the map behind the sheet: ignore it.
     if (!target.isConnected) return
 
     if (!target.closest('.bottom-sheet') && !target.closest('[data-sheet-floating]')) {

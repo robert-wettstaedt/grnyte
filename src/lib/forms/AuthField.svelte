@@ -10,7 +10,7 @@
     /** Optional trailing content on the label row, e.g. a “Forgot?” link. */
     action?: Snippet
     autocapitalize?: 'characters' | 'none' | 'sentences' | 'words'
-    /** Drives mobile autofill / keychain / password-manager — see the per-field tokens on each page. */
+    /** Drives mobile autofill / keychain / password-manager: see the per-field tokens on each page. */
     autocomplete: HTMLInputAttributes['autocomplete']
     autofocus?: boolean
     /** Mobile keyboard's enter-key label: 'next' for non-final fields, 'go'/'done' for the last. */

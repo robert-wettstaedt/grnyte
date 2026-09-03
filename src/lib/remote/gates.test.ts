@@ -157,7 +157,7 @@ function parseHandlers(file: string): Handler[] {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
 
   // Same-file helpers, so one hop of indirection counts: `regionTagUsage` reaching `assertCanEdit`
-  // through `editableTags` is asking permission just as much as calling it directly.
+  // through `editableTags` is asking permission every bit as much as calling it directly.
   const helpers = new Map<string, ts.Node>()
   ts.forEachChild(source, (node) => {
     if (ts.isFunctionDeclaration(node) && node.name != null) helpers.set(node.name.text, node)

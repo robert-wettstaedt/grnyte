@@ -32,7 +32,7 @@ export function createMapData(props: BlocksMapProps) {
   const routeCountByBlock = $derived(props.routeCountByBlock ?? new Map<number, number>())
   const gradeCountByBlock = $derived(props.gradeCountByBlock ?? new Map<number, Map<number, number>>())
 
-  // Area tier — the outermost grouping, shown when zoomed out so the far view isn't
+  // Area tier: the outermost grouping, shown when zoomed out so the far view isn't
   // cluttered with every crag. Group each block under its first (outermost) area ancestor.
   const blocksByArea = $derived.by(() => {
     const grouped = new Map<number, { area: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
@@ -40,7 +40,7 @@ export function createMapData(props: BlocksMapProps) {
     for (const block of geoBlocks) {
       // Falls back to the outermost ancestor whatever its type. A crag sitting at the root of a
       // region has no 'area' above it, and without this its blocks were in no group at all below
-      // CRAG_ZOOM - so they simply vanished when zoomed out. A root crag is its own outermost
+      // CRAG_ZOOM, so they vanished when zoomed out. A root crag is its own outermost
       // grouping; the two tiers then draw the same rect at different zooms, never together.
       const area = block.areas.find((area) => area.type === 'area') ?? block.areas[0]
       if (area == null) continue
@@ -56,7 +56,7 @@ export function createMapData(props: BlocksMapProps) {
     return grouped
   })
 
-  // Crag tier — the block-holding area, shown at mid zoom (between the area rects and the
+  // Crag tier: the block-holding area, shown at mid zoom (between the area rects and the
   // individual block markers).
   const blocksByCrag = $derived.by(() => {
     const grouped = new Map<number, { blocks: BlockDetail[]; crag: BlockDetail['areas'][0] }>()

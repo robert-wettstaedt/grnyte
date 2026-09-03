@@ -2,7 +2,7 @@ import { afterNavigate, goto, replaceState } from '$app/navigation'
 import { page } from '$app/state'
 
 // How many same-origin history entries deep we are since entering the app.
-// 0 means the current page is the app's entry point — there is no in-app
+// 0 means the current page is the app's entry point: there is no in-app
 // previous entry, so history.back() would leave the origin (another domain,
 // a search engine, etc.).
 let depth = $state(0)

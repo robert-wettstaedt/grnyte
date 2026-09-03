@@ -6,7 +6,7 @@
   const loadDesktop = () => import('./Modal.desktop.svelte')
   const loadMobile = () => import('./Modal.mobile.svelte')
 
-  // Fetch only the branch this viewport can actually show. The desktop popover positions itself
+  // Fetch only the branch this viewport can show. The desktop popover positions itself
   // with floating-ui and the mobile sheet ships svelte-bottom-sheet, and neither form factor has
   // any use for the other's: statically importing both put them in one chunk, which every visitor
   // paid for whatever screen they were on.

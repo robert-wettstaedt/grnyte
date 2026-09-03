@@ -18,7 +18,7 @@ type DeletableFile = Pick<File, 'bunnyStreamFk' | 'id' | 'path'>
 
 /**
  * Delete file rows (and their bunny_streams) inside the caller's RLS transaction and
- * return the storage targets for the rows actually deleted. Pass the rows already
+ * return the storage targets for the rows deleted. Pass the rows already
  * fetched (the caller usually loaded them to permission-check anyway); their pre-unlink
  * `bunnyStreamFk` is what points at the hosted video.
  *

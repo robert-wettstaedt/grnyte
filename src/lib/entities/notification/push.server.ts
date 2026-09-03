@@ -32,7 +32,7 @@ export function isPushConfigured(): boolean {
  *   corpse. 403 is the one that matters after a VAPID rotation, where the subscription still
  *   exists at the push service but was signed with a key we no longer hold; the client re-creates
  *   it against the current key, and leaving the stale row would keep failing beside it.
- * - anything else is transient (or ours), so the row is left alone and the send is simply lost.
+ * - anything else is transient (or ours), so the row is left alone and the send is lost.
  *   A push is not worth a retry queue: the next digest restates the same thing.
  *
  * Returns whether the payload was accepted, so a caller can decide whether to stamp a watermark.
@@ -105,7 +105,7 @@ export function subscriptionsFor(userFks: readonly number[]): Promise<schema.Pus
  *
  * Through `$env/dynamic/*` rather than the static imports every other secret uses, because this
  * pair is the one that is legitimately allowed to be absent: a self-hoster who does not want push
- * simply does not set it, and a static import would refuse to build instead. `isPushConfigured`
+ * does not set it, and a static import would refuse to build instead. `isPushConfigured`
  * is what every caller branches on.
  */
 function configure(): boolean {

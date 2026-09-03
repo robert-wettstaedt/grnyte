@@ -23,7 +23,7 @@
    */
   interface Props {
     body: string
-    /** The calls to action. First one filled, any second one outlined - see the callers. */
+    /** The calls to action. First one filled, any second one outlined, see the callers. */
     children?: Snippet
     /** Tie-breaker under the buttons, for when the CTAs are a genuine fork. */
     hint?: string

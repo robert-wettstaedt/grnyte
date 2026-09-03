@@ -61,10 +61,10 @@
     return map
   })
 
-  // Sort lives in the URL now (set from the Filter sheet); the page just reads it.
+  // Sort lives in the URL now (set from the Filter sheet); the page only reads it.
   const sort = $derived(parseSort(page.url.searchParams))
 
-  // Sort options offered in the Filter sheet — distance only when blocks have coords.
+  // Sort options offered in the Filter sheet: distance only when blocks have coords.
   const sortOptions = $derived([
     { label: m.filter_grade(), value: 'grade' },
     { label: m.sort_name(), value: 'name' },
@@ -72,7 +72,7 @@
     ...(blockGeo.size > 0 ? [{ label: m.sort_distance(), value: 'distance' }] : []),
   ])
 
-  // Request the user's location only once distance sort is actually chosen.
+  // Request the user's location only once distance sort is chosen.
   const location = userLocation(() => sort.field === 'distance')
 
   const distanceOf = (route: RouteListItem): number => {
@@ -93,7 +93,7 @@
 
   let sentinel = $state<HTMLElement>()
 
-  // Reset to the first window whenever the list changes — area, filter, sort
+  // Reset to the first window whenever the list changes: area, filter, sort
   // (all in the URL) or the local search term. Re-sorting scrolls back to the top
   // of the new order (the old scroll position points at different routes anyway).
   $effect(() => {

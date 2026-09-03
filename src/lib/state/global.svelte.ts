@@ -73,7 +73,7 @@ export interface GlobalState {
 export function getGlobalState(): GlobalState {
   const state = getContext<GlobalState | undefined>(GLOBAL_STATE_KEY)
   if (state == null) {
-    throw new Error('Global state is not available — setGlobalState() must run in the (app) layout first')
+    throw new Error('Global state is not available: setGlobalState() must run in the (app) layout first')
   }
   return state
 }
@@ -136,7 +136,7 @@ export function setGlobalState(): GlobalState | undefined {
       // "Nothing coming" is two cases, not one. Offline is the obvious one. The other is a sync the
       // server refuses: Zero parks its run loop in `needs-auth` and `error` and stops retrying, and
       // since both of those are (correctly) evidence that the *network* is fine, `isOnline()` stays
-      // true and this branch used to miss them entirely - which put an empty replica behind exactly
+      // true and this branch used to miss them entirely: which put an empty replica behind exactly
       // the bare spinner described above, the one case this exists to prevent.
       //
       // Deliberately not gated on `lastSyncedAt`: a first-ever visit made offline is stuck in

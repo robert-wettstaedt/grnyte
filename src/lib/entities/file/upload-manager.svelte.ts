@@ -1,6 +1,6 @@
 /**
  * Client half of the media upload flow. Files start uploading the moment
- * they're picked — in parallel with form filling — images to the Supabase
+ * they're picked (in parallel with form filling), images to the Supabase
  * staging bucket, videos directly to Bunny via TUS. After the entity is
  * created the form calls {@link finalizeMediaUploads}, which attaches each
  * upload via its finalize remote function (record-first: the entity never
@@ -8,7 +8,7 @@
  *
  * Uploads are plain objects owned by the form; the transfer and finalize
  * promises keep running when components unmount or the route changes, so only
- * closing the tab kills them — which the beforeunload guard warns about while
+ * closing the tab kills them, which the beforeunload guard warns about while
  * any upload is busy.
  */
 import { page } from '$app/state'
@@ -21,7 +21,7 @@ import { Upload as TusUpload } from 'tus-js-client'
 import { createBunnyVideo, finalizeImage, finalizeVideo } from './files.remote'
 import { imageMimeOf, STAGING_BUCKET, stagingPath, type FileEntityType } from './upload'
 
-/** What a drop zone holds and a form finalizes — `kind` discriminates the two pipelines. */
+/** What a drop zone holds and a form finalizes: `kind` discriminates the two pipelines. */
 export type MediaUpload = ImageUpload | VideoUpload
 
 export type MediaUploadStatus = 'done' | 'failed' | 'finalizing' | 'staged' | 'uploading'
@@ -31,7 +31,7 @@ export interface MediaUploadTarget {
   type: FileEntityType
 }
 
-// Warn on tab close while any upload is transferring or finalizing — a staged
+// Warn on tab close while any upload is transferring or finalizing: a staged
 // file that hasn't been submitted loses nothing, so it doesn't count as busy.
 // Refcounted per upload: staging and finalizing overlap on the same object.
 const busy = new SvelteMap<MediaUploadBase, number>()
@@ -65,7 +65,7 @@ export interface PendingUpload {
 
 /**
  * The status machine both pipelines share. Subclasses own the transfer
- * (staging XHR / Bunny TUS) and provide {@link attach} — the finalize remote
+ * (staging XHR / Bunny TUS) and provide {@link attach}: the finalize remote
  * call that runs once the bytes have landed.
  */
 abstract class MediaUploadBase {
@@ -104,8 +104,8 @@ abstract class MediaUploadBase {
    * `failed` with the target retained so {@link retry} can resume.
    */
   async finalize(target: MediaUploadTarget): Promise<FileRow> {
-    // Idempotent: a resubmitted form re-finalizes every upload — an attached
-    // one just returns its row (re-running the remote function would fail and
+    // Idempotent: a resubmitted form re-finalizes every upload; an attached
+    // one only returns its row (re-running the remote function would fail and
     // flip a done upload to failed).
     if (this.fileRow != null) {
       return this.fileRow
@@ -130,10 +130,10 @@ abstract class MediaUploadBase {
     }
   }
 
-  /** Kick off (or resume) the transfer. Does not throw — failure lands in `status`/`error`. */
+  /** Kick off (or resume) the transfer. Does not throw: failure lands in `status`/`error`. */
   abstract start(): void
 
-  /** The finalize remote call — runs once the transfer has completed. */
+  /** The finalize remote call: runs once the transfer has completed. */
   protected abstract attach(target: MediaUploadTarget): Promise<FileRow | undefined>
 
   private async runFinalize(target: MediaUploadTarget): Promise<FileRow> {
@@ -172,7 +172,7 @@ abstract class MediaUploadBase {
 
 export class ImageUpload extends MediaUploadBase {
   readonly kind = 'image' as const
-  /** Path in the staging bucket — stable for the upload's lifetime, usable as a list key. */
+  /** Path in the staging bucket: stable for the upload's lifetime, usable as a list key. */
   readonly path: string
 
   private xhr: undefined | XMLHttpRequest
@@ -187,7 +187,7 @@ export class ImageUpload extends MediaUploadBase {
     this.aborted = true
     this.xhr?.abort()
     if (this.isStaged) {
-      // Fire-and-forget — a leftover object is the cleanup cron's job.
+      // Fire-and-forget: a leftover object is the cleanup cron's job.
       void page.data.supabase?.storage.from(STAGING_BUCKET).remove([this.path])
     }
     URL.revokeObjectURL(this.previewUrl)
@@ -198,7 +198,7 @@ export class ImageUpload extends MediaUploadBase {
     this.progress = 0
     this.error = undefined
     this.stagedPromise = this.uploadToStaging()
-    // Nobody may await this until submit — keep an upload failure from being an unhandled rejection.
+    // Nobody may await this until submit: keep an upload failure from being an unhandled rejection.
     this.stagedPromise.catch(() => {})
   }
 
@@ -208,7 +208,7 @@ export class ImageUpload extends MediaUploadBase {
   }
 
   /**
-   * XHR instead of `supabase.storage.upload()` for the sake of `upload.onprogress` —
+   * XHR instead of `supabase.storage.upload()` for the sake of `upload.onprogress`:
    * real progress matters when a few MB take minutes on a crag connection.
    */
   private async uploadToStaging(): Promise<void> {
@@ -232,7 +232,7 @@ export class ImageUpload extends MediaUploadBase {
         // Upsert so a retry after a lost response overwrites instead of 409ing
         // (the object may exist server-side even though the client saw a failure).
         xhr.setRequestHeader('x-upsert', 'true')
-        // Browsers often report an empty type for HEIC — fall back by extension,
+        // Browsers often report an empty type for HEIC: fall back by extension,
         // or the staging bucket's image/* restriction rejects the upload as octet-stream.
         const contentType = this.file.type !== '' ? this.file.type : imageMimeOf(this.file.name)
         if (contentType != null) {
@@ -265,7 +265,7 @@ export class ImageUpload extends MediaUploadBase {
 
 /**
  * The video counterpart of {@link ImageUpload}: the bytes go directly from the
- * browser to Bunny via TUS (resumable — a 2GB clip on a crag connection
+ * browser to Bunny via TUS (resumable: a 2GB clip on a crag connection
  * survives dropouts), `staged` means fully at Bunny, and finalize attaches the
  * video via the `finalizeVideo` remote function.
  */
@@ -278,16 +278,16 @@ export class VideoUpload extends MediaUploadBase {
 
   /** Bunny video GUID + presigned TUS auth + ownership token from `createBunnyVideo`.
    *  Created once, reused on retry so TUS resumes instead of restarting. Accepted
-   *  edge: a retry after the signature's 24h expiration 401s again — remove/re-add
+   *  edge: a retry after the signature's 24h expiration 401s again; remove/re-add
    *  is the recovery. */
   private auth: Awaited<ReturnType<typeof createBunnyVideo>> | undefined
-  /** Current attempt's promise handles — the tus callbacks are bound once at
+  /** Current attempt's promise handles: the tus callbacks are bound once at
    *  construction, so each attempt swaps these instead of recreating the
    *  Upload (the instance retains its URL and resumes at the last offset). */
   private settle: undefined | { reject: (error: unknown) => void; resolve: () => void }
   private tusUpload: TusUpload | undefined
 
-  /** Abort the transfer. The Bunny video object is abandoned as-is — ponytail:
+  /** Abort the transfer. The Bunny video object is abandoned as-is, ponytail:
    *  orphaned videos are the cleanup cron's job, no delete endpoint yet. */
   remove(): void {
     this.aborted = true
@@ -298,11 +298,11 @@ export class VideoUpload extends MediaUploadBase {
 
   start(): void {
     this.status = 'uploading'
-    // progress deliberately kept — tus resumes at the last offset, so a retry
+    // progress deliberately kept: tus resumes at the last offset, so a retry
     // continues from where the bar stood instead of jumping back to zero.
     this.error = undefined
     this.stagedPromise = this.uploadToBunny()
-    // Nobody may await this until submit — keep an upload failure from being an unhandled rejection.
+    // Nobody may await this until submit: keep an upload failure from being an unhandled rejection.
     this.stagedPromise.catch(() => {})
   }
 
@@ -323,10 +323,10 @@ export class VideoUpload extends MediaUploadBase {
   private async uploadToBunny(): Promise<void> {
     enterBusy(this)
     try {
-      // Create the video object once — a retry reuses id + signature so the
+      // Create the video object once: a retry reuses id + signature so the
       // tus instance resumes instead of re-uploading from zero.
       this.auth ??= await createBunnyVideo()
-      // remove() during that round-trip had nothing to abort — bail before
+      // remove() during that round-trip had nothing to abort: bail before
       // starting a transfer nobody wants.
       if (this.aborted) {
         throw new Error(m.upload_failed())
@@ -348,7 +348,7 @@ export class VideoUpload extends MediaUploadBase {
           onSuccess: () => this.settle?.resolve(),
           retryDelays: [0, 3000, 5000, 10000, 20000],
           // Never resume across page loads: each pick creates a fresh Bunny
-          // video, and tus' fingerprint ignores the VideoId header — a stale
+          // video, and tus' fingerprint ignores the VideoId header: a stale
           // localStorage entry would splice bytes into the wrong video.
           storeFingerprintForResuming: false,
         })

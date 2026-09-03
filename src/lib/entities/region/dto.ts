@@ -78,7 +78,7 @@ export interface RegionMembership {
 /**
  * How full a region is. `full` deliberately covers both "exactly at the limit" and
  * "over it": a region seeded before the limit existed reads the same as one that
- * just filled up, and there is nothing different for the user to do about either.
+ * recently filled up, and there is nothing different for the user to do about either.
  */
 export type SeatState = 'full' | 'ok' | 'oneLeft'
 

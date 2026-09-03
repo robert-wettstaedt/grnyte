@@ -25,7 +25,7 @@ const INVITEE = 'lea.hofer@example.com'
  *
  * Written out rather than taken from `userEntity`, because the world holds people and this is not
  * one. Nothing renders it either way (`names: 'stored'` keeps the subject out of the card's refs),
- * so it is here to state what the event really resolves to rather than to feed a row.
+ * so it is here to state what the event resolves to rather than to feed a row.
  */
 const invitation = { crumbs: [], name: INVITEE, row: 'none' as const }
 

@@ -1,5 +1,5 @@
 /**
- * Bunny Stream implementation of {@link VideoProvider} — the only module that
+ * Bunny Stream implementation of {@link VideoProvider}: the only module that
  * talks to the Bunny API. Videos are filed into one collection per user,
  * named by auth uid (the convention already present in the shared library).
  */
@@ -18,13 +18,13 @@ const API_BASE = `https://video.bunnycdn.com/library/${PUBLIC_BUNNY_STREAM_LIBRA
 const PREPARED_TITLE_PREFIX = 'prepared-'
 
 /** Presigned TUS auth: sha256 hex over libraryId + apiKey + expiration + videoId.
- *  `expiration` is a unix timestamp in SECONDS — milliseconds silently 401. */
+ *  `expiration` is a unix timestamp in SECONDS. Milliseconds silently 401. */
 const tusSignature = (videoId: string, expiration: number): string =>
   createHash('sha256')
     .update(`${PUBLIC_BUNNY_STREAM_LIBRARY_ID}${BUNNY_STREAM_API_KEY}${expiration}${videoId}`)
     .digest('hex')
 
-/** Ownership proof handed out with the presigned upload and checked at finalize —
+/** Ownership proof handed out with the presigned upload and checked at finalize,
  *  keyed on the API key, so only the server can mint one for a given user+video. */
 const uploadToken = (videoId: string, ownerId: string): string =>
   createHash('sha256').update(`${BUNNY_STREAM_API_KEY}:${videoId}:${ownerId}`).digest('hex')
@@ -40,7 +40,7 @@ async function bunnyFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
-/** ownerId → collection guid. One lookup per user per process — also keeps the
+/** ownerId → collection guid. One lookup per user per process, which also keeps the
  *  find-or-create from ever paging past Bunny's 100-item search response. */
 const collections = new Map<string, string>()
 
@@ -53,7 +53,7 @@ async function collectionOf(ownerId: string): Promise<string> {
   const { items } = await bunnyFetch<{ items?: { guid: string; name: string }[] }>(
     `/collections?search=${ownerId}&itemsPerPage=100`,
   )
-  // ponytail: two concurrent first uploads can race a duplicate collection —
+  // ponytail: two concurrent first uploads can race a duplicate collection:
   // harmless (collections are grouping only), not worth coordinating.
   const guid =
     items?.find((item) => item.name === ownerId)?.guid ??

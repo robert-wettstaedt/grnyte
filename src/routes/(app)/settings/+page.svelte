@@ -153,7 +153,7 @@
   }
 
   const signOut = async () => {
-    // supabase is always present under (app); the guard just narrows the route-union type.
+    // supabase is always present under (app); the guard only narrows the route-union type.
     const { supabase } = page.data
     if (supabase == null) return
 

@@ -23,7 +23,7 @@ export interface TopoView {
   imageHeight?: number
   /** `files.path` for the topo image, fed to the `Image` component. */
   imagePath: string
-  /** Stored EXIF-oriented pixel width of the topo image — lets the viewer size its
+  /** Stored EXIF-oriented pixel width of the topo image: lets the viewer size its
    *  box and overlay before the photo loads. Missing for files not yet backfilled. */
   imageWidth?: number
   lines: TopoLine[]

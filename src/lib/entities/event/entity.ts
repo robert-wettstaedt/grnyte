@@ -167,7 +167,7 @@ export function eventRefs(rows: readonly CardLine[]): EventRefs {
   // happened rather than disagreeing. Without this a session on one route lost its name from the
   // sub line the moment somebody hung a video on one of the climbs.
   //
-  // Only the entries that borrow their parent's row, and only when that parent is really here. A
+  // Only the entries that borrow their parent's row, and only when that parent is here. A
   // line ABOUT the place keeps its vote, or a burst holding an edit to the block its routes sit
   // under would end up with no place at all.
   const own = new Set(rows.map((line) => eventEntityKey(lineRef(line))))

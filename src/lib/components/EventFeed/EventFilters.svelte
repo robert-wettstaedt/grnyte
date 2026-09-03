@@ -17,7 +17,7 @@
   interface Props {
     /** Ascents, other edits, or (undefined) both. */
     category?: EventCategory
-    /** The signed-in user, the subject of the "Just me" filter. */
+    /** The signed-in user, the subject of the "Only me" filter. */
     currentUserFk?: number
     /** Whether anything is narrowed, decided by the host: it is the only place that holds every
      *  filter value, and the sheet's Reset and the page's empty-state Reset must agree. */

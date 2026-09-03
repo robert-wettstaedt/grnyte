@@ -1,9 +1,9 @@
 /**
  * Pre-generated webp derivatives: `<base>.<size>.webp` siblings stored next to
  * each original image and served for `?w=` requests (chosen over Nextcloud's
- * jpeg previews for visibly better quality at the same bytes — see #472).
+ * jpeg previews for visibly better quality at the same bytes, see #472).
  *
- * Pure module — no `$env` — so both the server-side image provider and the
+ * Pure module, no `$env`, so both the server-side image provider and the
  * migration/upload pipelines share one source of truth for sizes and naming.
  */
 
@@ -59,7 +59,7 @@ export const imageSrc = (path: string, size?: DerivativeSize): string =>
 /**
  * Whether `url` is a request for a generated derivative, i.e. what {@link imageSrc} builds with
  * a `size`. Lives next to it so the service worker's cache matcher cannot drift from the route
- * that serves them - it silently pointed at a path nothing served for months, and a matcher that
+ * that serves them: it silently pointed at a path nothing served for months, and a matcher that
  * never fires looks exactly like one that always misses.
  */
 export const isDerivativeRequest = (url: URL): boolean =>
@@ -70,7 +70,7 @@ export const isDerivableImage = (path: string): boolean =>
   /\.(jpe?g|png|webp|gif)$/i.test(path) && !/\.\d+\.webp$/i.test(path) && !/\.orig\.[^./]+$/i.test(path)
 
 /**
- * EXIF-oriented pixel size — what browsers display, and the coordinate space
+ * EXIF-oriented pixel size: what browsers display, and the coordinate space
  * topo paths were drawn against. Orientations 5–8 rotate by 90°, so the stored
  * width/height come back swapped. `null` when sharp couldn't read a size.
  */

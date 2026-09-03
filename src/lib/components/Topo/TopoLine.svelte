@@ -19,7 +19,7 @@
   }
 
   interface Props {
-    /** Spread onto the number-badge group — the viewer makes it tap-to-toggle. */
+    /** Spread onto the number-badge group: the viewer makes it tap-to-toggle. */
     badgeAttrs?: SVGAttributes<SVGGElement>
     /** Image box height, to clamp the number badge inside the frame. */
     boxHeight: number

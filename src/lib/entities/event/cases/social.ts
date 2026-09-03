@@ -21,7 +21,7 @@ import { ascentEntity, change, eventAgo, ME, PEOPLE } from './world'
 /*
  * A case states `commentCount` and never the comments themselves.
  *
- * That is the shape the card actually gets: the thread is no longer part of an event's relation
+ * That is the shape the card gets: the thread is no longer part of an event's relation
  * tree, so what a card knows about a conversation is the number on `events.comment_count`. What
  * the words look like belongs to the thread, which loads when a reader opens it.
  */

@@ -3,14 +3,14 @@
  * the magma colormap (t ≈ 0.33–0.94) for the widest separation between tiers.
  * Luminance decreases monotonically across the four bands, so the order survives
  * grayscale and every kind of colour-vision deficiency. Bands 1–3 clear 3:1 on
- * the dark app surface; the hard tier is a deep purple (~1.9:1) — low contrast
+ * the dark app surface; the hard tier is a deep purple (~1.9:1): low contrast
  * but still a distinct shape, and the rarest tier. Mirrors the `--grade-1..4`
- * tokens in grnyte.css (foregrounds live there as `--grade-N-fg`) — keep in sync.
+ * tokens in grnyte.css (foregrounds live there as `--grade-N-fg`), keep in sync.
  */
 export const GRADE_COLORS = ['#fde2a3', '#fa815f', '#c43c75', '#701f81'] as const
 
 /**
- * Neutral colour for routes with no grade — shared by the donut, topo lines and
+ * Neutral colour for routes with no grade: shared by the donut, topo lines and
  * row chips so "ungraded" reads the same everywhere. A desaturated grey keeps it
  * distinct from the saturated tiers; its luminance (~0.55) sits in the gap
  * between the very-easy and easy tiers so it stays distinguishable in grayscale /
@@ -25,7 +25,7 @@ export type GradeBand = 1 | 2 | 3 | 4
 /**
  * Buckets a grade into a 1–4 difficulty tier by its ordinal id, following the
  * common Font/V categories: very easy ≤5C (V0–2), easy 6A–7A (V3–6),
- * medium 7A+–7C+ (V7–10), hard ≥8A (V11+). Absolute by design — a 5C reads
+ * medium 7A+–7C+ (V7–10), hard ≥8A (V11+). Absolute by design: a 5C reads
  * "very easy" everywhere, regardless of what else a crag holds. Returns
  * `undefined` for an ungraded route, so callers render the neutral colour.
  * ponytail: thresholds are the seeded grade ids (0 = 5A … 21 = 9A); if the

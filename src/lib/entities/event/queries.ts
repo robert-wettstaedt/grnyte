@@ -104,7 +104,7 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
           // its parent's entity: `author` is where "added a photo to Mara's ascent of Rampe" gets
           // Mara, and a block's `geolocation` and `topos` are the pin and the thumb its row draws.
           // Thinner here than at the top level, an upload card rendered a degraded version of the
-          // very entity it names.
+          // same entity it names.
           .related('ascent', (q) => r(q).related('author').related('route', route))
           .related('route', route)
           .related('block', (q) =>
@@ -117,7 +117,7 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
       )
       // The emoji half only. A comment body is up to 5000 characters, the window is 50 events and
       // `eventFeed` runs two queries over it, so syncing comments here would ship every
-      // conversation in the region to every reader just to render a count. The count is
+      // conversation in the region to every reader only to render a count. The count is
       // `events.comment_count` instead, and the thread is `listComments`, fetched when somebody
       // opens it.
       //

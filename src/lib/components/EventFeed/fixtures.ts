@@ -30,7 +30,7 @@ export {
   topoViews as topos,
 } from '$lib/entities/event/cases/world'
 /**
- * The design's sample week, as the EVENTS the mutation layer really writes, folded by the real
+ * The design's sample week, as the EVENTS the mutation layer writes, folded by the real
  * `groupEvents` and decided by the real `eventCard`.
  *
  * The builders live in `$lib/entities/event/cases/world`, beside the catalogue that reviews them,
@@ -258,7 +258,7 @@ export const sampleWeek: { events: EventListItem[]; topos: ReadonlyMap<number, T
       objectType: 'user',
     }),
     // An upload whose file resolves to nothing: no name, no thumbnail and no row. A state the
-    // app really produces for an orphaned file row.
+    // app produces for an orphaned file row.
     eventAgo(52 * 60, {
       actorFk: 2,
       entity: undefined,

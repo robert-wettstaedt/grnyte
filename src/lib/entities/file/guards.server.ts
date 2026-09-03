@@ -19,7 +19,7 @@ import type { FileEntityType } from './upload'
 type Db = PostgresJsDatabase<typeof schema>
 
 /**
- * Load a file for a visibility change, gating on {@link canEditFile} - which is deliberately stricter
+ * Load a file for a visibility change, gating on {@link canEditFile}: which is deliberately stricter
  * than the files UPDATE RLS for ascent media (publishing an ascent file exposes the whole ascent, so
  * a maintainer must not flip someone else's public). 404/403 via `error`.
  */
@@ -51,7 +51,7 @@ export async function requireEditableFile(
  * Resolve and authorize attaching media to an entity, returning its region. Two rules, one per
  * branch: ascent media is personal, so only its author may attach; everything else needs EDIT. The
  * files INSERT RLS only requires READ (and for ascents is merely region-scoped, unlike the
- * owner-scoped update/delete policies), so this app gate is the effective one - hence shared.
+ * owner-scoped update/delete policies), so this app gate is the effective one, hence shared.
  */
 export async function resolveAttachRegion(
   db: Db,

@@ -1,7 +1,7 @@
 import { goto } from '$app/navigation'
 
 /**
- * The envelope every `authedCommand` / `authedForm` handler resolves to — one reusable
+ * The envelope every `authedCommand` / `authedForm` handler resolves to: one reusable
  * contract for all mutations, instead of each inventing its own shape. Commands feed the
  * result to {@link runCommand}; forms `redirect(303)` on `redirectTo` server-side.
  *
@@ -10,7 +10,7 @@ import { goto } from '$app/navigation'
  * state), or both.
  */
 export interface MutationResult<T = void> {
-  /** Payload handed back to the caller — e.g. an undo snapshot, or a command's result. */
+  /** Payload handed back to the caller: e.g. an undo snapshot, or a command's result. */
   data?: T
   /** Where the client navigates once the command succeeds. */
   redirectTo?: string
@@ -20,7 +20,7 @@ export interface MutationResult<T = void> {
  * Invoke a command, apply its {@link MutationResult} envelope (navigate on `redirectTo`),
  * and return its `data` for the caller to act on (e.g. `withUndo` for an undo toast).
  *
- * `beforeRedirect` runs after the command resolves but before navigating — use it to wait
+ * `beforeRedirect` runs after the command resolves but before navigating: use it to wait
  * for the client store to reflect the write (Zero syncs server writes asynchronously), so
  * the destination renders the row instead of flashing a stale "not found".
  */

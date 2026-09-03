@@ -116,7 +116,7 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
 
   // Both reset with the filter, since a narrowed feed is a different list: an old mark would hold
   // back rows the reader has never seen, and a window grown by five "load older" taps would come
-  // back as five pages of whatever they just narrowed to.
+  // back as five pages of whatever they narrowed to.
   $effect(() => {
     filter()
     limit = PAGE_SIZE

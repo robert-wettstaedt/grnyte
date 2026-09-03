@@ -40,7 +40,7 @@
     return [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)]
   })
 
-  // Location handed over by the quick-create map flow — frames the picker there, so the
+  // Location handed over by the quick-create map flow: frames the picker there, so the
   // map-centre pin starts on the pressed point.
   const prefill = coordsFromParams(page.url.searchParams)
 

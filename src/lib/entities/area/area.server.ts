@@ -5,7 +5,7 @@ import { and, count, eq, isNull } from 'drizzle-orm'
 /** Re-derive an area's `type` from its live (non-deleted) children, mirroring the create side
  *  where the first block makes it a `crag` and the first sub-area an `area`. Call after a block
  *  or sub-area is deleted (resets an emptied area to `null`) or restored (sets it back).
- *  ponytail: blocks win when an area has both kinds of child — areas don't mix them in practice. */
+ *  ponytail: blocks win when an area has both kinds of child; areas don't mix them in practice. */
 export async function refreshAreaType(db: Context['db'], areaId: number): Promise<void> {
   const [[blockRow], [subAreaRow]] = await Promise.all([
     db

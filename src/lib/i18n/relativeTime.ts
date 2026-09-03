@@ -125,7 +125,7 @@ export function isDatedMoment(timestamp: number, now: number): boolean {
  * to be ISO today. ECMA-402 guarantees the API, never the pattern a locale resolves to, and this
  * value is compared for equality and written to the database rather than read by a person, so a CLDR
  * revision would break it silently. `toISOString().slice(0, 10)` is not the fix either: it converts
- * to UTC first, so a climber logging just after midnight in Berlin gets yesterday's date and one
+ * to UTC first, so a climber logging shortly after midnight in Berlin gets yesterday's date and one
  * logging at 20:00 in Denver gets tomorrow's.
  */
 export function localIsoDay(date: Date): string {

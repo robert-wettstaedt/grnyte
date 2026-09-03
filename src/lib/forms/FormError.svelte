@@ -2,7 +2,7 @@
   import type { RemoteFormIssue } from '@sveltejs/kit'
   import { resolveIssueMessage } from './issue'
 
-  // Renders form-level issues — those raised by `invalid('msg')` in a handler, which carry an
+  // Renders form-level issues: those raised by `invalid('msg')` in a handler, which carry an
   // empty `path`. Field-tied issues (`invalid(issue.name(...))`) keep rendering inline via FormHint.
   interface Props {
     form: { fields: { allIssues(): RemoteFormIssue[] | undefined } }

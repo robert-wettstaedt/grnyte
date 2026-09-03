@@ -85,7 +85,7 @@ export function newEntities({
   const skip = () => exclude?.() ?? []
 
   // Over-fetch by whatever the `exclude` can eat. Filtering after a query capped at
-  // `limit` would let three just-opened routes empty the routes out of the section
+  // `limit` would let three recently opened routes empty the routes out of the section
   // entirely, rather than backfilling with the next-newest ones.
   const fetchLimit = () => limit + skip().length
 
@@ -110,7 +110,7 @@ export function newEntities({
   return {
     /** The newest `limit` rows overall. Zero can't union across tables, so each query
      *  brings its own newest rows and the final cut happens here, after dropping the
-     *  `exclude`d ones so a just-opened entity doesn't print in two sections. */
+     *  `exclude`d ones so a recently opened entity doesn't print in two sections. */
     get items(): EntityCandidate[] {
       const excluded = skip()
       return [...areas.data, ...blocks.data, ...routes.data]
@@ -124,7 +124,7 @@ export function newEntities({
 
 /**
  * The stored views, hydrated into candidates. Ids that Zero can't resolve (deleted, or
- * in a region the user has since left) simply drop out of the list.
+ * in a region the user has since left) drop out of the list.
  */
 export function recentlyViewed({
   enabled,
@@ -194,8 +194,8 @@ export function recordView(ref: EntityRef): void {
   try {
     localStorage.setItem(VIEWED_KEY, JSON.stringify(next.map(refKey)))
   } catch {
-    // Storage refused the write. The section just stays as it was, which is invisible
-    // next to losing the page the reader actually asked for.
+    // Storage refused the write. The section stays as it was, which is invisible
+    // next to losing the page the reader asked for.
   }
 }
 

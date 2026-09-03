@@ -41,8 +41,8 @@
   const PREVIEW = 5
 
   // Every region the user belongs to (users need it explicitly; areas/blocks/routes
-  // are already region-scoped by RLS). Gated on a non-empty query so nothing runs
-  // — and no users sync over the network — until there's something to search.
+  // are already region-scoped by RLS). Gated on a non-empty query so nothing runs,
+  // and no users sync over the network, until there's something to search.
   const regionFks = () => global.userRegions.map((region) => region.regionFk)
 
   const areas = areaList(() => ({ content: query, limit: CAP }), { enabled })
@@ -116,7 +116,7 @@
         name: route.name,
         rating: route.rating,
         route,
-        // Score the raw name — for an unnamed route it's empty, so a description-only
+        // Score the raw name: for an unnamed route it's empty, so a description-only
         // hit can't spuriously match the `common_unnamed` placeholder text.
         score: matchScore(route.rawName ?? route.name, q),
         status: ascentStatus.get(route.id),
@@ -127,7 +127,7 @@
     for (const user of users.data) {
       out.push({
         // A person has no geographic breadcrumb (region membership would read like a
-        // location path, which is confusing), so the row is just the avatar + name.
+        // location path, which is confusing), so the row is only the avatar + name.
         crumbs: [],
         href: entityHref({ id: user.id, label: user.username, type: 'users' }),
         id: user.id,
@@ -159,7 +159,7 @@
   )
 
   // Best-first across every type. Only a real name hit (score > 0) earns a top
-  // slot — a description-only route match still lists in its group, just low.
+  // slot: a description-only route match still lists in its group, ranked low.
   const topHits = $derived(
     results
       .filter((result) => result.score > 0)
@@ -167,7 +167,7 @@
       .slice(0, TOP_K),
   )
 
-  // The strip only pays its way when more than one type matched — that's exactly
+  // The strip only pays its way when more than one type matched: that's exactly
   // the "scroll past the first group to reach the next" case. A single type is
   // already best-first in its own section.
   const showTop = $derived(grouped.length > 1 && topHits.length > 0)
@@ -176,7 +176,7 @@
 
   let expanded = $state<Partial<Record<EntityType, boolean>>>({})
 
-  // The shared Modal renders its header from sheetState — label it with the query.
+  // The shared Modal renders its header from sheetState: label it with the query.
   $effect(() => {
     sheetState.title = query.length === 0 ? m.common_search() : query
   })

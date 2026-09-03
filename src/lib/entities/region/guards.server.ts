@@ -41,7 +41,7 @@ export async function activeAdminUserFks(db: Db, regionFk: number): Promise<numb
 
 /**
  * Guards a role change or removal: {@link assertNotLastAdmin}, plus the rule that nobody may
- * change their own role - an accidental self-demotion locks you out of the screen you did it on.
+ * change their own role: an accidental self-demotion locks you out of the screen you did it on.
  * `leaveRegion` is the one path that asks for the first half only, since leaving is by definition
  * something you do to yourself.
  *
@@ -99,7 +99,7 @@ export async function findActiveMember(db: Db, regionFk: number, userFk: number)
  *
  * The removal event is what makes an undo an undo rather than an insert: without it every
  * field of the restore snapshot is client-supplied, and an admin can add any user in the database
- * to their region - no invitation, no consent, no seat limit - by reading the ids straight off the
+ * to their region (no invitation, no consent, no seat limit) by reading the ids straight off the
  * globally readable `users` table. `authUserFk` comes back derived rather than trusted, because it
  * is what `authorize_in_region` and every Zero region query key on: a mismatched one would hand
  * the region to a different account than the one being restored.

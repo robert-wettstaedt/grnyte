@@ -5,7 +5,7 @@ import type { Locale } from '$lib/paraglide/runtime'
 import type { Row } from '$lib/zero/types'
 import type { BlockDetail, BlockListItem } from './dto'
 
-/** What `toBlockDetail` reads — satisfied by both the list and the single-block query. */
+/** What `toBlockDetail` reads: satisfied by both the list and the single-block query. */
 interface BlockDetailRow extends BlockRow {
   readonly createdAt: null | number
   readonly createdBy: number

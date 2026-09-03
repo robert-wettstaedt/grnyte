@@ -50,7 +50,7 @@ export interface NotifyInput {
  * Mirrors the `events` SELECT policy exactly (`authorize_in_region('region.read', region_fk)`,
  * which resolves to an active `region_members` row whose role holds that permission), because
  * anything looser notifies somebody about a region they cannot open. Exported so the test can
- * hold it against who can really `SELECT` the row rather than trusting this to have got it right.
+ * hold it against who can `SELECT` the row rather than trusting this to have got it right.
  */
 export async function notificationRecipients(
   regionFk: number,
@@ -78,7 +78,7 @@ export async function notificationRecipients(
 }
 
 /**
- * Write one notification per recipient who can actually see the thing it is about.
+ * Write one notification per recipient who can see the thing it is about.
  *
  * Runs on the privileged handle rather than the caller's RLS transaction, which is forced: there
  * is no INSERT policy on `notifications` and there deliberately cannot be one. An own-rows policy
@@ -87,7 +87,7 @@ export async function notificationRecipients(
  *
  * ponytail: that also puts the write outside the mutation's transaction, so a handler that fails
  * AFTER calling this leaves a notification for a change that rolled back. Call it last, which
- * every call site does. Upgrade = a queue the mutation enrolls in, if that ever actually bites.
+ * every call site does. Upgrade = a queue the mutation enrolls in, if that ever bites.
  */
 export async function notify(input: NotifyInput): Promise<void> {
   const recipients = await notificationRecipients(input.regionFk, input.userFks, input.actorFk)
@@ -118,7 +118,7 @@ export async function notify(input: NotifyInput): Promise<void> {
     //
     // Collapsed only while the row is still UNREAD, which is the case that idempotency is about.
     // The index carries no time, and a plain `do nothing` would therefore mute a genuinely new
-    // event for as long as the old row survives - up to 30 days after a read, 90 unread. Once it
+    // event for as long as the old row survives: up to 30 days after a read, 90 unread. Once it
     // has been read the reader is done with it, so the same thing happening again is news: the row
     // goes back to unread and undelivered, with a fresh timestamp for the push debounce to count.
     .onConflictDoUpdate({
@@ -204,8 +204,8 @@ export async function notifyMentions({
 }
 
 /**
- * Write a notification for somebody who cannot read the region it names: a member who was just
- * removed, an invitee who has not joined. A send queue rather than an inbox entry - see the
+ * Write a notification for somebody who cannot read the region it names: a member who was
+ * removed, an invitee who has not joined. A send queue rather than an inbox entry: see the
  * `notificationSourceType` doc in `schema.ts` for why, and {@link retractOutOfBand} for the undo.
  *
  * {@link notify} cannot write either of them, and that is not an oversight in it: its recipient
@@ -219,7 +219,7 @@ export async function notifyOutOfBand(input: {
   /** The one person told. Not filtered against anything: the caller already knows who they are. */
   userFk: number
 }): Promise<void> {
-  // Not from `region_members`, which is the point: this recipient either just lost that row or
+  // Not from `region_members`, which is the point: this recipient either recently lost that row or
   // never had one. `users` is where the auth id lives for everybody else.
   const recipient = await baseDb.query.users.findFirst({
     columns: { authUserFk: true },
@@ -265,7 +265,7 @@ export async function notifyOutOfBand(input: {
 }
 
 /**
- * The regions each of these people may actually be told about: active membership AND a role that
+ * The regions each of these people may be told about: active membership AND a role that
  * holds `region.read`, which is what the `events` SELECT policy requires.
  *
  * Same rule as {@link notificationRecipients}, from the other end. Push needs it because "the

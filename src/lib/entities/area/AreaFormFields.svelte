@@ -23,7 +23,7 @@
 
   // Scopes the description editor's entity references. Falls back to the region picked in the
   // select, which is the only source a top-level area has; 0 until something is picked, which
-  // just means the reference search finds nothing yet.
+  // only means the reference search finds nothing yet.
   const regionFk = $derived(area?.regionFk ?? Number(form.fields.regionFk.value() ?? 0))
 </script>
 

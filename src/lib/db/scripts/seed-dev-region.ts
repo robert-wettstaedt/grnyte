@@ -4,7 +4,7 @@
  * first, then `npx tsx src/lib/db/scripts/seed-volume.ts`).
  *
  * The four `@grnyte.rocks` test logins must already exist (they do on the dev
- * DB). `anon` is intentionally NOT added - that tier represents no region
+ * DB). `anon` is intentionally NOT added: that tier represents no region
  * access. Idempotent: safe to re-run. Dev DB only.
  */
 import postgres from 'postgres'

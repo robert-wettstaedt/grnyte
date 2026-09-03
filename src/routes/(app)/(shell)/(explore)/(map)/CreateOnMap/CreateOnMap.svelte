@@ -24,7 +24,7 @@
     onrequestcenter: (center: [number, number]) => void
     /** Placement mode, bound so the layout can flip the map's pickMode and hide the search bar. */
     placing: 'block' | 'parking' | null
-    /** False while a detail sheet is open — hides the FAB. */
+    /** False while a detail sheet is open, hides the FAB. */
     visible: boolean
   }
 

@@ -12,7 +12,7 @@ export type ProjectAscent = Pick<UserAscentDetail, 'dateTime' | 'routeFk' | 'typ
 
 export interface ProjectRoute {
   /** Recency sort key (epoch millis): the last attempt for open projects, the
-   *  first send for completed ones (when it was actually completed). */
+   *  first send for completed ones (when it was completed). */
   lastSession: number
   routeFk: number
   /**
@@ -34,7 +34,7 @@ export interface ProjectRoute {
 /**
  * A climber's projects, derived from their ascents grouped by route and ordered
  * chronologically:
- * - `open`:      never sent — every ascent is an `attempt`. Once a route has any
+ * - `open`:      never sent: every ascent is an `attempt`. Once a route has any
  *                non-attempt ascent it can never be open again.
  * - `completed`: the run up to and including the first send spans more than two
  *                sessions. Only that initial run counts; any later attempt/repeat

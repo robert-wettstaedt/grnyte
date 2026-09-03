@@ -10,7 +10,7 @@
 
   // The block's location as a form field: a recommended-but-optional control that is
   // either an empty state (pin via current location / map) or a located preview card
-  // (adjust / remove). Purely presentational — the parent owns the location + actions.
+  // (adjust / remove). Purely presentational: the parent owns the location + actions.
   interface Props {
     /** The pin is a rough guess ("?" on the map), not a confirmed spot. */
     estimated: boolean
@@ -20,7 +20,7 @@
     /** Map layers for the located-state preview. */
     mapData: MapData
     onEstimatedChange: (estimated: boolean) => void
-    /** Open the picker — both "Choose on map" (empty) and "Adjust" (located). */
+    /** Open the picker: both "Choose on map" (empty) and "Adjust" (located). */
     onPickLocation: () => void
     onRemove: () => void
     onUseCurrentLocation: () => void

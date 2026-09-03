@@ -2,12 +2,12 @@ import { getBunnyVideoProvider } from './bunny.provider.server'
 
 /**
  * The app's single video-hosting boundary, mirroring {@link ImageProvider}.
- * Unlike images the server never touches video bytes — the browser uploads
- * directly to the host — so the boundary covers the API side only: creating
+ * Unlike images, the server never touches video bytes. The browser uploads
+ * directly to the host, so the boundary covers the API side only: creating
  * the remote video object and presigning its upload. The active implementation
  * fully encapsulates its backend (nothing else in the app calls the Bunny
  * API), so swapping hosts is one new implementation plus a change to
- * {@link getVideoProvider} — plus the client transport in `VideoUpload`,
+ * {@link getVideoProvider}, plus the client transport in `VideoUpload`,
  * which is inherently host-specific.
  */
 export interface VideoProvider {
@@ -25,7 +25,7 @@ export interface VideoProvider {
   remove(videoId: string): Promise<void>
   /**
    * Whether `token` proves {@link createUpload} minted `videoId` for `ownerId`.
-   * The GUID at finalize is client-supplied — without this check any authed
+   * The GUID at finalize is client-supplied: without this check any authed
    * user could attach a made-up or foreign video to their own ascent.
    */
   verifyUpload(videoId: string, ownerId: string, token: string): boolean
@@ -36,9 +36,9 @@ export interface VideoUploadAuth {
   /** Unix timestamp in seconds the signature expires at. */
   expiration: number
   signature: string
-  /** Ownership proof for `finalizeVideo` — see {@link VideoProvider.verifyUpload}. */
+  /** Ownership proof for `finalizeVideo`: see {@link VideoProvider.verifyUpload}. */
   token: string
-  /** Provider-side id of the created video object — doubles as `bunnyStreams.id`. */
+  /** Provider-side id of the created video object: doubles as `bunnyStreams.id`. */
   videoId: string
 }
 

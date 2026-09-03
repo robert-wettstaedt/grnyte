@@ -52,8 +52,8 @@ export async function GET({ locals, params, request, url }) {
   }
 
   // Anonymous / non-member requests reached the bytes only via the public-visibility
-  // fallback. They must never receive the untouched original — it carries EXIF (incl. the
-  // GPS coordinates of a private crag) — so they only ever get a re-encoded derivative.
+  // fallback. They must never receive the untouched original: it carries EXIF (incl. the
+  // GPS coordinates of a private crag), so they only ever get a re-encoded derivative.
   // A member of the file's region (`authorized` above) still gets the untouched original.
   const effectiveWidth = authorized ? width : (width ?? MAX_WIDTH)
 
@@ -73,7 +73,7 @@ export async function GET({ locals, params, request, url }) {
     payload = await loadOriginal()
   } else {
     // A thumbnail miss (e.g. a file the backend can't preview) falls back to the
-    // original, so the consumer still gets an image rather than a broken one — except
+    // original, so the consumer still gets an image rather than a broken one, except
     // for public (anon) access, where the original would leak EXIF, so that 502s instead.
     payload = await provider
       .fetchThumbnail(resourcePath, { signal: request.signal, width: effectiveWidth })

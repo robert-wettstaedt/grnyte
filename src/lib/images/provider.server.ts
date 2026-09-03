@@ -1,6 +1,6 @@
 import { getNextcloudImageProvider } from './nextcloud.provider.server'
 
-/** A relayed upstream image response — the `/image` route copies these onto its own `Response`. */
+/** A relayed upstream image response: the `/image` route copies these onto its own `Response`. */
 export interface ImagePayload {
   data: ArrayBuffer
   headers: Headers
@@ -13,11 +13,11 @@ export interface ImagePayload {
  * serves it. The active implementation fully encapsulates its backend client
  * (nothing else in the app talks to Nextcloud), so swapping providers
  * (Nextcloud → S3 / a CDN / …) is one new implementation plus a change to
- * {@link getImageProvider} — no consumer, and no route handler, touches the
+ * {@link getImageProvider}: no consumer, and no route handler, touches the
  * backend directly.
  *
  * ponytail: single implementation today, but the seam is the explicit ask.
- * Future write ops (upload / delete) belong on this interface too — keep every
+ * Future write ops (upload / delete) belong on this interface too. Keep every
  * backend call behind it; don't reach past it into the client.
  */
 export interface ImageProvider {

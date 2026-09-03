@@ -10,7 +10,7 @@
   ]
 
   // What the page hands down: the members of the regions in scope, without the signed-in user,
-  // who is the pinned "Just me" row instead.
+  // who is the pinned "Only me" row instead.
   const people: UserListItem[] = Object.entries(PEOPLE)
     .map(([id, username]) => ({ id: Number(id), regionFks: Number(id) % 2 === 0 ? [1] : [1, 2], username }))
     .filter((person) => person.id !== ME)

@@ -16,7 +16,7 @@ let watchId: number | undefined
  * `current` is `undefined` until the first fix, `null` if denied/unavailable.
  *
  * @param enabled gate so a consumer can defer the permission prompt until the
- *   feature is actually used (e.g. distance sort selected).
+ *   feature is used (e.g. distance sort selected).
  */
 export function userLocation(enabled: () => boolean = () => true) {
   $effect(() => {
@@ -51,7 +51,7 @@ function start() {
   watchId = navigator.geolocation.watchPosition(
     (pos) => (position = { lat: pos.coords.latitude, long: pos.coords.longitude }),
     () => {
-      // Denied/unavailable — flip to null only if we never got a fix, so a later
+      // Denied/unavailable: flip to null only if we never got a fix, so a later
       // error doesn't wipe a position we already have.
       if (position === undefined) {
         position = null
@@ -70,7 +70,7 @@ function stop() {
   }
 }
 
-// The watch should run only while subscribed *and* the tab is visible — a hidden
+// The watch should run only while subscribed *and* the tab is visible. A hidden
 // tab can't show the distance, so pausing the GPS there is free battery.
 function sync() {
   if (watchers > 0 && !document.hidden) {

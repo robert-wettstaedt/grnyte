@@ -34,7 +34,7 @@ describe('resolveAvailability', () => {
   describe('excluded data', () => {
     it('is excluded offline even when rows are present', () => {
       // The one that mattered most. `status: 'ready'` means the replica holds rows, but for an
-      // excluded query those arrived with somebody else's preload - a stranger's ascents ride along
+      // excluded query those arrived with somebody else's preload: a stranger's ascents ride along
       // with the routes you browsed. Reading that as an answer let a profile page present a fragment
       // of a person's logbook as their climbing.
       expect(resolveAvailability({ ...base, online: false, policy: 'excluded', status: 'ready' })).toBe('excluded')
@@ -60,8 +60,8 @@ describe('resolveAvailability', () => {
 
     it('does not claim the guidebook on the strength of the reference stamp', () => {
       // The two stamps are not interchangeable. The reference one lands on five tiny queries seconds
-      // into a sync with thousands of rows still to come, so a connection lost in that gap - the
-      // normal shape of a sync at a crag - left the device claiming a guidebook it half had.
+      // into a sync with thousands of rows still to come, so a connection lost in that gap (the
+      // normal shape of a sync at a crag) left the device claiming a guidebook it half had.
       expect(
         resolveAvailability({ ...base, guidebookSynced: false, online: false, policy: 'field', referenceSynced: true }),
       ).toBe('unsynced')

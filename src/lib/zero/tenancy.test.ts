@@ -5,7 +5,7 @@
  * `/api/zero/get-queries` is where a client's data access is decided: it builds a context from
  * the signed-in user's memberships and hands each query definition to zero-cache, which then runs
  * it against the replica with no row-level security of its own. The query definition *is* the
- * boundary, so testing it means running it the same way zero-cache does - real definitions, real
+ * boundary, so testing it means running it the same way zero-cache does: real definitions, real
  * context (`getUserPermissions`, exactly as the endpoint builds it), real database, real rows.
  * `zeroPostgresJS` is the executor Zero ships for that.
  *
@@ -47,7 +47,7 @@ type Who = 'outsider' | keyof typeof EMAILS
 
 // Cast because zero ships its own copy of `postgres` and the two Sql types are structurally
 // distinct. Sharing one client rather than handing the adapter a connection string keeps the
-// fixtures and the queries on the same pool, which afterAll can then actually close.
+// fixtures and the queries on the same pool, which afterAll can then close.
 const zero = zeroPostgresJS(schema, sql as unknown as Parameters<typeof zeroPostgresJS>[1])
 
 let users = {} as Record<Who, SeedUser>
@@ -58,7 +58,7 @@ let regionB = 0
 type AnyQueryDef = { fn: (options: any) => any }
 
 /** The context `/api/zero/get-queries` would build for `who`, rebuilt on every call so a
- *  membership change between assertions is actually reflected. */
+ *  membership change between assertions is reflected. */
 async function ctxFor(who: typeof NOBODY | Who): Promise<QueryContext> {
   const authUserId = who === NOBODY ? NOBODY : users[who].authId
   return { authUserId, pageState: await getUserPermissions(db, authUserId) }
@@ -67,7 +67,7 @@ async function ctxFor(who: typeof NOBODY | Who): Promise<QueryContext> {
 /**
  * An unrestricted query over `table`, wrapped the way every entity module wraps its own:
  * `regionMemberCan` around a `zql` table. Sweeping this covers the mechanism all region queries
- * share, rather than whichever individual query happens to be convenient to call - and it stays
+ * share, rather than whichever individual query happens to be convenient to call, and it stays
  * meaningful as entity queries come and go.
  */
 function regionScopedQuery(table: (typeof regionTables)[number]): AnyQueryDef {
@@ -215,7 +215,7 @@ describe.skipIf(!reachable)('membership is what grants access, moment to moment'
     await sql`delete from public.region_members where region_fk = ${regionA} and user_fk = ${users.insider.userId}`
 
     try {
-      // Rebuilt from the database, the way the endpoint rebuilds it per request - so this is
+      // Rebuilt from the database, the way the endpoint rebuilds it per request: so this is
       // the real question: does the next sync still hand over the region?
       const after = await ctxFor('insider')
 
@@ -267,10 +267,10 @@ describe.skipIf(!reachable)('membership is what grants access, moment to moment'
 })
 
 describe.skipIf(!reachable)('the context the sync endpoint serves from', () => {
-  // `regionMemberCan` only filters when the context carries memberships - without them it returns
+  // `regionMemberCan` only filters when the context carries memberships: without them it returns
   // the query untouched, which is correct for the client (its local replica is already filtered)
   // and would be a hole on the server. `/api/zero/get-queries` refuses to serve such a context;
-  // this is the invariant that refusal relies on never actually firing.
+  // this is the invariant that refusal relies on never firing.
   it.each([
     ['a user with regions', 'insider'],
     ['a user with none', NOBODY],

@@ -295,7 +295,7 @@ describe.skipIf(!reachable)('region_members RLS', () => {
 
   it('hides the memberships of a region you do not belong to', async () => {
     // The table tenancy is made of. A blanket read here let any signed-in user enumerate every
-    // region's roster - names, roles and auth uids - for regions they cannot even see the name of.
+    // region's roster (names, roles and auth uids) for regions they cannot even see the name of.
     const foreign = await as(
       'regionUser',
       (tx) => tx`select id from public.region_members where region_fk = ${otherRegionId}`,
@@ -354,7 +354,7 @@ describe.skipIf(!reachable)('the member events an undo reads', () => {
 
   it('lets a region admin read the removal event an undo depends on', async () => {
     // `resolveRestore` refuses to restore a member without the event `removeRegionMember` logged,
-    // and reads it through the RLS-scoped connection - so if this SELECT were ever policy-gated
+    // and reads it through the RLS-scoped connection, so if this SELECT were ever policy-gated
     // away from admins, Undo would silently 404 instead of restoring.
     const rows = await as('regionAdmin', async (tx) => {
       await logRoleChange(tx, users.regionAdmin)

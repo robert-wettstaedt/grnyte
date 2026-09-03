@@ -40,7 +40,7 @@
   let restoredFocus = $state<MapFocus | null>(null)
 
   // Quick-create (FAB / long-press): placement mode plus the transient focus that centres
-  // the map on a long-pressed point. Never cleared — Map dedupes equal focus values, so a
+  // the map on a long-pressed point. Never cleared. Map dedupes equal focus values, so a
   // stale entry can't re-frame the view once a detail `focus` or a new request replaces it.
   let placing = $state<'block' | 'parking' | null>(null)
   let createFocus = $state<MapFocus | null>(null)
@@ -60,7 +60,7 @@
   })
 
   // The modal is open on detail routes (e.g. areas/[id]) and closed on the
-  // /explore index — keep `open` in sync as the user navigates.
+  // /explore index. Keep `open` in sync as the user navigates.
   afterNavigate((navigation) => {
     open = navigation.to?.route.id !== EXPLORE_ROUTE
 
@@ -78,12 +78,12 @@
 
   // Parsing the URL into typed filter values lives in ./Filter/filter, and
   // applying it to routes (incl. the client-side ascent/favorites filters) in
-  // ./Filter/filteredRoutes — so this layout only composes the result for the map.
+  // ./Filter/filteredRoutes, so this layout only composes the result for the map.
   //
   // `page.url` changes on every navigation, so re-parsing would hand the route
-  // query a new (value-identical) filter object each time a detail sheet opens —
+  // query a new (value-identical) filter object each time a detail sheet opens,
   // re-running the whole map-data chain and flickering the markers. Keep the same
-  // reference until the filter actually changes so navigation leaves the map still.
+  // reference until the filter changes so navigation leaves the map still.
   let cachedFilters = parseRouteFilter(page.url.searchParams)
   const filters = $derived.by(() => {
     const next = parseRouteFilter(page.url.searchParams)
@@ -93,7 +93,7 @@
     return cachedFilters
   })
 
-  // The live search-bar text narrows the map markers as the user types (not just
+  // The live search-bar text narrows the map markers as the user types (not only
   // the committed `?q=` the /search list reads). It persists across a detail
   // round trip (the bar restores from it on remount), so it survives open/close.
   const search = liveSearchQuery()
@@ -105,7 +105,7 @@
   )
 
   // The map URL to return to when a sheet closes: always `/explore` carrying the
-  // current filter params (but not the search `q` — the live query rides back via
+  // current filter params (but not the search `q`: the live query rides back via
   // the signal, so a cleared search can't reappear from a stale URL). Captured while
   // on an explore route; retained while a detail route is open. Mapping the search
   // route to `/explore` is also what lets the search list itself dismiss to the map.
@@ -124,8 +124,8 @@
   })
 
   // Frame the open detail item on the map. Padding keeps it clear of the detail
-  // sheet — a wide left inset for the desktop side panel, a tall bottom inset for
-  // the mobile bottom sheet — so the marker lands in the visible area, not behind it.
+  // sheet: a wide left inset for the desktop side panel, a tall bottom inset for
+  // the mobile bottom sheet, so the marker lands in the visible area, not behind it.
   const focus: MapFocus | null = $derived.by(() => {
     const routeId = page.route.id ?? ''
     const id = Number(page.params.id)
@@ -168,7 +168,7 @@
     return Number.isFinite(id) ? id : undefined
   })
 
-  // Keyboard prev/next (j/l) is attached by the Modal itself — see Modal/keyboardNav.
+  // Keyboard prev/next (j/l) is attached by the Modal itself (see Modal/keyboardNav).
 </script>
 
 <div class="absolute inset-0">

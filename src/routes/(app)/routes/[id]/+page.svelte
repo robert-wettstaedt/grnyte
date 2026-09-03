@@ -192,7 +192,7 @@
       </PageHeader>
 
       <div class="flex flex-col gap-6 px-4 py-5">
-        <!-- HERO TOPO — capped height so a portrait topo can't dominate the page. -->
+        <!-- HERO TOPO: capped height so a portrait topo can't dominate the page. -->
         {#if topoHref != null && hit != null}
           <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- topoHref is pre-resolved above. -->
           <a class="relative block" href={topoHref} aria-label={m.routes_openTopo()}>

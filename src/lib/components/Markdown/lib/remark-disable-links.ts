@@ -2,7 +2,7 @@ import type { Root, Strong } from 'mdast'
 import { type Plugin } from 'unified'
 import { visit } from 'unist-util-visit'
 
-// Rewrites every link — mentions, autolinks and inline `[text](url)` — into a
+// Rewrites every link (mentions, autolinks and inline `[text](url)`) into a
 // non-interactive `strong`, leaving the rendered HTML free of `<a>`. Needed when
 // a markdown preview is nested inside an anchor (e.g. a clickable list item),
 // where `<a>`-in-`<a>` is invalid. References already render as `strong` via

@@ -5,11 +5,11 @@
  * `web-push` is the one piece nobody can eyeball: it encrypts the payload, signs a VAPID header
  * and POSTs it, and every mistake in there looks identical from the app's side (a push that never
  * arrives). So this stands a throwaway HTTP server up in place of FCM, subscribes to it with a
- * real P-256 keypair, and asserts what actually goes over the wire - plus the two lifecycle rules
+ * real P-256 keypair, and asserts what goes over the wire, plus the two lifecycle rules
  * that decide whether a subscription survives its own failures.
  *
  * Over HTTPS with a throwaway self-signed certificate, because `web-push` refuses to speak plain
- * HTTP - which is correct of it, and which is why the fake service cannot just be an `http` server.
+ * HTTP, which is correct of it, and which is why the fake service cannot merely be an `http` server.
  *
  * The browser leg (FCM delivering to the device, the worker rendering it) is not reachable from a
  * test. What guards it is `isPushPayload` in the worker, which is a one-sided check: the sender

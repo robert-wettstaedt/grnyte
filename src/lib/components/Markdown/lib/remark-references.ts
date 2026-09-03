@@ -15,7 +15,7 @@ const referenceRegexWithBase64 = '!(areas|blocks|routes|users):\\d+:[A-Za-z0-9+/
 export const REFERENCE_TOMBSTONE = String.fromCharCode(0)
 
 /**
- * The other payload that is not a name: the target may well exist, this device just does not have
+ * The other payload that is not a name: the target may well exist, this device does not have
  * it. Offline no query can ever report itself complete, so "absent from the local replica" and
  * "deleted" are indistinguishable, and saying "not found" about a block somebody is standing under
  * would be worse than saying nothing. Kept apart from {@link REFERENCE_TOMBSTONE} so the two never
@@ -57,7 +57,7 @@ export const getReferences = (markdown: string): MarkdownReferencesIds => {
 
 export interface MarkdownReference {
   id: number
-  /** The target no longer exists — render a tombstone rather than resolving `name`. */
+  /** The target no longer exists: render a tombstone rather than resolving `name`. */
   missing?: boolean
   name: string
   type: EntityType

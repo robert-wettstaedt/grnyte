@@ -20,9 +20,9 @@
   // sub-editor, and gates submit with a confirm when no location is set. Edit reuses this verbatim,
   // passing `updateBlock`, an `initialLocation`, and an "Edit block"/"Save" title and label.
   interface Props {
-    /** The crag the block belongs to — drives the breadcrumb and the picker's framing. */
+    /** The crag the block belongs to: drives the breadcrumb and the picker's framing. */
     area: AreaDetail
-    /** Editing an existing block — switches the no-location confirm to "Save …" wording. */
+    /** Editing an existing block: switches the no-location confirm to "Save …" wording. */
     editing?: boolean
     form: RemoteForm<BlockFormInput, unknown>
     /** Pre-fill the "rough guess" toggle from the block's existing pin when editing. */

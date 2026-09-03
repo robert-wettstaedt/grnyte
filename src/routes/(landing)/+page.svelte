@@ -51,7 +51,7 @@
   // GSAP is, so whether the scroll reveals run never depends on how loaded the machine was at boot.
   // (Do not write the style tag's name in a comment here: svelte2tsx scans raw text for block tags
   // and reads one in a comment as a real element, failing `npm run check` with "script left open".)
-  // Opacity, not just visibility: the failsafe's own first keyframe is `opacity: 0; visibility:
+  // Opacity, not only visibility: the failsafe's own first keyframe is `opacity: 0; visibility:
   // visible`, so during its 0.4s fade an element is nominally visible while still unreadable. On
   // visibility alone that counts as read, the entrance is skipped, and `disarm()` then removes the
   // half-played failsafe, snapping the section to full opacity in one frame. Exactly the pop this

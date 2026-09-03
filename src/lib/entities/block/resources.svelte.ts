@@ -30,7 +30,7 @@ export function blockList(filter: () => BlockListFilter = () => ({}), opts?: { e
 }
 
 /**
- * The block's routes, just the fields a route row needs. Reuses `queries.block`
+ * The block's routes, only the fields a route row needs. Reuses `queries.block`
  * (Zero dedupes it with the detail page's own instance), so the topos and this
  * list stay in sync. Order them with `orderRoutesByTopo` at the call site.
  */

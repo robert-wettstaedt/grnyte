@@ -17,7 +17,7 @@ import { subscribeToPush, unsubscribeFromPush } from '$lib/entities/notification
  */
 
 /** What the UI has to render a state for. `unsupported` is a browser tab on iOS as much as it is
- *  an old desktop browser: the Push API is simply absent until the app is installed there. */
+ *  an old desktop browser: the Push API is absent until the app is installed there. */
 export type PushState = 'denied' | 'granted' | 'prompt' | 'unsupported'
 
 const PROMPT_DISMISSED_KEY = `${PUBLIC_APPLICATION_NAME}.pushPromptDismissed`
@@ -145,7 +145,7 @@ export function pushState(): PushState {
  * re-registering is a no-op whenever the row is already right.
  *
  * ponytail: neither direction catches a subscription whose endpoint is unchanged and which the
- * push service has silently stopped delivering - nothing observable changes, so there is nothing
+ * push service has silently stopped delivering: nothing observable changes, so there is nothing
  * to compare. Upgrade = a server-side liveness heuristic.
  */
 export async function syncPushSubscription(): Promise<void> {
@@ -172,7 +172,7 @@ export async function syncPushSubscription(): Promise<void> {
   await register(subscription)
 
   // The endpoint moved, so the row under the old one is a corpse. Compared against the endpoint
-  // we ENDED with, not the live one: the repair above is a rotation too, just one where the
+  // we ENDED with, not the live one: the repair above is a rotation too, only one where the
   // browser lost the old handle instead of swapping it. After `register`, so a failure here costs
   // a stale row until the first 403/404/410 prunes it, rather than costing the repair.
   if (known != null && known !== subscription.endpoint) {

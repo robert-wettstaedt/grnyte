@@ -24,7 +24,7 @@
   const close = () => (open = false)
 
   // "Sent five minutes ago, give it a moment" vs "sent last week, resend it".
-  // Clamped to the clock: `now()` only ticks once a minute, so a send that just happened is up to
+  // Clamped to the clock: `now()` only ticks once a minute, so a send that happened a moment ago is up to
   // 60s "in the future" and would read as "sent in 15 seconds". Every other caller of this
   // formatter shows something at least a minute old, which is why it has not come up before.
   const sentAt = $derived.by(() => {

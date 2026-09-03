@@ -13,7 +13,7 @@ import { toUserFavorite, toUserFavoriteEntity } from './mapper'
  * replica that could not contain the answer and the button showed "not saved" for something the
  * user had saved. The list is preloaded (see `preloadForOffline`), so every later question about
  * membership is a local array scan. Fewer server-registered queries too, which is the axis CVR cost
- * actually scales on.
+ * scales on.
  *
  * It does not fix the spinner, and nothing at this layer can: offline no query ever reaches
  * `complete`, so `isSyncing` stays true whatever is in the replica. See `SaveButton`.
@@ -44,7 +44,7 @@ export function otherSaveCount(
 }
 
 /**
- * A user's favorites across all entity types (area/block/route), newest first —
+ * A user's favorites across all entity types (area/block/route), newest first:
  * the profile's Favorites section. Skipped until a `userId` is available.
  */
 export function userAllFavoriteList(userId: () => number | undefined, enabled: () => boolean = () => true) {

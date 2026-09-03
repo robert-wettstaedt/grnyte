@@ -50,7 +50,7 @@ export interface EventFilter {
 }
 
 /**
- * Whether a column actually moved.
+ * Whether a column moved.
  *
  * Only the ends are trimmed: a description resaved untouched reserialises with a trailing
  * newline that is not a real edit, and a SQL NULL vs. a form's '' are both "not set". Whitespace
@@ -108,7 +108,7 @@ export async function createUpdateEvent(
  *
  * A refinement: an `update` joins an open `create`, `add` or `update`, so a burst of edits merges
  * into the action it refines. That is what makes "Anna added Traumtanz" absorb its own corrections,
- * and it is also what keeps pasting a source link onto a clip you just uploaded from rendering a
+ * and it is also what keeps pasting a source link onto a clip you uploaded a moment ago from rendering a
  * second card beside it.
  *
  * A repeat: the same verb joins its own kind. The fold key is already every column a caller sets,
@@ -265,7 +265,7 @@ export function objectColumns(
  * keeps its history. The window matches the fold's for the same reason: inside it, nothing has
  * settled into being a fact yet.
  *
- * Only the age half. Reach for {@link canHardDelete} instead unless you genuinely want just this:
+ * Only the age half. Reach for {@link canHardDelete} instead unless you genuinely want only this:
  * it asks the other two conditions as well, and takes the entity-specific one as an argument so
  * it cannot be skipped.
  */

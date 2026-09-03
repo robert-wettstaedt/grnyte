@@ -17,7 +17,7 @@ const SOMEBODY_ELSE = 8
 /**
  * `canDeleteArea` is DELETE, or an EDITor removing what they themselves created (the v1
  * capability restored in the audit). These pin that the own-created path needs BOTH edit AND
- * authorship AND the same region - so it can neither be dropped again nor widened by accident.
+ * authorship AND the same region, so it can neither be dropped again nor widened by accident.
  */
 describe('canDeleteArea', () => {
   it('lets a region DELETE holder remove anyone’s area', () => {

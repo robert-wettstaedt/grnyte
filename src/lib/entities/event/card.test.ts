@@ -255,7 +255,7 @@ describe('eventCard tier', () => {
     const noon = new Date(2026, 0, 1, 12).getTime()
     const parent = { id: 7, type: 'block' as const }
 
-    // A create and a rename under one block are one burst card, which is the case that actually
+    // A create and a rename under one block are one burst card, which is the case that
     // mixes: a group is one thing a reader acts on, so a card that also added a route is a card
     // about adding a route. (A deletion could not test this. It keys as `removal`, so it is
     // already a card of its own before a tier is asked for.)
@@ -421,7 +421,7 @@ describe('eventCard accolade', () => {
   })
 
   it('does not let an edit to an ascent congratulate anybody', () => {
-    // The claim is read off the ascent row, which an update event points at just as well. Only the
+    // The claim is read off the ascent row, which an update event points at equally well. Only the
     // card that LOGGED the send may speak it, or correcting a typo re-announces the achievement.
     const view = eventCard(
       groupEvents([send({ accolade: { kind: 'ceiling' }, verb: 'update' })])[0],

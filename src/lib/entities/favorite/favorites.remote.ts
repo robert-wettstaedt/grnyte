@@ -21,7 +21,7 @@ export const toggleFavorite = authedCommand(
         : db.query.areas.findFirst({ columns: { regionFk: true }, where: eq(areas.id, entityId) }))
 
     // "No such row" and "not in a region you may read" are one and the same 404, deliberately. Only
-    // RLS used to make the second half true: an entity in a foreign region simply came back
+    // RLS used to make the second half true: an entity in a foreign region came back
     // undefined here. With the check in the handler the refusal is ours, and it stays a 404 rather
     // than becoming a 403, because two statuses would make this command an existence oracle: a
     // stranger could walk the id space and learn exactly which routes, blocks and areas exist in

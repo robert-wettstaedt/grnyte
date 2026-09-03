@@ -82,7 +82,7 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
   // left receiving somebody else's digests.
   //
   // Matched on the subscription's KEYS as well as its endpoint, never the endpoint alone. An
-  // endpoint is a string a request can simply state, and handing a row over on a stated name would
+  // endpoint is a string a request can state, and handing a row over on a stated name would
   // let any caller move somebody else's device onto their own account: that person silently stops
   // receiving their own pushes, and their browser starts receiving payloads it cannot decrypt.
   // `auth` is the browser's own 16-byte secret, so presenting the pair the stored row holds is
@@ -104,7 +104,7 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
     )
 
   // The ownership check the upsert below does NOT do. `ON CONFLICT (endpoint) DO UPDATE` sets
-  // `user_fk` to the caller, and an endpoint is a string a request can simply state, so once the
+  // `user_fk` to the caller, and an endpoint is a string a request can state, so once the
   // own-row rule lives here rather than in a policy a caller who names somebody else's endpoint
   // takes their device over: that person silently stops receiving their own pushes, and their
   // browser starts receiving payloads it cannot decrypt.

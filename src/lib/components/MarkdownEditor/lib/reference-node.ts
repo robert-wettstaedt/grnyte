@@ -28,7 +28,7 @@ export interface ReferenceExtensionOptions {
   /**
    * Best-effort, synchronous label lookup used when rehydrating stored
    * `!type:id!` tokens into chips on load. Returns `undefined` when the entity
-   * isn't loaded yet — the chip still round-trips to markdown via type + id.
+   * isn't loaded yet. The chip still round-trips to markdown via type + id.
    */
   resolveLabel: (type: EntityType, id: string) => string | undefined
   /** Suggestion config (trigger, items, command, render) supplied by the editor. */
@@ -39,7 +39,7 @@ export interface ReferenceExtensionOptions {
  * A typed `@` reference built on `@tiptap/extension-mention`. Unlike Mention's
  * own `@[label](id)` markdown spec, this serializes to the app's portable
  * `!type:id!` token (so renames stay safe) and rehydrates it back into a chip.
- * The picker covers People · Areas · Blocks · Routes — all four serialize the
+ * The picker covers People · Areas · Blocks · Routes: all four serialize the
  * same way; the render pipeline resolves each id to its current name.
  */
 export const createReferenceExtension = ({ resolveLabel, suggestion }: ReferenceExtensionOptions) =>

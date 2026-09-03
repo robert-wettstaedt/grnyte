@@ -5,7 +5,7 @@ import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
  * What kind of device this is, as far as it matters to the app.
  *
  * Capability, never platform: nothing here sniffs a user agent or names a vendor, for the same
- * reason `install.svelte.ts` does not. A media query answers the only questions we actually have,
+ * reason `install.svelte.ts` does not. A media query answers the only questions we have,
  * and it retires itself when the hardware landscape moves.
  *
  * Read once. A phone does not grow a mouse mid-session, and the standalone case is kept live below.
@@ -73,7 +73,7 @@ export function isInstalled(): boolean {
  *
  * Without it everything we keep is best-effort: the browser evicts under storage pressure, and it
  * evicts an origin whole, so the Zero replica and the cached topo images go together. Worth asking
- * for on every device, not just the ones that preload, because the image cache is on every device.
+ * for on every device, not only the ones that preload, because the image cache is on every device.
  *
  * Firefox shows the user a permission prompt; Chromium and WebKit decide silently from how much the
  * person has used the site, which means the occasional visitor who most needs this is the one most
@@ -100,7 +100,7 @@ export async function requestPersistentStorage(): Promise<boolean> {
 /**
  * The rule itself, separated from the browser it reads.
  *
- * Pure and exported so the asymmetry above can actually be asserted rather than argued: the whole
+ * Pure and exported so the asymmetry above can be asserted rather than argued: the whole
  * point of this gate is that it fails towards keeping data, and "everything ambiguous answers yes"
  * is a claim about a truth table, which is a thing a test can hold you to. Nothing else in here is
  * testable at all, because it is four `matchMedia` reads at module load.

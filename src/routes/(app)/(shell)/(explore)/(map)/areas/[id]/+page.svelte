@@ -27,7 +27,7 @@
   const global = getGlobalState()
 
   // Getters keep the resources live across navigation between areas (e.g. when
-  // tapping a sub-area) — the underlying queries re-target as the param changes.
+  // tapping a sub-area). The underlying queries re-target as the param changes.
   const area = areaDetail(() => Number(page.params.id))
   const subAreas = areaList(() => ({ parentFk: Number(page.params.id) }))
 
@@ -71,8 +71,8 @@
 
   const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
 
-  // Only worth naming the region when the user belongs to more than one — with a
-  // single region it's implied and would just be noise in the breadcrumb.
+  // Only worth naming the region when the user belongs to more than one. With a
+  // single region it's implied and would be noise in the breadcrumb.
   const regionName = $derived.by(() => {
     if (global.userRegions.length <= 1 || area.data == null) {
       return null

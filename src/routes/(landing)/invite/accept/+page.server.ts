@@ -10,7 +10,7 @@ export const load = (async ({ locals, url }) => ({
   ...(await resolveInviteState(url.searchParams.get('token'), locals.claims?.email)),
 
   // Whether there is an app to go back to. A member of some other region reaches this screen only
-  // by opening the emailed link, and for them the invitation is an offer, not a gate - so they get
+  // by opening the emailed link, and for them the invitation is an offer, not a gate, so they get
   // a labelled way out. A region-less user deliberately does not: the authGuard bounce is standing
   // in for onboarding, and a dismiss link would only bounce them straight back here. Either way
   // the invitation stays live and reachable from /settings.

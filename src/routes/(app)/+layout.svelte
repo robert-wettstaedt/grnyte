@@ -103,7 +103,7 @@
   $effect(() => {
     // `isComplete`, not `isLoading`: a freshly loaded Zero replica reports ready-with-nothing
     // before the server has confirmed anything, and bouncing on that throws a member with regions
-    // onto the create screen. This only fires once the server has actually said "no memberships".
+    // onto the create screen. This only fires once the server has said "no memberships".
     const regions = globalState?.userRegionsResource
 
     if (regions == null || !regions.isComplete || regions.data.length > 0) {
@@ -117,7 +117,7 @@
 
   // Track same-origin history depth app-wide so back buttons (and the media viewer's
   // close) can fall back to an in-app route instead of leaving the origin. Lives at the
-  // (app) root so the count stays accurate across every page, not just the map area.
+  // (app) root so the count stays accurate across every page, not only the map area.
   trackHistoryDepth()
 
   let markdownCssHref = $state(markdownLightCssUrl)
@@ -172,7 +172,7 @@
          it. Dialogs portal to <body> and stay viewport-fixed, which is what they want. -->
     <div class="flex min-h-0 flex-1 transform-gpu">
       <!-- Walls off client render/effect crashes so one broken page doesn't blank the
-           whole app. Does NOT catch event-handler or async errors — see hooks.client. -->
+           whole app. Does NOT catch event-handler or async errors: see hooks.client. -->
       <svelte:boundary onerror={(error) => reportClientError(error)}>
         {@render children()}
 

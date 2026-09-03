@@ -1,5 +1,5 @@
 /**
- * Image upload staging — pure module shared by the browser (upload + validation)
+ * Image upload staging: pure module shared by the browser (upload + validation)
  * and `finalizeImage` (the server side of the flow). Images are staged in a
  * private Supabase bucket because the app runs behind Vercel's 4.5MB body limit
  * and must not proxy file bytes; the server then moves them to image storage.
@@ -12,7 +12,7 @@ export const STAGING_BUCKET = 'staging'
 export const MAX_IMAGE_SIZE = 50 * 1024 * 1024
 
 /** Per-video size cap enforced client-side before the TUS upload starts. Bunny
- *  itself has no size limit — this is purely the accident/abuse knob, sized so
+ *  itself has no size limit: this is purely the accident/abuse knob, sized so
  *  the heaviest sane beta clip (2min 4K120 H.264 ≈ 1.6GB) still fits. */
 export const MAX_VIDEO_SIZE = 2 * 1024 ** 3
 
@@ -20,12 +20,12 @@ export const MAX_VIDEO_SIZE = 2 * 1024 ** 3
 export const formatFileSize = (bytes: number): string =>
   bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(1)} GB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
 
-/** Entities an image can be attached to — mirrors the FK columns on `files`. */
+/** Entities an image can be attached to: mirrors the FK columns on `files`. */
 export const fileEntityTypes = ['area', 'ascent', 'block', 'route'] as const
 export type FileEntityType = (typeof fileEntityTypes)[number]
 
 /** Media kinds a drop zone can accept. One field routes each file to its
- *  pipeline internally (images → staging, videos → Bunny) — the split is
+ *  pipeline internally (images → staging, videos → Bunny): the split is
  *  transport, not UI. */
 export type MediaKind = 'image' | 'video'
 
@@ -109,7 +109,7 @@ export const isValidSource = (source: string | undefined): boolean => {
 }
 
 /** The staging bucket only admits image/* content types, but browsers often
- *  report an empty `File.type` for HEIC — this is the by-extension fallback. */
+ *  report an empty `File.type` for HEIC: this is the by-extension fallback. */
 const IMAGE_MIME_TYPES: Record<string, string> = {
   heic: 'image/heic',
   heif: 'image/heif',

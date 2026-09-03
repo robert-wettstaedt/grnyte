@@ -27,7 +27,7 @@
 
     localStorage.setItem(MODE_STORAGE_KEY, mode)
     // Theme application (class + theme-color meta) lives in the app.html bootstrap; it reads the
-    // persisted mode, so we just persist then trigger it.
+    // persisted mode, so we persist then trigger it.
     window.__applyTheme?.()
   }
 </script>

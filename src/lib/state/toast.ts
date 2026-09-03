@@ -50,7 +50,7 @@ export function notifyUndo(opts: UndoToastData): void {
 }
 
 /**
- * Run a reversible command and offer Undo — the standard pattern for cheap, low-stakes
+ * Run a reversible command and offer Undo: the standard pattern for cheap, low-stakes
  * destructive actions (deleting a parking, a block, …). Applies the command's envelope
  * via {@link runCommand} (navigating on `redirectTo`), then, if it returned an undo
  * snapshot, shows the snackbar wired to `onUndo(snapshot)`.
@@ -61,7 +61,7 @@ export function notifyUndo(opts: UndoToastData): void {
  *   3. `restore<Entity>()` recreates the row and removes the event the delete logged.
  *
  * `waitFor` defers the restore's redirect until the recreated row has synced into the
- * local store (Zero lags server writes) — pass the entity's `waitFor*` helper so the
+ * local store (Zero lags server writes): pass the entity's `waitFor*` helper so the
  * destination renders the row instead of flashing "not found". Omit it when the restore
  * doesn't navigate (e.g. `restoreParking`).
  */

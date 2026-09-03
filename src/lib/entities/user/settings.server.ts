@@ -51,7 +51,7 @@ export async function writeUserSettings(
   // An EMPTY row, then the same UPDATE again. `values` may hold expressions that read the row
   // (`greatest(coalesce(user_settings.x, 0), N)`), and inside an `INSERT ... VALUES` that is a
   // self-reference Postgres rejects outright (42P01), which would break the one case this fallback
-  // exists for. Against a row that now exists the expression is simply true: coalesce(null, 0).
+  // exists for. Against a row that now exists the expression is true: coalesce(null, 0).
   //
   // `onConflictDoUpdate` rather than `doNothing`, because a conflict has to return the row: the
   // loser of a two-device race still has its own values to write, and `doNothing` returns nothing

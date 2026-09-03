@@ -1,7 +1,7 @@
 /**
  * Fill one account's inbox with one notification per source type, so `/notifications`, the bell
  * count, the tab dot and the OS badge can be looked at without waiting for somebody else to
- * actually mention you.
+ * mention you.
  *
  * Every row points at a real entity in a region both accounts belong to, so the rows hydrate the
  * way they will in production.
@@ -48,9 +48,9 @@ if (recipient == null) throw new Error(`seed-notifications: ${TO} not found - lo
 if (actor == null) throw new Error(`seed-notifications: ${FROM} not found - log in once first`)
 
 /**
- * A region both accounts can actually read.
+ * A region both accounts can read.
  *
- * Not just "a region they are both in": the inbox is region-gated on the client and the SELECT
+ * Not only "a region they are both in": the inbox is region-gated on the client and the SELECT
  * policy checks `region.read`, so a region whose role does not grant it would produce rows that
  * exist and are invisible, which looks exactly like a bug.
  */
@@ -86,7 +86,7 @@ if (route == null) throw new Error(`seed-notifications: region "${region.name}" 
 
 /** One seed row. Typed explicitly because the literal array below does not use all five object
  *  kinds, and the `ascent_edited` row spliced in further down does: without this, TS would infer
- *  `object.type` from only the kinds actually present up front and reject the splice. */
+ *  `object.type` from only the kinds present up front and reject the splice. */
 interface SeedRow {
   label: string
   metadata: null | string
@@ -111,7 +111,7 @@ const rows: SeedRow[] = [
     read: false,
     sourceType: 'mention',
   },
-  // The subject is the reader, so the inbox renders no entity row for this one, just the region.
+  // The subject is the reader, so the inbox renders no entity row for this one, only the region.
   {
     label: 'role changed to maintainer',
     metadata: 'region_maintainer',
@@ -159,7 +159,7 @@ const cleared = await sql`delete from public.notifications where user_fk = ${rec
 for (const row of rows) {
   // At most one of these five may be set (the sixth, `file_fk`, is never used here: a
   // notification about an upload already points at the parent it landed on). Five plain locals
-  // rather than a lookup table, because the CHECK constraint is what actually enforces "at most
+  // rather than a lookup table, because the CHECK constraint is what enforces "at most
   // one" and a computed object would only restate it.
   const areaFk = row.object.type === 'area' ? row.object.id : null
   const ascentFk = row.object.type === 'ascent' ? row.object.id : null

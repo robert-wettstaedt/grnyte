@@ -3,8 +3,8 @@ import { stringifyError } from './stringify'
 
 /**
  * Best-effort client-error reporter: logs to the console and persists to
- * `clientErrorLogs`. Never throws — a failing report must not cascade into the
- * very handlers (boundary / window listeners) that called it.
+ * `clientErrorLogs`. Never throws: a failing report must not cascade into the
+ * same handlers (boundary / window listeners) that called it.
  */
 export function reportClientError(error: unknown): void {
   console.error(error)

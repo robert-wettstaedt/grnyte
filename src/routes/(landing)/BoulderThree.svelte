@@ -227,7 +227,7 @@
 
       // The hero scrolls away in the first screenful of a long page. Left running, this redraws a
       // WebGL scene nobody can see for the rest of the visit, 120 times a second on a ProMotion
-      // phone. Run only while the canvas is actually on screen.
+      // phone. Run only while the canvas is on screen.
       io = new IntersectionObserver(([entry]) => {
         if (entry.isIntersecting) {
           // prev = 0 so the paused gap is not handed to the loop as one enormous delta.

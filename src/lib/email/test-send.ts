@@ -111,8 +111,8 @@ for (const failure of data?.errors ?? []) {
 
 console.log(`
 Now check, in this order (most divergent first):
-  1. classic Outlook on Windows  - button padding, font (must not be Times New Roman), centring
-  2. Gmail iOS with dark mode on - forced inversion: is the violet button still legible
+  1. classic Outlook on Windows: button padding, font (must not be Times New Roman), centring
+  2. Gmail iOS with dark mode on: forced inversion, is the violet button still legible
   3. Outlook.com in a browser, dark mode on
   4. Gmail web, then Apple Mail
 Also: does the logo load at all (it comes from ${SAMPLE['{{ .SiteURL }}']}/pwa-192x192.png), and

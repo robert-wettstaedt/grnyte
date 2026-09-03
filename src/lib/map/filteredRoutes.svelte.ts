@@ -11,7 +11,7 @@ import type { ParsedRouteFilter } from './filter'
  * (`not(exists())` / polymorphic favorites) and so run client-side against the
  * signed-in user's ascents and favorited routes.
  *
- * @param routes the server-filtered route resource — `routeMapList` (slim rows,
+ * @param routes the server-filtered route resource: `routeMapList` (slim rows,
  *   the map) or `routeList` (full list items, the area routes sheet).
  * @param filter reactive getter for the parsed URL filter.
  * @param userId reactive getter for the signed-in user's id.

@@ -6,7 +6,7 @@
  * on the fetched row, so the submitted value can no longer be the subject.
  *
  * `userRegions` is the app's own permission array, which the mutation trusts as the caller's
- * identity - so it is constructed here rather than seeded, keeping the fixture to a single area.
+ * identity, so it is constructed here rather than seeded, keeping the fixture to a single area.
  * The connection is the superuser one (RLS bypassed) because this is the APP gate, above RLS -
  * and the escalation worked precisely because RLS on `areas` UPDATE is deliberately loose (READ).
  *

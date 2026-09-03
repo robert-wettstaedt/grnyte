@@ -111,7 +111,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     db.update(schema.ascents).set({ notes }).where(eq(schema.ascents.id, id)),
   )
 
-  console.log(`\n${dryRun ? 'DRY RUN — ' : ''}converted ${convertedCount} of ${scanned} scanned row(s).`)
+  console.log(`\n${dryRun ? 'DRY RUN: ' : ''}converted ${convertedCount} of ${scanned} scanned row(s).`)
   if (unmatched.size > 0) {
     console.log(`Unmatched @mentions (left untouched): ${[...unmatched].sort().join(', ')}`)
   }

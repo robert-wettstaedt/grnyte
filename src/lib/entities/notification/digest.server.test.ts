@@ -6,7 +6,7 @@
  * catalogue the feed card renders can be rendered server-side, per recipient, in that account's
  * language, from plain rows plus one `select id, name`. A mock would only assert that the code
  * calls the functions it calls; what is worth proving is that the sentence comes out whole, in
- * both locales, with the entity actually named.
+ * both locales, with the entity named.
  *
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */

@@ -16,7 +16,7 @@
     href?: string
     /** Block name. */
     name: string
-    /** `files.path` of the block's first topo image — shown instead of the
+    /** `files.path` of the block's first topo image: shown instead of the
      *  decorative default when present. */
     topoImagePath?: string
     /** Layout variant, passed through to {@link Row}: `option` is the flat, tighter row

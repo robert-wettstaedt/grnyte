@@ -33,7 +33,7 @@ export function toRouteAscent(row: RouteAscentRow): RouteAscent {
     dateTime: row.dateTime ?? undefined,
     // The ascent's creator owns its media; stamped onto each file so the client can
     // mirror the own-ascent-media RLS grants (edit/delete/visibility). Stamped here,
-    // not via a toMediaFile param — see the note on toMediaFile. The `ascent` stamp
+    // not via a toMediaFile param: see the note on toMediaFile. The `ascent` stamp
     // is what marks the file as beta wherever it renders (thumbnail badge, viewer caption).
     files: (row.files ?? []).map((file) => ({
       ...toMediaFile(file),

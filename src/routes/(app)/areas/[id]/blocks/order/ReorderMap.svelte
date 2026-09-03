@@ -14,7 +14,7 @@
   import type { Attachment } from 'svelte/attachments'
 
   interface Props {
-    /** Blocks in their staged order — a pin's number is the block's 1-based list position. */
+    /** Blocks in their staged order: a pin's number is the block's 1-based list position. */
     blocks: BlockDetail[]
     /** Encoded approach polylines (the area's walking paths), drawn like the main map. */
     geoPaths?: string[]
@@ -30,7 +30,7 @@
   let map = $state<OlMap>()
   let hasSize = $state(false)
 
-  // Imperative OL state — deliberately non-reactive lookups; reactivity comes from `blocks` /
+  // Imperative OL state: deliberately non-reactive lookups; reactivity comes from `blocks` /
   // `selectedId` reads in the effects below, not from these registries.
   // eslint-disable-next-line svelte/prefer-svelte-reactivity -- OL overlay element registry, not UI state
   const pinEls = new Map<number, HTMLButtonElement>()
@@ -127,7 +127,7 @@
   })
 
   // One-time fit to the located blocks + parking, once the map has a size AND the blocks have
-  // loaded — fitting on the parking pin alone would zoom right past them.
+  // loaded: fitting on the parking pin alone would zoom right past them.
   $effect(() => {
     const instance = map
     if (instance == null || !hasSize || fitted) return

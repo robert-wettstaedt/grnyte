@@ -8,7 +8,7 @@ import { connectionVerdict } from './online.svelte'
  *
  * Most of the cases below are bugs that shipped, which is the argument for the file existing; the
  * rest pin the neighbouring branches so a fix to one cannot quietly move another. The adapter around
- * these two - the hold, the dedupe, the visibility gate - is covered in `onlineHold.test.ts`.
+ * these two (the hold, the dedupe, the visibility gate) is covered in `onlineHold.test.ts`.
  */
 
 describe('connectionVerdict', () => {

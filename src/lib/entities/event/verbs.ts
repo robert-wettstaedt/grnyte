@@ -194,7 +194,7 @@ export interface VerbEntry {
    * not in the region any more, so a row offering their profile is a dead end, and the row
    * would sit there pulsing for anyone whose member list no longer holds them. The headline
    * still names them, which is why this is not `names: 'stored'`: the entity is fetched, it
-   * just is not rendered.
+   * is not rendered.
    */
   row?: 'none'
   /** Whether the card shows an ascent status glyph, read off `newValue`. */
@@ -215,7 +215,7 @@ export interface VerbEntry {
  * string, and that is the point of the file: a composed key is a `string` all the way to the
  * screen, so a message that was never written (or was renamed, or dropped) only shows up as
  * its own key printed on a card. Spelled out, the same mistake is a type error, because
- * `MessageKey` is the union of what paraglide actually compiled.
+ * `MessageKey` is the union of what paraglide compiled.
  *
  * Add a row here when a writer starts producing a new triple. What guarantees a triple resolves is
  * `verbs.test.ts`, which feeds the whole catalogue back through the lookup, plus
@@ -551,7 +551,7 @@ export const WRITTEN_ROWS: Partial<VerbEntry>[] = (VERBS as readonly VerbEntry[]
 )
 
 /**
- * What a row whose triple has no entry above degrades to: still true, just vaguer. Only
+ * What a row whose triple has no entry above degrades to: still true, only vaguer. Only
  * reachable for a triple this app no longer writes, since a live one is a row in the
  * catalogue and a missing message is a type error.
  *

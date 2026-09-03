@@ -2,7 +2,7 @@ import { SvelteMap } from 'svelte/reactivity'
 import type { TopoPoint } from './dto'
 import { serializePoints } from './path'
 
-/** A route's line while it is being drawn — the editable counterpart of a `topo_routes` row. */
+/** A route's line while it is being drawn: the editable counterpart of a `topo_routes` row. */
 export interface EditLine {
   points: TopoPoint[]
   routeFk: number
@@ -46,7 +46,7 @@ const signature = (lines: EditLine[]): string =>
 export class TopoEditor {
   pointType = $state<PointType | undefined>(undefined)
 
-  /** The point handle the user tapped — its type + a delete action surface in the card. */
+  /** The point handle the user tapped: its type + a delete action surface in the card. */
   selectedPointId = $state<string | undefined>(undefined)
   selectedRouteFk = $state<number | undefined>(undefined)
   topoId = $state<number | undefined>(undefined)
@@ -83,20 +83,20 @@ export class TopoEditor {
 
   #past = new SvelteMap<number, EditLine[][]>()
 
-  // Pre-gesture snapshot held until the gesture actually mutates, so a no-op tap (select a line,
+  // Pre-gesture snapshot held until the gesture mutates, so a no-op tap (select a line,
   // press-release a handle) does not push an undo step or clobber the redo stack.
   #pendingSnapshot: undefined | { lines: EditLine[]; topoId: number }
 
   // Baseline a topo's doc is compared against for dirtiness. Committed lines lag behind Save by
   // the Zero replication window, so after a successful Save we stamp the saved signature here and
-  // dirt is measured against it — the pill/guard clear immediately instead of waiting for the echo.
+  // dirt is measured against it: the pill/guard clear immediately instead of waiting for the echo.
   #saved = new SvelteMap<number, string>()
 
   constructor(committedFor: (topoId: number) => EditLine[]) {
     this.#committedFor = committedFor
   }
 
-  /** Add an (empty) line for a route and select it — the target of the next placed points. */
+  /** Add an (empty) line for a route and select it: the target of the next placed points. */
   addLine(routeFk: number): void {
     this.#apply((lines) => {
       if (!lines.some((line) => line.routeFk === routeFk)) {
@@ -160,7 +160,7 @@ export class TopoEditor {
     }, false)
   }
 
-  /** Move a point during a drag — no undo snapshot (call `beginStroke` at drag start). */
+  /** Move a point during a drag: no undo snapshot (call `beginStroke` at drag start). */
   dragPoint(pointId: string, x: number, y: number): void {
     const [sx, sy] = this.#snap(x, y, pointId)
     this.#apply((lines) => {
@@ -214,7 +214,7 @@ export class TopoEditor {
     return signature(doc) !== baseline
   }
 
-  /** Working lines for a topo — the local doc if it has been touched, else the committed set. */
+  /** Working lines for a topo: the local doc if it has been touched, else the committed set. */
   lines(topoId: number): EditLine[] {
     return this.#docs.get(topoId) ?? this.#committedFor(topoId)
   }
@@ -224,7 +224,7 @@ export class TopoEditor {
     this.#saved.set(topoId, signature(this.lines(topoId)))
   }
 
-  /** Move a single point by a normalized delta with no snapping — for keyboard nudges. */
+  /** Move a single point by a normalized delta with no snapping: for keyboard nudges. */
   movePointBy(pointId: string, dx: number, dy: number): void {
     this.#apply((lines) => {
       for (const line of lines) {
@@ -269,7 +269,7 @@ export class TopoEditor {
   }
 
   /**
-   * Purge a route from every working doc AND every history snapshot — for after the
+   * Purge a route from every working doc AND every history snapshot: for after the
    * route is deleted server-side, so neither Save nor undo can resurrect a line
    * pointing at a dead routeFk (which would hit the FK constraint).
    */
@@ -294,7 +294,7 @@ export class TopoEditor {
       .map((line) => ({ path: serializePoints(line.points), routeFk: line.routeFk, topType: line.topType }))
   }
 
-  /** Select a point handle (tap) — its type and a delete action surface in the card. */
+  /** Select a point handle (tap): its type and a delete action surface in the card. */
   selectPoint(pointId: string | undefined): void {
     this.selectedPointId = pointId
     this.pointType = undefined
@@ -315,7 +315,7 @@ export class TopoEditor {
     })
   }
 
-  /** True once the committed lines have caught up to what was saved — safe to drop the local doc. */
+  /** True once the committed lines have caught up to what was saved: safe to drop the local doc. */
   syncedWithCommitted(topoId: number): boolean {
     const saved = this.#saved.get(topoId)
     return saved != null && signature(this.#committedFor(topoId)) === saved

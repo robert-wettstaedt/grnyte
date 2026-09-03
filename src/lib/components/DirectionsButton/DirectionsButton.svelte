@@ -5,7 +5,7 @@
   import { m } from '$lib/paraglide/messages'
 
   interface Props {
-    /** Where to drive — a parking pin, or a crag's parking/block centroid. */
+    /** Where to drive: a parking pin, or a crag's parking/block centroid. */
     destination: Coords | undefined
   }
 

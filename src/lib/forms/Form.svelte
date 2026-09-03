@@ -91,12 +91,12 @@
 
   // Back online → restore the form. Everything typed survives because the form is never unmounted:
   // the offline state renders over it, see the note above the markup. The remote form's own module
-  // state was never the whole story - the fields a caller passes in keep their visible state in
+  // state was never the whole story: the fields a caller passes in keep their visible state in
   // component `$state`, and that is what renders.
   //
   // An `$effect` on `isOnline()` rather than the `online` window event, which was the trigger
   // before. That event fires when the *browser* decides the network returned, which is a different
-  // question, and it does not fire at all in the case that actually strands somebody: the browser
+  // question, and it does not fire at all in the case that strands somebody: the browser
   // never claimed to be offline, the reachability probe or Zero's hold was what went false, and
   // nothing afterwards told this component otherwise. The form then sat on the error state for the
   // life of the mounted component with everything typed into it behind that tile.
@@ -104,7 +104,7 @@
   // `$derived(failedOffline && !isOnline())` is the shape the linter asks for here, and it is not
   // the same behaviour: the latch would stay armed after recovery, so a second connection drop would
   // throw the tile back over a form somebody is quietly filling in, without them having submitted
-  // anything. The tile should only ever follow a submit that actually failed, so the reset is an
+  // anything. The tile should only ever follow a submit that failed, so the reset is an
   // effect on purpose.
   $effect(() => {
     if (isOnline()) {

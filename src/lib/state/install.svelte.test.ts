@@ -22,7 +22,7 @@ describe('isBannerDue', () => {
     expect(isBannerDue(now + 365 * DAY, 1, now)).toBe(true)
   })
 
-  // The shared clock is a minute coarse, so a dismissal made just now is routinely ahead of it.
+  // The shared clock is a minute coarse, so a dismissal made a moment ago is routinely ahead of it.
   it('still snoozes a dismissal written since the shared clock last ticked', () => {
     expect(isBannerDue(now + 60_000, 1, now)).toBe(false)
   })

@@ -24,8 +24,8 @@ export interface SendEmailInput extends EmailInput {
  * itself does not throw on API errors either, it returns `{ data, error }`, and it swallows
  * network failures into `error.name === 'application_error'`.
  *
- * ponytail: no retry queue. Delivery is best effort. Add one when a dropped mail actually
- * costs something (an invite nobody can re-send), not before.
+ * ponytail: no retry queue. Delivery is best effort. Add one when a dropped mail costs
+ * something (an invite nobody can re-send), not before.
  */
 export async function sendEmail({ idempotencyKey, to, ...content }: SendEmailInput): Promise<boolean> {
   // `new Resend('')` throws synchronously, which inside this async function becomes a rejected

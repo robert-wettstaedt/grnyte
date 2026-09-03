@@ -84,7 +84,7 @@ function applyRouteFilters<Q extends RoutesQuery>(
     )
   }
 
-  // Find routes whose description references the given entity (e.g. `!areas:7!`) — its
+  // Find routes whose description references the given entity (e.g. `!areas:7!`): its
   // backlinks. The token's delimiters keep it exact (`!areas:7!` ≠ `!areas:71!`).
   if (args.references != null) {
     q = q.where('description', 'ILIKE', `%${args.references}%`)

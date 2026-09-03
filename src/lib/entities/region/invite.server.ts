@@ -6,7 +6,7 @@
  * module pulls in SvelteKit's client runtime and cannot be imported from a test, and the section 8
  * failure matrix is exactly what is worth testing.
  *
- * One predicate defines validity everywhere - in the RLS policies, in the authGuard hook, in the
+ * One predicate defines validity everywhere: in the RLS policies, in the authGuard hook, in the
  * accept page load and in `acceptInvitation`: **`status = 'pending' AND expires_at > now()`**.
  * Revoking sets `status = 'expired'` and `expires_at = now()` together precisely so that stays the
  * only check anyone has to remember. Nobody spells that predicate out for themselves: every caller
@@ -163,7 +163,7 @@ export async function acceptInvitation({ authUserId, email, token }: AcceptInvit
     if (existing == null) {
       // Active members only, NOT the seat count `createInvitation` uses: this invitation is being
       // consumed, so it must not count against itself. Two invitations racing into the last seat
-      // both exist, and this is what refuses the second joiner - leaving their invitation valid so
+      // both exist, and this is what refuses the second joiner: leaving their invitation valid so
       // it still works once a seat frees.
       const [{ members }] = await tx
         .select({ members: count() })
@@ -359,7 +359,7 @@ export function livePredicate(now = new Date()) {
  */
 export async function loadInvitation(token: string): Promise<InvitationView | undefined> {
   // `token` is a uuid column, so anything that is not a uuid makes Postgres throw rather than
-  // simply miss. A truncated or hand-typed link is exactly how that arrives, and it has to read
+  // miss. A truncated or hand-typed link is exactly how that arrives, and it has to read
   // as "not valid" like every other unusable token, not as a 500.
   if (!z.uuid().safeParse(token).success) {
     return undefined
@@ -471,7 +471,7 @@ export async function resendInvitation(
  * Which language to write to `email` in.
  *
  * The stored `contact_locale` of the account on that address wins, because it is a language that
- * person actually chose. Otherwise the caller's ambient locale - which for an invitee with no
+ * person chose. Otherwise the caller's ambient locale, which for an invitee with no
  * account is the only signal there is. That is exactly what the shell's `locale` doc warns
  * against, and it is deliberate here: a wrong guess costs one paragraph in the wrong language,
  * and the accept page localizes itself from the invitee's own browser anyway.

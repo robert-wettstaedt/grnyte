@@ -6,7 +6,7 @@ import { EVENT_CASES } from './index'
 import { ME } from './world'
 
 /**
- * What every case actually renders, as one readable line per card.
+ * What every case renders, as one readable line per card.
  *
  * The snapshot is the review surface's twin: the Storybook wall shows the cards, this shows the
  * sentences they resolve, and a change to either shows up here. Resolved copy on purpose, unlike
@@ -30,7 +30,7 @@ const render = (caseId: string) => {
        *
        * The label alone was too little: two entries can share one and differ in the renderer they
        * declare, so swapping a "location set" field for a "location gone" field was invisible on
-       * all 245 cards. `captionKey` is what a location or topo line actually reads out.
+       * all 245 cards. `captionKey` is what a location or topo line reads out.
        */
       changes: view.changes.map((change) => ({
         after: 'after' in change ? change.after : undefined,

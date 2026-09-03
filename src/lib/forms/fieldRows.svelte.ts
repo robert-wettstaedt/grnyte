@@ -28,7 +28,7 @@ export function fieldRows<T extends Record<string, string>>(options: {
     return keys.map((_, index) => {
       const row = { ...options.blank }
 
-      // Iterates what the form actually holds rather than the keys of `blank`, so a field a row
+      // Iterates what the form holds rather than the keys of `blank`, so a field a row
       // carries but never renders (a hidden id, the tag editor's rename anchor) survives a removal.
       // Keyed off `blank` this silently dropped it from every row, which turns the next save into
       // delete-everything plus insert-everything.

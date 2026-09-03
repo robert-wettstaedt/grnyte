@@ -16,7 +16,7 @@ export const firstAscensionistsQueryDefs = {
     }),
   ),
 
-  // The first-ascensionist row(s) linked to a user — resolves the fk the route FA
+  // The first-ascensionist row(s) linked to a user: resolves the fk the route FA
   // filter needs to list a climber's first ascents on their profile.
   listUserFirstAscensionist: defineQuery(
     z.object({ userId: z.number() }),

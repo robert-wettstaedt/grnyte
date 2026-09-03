@@ -21,7 +21,7 @@
   // Brief check-mark confirmation after copying the coordinate to the clipboard.
   const clip = createCopyButton()
 
-  // The (map) layout draws the sheet header from sheetState — label it with the
+  // The (map) layout draws the sheet header from sheetState: label it with the
   // parking and, as a subtitle, the crag it belongs to.
   $effect(() => {
     sheetState.title = m.parking_title()

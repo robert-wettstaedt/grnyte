@@ -20,7 +20,7 @@
   const regionId = $derived(Number(page.params.regionId))
 
   // Region settings are admin-only, and the link into here is too, so this only catches somebody
-  // typing the URL. The server rejects them either way - this is so they find out before typing.
+  // typing the URL. The server rejects them either way. This is so they find out before typing.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 
   // Derived, not a snapshot: the vocabulary is whatever the synced membership says right now. A

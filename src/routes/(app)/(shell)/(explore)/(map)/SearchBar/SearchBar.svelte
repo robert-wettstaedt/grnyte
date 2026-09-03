@@ -52,7 +52,7 @@
   const crumbFor = (regionFk: number) => regionCrumb(global.userRegions, regionFk)
   const regionFks = () => global.userRegions.map((region) => region.regionFk)
 
-  // Live entity results, same source as the MarkdownEditor `@`-picker — but
+  // Live entity results, same source as the MarkdownEditor `@`-picker, but
   // searched across every region the user belongs to (incl. users), and with a
   // region crumb on each result once they span more than one.
   const search = entitySearch({
@@ -117,7 +117,7 @@
   })
   const hasRows = $derived(count > 0)
 
-  // Typing narrows the list, so keep the highlight in range — otherwise it points
+  // Typing narrows the list, so keep the highlight in range: otherwise it points
   // at a row that's gone and Enter falls through to a plain query submit.
   $effect(() => {
     if (activeIndex > count - 1) {
@@ -134,7 +134,7 @@
   const dropdownTop = $derived(pinned ? `calc(4rem + ${vv.offsetTop}px)` : undefined)
 
   // Cap the height to the visible area. The bottom tab bar only needs reserving
-  // while it is actually on screen (keyboard shut); once the keyboard is up it
+  // while it is on screen (keyboard shut); once the keyboard is up it
   // already sits below the visible viewport, so only a small gap is needed.
   const dropdownMaxHeight = $derived.by(() => {
     if (!pinned) {
@@ -146,7 +146,7 @@
       : `calc(${vv.height}px - 8.5rem - env(safe-area-inset-bottom))`
   })
 
-  // ponytail: no "physical keyboard" web API — hover + fine pointer is the standard desktop heuristic
+  // ponytail: no "physical keyboard" web API, hover + fine pointer is the standard desktop heuristic
   const hasKeyboard = new MediaQuery('(hover: hover) and (pointer: fine)')
   const shortcut = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘K' : 'Ctrl+K'
   const placeholder = $derived(hasKeyboard.current ? `${m.common_search()} (${shortcut})` : m.common_search())
@@ -160,7 +160,7 @@
 
   // Dismiss on an outside press. Focus-based closing (`focusout`) breaks on iOS,
   // where tapping a result blurs the input and tears down the dropdown before its
-  // click can land — so nothing happens but the close.
+  // click can land, so nothing happens but the close.
   const onWindowPointerdown = (event: PointerEvent) => {
     if (open && containerEl != null && !containerEl.contains(event.target as Node)) {
       open = false

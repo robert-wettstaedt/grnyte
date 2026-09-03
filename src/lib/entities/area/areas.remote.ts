@@ -32,7 +32,7 @@ const areaActionSchema = z.object({
   regionFk: stringToInt,
 })
 
-/** Field shape the shared area form (`AreaFormFields`) binds to — same for create and edit. */
+/** Field shape the shared area form (`AreaFormFields`) binds to: same for create and edit. */
 export type AreaFormInput = z.input<typeof areaActionSchema>
 
 export const createArea = authedForm(areaActionSchema, async (value, { afterCommit, db, user, userRegions }, issue) => {
@@ -253,9 +253,9 @@ export const deleteArea = authedCommand(
     )
 
     // Sub-areas and blocks are the spec's "children"; files are folded in because they
-    // FK-reference the area and can't be recreated on undo — an area with files is
+    // FK-reference the area and can't be recreated on undo: an area with files is
     // soft-deleted rather than hard-deleted so nothing is lost.
-    // The whole subtree, not just the direct children: deleting a crag takes its blocks and
+    // The whole subtree, not only the direct children: deleting a crag takes its blocks and
     // their routes with it, and after the delete none of it is left to count.
     //
     // The existence checks count soft-deleted descendants too: a row stamped last month still
@@ -270,7 +270,7 @@ export const deleteArea = authedCommand(
     const blockIds = blockRows.map((row) => row.id)
 
     // Counted, not listed: a crag holds thousands of routes and the card needs one integer.
-    // Live rows only, and before the delete stamps them - this is what this deletion takes.
+    // Live rows only, and before the delete stamps them: this is what this deletion takes.
     const [[areaCount], [routeCount]] = await Promise.all([
       db
         .select({ value: count() })
@@ -346,7 +346,7 @@ const restoreAreaSchema = z.discriminatedUnion('mode', [
   z.object({ areaId: z.number(), mode: z.literal('soft') }),
 ])
 
-/** What {@link restoreArea} receives — the parsed snapshot, whose optional/nullable area fields
+/** What {@link restoreArea} receives: the parsed snapshot, whose optional/nullable area fields
  *  differ from {@link DeleteAreaSnapshot}, so the restore helpers key off this. */
 type RestoreAreaSnapshot = z.infer<typeof restoreAreaSchema>
 
@@ -428,7 +428,7 @@ async function softRestoreArea(db: Context['db'], area: Area): Promise<void> {
 export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
     // The snapshot came from the client, so re-validate its structural placement the way createArea
-    // does - otherwise a DELETE holder could restore an area claiming their region but nested under a
+    // does: otherwise a DELETE holder could restore an area claiming their region but nested under a
     // parent in another region, which that region can neither see nor moderate.
     const { parent: parentArea, status } = await loadParentArea(db, snapshot.area.parentFk, snapshot.area.regionFk)
 
@@ -439,7 +439,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
       error(403, formError('form_noPermission'))
     }
     // A hard restore inserts a brand new row, so it is a create and gates like one. Gating on
-    // canDeleteArea instead would deny the undo to the EDITor who just deleted their own area:
+    // canDeleteArea instead would deny the undo to the EDITor who has now deleted their own area:
     // the snapshot carries no `createdBy`, so that predicate's own-created branch can never fire.
     if (
       !canAddArea(userRegions, { regionFk: snapshot.area.regionFk, type: null }) ||
@@ -540,7 +540,7 @@ export const addParking = authedForm(
 )
 
 /** Remove a parking location. Needs delete permission in the parking's region (adding one
- *  takes edit, but removing one is destructive - see canDeleteParking). */
+ *  takes edit, but removing one is destructive: see canDeleteParking). */
 export const deleteParking = authedCommand(z.object({ id: z.number() }), async ({ id }, { db, user, userRegions }) => {
   const parking = await db.query.geolocations.findFirst({ where: eq(geolocations.id, id) })
 
@@ -568,7 +568,7 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
     try {
       head = decodePath(encoded)[0]
     } catch {
-      return true // keep malformed entries — they aren't this parking's path
+      return true // keep malformed entries: they aren't this parking's path
     }
     const matches = head != null && Math.abs(head[0] - parking.lat) <= 1e-4 && Math.abs(head[1] - parking.long) <= 1e-4
     if (matches && removedPath == null) removedPath = encoded

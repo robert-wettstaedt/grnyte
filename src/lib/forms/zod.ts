@@ -7,8 +7,8 @@ import * as zod from 'zod/mini'
  * chainable API keeps every method on a prototype, so one `z.string()` pulls the whole library).
  * The half it drops is the one classic zod loads for you: `zod/v4/classic/external.js` runs
  * `config(en())` as an import side effect, and the mini entry point does not. Without this call
- * every message zod produces itself collapses to the bare string `Invalid input` - not just in
- * shape, in the only part a reader sees:
+ * every message zod produces itself collapses to the bare string `Invalid input`: not only in
+ * shape, but in the only part a reader sees:
  *
  *     z.string().safeParse(1)                  Invalid input: expected string, received number
  *     z.enum(['public', 'private'])            Invalid option: expected one of "public"|"private"
@@ -22,7 +22,7 @@ import * as zod from 'zod/mini'
  * oversight, so it is worth saying why a German reader is not being short-changed.
  *
  * Nothing a user is meant to act on comes from here. Copy for them goes through `formError()`,
- * which emits a paraglide key that `resolveIssueMessage` resolves in their locale on the client -
+ * which emits a paraglide key that `resolveIssueMessage` resolves in their locale on the client:
  * every field a person can type into is labelled that way, and `zod.locale.test.ts` is not what
  * guards that, reading the schema is. What is left for this locale to speak for is the input a
  * correct client cannot produce: ids, discriminators and snapshot shapes reached only by a tampered
@@ -39,7 +39,7 @@ import * as zod from 'zod/mini'
  * Registering it here rather than in `schemas.ts` is what makes it hold: two thirds of the modules
  * that build schemas (every `entities/*[/]queries.ts`, `db/schema.ts`, `auth/session.remote.ts`)
  * never import that file, and a locale registered somewhere half the graph misses is worse than
- * none - it makes the copy a user sees depend on which modules a route happened to pull in. Going
+ * none: it makes the copy a user sees depend on which modules a route happened to pull in. Going
  * through this module means there is no way to spell `z` that skips the call. `no-restricted-imports`
  * in `eslint.config.js` keeps it that way, and `zod.locale.test.ts` fails if the call is lost.
  */

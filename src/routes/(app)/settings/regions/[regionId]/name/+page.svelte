@@ -17,11 +17,11 @@
   const regionId = Number(page.params.regionId)
 
   // Renaming a region is admin-only, and so is the link into here, so this only catches somebody
-  // typing the URL. The server rejects them either way - this is so they find out before typing.
+  // typing the URL. The server rejects them either way. This is so they find out before typing.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 
   // Seeded once at init from the memberships the app shell already has, the same way the username
-  // page reads global.user. No async load, so `Form` stays the route's direct child - wrapping it
+  // page reads global.user. No async load, so `Form` stays the route's direct child: wrapping it
   // in a QueryState puts a flex container between it and the page and breaks its full-height
   // sticky-header layout.
   updateRegion.fields.set({

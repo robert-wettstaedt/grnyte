@@ -13,7 +13,7 @@ export const anchorX = (line: Pick<TopoLine, 'points'>): number => {
  * position is its first appearance across the topos; routes drawn on no topo keep
  * their original relative order, after the drawn ones.
  *
- * Cross-topo comparison is safe because the topo index dominates the sort key —
+ * Cross-topo comparison is safe because the topo index dominates the sort key:
  * an x from one topo's coordinate space is never compared against another's.
  * Generic over `{ id: number }` (matched against `TopoLine.routeId`) so it sorts
  * whatever route shape a caller already has.

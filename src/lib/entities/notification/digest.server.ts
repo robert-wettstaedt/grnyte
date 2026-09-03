@@ -141,7 +141,7 @@ export async function digestCopy(
 /**
  * The display name of each ref, by {@link eventEntityKey}.
  *
- * One query per entity kind actually present, with known ids. An ascent borrows its route's name,
+ * One query per entity kind present, with known ids. An ascent borrows its route's name,
  * the same substitution the feed makes, because "an ascent" is not a thing anybody can picture.
  */
 export async function entityNames(

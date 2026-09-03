@@ -126,7 +126,7 @@ describe('headline keys', () => {
   })
 
   // Three edits to one ascent are not a session and are not three ascents. Once the headline
-  // says what actually happened, the count is of edits.
+  // says what happened, the count is of edits.
   it('speaks the change and counts edits when a session is really edits to one ascent', () => {
     const rows = ['type', 'gradeFk', 'notes'].map((columnName, index) =>
       line({ columnName, createdAt: 100 - index, id: index + 1, objectId: '9001', objectType: 'ascent' }),
@@ -644,7 +644,7 @@ describe('uploads', () => {
 
     expect(removal('video')).toBe('video')
     expect(removal('photo')).toBe('photo')
-    // Written before the word was stored. Still true, just vaguer.
+    // Written before the word was stored. Still true, only vaguer.
     expect(removal(undefined)).toBe('none')
   })
 
@@ -855,7 +855,7 @@ describe('climb date', () => {
   /**
    * Read the card as somebody in `zone`. The line asks whether two calendar days differ, and
    * which day a moment falls on is a question only the reader's timezone answers, so a test
-   * that pins no zone is really asserting whatever the machine running it is set to.
+   * that pins no zone is asserting whatever the machine running it is set to.
    */
   function inTimezone(zone: string, body: () => void) {
     const original = process.env.TZ

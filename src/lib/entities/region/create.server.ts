@@ -10,7 +10,7 @@ import { MAX_OWNED_REGIONS, type OwnedRegion } from './dto'
  *
  * Over the base (non-RLS) `db` for the same reason `acceptInvitation` is: the founder is not a
  * member yet, and `region_members` deliberately has no self-insert policy (see the comment on the
- * table). Having just created the region in this transaction is the authorization, and it is
+ * table). Creating the region in this transaction is the authorization, and it is
  * checked right here.
  *
  * Atomic on purpose. A region with no members is unreachable garbage: the `regions` select policy
@@ -50,7 +50,7 @@ export async function createRegionForUser({
 }
 
 /** The regions this account has founded, oldest first. Over the base `db`, so one the founder
- *  later left still counts against them - under RLS it would have vanished from the list and
+ *  later left still counts against them: under RLS it would have vanished from the list and
  *  handed the seat back. */
 export function listOwnedRegions(userId: number): Promise<OwnedRegion[]> {
   return baseDb

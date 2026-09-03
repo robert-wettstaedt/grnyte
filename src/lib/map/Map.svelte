@@ -96,7 +96,7 @@
     }
   })
 
-  // The last focus actually applied to the view, so equal-valued recomputations are skipped.
+  // The last focus applied to the view, so equal-valued recomputations are skipped.
   let lastFocusKey: string | undefined
   $effect(() => {
     const focus = props.focus
@@ -104,7 +104,7 @@
 
     // The parent recomputes `focus` (a fresh object) on every map-data change; re-fitting
     // the view each time would re-frame the map and undo any manual pan. Only move when the
-    // target actually changed.
+    // target changed.
     const focusKey = JSON.stringify(focus)
     if (focusKey === lastFocusKey) return
     lastFocusKey = focusKey
@@ -136,7 +136,7 @@
 
   // The data layers are created once and added to the map, then each is kept in sync
   // with its slice of `data` by its own effect below. A data change re-renders only the
-  // one layer whose features changed — layers are never torn down and rebuilt — so a Zero
+  // one layer whose features changed (layers are never torn down and rebuilt), so a Zero
   // sync from another client no longer flashes the whole map (and the donut icons, which
   // are expensive to regenerate, aren't reloaded unless their own area/crag changed).
   let areaLayer = $state<VectorLayer>()
@@ -211,8 +211,8 @@
     }
   })
 
-  // Replace a stable layer's features in place — one re-render of just that layer, no
-  // teardown — so unrelated layers never flicker when this slice of data changes.
+  // Replace a stable layer's features in place: one re-render of only that layer, no
+  // teardown, so unrelated layers never flicker when this slice of data changes.
   const syncFeatures = (layer: undefined | VectorLayer, features: Feature[]) => {
     const source = layer?.getSource()
     if (source == null) return
@@ -253,7 +253,7 @@
   const locationErrorMessage = (code: number) =>
     code === 1 ? m.map_locationBlocked() : code === 3 ? m.map_locationTimeout() : m.map_locationUnavailable()
 
-  // Plain, not reactive: gates the toast to attempts the user actually asked for, so a
+  // Plain, not reactive: gates the toast to attempts the user asked for, so a
   // device that silently can't get a fix doesn't toast on every map load.
   let didRequestLocation = false
 
@@ -315,7 +315,7 @@
   const mapAttachment: Attachment = (node) => {
     // Everything here is read untracked so the attachment has NO reactive dependencies and
     // runs exactly once. Reading a reactive prop (e.g. `props.static`) tracked would re-run
-    // this whole attachment whenever that prop changes — rebuilding the entire OL map and
+    // this whole attachment whenever that prop changes, rebuilding the entire OL map and
     // flashing it. WMS layers and `static` are fixed for a map instance, so reading them once
     // is correct; live map data flows through the per-layer sync effects, not here.
     const wmsLayers = untrack(() => createWmsLayers(global.userRegions))
@@ -422,7 +422,7 @@
     // Long-press / right-click → onlongpress with the pressed coordinate. `contextmenu`
     // covers mouse right-click and Android's native long-press; iOS Safari never fires it
     // on touch, so a manual pointer timer covers it. Both can fire for one gesture on
-    // Android — `lastLongPress` dedupes. Movement past a small slop reads as a pan and
+    // Android: `lastLongPress` dedupes. Movement past a small slop reads as a pan and
     // cancels, so hesitant drags don't trigger it.
     const viewport = mapInstance.getViewport()
     let pressTimer: ReturnType<typeof setTimeout> | undefined
@@ -606,7 +606,7 @@
 </div>
 
 <style>
-  /* No text to select on the map — suppressing selection also keeps iOS from showing
+  /* No text to select on the map: suppressing selection also keeps iOS from showing
      its callout/loupe on long-press (which the quick-create gesture relies on). */
   .map {
     -webkit-touch-callout: none;

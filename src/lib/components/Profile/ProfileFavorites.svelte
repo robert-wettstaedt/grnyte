@@ -20,7 +20,7 @@
   // section is self-contained: it renders nothing until the user has favorites.
   interface Props {
     isSelf: boolean
-    /** The user's tick per route, for the row's status glyph. */
+    /** The user’s ascent per route, for the row’s status glyph. */
     status: Map<number, AscentType>
     userId: number
   }

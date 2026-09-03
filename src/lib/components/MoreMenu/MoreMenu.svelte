@@ -9,7 +9,7 @@
     children: Snippet<[close: () => void]>
     /** Desktop: the map-sheet side panel (default), or a trigger-anchored popover for standalone pages. */
     panel?: boolean
-    /** Sheet title — usually the entity name. */
+    /** Sheet title, usually the entity name. */
     title: string
   }
 

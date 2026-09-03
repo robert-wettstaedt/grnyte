@@ -11,7 +11,7 @@ import { now } from '$lib/state/now.svelte'
  * - `beforeinstallprompt` exists on Chromium browsers only, and its absence is most of the answer
  *   for the ones that do not have it.
  * - The Push API check is the iOS gate without mentioning iOS. In a browser tab there the Push API
- *   is simply absent, and it appears once the app runs from the Home Screen. Testing the
+ *   is absent, and it appears once the app runs from the Home Screen. Testing the
  *   capability rather than the platform means the branch retires itself: if push from a tab ever
  *   works, the check starts returning true and the install gate disappears with no code change.
  * - `pointer: coarse` limits promotion to phones and tablets. A desktop install buys nothing here,
@@ -36,7 +36,7 @@ const MAX_DISMISSALS = 3
 
 /**
  * How far ahead of `now` a dismissal may sit before it reads as a broken clock rather than as one
- * that was just written. The shared clock ticks once a minute, so a dismissal made seconds ago is
+ * that was recently written. The shared clock ticks once a minute, so a dismissal made seconds ago is
  * routinely ahead of it; without this the card would reappear the instant somebody closed it.
  */
 const CLOCK_TOLERANCE_MS = 5 * 60 * 1000
@@ -149,7 +149,7 @@ export function dismissBanner(): void {
 
   try {
     // Timestamp first: if the second write throws, the snooze still holds. The reverse order would
-    // burn a dismissal and then show the card again on the very next load.
+    // burn a dismissal and then show the card again on the next load.
     localStorage.setItem(DISMISSED_AT_KEY, String(at))
     localStorage.setItem(DISMISS_COUNT_KEY, String(count))
   } catch {

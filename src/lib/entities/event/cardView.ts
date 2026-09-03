@@ -241,7 +241,7 @@ export function cardView(
 
   // Keyed by id: a merged create-plus-media group holds the ascent AND the file it landed on,
   // and the ascent hydrates with that same file hanging off it, so the flat list would carry
-  // it twice - once as the ascent's, once as its own row's - and the keyed `{#each}` that
+  // it twice (once as the ascent's, once as its own row's) and the keyed `{#each}` that
   // draws the thumbnails would see two of one key.
   const files = [...new Map(refs.flatMap((ref) => entityOf(ref)?.files ?? []).map((file) => [file.id, file])).values()]
   // Photo or video. An upload reads it off the hydrated file rather than the row, which only
@@ -249,7 +249,7 @@ export function cardView(
   // this saying "photo". The word settles when the file syncs, alongside the name beside it.
   // A removal has no file left to read and so carries the word itself (see `deleteFile`).
   const kinds = new Set(files.map(mediaWord))
-  // A removal card reads its word off every row it holds, not just the newest: a submit that
+  // A removal card reads its word off every row it holds, not only the newest: a submit that
   // pulled a photo and a video is neither, and `none` is the arm that says "media".
   const removed = new Set(
     group.rows.filter((line) => line.columnName === 'file').map((line) => storedMedia(line.oldValue)),
@@ -455,7 +455,7 @@ function groupVerbKey(group: CardGroup): MessageKey {
     return 'event_groupUploads'
   }
 
-  // No `{name}`: what a removal card would name is exactly what it just deleted, so the slot
+  // No `{name}`: what a removal card would name is exactly what it deleted, so the slot
   // would be the `common_unnamed` placeholder on every card that did not stash a name.
   if (group.kind === 'removal') {
     return 'event_groupRemovals'
@@ -546,7 +546,7 @@ function loggedAscent(entity: EventEntity | null | undefined): CardAscent | unde
 }
 
 /**
- * A name that is actually one. A name column holds `''` as readily as `null` (a route added
+ * A name that is genuinely one. A name column holds `''` as readily as `null` (a route added
  * without a name stores an empty `newValue`), and an empty string reaches the screen as a
  * blank slot rather than falling through to the next candidate or to a tombstone label.
  */

@@ -63,7 +63,7 @@
     enabled: () => filtersOpen,
   })
 
-  /** "Just me" is its own pinned row, so the signed-in user is not also in the list. */
+  /** "Only me" is its own pinned row, so the signed-in user is not also in the list. */
   const others = $derived(people.data.filter((person) => person.id !== global.user?.id))
 
   // Resolved separately rather than read off `others`: a shared link can carry a person the
@@ -72,7 +72,7 @@
   // Through `userList` rather than `usersByIds`: this id comes off the query string, and
   // `usersByIds` resolves any id in the table (it is documented as safe only for ids already
   // embedded in stored content), which would make the chip an id-to-username oracle for the whole
-  // user table. Bounded to the regions the viewer is actually in, walking it reveals only people
+  // user table. Bounded to the regions the viewer is in, walking it reveals only people
   // they already share a community with.
   const selectedPerson = userList(() => ({ ids: userFk == null ? [] : [userFk], regionFks: memberRegionFks }), {
     enabled: () => userFk != null,

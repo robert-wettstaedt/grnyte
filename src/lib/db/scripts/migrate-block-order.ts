@@ -3,7 +3,7 @@
  * assignment left gaps, so each area's non-deleted blocks are renumbered by their current order,
  * breaking ties by id. Soft-deleted blocks keep their `order` (their restore slot).
  *
- * Applies to every area (no exclusions) — a contiguous order is a pure data-integrity fix.
+ * Applies to every area (no exclusions): a contiguous order is a pure data-integrity fix.
  *
  * Runs as part of `npm run migrate` (via `migrate.ts`). Standalone preview:
  *   npx tsx src/lib/db/scripts/migrate-block-order.ts --dry-run
@@ -49,7 +49,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     `)
   }
 
-  console.log(`\n${dryRun ? 'DRY RUN — ' : ''}rearranged ${changes.length} block order(s).`)
+  console.log(`\n${dryRun ? 'DRY RUN: ' : ''}rearranged ${changes.length} block order(s).`)
 }
 
 // Standalone preview: `npx tsx src/lib/db/scripts/migrate-block-order.ts [--dry-run]`.

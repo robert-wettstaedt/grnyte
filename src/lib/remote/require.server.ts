@@ -3,7 +3,7 @@ import { error, invalid } from '@sveltejs/kit'
 
 /**
  * Load an entity, then gate on it. The permission predicate is handed the FETCHED ROW, so the
- * subject of the check can only ever be stored data - never request input. Passing a request-derived
+ * subject of the check can only ever be stored data, never request input. Passing a request-derived
  * object to a gate (as `updateArea`, `toggleFavorite` and `finalizeImage` each once did, letting a
  * caller name their own region) is not expressible through this seam.
  *

@@ -10,7 +10,7 @@
  *
  * Real database, real fixtures: every guard here is a query, so a mock would test nothing. The
  * connection is the superuser one (RLS bypassed) because these functions run inside an already
- * RLS-scoped transaction in production - the question here is the rule, not the policy.
+ * RLS-scoped transaction in production: the question here is the rule, not the policy.
  *
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */

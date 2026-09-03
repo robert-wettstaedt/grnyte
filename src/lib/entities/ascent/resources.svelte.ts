@@ -13,7 +13,7 @@ export function ascentDetail(id: () => number) {
 }
 
 /**
- * All ascents of one route, with their media — the route detail page's
+ * All ascents of one route, with their media: the route detail page's
  * grade-opinion chart and ascent beta videos.
  */
 export function routeAscentList(routeId: () => number) {
@@ -24,7 +24,7 @@ export function routeAscentList(routeId: () => number) {
 }
 
 /**
- * A user's ascents enriched with route name + community grade and their media —
+ * A user's ascents enriched with route name + community grade and their media:
  * the profile page's sessions, stats and grade histogram. Separate from the lean
  * `userAscentList` so the shared ascent-status query stays small. Gated by
  * `enabled` and skipped until a `userId` is available.

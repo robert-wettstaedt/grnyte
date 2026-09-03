@@ -10,7 +10,7 @@ import { schema, type Schema } from './zero-schema'
 
 // The current Zero client, scoped to the signed-in user. `$state.raw` so that
 // replacing the instance (login/logout) re-runs every `$derived` that read it
-// through `getZ()` — resources re-target their queries onto the new client.
+// through `getZ()`: resources re-target their queries onto the new client.
 let instance = $state.raw<undefined | Z<Schema>>(undefined)
 
 // The token last handed to the client, to detect Supabase token refreshes.
@@ -34,7 +34,7 @@ export function createColdZero(session: Session, storageKey: string): Z<Schema> 
  */
 export function getZ(): Z<Schema> {
   if (instance == null) {
-    throw new Error('Zero is not initialized — initZero(session) must run in the root layout load first')
+    throw new Error('Zero is not initialized: initZero(session) must run in the root layout load first')
   }
 
   return instance
@@ -42,8 +42,8 @@ export function getZ(): Z<Schema> {
 
 /**
  * Creates (or reuses) the Zero client for the given session. Called from the
- * root layout load, which re-runs on `supabase:auth` invalidation — the client
- * is only swapped when the signed-in user actually changed.
+ * root layout load, which re-runs on `supabase:auth` invalidation: the client
+ * is only swapped when the signed-in user changed.
  */
 export function initZero(session: null | Session | undefined): Z<Schema> {
   const userID = session?.user.id
@@ -82,7 +82,7 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
     // render immediately rather than flashing a loading state.
     //
     // No `catch`: Zero's `complete` promise resolves or stays pending, it does not reject, so a
-    // handler here could only ever be dead code. Offline the whole chain simply never settles,
+    // handler here could only ever be dead code. Offline the whole chain never settles,
     // which is the correct outcome - `markSynced` must not fire for a sync that did not happen.
     void Promise.all([
       z.preload(queries.listGrades()).complete,
@@ -101,7 +101,7 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   instance = z
 
   if (dev) {
-    // Sync failures are invisible from the outside: the app just renders a spinner or stale rows,
+    // Sync failures are invisible from the outside: the app only renders a spinner or stale rows,
     // and `connectionState` is otherwise only reachable through a component. Costs nothing in a
     // production build, and this is the first thing to read when "it will not load".
     //
@@ -228,7 +228,7 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
  *
  * `preload()` and never `cleanup()`, and the "never" is the whole mechanism. A preload's TTL governs
  * how long its rows survive *after* `cleanup()` is called (see `PreloadOptions` in Zero's
- * `query.d.ts`); while the preload is live the rows are simply kept. So retention here rests on
+ * `query.d.ts`); while the preload is live the rows are kept. So retention here rests on
  * nothing calling `cleanup`, which no test asserts and any refactor could quietly undo.
  *
  * TTL is not the lever it looks like either way: `MAX_TTL_MS` caps it at ten minutes and
@@ -259,7 +259,7 @@ function preloadForOffline(z: Z<Schema>): void {
   // and rendered every area whose routes never arrived as an area with no routes.
   //
   // No `catch`: `complete` resolves or stays pending, it never rejects, so there is nothing to
-  // handle and an interrupted sync simply never stamps. That is the outcome we want. The `run` calls
+  // handle and an interrupted sync never stamps. That is the outcome we want. The `run` calls
   // below are a different matter, those can reject.
   void Promise.all([
     z.preload(queries.listRoutes({})).complete,
@@ -267,9 +267,9 @@ function preloadForOffline(z: Z<Schema>): void {
     z.preload(queries.listBlocks({})).complete,
   ]).then(() => markSynced('guidebook'))
 
-  // Your own ascents (tick marks on every route) and your own favorites (the save button's state).
+  // Your own ascents (sends logged on every route) and your own favorites (the save button's state).
   // Both are keyed on the numeric `users.id` rather than the auth uid, which is only knowable by
-  // reading the user row first — hence the `run` ahead of the preloads rather than two more entries
+  // reading the user row first: hence the `run` ahead of the preloads rather than two more entries
   // in the batch above.
   z.run(queries.currentUser(), { type: 'complete' })
     .then((user) => {

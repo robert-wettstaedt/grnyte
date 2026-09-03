@@ -4,9 +4,9 @@ import type { Action } from 'svelte/action'
 type Extent = [[number, number], [number, number]]
 
 /**
- * Like d3's default constrain, but — when `overscroll` is set — it lets the content
+ * Like d3's default constrain, but (when `overscroll` is set) it lets the content
  * overscroll the viewport by half its size on each axis, so a corner of the image can be
- * dragged to the centre of the screen (not just pinned to an edge). The padding is a screen
+ * dragged to the centre of the screen (not only pinned to an edge). The padding is a screen
  * half-viewport converted to world units via the live scale, so the reachable slack stays a
  * constant half-viewport at any zoom. Without `overscroll` the content edge-pins to the
  * viewport at every zoom, exactly like d3's default constrain (the plain viewer's behaviour).
@@ -35,7 +35,7 @@ interface PanzoomParams {
   /**
    * Aspect ratio (w/h) of letterboxed content inside the node (e.g. an
    * `object-contain` image). Pan/zoom is then clamped to the content's fitted
-   * rect instead of the whole node — lightbox behaviour: at rest the content is
+   * rect instead of the whole node, lightbox behaviour: at rest the content is
    * centred with empty bands beside it, zooming grows it into those bands, and
    * panning stops at the content's edges. Omit when content fills the node.
    */
@@ -64,7 +64,7 @@ interface PanzoomParams {
 }
 
 /**
- * Pinch / wheel / double-click zoom + drag pan, powered by d3-zoom — which
+ * Pinch / wheel / double-click zoom + drag pan, powered by d3-zoom, which
  * handles mouse, touch and trackpad and clamps panning to the bounds for us.
  *
  * Attach to a static `overflow-hidden` container; its first child element is the
@@ -94,7 +94,7 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
     // Reject gestures that begin on an interactive overlay (route handles/lines, marked
     // `data-no-pan`) or while the consumer is drawing (`blockPan`). Their own Svelte handlers
     // can't stop us: Svelte delegates pointerdown/mousedown/touchstart to the document root,
-    // which runs AFTER this node's native listener — so `stopPropagation` there is too late.
+    // which runs AFTER this node's native listener, so `stopPropagation` there is too late.
     // The filter runs inside d3's own handler with the real target, so it isn't. The tail is
     // d3's default filter (allow the wheel; ignore ctrl-clicks and non-primary buttons).
     .filter((event) => {
@@ -211,7 +211,7 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
       resizeObserver.disconnect()
     },
     update(next: PanzoomParams) {
-      // A different image is a different coordinate space — start over at fit.
+      // A different image is a different coordinate space: start over at fit.
       const aspectChanged = next.aspect !== aspect
       const resetRequested = next.resetSignal !== resetSignal
       aspect = next.aspect

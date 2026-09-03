@@ -9,7 +9,7 @@
 
   interface Props {
     id: number
-    /** The entity being referenced — we search descriptions for its `!type:id!` token. */
+    /** The entity being referenced: we search descriptions for its `!type:id!` token. */
     type: 'areas' | 'blocks' | 'routes'
   }
 

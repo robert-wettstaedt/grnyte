@@ -10,7 +10,7 @@ export const geolocationsQueryDefs = {
       const r = relatedRegion(ctx)
 
       // Parking = a geolocation attached to an area. A block's location (blockFk set,
-      // areaFk null) is not a parking, so exclude it — otherwise it would render as one.
+      // areaFk null) is not a parking, so exclude it: otherwise it would render as one.
       return zql.geolocations
         .where('id', args.id)
         .where('areaFk', 'IS NOT', null)

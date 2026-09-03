@@ -6,11 +6,11 @@ import { GOTRUE_TEMPLATES } from './templates'
 const base: EmailInput = {
   action: { label: 'Claim your seat', url: 'https://grnyte.rocks/auth/confirm?token_hash=abc&type=invite&next=/' },
   body: ['First paragraph.', 'Second paragraph.'],
-  footnote: 'If you were not expecting this, ignore this email.',
+  footnote: 'If you weren’t expecting this, ignore this email.',
   meta: 'INVITE · LINK EXPIRES IN 24 HOURS',
   preheader: 'Open the link to claim your seat.',
-  subject: 'You are invited to grnyte',
-  title: 'Someone saved you a seat',
+  subject: 'Somebody invited you to grnyte',
+  title: 'Somebody saved you a seat',
 }
 
 /** Colours only ever appear as literal 6-digit hex. Anything else breaks a mail client. */
@@ -109,7 +109,7 @@ describe('renderEmailText', () => {
     const text = renderEmailText(base)
 
     expect(text).toContain('Claim your seat:\nhttps://grnyte.rocks/auth/confirm?token_hash=abc&type=invite&next=/')
-    expect(text).toContain('Someone saved you a seat')
+    expect(text).toContain('Somebody saved you a seat')
     expect(text).not.toContain('<')
   })
 })

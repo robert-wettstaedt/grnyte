@@ -44,8 +44,8 @@
   const members = regionMemberList(() => regionId)
 
   // Pending invitations come from the server rather than Zero: Zero syncs whole rows and
-  // region_invitations carries the token that joins a region. Fetched for every member, not just
-  // admins, because a pending invitation holds a seat - so leaving it out would show a member a
+  // region_invitations carries the token that joins a region. Fetched for every member, not only
+  // admins, because a pending invitation holds a seat, so leaving it out would show a member a
   // lower seat count than the admin sitting next to them. Only the list below is admin-only.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 

@@ -56,7 +56,7 @@ export const areasQueryDefs = {
         )
       }
 
-      // Find areas whose description contains a reference token (e.g. `!blocks:42!`) — the
+      // Find areas whose description contains a reference token (e.g. `!blocks:42!`): the
       // backlinks for the referenced entity. The token's delimiters keep it exact.
       if (args.references != null) {
         q = q.where('description', 'ILIKE', `%${args.references}%`)

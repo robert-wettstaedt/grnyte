@@ -16,7 +16,7 @@
   import { withUndo } from '$lib/state/toast'
 
   interface Props {
-    /** The block the route sits on — its pin is the directions target. */
+    /** The block the route sits on: its pin is the directions target. */
     block: BlockDetail | undefined
     route: RouteDetail
   }

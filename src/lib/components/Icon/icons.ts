@@ -77,7 +77,7 @@ import type { Component } from 'svelte'
 /**
  * Central registry mapping semantic, library-agnostic icon names to their
  * concrete implementations. This is the single place that knows about the
- * underlying icon library — swapping libraries only requires updating the
+ * underlying icon library: swapping libraries only requires updating the
  * values here, every call site keeps using `<Icon name="..." />`.
  */
 export const icons = {

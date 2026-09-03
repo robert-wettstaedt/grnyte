@@ -13,7 +13,7 @@
     children?: Snippet
     /** Back-button handler; callers wire it to `back(fallbackHref)`. */
     onback: () => void
-    /** Plain page title. Centred and small, matching the header in forms/Form.svelte - change
+    /** Plain page title. Centred and small, matching the header in forms/Form.svelte. Change
      *  the two together. */
     title?: string
   }

@@ -28,7 +28,7 @@
   const blockId = $derived(Number(page.params.id))
   const topoId = $derived(Number(page.params.topoId))
 
-  // All off the same `queries.block` instance the block detail page uses — Zero
+  // All off the same `queries.block` instance the block detail page uses: Zero
   // dedupes it, so stepping from the block into a topo costs no extra query.
   const block = blockDetail(() => blockId)
   const topos = blockTopoList(() => blockId)
@@ -72,7 +72,7 @@
     highlightId = highlightId === lineId ? undefined : lineId
   }
 
-  // Selecting (from either side) brings the route row into view — without moving
+  // Selecting (from either side) brings the route row into view, without moving
   // the sheet: it stays wherever the user dragged it.
   $effect(() => {
     if (selectedRouteId == null) return
@@ -105,7 +105,7 @@
   const breadcrumbArea = $derived(block.data == null ? null : blockBreadcrumbArea(block.data))
 
   // Panel header, like the (map) sheets: which topo this is, over where it lives
-  // (area trail + block — the block joins the crumbs since it isn't the title here).
+  // (area trail + block: the block joins the crumbs since it isn't the title here).
   $effect(() => {
     const index = topos.data.findIndex((view) => view.id === topoId)
     sheetState.title = index === -1 ? m.topo_alt() : m.topo_position({ position: index + 1, total: topos.data.length })
@@ -115,11 +115,11 @@
   })
 
   // The page is about the topo: open the mobile sheet low instead of at 0.75.
-  // Set synchronously — the Panel below reads it when its sheet initialises.
+  // Set synchronously: the Panel below reads it when its sheet initialises.
   sheetState.startingSnap = 0.25
   $effect(() => () => (sheetState.startingSnap = null))
 
-  // Arrow keys walk the route list — and with it the highlighted line on the topo:
+  // Arrow keys walk the route list, and with it the highlighted line on the topo:
   // down/right = next, up/left = previous, wrapping at the ends. Stepping between
   // the block's topos stays on j/l (attached by the Panel).
   function handleArrowKey(event: KeyboardEvent) {

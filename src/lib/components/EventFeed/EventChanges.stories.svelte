@@ -32,7 +32,7 @@
     line({ actorFk: 1, columnName: 'file', verb: 'remove' }),
     // The ascent type, which is a glyph and a word rather than the stored enum member.
     line({ actorFk: 1, columnName: 'type', newValue: 'redpoint', objectType: 'ascent', oldValue: 'attempt' }),
-    // The stored enum members, which is what the column really holds: a short label form is not
+    // The stored enum members, which is what the column holds: a short label form is not
     // a valid role and falls back to the raw-value chip, unlabelled.
     line({
       actorFk: 1,

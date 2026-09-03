@@ -72,7 +72,7 @@ describe('notificationView', () => {
 
   // The three sentences that already contain their own subject. A row underneath them could only
   // repeat the caption: their own name, the actor the avatar shows, or a tombstone for an ascent
-  // the caption has just called "your ascent".
+  // the caption has already called "your ascent".
   it.each([
     'ascent_deleted',
     'invitation_received',

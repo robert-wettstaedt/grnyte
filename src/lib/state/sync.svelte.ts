@@ -17,7 +17,7 @@ import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
  * A device that finished the first and lost the connection partway through the second is the normal
  * shape of a sync at a crag, not a rare race. With one stamp it then claimed authority over a
  * guidebook it only partly had, so every area whose routes never arrived rendered as an area with no
- * routes - and because the stamp persists, it kept claiming that across reloads until some later
+ * routes, and because the stamp persists, it kept claiming that across reloads until some later
  * visit completed a full sync.
  *
  * Per device and per user in `localStorage`, never on `userSettings`. Settings are one row per

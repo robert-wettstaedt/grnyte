@@ -43,7 +43,7 @@ if (reachable) {
  *
  * Vitest runs files in parallel, and that file inserts and deletes events on the first live route
  * between every case. These tests read the whole log, so a row appearing or vanishing mid-assertion
- * reads as a failure with nothing actually wrong. Both files pick deterministically, so pinning
+ * reads as a failure with nothing wrong. Both files pick deterministically, so pinning
  * this one to a different region removes the overlap rather than tolerating it.
  */
 let region = 0
@@ -267,7 +267,7 @@ describe.skipIf(!usable)('listEvents', () => {
 
     const nested = relations(asc.ascent!.route as unknown as Record<string, unknown>)
     expect(nested).toEqual(relations(top.route as unknown as Record<string, unknown>))
-    // And that the tree is actually there, so the comparison is not two matching absences.
+    // And that the tree is there, so the comparison is not two matching absences.
     expect(nested).toEqual({ block: true, blockArea: true, firstAscents: true, tags: true, topoRoutes: true })
   })
 

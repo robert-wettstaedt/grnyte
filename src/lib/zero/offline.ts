@@ -6,7 +6,7 @@ import type { queries } from './queries'
  * The policy used to be stated three times and enforced nowhere: a prose comment over a list of
  * `preload` calls said what was kept, six `offlineExcluded` booleans scattered across five
  * directories said what was not, and nothing connected them to each other or to what the sync
- * actually did. A screen could pass `offlineExcluded` while its rows sat in the replica anyway, and
+ * did. A screen could pass `offlineExcluded` while its rows sat in the replica anyway, and
  * a query added to the preload list gained no offline behaviour in the UI at all.
  *
  * Now every resource reads its own entry through {@link offlinePolicyOf}, keyed on the query name
@@ -53,14 +53,14 @@ import type { queries } from './queries'
  * a Zero query cannot join across two clients, each of which builds its own IVM sources.
  *
  * So the only lever is this table: keep fewer rows. Bounding the guidebook to ~500 routes (the
- * areas a reader actually chose, rather than `listRoutes({})`) puts a 5000-route region back at
+ * areas a reader chose, rather than `listRoutes({})`) puts a 5000-route region back at
  * ~300 ms, which is where a small region already sits. That is a product decision about what
  * "available offline" promises, which is why it is written here and not quietly changed.
  */
 
 /**
  * - `always`: reference data, preloaded on every device because the app cannot render without it.
- * - `field`: the guidebook. Preloaded only where the reader might actually lose signal (see
+ * - `field`: the guidebook. Preloaded only where the reader might lose signal (see
  *   `isFieldDevice`), because this is the part with real server cost.
  * - `excluded`: deliberately never kept. These must render as "not available offline" and never as
  *   an empty list, or a gap in the sync reads as a fact about the crag.
@@ -89,7 +89,7 @@ export const OFFLINE_QUERIES = {
   // `listBlocks` topos with files, area with parent, and the block's own geolocation. No
   // geolocations entry is needed, those two already sync every one we render.
   //
-  // Then your own ticks and saves, and everybody in your regions - the one table the guidebook does
+  // Then your own sends and saves, and everybody in your regions: the one table the guidebook does
   // not reach that descriptions still point at, through `!users:id!` mentions.
   //
   // `listUserAllFavorites` is classified for its only caller, which asks about the signed-in user

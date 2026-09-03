@@ -5,7 +5,7 @@
  * One claim, and it can only be checked here: the fallback that creates a missing row has to
  * accept the SQL EXPRESSIONS the watermark writes hand it. `greatest(coalesce(col, ...), v)` is a
  * self-reference Postgres rejects inside an `INSERT ... VALUES`, and an account with no settings
- * row is the only case that ever reaches that branch - so a mistake there is invisible until
+ * row is the only case that ever reaches that branch: so a mistake there is invisible until
  * somebody signs up, opens the feed, and their digest starts repeating itself every five minutes.
  *
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.

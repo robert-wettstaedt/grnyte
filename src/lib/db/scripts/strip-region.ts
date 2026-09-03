@@ -4,11 +4,11 @@
  * <->providers, files<->bunny_streams), so instead of hand-ordering deletes we
  * run inside one transaction with session_replication_role=replica (drops FK
  * enforcement for the tx) and delete every region-scoped table by region_fk.
- * The one external reference into the region - users.first_ascentionist_fk - is
+ * The one external reference into the region (users.first_ascentionist_fk) is
  * nulled first so kept users stay valid.
  *
  * DRY RUN by default: prints what would be deleted, then ROLLS BACK. Set
- * CONFIRM=true to actually commit. Dev DB only.
+ * CONFIRM=true to commit. Dev DB only.
  *
  *   REGION_ID=1        which region (default 1)
  *   CONFIRM=true       commit instead of rolling back
