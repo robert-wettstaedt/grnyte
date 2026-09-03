@@ -1,0 +1,174 @@
+name: Backup DB
+
+# The prod database is Supabase-managed, not on the VPS. This workflow only borrows the VPS as the
+# machine that holds the dumps: it already reaches the database (zero-cache replicates from it), and
+# its disk is the one place a copy can sit that is not the same Supabase account we are backing up
+# against.
+#
+# GitHub honours `schedule:` only from the repository's DEFAULT branch, so nothing runs nightly
+# until this file is on `main`. Until then `workflow_dispatch`, from a branch that has it, is the
+# only way to run it.
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    # Daily, off the hour, and clear of post-deploy.yml's slot.
+    - cron: '47 2 * * *'
+  workflow_dispatch:
+
+# One at a time. Both runs of a day write the same filename, so a dispatch fired while the cron run
+# is still dumping would otherwise interleave into it and then publish the result.
+concurrency: backup-db
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    # A partitioned box leaves the ssh session blocked on a connection nobody will close. Without a
+    # bound this sits at GitHub's 6 hour job default and the failure mail arrives after the next
+    # night's run.
+    timeout-minutes: 30
+    environment: 'Production – grnyte.rocks'
+    steps:
+      # The upstream URL comes from the vault rather than off the box, for the reason post-deploy.yml
+      # states: this repository is PUBLIC, and sm-action registers an `::add-mask::` for every value
+      # it retrieves. A string the runner has never seen is a string it cannot redact, so a pg_dump
+      # error printing the DSN would have published it in full. Fetching it here also decouples the
+      # backup from zero-cache's uptime and from deploy-zero.yml's `docker rm -f` window.
+      - name: Load VPS access and the upstream URL from Bitwarden
+        uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
+        with:
+          access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+          secrets: |
+            00050332-e579-440d-981b-b4b100937e3b > VPS_SSH_KEY
+            1e8728fb-6dc4-436f-beeb-b4b10092ea48 > VPS_HOST
+            3669b3d5-cdce-4964-84f1-b4b10092e14d > VPS_USER
+            76a2770c-07be-43cf-9e3b-b4b1008f6fea > ZERO_UPSTREAM_DB
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      # The URL reaches the box on stdin, as the first line of the script itself. It is in no argv on
+      # either side, and the remote shell never echoes it.
+      - name: Dump and rotate
+        run: |
+          if [ -z "$ZERO_UPSTREAM_DB" ]; then
+            echo "❌ ZERO_UPSTREAM_DB is empty: the mapping above is wrong"
+            exit 1
+          fi
+
+          {
+            printf 'PGURL=%q\nexport PGURL\n' "$ZERO_UPSTREAM_DB"
+            cat << 'ENDSSH'
+          # NOT under ~/zero-deployment: deploy-zero.yml opens with `rm -rf` on that directory. NOT
+          # /var/backups either: a root-owned system directory is the wrong home for files the deploy
+          # key owns, and everything else the workflows run on the box writes under $HOME.
+          #
+          # Both files are stored in the clear, at 600 in a 700 directory: whoever holds the deploy
+          # key holds their contents. Accepted, not overlooked.
+          DIR="$HOME/backups/grnyte"
+          mkdir -p "$DIR"
+          chmod 700 "$DIR"
+
+          STAMP=$(date -u +%Y%m%d)
+          DUMP="$DIR/grnyte-$STAMP.dump"
+          CRON="$DIR/grnyte-$STAMP.cron.sql"
+          DUMP_TMP=$(mktemp "$DIR/.dump.XXXXXX")
+          CRON_TMP=$(mktemp "$DIR/.cron.XXXXXX")
+          trap 'rm -f "$DUMP_TMP" "$CRON_TMP"' EXIT
+
+          # Pinned by digest, like everything else this repository executes beside production
+          # credentials. `postgres:17` is a tag: it moves under you, and a box that cached an older
+          # one makes what actually produced a given dump unknowable in the other direction.
+          IMAGE=postgres:17@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675
+
+          # On zero-cache's compose network, not the default bridge: Supabase direct-connection hosts
+          # are AAAA only and the bridge has no IPv6. The network, not the container: a netns shared
+          # with zero-server-prod dies with it, so a backup during a zero-cache crash or restart
+          # failed with `No such container`, exit 125. The network survives those, but not a deploy
+          # that recreates it, so a backup in that window still fails with `network
+          # deployment_zero_network not found`. The name is compose's <project>_<network>, and the
+          # project is the basename of the directory holding the compose file, deployment/.
+          NET=deployment_zero_network
+
+          # `-e PGURL` with no value passes the string through the client environment, so it lands in
+          # no argv and nothing in `ps` or `docker ps --no-trunc` can read it.
+          #
+          # ONE pg_dump, so one snapshot. Two invocations were two snapshots minutes apart: a signup
+          # landing between them wrote a public.users row into the second whose auth.users row was
+          # not in the first, and the restore died on users_auth_user_fk_users_id_fk.
+          #
+          # Custom format, so schema-plus-data for public and rows-only for auth is a choice made at
+          # restore time rather than fixed here. drizzle is in the list because __drizzle_migrations
+          # lives there, outside public: restore without it and the ledger is empty, so the next
+          # `npm run migrate` replays 0000_baseline against a schema that already has every table.
+          # The exclusions are the tables a restore target already holds rows in (GoTrue and
+          # storage-api seed their own ledgers at boot, and the duplicate key aborts the session),
+          # plus the auth tables worth nothing in a different database anyway: sessions and tokens
+          # are dead on arrival. Restoring is deployment/RESTORE.md.
+          docker run --rm -e PGURL --network "$NET" --entrypoint sh "$IMAGE" -c '
+            exec pg_dump "$PGURL" --format=custom --no-owner \
+              --schema=public --schema=drizzle --schema=auth --schema=storage \
+              --exclude-table=auth.schema_migrations \
+              --exclude-table=storage.migrations \
+              --exclude-table-data=auth.audit_log_entries \
+              --exclude-table-data=auth.flow_state \
+              --exclude-table-data=auth.mfa_amr_claims \
+              --exclude-table-data=auth.one_time_tokens \
+              --exclude-table-data=auth.refresh_tokens \
+              --exclude-table-data=auth.saml_relay_states \
+              --exclude-table-data=auth.sessions
+          ' > "$DUMP_TMP"
+
+          # cron.job is in none of those schemas and would not come along even if it were: pg_cron
+          # owns those rows as extension members, so pg_dump skips them whatever --schema says. They
+          # are the notifications and cleanup-uploads jobs, and both handlers spell out what losing
+          # them looks like (no pushes, no cleanup, no errors). Rendered back as the cron.schedule()
+          # calls that recreate them. ON_ERROR_STOP because psql exits 0 after a failed statement,
+          # so without it a missing cron schema writes an empty file and the run stays green.
+          docker run --rm -i -e PGURL --network "$NET" --entrypoint sh "$IMAGE" \
+            -c 'exec psql "$PGURL" --no-psqlrc -v ON_ERROR_STOP=1 -Atqf -' > "$CRON_TMP" <<'SQL'
+          select format('select cron.schedule(%L, %L, %L);', jobname, schedule, command)
+          from cron.job
+          order by jobid;
+          SQL
+
+          # Reading the archive back is the only thing that separates a backup from a file. `--list`
+          # would only parse the header, so this converts the whole thing to SQL and throws it away:
+          # every data block decompressed, which is what catches a truncated tail. No database and no
+          # connection involved.
+          docker run --rm -v "$DUMP_TMP:/dump:ro" --entrypoint pg_restore "$IMAGE" --file=/dev/null /dump
+
+          # And a floor, because an archive can be perfectly readable and nearly empty.
+          MIN_BYTES=100000
+          size=$(stat -c %s "$DUMP_TMP")
+          if [ "$size" -lt "$MIN_BYTES" ]; then
+            echo "❌ dump is $size bytes, below the $MIN_BYTES floor"
+            exit 1
+          fi
+
+          # Named only once both halves are written and the archive has been read back, so a run that
+          # died leaves nothing behind that looks like a backup.
+          mv "$DUMP_TMP" "$DUMP"
+          mv "$CRON_TMP" "$CRON"
+          chmod 600 "$DUMP" "$CRON"
+
+          # Dated files, plus temps from a run that was killed hard enough to skip its own trap.
+          find "$DIR" \( -name 'grnyte-*' -o -name '.dump.*' -o -name '.cron.*' \) -mtime +30 -delete
+
+          # Every copy is on this one machine, which is one of the things a backup exists for losing.
+          # Whatever pulls them off the box is not written yet.
+          ls -la "$DIR" | tail -5
+          df -h "$DIR" | tail -1
+          ENDSSH
+          } | ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+                "$VPS_USER@$VPS_HOST" 'bash -euo pipefail -s'
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
