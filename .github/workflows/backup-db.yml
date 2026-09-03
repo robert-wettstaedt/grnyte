@@ -51,7 +51,9 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          # stderr is dropped because keyscan prints the box's SSH banner there, and the run log of
+          # a public repository is a public document. The host is masked, the version string is not.
+          ssh-keyscan -H "$VPS_HOST" 2>/dev/null >> ~/.ssh/known_hosts
 
       # The URL reaches the box on stdin, as the first line of the script itself. It is in no argv on
       # either side, and the remote shell never echoes it.
@@ -66,8 +68,12 @@ jobs:
             printf 'PGURL=%q\nexport PGURL\n' "$ZERO_UPSTREAM_DB"
             cat << 'ENDSSH'
           # NOT under ~/zero-deployment: deploy-zero.yml opens with `rm -rf` on that directory. NOT
-          # /var/backups either: a root-owned system directory is the wrong home for files the deploy
-          # key owns, and everything else the workflows run on the box writes under $HOME.
+          # /var/backups either: it belongs to the system rather than to the deploy key that owns
+          # these files, and everything else the workflows run on the box writes under $HOME.
+          #
+          # Nothing in this comment may repeat a masked value. `::add-mask::` rewrites the string
+          # wherever it appears, so a low-entropy secret that is also an ordinary word here shows up
+          # as `***` in the log, and this file is public: the diff hands the value back.
           #
           # Both files are stored in the clear, at 600 in a 700 directory: whoever holds the deploy
           # key holds their contents. Accepted, not overlooked.
@@ -130,13 +136,22 @@ jobs:
           # are the notifications and cleanup-uploads jobs, and both handlers spell out what losing
           # them looks like (no pushes, no cleanup, no errors). Rendered back as the cron.schedule()
           # calls that recreate them. ON_ERROR_STOP because psql exits 0 after a failed statement,
-          # so without it a missing cron schema writes an empty file and the run stays green.
+          # so without it a missing cron schema writes an empty file and the run stays green. An
+          # empty cron.job is not an error at all, so that case is caught below instead.
           docker run --rm -i -e PGURL --network "$NET" --entrypoint sh "$IMAGE" \
             -c 'exec psql "$PGURL" --no-psqlrc -v ON_ERROR_STOP=1 -Atqf -' > "$CRON_TMP" <<'SQL'
           select format('select cron.schedule(%L, %L, %L);', jobname, schedule, command)
           from cron.job
           order by jobid;
           SQL
+
+          # Zero rows is a perfectly good query result, so an unregistered job set backs up as an
+          # empty file on a green run. That is the same silent failure the jobs have themselves, and
+          # the backup is the one thing that should not repeat it.
+          if [ ! -s "$CRON_TMP" ]; then
+            echo "❌ cron.job returned nothing: the scheduled jobs are gone, or were never registered"
+            exit 1
+          fi
 
           # Reading the archive back is the only thing that separates a backup from a file. `--list`
           # would only parse the header, so this converts the whole thing to SQL and throws it away:
