@@ -16,6 +16,9 @@
   }
 
   const { children, field, hint, id, label, required, ...rest }: Props = $props()
+
+  // One read, so the aria ids and what FormHint actually renders cannot disagree.
+  const issues = $derived(field.issues() ?? [])
 </script>
 
 <div {...rest}>
@@ -29,7 +32,15 @@
     </label>
   {/if}
 
-  {@render children(id == null ? {} : { 'aria-describedby': `${id}-hint`, 'aria-errormessage': `${id}-error`, id })}
+  {@render children(
+    id == null
+      ? {}
+      : {
+          'aria-describedby': hint == null ? undefined : `${id}-hint`,
+          'aria-errormessage': issues.length === 0 ? undefined : `${id}-error`,
+          id,
+        },
+  )}
 
-  <FormHint {hint} {id} issues={field.issues()} />
+  <FormHint {hint} {id} {issues} />
 </div>

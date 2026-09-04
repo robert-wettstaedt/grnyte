@@ -21,6 +21,21 @@ body {
   @apply h-full;
 }
 
+/* Skeleton's placeholder colour (`--color-surface-700-300`) sits 1.4:1 from the body font colour,
+   so an empty required field reads as one somebody already filled in. `600-400` clears 4.5:1 on
+   every surface a field renders on, tightest a dark `surface-900` card at 5.95:1 (light
+   `surface-300` 4.66:1). Do not flatten to `surface-500`: it fails at 3.6:1 to 4.2:1.
+
+   Unlayered on purpose: Skeleton's rule is in `@layer base`, so an unlayered rule wins without
+   `!important`. A `<select>` prompt option is a selected option, not absent input, so it keeps the
+   body colour. */
+.input::placeholder,
+.textarea::placeholder,
+.ig-input::placeholder,
+.ig-textarea::placeholder {
+  color: var(--color-surface-600-400);
+}
+
 .preset-glass-neutral {
   background: color-mix(in oklab, var(--color-surface-50-950) 30%, transparent);
   box-shadow: 0 0px 30px color-mix(in oklab, var(--color-surface-50-950) 30%, transparent) inset;

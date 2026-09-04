@@ -287,7 +287,7 @@ const content = (input: EmailInput, locale: EmailLocale) => {
     if (index > 0) rows.push(spacer(16))
     rows.push(
       row(
-        `<p class="ink" style="margin:0;padding:0;${sans}font-size:16px;line-height:26px;mso-line-height-rule:exactly;font-weight:400;color:${LIGHT.ink};">${esc(paragraph)}</p>`,
+        `<p class="ink" style="margin:0;padding:0;${sans}font-size:16px;line-height:26px;mso-line-height-rule:exactly;font-weight:400;color:${LIGHT.ink};">${esc(paragraph).replace(/\r?\n/g, '<br>')}</p>`,
       ),
     )
   })

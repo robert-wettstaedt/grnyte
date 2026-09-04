@@ -33,6 +33,11 @@ export function notifyError(cause?: unknown): void {
   toaster.create({ duration: 8000, title: resolveErrorMessage(cause), type: 'error' })
 }
 
+/** `sendEmail` returns a delivery boolean rather than throwing, so "saved but not sent" is a warning, not an error. */
+export function notifySend(sent: boolean, sentTitle: string, notSentTitle: string): void {
+  toaster.create({ title: sent ? sentTitle : notSentTitle, type: sent ? 'success' : 'warning' })
+}
+
 /**
  * Low-level "<message> · Undo" snackbar. Prefer {@link withUndo} for the command +
  * undo flow; reach for this directly only when the undo isn't a remote command.

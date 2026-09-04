@@ -43,7 +43,7 @@ import type { RequestHandler } from './$types'
 
 /**
  * The push cron. Driven by pg_cron every five minutes, gated by the same `x-api-key` as
- * `/api/tasks/cleanup-uploads`.
+ * `/api/tasks/cleanup`.
  *
  * Two halves that look alike from outside and are nothing alike underneath:
  *
@@ -56,7 +56,7 @@ import type { RequestHandler } from './$types'
  * Every send is best effort. A push that fails is not retried: the next digest restates the same
  * thing, and a directed row that never went out is still sitting in the inbox.
  *
- * Nothing in this repo schedules it, exactly like `/api/tasks/cleanup-uploads`: pg_cron lives in
+ * Nothing in this repo schedules it, exactly like `/api/tasks/cleanup`: pg_cron lives in
  * the database, and the URL and secret differ per environment. Register it once per deployment,
  * and the failure mode if you forget is silent (no pushes, no errors):
  *

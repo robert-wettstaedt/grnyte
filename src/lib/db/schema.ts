@@ -5,6 +5,7 @@ import {
   REGION_PERMISSION_EDIT,
   REGION_PERMISSION_READ,
 } from '$lib/auth'
+import { feedbackKind, feedbackStatus } from '$lib/entities/feedback/dto'
 import { DEFAULT_MAX_MEMBERS } from '$lib/entities/region/dto'
 import type { RegionSettings } from '$lib/entities/region/settings'
 import type * as z from '$lib/forms/zod'
@@ -2198,3 +2199,35 @@ export const clientErrorLogs = table('client_error_logs', {
 
 export type ClientErrorLogs = InferSelectModel<typeof clientErrorLogs>
 export type InsertClientErrorLog = InferInsertModel<typeof clientErrorLogs>
+
+/**
+ * In-app product feedback, read by app admins, answered by email.
+ *
+ * The `kind`/`status` tuples live in `$lib/entities/feedback/dto`, not here: the form renders them
+ * and a `.svelte` importing this module would pull Drizzle into the client bundle.
+ *
+ * RLS on with no policies, like `client_error_logs`: app-admin is global with no `region_fk` to
+ * hang a policy on, so access runs on the privileged handle and the check is in TypeScript.
+ *
+ * No `region_fk`, so a reply cannot be a `notifications` row (that region is NOT NULL). A reply is
+ * an email, like the sign-up alert in `signup.server.ts`.
+ */
+export const feedback = table('feedback', {
+  ...baseFields,
+
+  body: text('body').notNull(),
+  createdBy: baseContentFields.createdBy,
+  /** No default deliberately: only the reporter can classify, so the form must not preselect. */
+  kind: text('kind', { enum: feedbackKind }).notNull(),
+  /** UI language at submission, not necessarily their contact locale. */
+  locale: text('locale'),
+  pathname: text('pathname'),
+  repliedAt: timestamp('replied_at', { withTimezone: true }),
+  reply: text('reply'),
+  status: text('status', { enum: feedbackStatus }).notNull().default('open'),
+  /** From the request header: a client-supplied one is a claim. */
+  userAgent: text('user_agent'),
+}).enableRLS()
+
+export type Feedback = InferSelectModel<typeof feedback>
+export type InsertFeedback = InferInsertModel<typeof feedback>

@@ -200,7 +200,7 @@ export const finalizeImage = command(
 
     // Only once the insert has committed: drop the staged source. supabase-js
     // reports failures as a return value, so at worst this leaves an orphan,
-    // swept later by POST /api/tasks/cleanup-uploads (staging objects > 24h).
+    // swept later by POST /api/tasks/cleanup (staging objects > 24h).
     await supabase.storage.from(STAGING_BUCKET).remove([stagingPath])
 
     return { data: file }
@@ -215,7 +215,7 @@ export const finalizeImage = command(
  * pooled connection (authedCommand wraps the handler in an RLS transaction).
  * Region permissions are checked at finalize; worst case an authed user
  * creates orphaned empty video objects, swept later by
- * POST /api/tasks/cleanup-uploads (still placeholder-titled Bunny videos > 48h).
+ * POST /api/tasks/cleanup (still placeholder-titled Bunny videos > 48h).
  */
 export const createBunnyVideo = command(async () => {
   const { user } = getRequestEvent().locals

@@ -13,6 +13,10 @@ let depth = $state(0)
 // through replaceUrl() raise this flag; the tracker consumes it instead of counting.
 let replacing = false
 
+// The route a feedback report is about: the form is reached through settings, so settings
+// pathnames are skipped.
+let lastAppPath = $state('')
+
 /**
  * Go back within the app, or navigate to `fallback` when the previous history
  * entry is on another origin (or there is none).
@@ -34,6 +38,11 @@ export function canGoBack(): boolean {
 export function closeMedia() {
   const url = mediaUrl(null)
   back(url.pathname + url.search)
+}
+
+/** Last non-settings route, `''` when there has not been one. */
+export function lastAppRoute(): string {
+  return lastAppPath
 }
 
 /** Open the viewer for `id`: pushes `?media` so the back button closes it. */
@@ -81,6 +90,11 @@ export function syncSearchParams(values: Record<string, number | string | undefi
 /** Register once from a top-level layout to track same-origin navigation depth. */
 export function trackHistoryDepth() {
   afterNavigate((navigation) => {
+    const to = navigation.to?.url.pathname
+    if (to != null && !to.startsWith('/settings')) {
+      lastAppPath = to
+    }
+
     switch (navigation.type) {
       case 'enter':
         depth = 0

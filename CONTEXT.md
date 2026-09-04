@@ -78,6 +78,19 @@ evidence about anybody's ceiling.
 **community**
 The people in a region. Never crew, team or squad.
 
+**feedback**
+What somebody sends about the app itself: a regression, a bug, an idea. Not about the rock
+and not about another person, which is what keeps it separate from a **report**. Its kinds
+(`feedbackKind: ['regression', 'bug', 'idea', 'other']`) are ordered by what a rewrite launch
+actually produces, so `regression`, "this worked in the old app", comes first.
+
+**report**
+A notice that a piece of user content is illegal, under Art. 16 DSA. A different thing from
+feedback in every way that matters: anyone may file one without an account, it names a piece
+of content rather than the app, and answering it is a legal obligation with its own deadlines.
+The two must never share a form, a table or a word. The public page is `/legal/report`; the
+in-app reporting flow is not built yet.
+
 ## Events
 
 The layer replacing the activity feed's storage. It is being built module by module, so until it

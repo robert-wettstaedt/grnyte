@@ -42,6 +42,12 @@ This project uses:
 - Entity modules live in `src/lib/entities/<name>/`, mirroring `area/` as the template.
 - An entity's display name comes from its mapper and nowhere else: `routeDisplayName` (`route/mapper.ts`), `blockName` (`block/mapper.ts`). Names are genuinely optional in the DB, so an entity must never render as an empty string; the fallback (`common_unnamed`, `Block <order+1>`) belongs in the mapper so a feed card, a push notification and the screen they link to cannot disagree. Never inline `name ?? ''`, `name || 'Unnamed'` or a second copy of the fallback, on the client or the server.
 - Schema changes go through the pipeline: edit `schema.ts`, `generate:drizzle`, append any backfill SQL, `generate:zero`, `migrate`.
+- `auth.users` and `public.users` are both `users` to drizzle, so a query joining them needs
+  `alias(authUsers, 'auth_user')` from `drizzle-orm/pg-core`. Without it the query throws
+  `42P09 table reference "users" is ambiguous` the first time a person triggers it, and nothing
+  catches it first: it typechecks, it lints, and no test covers a handler that needs both tables.
+  It has bitten twice. Reach for the alias whenever a query wants an address or a login record
+  alongside a profile; `adminRecipients.server.ts` is the shortest correct example.
 - A deploy is not atomic on the client: the server updates instantly, the service worker within the hour, and an open document only when it reloads. Three things break already-loaded tabs across that gap, all of them silently, with no build or type error:
   - **Moving a `.remote.ts` file or renaming an exported remote function.** The endpoint id is `hash(module path) + '/' + exportName`, a path hash, so any move 404s every call an open tab makes. Reorganising entity modules is the usual way to trip this. `src/lib/state/serviceWorker.ts` gets stale tabs reloaded eventually, but not instantly.
   - **Changing `manifest.id` in `vite.config.ts`.** It is pinned to `/` (1.0's `start_url`, frozen as an identifier) and must never move: an id a browser does not recognise is a different application, so every installed home-screen app is orphaned beside a new one. Because it is pinned, `start_url` itself is free to change.

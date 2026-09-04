@@ -9,8 +9,12 @@ const resend = () => (client ??= new Resend(RESEND_API_KEY))
 
 export interface SendEmailInput extends EmailInput {
   /**
-   * Makes a retry or a double-submit send once instead of twice. Derive it from the thing
-   * that caused the mail (`invitation-${invitation.id}`), never from a timestamp.
+   * Dedupes retries and double-submits. Derive it from what caused the mail, never a bare
+   * timestamp. Stable when the cause happens once (`invitation-<id>`); composite when one cause
+   * fans out to several recipients (`signup-<user>-<admin>`), or every admin after the first
+   * silently gets nothing; varying when a second send is deliberate (`invitation-<id>-<ts>`),
+   * from a stored timestamp so a retry of that send still dedupes. An over-varying key sends a
+   * visible duplicate, an over-stable one drops mail and reports success.
    */
   idempotencyKey?: string
   to: string | string[]

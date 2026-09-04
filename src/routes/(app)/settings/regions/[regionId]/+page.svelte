@@ -31,7 +31,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { notifyError, toaster, withUndo } from '$lib/state/toast'
+  import { notifyError, notifySend, toaster, withUndo } from '$lib/state/toast'
   import SettingLink from '../../SettingLink.svelte'
   import SettingSection from '../../SettingSection.svelte'
   import InvitationRow from './InvitationRow.svelte'
@@ -110,14 +110,6 @@
   // does not carry these rows (they hold the join token).
   const refreshInvitations = () => listRegionInvitations({ regionFk: regionId }).refresh()
 
-  /** Shared by invite and resend: `sendEmail` never throws, so "saved but not sent" is its own
-   *  outcome rather than a lost row. */
-  const toastSend = (sent: boolean, title: string) =>
-    toaster.create({
-      title: sent ? title : m.region_inviteSentNoMail(),
-      type: sent ? 'success' : 'warning',
-    })
-
   const invite = inviteRegionMember.enhance(async ({ submit }) => {
     try {
       await submit()
@@ -125,7 +117,7 @@
       if (result == null) return
 
       await refreshInvitations()
-      toastSend(result.sent, m.region_inviteSent({ email: result.email }))
+      notifySend(result.sent, m.region_inviteSent({ email: result.email }), m.region_inviteSentNoMail())
       inviteRegionMember.fields.set({ email: '' })
     } catch (cause) {
       // A refusal the schema cannot express (seats full, already a member, role lost since load)
@@ -138,7 +130,11 @@
     try {
       const result = await resendRegionInvitation({ invitationFk: invitation.id })
       await refreshInvitations()
-      toastSend(result?.data?.sent ?? false, m.region_inviteResent({ email: invitation.email }))
+      notifySend(
+        result?.data?.sent ?? false,
+        m.region_inviteResent({ email: invitation.email }),
+        m.region_inviteSentNoMail(),
+      )
     } catch (cause) {
       notifyError(cause)
     }

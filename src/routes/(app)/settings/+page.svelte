@@ -37,7 +37,9 @@
   let gradingScale = $state<GradingScale>(global.user?.userSettings?.gradingScale ?? 'FB')
   let unitSystem = $state<'auto' | UnitSystem>(global.user?.userSettings?.unitSystem ?? 'auto')
 
-  const legalPages = legalLinks()
+  // /legal/report also sits in the Feedback section below (recital 50 DSA), so it is dropped here
+  // rather than shown twice. Compared through `resolve` so a renamed route fails the build.
+  const legalPages = legalLinks().filter((link) => link.href !== resolve('/legal/report'))
 
   // Invitations addressed to this account, so the emailed link is never the only way in. An
   // invitee who already belongs to some other region never trips the authGuard bounce (it only
@@ -377,10 +379,25 @@
     </div>
   </SettingSection>
 
+  <!--
+    Recital 50 DSA: reporting illegal content must be at least as easy to find and use as reporting
+    a terms violation (OLG Bamberg 3 UKl 13/25 struck down a prominent feedback entry beside a
+    footer-only legal page), so /legal/report sits in this section. Labelled `feedback_reportIllegal`
+    and not the page's own title, which under a "Feedback" heading would not say which content
+    (Art. 16 wants the mechanism identifiable).
+  -->
+  <SettingSection title={m.settings_feedback()}>
+    <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+      <SettingLink href={resolve('/settings/feedback')} label={m.feedback_title()} />
+      <SettingLink href={resolve('/legal/report')} label={m.feedback_reportIllegal()} />
+    </div>
+  </SettingSection>
+
   <!-- Admin. Hidden for everyone else; the query behind the page rejects them regardless. -->
   {#if global.userPermissions?.includes(APP_PERMISSION_ADMIN)}
     <SettingSection title={m.settings_admin()}>
       <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+        <SettingLink href={resolve('/settings/feedback/inbox')} label={m.feedback_inbox()} />
         <SettingLink href={resolve('/settings/errors')} label={m.settings_errorLogs()} />
       </div>
     </SettingSection>

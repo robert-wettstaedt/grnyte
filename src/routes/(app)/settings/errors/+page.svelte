@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Icon from '$lib/components/Icon/Icon.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { listErrorLogs } from '$lib/logging/errors.remote'
@@ -42,7 +43,7 @@
 
   {#if logs.error}
     <div class="card preset-tonal-error px-4 py-3 text-sm" role="alert">{m.queryState_error()}</div>
-  {:else if logs.loading}
+  {:else if logs.loading && logs.current == null}
     <div class="space-y-4 py-4" aria-busy="true">
       <div class="placeholder animate-pulse"></div>
       <div class="placeholder animate-pulse"></div>
@@ -51,11 +52,13 @@
   {:else if groups.length === 0}
     <p class="text-surface-600-400 py-8 text-center">{m.queryState_empty()}</p>
   {:else}
-    <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+    <!-- `overflow-hidden`, or a first/last summary's hover background squares off the rounded corners. -->
+    <div class="divide-surface-200-800 border-surface-200-800 divide-y overflow-hidden rounded-xl border">
       {#each groups as group (group.source + group.error)}
-        <!-- Native disclosure: the stack is long, and every row needs to expand independently. -->
-        <details>
-          <summary class="hover:bg-surface-100-900 flex cursor-pointer items-center gap-3 p-4">
+        <!-- Native disclosure: the stack is long, and every row needs to expand independently.
+             `display:flex` on a summary drops the native marker, hence `list-none` and a chevron. -->
+        <details class="group">
+          <summary class="hover:bg-surface-100-900 flex cursor-pointer list-none items-center gap-3 p-4 select-none">
             <span class="badge preset-tonal-error flex-none">{group.count}×</span>
 
             <span class="min-w-0 flex-1">
@@ -63,6 +66,10 @@
               <span class="text-surface-600-400 block truncate text-xs">
                 {group.source} · {formatUploadedAt(group.lastSeen, now, getLocale())}
               </span>
+            </span>
+
+            <span class="text-surface-500 flex-none transition-transform group-open:rotate-180">
+              <Icon name="chevron-down" size={18} />
             </span>
           </summary>
 

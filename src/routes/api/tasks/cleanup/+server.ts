@@ -1,7 +1,7 @@
 import { CRON_API_KEY, SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private'
 import { PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
-import { notifications } from '$lib/db/schema'
+import { feedback, notifications } from '$lib/db/schema'
 import { STAGING_BUCKET } from '$lib/entities/file/upload'
 import { getVideoProvider } from '$lib/videos/provider.server'
 import { createClient } from '@supabase/supabase-js'
@@ -19,6 +19,9 @@ const BUNNY_MAX_AGE_MS = 48 * 60 * 60 * 1000
 const NOTIFICATION_READ_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
 /** One they never opened is kept three times as long before it is written off as never read. */
 const NOTIFICATION_UNREAD_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000
+
+/** Feedback. 12 months, mirrored in the privacy notice, section 7: change both together. */
+const FEEDBACK_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000
 
 /** Same x-api-key gate the pg_cron caller uses (mirrors the 1.0 notifications cron). */
 const authorized = (request: Request): boolean => {
@@ -117,18 +120,37 @@ const sweepNotifications = async (readBefore: Date, unreadBefore: Date): Promise
   return removed.length
 }
 
+/**
+ * Drop feedback past its retention: from the reply where the row has one, from arrival where it does not.
+ * Hard delete, not anonymisation, since the privacy notice promises message and reply both go and clear the
+ * backups within 30 days (section 7).
+ */
+const sweepFeedback = async (before: Date): Promise<number> => {
+  const removed = await db
+    .delete(feedback)
+    .where(
+      or(
+        and(isNotNull(feedback.repliedAt), lt(feedback.repliedAt, before)),
+        and(isNull(feedback.repliedAt), lt(feedback.createdAt, before)),
+      ),
+    )
+    .returning({ id: feedback.id })
+  return removed.length
+}
+
 export const POST: RequestHandler = async ({ request }) => {
   if (!authorized(request)) {
     return new Response('Unauthorized', { status: 401 })
   }
   const now = Date.now()
-  const [staging, bunny, notificationRows] = await Promise.all([
+  const [staging, bunny, notificationRows, feedbackRows] = await Promise.all([
     sweepStaging(new Date(now - STAGING_MAX_AGE_MS)),
     sweepBunny(new Date(now - BUNNY_MAX_AGE_MS)),
     sweepNotifications(new Date(now - NOTIFICATION_READ_MAX_AGE_MS), new Date(now - NOTIFICATION_UNREAD_MAX_AGE_MS)),
+    sweepFeedback(new Date(now - FEEDBACK_MAX_AGE_MS)),
   ])
   console.log(
-    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications`,
+    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback`,
   )
-  return json({ bunny, notifications: notificationRows, staging })
+  return json({ bunny, feedback: feedbackRows, notifications: notificationRows, staging })
 }

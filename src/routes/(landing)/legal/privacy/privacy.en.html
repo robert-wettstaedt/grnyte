@@ -2,7 +2,7 @@
 
 <p>
   <strong>Last updated:</strong>
-  31 August 2026
+  3 September 2026
 </p>
 
 <p>
@@ -148,6 +148,23 @@
   lives.
 </p>
 
+<h3>2.9 Feedback you send me</h3>
+<p>
+  Sending feedback about the app creates a record. Feedback is about the software, never about the rock and never about
+  another person, which is what keeps it separate from a report under 2.8. The record holds:
+</p>
+<ul>
+  <li>what you wrote, and which kind of feedback you picked</li>
+  <li>your account, so I know who to answer</li>
+  <li>the language you wrote in, so the answer comes back in it</li>
+  <li>the screen you came from and the browser you used, both captured rather than typed by you</li>
+</ul>
+<p>
+  Those last two are context you would otherwise have to describe, and a bug report without them usually costs a round
+  trip before I can even look. I answer by email, and the answer is kept with the record. Section 5 says who receives
+  it and section 7 says how long it lives.
+</p>
+
 <h2>3. Photos, videos and EXIF metadata</h2>
 
 <p>A photograph carries more than the picture. This section covers the metadata inside an uploaded file.</p>
@@ -204,7 +221,7 @@
         <td>Article 6(1)(b) GDPR, performance of a contract</td>
       </tr>
       <tr>
-        <td>Sending sign-up, password reset and invitation mail</td>
+        <td>Sending service and account mail, including notices about changes to the service</td>
         <td>Your email address</td>
         <td>Article 6(1)(b) GDPR, performance of a contract</td>
       </tr>
@@ -227,6 +244,13 @@
         </td>
       </tr>
       <tr>
+        <td>Reading and answering feedback you send me about the app</td>
+        <td>
+          What you wrote, your account, the language you wrote in, the screen you came from and your browser
+        </td>
+        <td>Article 6(1)(f) GDPR, legitimate interest</td>
+      </tr>
+      <tr>
         <td>Answering a request you make under Articles 15 to 21</td>
         <td>Your email address and the content of your message</td>
         <td>Article 6(1)(c) GDPR, legal obligation</td>
@@ -236,9 +260,11 @@
 </div>
 
 <p>
-  The legitimate interest in the third row is my interest in keeping the service reachable, finding faults, and stopping
-  somebody from reaching a region they were not invited to. The legitimate interest in the report row is my interest in
-  being able to show later what was reported, what I decided and why. You can object to either under Article 21 GDPR.
+  Three of those purposes rest on legitimate interest, so here is the interest in each. For keeping the service
+  available and secure, it is keeping the service reachable, finding faults, and stopping somebody from reaching a
+  region they were not invited to. For reports and complaints, it is being able to show later what was reported, what I
+  decided and why. For feedback, it is fixing what you tell me is broken and being able to tell you what came of it.
+  You can object to any of the three under Article 21 GDPR.
 </p>
 
 <p>
@@ -254,7 +280,7 @@
   <li>database and authentication, which stores your account, your sign-in records and the content you write</li>
   <li>photo storage, which holds the pictures you upload and the smaller copies made from them</li>
   <li>video storage and delivery, which holds uploaded videos and streams them back</li>
-  <li>transactional email, which sends sign-up, password reset and invitation mail</li>
+  <li>transactional email, which sends the service and account mail described in section 4</li>
   <li>the sync server, which keeps a working copy of the database so the app loads and searches quickly</li>
 </ul>
 
@@ -383,6 +409,12 @@
     reports and moderation records: three years. That is the regular limitation period under section 195 of the
     Bürgerliches Gesetzbuch (BGB), so I keep a decision record for as long as somebody could still bring a claim about
     that decision.
+  </li>
+  <li>
+    feedback: 12 months, counted from your message or from my answer to it, whichever is later. No statute sets a period
+    here. Twelve months is how long a report about a fault stays useful on software that changes every week, and it
+    leaves you long enough to come back to an answer I sent you. After that the record is deleted rather than
+    anonymised, so what you wrote and what I replied both go.
   </li>
   <li>
     server logs: I run no log pipeline of my own. The hosting, database and email providers hold their own logs under

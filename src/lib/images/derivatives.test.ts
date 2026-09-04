@@ -66,7 +66,7 @@ describe('isDerivativeRequest', () => {
   it('skips paths no image route serves', () => {
     // The regression this exists for: the matcher used to test /nextcloud/topos/, so it never fired.
     expect(isDerivativeRequest(url('/nextcloud/topos/138.jpg?w=256'))).toBe(false)
-    expect(isDerivativeRequest(url('/api/tasks/cleanup-uploads'))).toBe(false)
+    expect(isDerivativeRequest(url('/api/tasks/cleanup'))).toBe(false)
   })
 })
 
