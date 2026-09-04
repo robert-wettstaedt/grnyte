@@ -66,7 +66,7 @@
   <div>
     <h1 class="h3 font-bold">{username}</h1>
     {#if faName !== ''}
-      <p class="text-surface-500 text-sm">{faName}</p>
+      <p class="text-surface-600-400 text-sm">{faName}</p>
     {/if}
   </div>
 

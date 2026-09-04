@@ -33,7 +33,7 @@
 </script>
 
 {#if groups.length === 0}
-  <p class="text-surface-500 px-3 py-6 text-center text-sm">{m.editor_noMatches()}</p>
+  <p class="text-surface-600-400 px-3 py-6 text-center text-sm">{m.editor_noMatches()}</p>
 {:else}
   <ul class="flex flex-col gap-0.5 p-1">
     {#each sections as section (section.key)}

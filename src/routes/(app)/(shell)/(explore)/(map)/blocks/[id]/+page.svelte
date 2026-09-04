@@ -170,7 +170,7 @@
       {block.data.name}
 
       <span
-        class="bg-primary-500/20 text-primary-400 inline-flex h-5.25 items-center rounded-[7px] px-2 text-[11px] font-bold tracking-[0.02em]"
+        class="bg-primary-500/20 text-primary-700-300 inline-flex h-5.25 items-center rounded-[7px] px-2 text-[11px] font-bold tracking-[0.02em]"
       >
         {m.common_block()}
       </span>

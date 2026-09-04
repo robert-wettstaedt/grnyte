@@ -199,7 +199,7 @@
 {/snippet}
 
 {#if query.length === 0}
-  <p class="text-surface-500 py-10 text-center text-sm">{m.search_hint()}</p>
+  <p class="text-surface-600-400 py-10 text-center text-sm">{m.search_hint()}</p>
 {:else if results.length === 0 && anyLoading}
   <div class="space-y-3 py-4" aria-busy="true">
     <div class="placeholder animate-pulse"></div>
@@ -207,7 +207,7 @@
     <div class="placeholder animate-pulse"></div>
   </div>
 {:else if results.length === 0}
-  <p class="text-surface-500 py-10 text-center text-sm">{m.search_noResults({ query })}</p>
+  <p class="text-surface-600-400 py-10 text-center text-sm">{m.search_noResults({ query })}</p>
 {:else}
   <div class="flex flex-col gap-5">
     {#if showTop}

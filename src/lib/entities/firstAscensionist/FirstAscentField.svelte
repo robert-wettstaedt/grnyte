@@ -102,7 +102,7 @@
       <span class="text-[13px] font-semibold whitespace-nowrap">{climber.name}</span>
       {#if isNew(climber)}
         <span
-          class="bg-primary-500/20 text-primary-400 flex h-4.5 items-center rounded-full px-1.5 text-[10px] font-bold tracking-wide uppercase"
+          class="bg-primary-500/20 text-primary-700-300 flex h-4.5 items-center rounded-full px-1.5 text-[10px] font-bold tracking-wide uppercase"
         >
           {m.routes_form_faNewBadge()}
         </span>

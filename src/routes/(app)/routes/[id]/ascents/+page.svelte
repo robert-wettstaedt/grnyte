@@ -170,7 +170,7 @@
           {/if}
 
           {#if filtered.length === 0}
-            <p class="text-surface-500 text-sm">{m.ascents_empty()}</p>
+            <p class="text-surface-600-400 text-sm">{m.ascents_empty()}</p>
           {/if}
         {/if}
       </div>

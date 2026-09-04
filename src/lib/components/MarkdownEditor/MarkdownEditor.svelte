@@ -448,7 +448,7 @@
   <div class="relative">
     <div class={['editor-host', compact && 'editor-host-compact']} {...rest} {@attach mountEditor}></div>
     {#if isEmpty && placeholder}
-      <span class={['text-surface-500 pointer-events-none absolute left-3 text-sm', compact ? 'top-2' : 'top-3']}>
+      <span class={['text-surface-600-400 pointer-events-none absolute left-3 text-sm', compact ? 'top-2' : 'top-3']}>
         {placeholder}
       </span>
     {/if}

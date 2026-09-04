@@ -214,7 +214,7 @@
       class="border-primary-500/30 bg-primary-500/10 hover:bg-primary-500/15 flex items-center gap-3 rounded-2xl border p-3.5 transition-colors"
       href={resolve('/(app)/(shell)/(explore)/(map)/search')}
     >
-      <span class="bg-primary-500/20 text-primary-400 flex size-9 flex-none items-center justify-center rounded-xl">
+      <span class="bg-primary-500/20 text-primary-700-300 flex size-9 flex-none items-center justify-center rounded-xl">
         <Icon name="trending-up" size={19} />
       </span>
 

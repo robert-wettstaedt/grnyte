@@ -42,7 +42,7 @@
       class={[
         'flex h-9 items-center rounded-full border px-3.5 text-[13px] font-semibold transition-colors',
         selected
-          ? 'border-primary-500/40 bg-primary-500/20 text-primary-400'
+          ? 'border-primary-500/40 bg-primary-500/20 text-primary-700-300'
           : 'border-surface-300-700 bg-surface-100-900 text-surface-600-400 hover:bg-surface-200-800',
       ]}
       onclick={() => toggle(tag)}

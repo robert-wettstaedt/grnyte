@@ -255,7 +255,7 @@
                   {/if}
                 </button>
               {:else}
-                <span class="text-surface-500 px-3 py-2 text-sm">{m.map_create_noCragsFound()}</span>
+                <span class="text-surface-600-400 px-3 py-2 text-sm">{m.map_create_noCragsFound()}</span>
               {/each}
             </div>
           </div>

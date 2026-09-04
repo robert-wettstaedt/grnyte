@@ -158,7 +158,7 @@
               {/each}
             </div>
           {:else}
-            <p class="text-surface-500 text-sm">{m.topo_none()}</p>
+            <p class="text-surface-600-400 text-sm">{m.topo_none()}</p>
           {/if}
         {:else if blockRoutes.length > 0}
           <nav class="flex flex-col gap-1.5">
@@ -179,7 +179,7 @@
               </span>
             {/each}
 
-            <p class="text-surface-500 text-sm">{m.blocks_noRoutes()}</p>
+            <p class="text-surface-600-400 text-sm">{m.blocks_noRoutes()}</p>
           </div>
         {/if}
       </div>

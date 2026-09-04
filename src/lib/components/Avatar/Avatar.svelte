@@ -33,7 +33,7 @@
   <span
     class={[
       'flex flex-none items-center justify-center rounded-full font-bold',
-      solid ? 'bg-primary-500 text-primary-contrast-500' : 'bg-primary-500/20 text-primary-400',
+      solid ? 'bg-primary-500 text-primary-contrast-500' : 'bg-primary-500/20 text-primary-700-300',
     ]}
     style:width="{size}px"
     style:height="{size}px"

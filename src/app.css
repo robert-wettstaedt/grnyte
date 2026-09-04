@@ -36,6 +36,26 @@ body {
   color: var(--color-surface-600-400);
 }
 
+/* One brand focus ring for everything focusable. `box-shadow` rather than `outline` so the ring
+   follows each element's own radius: the app is built out of pills and `rounded-2xl` cards, and an
+   outline squares their corners off. The transparent outline underneath is not decoration, it is
+   what keeps a ring visible in forced-colors mode, where box-shadow is dropped.
+
+   `:where()` holds specificity at zero, so any component that states its own focus style still
+   wins. Unlayered for the same reason as the placeholder rule above.
+
+   Two-tone, because the ring colour tracks the primary and the loudest button on most screens is
+   also filled with the primary: a single violet ring around a violet button merges into it and
+   reads as the button growing. The inner 2px in the surface colour keeps a gap, so the ring stays a
+   ring on a primary button and on a plain one alike. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  box-shadow:
+    0 0 0 2px var(--color-surface-50-950),
+    0 0 0 4px var(--focus-ring);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
 .preset-glass-neutral {
   background: color-mix(in oklab, var(--color-surface-50-950) 30%, transparent);
   box-shadow: 0 0px 30px color-mix(in oklab, var(--color-surface-50-950) 30%, transparent) inset;

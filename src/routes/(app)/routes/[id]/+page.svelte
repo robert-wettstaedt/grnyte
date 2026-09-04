@@ -174,7 +174,7 @@
           <div class="flex min-w-0 items-center gap-2">
             <span class="truncate text-base font-bold">{detail.name}</span>
             <span
-              class="bg-primary-500/20 text-primary-400 inline-flex h-5.25 flex-none items-center rounded-[7px] px-2 text-[11px] font-bold tracking-[0.02em]"
+              class="bg-primary-500/20 text-primary-700-300 inline-flex h-5.25 flex-none items-center rounded-[7px] px-2 text-[11px] font-bold tracking-[0.02em]"
             >
               {m.common_route()}
             </span>
@@ -274,7 +274,7 @@
                 {/if}
               {:else}
                 <!-- Year but no named climbers: read it as a plain line, not a lone right pill. -->
-                <span class="text-surface-500 text-sm font-semibold">{m.routes_form_faYearLabel()}</span>
+                <span class="text-surface-600-400 text-sm font-semibold">{m.routes_form_faYearLabel()}</span>
                 <span class="font-mono text-sm font-bold">{detail.firstAscentYear}</span>
               {/if}
             </div>
@@ -356,7 +356,7 @@
                 onselect={(bar) => (selectedVote = bar)}
               />
             {:else}
-              <p class="text-surface-500 text-sm">{m.routes_noOpinions()}</p>
+              <p class="text-surface-600-400 text-sm">{m.routes_noOpinions()}</p>
             {/if}
           </section>
         {/if}
