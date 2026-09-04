@@ -4,8 +4,8 @@
   import Logo from '$lib/assets/logo.svg'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { legalLinks } from '../legal/links'
   import type { Snippet } from 'svelte'
+  import { legalLinks } from '../legal/links'
 
   const { children }: { children: Snippet } = $props()
 </script>

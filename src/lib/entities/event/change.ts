@@ -32,17 +32,7 @@ export interface ChangeContext {
 
 /** Which of the eleven shapes a change line takes. Declared by the catalogue, in `verbs.ts`. */
 export type ChangeKind =
-  | 'ascentType'
-  | 'chips'
-  | 'file'
-  | 'grade'
-  | 'location'
-  | 'pair'
-  | 'prose'
-  | 'rating'
-  | 'source'
-  | 'tags'
-  | 'topo'
+  'ascentType' | 'chips' | 'file' | 'grade' | 'location' | 'pair' | 'prose' | 'rating' | 'source' | 'tags' | 'topo'
 
 /** A pin on a change line's map thumbnail. Structurally a `StaticMapPoint`, declared here so
  *  a pure module does not import from a component; the markup's props check the two agree. */

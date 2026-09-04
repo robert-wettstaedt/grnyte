@@ -123,7 +123,7 @@ export const finalizeImage = command(
     // so an iPhone photo becomes a max-quality JPEG original.
     if (isHeic(stagingPath)) {
       try {
-        buffer = Buffer.from(await heicConvert({ buffer: uploaded, format: 'JPEG', quality: 1 }))
+        buffer = Buffer.from(await heicConvert({ buffer, format: 'JPEG', quality: 1 }))
       } catch {
         error(400, 'Not a readable image')
       }

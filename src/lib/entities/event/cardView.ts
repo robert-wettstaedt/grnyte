@@ -132,8 +132,7 @@ export interface CardView {
 
 /** A piece of a composed line: a message to resolve, or text that is already a name. */
 export type MessagePart =
-  | { key: MessageKey; params?: Record<string, unknown>; text?: never }
-  | { key?: never; text: string }
+  { key: MessageKey; params?: Record<string, unknown>; text?: never } | { key?: never; text: string }
 
 /**
  * What the headline and the sub line both have to know, worked out once.

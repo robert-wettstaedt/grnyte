@@ -11,8 +11,7 @@ import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose'
  * a forgery signs out a user who is holding a live refresh token.
  */
 export type VerifyResult =
-  | { claims: VerifiedClaims; ok: true }
-  | { ok: false; reason: 'absent' | 'expired' | 'invalid' | 'unconfigured' }
+  { claims: VerifiedClaims; ok: true } | { ok: false; reason: 'absent' | 'expired' | 'invalid' | 'unconfigured' }
 
 /**
  * The symmetric key, while the project still signs with the legacy JWT secret.

@@ -8,6 +8,18 @@ import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 import { configDefaults, defineConfig } from 'vitest/config'
 
+/**
+ * Tests that carry `// @vitest-environment node`. The pragma alone is not enough: `svelteTesting()`
+ * injects Testing Library's auto-cleanup into every file of the jsdom PROJECT, and that cleanup
+ * calls Svelte's `tick()`, which since 5.56 schedules through `requestAnimationFrame` - undefined
+ * without a DOM. They have to leave the project, not just the environment.
+ */
+const NODE_ENVIRONMENT_TESTS = [
+  'src/lib/db/regionPolicies.test.ts',
+  'src/lib/entities/event/cases/coverage.test.ts',
+  'src/lib/zero/tenancy.test.ts',
+]
+
 const file = fileURLToPath(new URL('package.json', import.meta.url))
 const json = readFileSync(file, 'utf8')
 const pkg = JSON.parse(json)
@@ -233,6 +245,7 @@ export default defineConfig({
             'e2e/**',
             'src/**/*.remote.test.ts',
             'src/**/*.server.test.ts',
+            ...NODE_ENVIRONMENT_TESTS,
           ],
           name: 'browser',
           setupFiles: ['./vitest-setup.js'],
@@ -251,7 +264,7 @@ export default defineConfig({
         },
         test: {
           environment: 'node',
-          include: ['src/**/*.remote.test.ts', 'src/**/*.server.test.ts'],
+          include: ['src/**/*.remote.test.ts', 'src/**/*.server.test.ts', ...NODE_ENVIRONMENT_TESTS],
           name: 'server',
           // No `vitest-setup.js`: it only registers jest-dom's DOM matchers, which need a document.
         },

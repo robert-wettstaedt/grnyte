@@ -1,7 +1,7 @@
 import type { AreaListItem } from '$lib/entities/area/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 
-export type BlockDetail = {
+export type BlockDetail = BlockListItem & {
   createdAt: Date | undefined
   createdBy: number
   /** Markdown, with entity references and user mentions. '' when unset, never null. */
@@ -14,7 +14,7 @@ export type BlockDetail = {
    *  topo page), `files.path` plus the stored EXIF-oriented pixel size (missing
    *  for files not yet backfilled). */
   topoImages: { height?: number; id: number; path: string; width?: number }[]
-} & BlockListItem
+}
 
 export type BlockListItem = {
   areas: AreaListItem[]
