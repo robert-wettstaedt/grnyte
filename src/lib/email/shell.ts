@@ -1,6 +1,7 @@
 import { GRADE_COLORS } from '$lib/entities/grade/color'
 import { m } from '$lib/paraglide/messages'
 import { locales } from '$lib/paraglide/runtime'
+import type { Brand } from './brand'
 
 /**
  * The one email shell. Every mail grnyte sends renders through here: the Supabase
@@ -55,15 +56,18 @@ export interface EmailContent {
 }
 
 export interface EmailInput extends EmailContent {
+  /** Which deployment this mail belongs to. Passed in, not read here: see `brand.ts`. */
+  brand: Brand
   /** The RECIPIENT's locale, never the ambient one. */
   locale?: EmailLocale
-  /** Origin the logo is loaded from. GoTrue passes `{{ .SiteURL }}` so it self-configures. */
+  /**
+   * Origin the logo is loaded from, overriding `brand.origin`. GoTrue passes `{{ .SiteURL }}` so it
+   * self-configures, which is why `brand.domain` cannot be derived from this.
+   */
   origin?: string
 }
 
 export type EmailLocale = (typeof locales)[number]
-
-const DEFAULT_ORIGIN = 'https://grnyte.rocks'
 
 // Tokens. Compiled from the oklch ramp in src/grnyte.css to literal sRGB hex.
 
@@ -254,7 +258,7 @@ const footerLine = (text: string) =>
  * commercial intent (see legal_noCommercialIntent). Add both the day an email here becomes
  * preference-driven rather than strictly transactional.
  */
-const footer = (locale: EmailLocale, reason: NonNullable<EmailContent['footerReason']>) => {
+const footer = (locale: EmailLocale, reason: NonNullable<EmailContent['footerReason']>, domain: string) => {
   // Height comes from line-height, not `height`: Word supports `height` on td/table/img only,
   // so a `height` div collapses and the three footer lines butt together in classic Outlook.
   const gap = `<div style="font-size:0;line-height:8px;mso-line-height-rule:exactly;">&nbsp;</div>`
@@ -262,7 +266,7 @@ const footer = (locale: EmailLocale, reason: NonNullable<EmailContent['footerRea
   return `
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center" class="w-full" style="width:600px;max-width:600px;border-collapse:collapse;">
 <tr><td class="pad-foot" style="padding:0;">
-<div class="meta" style="${mono}font-size:11px;line-height:16px;mso-line-height-rule:exactly;font-weight:700;letter-spacing:0.4px;color:${LIGHT.meta};">grnyte.rocks</div>
+<div class="meta" style="${mono}font-size:11px;line-height:16px;mso-line-height-rule:exactly;font-weight:700;letter-spacing:0.4px;color:${LIGHT.meta};">${domain}</div>
 ${gap}
 ${footerLine(FOOTER_REASONS[reason]({}, { locale }))}
 ${gap}
@@ -334,7 +338,7 @@ const content = (input: EmailInput, locale: EmailLocale) => {
 export function renderEmailHtml(input: EmailInput): string {
   const locale = input.locale ?? 'en'
   // Trailing slash stripped so a configured origin cannot produce `//pwa-192x192.png`.
-  const origin = (input.origin ?? DEFAULT_ORIGIN).replace(/\/+$/, '')
+  const origin = (input.origin ?? input.brand.origin).replace(/\/+$/, '')
   const reason = input.footerReason ?? 'account'
 
   // Zero-width entity padding after the preheader, so the inbox preview shows the
@@ -381,7 +385,7 @@ ${gradeRule}
 </table>
 </td></tr>
 ${spacer(20)}
-<tr><td>${footer(locale, reason)}</td></tr>
+<tr><td>${footer(locale, reason, input.brand.domain)}</td></tr>
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table>
@@ -406,7 +410,7 @@ export function renderEmailText(input: EmailInput): string {
   blocks.push(
     [
       '--',
-      'grnyte.rocks',
+      input.brand.domain,
       FOOTER_REASONS[input.footerReason ?? 'account']({}, { locale }),
       m.email_footerSecurity({}, { locale }),
     ].join('\n'),

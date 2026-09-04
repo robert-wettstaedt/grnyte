@@ -1,4 +1,6 @@
+import 'dotenv/config'
 import { mkdirSync, writeFileSync } from 'node:fs'
+import { BRAND } from './brand.cli'
 import { renderEmailHtml } from './shell'
 import { GOTRUE_TEMPLATES } from './templates'
 
@@ -18,6 +20,14 @@ import { GOTRUE_TEMPLATES } from './templates'
 
 const OUT = 'emails/gotrue'
 
+// This output is committed and pasted into the dashboard, so a dev `.env` pointing at localhost
+// would bake a dead logo and a dead button into all 13 templates, with nothing downstream noticing.
+if (new URL(BRAND.origin).protocol !== 'https:') {
+  throw new Error(
+    `PUBLIC_ORIGIN is ${BRAND.origin}, which is not the public origin these templates ship with. Re-run as PUBLIC_ORIGIN=https://<public origin> npm run generate`,
+  )
+}
+
 mkdirSync(OUT, { recursive: true })
 
 const subjects: Record<string, string> = {}
@@ -27,7 +37,7 @@ for (const [key, content] of Object.entries(GOTRUE_TEMPLATES)) {
   // trailing slash in the dashboard would produce `//pwa-192x192.png`, and we cannot strip it
   // at render time because the value is a Go expression. A staging send showing the production
   // logo is a decorative image loading from the wrong host, which costs nothing.
-  writeFileSync(`${OUT}/${key}.html`, renderEmailHtml({ ...content, locale: 'en' }))
+  writeFileSync(`${OUT}/${key}.html`, renderEmailHtml({ ...content, brand: BRAND, locale: 'en' }))
   subjects[key] = content.subject
 }
 

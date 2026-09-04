@@ -161,7 +161,7 @@
         </button>
       </form>
 
-      <!-- The two lesser doors. Quiet on purpose: nearly everybody here wants the form above. -->
+      <!-- The lesser door. Quiet on purpose: nearly everybody here wants the form above. -->
       <div class="border-surface-300-700 mt-7 divide-y divide-current/10 overflow-hidden rounded-2xl border">
         <div>
           <button
@@ -201,26 +201,6 @@
             </div>
           {/if}
         </div>
-
-        <!-- A separate deployment with its own sign-in, so it opens in a new tab and leaves this
-             screen standing. -->
-        <a
-          class="flex items-center gap-3 px-3.5 py-3"
-          href="https://demo.grnyte.rocks"
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          <span
-            class="bg-surface-200-800 text-surface-600-400 flex size-9 flex-none items-center justify-center rounded-xl"
-          >
-            <Icon name="mountain" size={18} />
-          </span>
-
-          <span class="min-w-0 flex-1">
-            <span class="block text-[15px] font-semibold">{m.onboarding_demoTitle()}</span>
-            <span class="text-surface-600-400 block text-xs text-pretty">{m.onboarding_demoBody()}</span>
-          </span>
-        </a>
       </div>
 
       {@render signOutForm('mt-auto flex justify-center pt-8')}

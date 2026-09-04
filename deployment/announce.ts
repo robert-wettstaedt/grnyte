@@ -8,6 +8,7 @@ import { Resend } from 'resend'
 import drizzleConfig from '../drizzle.config'
 import * as schema from '../src/lib/db/schema'
 import { users, userSettings } from '../src/lib/db/schema'
+import { BRAND } from '../src/lib/email/brand.cli'
 import { renderEmailHtml, renderEmailText, type EmailContent, type EmailLocale } from '../src/lib/email/shell'
 
 /**
@@ -26,7 +27,8 @@ import { renderEmailHtml, renderEmailText, type EmailContent, type EmailLocale }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
 const RESEND_SENDER_EMAIL = process.env.RESEND_SENDER_EMAIL ?? ''
-const ORIGIN = process.env.PUBLIC_ORIGIN ?? 'https://grnyte.rocks'
+// Shared with the shell, so the button, the logo and the footer wordmark cannot disagree.
+const ORIGIN = BRAND.origin
 
 /** Resend's free tier allows 2 requests a second. Half that. */
 const GAP_MS = 1000
@@ -156,7 +158,7 @@ console.log(`${kind}: ${recipients.length} recipients`, byLocale, send ? '(SENDI
 if (!send) {
   const sample = COPY[kind].en(date ?? 'DATE')
   console.log(`\nsubject: ${sample.subject}\n`)
-  console.log(renderEmailText({ ...sample, locale: 'en', origin: ORIGIN }))
+  console.log(renderEmailText({ ...sample, brand: BRAND, locale: 'en', origin: ORIGIN }))
   console.log('\nre-run with --send to deliver')
   await postgres.end()
   process.exit(0)
@@ -168,7 +170,7 @@ let failed = 0
 
 for (const recipient of recipients) {
   const content = COPY[kind][recipient.locale](date ?? '')
-  const input = { ...content, locale: recipient.locale, origin: ORIGIN }
+  const input = { ...content, brand: BRAND, locale: recipient.locale, origin: ORIGIN }
 
   // Keyed on mail plus recipient, so a re-run after a partial failure only re-sends what did not
   // go out. Stable, because there is no second version of either mail.

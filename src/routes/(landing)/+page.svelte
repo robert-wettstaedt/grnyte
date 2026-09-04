@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { PUBLIC_APPLICATION_NAME, PUBLIC_STATUS_URL, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
@@ -15,7 +15,7 @@
   const signedIn = $derived(data.signedIn)
 
   const github = __APP_REPO__
-  const contact = 'mailto:info@grnyte.rocks'
+  const contact = `mailto:${PUBLIC_TOPO_EMAIL}`
 
   // The three situations an area cannot be published in. A qualification section, not a
   // status-quo one: the reader self-selects instead of being told what their setup is.
@@ -165,6 +165,7 @@
         </strong>
       </a>
       <nav class="flex items-center gap-2.5">
+        <!-- eslint-disable svelte/no-navigation-without-resolve -- external repo URL -->
         <a
           href={github}
           target="_blank"
@@ -178,6 +179,7 @@
           </svg>
           {m.landing_navSource()}
         </a>
+        <!-- eslint-enable svelte/no-navigation-without-resolve -->
         <a
           href={signedIn ? resolve('/explore') : resolve('/auth/signin')}
           class="btn btn-sm preset-filled-primary-500 font-bold"
@@ -360,7 +362,7 @@
             >
               <div class="lp-screen bg-surface-100-900 relative h-full w-full overflow-hidden rounded-[23px]">
                 {#if s.src != null && !still.current}
-                  <!-- svelte-ignore a11y_media_has_caption -- muted loop, no audio track -->
+                  <!-- muted, so a11y_media_has_caption does not apply -->
                   <video
                     src={s.src}
                     poster={s.poster}
@@ -505,6 +507,7 @@
             <a href={resolve('/auth/signup')} class="btn preset-filled-surface-50-950 h-12.5 px-6 font-semibold">
               {m.landing_getStarted()}
             </a>
+            <!-- eslint-disable svelte/no-navigation-without-resolve -- external repo URL -->
             <a
               href={github}
               target="_blank"
@@ -518,6 +521,7 @@
               </svg>
               {m.landing_ctaStar()}
             </a>
+            <!-- eslint-enable svelte/no-navigation-without-resolve -->
           </div>
         </div>
       </div>
@@ -561,14 +565,16 @@
           <p class="text-surface-500 text-[13.5px] leading-relaxed">
             {m.landing_footerDesc()}
           </p>
+          <!-- eslint-disable svelte/no-navigation-without-resolve -- external status page -->
           <a
-            href="https://status.grnyte.rocks"
+            href={PUBLIC_STATUS_URL}
             target="_blank"
             rel="noopener"
             class="text-surface-600-400 hover:text-surface-950-50 text-[13px] font-semibold no-underline transition-colors"
           >
             {m.landing_footerStatus()}
           </a>
+          <!-- eslint-enable svelte/no-navigation-without-resolve -->
         </div>
         <div class="flex flex-wrap gap-16">
           <div class="flex flex-col gap-2.5">
@@ -599,6 +605,7 @@
       >
         <span>{m.landing_footerCopyright()}</span>
         <span class="inline-flex items-center gap-2">
+          <!-- eslint-disable svelte/no-navigation-without-resolve -- external repo URL -->
           <a
             href={github}
             target="_blank"
@@ -607,6 +614,7 @@
           >
             {m.landing_navSource()}
           </a>
+          <!-- eslint-enable svelte/no-navigation-without-resolve -->
           <span class="opacity-50">·</span>
           <span>{m.landing_footerMadeWith()}</span>
         </span>

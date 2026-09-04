@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { PUBLIC_APPLICATION_NAME, PUBLIC_STATUS_URL } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -64,14 +64,16 @@
       </a>
 
       {@render children()}
+      <!-- eslint-disable svelte/no-navigation-without-resolve -- external status page -->
       <a
-        href="https://status.grnyte.rocks"
+        href={PUBLIC_STATUS_URL}
         target="_blank"
         rel="noopener"
         class="text-surface-500 hover:text-surface-950-50 mt-8 self-center text-[13px] no-underline transition-colors"
       >
         {m.landing_footerStatus()}
       </a>
+      <!-- eslint-enable svelte/no-navigation-without-resolve -->
 
       <!-- Section 5 DDG wants the imprint "leicht erkennbar, unmittelbar erreichbar und ständig
            verfügbar", and these are the pages a signed-out visitor actually lands on. The whole

@@ -1,13 +1,19 @@
 import { RESEND_API_KEY, RESEND_SENDER_EMAIL } from '$env/static/private'
+import { PUBLIC_ORIGIN, PUBLIC_TOPO_EMAIL } from '$env/static/public'
 import { Resend } from 'resend'
+import { makeBrand } from './brand'
 import { renderEmailHtml, renderEmailText, type EmailInput } from './shell'
+
+/** The app's half of the seam in `brand.ts`. */
+const BRAND = makeBrand({ contactEmail: PUBLIC_TOPO_EMAIL, origin: PUBLIC_ORIGIN })
 
 // Constructed lazily: `new Resend()` throws when the key is missing, and at module scope
 // that would take down every import of this file in an environment without mail configured.
 let client: Resend | undefined
 const resend = () => (client ??= new Resend(RESEND_API_KEY))
 
-export interface SendEmailInput extends EmailInput {
+// `brand` omitted: a property of the deployment, not of the mail, so this file supplies it.
+export interface SendEmailInput extends Omit<EmailInput, 'brand'> {
   /**
    * Dedupes retries and double-submits. Derive it from what caused the mail, never a bare
    * timestamp. Stable when the cause happens once (`invitation-<id>`); composite when one cause
@@ -40,12 +46,14 @@ export async function sendEmail({ idempotencyKey, to, ...content }: SendEmailInp
     return false
   }
 
+  const input = { ...content, brand: BRAND }
+
   const { error } = await resend().emails.send(
     {
       from: RESEND_SENDER_EMAIL,
-      html: renderEmailHtml(content),
+      html: renderEmailHtml(input),
       subject: content.subject,
-      text: renderEmailText(content),
+      text: renderEmailText(input),
       to,
     },
     idempotencyKey == null ? undefined : { idempotencyKey },

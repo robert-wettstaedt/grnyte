@@ -1,4 +1,5 @@
 import type { Pathname } from '$app/types'
+import { BRAND } from './brand.cli'
 import type { EmailContent } from './shell'
 
 /**
@@ -156,8 +157,7 @@ const notifications = {
     // GoTrue sends this to the OLD address only, so the reader is whoever has now lost the
     // account. Do not tell them to act "from the new address": in the takeover case that is
     // the mailbox the attacker controls, and it is not one they can reach either way.
-    footnote:
-      'If this wasn’t you, somebody else controls the account now. Write to info@grnyte.rocks at once: sign-in links no longer reach you.',
+    footnote: `If this wasn’t you, somebody else controls the account now. Write to ${BRAND.contactEmail} at once: sign-in links no longer reach you.`,
     meta: 'SECURITY · EMAIL CHANGED',
     preheader: 'The address on your grnyte account changed.',
     subject: 'Your email address changed',

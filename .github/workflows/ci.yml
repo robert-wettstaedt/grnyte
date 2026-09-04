@@ -32,6 +32,8 @@ jobs:
       NEXTCLOUD_URL: http://foobar
       PUBLIC_TOPO_EMAIL: foobar
       PUBLIC_REPORT_EMAIL: foobar
+      PUBLIC_ORIGIN: https://ci.example.com
+      PUBLIC_STATUS_URL: https://status.ci.example.com
       RESEND_SENDER_EMAIL: foobar
       RESEND_API_KEY: foobar
       PUBLIC_APPLICATION_NAME: foobar

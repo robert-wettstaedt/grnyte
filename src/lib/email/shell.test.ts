@@ -1,11 +1,16 @@
 import { GRADE_COLORS } from '$lib/entities/grade/color'
 import { describe, expect, it } from 'vitest'
+import { makeBrand } from './brand'
 import { renderEmailHtml, renderEmailText, type EmailInput } from './shell'
 import { GOTRUE_TEMPLATES } from './templates'
+
+// Fixed, not read from the environment: these assert on markup that must not vary by deployment.
+const brand = makeBrand({ contactEmail: 'info@grnyte.rocks', origin: 'https://grnyte.rocks' })
 
 const base: EmailInput = {
   action: { label: 'Claim your seat', url: 'https://grnyte.rocks/auth/confirm?token_hash=abc&type=invite&next=/' },
   body: ['First paragraph.', 'Second paragraph.'],
+  brand,
   footnote: 'If you weren’t expecting this, ignore this email.',
   meta: 'INVITE · LINK EXPIRES IN 24 HOURS',
   preheader: 'Open the link to claim your seat.',
@@ -120,7 +125,7 @@ describe('GOTRUE_TEMPLATES', () => {
   })
 
   it.each(Object.entries(GOTRUE_TEMPLATES))('renders %s', (key, content) => {
-    const html = renderEmailHtml({ ...content, origin: '{{ .SiteURL }}' })
+    const html = renderEmailHtml({ ...content, brand, origin: '{{ .SiteURL }}' })
 
     expect(html).toContain(content.title)
     expect(html.length).toBeGreaterThan(2000)

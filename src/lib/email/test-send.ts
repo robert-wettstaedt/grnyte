@@ -1,4 +1,6 @@
+import 'dotenv/config'
 import { Resend } from 'resend'
+import { BRAND } from './brand.cli'
 import { renderEmailHtml, renderEmailText, type EmailContent, type EmailLocale } from './shell'
 import { GOTRUE_TEMPLATES } from './templates'
 
@@ -19,13 +21,10 @@ import { GOTRUE_TEMPLATES } from './templates'
  *
  * Reads RESEND_API_KEY and RESEND_SENDER_EMAIL from .env directly: this runs under tsx, outside
  * Vite, so `$env/static/private` (and therefore send.server.ts) is not resolvable here.
+ *
+ * `dotenv/config` as an import, not a `loadEnvFile` call in the body: `brand.cli.ts` reads the
+ * environment as it is imported, so a call down here would run too late.
  */
-
-try {
-  process.loadEnvFile('.env')
-} catch {
-  // Already exported in the environment, or no .env file. The check below reports either way.
-}
 
 const API_KEY = process.env.RESEND_API_KEY
 const SENDER = process.env.RESEND_SENDER_EMAIL
@@ -39,7 +38,7 @@ const SAMPLE: Record<string, string> = {
   '{{ .OldPhone }}': '+49 151 0000000',
   '{{ .Phone }}': '+49 151 1111111',
   '{{ .Provider }}': 'Google',
-  '{{ .SiteURL }}': 'https://grnyte.rocks',
+  '{{ .SiteURL }}': BRAND.origin,
   '{{ .TokenHash }}': 'pkce_a4f1c9e02b7d48a1b6e3f05c9d2a71e8c7b4906df31e5a8c2049fbd6e7c1a83',
   '{{ .Token }}': '481902',
 }
@@ -82,9 +81,9 @@ const messages = recipients.flatMap((to) =>
     const content = fillContent(template)
     return {
       from: SENDER,
-      html: renderEmailHtml({ ...content, locale }),
+      html: renderEmailHtml({ ...content, brand: BRAND, locale }),
       subject: `[${key}] ${content.subject}`,
-      text: renderEmailText({ ...content, locale }),
+      text: renderEmailText({ ...content, brand: BRAND, locale }),
       to,
     }
   }),

@@ -5,7 +5,7 @@ import { svelteTesting } from '@testing-library/svelte/vite'
 import { SvelteKitPWA } from '@vite-pwa/sveltekit'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import type { Plugin } from 'vite'
+import { loadEnv, type Plugin } from 'vite'
 import { configDefaults, defineConfig } from 'vitest/config'
 
 /**
@@ -23,6 +23,17 @@ const NODE_ENVIRONMENT_TESTS = [
 const file = fileURLToPath(new URL('package.json', import.meta.url))
 const json = readFileSync(file, 'utf8')
 const pkg = JSON.parse(json)
+
+/**
+ * For the PWA manifest below, assembled out here where `$env/static/public` does not exist yet.
+ * No default: an absent name is read once at install time, so a later deploy cannot correct it.
+ */
+const env = loadEnv(process.env.NODE_ENV ?? 'development', fileURLToPath(new URL('.', import.meta.url)), 'PUBLIC_')
+const APPLICATION_NAME = env.PUBLIC_APPLICATION_NAME
+
+if (APPLICATION_NAME == null || APPLICATION_NAME === '') {
+  throw new Error('PUBLIC_APPLICATION_NAME is not set, and the PWA manifest is built from it.')
+}
 
 /**
  * True once SvelteKit's own `writeBundle` has finished the SSR pass, which is where it emits
@@ -169,7 +180,7 @@ export default defineConfig({
          * icons: 1.0's `android-chrome-*.png` no longer exist here.
          */
         id: '/',
-        name: 'grnyte',
+        name: APPLICATION_NAME,
         scope: '/',
         // Icons are injected from pwa-assets.config.ts via the `pwaAssets` option below.
         screenshots: [
@@ -188,7 +199,7 @@ export default defineConfig({
             type: 'image/jpg',
           },
         ],
-        short_name: 'grnyte',
+        short_name: APPLICATION_NAME,
         start_url: '/explore',
         theme_color: '#8E43B2',
       },
@@ -216,8 +227,10 @@ export default defineConfig({
   },
   test: {
     // Date/Intl assertions must not depend on the machine's timezone (a UTC+13
-    // runner would format 2026-04-21T12:00Z as Apr 22 and fail).
-    env: { TZ: 'UTC' },
+    // runner would format 2026-04-21T12:00Z as Apr 22 and fail). The other two are for
+    // `$lib/email/brand.cli`, reached through `templates.ts`, which throws without them. Pinned so
+    // the suite does not depend on a developer's .env.
+    env: { PUBLIC_ORIGIN: 'https://grnyte.rocks', PUBLIC_TOPO_EMAIL: 'info@grnyte.rocks', TZ: 'UTC' },
     // Vitest picks up `**/*.spec.ts` by default, which would otherwise try to run the Playwright
     // spec (`npm run test:e2e` owns that one). `.claude/` holds agent worktrees - whole checkouts
     // of this repo, whose tests would run again against a stale copy of the source.

@@ -6,13 +6,8 @@
   "areas_allRoutes": "All routes",
   "areas_allRoutesCount": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "View all {count} route",
         "countPlural=other": "View all {count} routes"
@@ -22,13 +17,8 @@
   "areas_allRoutesHint": "Browse, sort & filter",
   "areas_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} area",
         "countPlural=other": "{count} areas"
@@ -47,13 +37,8 @@
   "areas_empty_title": "Start building {name}",
   "areas_gradedCount": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} route graded",
         "countPlural=other": "{count} routes graded"
@@ -79,13 +64,8 @@
   "ascents_community": "Community",
   "ascents_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} ascent",
         "countPlural=other": "{count} ascents"
@@ -95,14 +75,8 @@
   "ascents_delete": "Delete ascent",
   "ascents_deleteConfirm": [
     {
-      "declarations": [
-        "input climber",
-        "input name",
-        "input owner"
-      ],
-      "selectors": [
-        "owner"
-      ],
+      "declarations": ["input climber", "input name", "input owner"],
+      "selectors": ["owner"],
       "match": {
         "owner=self": "Deleting your ascent of “{name}” also removes your grade and rating opinions and every photo and video on it. This cannot be undone.",
         "owner=*": "Deleting {climber}’s ascent of “{name}” also removes their grade and rating opinions and every photo and video on it. This cannot be undone."
@@ -252,13 +226,8 @@
   "comments_replyingTo": "Replying to {name}",
   "comments_show": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} comment",
         "countPlural=*": "{count} comments"
@@ -305,13 +274,8 @@
   "common_saved": "Saved",
   "common_savedByOthers": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} save",
         "countPlural=other": "{count} saves"
@@ -401,16 +365,8 @@
   "event_accoladeCommunity": "Community favorite",
   "event_accoladeProject": [
     {
-      "declarations": [
-        "input days",
-        "input name",
-        "input sessions",
-        "local daysPlural = days: plural"
-      ],
-      "selectors": [
-        "days",
-        "daysPlural"
-      ],
+      "declarations": ["input days", "input name", "input sessions", "local daysPlural = days: plural"],
+      "selectors": ["days", "daysPlural"],
       "match": {
         "days=0,daysPlural=*": "Project {name} sent, {sessions} sessions",
         "days=*,daysPlural=one": "Project {name} sent, {sessions} sessions over {days} day",
@@ -420,14 +376,8 @@
   ],
   "event_areaCreated": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You added the area {name}",
         "person=*": "{actor} added the area {name}"
@@ -436,14 +386,8 @@
   ],
   "event_areaDeleted": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You deleted the area {name}",
         "person=*": "{actor} deleted the area {name}"
@@ -452,16 +396,8 @@
   ],
   "event_areaDeletedFile": [
     {
-      "declarations": [
-        "input actor",
-        "input media",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person",
-        "media"
-      ],
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
       "match": {
         "person=self,media=photo": "You removed a photo from {name}",
         "person=self,media=video": "You removed a video from {name}",
@@ -474,14 +410,8 @@
   ],
   "event_areaDeletedParkingLocation": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You removed the parking for {name}",
         "person=*": "{actor} removed the parking for {name}"
@@ -490,14 +420,8 @@
   ],
   "event_areaUpdated": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You edited the area {name}",
         "person=*": "{actor} edited the area {name}"
@@ -506,14 +430,8 @@
   ],
   "event_areaUpdatedDescription": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You edited the description of {name}",
         "person=*": "{actor} edited the description of {name}"
@@ -522,14 +440,8 @@
   ],
   "event_areaUpdatedName": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You renamed {name}",
         "person=*": "{actor} renamed {name}"
@@ -538,14 +450,8 @@
   ],
   "event_areaUpdatedParkingLocation": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You set the parking for {name}",
         "person=*": "{actor} set the parking for {name}"
@@ -554,14 +460,8 @@
   ],
   "event_ascentCreated": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You logged an ascent of {name}",
         "person=*": "{actor} logged an ascent of {name}"
@@ -570,14 +470,8 @@
   ],
   "event_ascentCreatedAttempt": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You attempted {name}",
         "person=*": "{actor} attempted {name}"
@@ -586,14 +480,8 @@
   ],
   "event_ascentCreatedFlash": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You flashed {name}",
         "person=*": "{actor} flashed {name}"
@@ -602,14 +490,8 @@
   ],
   "event_ascentCreatedRedpoint": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You redpointed {name}",
         "person=*": "{actor} redpointed {name}"
@@ -618,14 +500,8 @@
   ],
   "event_ascentCreatedRepeat": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You repeated {name}",
         "person=*": "{actor} repeated {name}"
@@ -634,17 +510,8 @@
   ],
   "event_ascentDeleted": [
     {
-      "declarations": [
-        "input actor",
-        "input climber",
-        "input name",
-        "input owner",
-        "input person"
-      ],
-      "selectors": [
-        "person",
-        "owner"
-      ],
+      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner"],
       "match": {
         "person=self,owner=self": "You removed your ascent of {name}",
         "person=self,owner=none": "You removed an ascent of {name}",
@@ -657,19 +524,8 @@
   ],
   "event_ascentDeletedFile": [
     {
-      "declarations": [
-        "input actor",
-        "input climber",
-        "input media",
-        "input name",
-        "input owner",
-        "input person"
-      ],
-      "selectors": [
-        "person",
-        "owner",
-        "media"
-      ],
+      "declarations": ["input actor", "input climber", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
       "match": {
         "person=self,owner=self,media=photo": "You removed a photo from your ascent of {name}",
         "person=self,owner=self,media=video": "You removed a video from your ascent of {name}",
@@ -695,17 +551,8 @@
   "event_ascentOpinion": "Opinion",
   "event_ascentUpdated": [
     {
-      "declarations": [
-        "input actor",
-        "input climber",
-        "input name",
-        "input owner",
-        "input person"
-      ],
-      "selectors": [
-        "person",
-        "owner"
-      ],
+      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner"],
       "match": {
         "person=self,owner=self": "You edited your ascent of {name}",
         "person=self,owner=none": "You edited an ascent of {name}",
@@ -718,14 +565,8 @@
   ],
   "event_blockCreated": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You added the block {name}",
         "person=*": "{actor} added the block {name}"
@@ -734,14 +575,8 @@
   ],
   "event_blockDeleted": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You deleted the block {name}",
         "person=*": "{actor} deleted the block {name}"
@@ -750,16 +585,8 @@
   ],
   "event_blockDeletedFile": [
     {
-      "declarations": [
-        "input actor",
-        "input media",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person",
-        "media"
-      ],
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
       "match": {
         "person=self,media=photo": "You removed a photo from {name}",
         "person=self,media=video": "You removed a video from {name}",
@@ -772,14 +599,8 @@
   ],
   "event_blockDeletedLocation": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You removed the location of {name}",
         "person=*": "{actor} removed the location of {name}"
@@ -788,14 +609,8 @@
   ],
   "event_blockDeletedTopo": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You removed a topo photo from {name}",
         "person=*": "{actor} removed a topo photo from {name}"
@@ -804,14 +619,8 @@
   ],
   "event_blockUpdated": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You edited the block {name}",
         "person=*": "{actor} edited the block {name}"
@@ -820,14 +629,8 @@
   ],
   "event_blockUpdatedDescription": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You edited the description of {name}",
         "person=*": "{actor} edited the description of {name}"
@@ -836,14 +639,8 @@
   ],
   "event_blockUpdatedLocation": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You updated the location of {name}",
         "person=*": "{actor} updated the location of {name}"
@@ -852,14 +649,8 @@
   ],
   "event_blockUpdatedName": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You renamed {name}",
         "person=*": "{actor} renamed {name}"
@@ -868,14 +659,8 @@
   ],
   "event_blockUpdatedTopo": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You updated the topo on {name}",
         "person=*": "{actor} updated the topo on {name}"
@@ -884,12 +669,8 @@
   ],
   "event_changeFileRemoved": [
     {
-      "declarations": [
-        "input media"
-      ],
-      "selectors": [
-        "media"
-      ],
+      "declarations": ["input media"],
+      "selectors": ["media"],
       "match": {
         "media=photo": "Photo removed",
         "media=video": "Video removed",
@@ -915,13 +696,8 @@
   "event_changeTopoUpdated": "Topo redrawn",
   "event_compareCharacters": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Compare, {count} character",
         "countPlural=other": "Compare, {count} characters"
@@ -932,12 +708,8 @@
   "event_fieldDescription": "Description",
   "event_fieldFile": [
     {
-      "declarations": [
-        "input media"
-      ],
-      "selectors": [
-        "media"
-      ],
+      "declarations": ["input media"],
+      "selectors": ["media"],
       "match": {
         "media=photo": "Photo",
         "media=video": "Video",
@@ -964,14 +736,8 @@
   "event_fieldUsername": "Username",
   "event_fileUpdatedSource": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You updated the video source on {name}",
         "person=*": "{actor} updated the video source on {name}"
@@ -980,18 +746,8 @@
   ],
   "event_fileUploaded": [
     {
-      "declarations": [
-        "input actor",
-        "input media",
-        "input name",
-        "input owner",
-        "input person"
-      ],
-      "selectors": [
-        "person",
-        "owner",
-        "media"
-      ],
+      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
       "match": {
         "person=self,owner=self,media=photo": "You added a photo to your ascent of {name}",
         "person=self,owner=self,media=video": "You added a video to your ascent of {name}",
@@ -1010,14 +766,8 @@
   ],
   "event_genericChange": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You made a change to {name}",
         "person=*": "{actor} made a change to {name}"
@@ -1026,14 +776,8 @@
   ],
   "event_groupEdits": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You edited {name}",
         "person=*": "{actor} edited {name}"
@@ -1042,15 +786,8 @@
   ],
   "event_groupFilesRemoved": [
     {
-      "declarations": [
-        "input actor",
-        "input media",
-        "input person"
-      ],
-      "selectors": [
-        "person",
-        "media"
-      ],
+      "declarations": ["input actor", "input media", "input person"],
+      "selectors": ["person", "media"],
       "match": {
         "person=self,media=photo": "You removed photos",
         "person=self,media=video": "You removed videos",
@@ -1063,13 +800,8 @@
   ],
   "event_groupRemovals": [
     {
-      "declarations": [
-        "input actor",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You deleted entries",
         "person=*": "{actor} deleted entries"
@@ -1078,13 +810,8 @@
   ],
   "event_groupSession": [
     {
-      "declarations": [
-        "input actor",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You logged a session",
         "person=*": "{actor} logged a session"
@@ -1093,18 +820,8 @@
   ],
   "event_groupUploads": [
     {
-      "declarations": [
-        "input actor",
-        "input media",
-        "input name",
-        "input owner",
-        "input person"
-      ],
-      "selectors": [
-        "person",
-        "owner",
-        "media"
-      ],
+      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
       "match": {
         "person=self,owner=self,media=photo": "You added photos to your ascent of {name}",
         "person=self,owner=self,media=video": "You added videos to your ascent of {name}",
@@ -1136,14 +853,8 @@
   "event_notFoundBody": "Somebody deleted it, or it belongs to a community you’re not in.",
   "event_routeCreated": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You added the route {name}",
         "person=*": "{actor} added the route {name}"
@@ -1152,14 +863,8 @@
   ],
   "event_routeDeleted": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You deleted the route {name}",
         "person=*": "{actor} deleted the route {name}"
@@ -1168,16 +873,8 @@
   ],
   "event_routeDeletedFile": [
     {
-      "declarations": [
-        "input actor",
-        "input media",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person",
-        "media"
-      ],
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
       "match": {
         "person=self,media=photo": "You removed a photo from {name}",
         "person=self,media=video": "You removed a video from {name}",
@@ -1190,14 +887,8 @@
   ],
   "event_routeUpdated": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You edited the route {name}",
         "person=*": "{actor} edited the route {name}"
@@ -1206,14 +897,8 @@
   ],
   "event_routeUpdatedDescription": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You edited the description of {name}",
         "person=*": "{actor} edited the description of {name}"
@@ -1222,14 +907,8 @@
   ],
   "event_routeUpdatedFirstAscensionists": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You changed the first ascensionists of {name}",
         "person=*": "{actor} changed the first ascensionists of {name}"
@@ -1238,14 +917,8 @@
   ],
   "event_routeUpdatedFirstAscentYear": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You changed the first ascent year of {name}",
         "person=*": "{actor} changed the first ascent year of {name}"
@@ -1254,14 +927,8 @@
   ],
   "event_routeUpdatedGradeFk": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You changed the grade of {name}",
         "person=*": "{actor} changed the grade of {name}"
@@ -1270,14 +937,8 @@
   ],
   "event_routeUpdatedName": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You renamed {name}",
         "person=*": "{actor} renamed {name}"
@@ -1286,14 +947,8 @@
   ],
   "event_routeUpdatedRating": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You changed the rating of {name}",
         "person=*": "{actor} changed the rating of {name}"
@@ -1302,14 +957,8 @@
   ],
   "event_routeUpdatedTags": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You changed the tags of {name}",
         "person=*": "{actor} changed the tags of {name}"
@@ -1319,13 +968,8 @@
   "event_showChanges": "Show changes",
   "event_summaryAreas": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} area",
         "countPlural=other": "{count} areas"
@@ -1334,13 +978,8 @@
   ],
   "event_summaryAscents": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} ascent",
         "countPlural=other": "{count} ascents"
@@ -1349,13 +988,8 @@
   ],
   "event_summaryBlocks": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} block",
         "countPlural=other": "{count} blocks"
@@ -1365,13 +999,8 @@
   "event_summaryClimbedOn": "Climbed on {date}",
   "event_summaryEdits": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} edit",
         "countPlural=other": "{count} edits"
@@ -1380,15 +1009,8 @@
   ],
   "event_summaryFiles": [
     {
-      "declarations": [
-        "input count",
-        "input media",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "media",
-        "countPlural"
-      ],
+      "declarations": ["input count", "input media", "local countPlural = count: plural"],
+      "selectors": ["media", "countPlural"],
       "match": {
         "media=photo,countPlural=one": "{count} photo",
         "media=photo,countPlural=other": "{count} photos",
@@ -1401,13 +1023,8 @@
   ],
   "event_summaryRemovals": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} deletion",
         "countPlural=other": "{count} deletions"
@@ -1416,13 +1033,8 @@
   ],
   "event_summaryRoutes": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} route",
         "countPlural=other": "{count} routes"
@@ -1431,14 +1043,8 @@
   ],
   "event_userCreatedInvitation": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You invited {name}",
         "person=*": "{actor} invited {name}"
@@ -1447,14 +1053,8 @@
   ],
   "event_userDeletedInvitation": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You revoked the invite for {name}",
         "person=*": "{actor} revoked the invite for {name}"
@@ -1463,14 +1063,8 @@
   ],
   "event_userDeletedMembership": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You left the region",
         "person=*": "{actor} left the region"
@@ -1479,14 +1073,8 @@
   ],
   "event_userDeletedRole": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You removed {name} from the region",
         "person=*": "{actor} removed {name} from the region"
@@ -1495,14 +1083,8 @@
   ],
   "event_userUpdatedFirstAscensionist": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You linked yourself to the first ascensionist {name}",
         "person=*": "{actor} linked themselves to the first ascensionist {name}"
@@ -1511,13 +1093,8 @@
   ],
   "event_userUpdatedInvitation": [
     {
-      "declarations": [
-        "input actor",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You joined",
         "person=*": "{actor} joined"
@@ -1526,14 +1103,8 @@
   ],
   "event_userUpdatedRole": [
     {
-      "declarations": [
-        "input actor",
-        "input name",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You changed the role of {name}",
         "person=*": "{actor} changed the role of {name}"
@@ -1542,13 +1113,8 @@
   ],
   "event_userUpdatedUsername": [
     {
-      "declarations": [
-        "input actor",
-        "input person"
-      ],
-      "selectors": [
-        "person"
-      ],
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
       "match": {
         "person=self": "You changed your name",
         "person=*": "{actor} changed their name"
@@ -1574,13 +1140,8 @@
   "feed_loadOlder": "Load older",
   "feed_newActivity": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} new activity",
         "countPlural=other": "{count} new activities"
@@ -1638,13 +1199,8 @@
   "filter_tags": "Tags",
   "form_charsMax": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Must be at most {count} character",
         "countPlural=other": "Must be at most {count} characters"
@@ -1653,13 +1209,8 @@
   ],
   "form_charsMin": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Must be at least {count} character",
         "countPlural=other": "Must be at least {count} characters"
@@ -1853,13 +1404,8 @@
   "profile_allSends": "All sends",
   "profile_climbsCount": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} climb",
         "countPlural=other": "{count} climbs"
@@ -1884,13 +1430,8 @@
   "profile_removeAll": "Remove all",
   "profile_removeAllConfirm": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Remove your {count} favorite? This cannot be undone.",
         "countPlural=other": "Remove all {count} favorites? This cannot be undone."
@@ -1901,13 +1442,8 @@
   "profile_sends": "Sends",
   "profile_sessionsCount": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} session",
         "countPlural=other": "{count} sessions"
@@ -2011,13 +1547,8 @@
   "region_tagRemove": "Remove tag",
   "region_tagRemoveConfirm": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Remove “{name}”? It comes off {count} route, and that cannot be undone.",
         "countPlural=other": "Remove “{name}”? It comes off {count} routes, and that cannot be undone."
@@ -2029,13 +1560,8 @@
   "region_tagRename": "Rename",
   "region_tagRenameHint": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Stays on {count} route.",
         "countPlural=other": "Stays on all {count} routes."
@@ -2102,13 +1628,8 @@
   "routes_gradeOpinions": "Grade opinions",
   "routes_gradeVotes": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} vote",
         "countPlural=other": "{count} votes"
@@ -2123,13 +1644,8 @@
   "routes_originalGrade": "Original grade",
   "routes_routesCount": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} route",
         "countPlural=other": "{count} routes"
