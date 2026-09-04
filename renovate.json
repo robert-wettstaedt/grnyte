@@ -19,7 +19,7 @@
       "automerge": true
     },
     {
-      "matchPackageNames": ["/sharp/", "/dotenv/"],
+      "matchPackageNames": ["/dotenv/"],
       "matchManagers": ["npm"],
       "enabled": false
     }
