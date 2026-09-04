@@ -3,7 +3,7 @@ import { createRlsClient, db } from '$lib/db/db.server'
 import type { UserRegion } from '$lib/entities/region/dto'
 import type { MutationResult } from '$lib/remote/mutation'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { error, redirect, type InvalidField, type RemoteFormInput } from '@sveltejs/kit'
+import { error, redirect, type InvalidField, type RemoteForm, type RemoteFormInput } from '@sveltejs/kit'
 
 /** Injected into every wrapped handler. Add shared per-call deps here. */
 export interface Context {
@@ -26,6 +26,27 @@ export interface Context {
   userRegions: UserRegion[]
 }
 
+/**
+ * Copy of Kit's unexported `HasNonOptionalBoolean` (`@sveltejs/kit/types/index.d.ts`): a form
+ * schema may not carry a required boolean, because an unchecked checkbox sends no value at all.
+ * Structurally identical to Kit's, `any` included, so the two can be diffed by eye.
+ *
+ * Kit enforces it on `form()`'s schema parameter. {@link authedForm} cannot: a conditional sitting
+ * where `S` is inferred from blocks inference entirely, collapsing every caller's form to
+ * `RemoteForm<RemoteFormInput, unknown>`. It goes on the return type instead, where `S` is already
+ * resolved. On a Kit upgrade, check this type against Kit's.
+ */
+type HasNonOptionalBoolean<T> = 0 extends 1 & T
+  ? never
+  : [T] extends [boolean]
+    ? true
+    : T extends Array<infer U>
+      ? HasNonOptionalBoolean<U>
+      : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        T extends Record<string, any>
+        ? { [K in keyof T]: HasNonOptionalBoolean<T[K]> }[keyof T]
+        : never
+
 type Rls = ReturnType<typeof createRlsClient>
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
@@ -38,7 +59,12 @@ export function authedCommand<S extends StandardSchemaV1, O>(
   return command(schema, (input) => run((ctx) => handler(input, ctx)))
 }
 
-/** `form`, but the handler also receives {@link Context} and runs inside the RLS transaction. */
+/**
+ * `form`, but the handler also receives {@link Context} and runs inside the RLS transaction.
+ *
+ * Overload plus a loose implementation: the signature is the whole contract, and the wider body
+ * keeps Kit's deferred schema conditional from needing a cast callers would depend on.
+ */
 export function authedForm<S extends StandardSchemaV1<RemoteFormInput, Record<string, unknown>>, O>(
   schema: S,
   handler: (
@@ -46,9 +72,16 @@ export function authedForm<S extends StandardSchemaV1<RemoteFormInput, Record<st
     ctx: Context,
     issue: InvalidField<StandardSchemaV1.InferInput<S>>,
   ) => Promise<MutationResult<O> | void>,
+): true extends HasNonOptionalBoolean<StandardSchemaV1.InferInput<S>>
+  ? 'Error: All booleans in form schemas must be optional (e.g. `z.boolean().optional()`) because checkbox inputs do not send a false value when unchecked.'
+  : RemoteForm<StandardSchemaV1.InferInput<S>, MutationResult<O> | void>
+export function authedForm(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  schema: any,
+  handler: (data: never, ctx: Context, issue: never) => Promise<MutationResult<unknown> | void>,
 ) {
   return form(schema, async (data, issue) => {
-    const value = await run(async (ctx) => handler(data, ctx, issue))
+    const value = await run(async (ctx) => handler(data as never, ctx, issue as never))
 
     if (value?.redirectTo != null) {
       redirect(303, value.redirectTo)
