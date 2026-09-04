@@ -11,9 +11,9 @@
  * free to `sql.end()` in `afterAll`.
  */
 import 'dotenv/config'
-import postgres from 'postgres'
+import { connect } from './testAccounts'
 
-export const sql = postgres(process.env.DATABASE_URL ?? '', { connect_timeout: 5, max: 2, prepare: false })
+export const sql = connect()
 
 /** False when there is no local database, so `npm test` still passes without one. Every DB-backed
  *  suite guards on this with `describe.skipIf(!reachable)`. */

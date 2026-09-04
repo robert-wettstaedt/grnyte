@@ -48,6 +48,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Only chromium, and only here: the app is never built in this job, because the thing under
+      # test is the deployment rather than this checkout.
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+
       # Everything this job needs, and nothing else the grnyte-prod project holds. The list IS the
       # privilege boundary, so it lives here rather than in a GitHub variable: `deploy-zero` runs
       # under this same environment and needs a different set, and an allowlist nobody can review in
@@ -69,11 +74,7 @@ jobs:
             bb418950-7d83-4fc8-bc16-b4b1008db9fc > PRIVATE_VAPID_KEY
             fcf9057e-ae1d-4bf1-9e0e-b4b10092216b > E2E_PASSWORD
             c65f412c-e3fc-460b-8657-b4b1009432ec > E2E_BASE_URL
-
-      # Only chromium, and only here: the app is never built in this job, because the thing under
-      # test is the deployment rather than this checkout.
-      - name: Install Playwright chromium
-        run: npx playwright install --with-deps chromium
+            76212966-0473-42e7-a5e0-b4b1008efda6 > DATABASE_URL
 
       - name: Check deployed configuration
         run: npm run check:prod

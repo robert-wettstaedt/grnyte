@@ -18,6 +18,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 // Relative, not `$lib`: this file runs in the Playwright process, which has no vite aliases.
 // `testDb.ts` is plain node plus dotenv, so importing it first also loads `.env`.
+import { deleteAccountRows } from '../src/lib/db/testAccounts'
 import { reachable, seedUsers, sql, type SeedUser } from '../src/lib/db/testDb'
 // Same reason, and it resolves for the same one: `dto.ts` imports nothing at runtime, only types.
 import { acceptPath } from '../src/lib/entities/region/dto'
@@ -226,27 +227,19 @@ test('an invited address signs up from the link and joins the region', async ({ 
  * the next run clean up after the last one. The prefix is owned by this file, so nothing else
  * can match it.
  *
- * Every dependent row goes first and unscoped by region: by this point the account may have
- * joined, so it owns a membership and an activity that `removeFixtures` only clears for the
- * fixture region. Missing one of those is what makes the `public.users` delete fail and strand
- * the account. The auth user goes last, through the service role key rather than a raw delete,
- * so GoTrue tidies up its own bookkeeping (identities, sessions) with it.
+ * `deleteAccountRows` clears what the account owns, unscoped by region: by this point it may have
+ * joined, and `removeFixtures` only reaches the fixture region. The auth user goes last, through
+ * the service role key rather than a raw delete, so GoTrue tidies up its own bookkeeping
+ * (identities, sessions) with it.
  */
 async function deleteTestAccounts() {
   const rows = await sql<{ id: string }[]>`select id from auth.users where email like 'e2e-invite-%@grnyte.rocks'`
   if (rows.length === 0) return
 
-  // Matched by subquery rather than by a bound id array: `auth_user_fk` is a uuid, and a JS
-  // string[] parameter would reach postgres as text[] and fail the comparison.
-  const accounts = sql`select id from auth.users where email like 'e2e-invite-%@grnyte.rocks'`
-  const appUsers = sql`select id from public.users where auth_user_fk in (${accounts})`
-
-  await sql`update public.region_invitations set accepted_by = null where accepted_by in (${appUsers})`
-  await sql`delete from public.activities where user_fk in (${appUsers})`
-  await sql`delete from public.region_members where auth_user_fk in (${accounts})`
-  await sql`update public.users set user_settings_fk = null where auth_user_fk in (${accounts})`
-  await sql`delete from public.user_settings where auth_user_fk in (${accounts})`
-  await sql`delete from public.users where auth_user_fk in (${accounts})`
+  await deleteAccountRows(
+    sql,
+    rows.map((row) => row.id),
+  )
 
   const url = process.env.PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -258,9 +251,19 @@ async function deleteTestAccounts() {
   }
 }
 
+/**
+ * The fixture region and every `region_fk` this journey writes, in FK order (none of them
+ * cascade). A row left behind fails the `regions` delete, and `beforeAll` calls this too, so it
+ * fails the next run rather than this one.
+ */
 async function removeFixtures() {
-  await sql`delete from public.activities where region_fk in (select id from public.regions where name = ${REGION})`
-  await sql`delete from public.region_invitations where region_fk in (select id from public.regions where name = ${REGION})`
-  await sql`delete from public.region_members where region_fk in (select id from public.regions where name = ${REGION})`
+  const region = sql`select id from public.regions where name = ${REGION}`
+
+  await sql`delete from public.notifications where region_fk in (${region})`
+  await sql`delete from public.reactions where region_fk in (${region})`
+  await sql`delete from public.changes where region_fk in (${region})`
+  await sql`delete from public.events where region_fk in (${region})`
+  await sql`delete from public.region_invitations where region_fk in (${region})`
+  await sql`delete from public.region_members where region_fk in (${region})`
   await sql`delete from public.regions where name = ${REGION}`
 }

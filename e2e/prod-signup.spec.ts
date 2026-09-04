@@ -20,13 +20,18 @@
  *
  * Run it against production with the production values in the environment:
  *
- *   E2E_BASE_URL=https://grnyte.rocks PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
- *   E2E_PASSWORD=... npm run test:e2e prod-signup
+ *   E2E_BASE_URL=... DATABASE_URL=... PUBLIC_SUPABASE_URL=... \
+ *   SUPABASE_SERVICE_ROLE_KEY=... E2E_PASSWORD=... npm run test:e2e prod-signup
  *
- * With no `E2E_BASE_URL` it runs against the local stack, which is also how it stays honest.
+ * `E2E_BASE_URL` and `DATABASE_URL` have to name the same environment; nothing checks that. With
+ * neither set it runs against the local stack, which is also how it stays honest.
  */
 import { expect, test } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
+// Relative, not `$lib`: the Playwright process has no vite aliases. `testAccounts`, not `testDb`,
+// which opens a pool of its own at import.
+import { connect, deleteAccountRows } from '../src/lib/db/testAccounts'
+import { REGION_CREATE_PATH } from '../src/lib/entities/region/dto'
 import { reachableUrl, visit } from './support'
 
 // Playwright does not read `.env`; CI passes the real values as environment variables instead,
@@ -48,17 +53,19 @@ const stamp = Date.now()
 const email = `e2e-signup-${stamp}@grnyte.rocks`
 const username = `e2e${stamp}`
 
-/** Service role: this has to see and delete rows belonging to an account nobody is signed in as.
- *  Over PostgREST rather than a postgres connection on purpose, so the spec needs no database
- *  credentials and runs against a hosted project from anywhere. */
+/** GoTrue's admin API only. The Data API is off in every environment
+ *  (`pgrst.db_schemas = rest_disabled` on `authenticator`), so app tables need a postgres
+ *  connection. */
 const admin = createClient(process.env.PUBLIC_SUPABASE_URL ?? '', process.env.SUPABASE_SERVICE_ROLE_KEY ?? '', {
   auth: { persistSession: false },
 })
 
+const sql = connect()
+
 /** Captured as soon as it exists, so teardown can delete the account even if the test fails
- *  afterwards. A run that dies before the row exists leaves an orphan auth user behind, which is
- *  the one case a prefix sweep would catch and this does not - not worth listing every user in a
- *  production project for. */
+ *  afterwards. A run that dies before the link is minted leaves an orphan auth user behind, which
+ *  is the one case a prefix sweep would catch and this does not - not worth listing every user in
+ *  a production project for. */
 let authUserId: string | undefined
 
 test.beforeAll(async () => {
@@ -68,6 +75,13 @@ test.beforeAll(async () => {
   if (!process.env.PUBLIC_SUPABASE_URL) missing.push('PUBLIC_SUPABASE_URL')
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY (the account is deleted again)')
   if (!PASSWORD) missing.push('E2E_PASSWORD')
+  // Probed, not just read: a dead connection string otherwise fails mid-journey, with an account
+  // already created.
+  const connected = await sql`select 1`.then(
+    () => true,
+    () => false,
+  )
+  if (!connected) missing.push(`DATABASE_URL reaching the database behind ${BASE}`)
 
   if (missing.length > 0) {
     throw new Error(`prod-signup prerequisites are missing:\n  - ${missing.join('\n  - ')}`)
@@ -75,19 +89,25 @@ test.beforeAll(async () => {
 })
 
 test.afterAll(async () => {
-  if (authUserId == null) return
+  // try/finally so the pool always closes, even on the failure this exists to report.
+  try {
+    if (authUserId == null) return
 
-  // FK order, the same dance `deleteTestAccounts` does in the invite spec: the link from `users`
-  // to its settings row has to go before the settings row can.
-  await admin.from('users').update({ user_settings_fk: null }).eq('auth_user_fk', authUserId)
-  await admin.from('user_settings').delete().eq('auth_user_fk', authUserId)
-  await admin.from('users').delete().eq('auth_user_fk', authUserId)
+    const failed = await deleteAccountRows(sql, [authUserId]).then(
+      () => undefined,
+      (reason: unknown) => reason,
+    )
 
-  // Through the admin API rather than a delete on `auth.users`, so GoTrue tidies up its own
-  // bookkeeping (identities, sessions) with it.
-  const { error } = await admin.auth.admin.deleteUser(authUserId)
-  if (error != null) {
-    throw new Error(`prod-signup left ${email} behind: ${error.message}`)
+    // Through the admin API rather than a delete on `auth.users`, so GoTrue tidies up its own
+    // bookkeeping (identities, sessions) with it. Attempted even when the rows above failed, so a
+    // teardown that trips does not also leave a usable login.
+    const { error } = await admin.auth.admin.deleteUser(authUserId)
+    if (failed != null) throw failed
+    if (error != null) {
+      throw new Error(`prod-signup left ${email} behind: ${error.message}`)
+    }
+  } finally {
+    await sql.end()
   }
 })
 
@@ -107,25 +127,26 @@ test('a new account can sign up and confirm', async ({ page }) => {
 
   await expect(page.getByText('Account created')).toBeVisible()
 
+  // Minted before the assertions below rather than after: it is what hands teardown the account,
+  // so an assertion that fails cannot strand a confirmed production login.
+  const link = await confirmationLink()
+
   // The app-level rows, which is the half of `signUp` that lives in our schema rather than in
   // GoTrue. A migration that never reached this environment fails right here, and it is the
   // failure a disposable CI database structurally cannot produce.
-  const { data: rows, error } = await admin
-    .from('users')
-    .select('auth_user_fk, user_settings_fk')
-    .eq('username', username)
-  expect(error, 'reading public.users with the service role').toBeNull()
-  expect(rows, `public.users row for ${username}`).toHaveLength(1)
-  expect(rows?.[0].user_settings_fk, 'user_settings linked back to the user').not.toBeNull()
+  const rows = await sql<{ authUserFk: string; userSettingsFk: null | number }[]>`
+    select auth_user_fk as "authUserFk", user_settings_fk as "userSettingsFk"
+    from public.users where username = ${username}`
+  // A `DATABASE_URL` for another environment lands here too, hence the hint.
+  expect(rows, `public.users row for ${username} (is DATABASE_URL the database behind ${BASE}?)`).toHaveLength(1)
+  expect(rows[0]?.userSettingsFk, 'user_settings linked back to the user').not.toBeNull()
 
-  authUserId = rows?.[0].auth_user_fk
-
-  const link = await confirmationLink()
   await page.goto(link)
 
-  // `/explore` is not in the guard's public prefix list, so arriving there rather than being
-  // bounced to `/auth` is the assertion: the token became a session.
-  await page.waitForURL(/\/explore/)
+  // Not `/explore`: a region-less account is bounced from there to the create screen. Both are
+  // behind the guard, so landing here rather than at `/auth` is the assertion - the token became
+  // a session.
+  await page.waitForURL(`**${REGION_CREATE_PATH}`)
 })
 
 /**
@@ -140,6 +161,10 @@ async function confirmationLink(): Promise<string> {
   const { data, error } = await admin.auth.admin.generateLink({ email, password: PASSWORD, type: 'signup' })
 
   expect(error, 'minting a confirmation link').toBeNull()
+
+  // GoTrue's own answer for who this address is, so teardown has the account before anything else
+  // can fail.
+  authUserId = data.user?.id
 
   const siteUrl = data.properties?.redirect_to.replace(/\/$/, '')
   expect(siteUrl, "the project's SITE_URL").toBe(BASE.replace(/\/$/, ''))
