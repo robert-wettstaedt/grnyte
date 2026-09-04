@@ -332,7 +332,7 @@ export const ASCENT_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'The sentence names whose log it was: "You edited Sofia Brandt\'s ascent of Kante". The climber comes off the resolved ascent, and the owner slot is decided against the ACTOR, so this is the arm that separates an edit of your own from an edit of somebody else\'s. The climber is also notified, which an edit of your own is not.',
+      'The sentence names whose log it was: "You edited Sofia Brandt’s ascent of Kante". The climber comes off the resolved ascent, and the owner slot is decided against the ACTOR, so this is the arm that separates an edit of your own from an edit of somebody else\'s. The climber is also notified, which an edit of your own is not.',
     id: 'ASCENT-02i',
     writer: 'ascents.remote.ts:117',
   },
@@ -348,7 +348,7 @@ export const ASCENT_CASES: EventCase[] = [
       }),
     ],
     expected:
-      '"Sofia Brandt edited Ada Rossi\'s ascent of Rampe", read by Ada Rossi. The card names the reader in the third person rather than saying "your ascent": the owner slot compares the climber against the actor, never against the reader, and only the actor slot knows who is looking. Worth deciding on: the reader is the one person on this card who does not need telling whose ascent it is.',
+      '"Sofia Brandt edited Ada Rossi’s ascent of Rampe", read by Ada Rossi. The card names the reader in the third person rather than saying "your ascent": the owner slot compares the climber against the actor, never against the reader, and only the actor slot knows who is looking. Worth deciding on: the reader is the one person on this card who does not need telling whose ascent it is.',
     id: 'ASCENT-02j',
     writer: 'ascents.remote.ts:117',
   },
@@ -440,7 +440,7 @@ export const ASCENT_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'Single card, "You removed Sofia Brandt\'s ascent of Kante". The row is a LIVE route row, not a tombstone: a soft-deleted ascent is still synced by the feed query, which filters no `deletedAt`, so the card can still show what was removed. There is no undo here and no toast offering one, so nothing ever deletes this event again.',
+      'Single card, "You removed Sofia Brandt’s ascent of Kante". The row is a LIVE route row, not a tombstone: a soft-deleted ascent is still synced by the feed query, which filters no `deletedAt`, so the card can still show what was removed. There is no undo here and no toast offering one, so nothing ever deletes this event again.',
     id: 'ASCENT-03b',
     writer: 'ascents.remote.ts:248',
   },
@@ -475,7 +475,7 @@ export const ASCENT_CASES: EventCase[] = [
       }),
     ],
     expected:
-      '"Sofia Brandt removed Ada Rossi\'s ascent of Rampe", read by Ada Rossi. Same third-person naming as the edit case: the sentence has an arm for the actor removing their own ascent, but none for the reader\'s. Note that two of the six arms of this sentence are unreachable in the app at all, since the writer only logs a delete when the actor is NOT the climber.',
+      '"Sofia Brandt removed Ada Rossi’s ascent of Rampe", read by Ada Rossi. Same third-person naming as the edit case: the sentence has an arm for the actor removing their own ascent, but none for the reader\'s. Note that two of the six arms of this sentence are unreachable in the app at all, since the writer only logs a delete when the actor is NOT the climber.',
     id: 'ASCENT-03e',
     writer: 'ascents.remote.ts:248',
   },
@@ -492,7 +492,7 @@ export const ASCENT_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'Still "You removed Sofia Brandt\'s ascent of Kante". The name lookup failed and the writer stored no metadata, but the soft-deleted ascent itself resolves and carries both the climber and their name, so the card loses nothing. The metadata is belt and braces for as long as that stays true.',
+      'Still "You removed Sofia Brandt’s ascent of Kante". The name lookup failed and the writer stored no metadata, but the soft-deleted ascent itself resolves and carries both the climber and their name, so the card loses nothing. The metadata is belt and braces for as long as that stays true.',
     id: 'ASCENT-03f',
     writer: 'ascents.remote.ts:248',
   },
@@ -511,7 +511,7 @@ export const ASCENT_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'The metadata is now the only source: "You removed Sofia Brandt\'s ascent of Unnamed", with a tombstone row. The name of the ROUTE is lost, because a delete event stores none and the parent is read off the ascent that is no longer there, but the one thing a card about somebody else\'s log must not get wrong is still right. This is the state the fallback was written for.',
+      'The metadata is now the only source: "You removed Sofia Brandt’s ascent of Unnamed", with a tombstone row. The name of the ROUTE is lost, because a delete event stores none and the parent is read off the ascent that is no longer there, but the one thing a card about somebody else\'s log must not get wrong is still right. This is the state the fallback was written for.',
     id: 'ASCENT-03g',
     writer: 'ascents.remote.ts:248',
   },

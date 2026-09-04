@@ -751,7 +751,7 @@ export const GROUPING_CASES: EventCase[] = [
       eventAgo(152, { actorFk: 3, metadata: 'photo', objectId: 9001, objectType: 'ascent', verb: 'remove' }),
     ],
     expected:
-      'TWO KIND `single` cards, "You removed a photo from your ascent of Rampe" and "Sofia Brandt removed a photo from Ada Rossi\'s ascent of Rampe". A file removal logs on the PARENT (the file row is gone by then), so it arrives as `ascent` + `remove` and `kindOf` keeps it out of the session; the entity key carries the actor, so the two removals no longer share a card. Under the old key they did, and the card said "You removed photos" over work two people did, since the file-only branch of the headline ran before the multi-actor one could: it read as one person pulling two photos.',
+      'TWO KIND `single` cards, "You removed a photo from your ascent of Rampe" and "Sofia Brandt removed a photo from Ada Rossi’s ascent of Rampe". A file removal logs on the PARENT (the file row is gone by then), so it arrives as `ascent` + `remove` and `kindOf` keeps it out of the session; the entity key carries the actor, so the two removals no longer share a card. Under the old key they did, and the card said "You removed photos" over work two people did, since the file-only branch of the headline ran before the multi-actor one could: it read as one person pulling two photos.',
     id: 'GROUP-05b',
     writer: 'files.remote.ts:344',
   },

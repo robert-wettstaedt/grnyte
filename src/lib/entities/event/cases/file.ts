@@ -528,7 +528,7 @@ export const FILE_CASES: EventCase[] = [
     domain: 'file',
     events: [eventAgo(460, { actorFk: ME, metadata: 'photo', objectId: 9002, objectType: 'ascent', verb: 'remove' })],
     expected:
-      'Single card, "You removed a photo from Sofia Brandt\'s ascent of Kante". Naming the climber is the whole point of the ascent arm: a card about somebody else\'s log must not read as if the actor were tidying their own.',
+      'Single card, "You removed a photo from Sofia Brandt’s ascent of Kante". Naming the climber is the whole point of the ascent arm: a card about somebody else\'s log must not read as if the actor were tidying their own.',
     id: 'FILE-03g',
     writer: 'files.remote.ts:344',
   },
