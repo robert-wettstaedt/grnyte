@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
+  import ActionBar, { ACTION_CTA } from '$lib/components/ActionBar/ActionBar.svelte'
   import DirectionsButton from '$lib/components/DirectionsButton/DirectionsButton.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
@@ -11,16 +12,25 @@
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { canAddArea, canAddBlock, canAddParking, canDeleteArea, canEditArea } from '$lib/entities/area/permissions'
   import { waitForArea } from '$lib/entities/area/resources.svelte'
-  import { blockList } from '$lib/entities/block/resources.svelte'
+  import type { SaveState } from '$lib/entities/favorite/save.svelte'
+  import type { LocationState } from '$lib/entities/geolocation/location.svelte'
+  import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
+  import type { Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { withUndo } from '$lib/state/toast'
 
   interface Props {
     area: AreaDetail
+    /** Blocks beneath this crag, for the reorder row's gate. */
+    blockCount: number
+    /** Where to drive, resolved by the page from parking or the block centroid. */
+    destination: Coords | undefined
+    location: LocationState
+    save: SaveState
   }
 
-  const { area }: Props = $props()
+  const { area, blockCount, destination, location, save }: Props = $props()
   const global = getGlobalState()
 
   const canEdit = $derived(canEditArea(global.userRegions, area))
@@ -34,19 +44,18 @@
   const showAdd = $derived(canAddAreaHere || canAddBlockHere || canAddParkingHere)
   const showManage = $derived(canEdit || canAdmin)
 
-  // Drive to the parking lot: the address you drive to, or for a crag, fall back
-  // to the mean of its blocks (a name search would send people to the wrong place).
-  // `area`-type areas (nested sub-areas, no direct blocks) hide the button entirely.
-  const blocks = blockList(() => ({ areaId: area.id }))
-  const destination = $derived.by(() => {
-    const parking = area.parkingLocations.at(0)
-    if (parking != null) return parking
-    const coords = blocks.data.map((block) => block.geolocation).filter((geo) => geo != null)
-    if (coords.length === 0) return undefined
-    return {
-      lat: coords.reduce((sum, geo) => sum + geo.lat, 0) / coords.length,
-      long: coords.reduce((sum, geo) => sum + geo.long, 0) / coords.length,
+  const parkingHref = $derived(resolve('/(app)/areas/[id]/parking/edit', { id: String(area.id) }))
+
+  // The level's main child takes the one labelled slot. A null-typed area is excluded: it is
+  // always empty, so `AreaEmpty` already offers both adds.
+  const create = $derived.by(() => {
+    if (area.type === 'crag' && canAddBlockHere) {
+      return { href: resolve('/(app)/areas/[id]/blocks/add', { id: String(area.id) }), label: m.common_block() }
     }
+    if (area.type === 'area' && canAddAreaHere) {
+      return { href: resolve('/(app)/areas/[id]/add', { id: String(area.id) }), label: m.common_area() }
+    }
+    return undefined
   })
 
   const onDelete = () =>
@@ -57,109 +66,119 @@
     })
 </script>
 
-<div class="flex gap-2">
-  {#if area.type !== 'area'}
-    {#if destination == null}
-      <div class="btn preset-tonal-warning btn-lg flex-1 cursor-default text-sm">
-        <Icon name="alert-triangle" size={16} />
-        {m.blocks_noLocation()}
-      </div>
-    {:else}
-      <DirectionsButton {destination} />
-    {/if}
+<div class="space-y-2">
+  <!-- Only a crag has a location of its own; a sub-area has nothing to say here. -->
+  {#if area.type === 'crag'}
+    <LocationMeta
+      distance={location.distance}
+      href={destination == null && canAddParkingHere ? parkingHref : undefined}
+      isHere={location.isHere}
+      pin={destination == null ? 'missing' : 'set'}
+    />
   {/if}
 
-  <SaveButton class={area.type === 'area' ? 'flex-1' : undefined} entityId={area.id} entityType="area" />
-
-  <ShareButton text={area.name} />
-
-  <MoreMenu title={area.name}>
-    {#snippet children(close)}
-      {#if showAdd}
-        <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.common_add()}</h3>
-
-        {#if canAddAreaHere}
-          <MenuRow
-            accent
-            href={resolve('/(app)/areas/[id]/add', { id: String(area.id) })}
-            icon="area"
-            label={m.areas_addArea()}
-            onclick={close}
-          />
-        {/if}
-
-        {#if canAddBlockHere}
-          <MenuRow
-            accent
-            href={resolve('/(app)/areas/[id]/blocks/add', { id: String(area.id) })}
-            icon="block"
-            label={m.blocks_addBlock()}
-            onclick={close}
-          />
-        {/if}
-
-        {#if canAddParkingHere}
-          <MenuRow
-            accent
-            href={resolve('/(app)/areas/[id]/parking/edit', { id: String(area.id) })}
-            icon="parking"
-            label={m.areas_addParkingLocation()}
-            onclick={close}
-          />
-        {/if}
-      {/if}
-
-      {#if showManage}
-        <h3 class="text-surface-500 px-1 pt-4 pb-1 text-xs font-bold tracking-wider uppercase">{m.areas_manage()}</h3>
-
-        {#if canEdit}
-          <MenuRow
-            href={resolve('/(app)/areas/[id]/edit', { id: String(area.id) })}
-            icon="edit"
-            label={m.common_edit()}
-            onclick={close}
-          />
-        {/if}
-
-        {#if canEdit && blocks.data.length > 1}
-          <MenuRow
-            href={resolve('/(app)/areas/[id]/blocks/order', { id: String(area.id) })}
-            icon="grip-vertical"
-            label={m.blocks_order_title()}
-            onclick={close}
-          />
-        {/if}
-
-        {#if canAdmin}
-          <MenuRow
-            href={resolve('/(app)/areas/[id]/export', { id: String(area.id) })}
-            icon="file-text"
-            label={m.export_pdf()}
-            onclick={close}
-          />
-        {/if}
-
-        {#if canAdmin}
-          <MenuRow
-            href={resolve('/(app)/areas/[id]/sync-external-resources', { id: String(area.id) })}
-            icon="sync"
-            label={m.sync_externalResources()}
-            onclick={close}
-          />
-        {/if}
-
-        {#if canDelete}
-          <MenuRow
-            destructive
-            icon="map-pin-x"
-            label={m.areas_delete()}
-            onclick={() => {
-              close()
-              onDelete()
-            }}
-          />
-        {/if}
+  <ActionBar>
+    {#snippet cta()}
+      {#if create != null}
+        <a class={[ACTION_CTA, 'preset-tonal-primary']} href={create.href}>
+          <Icon name="plus" size={18} />
+          <span class="truncate text-sm font-bold">{create.label}</span>
+        </a>
       {/if}
     {/snippet}
-  </MoreMenu>
+
+    <DirectionsButton {destination} />
+
+    <SaveButton count={save.count} ontoggle={save.toggle} pending={save.pending} saved={save.saved} />
+
+    <ShareButton text={area.name} />
+
+    {#if showAdd || showManage || canDelete}
+      <MoreMenu title={area.name}>
+        {#snippet children(close)}
+          {#if showAdd}
+            <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.common_add()}</h3>
+
+            {#if canAddAreaHere}
+              <MenuRow
+                accent
+                href={resolve('/(app)/areas/[id]/add', { id: String(area.id) })}
+                icon="area"
+                label={m.areas_addArea()}
+                onclick={close}
+              />
+            {/if}
+
+            {#if canAddBlockHere}
+              <MenuRow
+                accent
+                href={resolve('/(app)/areas/[id]/blocks/add', { id: String(area.id) })}
+                icon="block"
+                label={m.blocks_addBlock()}
+                onclick={close}
+              />
+            {/if}
+
+            {#if canAddParkingHere}
+              <MenuRow accent href={parkingHref} icon="parking" label={m.areas_addParkingLocation()} onclick={close} />
+            {/if}
+          {/if}
+
+          {#if showManage}
+            <h3 class="text-surface-500 px-1 pt-4 pb-1 text-xs font-bold tracking-wider uppercase">
+              {m.areas_manage()}
+            </h3>
+
+            {#if canEdit}
+              <MenuRow
+                href={resolve('/(app)/areas/[id]/edit', { id: String(area.id) })}
+                icon="edit"
+                label={m.common_edit()}
+                onclick={close}
+              />
+            {/if}
+
+            {#if canEdit && blockCount > 1}
+              <MenuRow
+                href={resolve('/(app)/areas/[id]/blocks/order', { id: String(area.id) })}
+                icon="grip-vertical"
+                label={m.blocks_order_title()}
+                onclick={close}
+              />
+            {/if}
+
+            {#if canAdmin}
+              <MenuRow
+                href={resolve('/(app)/areas/[id]/export', { id: String(area.id) })}
+                icon="file-text"
+                label={m.export_pdf()}
+                onclick={close}
+              />
+            {/if}
+
+            {#if canAdmin}
+              <MenuRow
+                href={resolve('/(app)/areas/[id]/sync-external-resources', { id: String(area.id) })}
+                icon="sync"
+                label={m.sync_externalResources()}
+                onclick={close}
+              />
+            {/if}
+          {/if}
+
+          {#if canDelete}
+            <MenuRow
+              destructive
+              icon="map-pin-x"
+              label={m.areas_delete()}
+              onclick={() => {
+                close()
+                onDelete()
+              }}
+            />
+          {/if}
+        {/snippet}
+      </MoreMenu>
+    {/if}
+  </ActionBar>
 </div>

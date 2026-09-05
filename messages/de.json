@@ -32,8 +32,8 @@
   "areas_deleted": "Gebiet gelöscht",
   "areas_distanceAway": "{distance} entfernt",
   "areas_editArea": "Gebiet bearbeiten",
-  "areas_empty_body": "Fasse Routen in einem Untergebiet zusammen oder lege direkt hier einen Block an, um Routen zu erfassen.",
-  "areas_empty_hint": "Unsicher? Ein Block ist der kürzeste Weg zu deinen ersten Routen.",
+  "areas_empty_areaHint": "Erst aufteilen, dann Routen erfassen.",
+  "areas_empty_blockHint": "Routen sofort erfassen.",
   "areas_empty_title": "{name} aufbauen",
   "areas_gradedCount": [
     {
@@ -271,14 +271,24 @@
   "common_route": "Route",
   "common_routes": "Routen",
   "common_save": "Speichern",
-  "common_saved": "Gespeichert",
-  "common_savedByOthers": [
+  "common_saveWithCount": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "{count} Mal gespeichert",
-        "countPlural=other": "{count} Mal gespeichert"
+        "countPlural=one": "Speichern. {count} Mal gespeichert.",
+        "countPlural=other": "Speichern. {count} Mal gespeichert."
+      }
+    }
+  ],
+  "common_saved": "Gespeichert",
+  "common_savedWithCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Gespeichert. {count} Mal gespeichert.",
+        "countPlural=other": "Gespeichert. {count} Mal gespeichert."
       }
     }
   ],

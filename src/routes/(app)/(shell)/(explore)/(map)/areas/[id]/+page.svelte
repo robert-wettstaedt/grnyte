@@ -14,13 +14,15 @@
   import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import { areaDetail, areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
+  import { createSaveState } from '$lib/entities/favorite/save.svelte'
+  import { createLocationState } from '$lib/entities/geolocation/location.svelte'
   import { routeList } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { SvelteMap } from 'svelte/reactivity'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import AreaActions from './AreaActions.svelte'
-  import AreaEmpty from './AreaEmpty.svelte'
+  import AreaEmpty, { areaEmptyIsActionable } from './AreaEmpty.svelte'
   import AreaList from './AreaList.svelte'
   import BlocksList from './BlocksList.svelte'
 
@@ -64,6 +66,37 @@
     return counts
   })
 
+  // Parking if there is one, else the mean of the crag's block pins. A sub-area has no location.
+  const destination = $derived.by(() => {
+    const data = area.data
+    if (data == null || data.type === 'area') return undefined
+
+    const parking = data.parkingLocations.at(0)
+    if (parking != null) return parking
+
+    const coords = blocks.data.map((block) => block.geolocation).filter((geo) => geo != null)
+    if (coords.length === 0) return undefined
+    return {
+      lat: coords.reduce((sum, geo) => sum + geo.lat, 0) / coords.length,
+      long: coords.reduce((sum, geo) => sum + geo.long, 0) / coords.length,
+    }
+  })
+
+  const location = createLocationState(() => destination)
+  const save = createSaveState(
+    () => global.user?.id,
+    () => 'area',
+    () => Number(page.params.id),
+  )
+
+  // An undetermined area has no content of its own, so the prompt to give it some is the answer
+  // to the tap and leads, above the action bar: on a phone the sheet only shows ~415px and the
+  // bar plus the description ate a third of it, leaving the choice below the fold.
+  const emptyLeads = $derived.by(() => {
+    const data = area.data
+    return data != null && data.type == null && areaEmptyIsActionable(global.userRegions, data)
+  })
+
   const ungradedCount = $derived(routes.data.filter((route) => route.gradeFk == null).length)
   const gradedCount = $derived(routes.data.length - ungradedCount)
 
@@ -98,7 +131,11 @@
 <QueryState resource={area}>
   {#snippet ready(detail)}
     <div class="space-y-5">
-      <AreaActions area={detail} />
+      {#if emptyLeads}
+        <AreaEmpty area={detail} />
+      {/if}
+
+      <AreaActions area={detail} blockCount={blocks.data.length} {destination} {location} {save} />
 
       <CollapsibleMarkdown markdown={detail.description} />
 
@@ -145,7 +182,7 @@
         <BlocksList blocks={blocks.data} routes={routes.data} />
       {:else if detail.type === 'area'}
         <AreaList areas={subAreas.data} />
-      {:else}
+      {:else if !emptyLeads}
         <AreaEmpty area={detail} />
       {/if}
 

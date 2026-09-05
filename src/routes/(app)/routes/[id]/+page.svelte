@@ -24,7 +24,9 @@
   import { routeAscentList } from '$lib/entities/ascent/resources.svelte'
   import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
   import { blockDetail, blockRouteList } from '$lib/entities/block/resources.svelte'
+  import { createSaveState } from '$lib/entities/favorite/save.svelte'
   import { routeFileList } from '$lib/entities/file/resources.svelte'
+  import { createLocationState } from '$lib/entities/geolocation/location.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { canEditRoute } from '$lib/entities/route/permissions'
@@ -54,6 +56,17 @@
   const topos = blockTopoList(() => route.data?.blockFk ?? -1)
   const ascents = routeAscentList(() => routeId)
   const files = routeFileList(() => routeId)
+
+  // The route's approach is its block's.
+  const blockGeolocation = $derived(block.data?.geolocation)
+  const location = createLocationState(() =>
+    blockGeolocation == null ? undefined : { lat: blockGeolocation.lat, long: blockGeolocation.long },
+  )
+  const save = createSaveState(
+    () => global.user?.id,
+    () => 'route',
+    () => routeId,
+  )
 
   // Everyone's ascents on this route are deliberately not kept for offline use, so offline this
   // query is incomplete by design and neither the list nor the grade histogram below may be drawn
@@ -219,7 +232,7 @@
           </a>
         {/if}
 
-        <RouteActions route={detail} block={block.data} />
+        <RouteActions block={block.data} {location} route={detail} {save} />
 
         {#if detail.tags.length > 0}
           <div class="flex flex-wrap gap-2">

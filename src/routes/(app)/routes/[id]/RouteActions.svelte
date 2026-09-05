@@ -1,11 +1,16 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
+  import ActionBar from '$lib/components/ActionBar/ActionBar.svelte'
   import DirectionsButton from '$lib/components/DirectionsButton/DirectionsButton.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
   import SaveButton from '$lib/components/SaveButton/SaveButton.svelte'
   import ShareButton from '$lib/components/ShareButton/ShareButton.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
+  import { canEditBlock } from '$lib/entities/block/permissions'
+  import type { SaveState } from '$lib/entities/favorite/save.svelte'
+  import type { LocationState } from '$lib/entities/geolocation/location.svelte'
+  import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
   import type { RouteDetail } from '$lib/entities/route/dto'
   import { canDeleteRoute, canEditRoute } from '$lib/entities/route/permissions'
   import { waitForRoute } from '$lib/entities/route/resources.svelte'
@@ -15,13 +20,16 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { withUndo } from '$lib/state/toast'
 
+  /** No labelled action: "Log ascent" is the page's primary action and lives in the sticky footer. */
   interface Props {
     /** The block the route sits on: its pin is the directions target. */
     block: BlockDetail | undefined
+    location: LocationState
     route: RouteDetail
+    save: SaveState
   }
 
-  const { block, route }: Props = $props()
+  const { block, location, route, save }: Props = $props()
   const global = getGlobalState()
 
   const canEdit = $derived(canEditRoute(global.userRegions, route))
@@ -39,6 +47,20 @@
     block?.geolocation == null ? undefined : { lat: block.geolocation.lat, long: block.geolocation.long },
   )
 
+  // 'set' while the block loads, so the line stays empty instead of claiming a missing pin.
+  const pin = $derived.by(() => {
+    if (block == null) return 'set'
+    if (block.geolocation == null) return 'missing'
+    return block.geolocation.estimated ? 'estimated' : 'set'
+  })
+
+  // The pin belongs to the block, so the repair does too.
+  const repairHref = $derived(
+    block != null && pin !== 'set' && canEditBlock(global.userRegions, block)
+      ? resolve('/(app)/blocks/[id]/move', { id: String(block.id) })
+      : undefined,
+  )
+
   const onDelete = () =>
     withUndo(deleteRoute({ id: route.id }), {
       message: m.routes_deleted(),
@@ -47,43 +69,47 @@
     })
 </script>
 
-<div class="flex gap-2">
-  <DirectionsButton {destination} />
+<div class="space-y-2">
+  <LocationMeta distance={location.distance} href={repairHref} isHere={location.isHere} {pin} />
 
-  <SaveButton entityId={route.id} entityType="route" />
+  <ActionBar>
+    <DirectionsButton {destination} />
 
-  <ShareButton text={route.name} />
+    <SaveButton count={save.count} ontoggle={save.toggle} pending={save.pending} saved={save.saved} />
 
-  {#if canEdit || canDelete || canEditTopos}
-    <MoreMenu panel={false} title={route.name}>
-      {#snippet children(close)}
-        <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.areas_manage()}</h3>
+    <ShareButton text={route.name} />
 
-        {#if canEdit}
-          <MenuRow
-            href={resolve('/(app)/routes/[id]/edit', { id: String(route.id) })}
-            icon="edit"
-            label={m.common_edit()}
-            onclick={close}
-          />
-        {/if}
+    {#if canEdit || canDelete || canEditTopos}
+      <MoreMenu panel={false} title={route.name}>
+        {#snippet children(close)}
+          <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.areas_manage()}</h3>
 
-        {#if canEditTopos}
-          <MenuRow href={editLineHref} icon="route" label={m.topo_editLine()} onclick={close} />
-        {/if}
+          {#if canEdit}
+            <MenuRow
+              href={resolve('/(app)/routes/[id]/edit', { id: String(route.id) })}
+              icon="edit"
+              label={m.common_edit()}
+              onclick={close}
+            />
+          {/if}
 
-        {#if canDelete}
-          <MenuRow
-            destructive
-            icon="trash"
-            label={m.routes_delete()}
-            onclick={() => {
-              close()
-              onDelete()
-            }}
-          />
-        {/if}
-      {/snippet}
-    </MoreMenu>
-  {/if}
+          {#if canEditTopos}
+            <MenuRow href={editLineHref} icon="route" label={m.topo_editLine()} onclick={close} />
+          {/if}
+
+          {#if canDelete}
+            <MenuRow
+              destructive
+              icon="trash"
+              label={m.routes_delete()}
+              onclick={() => {
+                close()
+                onDelete()
+              }}
+            />
+          {/if}
+        {/snippet}
+      </MoreMenu>
+    {/if}
+  </ActionBar>
 </div>

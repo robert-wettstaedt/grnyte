@@ -5,6 +5,7 @@
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import { createLocationState } from '$lib/entities/geolocation/location.svelte'
   import { parkingDetail } from '$lib/entities/geolocation/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { createCopyButton } from '$lib/state/clipboard.svelte'
@@ -14,6 +15,11 @@
 
   const global = getGlobalState()
   const parking = parkingDetail(() => Number(page.params.id))
+
+  const location = createLocationState(() => {
+    const data = parking.data
+    return data == null ? undefined : { lat: data.lat, long: data.long }
+  })
 
   const formatCoord = (lat: number, long: number): string =>
     `${Math.abs(lat).toFixed(5)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(long).toFixed(5)}°${long >= 0 ? 'E' : 'W'}`
@@ -37,7 +43,7 @@
   {#snippet ready(data)}
     {@const coords = formatCoord(data.lat, data.long)}
     <div class="space-y-5">
-      <ParkingActions parking={data} />
+      <ParkingActions {location} parking={data} />
 
       <button
         type="button"

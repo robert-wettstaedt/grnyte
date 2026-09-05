@@ -32,8 +32,8 @@
   "areas_deleted": "Area deleted",
   "areas_distanceAway": "{distance} away",
   "areas_editArea": "Edit area",
-  "areas_empty_body": "Group routes into a sub-area, or drop a block to start logging routes right here.",
-  "areas_empty_hint": "Not sure? Add a block, then put routes straight on it.",
+  "areas_empty_areaHint": "Split this up before adding routes.",
+  "areas_empty_blockHint": "Start logging routes right away.",
   "areas_empty_title": "Start building {name}",
   "areas_gradedCount": [
     {
@@ -271,14 +271,24 @@
   "common_route": "Route",
   "common_routes": "Routes",
   "common_save": "Save",
-  "common_saved": "Saved",
-  "common_savedByOthers": [
+  "common_saveWithCount": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "{count} save",
-        "countPlural=other": "{count} saves"
+        "countPlural=one": "Save. {count} save.",
+        "countPlural=other": "Save. {count} saves."
+      }
+    }
+  ],
+  "common_saved": "Saved",
+  "common_savedWithCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Saved. {count} save.",
+        "countPlural=other": "Saved. {count} saves."
       }
     }
   ],

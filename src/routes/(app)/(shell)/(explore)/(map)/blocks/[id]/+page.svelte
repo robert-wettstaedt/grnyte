@@ -16,6 +16,8 @@
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
   import { blockDetail, blockList, blockRouteList } from '$lib/entities/block/resources.svelte'
+  import { createSaveState } from '$lib/entities/favorite/save.svelte'
+  import { createLocationState } from '$lib/entities/geolocation/location.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { selectTopoForRoute } from '$lib/entities/topo/mapper'
@@ -47,6 +49,16 @@
 
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
+  const geolocation = $derived(block.data?.geolocation)
+  const location = createLocationState(() =>
+    geolocation == null ? undefined : { lat: geolocation.lat, long: geolocation.long },
+  )
+  const save = createSaveState(
+    () => global.user?.id,
+    () => 'block',
+    () => blockId,
+  )
+
   // Siblings for prev/next nav (ordered by `order`). The immediate area is the last
   // entry of the containment chain. -1 while the block loads → empty result, no
   // all-blocks scan.
@@ -76,7 +88,7 @@
 <QueryState resource={block}>
   {#snippet ready(detail)}
     <div class="space-y-5">
-      <BlockActions block={detail} />
+      <BlockActions block={detail} {location} routeCount={routes.data.length} {save} />
 
       {#if topos.data.length > 0}
         <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1">

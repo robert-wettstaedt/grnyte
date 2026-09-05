@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ACTION_TOOL } from '$lib/components/ActionBar/ActionBar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -34,7 +35,7 @@
     <button
       {...props}
       type="button"
-      class={[props.class, 'btn preset-tonal btn-lg h-12 w-12 px-0']}
+      class={[props.class, ACTION_TOOL]}
       aria-label={m.common_more()}
       onclick={() => (open = !open)}
     >

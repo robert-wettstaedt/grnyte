@@ -5,6 +5,13 @@
     'btn preset-filled-primary-500 h-13.5 rounded-2xl text-base font-bold shadow-[0_10px_24px_-10px_var(--color-primary-500)]'
   export const EMPTY_CTA_SECONDARY =
     'btn border-surface-300-700 text-surface-950-50 hover:bg-surface-200-800 h-13.5 rounded-2xl border bg-transparent text-base font-semibold'
+
+  /** The same two weights for an empty state that is a genuine fork, where the options lead
+   *  somewhere different and the label alone cannot say where. Each carries its consequence on a
+   *  second line, so the body paragraph does not have to describe the buttons. */
+  const CHOICE = 'btn h-auto w-full justify-start gap-3 rounded-2xl px-4 py-3 text-left'
+  export const EMPTY_CHOICE_PRIMARY = `${CHOICE} preset-filled-primary-500 shadow-[0_10px_24px_-10px_var(--color-primary-500)]`
+  export const EMPTY_CHOICE_SECONDARY = `${CHOICE} border-surface-300-700 text-surface-950-50 hover:bg-surface-200-800 border bg-transparent`
 </script>
 
 <script lang="ts">
@@ -20,29 +27,33 @@
    *
    * The illustration is line art on a soft glow inside a dashed ring, drawing itself in once.
    * `motif` picks the subject; everything around it is fixed so the family reads as one hand.
+   *
+   * The vertical rhythm is measured for a page, and on a phone this is never one: it renders at
+   * the tail of a sheet that covers three quarters of the viewport. So the illustration and the
+   * spacing scale with `svh`, which keeps the full treatment on a desktop panel and gets the
+   * title and the calls to action above the fold on a short screen.
    */
   interface Props {
-    body: string
+    /** Optional: skip it when the actions already say everything a paragraph would. */
+    body?: string
     /** The calls to action. First one filled, any second one outlined, see the callers. */
     children?: Snippet
-    /** Tie-breaker under the buttons, for when the CTAs are a genuine fork. */
-    hint?: string
     motif: 'crag' | 'region' | 'routes'
     title: string
   }
 
-  const { body, children, hint, motif, title }: Props = $props()
+  const { body, children, motif, title }: Props = $props()
 </script>
 
-<div class="es-fade flex flex-col items-center px-6 py-10 text-center">
+<div class="es-fade flex flex-col items-center px-6 text-center">
   <!-- Decorative: the heading below carries the meaning. -->
-  <div class="relative mb-5 size-32">
+  <div class="es-art relative">
     <div
       class="absolute inset-0 rounded-full"
       style="background:radial-gradient(circle at 50% 40%, color-mix(in oklab, var(--color-primary-500) 22%, transparent), transparent 68%)"
     ></div>
 
-    <svg class="relative" width="128" height="128" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+    <svg class="relative size-full" viewBox="0 0 120 120" fill="none" aria-hidden="true">
       <circle
         cx="60"
         cy="60"
@@ -137,21 +148,39 @@
     </svg>
   </div>
 
-  <h2 class="text-surface-950-50 mb-2 text-xl font-bold tracking-tight">{title}</h2>
-  <p class="text-surface-600-400 mb-7 max-w-70 text-pretty">{body}</p>
+  <h2 class="text-surface-950-50 text-xl font-bold tracking-tight">{title}</h2>
 
-  {#if children != null}
-    <div class="flex w-full max-w-xs flex-col gap-3">
-      {@render children()}
-    </div>
+  {#if body != null}
+    <p class="text-surface-600-400 mt-2 max-w-70 text-pretty">{body}</p>
   {/if}
 
-  {#if hint != null}
-    <p class="text-surface-500 mt-4 max-w-70 text-xs">{hint}</p>
+  {#if children != null}
+    <div class="es-cta flex w-full max-w-xs flex-col gap-2.5">
+      {@render children()}
+    </div>
   {/if}
 </div>
 
 <style>
+  .es-fade {
+    /* Room for the whole state on a 600px phone, the original page rhythm from ~1070px up. */
+    --es-art: clamp(4.5rem, 12svh, 8rem);
+    --es-art-gap: clamp(0.875rem, 2.4svh, 1.25rem);
+    --es-copy-gap: clamp(1.25rem, 3svh, 1.75rem);
+
+    padding-block: clamp(1.25rem, 4svh, 2.5rem);
+  }
+
+  .es-art {
+    block-size: var(--es-art);
+    inline-size: var(--es-art);
+    margin-block-end: var(--es-art-gap);
+  }
+
+  .es-cta {
+    margin-block-start: var(--es-copy-gap);
+  }
+
   /* ponytail: static dasharray so reduced-motion shows the finished drawing (no draw). */
   .es-draw {
     stroke-dasharray: 320;

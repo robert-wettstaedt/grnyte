@@ -31,15 +31,11 @@ export function isFavorited(
   )
 }
 
-/** How many *other* users have saved one entity (excludes the signed-in user). */
-export function otherSaveCount(
-  userId: () => number | undefined,
-  entityType: () => 'area' | 'block' | 'route',
-  entityId: () => number,
-) {
+/** How many users have saved one entity, the signed-in user included. */
+export function saveCount(entityType: () => 'area' | 'block' | 'route', entityId: () => number) {
   return createResource(
     () => queries.listEntityFavorites({ entityId: entityId(), entityType: entityType() }),
-    (rows) => rows.filter((row) => row.userFk !== userId()).length,
+    (rows) => rows.length,
   )
 }
 

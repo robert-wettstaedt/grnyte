@@ -2,10 +2,12 @@
   import { browser } from '$app/environment'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { ACTION_TOOL } from '$lib/components/ActionBar/ActionBar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
   import { createCopyButton } from '$lib/state/clipboard.svelte'
 
+  /** Stays in the action row, not the menu: installed as a PWA there is no URL bar to copy from. */
   interface Props {
     /** Text shared alongside the current page URL. */
     text: string
@@ -26,7 +28,7 @@
 
 <button
   type="button"
-  class="btn preset-tonal btn-lg h-12 w-12 px-0"
+  class={ACTION_TOOL}
   aria-label={canShare ? m.share_share() : clip.copied ? m.share_linkCopied() : m.share_copyLink()}
   onclick={canShare ? share : () => clip.copy(page.url.href)}
 >
