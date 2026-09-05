@@ -165,7 +165,7 @@
     <!-- Self-gating: renders nothing unless this is the founder's first route. -->
     <RegionLive regionFk={detail.regionFk} />
 
-    <div class="mx-auto flex min-h-full w-full max-w-screen-sm flex-col">
+    <div class="mx-auto flex w-full max-w-screen-sm grow flex-col">
       <!-- Mirrors the area/block detail headers: back button, the name as the title with
            the entity-type tag beside it, and the containment breadcrumb as the subtitle
            above. Grade + rating sit on the right, aligned like a RouteRow. -->
