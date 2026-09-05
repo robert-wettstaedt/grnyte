@@ -165,7 +165,7 @@
 
   <button
     type="button"
-    class="border-surface-50-950/60 bg-surface-950/40 flex h-16 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed text-white shadow-lg"
+    class="bg-surface-950/40 flex h-16 min-w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-white/40 px-2 text-white shadow-lg"
     aria-label={m.topo_addPhoto()}
     title={m.topo_addPhoto()}
     disabled={photoBusy}
@@ -175,7 +175,7 @@
       <LoadingIndicator class="items-center" />
     {:else}
       <Icon name="plus" size={18} />
-      <span class="text-[0.6rem] font-bold tracking-wide uppercase">{m.common_add()}</span>
+      <span class="text-[0.6rem] font-bold tracking-wide whitespace-nowrap uppercase">{m.common_add()}</span>
     {/if}
   </button>
 </div>

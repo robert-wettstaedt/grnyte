@@ -28,7 +28,7 @@
         <Navigation.TriggerAnchor
           href={item.routeId}
           class={[
-            'flex size-13 flex-col items-center justify-center gap-1 rounded-2xl',
+            'flex h-13 w-full flex-col items-center justify-center gap-1 rounded-2xl px-1',
             active ? 'bg-primary-500/15 text-primary-500' : 'text-surface-500 hover:bg-surface-200-800',
           ]}
           aria-current={active ? 'page' : undefined}
@@ -38,7 +38,7 @@
             size={23}
             unread={item.icon === 'feed' && !active ? global.unreadNotifications : 0}
           />
-          <Navigation.TriggerText class="text-[10px] font-bold">
+          <Navigation.TriggerText class="w-full truncate text-center text-[10px] font-bold">
             {item.label()}
           </Navigation.TriggerText>
         </Navigation.TriggerAnchor>
