@@ -113,7 +113,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
       // SvelteKit's cookies API requires `path` to be set explicitly; '/' matches previous/standard behavior.
       setAll: (cookiesToSet) => {
         cookiesToSet.forEach(({ name, options, value }) => {
-          event.cookies.set(name, value, { ...options, path: '/', secure: process.env.NODE_ENV !== 'development' })
+          event.cookies.set(name, value, { ...options, path: '/', secure: event.url.protocol === 'https:' })
         })
       },
     },

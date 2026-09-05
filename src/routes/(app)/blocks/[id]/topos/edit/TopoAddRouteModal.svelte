@@ -116,7 +116,7 @@
      right in place of the default close button. The check submits the form via its `form` id. -->
 {#snippet stepTwoBack()}
   <button
-    class="btn-icon preset-filled-surface-500 shrink-0"
+    class="btn-icon preset-filled-surface-200-800 shrink-0"
     type="button"
     aria-label={m.common_back()}
     onclick={(event) => setNewRouteOpen(false, event)}

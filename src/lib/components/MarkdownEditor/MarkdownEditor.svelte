@@ -384,7 +384,7 @@
      the editable region first, so an editor-level blur would fold the toolbar away underneath the
      press it is answering. `focusin`/`focusout` bubble, so a button inside keeps the box focused. -->
 <div
-  class="border-surface-200-800 bg-surface-100-900 overflow-hidden rounded-2xl border"
+  class="editor-box border-surface-200-800 bg-surface-100-900 overflow-hidden rounded-2xl border"
   onfocusin={() => (focused = true)}
   onfocusout={(event) => {
     focused = event.currentTarget.contains(event.relatedTarget as Node | null)
@@ -532,5 +532,22 @@
 
   :global(.dark) .editor-host :global(.reference-chip) {
     color: var(--color-primary-300);
+  }
+
+  /* The box clips its children so the toolbar cannot spill past the rounded corners, and that
+     clips a focus ring drawn on the editable region too: all that survives is a 4px line across
+     the top of the text area, which reads as a stray rule rather than as focus. Tiptap puts
+     `tabindex="0"` on that region, so the app-wide ring in app.css lands on it. Draw the ring on
+     the box instead, which is what the reader is focusing, and take it off the child. */
+  .editor-box:focus-within {
+    box-shadow:
+      0 0 0 2px var(--color-surface-50-950),
+      0 0 0 4px var(--focus-ring);
+  }
+
+  .editor-host :global(.ProseMirror:focus),
+  .editor-host :global(.ProseMirror:focus-visible) {
+    box-shadow: none;
+    outline: none;
   }
 </style>

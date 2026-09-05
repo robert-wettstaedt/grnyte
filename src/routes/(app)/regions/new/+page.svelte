@@ -11,6 +11,8 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
+  import { MediaQuery } from 'svelte/reactivity'
+  import { slide } from 'svelte/transition'
   import type { PageProps } from './$types'
 
   // One route, two framings. With no memberships the authGuard sent them here and there is nothing
@@ -31,6 +33,10 @@
   )
 
   let doorOpen = $state(false)
+
+  /** The reveal is the animation, so somebody who asked for less motion gets the cut. */
+  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
+  const duration = $derived(still.current ? 0 : 150)
 
   const goBack = () => back(resolve('/settings'))
 
@@ -95,7 +101,7 @@
 {#if capped}
   <!-- Reachable from the settings entry point, and from the bounce for the founder who left every
        region they made. Says why rather than disabling the button with no explanation. -->
-  <div class="bg-surface-50-950 text-surface-950-50 flex min-h-dvh flex-col items-center justify-center px-5 py-8">
+  <div class="bg-surface-50-950 text-surface-950-50 flex min-h-full flex-col items-center justify-center px-5 py-8">
     <div class="flex w-full max-w-100 flex-col items-center text-center">
       <div class="bg-warning-500/15 text-warning-500 flex size-20 items-center justify-center rounded-3xl">
         <Icon name="layers" size={36} />
@@ -135,8 +141,10 @@
     </div>
   </div>
 {:else if welcome}
-  <div class="bg-surface-50-950 text-surface-950-50 flex min-h-dvh flex-col items-center px-5 py-8">
-    <div class="flex w-full max-w-100 flex-1 flex-col">
+  <div class="bg-surface-50-950 text-surface-950-50 flex min-h-full flex-col items-center px-5 py-8 sm:justify-center">
+    <!-- Phone: the column fills the screen and the sign-out sits at the very bottom. Wider
+         viewports centre the card instead, so it isn't stranded above a screen of empty space. -->
+    <div class="flex w-full max-w-100 flex-1 flex-col sm:flex-none">
       <h1 class="text-[25px] font-bold tracking-tight">{m.onboarding_title()}</h1>
       <p class="text-surface-600-400 mt-1.5 text-[14.5px] leading-snug">{m.onboarding_subtitle()}</p>
 
@@ -191,7 +199,7 @@
           </button>
 
           {#if doorOpen}
-            <div class="space-y-2 py-1 pr-3.5 pb-3.5 pl-[3.75rem]">
+            <div class="space-y-2 py-1 pr-3.5 pb-3.5 pl-15" transition:slide={{ duration }}>
               <p class="text-surface-600-400 text-[13.5px] leading-relaxed text-pretty">
                 {m.onboarding_inviteBody()}
               </p>

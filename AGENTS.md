@@ -38,6 +38,17 @@ This project uses:
 - A mutation that acts on an existing row gates through `requireRow` / `requireRowForm` (`$lib/remote/require.server`): they fetch the row and hand it to the permission predicate, so the check's subject is always stored data, never request input. Do not hand-roll `findFirst` + 404 + `can*` in a handler.
 - i18n: add keys to BOTH `messages/en.json` and `messages/de.json` (`domain_camelCase`, kept sorted). One prefix per domain: never split singular and plural (`areas_*`, not `area_*` alongside it). No em-dashes anywhere (UI copy, translations, code comments).
 - Icons: use `<Icon name="...">`; only `icons.ts` and `Icon.svelte` may import lucide.
+- Conditional UI animates in and out. An element an `{#if}` adds or removes in response to a press
+  (a disclosure, a toast, an inline form, a sheet) gets a `svelte/transition`, so it reads as
+  growing out of the control that opened it instead of snapping into place. `slide` for a
+  disclosure or a list row, `fade` for an overlay or a swap in place, `scale` for a small badge,
+  `fly` for something arriving from an edge. 150ms unless a neighbouring component already picked
+  another, and always gated on reduced motion, because a Svelte transition ignores the media query
+  on its own: `const still = new MediaQuery('(prefers-reduced-motion: reduce)')` (from
+  `svelte/reactivity`) plus `const duration = $derived(still.current ? 0 : 150)`, then
+  `transition:slide={{ duration }}`. `EventCard.svelte` is the shortest example. A Tailwind
+  `transition-*` class is not a substitute: it cannot animate an element that does not exist yet,
+  so it stays on hover, focus and state changes of elements that are already mounted.
 - Reuse before building: grep for an existing component/function first. If one fits but is not reusable, refactor it to be reusable and composable rather than hand-rolling a copy. Promote shared pieces to `$lib`. Prefer passing an entity DTO over a long list of individual props.
 - Entity modules live in `src/lib/entities/<name>/`, mirroring `area/` as the template.
 - An entity's display name comes from its mapper and nowhere else: `routeDisplayName` (`route/mapper.ts`), `blockName` (`block/mapper.ts`). Names are genuinely optional in the DB, so an entity must never render as an empty string; the fallback (`common_unnamed`, `Block <order+1>`) belongs in the mapper so a feed card, a push notification and the screen they link to cannot disagree. Never inline `name ?? ''`, `name || 'Unnamed'` or a second copy of the fallback, on the client or the server.

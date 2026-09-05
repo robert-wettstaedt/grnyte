@@ -13,8 +13,8 @@
 
   // The top-level counterpart of `/areas/[id]/add`: an area with no parent, which is what a fresh
   // region needs before anything else can exist, and what a region covering two separate forests
-  // needs a second of. Same form, same mutation - `AreaFormFields` renders its region select
-  // exactly when `parentFk` is absent.
+  // needs a second of. Same form, same mutation - `AreaFormFields` renders its region select when
+  // `parentFk` is absent and there is more than one region to pick from.
   const global = getGlobalState()
 
   const regions = $derived(

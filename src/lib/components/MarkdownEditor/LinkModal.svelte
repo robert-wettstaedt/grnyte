@@ -85,9 +85,9 @@
   {#snippet headerLeft()}
     <button
       type="button"
-      class="btn-icon preset-filled-surface-500"
+      class="btn-icon preset-filled-surface-200-800 shrink-0"
       onclick={() => (open = false)}
-      title={m.common_back()}
+      aria-label={m.common_close()}
     >
       <Icon name="close" />
     </button>
@@ -96,8 +96,8 @@
   {#snippet headerRight()}
     <button
       type="button"
-      class="btn-icon preset-filled-primary-500"
-      title={m.editor_insertLink()}
+      class="btn-icon preset-filled-primary-500 shrink-0"
+      aria-label={m.editor_insertLink()}
       disabled={!canSubmit}
       onclick={submit}
     >

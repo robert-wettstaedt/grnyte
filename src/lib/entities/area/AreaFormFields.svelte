@@ -58,10 +58,13 @@
   {/snippet}
 </RemoteFormInputWrapper>
 
-{#if form.fields.id.value() == null && form.fields.parentFk.value() == null}
+{#if form.fields.id.value() == null && form.fields.parentFk.value() == null && global.userRegions.length > 1}
   <!-- Creating a top-level area, and only then. `required`, or the wrapper badges it "optional": a
        top-level area has no parent to inherit a region from, so this select is the whole of its
        placement.
+
+       Skipped when only one region would render: the add page has already prefilled it. Gated on
+       options rendered, not on how many are addable, so a member of several still sees why.
 
        Never on the edit form. `updateArea` writes `description` and `name` and nothing else, so an
        area being edited took the same branch (its prefilled `parentFk` is undefined when it is

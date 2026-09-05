@@ -30,7 +30,7 @@
     { count: 68, name: 'preset-filled-primary-500' },
     { count: 34, name: 'preset-tonal-surface' },
     { count: 28, name: 'preset-tonal' },
-    { count: 19, name: 'preset-filled-surface-200-800' },
+    { count: 21, name: 'preset-filled-surface-200-800' },
     { count: 16, name: 'preset-tonal-error' },
     { count: 16, name: 'preset-filled-surface-50-950' },
     { count: 11, name: 'preset-tonal-primary' },
@@ -40,7 +40,6 @@
     { count: 6, name: 'preset-filled-surface-100-900' },
     { count: 3, name: 'preset-outlined-surface-200-800' },
     { count: 3, name: 'preset-filled-surface-950-50' },
-    { count: 2, name: 'preset-filled-surface-500' },
     { count: 2, name: 'preset-filled-error-500' },
     { count: 2, name: 'preset-filled' },
   ]
