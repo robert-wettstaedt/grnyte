@@ -146,24 +146,6 @@
                 onclick={close}
               />
             {/if}
-
-            {#if canAdmin}
-              <MenuRow
-                href={resolve('/(app)/areas/[id]/export', { id: String(area.id) })}
-                icon="file-text"
-                label={m.export_pdf()}
-                onclick={close}
-              />
-            {/if}
-
-            {#if canAdmin}
-              <MenuRow
-                href={resolve('/(app)/areas/[id]/sync-external-resources', { id: String(area.id) })}
-                icon="sync"
-                label={m.sync_externalResources()}
-                onclick={close}
-              />
-            {/if}
           {/if}
 
           {#if canDelete}
