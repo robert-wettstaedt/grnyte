@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Disclosure from '$lib/components/Disclosure/Disclosure.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
@@ -25,8 +26,8 @@
   let drafts = $state<Record<number, string>>({})
   let sending = $state<number | undefined>(undefined)
 
-  // The answered row collapses on refresh, so focus is put back on its summary instead of `<body>`.
-  let summaries = $state<Record<number, HTMLElement | undefined>>({})
+  // The answered row collapses on refresh, so focus is put back on its trigger instead of `<body>`.
+  let summaries = $state<Record<number, HTMLButtonElement | undefined>>({})
 
   const send = async (id: number) => {
     const reply = drafts[id]?.trim() ?? ''
@@ -76,13 +77,15 @@
     <!-- `overflow-hidden`, or the end summaries' hover backgrounds square off the rounded corners. -->
     <div class="divide-surface-200-800 border-surface-200-800 divide-y overflow-hidden rounded-xl border">
       {#each items as item (item.id)}
-        <!-- Native disclosure, unanswered rows start open. `list-none` plus an explicit chevron
-             like FilterSection: `display:flex` on a summary drops the native marker. -->
-        <details class="group" open={item.status === 'open'}>
-          <summary
-            bind:this={summaries[item.id]}
-            class="hover:bg-surface-100-900 flex cursor-pointer list-none items-center gap-3 p-4 select-none"
-          >
+        <!-- Unanswered rows start open, and `open` stays driven by the status so a row collapses
+             again once the reply lands. -->
+        <Disclosure
+          open={item.status === 'open'}
+          panelClass="space-y-3 px-4 pb-4"
+          summaryClass="hover:bg-surface-100-900 flex w-full items-center gap-3 p-4"
+          bind:trigger={summaries[item.id]}
+        >
+          {#snippet summary(open)}
             <!-- Status, not kind: the axis this screen acts and sorts on, in words so it does not
                  ride on hue alone. The kind is a full sentence, so it goes last on the meta line,
                  where truncating costs least. -->
@@ -98,66 +101,64 @@
               </span>
             </span>
 
-            <span class="text-surface-500 flex-none transition-transform group-open:rotate-180">
+            <span class={['text-surface-500 flex-none transition-transform', open && 'rotate-180']}>
               <Icon name="chevron-down" size={18} />
             </span>
-          </summary>
+          {/snippet}
 
-          <div class="space-y-3 px-4 pb-4">
-            <!-- Boxed like the reply below, so it reads as the quote the answer is written against. -->
-            <p class="bg-surface-100-900 rounded-lg p-3 text-sm whitespace-pre-wrap">{item.body}</p>
+          <!-- Boxed like the reply below, so it reads as the quote the answer is written against. -->
+          <p class="bg-surface-100-900 rounded-lg p-3 text-sm whitespace-pre-wrap">{item.body}</p>
 
-            <!-- Captured context. The user agent is never truncated: the end is the half worth
+          <!-- Captured context. The user agent is never truncated: the end is the half worth
                  reading, and a `title` is unreachable on a phone. -->
-            <div class="text-surface-600-400 space-y-0.5 text-xs">
-              <p>{[item.pathname, item.locale].filter((part) => part.length > 0).join(' · ')}</p>
+          <div class="text-surface-600-400 space-y-0.5 text-xs">
+            <p>{[item.pathname, item.locale].filter((part) => part.length > 0).join(' · ')}</p>
 
-              {#if item.userAgent.length > 0}
-                <p class="wrap-break-word">{item.userAgent}</p>
-              {/if}
-            </div>
-
-            {#if item.status === 'closed'}
-              <div class="bg-surface-100-900 space-y-1 rounded-lg p-3">
-                <!-- Labelled like the open row's input, so both states of the field agree. -->
-                <p class="flex items-baseline justify-between gap-2">
-                  <span class="text-surface-700-300 text-sm font-semibold">{m.feedback_reply()}</span>
-                  {#if item.repliedAt != null}
-                    <span class="text-surface-600-400 text-xs">
-                      {formatUploadedAt(item.repliedAt, now, getLocale())}
-                    </span>
-                  {/if}
-                </p>
-                <p class="text-sm whitespace-pre-wrap">{item.reply}</p>
-              </div>
-            {:else}
-              <label class="flex flex-col gap-2">
-                <span class="text-surface-700-300 text-sm font-semibold">{m.feedback_reply()}</span>
-                <textarea
-                  bind:value={() => drafts[item.id] ?? '', (value) => (drafts = { ...drafts, [item.id]: value })}
-                  class="textarea"
-                  disabled={sending === item.id}
-                  placeholder={m.feedback_replyPlaceholder()}
-                  rows="4"
-                ></textarea>
-              </label>
-
-              <!-- Spinner tells a send in flight from a button that cannot start yet. `h-11`
-                   because the bare `.btn` is 32px tall. -->
-              <button
-                class="btn preset-filled-primary-500 h-11"
-                disabled={sending === item.id || (drafts[item.id]?.trim() ?? '').length === 0}
-                onclick={() => send(item.id)}
-                type="button"
-              >
-                {#if sending === item.id}
-                  <LoadingIndicator class="items-center justify-center" />
-                {/if}
-                {m.feedback_replySend()}
-              </button>
+            {#if item.userAgent.length > 0}
+              <p class="wrap-break-word">{item.userAgent}</p>
             {/if}
           </div>
-        </details>
+
+          {#if item.status === 'closed'}
+            <div class="bg-surface-100-900 space-y-1 rounded-lg p-3">
+              <!-- Labelled like the open row's input, so both states of the field agree. -->
+              <p class="flex items-baseline justify-between gap-2">
+                <span class="text-surface-700-300 text-sm font-semibold">{m.feedback_reply()}</span>
+                {#if item.repliedAt != null}
+                  <span class="text-surface-600-400 text-xs">
+                    {formatUploadedAt(item.repliedAt, now, getLocale())}
+                  </span>
+                {/if}
+              </p>
+              <p class="text-sm whitespace-pre-wrap">{item.reply}</p>
+            </div>
+          {:else}
+            <label class="flex flex-col gap-2">
+              <span class="text-surface-700-300 text-sm font-semibold">{m.feedback_reply()}</span>
+              <textarea
+                bind:value={() => drafts[item.id] ?? '', (value) => (drafts = { ...drafts, [item.id]: value })}
+                class="textarea"
+                disabled={sending === item.id}
+                placeholder={m.feedback_replyPlaceholder()}
+                rows="4"
+              ></textarea>
+            </label>
+
+            <!-- Spinner tells a send in flight from a button that cannot start yet. `h-11`
+                   because the bare `.btn` is 32px tall. -->
+            <button
+              class="btn preset-filled-primary-500 h-11"
+              disabled={sending === item.id || (drafts[item.id]?.trim() ?? '').length === 0}
+              onclick={() => send(item.id)}
+              type="button"
+            >
+              {#if sending === item.id}
+                <LoadingIndicator class="items-center justify-center" />
+              {/if}
+              {m.feedback_replySend()}
+            </button>
+          {/if}
+        </Disclosure>
       {/each}
     </div>
   {/if}

@@ -4,9 +4,12 @@
   import AreaRow from '$lib/components/EntityRow/AreaRow.svelte'
   import BlockRow from '$lib/components/EntityRow/BlockRow.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import ShowMoreList from '$lib/components/Profile/ShowMoreList.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import type { AreaDetail } from '$lib/entities/area/dto'
   import { areaList } from '$lib/entities/area/resources.svelte'
   import type { AscentType } from '$lib/entities/ascent/dto'
+  import type { BlockDetail } from '$lib/entities/block/dto'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { toggleFavorite } from '$lib/entities/favorite/favorites.remote'
   import { userAllFavoriteList } from '$lib/entities/favorite/resources.svelte'
@@ -51,8 +54,6 @@
   }
 
   const FAV_LIMIT = 6
-  let blocksExpanded = $state(false)
-  let areasExpanded = $state(false)
 </script>
 
 {#snippet subheading(title: string)}
@@ -68,6 +69,33 @@
   >
     <Icon name="close" size={18} />
   </button>
+{/snippet}
+
+{#snippet blockRow(block: BlockDetail)}
+  {#snippet blockRemove()}
+    {@render removeButton(() => removeFavorite('block', block.id))}
+  {/snippet}
+
+  <BlockRow
+    name={block.name}
+    action={isSelf ? blockRemove : undefined}
+    crumbs={block.areas.map((area) => area.name)}
+    topoImagePath={block.topoImages[0]?.path}
+    href={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) })}
+  />
+{/snippet}
+
+{#snippet areaRow(area: AreaDetail)}
+  {#snippet areaRemove()}
+    {@render removeButton(() => removeFavorite('area', area.id))}
+  {/snippet}
+
+  <AreaRow
+    name={area.name}
+    action={isSelf ? areaRemove : undefined}
+    crumbs={area.areas.map((ancestor) => ancestor.name)}
+    href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) })}
+  />
 {/snippet}
 
 {#snippet removeAllAction()}
@@ -105,29 +133,7 @@
         {#snippet ready(blocks)}
           <div class="space-y-2">
             {@render subheading(m.common_blocks())}
-            <div class="flex flex-col gap-1.5">
-              {#each blocksExpanded ? blocks : blocks.slice(0, FAV_LIMIT) as block (block.id)}
-                {#snippet blockRemove()}
-                  {@render removeButton(() => removeFavorite('block', block.id))}
-                {/snippet}
-                <BlockRow
-                  name={block.name}
-                  action={isSelf ? blockRemove : undefined}
-                  crumbs={block.areas.map((area) => area.name)}
-                  topoImagePath={block.topoImages[0]?.path}
-                  href={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) })}
-                />
-              {/each}
-              {#if blocks.length > FAV_LIMIT && !blocksExpanded}
-                <button
-                  type="button"
-                  class="btn preset-tonal-surface mt-1.5 w-full"
-                  onclick={() => (blocksExpanded = true)}
-                >
-                  {m.common_showMore()}
-                </button>
-              {/if}
-            </div>
+            <ShowMoreList items={blocks} key={(block) => block.id} limit={FAV_LIMIT} row={blockRow} />
           </div>
         {/snippet}
       </QueryState>
@@ -138,28 +144,7 @@
         {#snippet ready(areas)}
           <div class="space-y-2">
             {@render subheading(m.common_areas())}
-            <div class="flex flex-col gap-1.5">
-              {#each areasExpanded ? areas : areas.slice(0, FAV_LIMIT) as area (area.id)}
-                {#snippet areaRemove()}
-                  {@render removeButton(() => removeFavorite('area', area.id))}
-                {/snippet}
-                <AreaRow
-                  name={area.name}
-                  action={isSelf ? areaRemove : undefined}
-                  crumbs={area.areas.map((ancestor) => ancestor.name)}
-                  href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) })}
-                />
-              {/each}
-              {#if areas.length > FAV_LIMIT && !areasExpanded}
-                <button
-                  type="button"
-                  class="btn preset-tonal-surface mt-1.5 w-full"
-                  onclick={() => (areasExpanded = true)}
-                >
-                  {m.common_showMore()}
-                </button>
-              {/if}
-            </div>
+            <ShowMoreList items={areas} key={(area) => area.id} limit={FAV_LIMIT} row={areaRow} />
           </div>
         {/snippet}
       </QueryState>

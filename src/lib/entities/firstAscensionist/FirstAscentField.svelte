@@ -13,6 +13,8 @@
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { MediaQuery } from 'svelte/reactivity'
+  import { fly } from 'svelte/transition'
 
   // Chips-in-a-box climber picker with typeahead over the region's first ascensionists.
   // "Me" links the signed-in user; unknown names become new first-ascensionist rows on
@@ -28,6 +30,9 @@
 
   const global = getGlobalState()
   const ascensionists = firstAscensionistList(() => ({ regionFk }))
+
+  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
+  const duration = $derived(still.current ? 0 : 150)
 
   let query = $state('')
   let open = $state(false)
@@ -132,7 +137,11 @@
 </div>
 
 {#if open && (showMe || suggestions.length > 0 || showNew)}
-  <div class="border-surface-300-700 bg-surface-50-950 mt-2 overflow-hidden rounded-xl border">
+  <!-- Same arrival as the map SearchBar's suggestions, since it is the same kind of dropdown. -->
+  <div
+    class="border-surface-300-700 bg-surface-50-950 mt-2 overflow-hidden rounded-xl border"
+    transition:fly={{ duration, y: -8 }}
+  >
     {#if showMe && me != null}
       <button
         class="hover:bg-surface-100-900 flex w-full items-center gap-3 px-3 py-2.5 text-left"

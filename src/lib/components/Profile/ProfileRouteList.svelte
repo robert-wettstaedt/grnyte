@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import ShowMoreList from '$lib/components/Profile/ShowMoreList.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import type { AscentType } from '$lib/entities/ascent/dto'
   import { gradeLabel } from '$lib/entities/grade/label'
@@ -32,7 +33,6 @@
   const global = getGlobalState()
 
   let activeId = $state<null | number>(null)
-  let expanded = $state(false)
 
   function ordered(routes: RouteListItem[]): RouteListItem[] {
     if (order == null) {
@@ -43,42 +43,34 @@
   }
 </script>
 
+{#snippet routeRow(route: RouteListItem)}
+  {#snippet removeAction()}
+    <button
+      type="button"
+      class="btn-icon btn-icon-sm hover:preset-tonal-surface text-surface-500"
+      aria-label={m.profile_removeFavorite()}
+      onclick={() => onRemove?.(route)}
+    >
+      <Icon name="close" size={18} />
+    </button>
+  {/snippet}
+
+  <RouteRow
+    {route}
+    action={onRemove == null ? undefined : removeAction}
+    active={activeId === route.id}
+    crumbs={crumbFor?.(route)}
+    detailsHref={resolve('/(app)/routes/[id]', { id: String(route.id) })}
+    grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
+    mapHref={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(route.blockFk) })}
+    onclick={() => (activeId = activeId === route.id ? null : route.id)}
+    status={status?.get(route.id)}
+  />
+{/snippet}
+
 <QueryState {resource}>
   {#snippet ready(routes)}
-    {@const all = ordered(routes)}
-    {@const shown = expanded ? all : all.slice(0, limit)}
-    <div class="flex flex-col gap-1.5">
-      {#each shown as route (route.id)}
-        {#snippet removeAction()}
-          <button
-            type="button"
-            class="btn-icon btn-icon-sm hover:preset-tonal-surface text-surface-500"
-            aria-label={m.profile_removeFavorite()}
-            onclick={() => onRemove?.(route)}
-          >
-            <Icon name="close" size={18} />
-          </button>
-        {/snippet}
-
-        <RouteRow
-          {route}
-          action={onRemove == null ? undefined : removeAction}
-          active={activeId === route.id}
-          crumbs={crumbFor?.(route)}
-          detailsHref={resolve('/(app)/routes/[id]', { id: String(route.id) })}
-          grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-          mapHref={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(route.blockFk) })}
-          onclick={() => (activeId = activeId === route.id ? null : route.id)}
-          status={status?.get(route.id)}
-        />
-      {/each}
-    </div>
-
-    {#if all.length > limit && !expanded}
-      <button type="button" class="btn preset-tonal-surface mt-1.5 w-full" onclick={() => (expanded = true)}>
-        {m.common_showMore()}
-      </button>
-    {/if}
+    <ShowMoreList items={ordered(routes)} key={(route) => route.id} {limit} row={routeRow} />
   {/snippet}
 
   {#snippet empty()}

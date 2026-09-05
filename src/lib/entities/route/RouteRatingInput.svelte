@@ -38,7 +38,7 @@
         type="button"
       >
         <span class={star <= value ? 'text-(--st-flash)' : 'text-surface-500'}>
-          <Icon name="star" size={24} fill={star <= value ? 'currentColor' : 'none'} />
+          <Icon class="transition-colors" name="star" size={24} fill={star <= value ? 'currentColor' : 'none'} />
         </span>
       </button>
     {/each}

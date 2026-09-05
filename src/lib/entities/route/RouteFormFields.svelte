@@ -1,5 +1,6 @@
 <script lang="ts">
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import Disclosure from '$lib/components/Disclosure/Disclosure.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MarkdownEditor from '$lib/components/MarkdownEditor/MarkdownEditor.svelte'
   import MediaDropZone from '$lib/components/MediaDropZone/MediaDropZone.svelte'
@@ -130,23 +131,25 @@
 >
   <RouteRatingInput name="rating" bind:value={rating} />
 
-  <details class="group">
-    <summary
-      class="text-surface-600-400 flex cursor-pointer list-none items-center gap-1.5 text-xs font-semibold select-none"
-    >
-      <span class="transition-transform group-open:rotate-90"><Icon name="chevron-right" size={13} /></span>
+  <Disclosure
+    panelClass="border-surface-300-700 bg-surface-100-900 mt-2 space-y-2 rounded-xl border px-4 py-3"
+    summaryClass="text-surface-600-400 flex items-center gap-1.5 text-xs font-semibold"
+  >
+    {#snippet summary(open)}
+      <span class={['transition-transform', open && 'rotate-90']}>
+        <Icon name="chevron-right" size={13} />
+      </span>
       {m.routes_form_ratingGuideTitle()}
-    </summary>
-    <div class="border-surface-300-700 bg-surface-100-900 mt-2 space-y-2 rounded-xl border px-4 py-3">
-      <p class="text-surface-600-400 text-xs">{m.routes_form_ratingGuideIntro()}</p>
-      {#each guideItems as item (item)}
-        <p class="flex items-center gap-2.5 text-[13px]">
-          <span class="bg-primary-400 size-1.25 flex-none rounded-full"></span>
-          {item}
-        </p>
-      {/each}
-    </div>
-  </details>
+    {/snippet}
+
+    <p class="text-surface-600-400 text-xs">{m.routes_form_ratingGuideIntro()}</p>
+    {#each guideItems as item (item)}
+      <p class="flex items-center gap-2.5 text-[13px]">
+        <span class="bg-primary-400 size-1.25 flex-none rounded-full"></span>
+        {item}
+      </p>
+    {/each}
+  </Disclosure>
 </RemoteFormInputWrapper>
 
 <RemoteFormInputWrapper

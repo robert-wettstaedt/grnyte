@@ -26,6 +26,8 @@
   import { m } from '$lib/paraglide/messages'
   import { toaster } from '$lib/state/toast'
   import { FileUpload, useFileUpload } from '@skeletonlabs/skeleton-svelte'
+  import { MediaQuery } from 'svelte/reactivity'
+  import { fade } from 'svelte/transition'
   import MediaUploadTile from './MediaUploadTile.svelte'
 
   interface Props {
@@ -85,6 +87,9 @@
   // picker. ponytail: drag and drop only works in the plain (non-split) mode.
   const split = $derived(videoSource && accept.includes('video'))
   let sheetOpen = $state(false)
+  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
+  const duration = $derived(still.current ? 0 : 150)
+
   let sheetStep = $state<'choose' | 'video'>('choose')
   let sheetVideo = $state<File | null>(null)
   let sheetError = $state<null | string>(null)
@@ -297,8 +302,10 @@
       </button>
     {/snippet}
 
+    <!-- `in:` only on both steps: an out-fade would keep the outgoing step in the layout while the
+         incoming one is already there, which shifts the sheet mid-swap. -->
     {#if sheetStep === 'choose'}
-      <div class="flex flex-col gap-0.5">
+      <div class="flex flex-col gap-0.5" in:fade={{ duration }}>
         <button
           type="button"
           class="hover:bg-surface-100-900 -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 text-left"
@@ -340,7 +347,7 @@
         </button>
       </div>
     {:else}
-      <div class="space-y-3">
+      <div class="space-y-3" in:fade={{ duration }}>
         <!-- Lives inside the sheet content: a programmatic click on it bubbles to the
              document, and coming from outside the sheet's DOM it would read as an
              outside click and close the sheet. -->

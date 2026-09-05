@@ -12,7 +12,8 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { flip } from 'svelte/animate'
-  import { slide } from 'svelte/transition'
+  import { MediaQuery } from 'svelte/reactivity'
+  import { fade, slide } from 'svelte/transition'
 
   /** The block-route-list shape (a subset of RouteListItem): enough for the picker rows. */
   type RouteCandidate = Pick<RouteListItem, 'description' | 'gradeFk' | 'id' | 'name' | 'rating' | 'tags'>
@@ -27,6 +28,9 @@
 
   const { block, candidates, onAdd }: Props = $props()
   const global = getGlobalState()
+
+  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
+  const duration = $derived(still.current ? 0 : 150)
 
   let open = $state(false)
   let query = $state('')
@@ -159,9 +163,11 @@
     </button>
   {/snippet}
 
+  <!-- `in:` only on both steps: an out-fade would keep the outgoing step in the layout while the
+       incoming one is already there, which shifts the sheet mid-swap. -->
   {#if newRouteOpen}
     <!-- Step 2: the full new-route form fills the sheet. -->
-    <form {...submit} id="topo-new-route-form" class="space-y-4">
+    <form {...submit} id="topo-new-route-form" class="space-y-4" in:fade={{ duration }}>
       <input type="hidden" name="blockId" value={block.id} />
 
       <label class="block space-y-2.5">
@@ -188,7 +194,7 @@
     <!-- ponytail: pb clears the mobile sheet's *fixed* footer (~120px); Modal's own pb-20 is too
          small. On desktop the panel footer is a normal flex row (not fixed), so no clearance needed.
          Bump if the footer grows. -->
-    <div class="space-y-2 pb-36 md:pb-0">
+    <div class="space-y-2 pb-36 md:pb-0" in:fade={{ duration }}>
       <div class="relative">
         <input
           class="input h-11 pr-10 [&::-webkit-search-cancel-button]:appearance-none"
@@ -215,7 +221,7 @@
              A cap here would truncate the list mid-panel with dead space below. -->
         <nav class="flex flex-col gap-1.5">
           {#each filtered as route (route.id)}
-            <div transition:slide={{ duration: 150 }} animate:flip={{ duration: 150 }}>
+            <div transition:slide={{ duration }} animate:flip={{ duration }}>
               <RouteRow
                 {route}
                 grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}

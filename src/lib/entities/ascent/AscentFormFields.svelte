@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import Disclosure from '$lib/components/Disclosure/Disclosure.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import MarkdownEditor from '$lib/components/MarkdownEditor/MarkdownEditor.svelte'
@@ -67,9 +68,9 @@
   // svelte-ignore state_referenced_locally
   let humidity = $state(ascent?.humidity)
 
-  // Initial state only; <details> owns its open state after that.
+  // Seeded once: an ascent that already carries conditions opens on them.
   // svelte-ignore state_referenced_locally
-  const conditionsOpen = temperature != null || humidity != null
+  let conditionsOpen = $state(temperature != null || humidity != null)
 
   // Local calendar date (what "today" means to the climber, not UTC). These two are compared for
   // equality against the date input's value and one of them is submitted, so they go through the
@@ -210,8 +211,8 @@
   {/snippet}
 </RemoteFormInputWrapper>
 
-<details class="group" open={conditionsOpen}>
-  <summary class="flex cursor-pointer list-none items-center gap-2 select-none">
+<Disclosure panelClass="mt-3 space-y-3" summaryClass="flex w-full items-center gap-2" bind:open={conditionsOpen}>
+  {#snippet summary(open)}
     <span class="text-surface-700-300 text-sm font-semibold">{m.ascents_form_conditionsLabel()}</span>
     <OptionalBadge />
     <span class="flex-1"></span>
@@ -220,38 +221,36 @@
         {formatConditions(temperature, humidity)}
       </span>
     {/if}
-    <span class="text-surface-500 transition-transform group-open:rotate-90">
+    <span class={['text-surface-500 transition-transform', open && 'rotate-90']}>
       <Icon name="chevron-right" size={14} />
     </span>
-  </summary>
+  {/snippet}
 
-  <div class="mt-3 space-y-3">
-    <!-- ponytail: the slider steps in whole °C even for imperial locales (display-only
+  <!-- ponytail: the slider steps in whole °C even for imperial locales (display-only
          conversion); a °F-native track needs a unit setting first. -->
-    <ConditionSlider
-      format={formatCelsius}
-      label={m.ascents_form_temperatureLabel()}
-      max={40}
-      min={-10}
-      name="temperature"
-      bind:value={temperature}
-    />
-    <FormHint id="ascent-temperature" issues={form.fields.temperature.issues()} />
+  <ConditionSlider
+    format={formatCelsius}
+    label={m.ascents_form_temperatureLabel()}
+    max={40}
+    min={-10}
+    name="temperature"
+    bind:value={temperature}
+  />
+  <FormHint id="ascent-temperature" issues={form.fields.temperature.issues()} />
 
-    <ConditionSlider
-      format={formatHumidity}
-      label={m.ascents_form_humidityLabel()}
-      max={100}
-      min={0}
-      name="humidity"
-      step={5}
-      bind:value={humidity}
-    />
-    <FormHint id="ascent-humidity" issues={form.fields.humidity.issues()} />
+  <ConditionSlider
+    format={formatHumidity}
+    label={m.ascents_form_humidityLabel()}
+    max={100}
+    min={0}
+    name="humidity"
+    step={5}
+    bind:value={humidity}
+  />
+  <FormHint id="ascent-humidity" issues={form.fields.humidity.issues()} />
 
-    <p class="text-surface-600-400 pt-1 text-sm">{m.ascents_form_conditionsHint()}</p>
-  </div>
-</details>
+  <p class="text-surface-600-400 pt-1 text-sm">{m.ascents_form_conditionsHint()}</p>
+</Disclosure>
 
 <RemoteFormInputWrapper
   class="space-y-2.5"
@@ -269,34 +268,35 @@
     />
 
     {#if previousNotes.length > 0}
-      <details class="group">
-        <summary
-          class="text-surface-600-400 flex cursor-pointer list-none items-center gap-1.5 text-xs font-semibold select-none"
-        >
-          <span class="transition-transform group-open:rotate-90"><Icon name="chevron-right" size={13} /></span>
+      <Disclosure
+        panelClass="mt-2 space-y-2"
+        summaryClass="text-surface-600-400 flex items-center gap-1.5 text-xs font-semibold"
+      >
+        {#snippet summary(open)}
+          <span class={['transition-transform', open && 'rotate-90']}>
+            <Icon name="chevron-right" size={13} />
+          </span>
           {m.ascents_form_previousNotes()} ({previousNotes.length})
-        </summary>
+        {/snippet}
 
-        <div class="mt-2 space-y-2">
-          {#each previousNotes as prev (prev.id)}
-            <div class="border-surface-200-800 bg-surface-50-950 space-y-2 rounded-xl border px-3.5 py-3">
-              <div class="flex items-center gap-2">
-                <AscentType status={prev.type} />
-                {#if prev.dateTime != null}
-                  <span class="text-surface-600-400 text-xs font-semibold">{dateFormat.format(prev.dateTime)}</span>
-                {/if}
-                <span class="flex-1"></span>
-                <button class="btn btn-sm preset-tonal-surface" onclick={() => insertNote(prev.notes)} type="button">
-                  {m.ascents_form_insertNote()}
-                </button>
-              </div>
-              <div class="text-sm">
-                <Markdown markdown={prev.notes} />
-              </div>
+        {#each previousNotes as prev (prev.id)}
+          <div class="border-surface-200-800 bg-surface-50-950 space-y-2 rounded-xl border px-3.5 py-3">
+            <div class="flex items-center gap-2">
+              <AscentType status={prev.type} />
+              {#if prev.dateTime != null}
+                <span class="text-surface-600-400 text-xs font-semibold">{dateFormat.format(prev.dateTime)}</span>
+              {/if}
+              <span class="flex-1"></span>
+              <button class="btn btn-sm preset-tonal-surface" onclick={() => insertNote(prev.notes)} type="button">
+                {m.ascents_form_insertNote()}
+              </button>
             </div>
-          {/each}
-        </div>
-      </details>
+            <div class="text-sm">
+              <Markdown markdown={prev.notes} />
+            </div>
+          </div>
+        {/each}
+      </Disclosure>
     {/if}
   {/snippet}
 </RemoteFormInputWrapper>

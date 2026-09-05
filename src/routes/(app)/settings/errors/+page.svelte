@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Disclosure from '$lib/components/Disclosure/Disclosure.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
@@ -55,10 +56,12 @@
     <!-- `overflow-hidden`, or a first/last summary's hover background squares off the rounded corners. -->
     <div class="divide-surface-200-800 border-surface-200-800 divide-y overflow-hidden rounded-xl border">
       {#each groups as group (group.source + group.error)}
-        <!-- Native disclosure: the stack is long, and every row needs to expand independently.
-             `display:flex` on a summary drops the native marker, hence `list-none` and a chevron. -->
-        <details class="group">
-          <summary class="hover:bg-surface-100-900 flex cursor-pointer list-none items-center gap-3 p-4 select-none">
+        <!-- The stack is long, so every row expands independently. -->
+        <Disclosure
+          panelClass="space-y-2 px-4 pb-4"
+          summaryClass="hover:bg-surface-100-900 flex w-full items-center gap-3 p-4"
+        >
+          {#snippet summary(open)}
             <span class="badge preset-tonal-error flex-none">{group.count}×</span>
 
             <span class="min-w-0 flex-1">
@@ -68,19 +71,17 @@
               </span>
             </span>
 
-            <span class="text-surface-500 flex-none transition-transform group-open:rotate-180">
+            <span class={['text-surface-500 flex-none transition-transform', open && 'rotate-180']}>
               <Icon name="chevron-down" size={18} />
             </span>
-          </summary>
+          {/snippet}
 
-          <div class="space-y-2 px-4 pb-4">
-            {#if group.paths.length > 0}
-              <p class="text-surface-600-400 text-xs">{group.paths.join(', ')}</p>
-            {/if}
+          {#if group.paths.length > 0}
+            <p class="text-surface-600-400 text-xs">{group.paths.join(', ')}</p>
+          {/if}
 
-            <pre class="bg-surface-100-900 overflow-x-auto rounded-lg p-3 text-xs">{body(group.error)}</pre>
-          </div>
-        </details>
+          <pre class="bg-surface-100-900 overflow-x-auto rounded-lg p-3 text-xs">{body(group.error)}</pre>
+        </Disclosure>
       {/each}
     </div>
   {/if}
