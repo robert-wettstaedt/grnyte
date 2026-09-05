@@ -3,21 +3,31 @@
   import { m } from '$lib/paraglide/messages'
   import { Portal } from '@skeletonlabs/skeleton-svelte'
   import { BottomSheet } from 'svelte-bottom-sheet'
-  import type { Props } from './types'
+  import type { MobileProps } from './types'
 
   let {
     backdrop = false,
     children,
+    depth = 0,
     fill = false,
     footer,
     headerLeft,
     headerRight,
-    nested = false,
     open = $bindable(),
     snapPoints = [0.5],
     subtitle,
     title,
-  }: Props = $props()
+  }: MobileProps = $props()
+
+  /**
+   * The scrim's z-index, its sheet one above, ten per level of `depth`.
+   *
+   * Inline rather than a class per tier, because the depth is not bounded: a sheet opens the
+   * activity log, which opens a comment thread, which opens the list of who reacted. The base
+   * clears the map's persistent area panel (z-50). Only sheets with a scrim are raised; without
+   * one there is nothing to cover and the library's own z-index is right.
+   */
+  const scrim = $derived(60 + depth * 10)
 
   /** Whether the press that is about to become a click went down on the scrim itself. */
   let pressedOnOverlay = $state(false)
@@ -122,9 +132,8 @@
 
 {#snippet content()}
   <BottomSheet.Sheet
-    class="preset-filled-surface-50-950! keyboard-aware modal-sheet {backdrop ? 'modal-elevated' : ''} {nested
-      ? 'modal-elevated-nested'
-      : ''}"
+    class="preset-filled-surface-50-950! keyboard-aware modal-sheet"
+    style={backdrop ? `z-index: ${scrim + 1}` : ''}
   >
     <div
       class="preset-filled-surface-50-950 border-surface-100-900 flex shrink-0 items-center justify-between border-b-2 px-4 py-2"
@@ -199,7 +208,8 @@
            closing a comment thread. The library itself has no outside-click close at all; this
            handler is the only one, so this is where the guard belongs. -->
       <BottomSheet.Overlay
-        class={nested ? 'modal-overlay modal-overlay-nested' : 'modal-overlay'}
+        class="modal-overlay"
+        style="z-index: {scrim}"
         onclick={(event) => {
           event.stopPropagation()
 
@@ -258,25 +268,10 @@
     overflow-y: auto;
   }
 
-  /* Backdrop-only: sit the sheet + scrim above the map's persistent area panel (z-50). */
-  :global(.bottom-sheet.modal-elevated) {
-    z-index: 61 !important;
-  }
-
+  /* Blur what's behind the scrim so the sheet is the only thing in focus. The z-index that
+     decides what "behind" means is inline, off `scrim` above. */
   :global(.bottom-sheet-overlay.modal-overlay) {
-    z-index: 60 !important;
-    /* Blur what's behind the scrim so the sheet is the only thing in focus. */
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-  }
-
-  /* A sheet opened on top of another sheet (e.g. add-route over the routes list) must clear
-     the underlying sheet (z-61) so it fully covers it instead of letting it peek through. */
-  :global(.bottom-sheet.modal-elevated-nested) {
-    z-index: 71 !important;
-  }
-
-  :global(.bottom-sheet-overlay.modal-overlay-nested) {
-    z-index: 70 !important;
   }
 </style>

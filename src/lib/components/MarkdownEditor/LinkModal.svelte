@@ -54,16 +54,11 @@
 
      On desktop the default branch is a popover hung off its trigger, which for a composer at the
      bottom of a sheet meant a form pinned to the bottom-left corner of the screen. On a phone the
-     sheet it is opened from is itself a portaled sheet, so without `nested` this one renders
-     UNDER it: the reader taps the link button and nothing appears to happen. `nested` is the
-     z-index tier `Modal.mobile` keeps for exactly this, a sheet over a sheet.
-
-     The editor also lives on ordinary form pages, where there is no sheet under it. `nested` is
-     harmless there: it raises this above other sheets, and there are none. -->
+     comment composer sits in a sheet, so this one opens over it; the editor also lives on ordinary
+     form pages, where nothing is under it. Modal stacks itself for both. -->
 <Modal
   backdrop
   contentClass="w-full max-w-sm"
-  nested
   bind:open
   panel
   panelClass="fixed inset-0 z-70 flex items-center justify-center p-4"

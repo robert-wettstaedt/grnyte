@@ -2,6 +2,11 @@ import type { PopoverRootProps } from '@skeletonlabs/skeleton-svelte'
 import type { Snippet } from 'svelte'
 import type { SvelteHTMLElements } from 'svelte/elements'
 
+export interface MobileProps extends Props {
+  /** Stack level, resolved by `Modal.svelte` from the sheets around it. Never a caller's to pass. */
+  depth?: number
+}
+
 export interface Props {
   /** Render a blurred, tap-to-dismiss scrim behind the modal. On mobile it backs the
    *  sheet; on a desktop `panel` it also makes the dialog modal (focus trap + outside close). */
@@ -20,8 +25,6 @@ export interface Props {
   footer?: Snippet
   headerLeft?: Snippet
   headerRight?: Snippet
-  /** This sheet opens on top of another open sheet: raise its z-index so the one below is fully covered. Mobile only. */
-  nested?: boolean
   open?: boolean
   /**
    * Desktop only: render as a fixed positioned panel (a non-modal Dialog) instead

@@ -138,13 +138,12 @@
 {/snippet}
 
 <!-- Desktop: overlay the routes panel exactly (same position/size, one z above) so it fully
-     covers it instead of floating beside it. Mobile: a `nested` sheet that covers the routes
-     sheet. Either way only one surface is ever visible. -->
+     covers it instead of floating beside it. Mobile: opened from inside the routes sheet, so Modal
+     stacks it over that one. Either way only one surface is ever visible. -->
 <Modal
   bind:open
   title={newRouteOpen ? m.topo_newRoute() : m.topo_addRouteToPhoto()}
   backdrop
-  nested
   panel
   panelClass="fixed inset-y-0 right-0 z-50"
   contentClass="h-full w-94 rounded-none border-y-0 border-r-0 lg:w-105"
