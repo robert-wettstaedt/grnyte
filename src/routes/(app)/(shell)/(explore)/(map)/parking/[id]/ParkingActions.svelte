@@ -29,7 +29,7 @@
     withUndo(deleteParking({ id: parking.id }), { message: m.parking_deleted(), onUndo: restoreParking })
 </script>
 
-<div class="space-y-2">
+<div>
   <LocationMeta distance={location.distance} isHere={location.isHere} pin="set" />
 
   <ActionBar>

@@ -66,7 +66,7 @@
     })
 </script>
 
-<div class="space-y-2">
+<div>
   <!-- Only a crag has a location of its own; a sub-area has nothing to say here. -->
   {#if area.type === 'crag'}
     <LocationMeta

@@ -65,7 +65,7 @@
   parameters={{ globalState: { user: USER, userRegions: MAINTAINER } }}
 />
 
-<!-- Still syncing: the line holds its height and stays blank rather than claiming a missing pin. -->
+<!-- Still syncing: no line at all, rather than a missing-pin claim that corrects itself a beat later. -->
 <Story name="Block loading" args={{ block: undefined, location: { distance: undefined, isHere: false } }} />
 
 <!-- Saved, and standing at the block. -->

@@ -32,7 +32,7 @@
 <!-- Deleting a parking pin needs region delete, so only then does the menu appear. -->
 <Story name="Admin" parameters={{ globalState: { user: USER, userRegions: ADMIN } }} />
 
-<!-- No fix yet: the line holds its height so the row below does not jump when GPS settles. -->
+<!-- No fix yet, or location denied: no line at all, and it slides in if one ever arrives. -->
 <Story name="Locating" args={{ location: { distance: undefined, isHere: false } }} />
 
 <!-- 328px, the content box of a 360px phone. -->

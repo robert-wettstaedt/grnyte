@@ -62,7 +62,7 @@
     })
 </script>
 
-<div class="space-y-2">
+<div>
   <LocationMeta distance={location.distance} href={repairHref} isHere={location.isHere} {pin} />
 
   <ActionBar>
