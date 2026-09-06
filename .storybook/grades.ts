@@ -1,16 +1,21 @@
 import type { Grade } from '../src/lib/entities/grade/dto'
 
 /**
- * The seeded Font/V grade table (5A … 9A), ids 0–21 — mirrors production, so anything
+ * The seeded Font/V grade table (3 … 9A+), ids 0–24 — mirrors production, so anything
  * rendering a grade in Storybook picks up the same labels and 4-tier colours as the
  * live app. Shared by the preview decorator's global state and the stories that take
  * grades as a prop.
+ *
+ * V labels repeat where Font is finer than V (6A/6A+ are both V3). That is correct, not a
+ * typo: see the `grades` invariant in schema.ts.
  */
 export const GRADES: Grade[] = (
   [
-    ['5A', 'V1'],
-    ['5B', 'V1'],
-    ['5C', 'V2'],
+    ['3', 'VB'],
+    ['4', 'V0'],
+    ['4+', 'V0+'],
+    ['5', 'V1'],
+    ['5+', 'V2'],
     ['6A', 'V3'],
     ['6A+', 'V3'],
     ['6B', 'V4'],
@@ -30,6 +35,7 @@ export const GRADES: Grade[] = (
     ['8C', 'V15'],
     ['8C+', 'V16'],
     ['9A', 'V17'],
+    ['9A+', 'V18'],
   ] as const
 ).map(([FB, V], id) => ({ FB: `FB ${FB}`, id, V }))
 
@@ -41,27 +47,27 @@ export const GRADES: Grade[] = (
 
 /** A typical crag: bulk in the easy tier (6A–7A), tapering into medium, a couple hard. */
 export const TYPICAL_COUNTS = new Map<number, number>([
-  [2, 1],
-  [3, 4],
-  [4, 6],
-  [5, 8],
-  [6, 7],
-  [7, 9],
-  [8, 6],
-  [9, 5],
-  [10, 4],
-  [11, 3],
-  [12, 2],
-  [13, 1],
+  [4, 1],
+  [5, 4],
+  [6, 6],
+  [7, 8],
+  [8, 7],
+  [9, 9],
+  [10, 6],
+  [11, 5],
+  [12, 4],
+  [13, 3],
+  [14, 2],
   [15, 1],
+  [17, 1],
 ])
 
 /** One bucket per difficulty tier: very easy, easy, medium, hard, so all four colours show. */
 export const TIER_COUNTS = new Map<number, number>([
-  [1, 6],
-  [5, 14],
-  [12, 5],
-  [17, 2],
+  [3, 6],
+  [7, 14],
+  [14, 5],
+  [19, 2],
 ])
 
 /** What the charts label as the total: every graded route, before any ungraded tail. */

@@ -51,7 +51,7 @@ function topoView(id = 700): ReadonlyMap<number, TopoView> {
   })
 
   return new Map([
-    [id, { id, imageHeight: 900, imagePath: 'topo.jpg', imageWidth: 1200, lines: [line(501, 3), line(502, 18)] }],
+    [id, { id, imageHeight: 900, imagePath: 'topo.jpg', imageWidth: 1200, lines: [line(501, 5), line(502, 18)] }],
   ])
 }
 

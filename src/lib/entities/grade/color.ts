@@ -24,24 +24,27 @@ export type GradeBand = 1 | 2 | 3 | 4
 
 /**
  * Buckets a grade into a 1–4 difficulty tier by its ordinal id, following the
- * common Font/V categories: very easy ≤5C (V0–2), easy 6A–7A (V3–6),
- * medium 7A+–7C+ (V7–10), hard ≥8A (V11+). Absolute by design: a 5C reads
+ * common Font/V categories: very easy ≤5+ (VB–V2), easy 6A–7A (V3–6),
+ * medium 7A+–7C+ (V7–10), hard ≥8A (V11+). Absolute by design: a 5+ reads
  * "very easy" everywhere, regardless of what else a crag holds. Returns
  * `undefined` for an ungraded route, so callers render the neutral colour.
- * ponytail: thresholds are the seeded grade ids (0 = 5A … 21 = 9A); if the
- * grades table is ever reindexed, bucket by the stored V number instead.
+ *
+ * The thresholds ARE grade ids (0 = FB 3 … 24 = FB 9A+), which is sound only
+ * because the ladder is contiguous and ordered easy → hard. That invariant and
+ * these four numbers are pinned together in `grades.test.ts`; a grade inserted
+ * anywhere but the end breaks both.
  */
 export const getGradeBand = (gradeFk: null | number | undefined): GradeBand | undefined => {
   if (gradeFk == null) {
     return undefined
   }
-  if (gradeFk <= 2) {
+  if (gradeFk <= 4) {
     return 1
   }
-  if (gradeFk <= 9) {
+  if (gradeFk <= 11) {
     return 2
   }
-  if (gradeFk <= 14) {
+  if (gradeFk <= 16) {
     return 3
   }
   return 4

@@ -500,12 +500,23 @@ export const regionInvitationsRelations = relations(regionInvitations, ({ one })
   region: one(regions, { fields: [regionInvitations.regionFk], references: [regions.id] }),
 }))
 
+/**
+ * Font-shaped difficulty ladder. `V` repeats where Font is finer (6A and 6A+ are both V3).
+ *
+ * INVARIANT (`grades.test.ts`): `id` IS the ordinal, contiguous 0..n-1, easy → hard. Appending
+ * at the end is free; inserting elsewhere means renumbering `routes.grade_fk`,
+ * `routes.user_grade_fk`, `ascents.grade_fk` and `old_value`/`new_value` in `changes` and
+ * `activities`.
+ */
 export const grades = table(
   'grades',
   {
     FB: text('FB'),
 
     id: baseFields.id,
+    /** IRCRA Reporting Scale (Draper et al. 2016), export only. Not unique, and 9A/9A+ are
+     *  extrapolated past its published top of 8C+ = 32. */
+    ircra: integer('ircra'),
     V: text('V'),
   },
   () => [policy('authenticated users can read grades', getPolicyConfig('select', sql`true`))],
