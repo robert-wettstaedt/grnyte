@@ -62,3 +62,35 @@ export const formatConditions = (temperature: number | undefined, humidity: numb
   [temperature == null ? null : formatCelsius(temperature), humidity == null ? null : formatHumidity(humidity)]
     .filter(Boolean)
     .join(' · ')
+
+/** A number in a unit it is ALREADY in, localized but never converted. */
+const formatUnit = (value: number, unit: 'celsius' | 'fahrenheit'): string =>
+  new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 0, style: 'unit', unit }).format(value)
+
+export const celsiusToFahrenheit = (celsius: number): number => celsius * 1.8 + 32
+export const fahrenheitToCelsius = (fahrenheit: number): number => (fahrenheit - 32) / 1.8
+
+/**
+ * The temperature input's domain in the reader's unit; the column stores whole Celsius either way,
+ * so a Fahrenheit value can come back a degree off (60 °F stores as 16 °C and reads back as 61 °F).
+ */
+export const temperatureField = (): {
+  format: (shown: number) => string
+  fromInput?: (shown: number) => number
+  max: number
+  min: number
+  step: number
+  toInput?: (stored: number) => number
+  unit: string
+} =>
+  isImperialLocale()
+    ? {
+        format: (fahrenheit) => formatUnit(fahrenheit, 'fahrenheit'),
+        fromInput: fahrenheitToCelsius,
+        max: 104,
+        min: 14,
+        step: 5,
+        toInput: celsiusToFahrenheit,
+        unit: '°F',
+      }
+    : { format: (celsius) => formatUnit(celsius, 'celsius'), max: 40, min: -10, step: 2, unit: '°C' }

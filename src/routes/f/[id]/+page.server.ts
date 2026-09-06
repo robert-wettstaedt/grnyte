@@ -116,7 +116,7 @@ export const load = (async ({ locals, params }) => {
           },
   }
 
-  const grades = (await db.query.grades.findMany()).map(toGrade)
+  const grades = (await db.query.grades.findMany({ orderBy: (g, { asc }) => asc(g.id) })).map(toGrade)
   // The viewer's own scale wins; for an anon visitor (no setting) fall back to the file
   // creator's scale before the FB default, so the caption reads in the author's system.
   const gradingScale = locals.user?.userSettings?.gradingScale ?? row.author?.userSettings?.gradingScale ?? 'FB'

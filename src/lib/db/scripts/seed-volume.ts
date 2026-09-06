@@ -35,7 +35,7 @@ const BLOCKS_PER_CRAG = num('BLOCKS_PER_CRAG', 5)
 const ROUTES_PER_BLOCK = num('ROUTES_PER_BLOCK', 20)
 const WITH_MEDIA = (process.env.WITH_MEDIA ?? 'true') !== 'false'
 const REGION_NAME = process.env.REGION_NAME ?? 'Volume Test'
-const MAX_GRADE = 21 // grades 0..21, see seed-refdata.sql
+const MAX_GRADE = 24 // grades 0..24, seeded by drizzle/0127_yummy_whirlwind.sql
 
 // Deterministic PRNG (mulberry32) so a given SEED reproduces the same tree.
 let state = num('SEED', 42) >>> 0

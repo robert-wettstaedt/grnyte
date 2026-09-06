@@ -20,9 +20,7 @@ interface GradeRow {
   V: string
 }
 
-const rows = reachable
-  ? await sql<GradeRow[]>`select id, "FB", "V", ircra from grades order by id`
-  : []
+const rows = reachable ? await sql<GradeRow[]>`select id, "FB", "V", ircra from grades order by id` : []
 
 describe.skipIf(!reachable)('the grade ladder', () => {
   afterAll(async () => {

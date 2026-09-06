@@ -1,3 +1,16 @@
+-- Every step below assumes the legacy 22-row ladder (ids 0..21) or an empty table. Anything else
+-- renumbers rows onto ids the relabel does not cover, so stop the deploy instead.
+DO $$
+DECLARE
+  rows integer;
+  top  integer;
+BEGIN
+  SELECT count(*), coalesce(max("id"), 21) INTO rows, top FROM "grades";
+  IF rows NOT IN (0, 22) OR (rows = 22 AND top <> 21) THEN
+    RAISE EXCEPTION 'grades is not the expected 0..21 ladder (% rows, max id %)', rows, top;
+  END IF;
+END $$;--> statement-breakpoint
+
 ALTER TABLE "grades" ADD COLUMN "ircra" integer;--> statement-breakpoint
 
 -- The ladder gains its real low end and 9A+, and loses three grades that never existed.
@@ -32,14 +45,14 @@ UPDATE "routes" SET "user_grade_fk" = CASE WHEN "user_grade_fk" = 0 THEN 3 ELSE 
 UPDATE "ascents" SET "grade_fk" = CASE WHEN "grade_fk" = 0 THEN 3 ELSE "grade_fk" + 2 END
   WHERE "grade_fk" IS NOT NULL;--> statement-breakpoint
 
-UPDATE "changes" SET "old_value" = (CASE WHEN "old_value" = '1' THEN 3 WHEN "old_value" = '0' THEN 3 ELSE "old_value"::int + 2 END)::text
-  WHERE "column_name" IN ('gradeFk', 'userGradeFk') AND "old_value" ~ '^[0-9]+$';--> statement-breakpoint
-UPDATE "changes" SET "new_value" = (CASE WHEN "new_value" = '1' THEN 3 WHEN "new_value" = '0' THEN 3 ELSE "new_value"::int + 2 END)::text
-  WHERE "column_name" IN ('gradeFk', 'userGradeFk') AND "new_value" ~ '^[0-9]+$';--> statement-breakpoint
-UPDATE "activities" SET "old_value" = (CASE WHEN "old_value" = '1' THEN 3 WHEN "old_value" = '0' THEN 3 ELSE "old_value"::int + 2 END)::text
-  WHERE "column_name" IN ('gradeFk', 'userGradeFk') AND "old_value" ~ '^[0-9]+$';--> statement-breakpoint
-UPDATE "activities" SET "new_value" = (CASE WHEN "new_value" = '1' THEN 3 WHEN "new_value" = '0' THEN 3 ELSE "new_value"::int + 2 END)::text
-  WHERE "column_name" IN ('gradeFk', 'userGradeFk') AND "new_value" ~ '^[0-9]+$';--> statement-breakpoint
+UPDATE "changes" SET "old_value" = (CASE WHEN btrim("old_value", E' \t\n\r')::int IN (0, 1) THEN 3 ELSE btrim("old_value", E' \t\n\r')::int + 2 END)::text
+  WHERE "column_name" IN ('gradeFk', 'userGradeFk') AND btrim("old_value", E' \t\n\r') ~ '^[0-9]+$';--> statement-breakpoint
+UPDATE "changes" SET "new_value" = (CASE WHEN btrim("new_value", E' \t\n\r')::int IN (0, 1) THEN 3 ELSE btrim("new_value", E' \t\n\r')::int + 2 END)::text
+  WHERE "column_name" IN ('gradeFk', 'userGradeFk') AND btrim("new_value", E' \t\n\r') ~ '^[0-9]+$';--> statement-breakpoint
+UPDATE "activities" SET "old_value" = (CASE WHEN btrim("old_value", E' \t\n\r')::int IN (0, 1) THEN 3 ELSE btrim("old_value", E' \t\n\r')::int + 2 END)::text
+  WHERE "column_name" IN ('gradeFk', 'userGradeFk') AND btrim("old_value", E' \t\n\r') ~ '^[0-9]+$';--> statement-breakpoint
+UPDATE "activities" SET "new_value" = (CASE WHEN btrim("new_value", E' \t\n\r')::int IN (0, 1) THEN 3 ELSE btrim("new_value", E' \t\n\r')::int + 2 END)::text
+  WHERE "column_name" IN ('gradeFk', 'userGradeFk') AND btrim("new_value", E' \t\n\r') ~ '^[0-9]+$';--> statement-breakpoint
 
 -- 3. Renumber the grades themselves, out through 1000+ so source and target ranges never
 --    overlap. A single `id = id + 2` would collide on the primary key mid-statement.
@@ -74,14 +87,60 @@ FROM (VALUES
 ) AS v(id, fb, v, ircra)
 WHERE g."id" = v.id;--> statement-breakpoint
 
--- 5. The grades the ladder never offered. IRCRA 30 carries no boulder grade and 33/34 are
---    extrapolated: its published table stops at 8C+ = 32.
+-- 5. The whole ladder as data (IRCRA 30 carries no boulder grade, 33/34 are extrapolated). All 25
+--    rows, so a from-empty database gets a seed; ON CONFLICT discards them on a populated one.
 INSERT INTO "grades" ("id", "FB", "V", "ircra") VALUES
   (0,  'FB 3',   'VB',  11),
   (1,  'FB 4',   'V0',  12),
   (2,  'FB 4+',  'V0+', 13),
-  (24, 'FB 9A+', 'V18', 34);--> statement-breakpoint
+  (3,  'FB 5',   'V1',  14),
+  (4,  'FB 5+',  'V2',  15),
+  (5,  'FB 6A',  'V3',  16),
+  (6,  'FB 6A+', 'V3',  17),
+  (7,  'FB 6B',  'V4',  17),
+  (8,  'FB 6B+', 'V4',  18),
+  (9,  'FB 6C',  'V5',  19),
+  (10, 'FB 6C+', 'V5',  20),
+  (11, 'FB 7A',  'V6',  20),
+  (12, 'FB 7A+', 'V7',  21),
+  (13, 'FB 7B',  'V8',  22),
+  (14, 'FB 7B+', 'V8',  23),
+  (15, 'FB 7C',  'V9',  24),
+  (16, 'FB 7C+', 'V10', 25),
+  (17, 'FB 8A',  'V11', 26),
+  (18, 'FB 8A+', 'V12', 27),
+  (19, 'FB 8B',  'V13', 28),
+  (20, 'FB 8B+', 'V14', 29),
+  (21, 'FB 8C',  'V15', 31),
+  (22, 'FB 8C+', 'V16', 32),
+  (23, 'FB 9A',  'V17', 33),
+  (24, 'FB 9A+', 'V18', 34)
+ON CONFLICT ("id") DO NOTHING;--> statement-breakpoint
 SELECT setval('grades_id_seq', (SELECT max("id") FROM "grades"));--> statement-breakpoint
+
+-- 6. The merge in step 1 turned regrades between 5A and 5B into 3 -> 3, which is not a change.
+--    Scoped to '3' = '3' only, so a pre-existing genuine undo survives; `activities` stays untouched.
+--    PRESERVE ROWS, not ON COMMIT DROP, since RESTORE.md hand-applies migration files with `psql -f`.
+CREATE TEMP TABLE "_grade_noop_events" ON COMMIT PRESERVE ROWS AS
+SELECT DISTINCT "event_fk" AS id FROM "changes"
+WHERE "column_name" IN ('gradeFk', 'userGradeFk')
+  AND btrim("old_value", E' \t\n\r') = '3'
+  AND btrim("new_value", E' \t\n\r') = '3';--> statement-breakpoint
+
+DELETE FROM "changes"
+WHERE "column_name" IN ('gradeFk', 'userGradeFk')
+  AND btrim("old_value", E' \t\n\r') = '3'
+  AND btrim("new_value", E' \t\n\r') = '3';--> statement-breakpoint
+
+-- An update with no changes left is not an event, but only the ones emptied above and never one
+-- with reactions: `events.id` cascades to notifications and live comment threads.
+DELETE FROM "events" e
+USING "_grade_noop_events" t
+WHERE e."id" = t.id
+  AND e."verb" = 'update'
+  AND NOT EXISTS (SELECT 1 FROM "changes" c WHERE c."event_fk" = e."id")
+  AND NOT EXISTS (SELECT 1 FROM "reactions" r WHERE r."event_fk" = e."id" AND r."deleted_at" IS NULL);--> statement-breakpoint
+DROP TABLE "_grade_noop_events";--> statement-breakpoint
 
 ALTER TABLE "routes" ADD CONSTRAINT "routes_grade_fk_grades_id_fk" FOREIGN KEY ("grade_fk") REFERENCES "public"."grades"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "routes" ADD CONSTRAINT "routes_user_grade_fk_grades_id_fk" FOREIGN KEY ("user_grade_fk") REFERENCES "public"."grades"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

@@ -11,7 +11,7 @@
   import type { BlockDetail } from '$lib/entities/block/dto'
   import type { MediaUpload } from '$lib/entities/file/upload-manager.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
-  import GradeSlider from '$lib/entities/grade/GradeSlider.svelte'
+  import GradePicker from '$lib/entities/grade/GradePicker.svelte'
   import { gradeLabel } from '$lib/entities/grade/label'
   import type { RouteDetail } from '$lib/entities/route/dto'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
@@ -20,7 +20,7 @@
   import OptionalBadge from '$lib/forms/OptionalBadge.svelte'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import { localIsoDay } from '$lib/i18n/relativeTime'
-  import { formatCelsius, formatConditions, formatHumidity } from '$lib/i18n/units.svelte'
+  import { formatConditions, formatHumidity, temperatureField } from '$lib/i18n/units.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -28,15 +28,15 @@
   import type { AscentFormInput } from './ascents.remote'
   import AscentType from './AscentType.svelte'
   import AscentTypeInput from './AscentTypeInput.svelte'
-  import ConditionSlider from './ConditionSlider.svelte'
+  import ConditionPicker from './ConditionPicker.svelte'
   import type { AscentDetail } from './dto'
   import { routeAscentList } from './resources.svelte'
 
   // Shared body for the add/edit ascent forms. Field order follows the moment of
   // logging: the judgment cluster while it's fresh (type, grade, rating), then the
   // confirm-only date, low-priority conditions collapsed, free text, attachments.
-  // The custom inputs are self-sufficient (they render their own hidden inputs),
-  // same as the route form. Mirrors RouteFormFields.
+  // Most custom inputs render their own hidden inputs; the two conditions are the exception,
+  // submitted from outside the disclosure that can unmount them. Mirrors RouteFormFields.
   interface Props {
     /** When editing: the ascent, to seed the non-text fields once on mount. */
     ascent?: AscentDetail
@@ -102,6 +102,9 @@
       .sort((a, b) => (b.dateTime ?? 0) - (a.dateTime ?? 0)),
   )
 
+  // Reactive, so switching the unit setting mid-session re-renders the field in the other system.
+  const tempField = $derived(temperatureField())
+
   const dateFormat = new Intl.DateTimeFormat(getLocale(), { dateStyle: 'medium' })
 
   // Append rather than replace, so an insert can never clobber typed text. The
@@ -160,7 +163,7 @@
   id="ascent-grade"
   label={m.ascents_form_gradeLabel()}
 >
-  <GradeSlider grades={global.grades} gradingScale={global.gradingScale} name="gradeFk" bind:value={gradeFk} />
+  <GradePicker grades={global.grades} gradingScale={global.gradingScale} name="gradeFk" bind:value={gradeFk} />
 </RemoteFormInputWrapper>
 
 <RemoteFormInputWrapper
@@ -211,6 +214,11 @@
   {/snippet}
 </RemoteFormInputWrapper>
 
+<!-- Outside the disclosure: collapsing it unmounts the panel, and a hidden input in there would
+     stop submitting, clearing both columns on save. -->
+<input name="temperature" type="hidden" value={temperature ?? ''} />
+<input name="humidity" type="hidden" value={humidity ?? ''} />
+
 <Disclosure panelClass="mt-3 space-y-3" summaryClass="flex w-full items-center gap-2" bind:open={conditionsOpen}>
   {#snippet summary(open)}
     <span class="text-surface-700-300 text-sm font-semibold">{m.ascents_form_conditionsLabel()}</span>
@@ -226,25 +234,17 @@
     </span>
   {/snippet}
 
-  <!-- ponytail: the slider steps in whole °C even for imperial locales (display-only
-         conversion); a °F-native track needs a unit setting first. -->
-  <ConditionSlider
-    format={formatCelsius}
-    label={m.ascents_form_temperatureLabel()}
-    max={40}
-    min={-10}
-    name="temperature"
-    bind:value={temperature}
-  />
+  <!-- Range, step and unit follow the reader's unit system; the column still stores Celsius. -->
+  <ConditionPicker label={m.ascents_form_temperatureLabel()} {...tempField} bind:value={temperature} />
   <FormHint id="ascent-temperature" issues={form.fields.temperature.issues()} />
 
-  <ConditionSlider
+  <ConditionPicker
     format={formatHumidity}
     label={m.ascents_form_humidityLabel()}
     max={100}
     min={0}
-    name="humidity"
     step={5}
+    unit="%"
     bind:value={humidity}
   />
   <FormHint id="ascent-humidity" issues={form.fields.humidity.issues()} />

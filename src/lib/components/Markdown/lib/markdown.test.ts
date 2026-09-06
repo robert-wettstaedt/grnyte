@@ -234,6 +234,30 @@ describe('Markdown grade badges', () => {
     expect(html).toContain('>7A+</span>')
   })
 
+  // The ladder's easy end is bare numbers, which are also ordinary words: stripping the scale off
+  // "FB 4+" would badge every "4+ Stunden" ever written.
+  it('does not strip the scale off a number-only grade', () => {
+    const grades = [{ FB: 'FB 4+', id: 0, V: 'V0+' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('Der Block ist 5 m hoch, Zustieg 4+ Stunden.', grades)
+
+    expect(html).not.toContain('badge')
+    expect(html).toContain('4+ Stunden')
+  })
+
+  it('still badges a number-only grade written with its scale', () => {
+    const grades = [{ FB: 'FB 4+', id: 0, V: 'V0+' }] as Grade[]
+
+    expect(convertMarkdownToHtmlSync('Warmup FB 4+ dann los', grades)).toContain('<span class="badge')
+    expect(convertMarkdownToHtmlSync('Warmup V0+ dann los', grades)).toContain('<span class="badge')
+  })
+
+  it('still strips the scale off a lettered grade', () => {
+    const grades = [{ FB: 'FB 7A+', id: 0, V: 'V7' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('Try 7A+ today', grades)
+
+    expect(html).toContain('<span class="badge')
+  })
+
   it('matches when surrounded by punctuation', () => {
     const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
     const html = convertMarkdownToHtmlSync('do (7A+), ok.', grades)

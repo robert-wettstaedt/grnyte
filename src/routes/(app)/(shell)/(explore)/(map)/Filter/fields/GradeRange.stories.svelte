@@ -21,4 +21,4 @@
 <Story name="Narrow selection" args={{ value: [5, 9] }} />
 
 <!-- V-scale labels, whole range selected. -->
-<Story name="V scale" args={{ gradingScale: 'V', value: [0, 21] }} />
+<Story name="V scale" args={{ gradingScale: 'V', value: [0, 24] }} />

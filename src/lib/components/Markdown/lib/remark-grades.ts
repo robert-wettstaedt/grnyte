@@ -73,7 +73,13 @@ export const remarkGrades: Plugin<[RemarkGradesOptions?], Root> = ({ grades } = 
         const replaceFB = replaceWithGrade(fb, grade)
         pushToken(fb, replaceFB)
         pushToken(fb.replaceAll(/\s/g, ''), replaceFB)
-        pushToken(fb.split(/\s+/).at(1) ?? '', replaceFB)
+
+        // Strip the scale only if a letter survives: a bare "4+" or "5" would badge prose
+        // like "4+ Stunden".
+        const short = fb.split(/\s+/).at(1) ?? ''
+        if (/\p{L}/u.test(short)) {
+          pushToken(short, replaceFB)
+        }
       }
 
       if (grade.V != null) {

@@ -3,7 +3,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
-  import GradeSlider from '$lib/entities/grade/GradeSlider.svelte'
+  import GradePicker from '$lib/entities/grade/GradePicker.svelte'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { regionTags } from '$lib/entities/region/tagVocabulary'
   import type { RouteListItem } from '$lib/entities/route/dto'
@@ -181,7 +181,7 @@
 
       <div class="space-y-2.5">
         <span class="text-surface-700-300 block text-sm font-semibold">{m.routes_form_gradeLabel()}</span>
-        <GradeSlider grades={global.grades} gradingScale={global.gradingScale} name="gradeFk" bind:value={gradeFk} />
+        <GradePicker grades={global.grades} gradingScale={global.gradingScale} name="gradeFk" bind:value={gradeFk} />
       </div>
 
       <div class="space-y-2.5">

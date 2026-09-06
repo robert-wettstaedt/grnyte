@@ -405,7 +405,7 @@ export const ASCENT_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'ONE card, still "You flashed Rampe", refloated to the time of the correction. NO change line: the row exists in the database, but a create is one catalogue row whatever it carries, so the card never expands it. The corrected grade shows only as "Opinion 7A" under the route row, read off the ascent as it stands now, which is why the label has to say whose grade that is: the row beside it carries the community one.',
+      'ONE card, still "You flashed Rampe", refloated to the time of the correction. NO change line: the row exists in the database, but a create is one catalogue row whatever it carries, so the card never expands it. The corrected grade shows only as "Opinion 7B" under the route row, read off the ascent as it stands now, which is why the label has to say whose grade that is: the row beside it carries the community one.',
     id: 'ASCENT-02n',
     writer: 'ascents.remote.ts:117',
   },
