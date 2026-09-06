@@ -140,7 +140,7 @@ async function advanceWatermark(userFk: number, createdAt: Date): Promise<void> 
   await db
     .update(userSettings)
     .set({
-      pushedUpToEventAt: sql`greatest(coalesce(${userSettings.pushedUpToEventAt}, to_timestamp(0)), ${createdAt})`,
+      pushedUpToEventAt: sql`greatest(coalesce(${userSettings.pushedUpToEventAt}, to_timestamp(0)), ${createdAt.toISOString()}::timestamptz)`,
     })
     .where(eq(userSettings.userFk, userFk))
 }
