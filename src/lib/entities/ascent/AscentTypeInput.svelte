@@ -19,14 +19,14 @@
   <input {name} type="hidden" value={value ?? ''} />
 {/if}
 
-<div class="grid grid-cols-4 gap-2" role="radiogroup" aria-label={m.ascents_form_typeLabel()}>
+<div class="grid grid-cols-4 gap-1" role="radiogroup" aria-label={m.ascents_form_typeLabel()}>
   {#each ASCENT_TYPES as { label, type } (type)}
     {@const info = STATUS[type]}
     {@const active = value === type}
     <button
       aria-checked={active}
       class={[
-        'flex flex-col items-center justify-center gap-1.5 rounded-xl border px-1 py-3 text-xs font-bold',
+        'flex flex-col items-center justify-center gap-1.5 rounded-xl border px-0.5 py-3 text-center text-[10.5px] font-bold tracking-tight wrap-break-word hyphens-auto',
         !active && 'border-surface-300-700 bg-surface-100-900 hover:bg-surface-200-800',
       ]}
       style={active
