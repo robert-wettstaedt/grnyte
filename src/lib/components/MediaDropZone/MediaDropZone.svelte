@@ -204,10 +204,7 @@
   }
 
   const fileUpload = useFileUpload(() => ({
-    accept: [
-      ...(accept.includes('image') ? ['image/*', '.heic', '.heif'] : []),
-      ...(accept.includes('video') ? ['video/*'] : []),
-    ],
+    accept: [...(accept.includes('image') ? ['image/*'] : []), ...(accept.includes('video') ? ['video/*'] : [])],
     disabled,
     id,
     maxFiles: MAX_FILES,
@@ -265,7 +262,7 @@
 <!-- The photos-or-video sheet picker; `tileClass` sizes the Add tile for its context. -->
 {#snippet splitPicker(tileClass: string)}
   <input
-    accept="image/*,.heic,.heif"
+    accept="image/*"
     bind:this={photoInput}
     class="hidden"
     multiple
