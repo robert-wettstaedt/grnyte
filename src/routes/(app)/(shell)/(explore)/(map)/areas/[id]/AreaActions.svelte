@@ -1,6 +1,5 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import ActionBar, { ACTION_CTA } from '$lib/components/ActionBar/ActionBar.svelte'
   import DirectionsButton from '$lib/components/DirectionsButton/DirectionsButton.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -35,14 +34,13 @@
 
   const canEdit = $derived(canEditArea(global.userRegions, area))
   const canDelete = $derived(canDeleteArea(global.userRegions, global.user?.id, area))
-  const canAdmin = $derived(checkRegionPermission(global.userRegions, [REGION_PERMISSION_ADMIN], area.regionFk))
   const canAddAreaHere = $derived(canAddArea(global.userRegions, area))
   const canAddBlockHere = $derived(canAddBlock(global.userRegions, area))
   const canAddParkingHere = $derived(canAddParking(global.userRegions, area))
 
-  // Which sheet sections have at least one available action.
+  // The add section has at least one available action. Every manage row needs `canEdit`, so that
+  // flag heads the section directly rather than through a wider gate that could head no rows.
   const showAdd = $derived(canAddAreaHere || canAddBlockHere || canAddParkingHere)
-  const showManage = $derived(canEdit || canAdmin)
 
   const parkingHref = $derived(resolve('/(app)/areas/[id]/parking/edit', { id: String(area.id) }))
 
@@ -93,7 +91,7 @@
 
     <ShareButton text={area.name} />
 
-    {#if showAdd || showManage || canDelete}
+    {#if showAdd || canEdit || canDelete}
       <MoreMenu title={area.name}>
         {#snippet children(close)}
           {#if showAdd}
@@ -124,21 +122,19 @@
             {/if}
           {/if}
 
-          {#if showManage}
+          {#if canEdit}
             <h3 class="text-surface-500 px-1 pt-4 pb-1 text-xs font-bold tracking-wider uppercase">
               {m.areas_manage()}
             </h3>
 
-            {#if canEdit}
-              <MenuRow
-                href={resolve('/(app)/areas/[id]/edit', { id: String(area.id) })}
-                icon="edit"
-                label={m.common_edit()}
-                onclick={close}
-              />
-            {/if}
+            <MenuRow
+              href={resolve('/(app)/areas/[id]/edit', { id: String(area.id) })}
+              icon="edit"
+              label={m.common_edit()}
+              onclick={close}
+            />
 
-            {#if canEdit && blockCount > 1}
+            {#if blockCount > 1}
               <MenuRow
                 href={resolve('/(app)/areas/[id]/blocks/order', { id: String(area.id) })}
                 icon="grip-vertical"

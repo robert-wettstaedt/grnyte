@@ -247,9 +247,8 @@
       if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > TAP_SLOP) drag.moved = true
       const norm = toNorm(event.clientX, event.clientY)
       if (norm != null) {
-        const landed = resolveSnap(norm, drag.pointId)
-        editor.dragPoint(drag.pointId, norm.x, norm.y)
-        showLens(event.clientX, event.clientY, landed)
+        snapTarget = editor.dragPoint(drag.pointId, norm.x, norm.y)
+        showLens(event.clientX, event.clientY, snapTarget ?? norm)
       }
     } else {
       if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > TAP_SLOP) drag.moved = true
@@ -389,50 +388,6 @@
           />
         {/each}
 
-        {#each inserts as spot (spot.afterId)}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <g
-            data-no-pan
-            style="cursor: copy"
-            role="button"
-            tabindex="-1"
-            aria-label={m.topo_insertPoint()}
-            onpointerdown={(event) => {
-              event.stopPropagation()
-              beginGesture(event)
-            }}
-            onmousedown={stopPan}
-            ontouchstart={stopPan}
-            onclick={(event) => {
-              event.stopPropagation()
-              editor.insertMiddleAfter(spot.afterId, spot.nx, spot.ny)
-            }}
-          >
-            <circle
-              cx={spot.x}
-              cy={spot.y}
-              r={unit * 1.1}
-              fill="var(--color-surface-950)"
-              opacity="0.6"
-              stroke="var(--color-surface-50)"
-              stroke-width="2"
-              vector-effect="non-scaling-stroke"
-            />
-            <path
-              d={`M${spot.x - unit * 0.7},${spot.y} L${spot.x + unit * 0.7},${spot.y}`}
-              stroke="var(--color-surface-50)"
-              stroke-width="2"
-              vector-effect="non-scaling-stroke"
-            />
-            <path
-              d={`M${spot.x},${spot.y - unit * 0.7} L${spot.x},${spot.y + unit * 0.7}`}
-              stroke="var(--color-surface-50)"
-              stroke-width="2"
-              vector-effect="non-scaling-stroke"
-            />
-          </g>
-        {/each}
-
         <!-- Snap ring: screen-px sized to read from under a thumb, dark halo for an arbitrary rock
              backdrop. No transition, it tracks the finger per frame. -->
         {#if snapTarget != null}
@@ -522,6 +477,52 @@
             />
           {/each}
         {/if}
+
+        <!-- After the handles: their grab rings are ~44px, so painting these first left the `+`
+             unreachable on any segment shorter than that. -->
+        {#each inserts as spot (spot.afterId)}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <g
+            data-no-pan
+            style="cursor: copy"
+            role="button"
+            tabindex="-1"
+            aria-label={m.topo_insertPoint()}
+            onpointerdown={(event) => {
+              event.stopPropagation()
+              beginGesture(event)
+            }}
+            onmousedown={stopPan}
+            ontouchstart={stopPan}
+            onclick={(event) => {
+              event.stopPropagation()
+              editor.insertMiddleAfter(spot.afterId, spot.nx, spot.ny)
+            }}
+          >
+            <circle
+              cx={spot.x}
+              cy={spot.y}
+              r={unit * 1.1}
+              fill="var(--color-surface-950)"
+              opacity="0.6"
+              stroke="var(--color-surface-50)"
+              stroke-width="2"
+              vector-effect="non-scaling-stroke"
+            />
+            <path
+              d={`M${spot.x - unit * 0.7},${spot.y} L${spot.x + unit * 0.7},${spot.y}`}
+              stroke="var(--color-surface-50)"
+              stroke-width="2"
+              vector-effect="non-scaling-stroke"
+            />
+            <path
+              d={`M${spot.x},${spot.y - unit * 0.7} L${spot.x},${spot.y + unit * 0.7}`}
+              stroke="var(--color-surface-50)"
+              stroke-width="2"
+              vector-effect="non-scaling-stroke"
+            />
+          </g>
+        {/each}
       </svg>
     {/if}
   </div>

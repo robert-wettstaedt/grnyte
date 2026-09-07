@@ -204,6 +204,7 @@
   }
 
   const fileUpload = useFileUpload(() => ({
+    // Wildcards only: a .heic/.heif extension here hides the Photos app from Android's picker.
     accept: [...(accept.includes('image') ? ['image/*'] : []), ...(accept.includes('video') ? ['video/*'] : [])],
     disabled,
     id,

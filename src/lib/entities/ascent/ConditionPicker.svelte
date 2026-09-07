@@ -77,23 +77,36 @@
       return
     }
 
-    // Written back only when clamping moved the number, so the box cannot disagree with the form.
-    const typed = Number(field.value)
-    const next = clamp(Math.round(typed))
-    shown = next
-    value = store(next)
-    if (next !== typed) {
-      field.value = String(next)
-    }
+    // Taken as typed, NOT clamped. A half-typed number is usually out of range: on the Fahrenheit
+    // field (14..104) the "7" of "70" would clamp up to 14 and rewrite the box, so nothing below
+    // 100 could be typed at all. Range is settled on blur, once the number is whole.
+    const typed = Math.round(Number(field.value))
+    shown = typed
+    value = store(typed)
   }
 
-  // `badInput` ("1e", "-") blocks the form's submit event entirely and makes Save look dead.
-  // Cleared on the way out, not per keystroke, so a number can still be typed one character at a time.
+  /**
+   * What can only be judged once the number is finished.
+   *
+   * Clamps, and snaps the box to what was actually stored so it agrees with every other rendering
+   * of the same temperature: 60 °F stores as 16 °C and reads back as 61 °F, and leaving 60 in the
+   * box makes the collapsed summary beside it disagree.
+   *
+   * `badInput` ("1e", "-") blocks the form's submit event entirely and makes Save look dead.
+   * Cleared here, not per keystroke, so a number can still be typed one character at a time.
+   */
   const onblur = (event: FocusEvent & { currentTarget: HTMLInputElement }) => {
-    if (event.currentTarget.validity.badInput) {
-      event.currentTarget.value = ''
+    const field = event.currentTarget
+    if (field.validity.badInput) {
+      field.value = ''
       shown = undefined
       value = undefined
+      return
+    }
+    if (shown != null) {
+      value = store(shown)
+      shown = Math.round(toInput(value))
+      field.value = String(shown)
     }
   }
 </script>

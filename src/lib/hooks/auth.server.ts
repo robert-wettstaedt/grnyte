@@ -113,6 +113,8 @@ export const supabase: Handle = async ({ event, resolve }) => {
       // SvelteKit's cookies API requires `path` to be set explicitly; '/' matches previous/standard behavior.
       setAll: (cookiesToSet) => {
         cookiesToSet.forEach(({ name, options, value }) => {
+          // `secure` follows the request protocol rather than the environment: Safari refuses a
+          // Secure cookie over http, which broke sign-in against the dev server on localhost.
           event.cookies.set(name, value, { ...options, path: '/', secure: event.url.protocol === 'https:' })
         })
       },

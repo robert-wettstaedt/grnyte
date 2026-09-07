@@ -8,6 +8,7 @@
   import ShareButton from '$lib/components/ShareButton/ShareButton.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { canEditBlock } from '$lib/entities/block/permissions'
+  import { blockPin, blockRepairHref } from '$lib/entities/block/pin'
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
@@ -48,17 +49,11 @@
   )
 
   // 'set' while the block loads, so the line stays empty instead of claiming a missing pin.
-  const pin = $derived.by(() => {
-    if (block == null) return 'set'
-    if (block.geolocation == null) return 'missing'
-    return block.geolocation.estimated ? 'estimated' : 'set'
-  })
+  const pin = $derived(block == null ? 'set' : blockPin(block))
 
   // The pin belongs to the block, so the repair does too.
   const repairHref = $derived(
-    block != null && pin !== 'set' && canEditBlock(global.userRegions, block)
-      ? resolve('/(app)/blocks/[id]/move', { id: String(block.id) })
-      : undefined,
+    block == null ? undefined : blockRepairHref(block, canEditBlock(global.userRegions, block)),
   )
 
   const onDelete = () =>

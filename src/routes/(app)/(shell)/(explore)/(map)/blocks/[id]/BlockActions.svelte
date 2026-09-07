@@ -10,6 +10,7 @@
   import { deleteBlock, restoreBlock } from '$lib/entities/block/blocks.remote'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { canDeleteBlock, canEditBlock } from '$lib/entities/block/permissions'
+  import { blockPin, blockRepairHref } from '$lib/entities/block/pin'
   import { waitForBlock } from '$lib/entities/block/resources.svelte'
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
@@ -44,15 +45,8 @@
   const editHref = $derived(resolve('/(app)/blocks/[id]/edit', { id: String(block.id) }))
   const moveHref = $derived(resolve('/(app)/blocks/[id]/move', { id: String(block.id) }))
 
-  const pin = $derived(block.geolocation == null ? 'missing' : block.geolocation.estimated ? 'estimated' : 'set')
-
-  // Estimated goes to the edit form, not the move picker: only its checkbox clears the flag.
-  const repairHref = $derived.by(() => {
-    if (!canEdit) return undefined
-    if (pin === 'missing') return moveHref
-    if (pin === 'estimated') return editHref
-    return undefined
-  })
+  const pin = $derived(blockPin(block))
+  const repairHref = $derived(blockRepairHref(block, canEdit))
 
   const onDelete = () =>
     withUndo(deleteBlock({ id: block.id }), {

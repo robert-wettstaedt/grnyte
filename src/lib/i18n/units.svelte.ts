@@ -39,16 +39,17 @@ export const isImperialLocale = (): boolean => {
   return IMPERIAL_REGIONS.includes(region)
 }
 
+export const celsiusToFahrenheit = (celsius: number): number => celsius * 1.8 + 32
+export const fahrenheitToCelsius = (fahrenheit: number): number => (fahrenheit - 32) / 1.8
+
+/** A number in the unit it is ALREADY in, localized, never converted. */
+const formatUnit = (value: number, unit: 'celsius' | 'fahrenheit'): string =>
+  new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 0, style: 'unit', unit }).format(value)
+
 /** Localized "18°C" / "18 °C" / "64°F" for a Celsius value: unit system from the region, spacing and
  *  decimal separator from the app's locale (a German reader on an en-US browser still gets "18 °C"). */
-export const formatCelsius = (celsius: number): string => {
-  const imperial = isImperialLocale()
-  return new Intl.NumberFormat(getLocale(), {
-    maximumFractionDigits: 0,
-    style: 'unit',
-    unit: imperial ? 'fahrenheit' : 'celsius',
-  }).format(imperial ? celsius * 1.8 + 32 : celsius)
-}
+export const formatCelsius = (celsius: number): string =>
+  isImperialLocale() ? formatUnit(celsiusToFahrenheit(celsius), 'fahrenheit') : formatUnit(celsius, 'celsius')
 
 /** "45%" in English, "45 %" (no-break space) in German. Its own function so the conditions pill, the
  *  ascent form and the change list cannot drift apart the way they would if each wrote the format
@@ -62,13 +63,6 @@ export const formatConditions = (temperature: number | undefined, humidity: numb
   [temperature == null ? null : formatCelsius(temperature), humidity == null ? null : formatHumidity(humidity)]
     .filter(Boolean)
     .join(' · ')
-
-/** A number in a unit it is ALREADY in, localized but never converted. */
-const formatUnit = (value: number, unit: 'celsius' | 'fahrenheit'): string =>
-  new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 0, style: 'unit', unit }).format(value)
-
-export const celsiusToFahrenheit = (celsius: number): number => celsius * 1.8 + 32
-export const fahrenheitToCelsius = (fahrenheit: number): number => (fahrenheit - 32) / 1.8
 
 /**
  * The temperature input's domain in the reader's unit; the column stores whole Celsius either way,

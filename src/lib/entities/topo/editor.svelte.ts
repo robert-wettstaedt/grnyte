@@ -167,9 +167,12 @@ export class TopoEditor {
     }, false)
   }
 
-  /** Move a point during a drag: no undo snapshot (call `beginStroke` at drag start). */
-  dragPoint(pointId: string, x: number, y: number): void {
-    const [sx, sy] = this.#snap(x, y, [pointId])
+  /** Move a point during a drag: no undo snapshot (call `beginStroke` at drag start).
+   *  Returns the point it snapped onto, so the stage need not scan again to draw the ring. */
+  dragPoint(pointId: string, x: number, y: number): TopoPoint | undefined {
+    const target = this.snapTargetAt(x, y, [pointId])
+    const sx = target?.x ?? x
+    const sy = target?.y ?? y
     this.#apply((lines) => {
       for (const line of lines) {
         const point = line.points.find((p) => p.id === pointId)
@@ -180,6 +183,7 @@ export class TopoEditor {
         }
       }
     }, false)
+    return target
   }
 
   /** Discard an uncommitted pre-gesture snapshot (gesture ended without mutating). */

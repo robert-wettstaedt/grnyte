@@ -1,19 +1,17 @@
 <script module lang="ts">
-  import { formatCelsius, formatHumidity } from '$lib/i18n/units.svelte'
+  import { formatHumidity, temperatureField } from '$lib/i18n/units.svelte'
   import { m } from '$lib/paraglide/messages'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import ConditionPicker from './ConditionPicker.svelte'
 
   // Replaced ConditionSlider. Both ascent-form instances are pinned here with the ends of each
-  // range. The non-converting formatter on purpose: the input takes Celsius on every locale.
+  // range. Temperature takes its whole config from `temperatureField`, exactly as the form does,
+  // so these stories follow the browser's unit system: a US locale renders the °F field, 14..104,
+  // stepping in fives. The `value` args are always stored Celsius.
   const temperature = {
-    format: formatCelsius,
     label: m.ascents_form_temperatureLabel(),
-    max: 40,
-    min: -10,
-    step: 2,
-    unit: '°C',
+    ...temperatureField(),
   } satisfies ComponentProps<typeof ConditionPicker>
 
   const humidity = {

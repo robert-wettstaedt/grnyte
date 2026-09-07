@@ -291,7 +291,7 @@
     //
     // `lite` rather than the default entry, which drags in the tif/png file parsers, the
     // IPTC/XMP/ICC/JFIF/IHDR segment parsers and every tag dictionary for one GPS read. `lite`
-    // keeps the jpg *and* heic/avif file parsers, which the picker below accepts (`.heic,.heif`).
+    // keeps the jpg *and* heic/avif file parsers, which an iPhone photo needs.
     // Never `mini`: it drops those, so an iPhone photo would silently read as having no GPS.
     //
     // exifr's package.json has no `exports` map, so this deep dist path is an internal file the

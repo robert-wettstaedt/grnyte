@@ -17,7 +17,15 @@
 
   const { items, key, limit = 6, row }: Props = $props()
 
-  let expanded = $state(false)
+  // One instance outlives the list it was opened for (another profile, another tab), so the
+  // expansion is held against the rows themselves: still open while any of them is in the list,
+  // collapsed once the list is swapped for a different one.
+  let openedKeys = $state.raw<Set<PropertyKey> | undefined>(undefined)
+
+  const expanded = $derived.by(() => {
+    const opened = openedKeys
+    return opened != null && items.some((item) => opened.has(key(item)))
+  })
 
   const shown = $derived(items.slice(0, limit))
   const rest = $derived(items.slice(limit))
@@ -42,7 +50,7 @@
   {#if rest.length > 0 && !expanded}
     <button
       class="btn preset-tonal-surface mt-1.5 w-full"
-      onclick={() => (expanded = true)}
+      onclick={() => (openedKeys = new Set(items.map(key)))}
       transition:slide={{ duration }}
       type="button"
     >

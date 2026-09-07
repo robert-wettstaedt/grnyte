@@ -224,7 +224,10 @@
     <span class="text-surface-700-300 text-sm font-semibold">{m.ascents_form_conditionsLabel()}</span>
     <OptionalBadge />
     <span class="flex-1"></span>
-    {#if temperature != null || humidity != null}
+    <!-- Only while collapsed. Open, the fields are right below and this would be a second copy of
+         the same numbers, formatted from the stored Celsius: a Fahrenheit reader mid-edit would
+         see "60 °F" in the field and "61 °F" here, because 60 °F stores as 16 °C. -->
+    {#if !open && (temperature != null || humidity != null)}
       <span class="text-surface-600-400 font-mono text-xs font-bold">
         {formatConditions(temperature, humidity)}
       </span>
@@ -236,7 +239,6 @@
 
   <!-- Range, step and unit follow the reader's unit system; the column still stores Celsius. -->
   <ConditionPicker label={m.ascents_form_temperatureLabel()} {...tempField} bind:value={temperature} />
-  <FormHint id="ascent-temperature" issues={form.fields.temperature.issues()} />
 
   <ConditionPicker
     format={formatHumidity}
@@ -247,10 +249,14 @@
     unit="%"
     bind:value={humidity}
   />
-  <FormHint id="ascent-humidity" issues={form.fields.humidity.issues()} />
 
   <p class="text-surface-600-400 pt-1 text-sm">{m.ascents_form_conditionsHint()}</p>
 </Disclosure>
+
+<!-- Outside for the same reason as the hidden inputs: a validation error rendered into the panel
+     would be unreachable while it is collapsed, so a submit could fail with no message anywhere. -->
+<FormHint id="ascent-temperature" issues={form.fields.temperature.issues()} />
+<FormHint id="ascent-humidity" issues={form.fields.humidity.issues()} />
 
 <RemoteFormInputWrapper
   class="space-y-2.5"
