@@ -3,6 +3,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import { groupFirstAscensionists } from '$lib/entities/firstAscensionist/mapper'
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
   import { allRegionTags } from '$lib/entities/region/tagVocabulary'
   import type { RouteMapItem } from '$lib/entities/route/dto'
@@ -67,6 +68,9 @@
 
   // Reads from the preloaded `firstAscensionists` table, so this is local data.
   const firstAscensionists = firstAscensionistList()
+  // The filter spans every region the user belongs to, and a climber has one row
+  // per region, so the rows are collapsed into one entry per person.
+  const firstAscensionistGroups = $derived(groupFirstAscensionists(firstAscensionists.data))
 
   let open = $state(false)
 
@@ -127,9 +131,14 @@
 
   const favoritesSummary = $derived(favoritesOnly ? m.filter_favoritesOnly() : m.common_any())
 
+  // Counts people, not rows: one climber selected across two regions is still "1 selected".
+  const selectedFirstAscensionistCount = $derived(
+    firstAscensionistGroups.filter((group) => group.ids.some((id) => selectedFirstAscensionists.includes(id))).length,
+  )
+
   const firstAscensionistSummary = $derived(
-    selectedFirstAscensionists.length > 0
-      ? m.filter_selectedCount({ count: selectedFirstAscensionists.length })
+    selectedFirstAscensionistCount > 0
+      ? m.filter_selectedCount({ count: selectedFirstAscensionistCount })
       : m.common_any(),
   )
 
@@ -373,14 +382,14 @@
       <FavoritesSelect bind:value={favoritesOnly} />
     </FilterSection>
 
-    {#if firstAscensionists.data.length > 0}
+    {#if firstAscensionistGroups.length > 0}
       <FilterSection
         label={m.filter_firstAscensionists()}
         summary={firstAscensionistSummary}
         active={selectedFirstAscensionists.length > 0}
       >
         <FirstAscensionistSelect
-          firstAscensionists={firstAscensionists.data}
+          firstAscensionists={firstAscensionistGroups}
           currentUserId={global.user?.id}
           bind:value={selectedFirstAscensionists}
         />

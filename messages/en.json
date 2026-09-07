@@ -1204,6 +1204,7 @@
   "filter_noResults": "No matches",
   "filter_rating": "Rating",
   "filter_ratingMin": "{count}+ stars",
+  "filter_searchFirstAscensionists": "Search first ascensionists",
   "filter_selectedCount": "{count} selected",
   "filter_tags": "Tags",
   "form_charsMax": [

@@ -1204,6 +1204,7 @@
   "filter_noResults": "Keine Treffer",
   "filter_rating": "Bewertung",
   "filter_ratingMin": "{count}+ Sterne",
+  "filter_searchFirstAscensionists": "Erstbegeher durchsuchen",
   "filter_selectedCount": "{count} ausgewählt",
   "filter_tags": "Tags",
   "form_charsMax": [
