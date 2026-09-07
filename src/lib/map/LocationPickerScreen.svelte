@@ -1,5 +1,6 @@
 <script lang="ts">
-  import Icon from '$lib/components/Icon/Icon.svelte'
+  import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
   import LocationPicker from '$lib/map/LocationPicker.svelte'
   import type { MapData } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
@@ -38,26 +39,15 @@
 <!-- flex-1 (not h-full): the QueryState wrapper is min-h-full, so height:100% has no
      definite parent to resolve against and would collapse. Filling as a flex item does. -->
 <div class="flex min-h-0 flex-1 flex-col">
-  <header
-    class="border-surface-200-800 bg-surface-50-950/90 sticky top-0 z-10 flex items-center justify-between gap-2 border-b px-3 py-3 backdrop-blur"
-  >
-    <button class="btn preset-tonal-surface" onclick={onBack} type="button" aria-label={backLabel}>
-      <Icon name="arrow-left" size={16} />
-      <!-- Hidden on mobile so the long back label can't overlap the centred title. -->
-      <span class="hidden sm:inline">{backLabel}</span>
-    </button>
-    <span class="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm font-bold whitespace-nowrap">
-      {title}
-    </span>
-    <button
-      class="btn preset-filled-primary-500"
-      disabled={picked == null}
-      onclick={() => picked != null && onDone(picked)}
-      type="button"
-    >
-      {m.common_done()}
-    </button>
-  </header>
+  <PageHeader {backLabel} onback={onBack} {title}>
+    {#snippet action()}
+      <PageHeaderAction
+        disabled={picked == null}
+        label={m.common_done()}
+        onclick={() => picked != null && onDone(picked)}
+      />
+    {/snippet}
+  </PageHeader>
 
   <LocationPicker {mapData} {areaExtent} {placedCenter} bind:mode bind:latText bind:lngText bind:picked />
 </div>

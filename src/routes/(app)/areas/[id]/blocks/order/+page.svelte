@@ -4,7 +4,8 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { reorderBlocks } from '$lib/entities/block/blocks.remote'
@@ -105,27 +106,20 @@
   <title>{m.blocks_order_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={area}>
+<QueryState resource={area} class="h-full">
   {#snippet ready(detail)}
     {#if !canEditBlock(global.userRegions, detail)}
       <ErrorState type="notfound" title={m.areas_notFound()} />
     {:else}
       <div class="flex h-full flex-col">
-        <header
-          class="border-surface-200-800 bg-surface-50-950/90 sticky top-0 z-10 flex items-center justify-between gap-2 border-b px-3 py-3 backdrop-blur"
-        >
-          <button class="btn preset-tonal-surface" onclick={cancel} type="button">{m.common_cancel()}</button>
-          <span class="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm font-bold whitespace-nowrap">
-            {m.blocks_order_title()}
-          </span>
-          <button class="btn preset-filled-primary-500" disabled={saving} onclick={save} type="button">
-            {#if saving}<LoadingIndicator />{/if}
-            {m.common_save()}
-          </button>
-        </header>
+        <PageHeader backLabel={m.common_cancel()} onback={cancel} title={m.blocks_order_title()}>
+          {#snippet action()}
+            <PageHeaderAction disabled={saving} label={m.common_save()} onclick={save} pending={saving} />
+          {/snippet}
+        </PageHeader>
 
         <!-- Stacked on mobile (map over list); side-by-side on desktop (map left, list right). -->
-        <div class="flex min-h-0 flex-1 flex-col md:flex-row-reverse">
+        <div class="flex min-h-0 flex-1 flex-col md:flex-row">
           <div class="h-[42dvh] flex-none md:h-full md:flex-1">
             <ReorderMap
               blocks={staged}

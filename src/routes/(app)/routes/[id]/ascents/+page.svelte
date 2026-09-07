@@ -90,7 +90,7 @@
 
 <QueryState resource={route}>
   {#snippet ready(detail)}
-    <div class="mx-auto flex min-h-full w-full max-w-screen-sm flex-col">
+    <div class="flex min-h-full w-full flex-col">
       <PageHeader onback={() => back(routeHref)}>
         <div class="flex min-w-0 flex-1 flex-col">
           <span class="text-surface-600-400 truncate text-xs">
@@ -122,7 +122,7 @@
         {/snippet}
       </PageHeader>
 
-      <div class="flex flex-col gap-5 px-4 py-4">
+      <div class="mx-auto flex w-full max-w-screen-sm flex-col gap-5 px-4 py-4">
         {#if ascentsUnavailable}
           <OfflineNotice excluded />
         {:else}

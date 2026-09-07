@@ -13,7 +13,7 @@
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import MediaGrid from '$lib/components/Media/MediaGrid.svelte'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
-  import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import PageHeader, { PAGE_CHROME_WIDTH } from '$lib/components/PageHeader/PageHeader.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { goToSibling, isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
@@ -163,7 +163,7 @@
     <!-- Self-gating: renders nothing unless this is the founder's first route. -->
     <RegionLive regionFk={detail.regionFk} />
 
-    <div class="mx-auto flex w-full max-w-screen-sm grow flex-col">
+    <div class="flex w-full grow flex-col">
       <!-- Mirrors the area/block detail headers: back button, the name as the title with
            the entity-type tag beside it, and the containment breadcrumb as the subtitle
            above. Grade + rating sit on the right, aligned like a RouteRow. -->
@@ -202,7 +202,7 @@
         </div>
       </PageHeader>
 
-      <div class="flex flex-col gap-6 px-4 py-5">
+      <div class="mx-auto flex w-full max-w-screen-sm flex-col gap-6 px-4 py-5">
         <!-- HERO TOPO: capped height so a portrait topo can't dominate the page. -->
         {#if topoHref != null && hit != null}
           <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- topoHref is pre-resolved above. -->
@@ -407,21 +407,21 @@
       <!-- Sticky footer: sibling prev/next pager (like the explore sheets' NavFooter) on the
            left, the always-visible primary action on the right. Footer treatment mirrors the
            app's modal footers (border-t-2, btn-sm). -->
-      <footer
-        class="border-surface-100-900 bg-surface-50-950 sticky bottom-0 z-10 mt-auto flex items-center justify-between gap-2 border-t-2 px-4 py-3"
-      >
-        {#if nav != null}
-          <div class="flex items-center gap-1.5">
-            <SiblingNav {nav} />
-          </div>
-        {:else}
-          <span></span>
-        {/if}
+      <footer class="border-surface-100-900 bg-surface-50-950 sticky bottom-0 z-10 mt-auto border-t-2 px-4 py-3">
+        <div class="mx-auto flex w-full items-center justify-between gap-2 {PAGE_CHROME_WIDTH}">
+          {#if nav != null}
+            <div class="flex items-center gap-1.5">
+              <SiblingNav {nav} />
+            </div>
+          {:else}
+            <span></span>
+          {/if}
 
-        <a class="btn btn-sm preset-filled-primary-500" href={logHref}>
-          <Icon name="check" size={16} />
-          {m.routes_logAscent()}
-        </a>
+          <a class="btn btn-sm preset-filled-primary-500" href={logHref}>
+            <Icon name="check" size={16} />
+            {m.routes_logAscent()}
+          </a>
+        </div>
       </footer>
     </div>
   {/snippet}

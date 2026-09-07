@@ -13,8 +13,8 @@
 
 <script lang="ts" generics="Input extends RemoteFormInput">
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
-  import Icon from '$lib/components/Icon/Icon.svelte'
-  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
   import { m } from '$lib/paraglide/messages'
   import { isOnline } from '$lib/state/online.svelte'
   import { Steps } from '@skeletonlabs/skeleton-svelte'
@@ -151,95 +151,56 @@
       throw error
     }
   })}
-  class={['flex w-full flex-col', fill ? 'min-h-0 flex-1' : 'mx-auto min-h-full max-w-screen-sm', offline && 'hidden']}
+  class={['flex w-full flex-col', fill ? 'min-h-0 flex-1' : 'min-h-full', offline && 'hidden']}
   inert={offline}
 >
-  <!-- Same shape as components/PageHeader: sticky bar, 32px back chip, left-aligned h3 title.
-         Not PageHeader itself because this one also carries a trailing submit and the stepper. -->
-  <header
-    class="border-surface-200-800 bg-surface-50-950/90 sticky top-0 z-10 flex items-center gap-3 border-b px-3 py-3 backdrop-blur"
+  <!-- The bar is page chrome, so it stays full bleed while the field column below is centred and
+       capped. Constraining the form itself inset the bar to 640px on desktop, which read as a
+       floating card header beside the full-width one on every other screen. -->
+  <PageHeader
+    backLabel={stepped && step > 0 ? steps![step - 1].label : m.common_cancel()}
+    onback={stepped && step > 0 ? () => (step -= 1) : onCancel}
+    {title}
   >
-    <!-- Icon-only below sm, icon plus label from sm up: German labels ("Abbrechen", "Speichern")
-           ate so much of a phone-width bar that the title truncated. -->
-    {#if stepped && step > 0}
-      <button
-        class="btn preset-filled-surface-200-800 size-8 flex-none px-0 sm:size-auto sm:px-4"
-        onclick={() => (step -= 1)}
-        type="button"
-        aria-label={steps![step - 1].label}
-      >
-        <Icon name="arrow-left" size={18} />
-        <span class="hidden sm:inline">{steps![step - 1].label}</span>
-      </button>
-    {:else}
-      <button
-        class="btn preset-filled-surface-200-800 size-8 flex-none px-0 sm:size-auto sm:px-4"
-        onclick={onCancel}
-        type="button"
-        aria-label={m.common_cancel()}
-      >
-        <Icon name="arrow-left" size={18} />
-        <span class="hidden sm:inline">{m.common_cancel()}</span>
-      </button>
-    {/if}
-
-    <!-- Same treatment as components/PageHeader's `title` - change the two together. In flow
-           rather than absolutely centred, so a long title truncates instead of running under the
-           buttons. -->
-    <h1 class="min-w-0 flex-1 truncate text-center text-sm font-bold">{title}</h1>
-
-    {#if stepped && !isLast}
-      <button
-        class="btn preset-filled-primary-500 size-8 flex-none px-0 sm:size-auto sm:px-4"
-        disabled={!canContinue}
-        onclick={advance}
-        type="button"
-        aria-label={nextLabel}
-      >
-        <!-- Icon after the label here: it points forward, so "Weiter →" reads right where the
-               back and submit buttons want their icon in front. -->
-        <span class="hidden sm:inline">{nextLabel}</span>
-        <Icon name="arrow-right" size={18} />
-      </button>
-    {:else}
-      <button
-        class="btn preset-filled-primary-500 size-8 flex-none px-0 sm:size-auto sm:px-4"
-        disabled={form.pending > 0 || submitDisabled || !canContinue}
-        type="submit"
-        aria-label={submitLabel}
-      >
-        {#if form.pending > 0}
-          <LoadingIndicator class="items-center justify-center" />
-        {:else}
-          <Icon name="check" size={18} />
-        {/if}
-        <span class="hidden sm:inline">{submitLabel}</span>
-      </button>
-    {/if}
-  </header>
+    {#snippet action()}
+      {#if stepped && !isLast}
+        <PageHeaderAction disabled={!canContinue} icon="arrow-right" iconAfter label={nextLabel} onclick={advance} />
+      {:else}
+        <PageHeaderAction
+          disabled={form.pending > 0 || submitDisabled || !canContinue}
+          label={submitLabel}
+          pending={form.pending > 0}
+          type="submit"
+        />
+      {/if}
+    {/snippet}
+  </PageHeader>
 
   {#if stepped}
-    <Steps
-      class="border-surface-200-800 flex-none border-b px-4 py-2.5"
-      count={steps!.length}
-      {step}
-      onStepChange={(details) => (step = details.step)}
-    >
-      <Steps.List>
-        {#each steps! as { label }, index (index)}
-          <Steps.Item {index}>
-            <Steps.Indicator class="size-6 text-xs font-bold">{index + 1}</Steps.Indicator>
-            <span class="text-xs font-semibold whitespace-nowrap">{label}</span>
-            {#if index < steps!.length - 1}
-              <Steps.Separator />
-            {/if}
-          </Steps.Item>
-        {/each}
-      </Steps.List>
-    </Steps>
+    <!-- Hairline full bleed like the header's, stepper aligned with the fields below it. -->
+    <div class="border-surface-200-800 flex-none border-b">
+      <Steps
+        class="mx-auto w-full max-w-screen-sm px-4 py-2.5"
+        count={steps!.length}
+        {step}
+        onStepChange={(details) => (step = details.step)}
+      >
+        <Steps.List>
+          {#each steps! as { label }, index (index)}
+            <Steps.Item {index}>
+              <Steps.Indicator class="size-6 text-xs font-bold">{index + 1}</Steps.Indicator>
+              <span class="text-xs font-semibold whitespace-nowrap">{label}</span>
+              {#if index < steps!.length - 1}
+                <Steps.Separator />
+              {/if}
+            </Steps.Item>
+          {/each}
+        </Steps.List>
+      </Steps>
+    </div>
   {/if}
 
-  <div class={fill ? 'flex min-h-0 flex-1 flex-col' : 'flex flex-col gap-7 px-4 py-6'}>
+  <div class={fill ? 'flex min-h-0 flex-1 flex-col' : 'mx-auto flex w-full max-w-screen-sm flex-col gap-7 px-4 py-6'}>
     <FormError {form} />
 
     {#if stepped}
