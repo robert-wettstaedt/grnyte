@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import { siblingScrollSurface } from '$lib/components/SiblingNav/siblingNav'
   import { m } from '$lib/paraglide/messages'
   import NavFooter from './NavFooter.svelte'
   import { sheetState } from './sheetState.svelte'
@@ -49,7 +50,7 @@
       {/if}
     </header>
 
-    <div class="min-h-0 flex-1 overflow-y-auto p-4">
+    <div class="min-h-0 flex-1 overflow-y-auto p-4" {...siblingScrollSurface}>
       {@render children?.()}
     </div>
 

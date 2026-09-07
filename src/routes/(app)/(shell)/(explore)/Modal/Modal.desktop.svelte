@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import { siblingScrollSurface } from '$lib/components/SiblingNav/siblingNav'
   import { m } from '$lib/paraglide/messages'
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
   import NavFooter from './NavFooter.svelte'
@@ -68,7 +69,7 @@
             {/if}
           </header>
 
-          <Dialog.Description class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4">
+          <Dialog.Description class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4" {...siblingScrollSurface}>
             {@render children?.()}
           </Dialog.Description>
 

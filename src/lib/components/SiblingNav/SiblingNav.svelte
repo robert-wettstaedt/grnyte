@@ -7,7 +7,7 @@
   import type { IconName } from '$lib/components/Icon/icons'
   import KbdTooltip from '$lib/components/KbdTooltip/KbdTooltip.svelte'
   import type { HTMLAttributes } from 'svelte/elements'
-  import type { SheetNav } from './siblingNav'
+  import { goToSibling, type SheetNav } from './siblingNav'
 
   interface Props {
     /** Larger touch targets, for the mobile sheet pill. */
@@ -24,7 +24,22 @@
 {#snippet chevron(icon: IconName, href: string, label: string, key: string)}
   <KbdTooltip {label} {key}>
     {#snippet trigger(attributes)}
-      <a {...attributes as unknown as HTMLAttributes<HTMLAnchorElement>} class={linkClass} {href} aria-label={label}>
+      {@const tooltip = attributes as unknown as HTMLAttributes<HTMLAnchorElement>}
+      <!-- Driven through goToSibling rather than left to the router, so the surface's scroll
+           container starts the next entity at the top instead of mid-page. -->
+      <a
+        {...tooltip}
+        class={linkClass}
+        {href}
+        aria-label={label}
+        onclick={(event) => {
+          tooltip.onclick?.(event)
+          // Modifier clicks belong to the browser (new tab / window).
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+          event.preventDefault()
+          void goToSibling(href)
+        }}
+      >
         <Icon name={icon} size={18} />
       </a>
     {/snippet}

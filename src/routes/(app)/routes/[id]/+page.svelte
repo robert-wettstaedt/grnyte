@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -16,7 +15,7 @@
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
+  import { goToSibling, isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import AscentRow from '$lib/entities/ascent/AscentRow.svelte'
@@ -138,8 +137,7 @@
     if (page.url.searchParams.has('media') || logOpen) return
     const href = event.key === 'j' ? nav.prev.href : event.key === 'l' ? nav.next.href : null
     if (href == null) return
-    // eslint-disable-next-line svelte/no-navigation-without-resolve -- nav hrefs are resolved in routeHref.
-    goto(href)
+    void goToSibling(href)
   }
 
   const logHref = $derived(resolve('/(app)/routes/[id]/ascents/add', { id: String(routeId) }))

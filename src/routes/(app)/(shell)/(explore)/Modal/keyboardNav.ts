@@ -1,5 +1,4 @@
-import { goto } from '$app/navigation'
-import { isNavKeyExempt } from '$lib/components/SiblingNav/siblingNav'
+import { goToSibling, isNavKeyExempt } from '$lib/components/SiblingNav/siblingNav'
 import { sheetState } from './sheetState.svelte'
 
 /**
@@ -21,14 +20,12 @@ export function sheetNavKeydown(options: { onback?: () => void } = {}) {
     const nav = sheetState.nav
     if (nav == null) return
 
-    /* eslint-disable svelte/no-navigation-without-resolve -- nav hrefs are pre-resolved (toSheetNav). */
     if (key === 'j') {
       event.preventDefault()
-      goto(nav.prev.href)
+      void goToSibling(nav.prev.href)
     } else if (key === 'l') {
       event.preventDefault()
-      goto(nav.next.href)
+      void goToSibling(nav.next.href)
     }
-    /* eslint-enable svelte/no-navigation-without-resolve */
   }
 }
