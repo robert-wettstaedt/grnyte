@@ -482,7 +482,7 @@
   />
 {:else}
   <div
-    class="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-stretch gap-2 p-3"
+    class="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-stretch gap-2 p-safe-3"
     transition:fly={{ duration: 220, y: 24 }}
   >
     {#if currentTopo != null && currentTopoEditable && selectedRoute == null}

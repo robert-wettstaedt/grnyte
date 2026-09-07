@@ -42,9 +42,10 @@
 
   const linesLabel = $derived(linesHidden ? m.topo_showLines() : m.topo_hideLines())
   const fullscreenLabel = $derived(isFullscreen ? m.topo_exitFullscreen() : m.topo_fullscreen())
+  const canFullscreen = browser && document.fullscreenEnabled
 </script>
 
-<div class="pointer-events-none absolute top-0 left-0 z-30 flex items-start gap-2 p-3">
+<div class="pointer-events-none absolute top-0 left-0 z-30 flex items-start gap-2 p-safe-3">
   <div class="pointer-events-auto flex flex-col gap-2">
     <KbdTooltip label={m.common_back()}>
       {#snippet trigger(attributes)}
@@ -92,7 +93,7 @@
 </div>
 
 <!-- Top-right: a vertical tool column, so a narrow phone never pushes tools off-screen. -->
-<div class="pointer-events-none absolute top-0 right-0 z-30 flex flex-col items-end gap-2 p-3">
+<div class="pointer-events-none absolute top-0 right-0 z-30 flex flex-col items-end gap-2 p-safe-3">
   <div class="pointer-events-auto flex flex-col items-end gap-2">
     <KbdTooltip label={linesLabel}>
       {#snippet trigger(attributes)}
@@ -107,19 +108,21 @@
         </button>
       {/snippet}
     </KbdTooltip>
-    <KbdTooltip label={fullscreenLabel} key="F">
-      {#snippet trigger(attributes)}
-        <button
-          {...attributes}
-          class="btn-icon preset-filled-surface-50-950 shadow-lg"
-          aria-label={fullscreenLabel}
-          aria-pressed={isFullscreen}
-          onclick={onToggleFullscreen}
-        >
-          <Icon name={isFullscreen ? 'minimize' : 'maximize'} />
-        </button>
-      {/snippet}
-    </KbdTooltip>
+    {#if canFullscreen}
+      <KbdTooltip label={fullscreenLabel} key="F">
+        {#snippet trigger(attributes)}
+          <button
+            {...attributes}
+            class="btn-icon preset-filled-surface-50-950 shadow-lg"
+            aria-label={fullscreenLabel}
+            aria-pressed={isFullscreen}
+            onclick={onToggleFullscreen}
+          >
+            <Icon name={isFullscreen ? 'minimize' : 'maximize'} />
+          </button>
+        {/snippet}
+      </KbdTooltip>
+    {/if}
     {#if !viewAtRest}
       <KbdTooltip label={m.topo_resetZoom()}>
         {#snippet trigger(attributes)}
@@ -140,7 +143,7 @@
 
 <!-- Save / saved pill: its own centred row below the top bar, so its width never
      collides with the corner tool groups on a narrow phone. -->
-<div class="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-3">
+<div class="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-safe-3">
   <!-- Grid-stack so both pills share one centred cell; scale grows each from its centre
        (both edges move outward) instead of a one-sided width collapse. -->
   <div class="pointer-events-auto grid justify-items-center *:col-start-1 *:row-start-1">

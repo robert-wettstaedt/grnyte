@@ -16,6 +16,17 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Padding for chrome that overlays a full-bleed stage, so controls clear a camera cutout while the
+   content behind them still bleeds. `max()`, not `calc()`: the inset replaces the base padding
+   rather than stacking on it. Each side is independent, so one utility serves a corner cluster and
+   a bottom bar alike. Measured on a Pixel 9: 0 everywhere until it matters, then 66px. */
+@utility p-safe-* {
+  padding-top: max(calc(var(--spacing) * --value(number)), env(safe-area-inset-top, 0px));
+  padding-right: max(calc(var(--spacing) * --value(number)), env(safe-area-inset-right, 0px));
+  padding-bottom: max(calc(var(--spacing) * --value(number)), env(safe-area-inset-bottom, 0px));
+  padding-left: max(calc(var(--spacing) * --value(number)), env(safe-area-inset-left, 0px));
+}
+
 html,
 body {
   @apply h-full;

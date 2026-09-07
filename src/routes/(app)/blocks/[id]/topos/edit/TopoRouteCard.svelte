@@ -37,7 +37,7 @@
 </script>
 
 <!-- Selected-route editing card: overlays the photo strip and slides up like a sheet. -->
-<div class="pointer-events-none absolute inset-x-0 bottom-0 z-40 p-3" transition:fly={{ duration: 220, y: 24 }}>
+<div class="pointer-events-none absolute inset-x-0 bottom-0 z-40 p-safe-3" transition:fly={{ duration: 220, y: 24 }}>
   <div class="preset-filled-surface-50-950 pointer-events-auto mx-auto w-full max-w-md rounded-2xl p-3 shadow-2xl">
     <div class="flex items-center gap-2">
       <div class="flex min-w-0 flex-1 items-center gap-2">
