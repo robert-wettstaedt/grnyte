@@ -72,8 +72,9 @@
   })
 
   // Ghost `+` midpoints along the selected line, each inserting a middle after `afterId`.
+  // Hidden while armed, or the press inserts a middle instead of the armed point type.
   const inserts = $derived.by(() => {
-    if (selected == null) return []
+    if (selected == null || editor.pointType != null) return []
     const points = selected.points
     const spots: { afterId: string; nx: number; ny: number; x: number; y: number }[] = []
     for (let i = 0; i < points.length - 1; i++) {
@@ -100,28 +101,27 @@
 
   let lens = $state<Lens>()
 
-  /** Build the lens view centered on the point under (clientX, clientY), magnifying the
-   *  live on-screen image (its rect already carries the panzoom transform). */
-  function computeLens(clientX: number, clientY: number): Lens | undefined {
+  /** Centred on `focus` (the snapped position), so the crosshair marks where the point lands. */
+  function computeLens(clientX: number, clientY: number, focus: { x: number; y: number }): Lens | undefined {
     const img = containerEl?.querySelector('img')
-    const norm = toNorm(clientX, clientY)
-    if (img == null || norm == null) return undefined
-    const rect = img.getBoundingClientRect()
-    const bgW = rect.width * LENS_ZOOM
-    const bgH = rect.height * LENS_ZOOM
+    const ctm = svgEl?.getScreenCTM()
+    if (img == null || ctm == null || boxWidth === 0 || boxHeight === 0) return undefined
+    // The points' own transform: the img element box includes the contain bands and stretched it.
+    const bgW = ctm.a * boxWidth * LENS_ZOOM
+    const bgH = ctm.d * boxHeight * LENS_ZOOM
     return {
       bgH,
       bgW,
-      bgX: LENS_SIZE / 2 - norm.x * bgW,
-      bgY: LENS_SIZE / 2 - norm.y * bgH,
+      bgX: LENS_SIZE / 2 - focus.x * bgW,
+      bgY: LENS_SIZE / 2 - focus.y * bgH,
       clientX,
       clientY,
       src: img.currentSrc || img.src,
     }
   }
 
-  function showLens(clientX: number, clientY: number) {
-    lens = computeLens(clientX, clientY)
+  function showLens(clientX: number, clientY: number, focus: undefined | { x: number; y: number }) {
+    lens = focus == null ? undefined : computeLens(clientX, clientY, focus)
   }
 
   // --- gestures ------------------------------------------------------------
@@ -129,9 +129,46 @@
   const TAP_SLOP = 4
   const stopPan = (event: Event) => event.stopPropagation()
 
-  // Placement (armed): press-drag-release, so touch can fine-tune under the lens
-  // before committing. Provisional point in normalized space until release.
+  // Tolerances in CSS px: normalized units shrink with the photo, the line's grab band does not.
+  const SNAP_PX = { mouse: 14, touch: 24 }
+  const GRAB_STROKE = { mouse: 12, touch: 24 }
+  const SNAP_RING_PX = 28
+
+  // Per gesture, not a media query: a touchscreen laptop is both.
+  let lastPointerType = $state('')
+  const grabStroke = $derived(lastPointerType === 'mouse' ? GRAB_STROKE.mouse : GRAB_STROKE.touch)
+
+  // Screen px per viewBox unit. Once per gesture is enough only because `blockPan` freezes the zoom.
+  let pxPerUnit = $state(1)
+
+  function scale(): number {
+    const ctm = svgEl?.getScreenCTM()
+    return ctm == null || ctm.a === 0 ? 1 : ctm.a
+  }
+
+  /** A screen-px radius as normalized tolerance per axis: a circle on screen, not an ellipse. */
+  function snapToleranceFor(pointerType: string, k: number): { x: number; y: number } {
+    const px = pointerType === 'mouse' ? SNAP_PX.mouse : SNAP_PX.touch
+    if (boxWidth === 0 || boxHeight === 0) return { x: 0, y: 0 }
+    return { x: px / (k * boxWidth), y: px / (k * boxHeight) }
+  }
+
+  function beginGesture(event: PointerEvent) {
+    const k = scale()
+    lastPointerType = event.pointerType
+    pxPerUnit = k
+    editor.snapTolerance = snapToleranceFor(event.pointerType, k)
+  }
+
+  // Placement (armed): press-drag-release. Already snapped, so the dot and lens show what commits.
   let placing = $state<{ x: number; y: number }>()
+
+  let snapTarget = $state<TopoPoint>()
+
+  function resolveSnap(norm: { x: number; y: number }, excludeId?: string): { x: number; y: number } {
+    snapTarget = editor.snapTargetAt(norm.x, norm.y, excludeId == null ? [] : [excludeId])
+    return snapTarget ?? norm
+  }
 
   type Drag =
     | { kind: 'line'; lastX: number; lastY: number; moved: boolean; routeFk: number; startX: number; startY: number }
@@ -153,24 +190,35 @@
     if (editor.pointType == null || editor.selectedRouteFk == null) return
     // In arm mode a press starts placement, never a pan.
     event.stopPropagation()
+    beginGesture(event)
     const norm = toNorm(event.clientX, event.clientY)
     if (norm == null) return
-    placing = norm
+    placing = resolveSnap(norm)
     drag = { kind: 'place' }
-    showLens(event.clientX, event.clientY)
+    showLens(event.clientX, event.clientY, placing)
     svgEl?.setPointerCapture?.(event.pointerId)
   }
 
   function onPointHandleDown(event: PointerEvent, pointId: string) {
+    // Armed: yield to placement, or the grab ring leaves a dead zone that silently disarms.
+    if (editor.pointType != null) return
     event.stopPropagation()
+    beginGesture(event)
     editor.beginStroke()
     drag = { kind: 'point', moved: false, pointId, startX: event.clientX, startY: event.clientY }
-    showLens(event.clientX, event.clientY)
+    showLens(
+      event.clientX,
+      event.clientY,
+      selected?.points.find((point) => point.id === pointId),
+    )
     ;(event.target as Element).setPointerCapture?.(event.pointerId)
   }
 
   function onLineDown(event: PointerEvent, routeFk: number) {
+    // Armed: yield to placement. On a phone this band is wider than the snap catchment.
+    if (editor.pointType != null) return
     event.stopPropagation()
+    beginGesture(event)
     if (routeFk !== editor.selectedRouteFk) {
       editor.selectRoute(routeFk)
       swallowNextClick = true
@@ -193,13 +241,16 @@
     if (drag == null) return
     if (drag.kind === 'place') {
       const norm = toNorm(event.clientX, event.clientY)
-      if (norm != null) placing = norm
-      showLens(event.clientX, event.clientY)
+      if (norm != null) placing = resolveSnap(norm)
+      showLens(event.clientX, event.clientY, placing)
     } else if (drag.kind === 'point') {
       if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > TAP_SLOP) drag.moved = true
       const norm = toNorm(event.clientX, event.clientY)
-      if (norm != null) editor.dragPoint(drag.pointId, norm.x, norm.y)
-      showLens(event.clientX, event.clientY)
+      if (norm != null) {
+        const landed = resolveSnap(norm, drag.pointId)
+        editor.dragPoint(drag.pointId, norm.x, norm.y)
+        showLens(event.clientX, event.clientY, landed)
+      }
     } else {
       if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > TAP_SLOP) drag.moved = true
       const from = toNorm(drag.lastX, drag.lastY)
@@ -221,8 +272,20 @@
     // Drop any pre-gesture snapshot the gesture never committed (a no-op line/handle tap), so
     // it doesn't push an empty undo step or wipe the redo stack.
     editor.endStroke()
+    endGesture()
+  }
+
+  // Without this a cancelled touch leaves the lens stuck and drops a phantom point on the next release.
+  function onPointerCancel() {
+    if (drag == null) return
+    editor.endStroke()
+    endGesture()
+  }
+
+  function endGesture() {
     drag = undefined
     placing = undefined
+    snapTarget = undefined
     lens = undefined
   }
 
@@ -239,7 +302,7 @@
         : 'var(--color-surface-50)'
 </script>
 
-<svelte:window onpointermove={onPointerMove} onpointerup={onPointerUp} />
+<svelte:window onpointercancel={onPointerCancel} onpointermove={onPointerMove} onpointerup={onPointerUp} />
 
 <div
   bind:this={containerEl}
@@ -334,7 +397,10 @@
             role="button"
             tabindex="-1"
             aria-label={m.topo_insertPoint()}
-            onpointerdown={(event) => event.stopPropagation()}
+            onpointerdown={(event) => {
+              event.stopPropagation()
+              beginGesture(event)
+            }}
             onmousedown={stopPan}
             ontouchstart={stopPan}
             onclick={(event) => {
@@ -367,6 +433,34 @@
           </g>
         {/each}
 
+        <!-- Snap ring: screen-px sized to read from under a thumb, dark halo for an arbitrary rock
+             backdrop. No transition, it tracks the finger per frame. -->
+        {#if snapTarget != null}
+          {@const cx = snapTarget.x * boxWidth}
+          {@const cy = snapTarget.y * boxHeight}
+          {@const r = SNAP_RING_PX / pxPerUnit}
+          <circle
+            class="pointer-events-none"
+            {cx}
+            {cy}
+            {r}
+            fill="none"
+            stroke="oklch(0 0 0 / 0.55)"
+            stroke-width="7"
+            vector-effect="non-scaling-stroke"
+          />
+          <circle
+            class="pointer-events-none"
+            {cx}
+            {cy}
+            {r}
+            fill="none"
+            stroke="var(--color-primary-500)"
+            stroke-width="3"
+            vector-effect="non-scaling-stroke"
+          />
+        {/if}
+
         <!-- Provisional placement point (press-drag-release under the lens). -->
         {#if placing != null}
           <circle
@@ -395,9 +489,8 @@
                 vector-effect="non-scaling-stroke"
               />
             {/if}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
             <circle
-              data-no-pan
+              class="pointer-events-none"
               cx={point.x * boxWidth}
               cy={point.y * boxHeight}
               r={unit * 1.6}
@@ -405,7 +498,20 @@
               stroke="oklch(0 0 0 / 0.6)"
               stroke-width="3"
               vector-effect="non-scaling-stroke"
-              style="cursor: grab; touch-action: none"
+            />
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- Invisible grab area: ~44px on screen at any zoom, painted above the lines so a
+                 near miss drags the point, not the route. -->
+            <circle
+              data-no-pan
+              cx={point.x * boxWidth}
+              cy={point.y * boxHeight}
+              r={unit * 1.6}
+              fill="transparent"
+              stroke="transparent"
+              stroke-width={grabStroke}
+              vector-effect="non-scaling-stroke"
+              style="cursor: grab; touch-action: none; pointer-events: all"
               role="button"
               tabindex="-1"
               aria-label={m.topo_movePoint()}

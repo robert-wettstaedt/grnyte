@@ -137,6 +137,70 @@ describe('TopoEditor', () => {
     expect(line2?.points[0]).toMatchObject({ x: 0.5, y: 0.5 })
   })
 
+  it('honours a per-axis snap tolerance, so a tall photo still snaps in a circle on screen', () => {
+    const { editor } = setup()
+    editor.addLine(1)
+    editor.pointType = 'start'
+    editor.place(0.5, 0.5)
+
+    // A 3:4 photo.
+    editor.snapTolerance = { x: 0.02, y: 0.015 }
+    editor.addLine(2)
+    editor.pointType = 'start'
+    // Inside x, outside y: an isotropic radius would have caught this.
+    editor.place(0.5, 0.518)
+    expect(editor.currentLines.find((l) => l.routeFk === 2)?.points[0]).toMatchObject({ x: 0.5, y: 0.518 })
+
+    editor.addLine(3)
+    editor.pointType = 'start'
+    editor.place(0.518, 0.5)
+    expect(editor.currentLines.find((l) => l.routeFk === 3)?.points[0]).toMatchObject({ x: 0.5, y: 0.5 })
+  })
+
+  it('reports the snap target so the stage can show it before the gesture commits', () => {
+    const { editor } = setup()
+    editor.addLine(1)
+    editor.pointType = 'start'
+    editor.place(0.5, 0.5)
+    const startId = editor.currentLine!.points[0].id
+
+    expect(editor.snapTargetAt(0.505, 0.503)?.id).toBe(startId)
+    expect(editor.snapTargetAt(0.9, 0.9)).toBeUndefined()
+    // The point being dragged never snaps to itself.
+    expect(editor.snapTargetAt(0.5, 0.5, [startId])).toBeUndefined()
+  })
+
+  it('inserts a middle without snapping onto the two points it splits', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.5, 0.6)
+    editor.pointType = 'top'
+    editor.place(0.5, 0.5)
+
+    // A catchment reaching both neighbours must still leave the middle at the midpoint.
+    editor.snapTolerance = { x: 0.08, y: 0.08 }
+    const startId = editor.currentLine!.points[0].id
+    editor.insertMiddleAfter(startId, 0.5, 0.55)
+
+    const points = editor.currentLine!.points
+    expect(points).toHaveLength(3)
+    expect(points[1]).toMatchObject({ type: 'middle', x: 0.5, y: 0.55 })
+  })
+
+  it('does not snap when the tolerance is zero', () => {
+    const { editor } = setup()
+    editor.addLine(1)
+    editor.pointType = 'start'
+    editor.place(0.5, 0.5)
+
+    editor.snapTolerance = { x: 0, y: 0 }
+    editor.addLine(2)
+    editor.pointType = 'start'
+    editor.place(0.5001, 0.5001)
+    expect(editor.currentLines.find((l) => l.routeFk === 2)?.points[0]).toMatchObject({ x: 0.5001, y: 0.5001 })
+  })
+
   it('nudges a point by a delta without snapping, clamped to 0-1', () => {
     const { editor } = setup()
     editor.addLine(1)

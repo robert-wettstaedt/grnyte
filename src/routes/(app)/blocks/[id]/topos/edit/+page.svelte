@@ -548,8 +548,6 @@
       onReorder={persistReorder}
     />
 
-    <!-- Matches MediaDropZone: desktop platforms often register no MIME type for HEIC, so
-         image/* alone hides iPhone photos from the picker on those. -->
-    <input bind:this={fileInput} type="file" accept="image/*,.heic,.heif" class="hidden" onchange={onFilePicked} />
+    <input bind:this={fileInput} type="file" accept="image/*" class="hidden" onchange={onFilePicked} />
   </div>
 {/if}

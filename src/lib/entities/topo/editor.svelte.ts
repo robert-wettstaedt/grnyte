@@ -19,7 +19,7 @@ export interface SavedLine {
   topType: 'top' | 'topout'
 }
 
-/** Snap distance as a fraction of the image (all coords are normalized 0-1). */
+/** Starting snap distance as a fraction of the image; a mounted stage overwrites it per gesture. */
 const SNAP_RADIUS = 0.022
 const MAX_STARTS = 2
 
@@ -49,6 +49,13 @@ export class TopoEditor {
   /** The point handle the user tapped: its type + a delete action surface in the card. */
   selectedPointId = $state<string | undefined>(undefined)
   selectedRouteFk = $state<number | undefined>(undefined)
+
+  /**
+   * Snap catchment per axis, normalized. The stage sets it per gesture from a screen-px radius, so
+   * the catchment is a constant circle on screen rather than shrinking with the photo.
+   */
+  snapTolerance = $state<{ x: number; y: number }>({ x: SNAP_RADIUS, y: SNAP_RADIUS })
+
   topoId = $state<number | undefined>(undefined)
   get canRedo(): boolean {
     return this.topoId != null && (this.#future.get(this.topoId)?.length ?? 0) > 0
@@ -162,7 +169,7 @@ export class TopoEditor {
 
   /** Move a point during a drag: no undo snapshot (call `beginStroke` at drag start). */
   dragPoint(pointId: string, x: number, y: number): void {
-    const [sx, sy] = this.#snap(x, y, pointId)
+    const [sx, sy] = this.#snap(x, y, [pointId])
     this.#apply((lines) => {
       for (const line of lines) {
         const point = line.points.find((p) => p.id === pointId)
@@ -195,7 +202,14 @@ export class TopoEditor {
 
   /** Insert a middle point right after `afterPointId` (the ghost `+` between two points). */
   insertMiddleAfter(afterPointId: string, x: number, y: number): void {
-    const [sx, sy] = this.#snap(x, y)
+    // Both neighbours are in range from their own midpoint; snapping to either collapses the segment.
+    const line = this.currentLines.find((l) => l.points.some((point) => point.id === afterPointId))
+    const at = line?.points.findIndex((point) => point.id === afterPointId) ?? -1
+    const neighbours =
+      line == null || at < 0
+        ? []
+        : [line.points[at]?.id, line.points[at + 1]?.id].filter((id): id is string => id != null)
+    const [sx, sy] = this.#snap(x, y, neighbours)
     this.#apply((lines) => {
       for (const line of lines) {
         const index = line.points.findIndex((p) => p.id === afterPointId)
@@ -315,6 +329,27 @@ export class TopoEditor {
     })
   }
 
+  /** The point a placement at (x, y) would snap onto. Public so the stage can preview the snap. */
+  snapTargetAt(x: number, y: number, excludeIds: readonly string[] = []): TopoPoint | undefined {
+    const { x: toleranceX, y: toleranceY } = this.snapTolerance
+    if (!(toleranceX > 0) || !(toleranceY > 0)) return undefined
+
+    let best: TopoPoint | undefined
+    // Distance in tolerance units, so 1 is the catchment edge on both axes.
+    let bestDist = 1
+    for (const line of this.currentLines) {
+      for (const point of line.points) {
+        if (excludeIds.includes(point.id)) continue
+        const dist = Math.hypot((point.x - x) / toleranceX, (point.y - y) / toleranceY)
+        if (dist < bestDist) {
+          bestDist = dist
+          best = point
+        }
+      }
+    }
+    return best
+  }
+
   /** True once the committed lines have caught up to what was saved: safe to drop the local doc. */
   syncedWithCommitted(topoId: number): boolean {
     const saved = this.#saved.get(topoId)
@@ -357,21 +392,10 @@ export class TopoEditor {
 
   // --- save ---------------------------------------------------------------
 
-  /** Snap to the nearest point of any line within the radius (excluding one being dragged). */
-  #snap(x: number, y: number, excludeId?: string): [number, number] {
-    let best: TopoPoint | undefined
-    let bestDist = SNAP_RADIUS
-    for (const line of this.currentLines) {
-      for (const point of line.points) {
-        if (point.id === excludeId) continue
-        const dist = Math.hypot(point.x - x, point.y - y)
-        if (dist < bestDist) {
-          bestDist = dist
-          best = point
-        }
-      }
-    }
-    return best == null ? [x, y] : [best.x, best.y]
+  /** Snap to the nearest point of any line within the tolerance (excluding the ids given). */
+  #snap(x: number, y: number, excludeIds: readonly string[] = []): [number, number] {
+    const target = this.snapTargetAt(x, y, excludeIds)
+    return target == null ? [x, y] : [target.x, target.y]
   }
 }
 

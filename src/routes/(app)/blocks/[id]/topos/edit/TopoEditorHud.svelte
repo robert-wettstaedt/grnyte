@@ -150,7 +150,7 @@
         transition:scale={{ duration: 200, start: 0.8 }}
       >
         <span class="bg-warning-500 ml-1.5 size-2 rounded-full"></span>
-        <span class="px-1 text-xs font-semibold">{m.topo_unsavedShort()}</span>
+        <span class="px-1 text-xs font-semibold max-sm:sr-only">{m.topo_unsavedShort()}</span>
         <button
           class="btn btn-sm preset-tonal-surface rounded-full"
           disabled={saving}
