@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import Breadcrumb, { CRUMB_LINK } from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import Disclosure from '$lib/components/Disclosure/Disclosure.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
@@ -127,7 +127,7 @@
   <Breadcrumb area={breadcrumbArea} userRegions={global.userRegions} />
   <span class="shrink-0 text-xs">·</span>
   <a
-    class="anchor shrink-0 text-xs font-semibold"
+    class={[CRUMB_LINK, 'font-semibold']}
     href={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) })}
   >
     {block.name}

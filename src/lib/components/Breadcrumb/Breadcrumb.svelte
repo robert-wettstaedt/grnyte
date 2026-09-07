@@ -1,3 +1,10 @@
+<script lang="ts" module>
+  // A 12px crumb is only a 16px tap target. The pseudo doubles it without moving the line, the way
+  // EventCard's disclosure does. 8px is the most it can take: on the desktop sheet the target's top
+  // edge lands exactly on Dialog.Content's clip edge, so anything more is clipped and cannot be hit.
+  export const CRUMB_LINK = 'anchor relative shrink-0 text-xs before:absolute before:inset-x-0 before:-inset-y-2'
+</script>
+
 <script lang="ts">
   import { resolve } from '$app/paths'
   import type { AreaDetail, AreaListItem } from '$lib/entities/area/dto'
@@ -36,7 +43,9 @@
 {#if regionName != null || crumbs.length > 0}
   <!-- Keep the trail on a single line and let it scroll instead of wrapping; the
        scrollbar is hidden so it reads as a clean subtitle. -->
-  <div class="breadcrumb flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+  <!-- overflow-x makes this a scroll container in both axes, so it needs the crumbs' own 8px or
+       their targets are clipped above and scrollable below. -my-2 keeps the footprint at 16px. -->
+  <div class="breadcrumb -my-2 flex items-center gap-2 overflow-x-auto py-2 whitespace-nowrap">
     {#if regionName != null}
       <span class="text-surface-600-400 shrink-0 text-xs">{regionName}</span>
 
@@ -51,10 +60,7 @@
     {/if}
 
     {#each visible as crumb, index (crumb.id)}
-      <a
-        class="anchor shrink-0 text-xs"
-        href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: crumb.id.toString() })}
-      >
+      <a class={CRUMB_LINK} href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: crumb.id.toString() })}>
         {crumb.name}
       </a>
 

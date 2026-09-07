@@ -3,7 +3,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import Breadcrumb, { CRUMB_LINK } from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -230,7 +230,7 @@
       {/if}
 
       <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- blockHref is pre-resolved above. -->
-      <a class="anchor shrink-0" href={blockHref}>{block.data.name}</a>
+      <a class={CRUMB_LINK} href={blockHref}>{block.data.name}</a>
     </div>
   {/if}
 {/snippet}
