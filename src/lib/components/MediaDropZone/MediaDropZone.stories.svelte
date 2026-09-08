@@ -63,4 +63,6 @@
 
 <Story name="Videos only" args={{ accept: ['video'] }} />
 
+<Story name="Video with source" args={{ accept: ['image', 'video'], videoSource: true }} />
+
 <Story name="Disabled" args={{ disabled: true }} />

@@ -25,9 +25,11 @@
   } from '$lib/entities/file/upload-manager.svelte'
   import { m } from '$lib/paraglide/messages'
   import { toaster } from '$lib/state/toast'
+  import { isHdrVideo } from '$lib/videos/hdr'
   import { FileUpload, useFileUpload } from '@skeletonlabs/skeleton-svelte'
+  import { onDestroy } from 'svelte'
   import { MediaQuery } from 'svelte/reactivity'
-  import { fade } from 'svelte/transition'
+  import { fade, slide } from 'svelte/transition'
   import MediaUploadTile from './MediaUploadTile.svelte'
 
   interface Props {
@@ -73,6 +75,9 @@
   }
 
   let rejections = $state<string[]>([])
+  // Held against the upload rather than the message: two picks can carry the same file name,
+  // and each has to be dismissable on its own.
+  let warnings = $state<{ message: string; upload: MediaUpload }[]>([])
 
   // Inline under the field in a form; a toast in tile mode, which has no inline slot for them.
   const reportRejections = (list: string[]) => {
@@ -80,6 +85,34 @@
       list.forEach((message) => toaster.create({ duration: 5000, title: message, type: 'error' }))
     } else {
       rejections = list
+    }
+  }
+
+  // The HDR check is async, so its answer can land after the field is gone or after the
+  // upload it describes was removed. Either would strand a warning nothing can dismiss
+  // (the toaster outlives navigation by design), so both are dropped here.
+  let gone = false
+  onDestroy(() => (gone = true))
+
+  const reportWarning = (upload: MediaUpload, message: string) => {
+    if (gone) {
+      return
+    }
+    if (tile) {
+      toaster.create({ duration: 8000, title: message, type: 'warning' })
+    } else if (uploads.includes(upload) && !warnings.some((warning) => warning.upload === upload)) {
+      warnings.push({ message, upload })
+    }
+  }
+
+  /** Bunny ships HDR sources washed out, so flag them once the pick is already accepted. */
+  const warnAboutHdr = (videos: MediaUpload[]) => {
+    for (const upload of videos) {
+      void isHdrVideo(upload.file).then((hdr) => {
+        if (hdr) {
+          reportWarning(upload, `${upload.file.name}: ${m.upload_hdrWarning()}`)
+        }
+      })
     }
   }
 
@@ -93,6 +126,7 @@
   let sheetStep = $state<'choose' | 'video'>('choose')
   let sheetVideo = $state<File | null>(null)
   let sheetError = $state<null | string>(null)
+  let sheetHdr = $state(false)
   let sourceRaw = $state('')
   let photoInput: HTMLInputElement | undefined = $state()
   let videoInput: HTMLInputElement | undefined = $state()
@@ -104,6 +138,7 @@
     sheetStep = 'choose'
     sheetVideo = null
     sheetError = null
+    sheetHdr = false
     sourceRaw = ''
     sheetOpen = true
   }
@@ -146,6 +181,13 @@
     } else {
       sheetError = null
       sheetVideo = file
+      sheetHdr = false
+      // The sheet warns before the confirm, so the uploader can still back out and re-record.
+      void isHdrVideo(file).then((hdr) => {
+        if (sheetVideo === file) {
+          sheetHdr = hdr
+        }
+      })
     }
   }
 
@@ -156,6 +198,9 @@
     const [upload] = addUploads([sheetVideo], VideoUpload)
     upload.source = normalizedSource
     commit([upload])
+    // The sheet's own banner leaves with the sheet, and a quick confirm can beat the check
+    // to it, so the warning is raised again against the upload it now belongs to.
+    warnAboutHdr([upload])
     sheetOpen = false
   }
 
@@ -196,8 +241,11 @@
         rejected.push(`${file.name}: ${m.upload_invalidType()}`)
       }
     }
+    const imageUploads = addUploads(images, ImageUpload)
+    const videoUploads = addUploads(videos, VideoUpload)
     reportRejections(rejected)
-    commit([...addUploads(images, ImageUpload), ...addUploads(videos, VideoUpload)])
+    commit([...imageUploads, ...videoUploads])
+    warnAboutHdr(videoUploads)
     // Our uploads are the source of truth, reset zag's own list so re-picking
     // the same file isn't rejected as a duplicate.
     fileUpload().clearFiles()
@@ -237,6 +285,7 @@
 
   const remove = (upload: MediaUpload) => {
     upload.remove()
+    warnings = warnings.filter((warning) => warning.upload !== upload)
     uploads.splice(uploads.indexOf(upload), 1)
   }
 
@@ -396,6 +445,12 @@
         {#if sheetError != null}
           <p class="text-error-500 text-sm">{sheetError}</p>
         {/if}
+        {#if sheetHdr}
+          <p class="text-warning-500 flex items-start gap-2 text-sm" transition:slide={{ duration }}>
+            <Icon name="alert-triangle" size={14} class="mt-0.5 shrink-0" />
+            {m.upload_hdrWarning()}
+          </p>
+        {/if}
 
         <SourceField bind:value={sourceRaw} valid={sourceValid} />
       </div>
@@ -450,6 +505,12 @@
 
     {#each rejections as rejection, index (index)}
       <p class="text-error-500 text-sm">{rejection}</p>
+    {/each}
+    {#each warnings as warning (warning.upload)}
+      <p class="text-warning-500 flex items-start gap-2 text-sm" transition:slide={{ duration }}>
+        <Icon name="alert-triangle" size={14} class="mt-0.5 shrink-0" />
+        {warning.message}
+      </p>
     {/each}
     {#each uploads.filter((upload) => upload.status === 'failed') as failed (failed)}
       <p class="text-error-500 text-sm">{failed.file.name}: {failed.error ?? m.upload_failed()}</p>

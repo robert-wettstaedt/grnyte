@@ -1828,6 +1828,7 @@
   "upload_dropPromptMedia": "Drag images or videos here or",
   "upload_dropPromptVideo": "Drag videos here or",
   "upload_failed": "Upload failed",
+  "upload_hdrWarning": "This clip is in HDR, so colors may look washed out after upload. Recording with 10-bit HDR off avoids it.",
   "upload_invalidType": "Unsupported file type",
   "upload_networkError": "Network error. Check your connection",
   "upload_someFailed": "Some uploads failed",
