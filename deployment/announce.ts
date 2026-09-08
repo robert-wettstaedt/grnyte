@@ -1,13 +1,6 @@
 import 'dotenv/config'
-import { eq } from 'drizzle-orm'
-import { alias } from 'drizzle-orm/pg-core'
-import { drizzle } from 'drizzle-orm/postgres-js'
-import { authUsers } from 'drizzle-orm/supabase'
 import Database from 'postgres'
 import { Resend } from 'resend'
-import drizzleConfig from '../drizzle.config'
-import * as schema from '../src/lib/db/schema'
-import { users, userSettings } from '../src/lib/db/schema'
 import { BRAND } from '../src/lib/email/brand.cli'
 import { renderEmailHtml, renderEmailText, type EmailContent, type EmailLocale } from '../src/lib/email/shell'
 
@@ -25,6 +18,7 @@ import { renderEmailHtml, renderEmailText, type EmailContent, type EmailLocale }
  * imported so these look like every other mail the app sends.
  */
 
+const DATABASE_URL = process.env.DATABASE_URL ?? ''
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
 const RESEND_SENDER_EMAIL = process.env.RESEND_SENDER_EMAIL ?? ''
 // Shared with the shell, so the button, the logo and the footer wordmark cannot disagree.
@@ -32,10 +26,6 @@ const ORIGIN = BRAND.origin
 
 /** Resend's free tier allows 2 requests a second. Half that. */
 const GAP_MS = 1000
-
-// `auth.users` and `public.users` are both "users" to drizzle: unaliased, the join typechecks and
-// fails only at runtime, with 42P09 "table reference is ambiguous".
-const authUser = alias(authUsers, 'auth_user')
 
 type Kind = 'downtime' | 'release'
 
@@ -123,9 +113,13 @@ const args = process.argv.slice(2)
 const kind = args[0] as Kind
 const send = args.includes('--send')
 const date = args[args.indexOf('--date') + 1]
+const since = args.includes('--since') ? args[args.indexOf('--since') + 1] : undefined
 
 if (kind !== 'downtime' && kind !== 'release') {
-  throw new Error('usage: announce.ts <downtime|release> [--date YYYY-MM-DD] [--send]')
+  throw new Error('usage: announce.ts <downtime|release> [--date YYYY-MM-DD] [--since YYYY-MM-DD] [--send]')
+}
+if (since != null && !/^\d{4}-\d{2}-\d{2}$/.test(since)) {
+  throw new Error('--since takes YYYY-MM-DD')
 }
 if (kind === 'downtime' && (!args.includes('--date') || date == null || date.startsWith('--'))) {
   throw new Error('the downtime mail needs --date, which is printed verbatim in the subject and body')
@@ -133,17 +127,80 @@ if (kind === 'downtime' && (!args.includes('--date') || date == null || date.sta
 if (send && (RESEND_API_KEY === '' || RESEND_SENDER_EMAIL === '')) {
   throw new Error('RESEND_API_KEY and RESEND_SENDER_EMAIL must be set to --send')
 }
+// Unset, postgres.js falls back to localhost as the OS user rather than failing, which is how you
+// mail dev accounts through the live Resend key.
+if (DATABASE_URL === '') {
+  throw new Error('DATABASE_URL must be set')
+}
 
-const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
-const db = drizzle(postgres, { schema })
+const postgres = Database(DATABASE_URL, { prepare: false })
 
-// `contactLocale` is the language chosen for mail, not the ambient or browser one. LEFT join so an
-// account with no settings row still gets the mail, in English.
-const rows = await db
-  .select({ email: authUser.email, locale: userSettings.contactLocale, username: users.username })
-  .from(users)
-  .innerJoin(authUser, eq(authUser.id, users.authUserFk))
-  .leftJoin(userSettings, eq(userSettings.userFk, users.id))
+// Raw SQL: the two mails straddle the migration, `$lib/db/schema` only describes the far side. One
+// catalog for both facts, since `information_schema` hides columns the role merely cannot read.
+const [shape] = await postgres<{ hasContactLocale: boolean; hasEvents: boolean; hasPushLang: boolean }[]>`
+  SELECT
+    to_regclass('public.events') IS NOT NULL AS "hasEvents",
+    EXISTS (
+      SELECT 1 FROM pg_attribute
+      WHERE attrelid = to_regclass('public.user_settings') AND attname = 'contact_locale' AND NOT attisdropped
+    ) AS "hasContactLocale",
+    EXISTS (
+      SELECT 1 FROM pg_attribute
+      WHERE attrelid = to_regclass('public.push_subscriptions') AND attname = 'lang' AND NOT attisdropped
+    ) AS "hasPushLang"
+`
+
+// Which database this actually is, printed below. A stale .env points at the dev stack.
+const [server] = await postgres<{ host: null | string; name: string }[]>`
+  SELECT current_database() AS name, host(inet_server_addr()) AS host
+`
+
+// One cutoff, resolved once and printed, so `--since` can pin the release mail to the window the
+// downtime mail used. Left rolling, the two sends reach different people for no stated reason.
+const [cutoff] = await postgres<{ since: Date }[]>`
+  SELECT coalesce(${since ?? null}::timestamptz, now() - interval '6 months') AS since
+`
+
+// 0097 seeds `contact_locale` from `lang`, then drops it. Coalesced while both exist, but NOT
+// equivalent: 0097 skips accounts with no settings row, so those are German before, English after.
+const settingsLocale = postgres`(SELECT s.contact_locale FROM public.user_settings s WHERE s.user_fk = u.id)`
+const pushLocale = postgres`(
+  SELECT p.lang FROM public.push_subscriptions p
+  WHERE p.user_fk = u.id AND p.lang IN ('en', 'de')
+  ORDER BY p.id DESC LIMIT 1
+)`
+const locale =
+  shape.hasContactLocale && shape.hasPushLang
+    ? postgres`coalesce(${settingsLocale}, ${pushLocale})`
+    : shape.hasContactLocale
+      ? settingsLocale
+      : pushLocale
+
+// Where "this region is still climbed in" is written down. 0099 folds `activities` into `events`,
+// but the fold drops activities whose object row is gone, so the two do not answer identically.
+const activity = shape.hasEvents ? postgres`public.events` : postgres`public.activities`
+
+// Qualified, or a search_path resolving `users` to `auth.users` reads a different table than the
+// probe checked. Deleted and banned are out; the nested EXISTS dedupes a member of four regions.
+const rows = await postgres<{ email: null | string; locale: null | string; username: string }[]>`
+  SELECT au.email, ${locale} AS locale, u.username
+  FROM public.users u
+  JOIN auth.users au ON au.id = u.auth_user_fk
+  WHERE au.deleted_at IS NULL
+    AND (au.banned_until IS NULL OR au.banned_until < now())
+    AND EXISTS (
+      SELECT 1
+      FROM public.region_members rm
+      WHERE rm.user_fk = u.id
+        AND rm.is_active
+        AND EXISTS (
+          SELECT 1
+          FROM ${activity} a
+          WHERE a.region_fk = rm.region_fk
+            AND a.created_at >= ${cutoff.since}
+        )
+    )
+`
 
 const recipients: Recipient[] = rows
   .filter((row): row is typeof row & { email: string } => row.email != null && row.email.length > 0)
@@ -153,7 +210,14 @@ const byLocale = recipients.reduce<Record<string, number>>(
   (acc, r) => ({ ...acc, [r.locale]: (acc[r.locale] ?? 0) + 1 }),
   {},
 )
-console.log(`${kind}: ${recipients.length} recipients`, byLocale, send ? '(SENDING)' : '(dry run)')
+console.log(
+  `${kind}: ${recipients.length} recipients`,
+  byLocale,
+  `[${server.name}@${server.host ?? 'local'} · ${shape.hasEvents ? 'events' : 'activities'}` +
+    ` since ${cutoff.since.toISOString().slice(0, 10)}` +
+    ` · ${shape.hasContactLocale ? 'contact_locale' : 'push lang'}]`,
+  send ? '(SENDING)' : '(dry run)',
+)
 
 if (!send) {
   const sample = COPY[kind].en(date ?? 'DATE')
