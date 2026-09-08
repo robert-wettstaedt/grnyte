@@ -14,6 +14,9 @@ declare global {
   namespace App {
     // interface Error {}
     interface Locals extends SafeSession {
+      /** A backend this request needs was unreachable, so `claims`/`user`/`userRegions` are missing
+       *  because they could not be read, not because the caller lacks them. */
+      backendUnavailable: boolean
       /**
        * The verified token claims, and the only trustworthy identity on this request.
        *
@@ -22,7 +25,7 @@ declare global {
        * verified token sitting beside a forged `user` object is the shape of the bug this replaced.
        */
       claims: undefined | VerifiedClaims
-      safeGetSession: () => Promise<SafeSession & { claims: undefined | VerifiedClaims }>
+      safeGetSession: () => Promise<SafeSession & { backendUnavailable: boolean; claims: undefined | VerifiedClaims }>
       supabase: SupabaseClient
     }
 

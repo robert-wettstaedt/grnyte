@@ -1,4 +1,4 @@
-import { command, getRequestEvent } from '$app/server'
+import { command } from '$app/server'
 import * as schema from '$lib/db/schema'
 import { bunnyStreams, files, type BunnyStream, type File } from '$lib/db/schema'
 import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
@@ -7,7 +7,7 @@ import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
 import { getImageProvider } from '$lib/images/provider.server'
-import { authedCommand, authedRls } from '$lib/remote/authed.server'
+import { authedCommand, authedRls, requireAuthed } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { getVideoProvider } from '$lib/videos/provider.server'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
@@ -218,10 +218,7 @@ export const finalizeImage = command(
  * POST /api/tasks/cleanup (still placeholder-titled Bunny videos > 48h).
  */
 export const createBunnyVideo = command(async () => {
-  const { user } = getRequestEvent().locals
-  if (user == null) {
-    error(401, 'Not authenticated')
-  }
+  const { user } = requireAuthed()
   return getVideoProvider().createUpload(user.authUserFk)
 })
 

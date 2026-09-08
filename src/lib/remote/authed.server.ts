@@ -7,18 +7,8 @@ import { error, redirect, type InvalidField, type RemoteForm, type RemoteFormInp
 
 /** Injected into every wrapped handler. Add shared per-call deps here. */
 export interface Context {
-  /**
-   * Defer work until the handler's transaction has committed.
-   *
-   * For the writes that cannot join it: anything on the privileged `db` handle (the notification
-   * fan-out) needs a SECOND connection, and taking one while this handler is holding one out of
-   * the same ten-slot pool deadlocks it under load. Deferring also means such a write cannot
-   * announce a change that then rolled back, and that it reads committed state rather than the
-   * transaction's private view.
-   *
-   * Tasks run in the order they were queued, after the transaction closes and before the handler's
-   * value is returned. A handler that throws never reaches them.
-   */
+  /** Defer work until after the transaction commits: a write on the privileged `db` handle needs a
+   *  second connection, and taking one while this handler holds one deadlocks the ten-slot pool. */
   afterCommit: (task: () => Promise<void>) => void
   db: Tx
   user: NonNullable<App.Locals['user']>
@@ -26,16 +16,8 @@ export interface Context {
   userRegions: UserRegion[]
 }
 
-/**
- * Copy of Kit's unexported `HasNonOptionalBoolean` (`@sveltejs/kit/types/index.d.ts`): a form
- * schema may not carry a required boolean, because an unchecked checkbox sends no value at all.
- * Structurally identical to Kit's, `any` included, so the two can be diffed by eye.
- *
- * Kit enforces it on `form()`'s schema parameter. {@link authedForm} cannot: a conditional sitting
- * where `S` is inferred from blocks inference entirely, collapsing every caller's form to
- * `RemoteForm<RemoteFormInput, unknown>`. It goes on the return type instead, where `S` is already
- * resolved. On a Kit upgrade, check this type against Kit's.
- */
+/** Copy of Kit's unexported `HasNonOptionalBoolean`: a form schema may not carry a required
+ *  boolean, since an unchecked checkbox sends no value. Re-check it on a Kit upgrade. */
 type HasNonOptionalBoolean<T> = 0 extends 1 & T
   ? never
   : [T] extends [boolean]
@@ -59,12 +41,8 @@ export function authedCommand<S extends StandardSchemaV1, O>(
   return command(schema, (input) => run((ctx) => handler(input, ctx)))
 }
 
-/**
- * `form`, but the handler also receives {@link Context} and runs inside the RLS transaction.
- *
- * Overload plus a loose implementation: the signature is the whole contract, and the wider body
- * keeps Kit's deferred schema conditional from needing a cast callers would depend on.
- */
+/** `form`, but the handler also receives {@link Context} and runs inside the RLS transaction.
+ *  Overload plus a loose body: a conditional where `S` is inferred would collapse inference. */
 export function authedForm<S extends StandardSchemaV1<RemoteFormInput, Record<string, unknown>>, O>(
   schema: S,
   handler: (
@@ -99,23 +77,8 @@ export function authedQuery<S extends StandardSchemaV1, O>(
   return query(schema, (input) => run((ctx) => handler(input, ctx)))
 }
 
-/**
- * The 401 gate and an RLS handle, with no transaction wrapped around the caller.
- *
- * For the commands that cannot be an {@link authedCommand}: work that has to take a SECOND,
- * privileged connection while reading through RLS, or that has to run outside the transaction
- * rather than after it (a push send, an irreversible storage teardown). They still want the same
- * gate and the same client, and hand-rolling both per command is how the two drift apart.
- *
- * Returns everything {@link Context} carries, because every caller needs the same values for the
- * permission check that follows and reading them off `locals` separately is half the prelude back.
- * Moving a handler between the two shapes is then a change of wrapper rather than of what it can
- * see.
- *
- * Plus the Supabase client, which `Context` has no reason to expose: the work that cannot sit in a
- * transaction is largely storage work, so the handlers that need this seam are exactly the ones
- * that also need the bucket. One read of `locals`, or the null check goes back to being per-caller.
- */
+/** The auth gate and an RLS handle, without a transaction: for work needing a second connection,
+ *  or that must run outside the transaction rather than after it (a push send, a storage teardown). */
 export async function authedRls(): Promise<{
   rls: Rls
   supabase: App.Locals['supabase']
@@ -123,21 +86,35 @@ export async function authedRls(): Promise<{
   userPermissions: App.Locals['userPermissions']
   userRegions: App.Locals['userRegions']
 }> {
-  const { claims, supabase, user, userPermissions, userRegions } = getRequestEvent().locals
+  const { claims, user } = requireAuthed()
+  const { supabase, userPermissions, userRegions } = getRequestEvent().locals
+
+  return { rls: createRlsClient(claims), supabase, user, userPermissions, userRegions }
+}
+
+/** The auth gate alone, for handlers that want neither the transaction nor the RLS client.
+ *  `user == null` is either a downed backend or a half-completed sign-up; only the first is a 503. */
+export function requireAuthed(): {
+  claims: NonNullable<App.Locals['claims']>
+  user: NonNullable<App.Locals['user']>
+} {
+  const { backendUnavailable, claims, user } = getRequestEvent().locals
+
+  if (backendUnavailable) {
+    error(503, 'Service temporarily unavailable')
+  }
   if (claims == null || user == null) {
     error(401, 'Not authenticated')
   }
 
-  return { rls: createRlsClient(claims), supabase, user, userPermissions, userRegions }
+  return { claims, user }
 }
 
 /** before: auth-gate, open an RLS transaction, run the handler inside it; after: drain whatever the
  *  handler deferred to {@link Context.afterCommit}, then log failures. */
 async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
-  const { claims, user, userPermissions, userRegions } = getRequestEvent().locals
-  if (claims == null || user == null) {
-    error(401, 'Not authenticated')
-  }
+  const { claims, user } = requireAuthed()
+  const { userPermissions, userRegions } = getRequestEvent().locals
 
   let returnValue: Awaited<O>
   const deferred: (() => Promise<void>)[] = []
@@ -152,15 +129,13 @@ async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
     throw e
   }
 
-  // Serially, and outside the transaction, which is the whole point: each is free to take a
-  // connection of its own now that this handler is no longer holding one.
+  // Outside the transaction, so each task is free to take a connection of its own.
   for (const task of deferred) {
     try {
       await task()
     } catch (e) {
-      // Logged, never rethrown. The transaction has committed, so letting a notification fan-out
-      // fail here would report a mutation that succeeded as a failure, and the user would
-      // resubmit into a duplicate-name error for the row they created.
+      // Logged, never rethrown: the transaction has committed, so a failed fan-out must not
+      // report a succeeded mutation as a failure.
       console.error('[remote] afterCommit task failed', e)
     }
   }

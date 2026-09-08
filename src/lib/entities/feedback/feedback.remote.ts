@@ -7,6 +7,7 @@ import { sendEmail } from '$lib/email/send.server'
 import { blank, formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { contactLocale } from '$lib/i18n/message'
+import { requireAuthed } from '$lib/remote/authed.server'
 import { error as httpError } from '@sveltejs/kit'
 import { and, desc, eq } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
@@ -40,21 +41,18 @@ const feedbackSchema = z.object({
  * Record a piece of feedback and tell the admins.
  *
  * Plain `form`, not `authedForm`: the table has RLS on with no policies, so the write runs on the
- * privileged handle and the 401 below is the gate. `createdBy` and `user_agent` come from the
+ * privileged handle and `requireAuthed` is the gate. `createdBy` and `user_agent` come from the
  * session and the request, never from the payload.
  */
 export const submitFeedback = form(feedbackSchema, async (value) => {
-  const { locals, request, url } = getRequestEvent()
-
-  if (locals.user == null) {
-    httpError(401, 'Not authenticated')
-  }
+  const { request, url } = getRequestEvent()
+  const { user } = requireAuthed()
 
   const [created] = await db
     .insert(feedback)
     .values({
       body: value.body,
-      createdBy: locals.user.id,
+      createdBy: user.id,
       kind: value.kind,
       locale: blank(value.locale),
       pathname: blank(value.pathname),
@@ -70,7 +68,7 @@ export const submitFeedback = form(feedbackSchema, async (value) => {
     kind: value.kind,
     origin: url.origin,
     pathname: value.pathname,
-    username: locals.user.username,
+    username: user.username,
   })
 })
 

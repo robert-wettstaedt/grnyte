@@ -92,7 +92,8 @@ const NO_GATE: Record<string, string> = {
     'Counts on the RLS connection, so the region scope is the "region.read can read events" policy rather than anything the handler restates; the only input is the id of the user whose number is on screen.',
   'lib/entities/feedback/feedback.remote.ts#listFeedback': 'Global, not region scoped; gated on app.admin.',
   'lib/entities/feedback/feedback.remote.ts#replyToFeedback': 'Same app.admin gate; recipient from the stored row.',
-  'lib/entities/feedback/feedback.remote.ts#submitFeedback': 'New row only; createdBy from session, 401 signed out.',
+  'lib/entities/feedback/feedback.remote.ts#submitFeedback':
+    'New row only; createdBy from session, and `requireAuthed` for the gate: 401 signed out, 503 when a backend is down.',
   'lib/entities/file/files.remote.ts#createBunnyVideo':
     "Takes no id at all: it mints an empty video object in the caller's own host collection, and the region gate runs at finalizeVideo, which is where an entity to attach to is finally named.",
   'lib/entities/notification/notifications.remote.ts#markEventFeedSeen':

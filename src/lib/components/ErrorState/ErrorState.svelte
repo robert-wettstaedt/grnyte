@@ -1,5 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
+  import type { ResolvedPathname } from '$app/types'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import { m } from '$lib/paraglide/messages'
@@ -12,11 +13,14 @@
   // offers Reload, others offer Explore. Pass `title`/`description` to override.
   interface Props {
     description?: string
+    /** Replaces the Explore button, which only a signed-in reader can open. Ignored when `type` is
+     *  'offline', where the only useful action is Reload. */
+    primaryAction?: { href: ResolvedPathname; label: string }
     title?: string
     type?: ErrorType
   }
 
-  const { description, title, type = 'generic' }: Props = $props()
+  const { description, primaryAction, title, type = 'generic' }: Props = $props()
 
   const variants: Record<ErrorType, { body: () => string; icon: IconName; tile: string; title: () => string }> = {
     generic: {
@@ -47,6 +51,7 @@
 
   const variant = $derived(variants[type])
   const exploreHref = resolve('/explore')
+  const primaryHref = $derived(primaryAction?.href ?? exploreHref)
 </script>
 
 <div class="flex min-h-full flex-col items-center justify-center px-8 py-16 text-center">
@@ -67,10 +72,10 @@
         {m.error_reload()}
       </button>
     {:else}
-      <a class="btn preset-filled-primary-500" href={exploreHref}>{m.explore_title()}</a>
+      <a class="btn preset-filled-primary-500" href={primaryHref}>{primaryAction?.label ?? m.explore_title()}</a>
     {/if}
     {#if canGoBack()}
-      <button class="btn preset-tonal-surface" onclick={() => back(exploreHref)} type="button">
+      <button class="btn preset-tonal-surface" onclick={() => back(primaryHref)} type="button">
         {m.common_back()}
       </button>
     {/if}

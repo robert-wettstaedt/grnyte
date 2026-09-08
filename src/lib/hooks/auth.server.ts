@@ -8,7 +8,7 @@ import { acceptPath, REGION_CREATE_PATH, REGIONLESS_PATHS } from '$lib/entities/
 import { findLiveInvitationByEmail } from '$lib/entities/region/invite.server'
 import { regionSettingsSchema } from '$lib/entities/region/settings'
 import { createServerClient } from '@supabase/ssr'
-import { redirect, type Handle } from '@sveltejs/kit'
+import { error, redirect, type Handle } from '@sveltejs/kit'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 export async function getUserPermissions(
@@ -74,13 +74,19 @@ function anonymous(): App.SafeSession & { claims: undefined } {
   return { claims: undefined, user: undefined, userPermissions: undefined, userRegions: [], userRole: undefined }
 }
 
+/** Could not reach GoTrue, rather than a dead session: auth-js keeps the refresh token in this case.
+ *  By name because the type guard lives in auth-js, a transitive dependency. */
+function isUnreachable(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'name' in error && error.name === 'AuthRetryableFetchError'
+}
+
 export const supabase: Handle = async ({ event, resolve }) => {
   // Prerendering has no request behind it: no cookies, so no session to load and nothing on
   // `locals` a prerendered page could read. Building the client anyway made the whole build depend
   // on PUBLIC_SUPABASE_URL parsing as a URL, which is how `/offline` took CI down: the value there
   // is the placeholder `foobar`. `rateLimit` bails on the same condition for the same reason.
   if (building) {
-    Object.assign(event.locals, anonymous())
+    Object.assign(event.locals, anonymous(), { backendUnavailable: false })
     return resolve(event)
   }
 
@@ -107,16 +113,35 @@ export const supabase: Handle = async ({ event, resolve }) => {
     }
   }
 
+  // `setHeaders` throws on a repeat of the same key, and `setAll` can fire more than once.
+  const headersApplied = new Set<string>()
+
   event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
       getAll: () => event.cookies.getAll(),
       // SvelteKit's cookies API requires `path` to be set explicitly; '/' matches previous/standard behavior.
-      setAll: (cookiesToSet) => {
+      setAll: (cookiesToSet, headers) => {
         cookiesToSet.forEach(({ name, options, value }) => {
           // `secure` follows the request protocol rather than the environment: Safari refuses a
           // Secure cookie over http, which broke sign-in against the dev server on localhost.
           event.cookies.set(name, value, { ...options, path: '/', secure: event.url.protocol === 'https:' })
         })
+
+        // Stops a CDN caching a response that carries somebody's rotated session. One key at a
+        // time, marked only once it lands: `setHeaders` throws on a repeat and after the response
+        // is out, and a batch would strand the keys that never got applied.
+        for (const [key, value] of Object.entries(headers ?? {})) {
+          if (headersApplied.has(key)) {
+            continue
+          }
+
+          try {
+            event.setHeaders({ [key]: value })
+            headersApplied.add(key)
+          } catch (error) {
+            console.warn(`[auth] could not apply ${key}:`, error)
+          }
+        }
       },
     },
   })
@@ -136,30 +161,48 @@ export const supabase: Handle = async ({ event, resolve }) => {
   event.locals.safeGetSession = async () => {
     const {
       data: { session },
+      error: sessionError,
     } = await event.locals.supabase.auth.getSession()
 
-    let verified = await verifyAccessToken(session?.access_token)
+    // `session: null` means both "no cookie" and "the refresh failed"; only the error tells them
+    // apart. A revoked or expired refresh token is routine and user-caused, so only an unreachable
+    // GoTrue is worth alerting on.
+    if (sessionError != null) {
+      const line =
+        `[auth] getSession failed on ${event.url.pathname}: ${sessionError.name}` +
+        `${'code' in sessionError && sessionError.code != null ? ` (${sessionError.code})` : ''}: ${sessionError.message}`
+      if (isUnreachable(sessionError)) {
+        console.error(line)
+      } else {
+        console.warn(line)
+      }
+    }
 
-    // One retry, and only for expiry. `getSession()` decides whether to refresh from the cookie's
-    // `expires_at` field, never from the token's `exp`; when those disagree the session is
-    // refreshable and the token is not, and bouncing the user to /auth with a live refresh token in
-    // their cookie is the "everyone got logged out" failure this change would otherwise cause. Any
-    // other rejection fails closed immediately: a bad signature is never worth retrying.
+    let verified = await verifyAccessToken(session?.access_token)
+    let backendUnavailable = isUnreachable(sessionError)
+
+    // Only when the cookie's `expires_at` disagrees with the token's `exp`: getSession() already
+    // refreshed anything inside its 90s margin, and a failed refresh verifies as 'absent'.
     if (!verified.ok && verified.reason === 'expired') {
-      const { data } = await event.locals.supabase.auth.refreshSession()
+      const { data, error: refreshError } = await event.locals.supabase.auth.refreshSession()
+      backendUnavailable = backendUnavailable || isUnreachable(refreshError)
       verified = await verifyAccessToken(data.session?.access_token)
     }
 
     if (!verified.ok) {
-      return anonymous()
+      return { ...anonymous(), backendUnavailable }
     }
 
     try {
-      return { ...(await getPageState(verified.claims.sub)), claims: verified.claims }
+      return {
+        ...(await getPageState(verified.claims.sub)),
+        backendUnavailable: false,
+        claims: verified.claims,
+      }
     } catch {
-      // A database failure, not an authentication failure. `user` stays undefined, so every remote
-      // handler 401s in `authed.server.ts`, which is what happened here before too.
-      return { ...anonymous(), claims: verified.claims }
+      // A database failure, not an authentication failure: the flag is what stops `gate()` reporting
+      // this as a signed-out caller, since `user` is undefined either way.
+      return { ...anonymous(), backendUnavailable: true, claims: verified.claims }
     }
   }
 
@@ -226,12 +269,14 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   // verification, and worse: `getSession()` can rotate the refresh token onto a response the
   // browser never sees.
   if (event.url.pathname.startsWith(ZERO_API_PREFIX)) {
-    Object.assign(event.locals, anonymous())
+    Object.assign(event.locals, anonymous(), { backendUnavailable: false })
     return resolve(event)
   }
 
-  const { claims, user, userPermissions, userRegions, userRole } = await event.locals.safeGetSession()
+  const { backendUnavailable, claims, user, userPermissions, userRegions, userRole } =
+    await event.locals.safeGetSession()
 
+  event.locals.backendUnavailable = backendUnavailable
   event.locals.claims = claims
   event.locals.user = user
   event.locals.userPermissions = userPermissions
@@ -243,6 +288,11 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     event.url.pathname !== HOME_PATH &&
     !PUBLIC_PREFIXES.some((path) => event.url.pathname.startsWith(path))
   ) {
+    // Not signed out, just unverifiable, so /auth would ask for a password that is not the problem.
+    if (event.locals.backendUnavailable) {
+      error(503, 'Service temporarily unavailable')
+    }
+
     redirect(303, AUTH_PATH)
   }
 
@@ -261,7 +311,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   // then immediately join" work without threading the token through signup and its confirmation
   // mail. Same validity predicate as everywhere else: pending AND not expired.
   const email = event.locals.claims?.email
-  if (email != null && event.locals.userRegions.length === 0) {
+  if (email != null && !event.locals.backendUnavailable && event.locals.userRegions.length === 0) {
     const path = event.url.pathname
 
     // The create screen on top of the shared list so an invitation still wins once somebody is
@@ -273,10 +323,12 @@ export const authGuard: Handle = async ({ event, resolve }) => {
       // the redirect itself throws by design, so it stays OUTSIDE the catch: swallowing it left
       // the invitee on an empty page with the invitation unmentioned.
       let token: string | undefined
+      let lookupFailed = false
       try {
         token = (await findLiveInvitationByEmail(email))?.token
       } catch (error) {
-        console.log(error)
+        lookupFailed = true
+        console.error('[auth] invitation lookup failed:', error)
       }
 
       if (token != null) {
@@ -286,7 +338,8 @@ export const authGuard: Handle = async ({ event, resolve }) => {
       // Nothing to accept, so the only thing left to offer is starting a region. Deliberately not
       // every path: /settings has to stay reachable, because "I signed up with the wrong address"
       // is the likeliest reason somebody with no invitation is standing here.
-      if (path !== REGION_CREATE_PATH) {
+      // A failed lookup is not proof there is nothing to accept, so it leaves the user put.
+      if (!lookupFailed && path !== REGION_CREATE_PATH) {
         redirect(303, REGION_CREATE_PATH)
       }
     }

@@ -37,6 +37,8 @@ export const updateEmail = form(
       url,
     } = getRequestEvent()
 
+    // `claims`, deliberately not `requireAuthed`: that also demands a `public.users` row, and an
+    // account whose sign-up half-completed must still be able to fix its address.
     if (claims == null) {
       error(401, 'Not authenticated')
     }
@@ -82,6 +84,7 @@ export const updatePassword = form(updatePasswordSchema, async ({ currentPasswor
   // lifted verbatim out of the unsigned cookie, so it used to be attacker-chosen: signing in with
   // your own account and rewriting it to a victim's address turned the check below, which reports
   // whether a password is correct, into a guessing oracle against any account in the project.
+  // `claims`, not `requireAuthed`, for the same reason as `updateEmail` above.
   if (claims?.email == null) {
     error(401, 'Not authenticated')
   }

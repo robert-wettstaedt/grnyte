@@ -68,7 +68,12 @@ export async function asRequest<T>(authUserId: string, fn: () => Promise<T> | T)
     throw new Error(`testHarness could not verify its own token (${verified.reason})`)
   }
 
-  const session = { ...permissions, claims: verified.claims, user }
+  const session = {
+    ...permissions,
+    backendUnavailable: false,
+    claims: verified.claims,
+    user,
+  }
   const locals = {
     ...session,
     safeGetSession: async () => session,
