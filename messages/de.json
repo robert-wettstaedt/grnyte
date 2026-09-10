@@ -57,6 +57,7 @@
   "areas_notFound": "Gebiet nicht gefunden.",
   "areas_parentNotFound": "Das übergeordnete Gebiet existiert nicht mehr.",
   "areas_parkingLocations": "Parkplätze",
+  "areas_regionRequired": "Wähle eine Region",
   "areas_title": "Gebiete",
   "areas_ungraded": "Unbewertet",
   "areas_ungradedCount": "+{count} unbewertet",

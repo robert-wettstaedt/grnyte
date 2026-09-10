@@ -1,6 +1,7 @@
 <script lang="ts">
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import MarkdownEditor from '$lib/components/MarkdownEditor/MarkdownEditor.svelte'
+  import { regionDisplayName } from '$lib/entities/region/mapper'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -25,6 +26,28 @@
   // select, which is the only source a top-level area has; 0 until something is picked, which
   // only means the reference search finds nothing yet.
   const regionFk = $derived(area?.regionFk ?? Number(form.fields.regionFk.value() ?? 0))
+
+  // `''` counts as absent, not just `undefined`: a top-level area's hidden `parentFk` submits an
+  // empty string, and `/areas/add` clears the field to '' so a parent left behind by
+  // `/areas/[id]/add` cannot nest it. Testing only for null hid the region field on both.
+  const isNewTopLevel = $derived(form.fields.id.value() == null && (form.fields.parentFk.value() ?? '') === '')
+
+  // The membership the field actually points at, so what is shown and what is submitted cannot
+  // disagree. Read off the field, not off the membership list: `/areas/add?regionFk=<one you are
+  // not in>` deliberately preselects nothing, and captioning that with "the only region I can see"
+  // would name a region the form is not going to create in.
+  const selectedRegion = $derived(
+    global.userRegions.find((region) => String(region.regionFk) === form.fields.regionFk.value()),
+  )
+
+  // The select is the fallback, not the exception. It is the only control the reader can correct,
+  // and the only one whose wrapper renders the `regionFk` issue (`FormError` shows form-level ones
+  // only). Skipping it whenever there was a single membership left the unset case as a lone hidden
+  // input: Create was refused by the schema, nothing rendered the refusal, and there was nothing on
+  // screen to change.
+  const showRegionSelect = $derived(
+    isNewTopLevel && (global.userRegions.length > 1 || selectedRegion == null || !selectedRegion.synced),
+  )
 </script>
 
 {#if area != null}
@@ -58,13 +81,14 @@
   {/snippet}
 </RemoteFormInputWrapper>
 
-{#if form.fields.id.value() == null && form.fields.parentFk.value() == null && global.userRegions.length > 1}
+{#if showRegionSelect}
   <!-- Creating a top-level area, and only then. `required`, or the wrapper badges it "optional": a
        top-level area has no parent to inherit a region from, so this select is the whole of its
        placement.
 
-       Skipped when only one region would render: the add page has already prefilled it. Gated on
-       options rendered, not on how many are addable, so a member of several still sees why.
+       Skipped only when there is nothing left to choose: one membership, already selected, its
+       region row already here. Gated on options rendered, not on how many are addable, so a member
+       of several still sees why.
 
        Never on the edit form. `updateArea` writes `description` and `name` and nothing else, so an
        area being edited took the same branch (its prefilled `parentFk` is undefined when it is
@@ -95,13 +119,28 @@
             disabled={!canAddArea(global.userRegions, { regionFk: region.regionFk, type: 'area' })}
             value={String(region.regionFk)}
           >
-            {region.name}
+            {regionDisplayName(region)}
           </option>
         {/each}
       </select>
     {/snippet}
   </RemoteFormInputWrapper>
 {:else}
+  {#if isNewTopLevel}
+    <!-- One region, already chosen: shown rather than offered. The hidden field alone never told
+         the reader where the area was going. Through the same wrapper as every other field so the
+         label metrics cannot drift apart, and so an issue raised on `regionFk` still surfaces. -->
+    <RemoteFormInputWrapper class="space-y-2" field={form.fields.regionFk} label={m.region_title()} required>
+      <!-- Deliberately not boxed like the inputs around it: there is nothing to choose here, and a
+           field's border reads as an invitation to type. -->
+      <!-- Narrowed rather than asserted: `showRegionSelect` sends the null case to the select
+           above, but that invariant lives in a different `$derived` and a reader here cannot see it. -->
+      {#if selectedRegion != null}
+        <p class="text-base">{regionDisplayName(selectedRegion)}</p>
+      {/if}
+    </RemoteFormInputWrapper>
+  {/if}
+
   <input type="hidden" {...form.fields.parentFk.as('text')} />
   <input type="hidden" {...form.fields.regionFk.as('text')} />
 {/if}

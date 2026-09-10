@@ -57,6 +57,7 @@
   "areas_notFound": "Area not found.",
   "areas_parentNotFound": "The parent area no longer exists.",
   "areas_parkingLocations": "Parking",
+  "areas_regionRequired": "Choose a region",
   "areas_title": "Areas",
   "areas_ungraded": "Ungraded",
   "areas_ungradedCount": "+{count} ungraded",

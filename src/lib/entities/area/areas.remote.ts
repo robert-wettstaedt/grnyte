@@ -1,6 +1,14 @@
 import { resolve } from '$app/paths'
 import { areas, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
-import { blank, boundedDegrees, coordinate, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
+import {
+  blank,
+  boundedDegrees,
+  coordinate,
+  formError,
+  intFromString,
+  stringToInt,
+  stringToIntOptional,
+} from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { stringifyCoords } from '$lib/map/coords'
 import { decodePath } from '$lib/map/polyline'
@@ -29,7 +37,9 @@ const areaActionSchema = z.object({
   // both spell '' in a form. `id` above is the other case and is fine as it stands: the form omits
   // it entirely on a create rather than submitting it blank.
   parentFk: stringToIntOptional,
-  regionFk: stringToInt,
+  // Not `stringToInt`: this renders as a `<select>`, and its generic "enter a valid number" was
+  // being shown to somebody whose only available action is to pick one.
+  regionFk: intFromString(formError('areas_regionRequired')),
 })
 
 /** Field shape the shared area form (`AreaFormFields`) binds to: same for create and edit. */
