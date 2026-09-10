@@ -8,21 +8,16 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'
-  import { defaults as defaultControls } from 'ol/control.js'
-  import 'ol/ol.css'
   import { boundingExtent } from 'ol/extent'
   import type Feature from 'ol/Feature.js'
   import OlGeolocation from 'ol/Geolocation.js'
-  import { defaults as defaultInteractions } from 'ol/interaction.js'
-  import { Tile as TileLayer } from 'ol/layer.js'
   import type VectorLayer from 'ol/layer/Vector.js'
-  import OlMap from 'ol/Map.js'
+  import type OlMap from 'ol/Map.js'
   import { fromLonLat, toLonLat } from 'ol/proj.js'
-  import OSM from 'ol/source/OSM'
-  import View from 'ol/View.js'
   import { untrack } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
   import { parseCredit } from './attribution'
+  import { createBaseMap } from './base.svelte'
   import { createMapData } from './data.svelte'
   import { setupGeolocation } from './geolocation'
   import {
@@ -62,7 +57,10 @@
   })
 
   let map = $state<OlMap>()
-  let mapHasSize = $state(false)
+  // The base map owns the size latch: fitting to an extent before the element has been laid out
+  // computes against a zero viewport and lands on a nonsense zoom.
+  let baseMap = $state<ReturnType<typeof createBaseMap>>()
+  const mapHasSize = $derived(baseMap?.hasSize === true)
   let isTrackingGeolocation = $state(false)
   let geolocationErrorCode = $state<number>()
   let isLayersSheetOpen = $state(false)
@@ -351,46 +349,16 @@
     const wmsLayers = untrack(() => createWmsLayers(global.userRegions))
     const isStatic = untrack(() => props.static)
 
-    const mapInstance = new OlMap({
-      // No OL controls at all. Zoom, geolocation, layers and attribution are all Svelte
-      // buttons in the column below, so each one is a real Skeleton button instead of a
-      // foreign widget restyled to resemble one.
-      controls: defaultControls({ attribution: false, rotate: false, zoom: false }),
-      interactions: isStatic ? [] : defaultInteractions(),
-      layers: [
-        // `crossOrigin` is OpenLayers' own default, spelled out because `src/sw.ts` depends on it: an
-        // opaque tile response cannot be checked or measured, so the worker declines to cache it and
-        // the map quietly stops working offline. See `isStorableTile` in `./tiles`.
-        //
-        // `preload` is what gives a missing tile something to fall back to. The renderer will stretch
-        // a coarser parent over a tile it does not have, but only one already in memory: it never
-        // fetches a parent to cover a gap (`findAltTiles_` peeks at the tile cache and nothing more).
-        // So the parents have to be asked for while there is a network, which is exactly what this
-        // does, one level at a time down from the view. Two levels is roughly half again as many tile
-        // requests, all cached by the worker like any other, and offline it turns a hole in the map
-        // into a blurry-but-oriented patch.
-        //
-        // What a tile-less map looks like is handled in the style block below rather than by OL's
-        // `background` option, which sets an inline colour that CSS cannot theme.
-        new TileLayer({
-          className: 'osm-layer',
-          preload: 2,
-          properties: { layerName: 'OpenStreetMap' },
-          source: new OSM({ crossOrigin: 'anonymous' }),
-        }),
-        ...wmsLayers,
-      ],
-      target: node as HTMLElement,
-      view: new View({
-        center: savedView?.center ?? fromLonLat([2.6117597, 48.4103865]),
-        constrainResolution: true,
-        // North is always up. Nothing here offers to straighten a rotated map (the
-        // reset-north control is off), and an approach description assumes north.
-        enableRotation: false,
-        zoom: savedView?.zoom ?? 4,
-      }),
+    const base = createBaseMap(node as HTMLElement, {
+      extraLayers: wmsLayers,
+      interactive: !isStatic,
+      // Seeded so a rebuilt map does not snap back to the world view; `savedView` is captured on
+      // moveend below for exactly that.
+      view: savedView,
     })
+    const mapInstance = base.map
     map = mapInstance
+    baseMap = base
 
     mapInstance.on('click', (event) => {
       if (props.drawPath) {
@@ -523,17 +491,7 @@
       setIsTracking: (v) => (isTrackingGeolocation = v),
     })
 
-    const observer = new ResizeObserver(() => {
-      mapInstance.updateSize()
-      const size = mapInstance.getSize()
-      if (!mapHasSize && size != null && size[0] > 0 && size[1] > 0) {
-        mapHasSize = true
-      }
-    })
-    observer.observe(node as HTMLElement)
-
     return () => {
-      observer.disconnect()
       mapInstance.un('moveend', handleMoveEnd)
       viewport.removeEventListener('contextmenu', onContextMenu)
       viewport.removeEventListener('pointerdown', onPointerDown)
@@ -542,9 +500,9 @@
       viewport.removeEventListener('pointercancel', cancelPress)
       cancelPress()
       cleanupGeolocation()
-      mapInstance.setTarget(undefined)
-      mapInstance.dispose()
+      base.destroy()
       map = undefined
+      baseMap = undefined
     }
   }
 </script>
@@ -734,29 +692,6 @@
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
-  }
-
-  /* Quiet dark map: only the OSM raster tiles are inverted/desaturated in dark mode,
-     so markers and other custom layers keep their original colors.
-
-     The filter sits on the canvas rather than on the layer container, so the container's
-     background below is ours to choose per theme instead of being one colour inverted into the
-     other. Painting `#f2efe9` under the filter is what made an empty map black. */
-  :global(.dark) .map :global(.osm-layer canvas) {
-    filter: invert(1) hue-rotate(180deg) saturate(0.4) brightness(0.9) contrast(0.95);
-  }
-
-  /* What a map with no tiles looks like: offline at a crag nobody has browsed, or the seconds
-     before the first tile arrives. The canvas is transparent there, so without this the page shows
-     through and the map reads as a broken screen rather than a map with no picture yet. Light mode
-     gets OSM's own land colour; dark mode gets a surface a clear step above the page, because the
-     inverted land colour is almost black and would keep the hole. */
-  .map :global(.osm-layer) {
-    background-color: #f2efe9;
-  }
-
-  :global(.dark) .map :global(.osm-layer) {
-    background-color: var(--color-surface-800);
   }
 
   :global(.geolocation-marker) {

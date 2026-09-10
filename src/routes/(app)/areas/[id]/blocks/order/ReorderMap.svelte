@@ -1,17 +1,13 @@
 <script lang="ts">
   import type { BlockDetail } from '$lib/entities/block/dto'
+  import { createBaseMap } from '$lib/map/base.svelte'
   import { buildParkingFeatures, buildPathFeatures, createParkingLayer, createPathLayer } from '$lib/map/layers.svelte'
   import type { Coords } from '$lib/map/map'
   import MapCredit from '$lib/map/MapCredit.svelte'
-  import { defaults as defaultControls } from 'ol/control.js'
   import { boundingExtent } from 'ol/extent'
-  import { Tile as TileLayer } from 'ol/layer.js'
-  import OlMap from 'ol/Map.js'
-  import 'ol/ol.css'
+  import type OlMap from 'ol/Map.js'
   import Overlay from 'ol/Overlay.js'
   import { fromLonLat } from 'ol/proj.js'
-  import OSM from 'ol/source/OSM'
-  import View from 'ol/View.js'
   import type { Attachment } from 'svelte/attachments'
 
   interface Props {
@@ -33,7 +29,9 @@
   const PAN_KEYS = new Set(['+', '-', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp'])
 
   let map = $state<OlMap>()
-  let hasSize = $state(false)
+  // Held so the fit effect can read `hasSize`, which the base map owns: fitting to an extent before
+  // the element has a size computes against a zero viewport and lands on a nonsense zoom.
+  let baseMap = $state<ReturnType<typeof createBaseMap>>()
 
   // Imperative OL state: deliberately non-reactive lookups; reactivity comes from `blocks` /
   // `selectedId` reads in the effects below, not from these registries.
@@ -50,25 +48,10 @@
   let userMoved = false
 
   const mapAttachment: Attachment = (node) => {
-    const instance = new OlMap({
-      controls: defaultControls({ attribution: false, rotate: false, zoom: false }),
-      // Three settings the main map explains at length (`$lib/map/Map.svelte`): `crossOrigin` so the
-      // worker can read the response and cache it, and `preload` so a coarser parent is in memory
-      // to stretch over a tile that is missing offline. What an empty map looks like is in the
-      // style block below.
-      layers: [
-        new TileLayer({
-          className: 'osm-layer',
-          preload: 2,
-          source: new OSM({ crossOrigin: 'anonymous' }),
-        }),
-      ],
-      target: node as HTMLElement,
-      // North is always up here too, for the same reason as the main map: the reset-north
-      // control is off, so a two-finger twist would rotate this permanently with no way back.
-      view: new View({ center: fromLonLat([2.6, 48.4]), constrainResolution: true, enableRotation: false, zoom: 4 }),
-    })
+    const base = createBaseMap(node as HTMLElement)
+    const instance = base.map
     map = instance
+    baseMap = base
 
     // Any deliberate pan or zoom retires the auto-fit, so it cannot yank the view back. Tapping a
     // pin is not one: `stopEvent` only keeps OL from panning, the DOM event still arrives here, so
@@ -92,21 +75,13 @@
     viewport.addEventListener('wheel', takeOver, { passive: true })
     element.addEventListener('keydown', takeOverKey)
 
-    const observer = new ResizeObserver(() => {
-      instance.updateSize()
-      const size = instance.getSize()
-      if (!hasSize && size != null && size[0] > 0 && size[1] > 0) hasSize = true
-    })
-    observer.observe(node as HTMLElement)
-
     return () => {
-      observer.disconnect()
       viewport.removeEventListener('pointerdown', takeOver)
       viewport.removeEventListener('wheel', takeOver)
       element.removeEventListener('keydown', takeOverKey)
-      instance.setTarget(undefined)
-      instance.dispose()
+      base.destroy()
       map = undefined
+      baseMap = undefined
     }
   }
 
@@ -178,7 +153,7 @@
   // Fit to the located blocks + parking, again whenever the set grows, until the reader moves.
   $effect(() => {
     const instance = map
-    if (instance == null || !hasSize || userMoved) return
+    if (instance == null || baseMap?.hasSize !== true || userMoved) return
 
     const located = blocks.filter((block) => block.geolocation != null)
     // Content, not a count: a block leaving as another arrives keeps the count at three and the
@@ -211,20 +186,6 @@
 </div>
 
 <style>
-  /* Quiet dark map, and an empty one that still reads as a map. Both exactly as the main map does
-     it (`$lib/map/Map.svelte`), including why the filter is on the canvas and not the container. */
-  :global(.dark) .map :global(.osm-layer canvas) {
-    filter: invert(1) hue-rotate(180deg) saturate(0.4) brightness(0.9) contrast(0.95);
-  }
-
-  .map :global(.osm-layer) {
-    background-color: #f2efe9;
-  }
-
-  :global(.dark) .map :global(.osm-layer) {
-    background-color: var(--color-surface-800);
-  }
-
   /* Numbered block pins live in OL's overlay container (outside this component's DOM),
      so they have to be styled globally. */
   :global(.reorder-pin) {

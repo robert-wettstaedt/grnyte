@@ -275,8 +275,14 @@ export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
           minZoom: regionLayer.minZoom ?? undefined,
           opacity: regionLayer.opacity ?? undefined,
           properties: { layerName: regionLayer.name },
+          // Deliberately NOT given `regionLayer.attributions`. OL renders a source's attributions
+          // as HTML, and those strings are written by a region admin: handing them over is an XSS
+          // against every member of that region, waiting on any control or caller that asks a
+          // source what it is owed. Nothing rendered them, because the credits sheet reads the
+          // layers off region settings and parses them through `./attribution` instead
+          // (`Map.svelte`), so this only ever looked safe because both maps happened to disable
+          // OL's attribution control. Not passing them is what makes it actually safe.
           source: new TileWMS({
-            attributions: regionLayer.attributions ?? [],
             params: regionLayer.params ?? {},
             url: regionLayer.url,
           }),

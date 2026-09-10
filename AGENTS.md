@@ -99,6 +99,20 @@ This project uses:
   successful submit and a reset event.
 - i18n: add keys to BOTH `messages/en.json` and `messages/de.json` (`domain_camelCase`, kept sorted). One prefix per domain: never split singular and plural (`areas_*`, not `area_*` alongside it). No em-dashes anywhere (UI copy, translations, code comments).
 - Icons: use `<Icon name="...">`; only `icons.ts` and `Icon.svelte` may import lucide.
+- Every OpenLayers instance comes from `createBaseMap` (`$lib/map/base.svelte`), which owns the
+  controls, the OSM tile layer, the view defaults, the resize latch and teardown. Two adapters sit
+  on it, `Map.svelte` and the reorder screen's `ReorderMap.svelte`, and they differ in behaviour
+  (one navigates on a tap, the other drags positions) rather than in the map underneath. They used
+  to build that map each, and the copies drifted: two default centres, and an auto-fit rule improved
+  in one file only. Do not construct `new OlMap` anywhere else, and do not restyle `.osm-layer` in a
+  component: those rules live in `app.css` for the same reason. `StaticMap.svelte` is the deliberate
+  exception and not a client of any of this, because it draws raw `<img>` tiles and has no OL
+  instance at all: a feed of five cards would otherwise be five canvases. Never hand a region's map
+  layer its `attributions` (`createWmsLayers`): OL renders a source's attributions as HTML and those
+  strings are written by a region admin, so that is an XSS against everyone in the region. The
+  credits sheet reads them off region settings and parses them through `$lib/map/attribution`
+  instead. `base.svelte.test.ts` pins both that and the three OSM tile settings `src/sw.ts` needs
+  for offline caching, none of which any compiler checks.
 - Conditional UI animates in and out. An element an `{#if}` adds or removes in response to a press
   (a disclosure, a toast, an inline form, a sheet) gets a `svelte/transition`, so it reads as
   growing out of the control that opened it instead of snapping into place. `slide` for a
