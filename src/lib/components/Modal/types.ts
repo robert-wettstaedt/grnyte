@@ -8,9 +8,15 @@ export interface MobileProps extends Props {
 }
 
 export interface Props {
-  /** Render a blurred, tap-to-dismiss scrim behind the modal. On mobile it backs the
-   *  sheet; on a desktop `panel` it also makes the dialog modal (focus trap + outside close). */
-  backdrop?: boolean
+  /**
+   * Render a blurred, tap-to-dismiss scrim behind the modal.
+   *
+   * `true` backs the mobile sheet and also makes a desktop `panel` modal: focus trap and
+   * close-on-outside. `'mobile'` is the scrim without that half, for a panel whose page has
+   * to stay interactive while it is open (the map filter, where you pan and filter at once).
+   * The sheet cannot make that distinction, so it treats both the same.
+   */
+  backdrop?: 'mobile' | boolean
   children?: Snippet
   /** Desktop panel card classes (width/height), e.g. `w-sm max-h-[80dvh]`. */
   contentClass?: string

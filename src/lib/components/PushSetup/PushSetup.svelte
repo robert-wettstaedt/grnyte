@@ -11,7 +11,6 @@
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import { m } from '$lib/paraglide/messages'
   import { installPromoMode } from '$lib/state/install.svelte'
   import { dismissPushPrompt, enablePush, promptDismissed, pushState } from '$lib/state/push.svelte'
@@ -67,8 +66,11 @@
          items are solid-bordered cards of the same size. Solid would read as the newest of them. -->
     <div class="border-surface-300-700 space-y-3 rounded-2xl border border-dashed p-4">
       {#if installable}
+        <!-- Explains why push needs the install, and does not offer it: the only surface that
+             can reach this branch is settings, which promotes the install itself further down.
+             The other two hosts pass `dismissible`, and `hidden` retires them when push is
+             unsupported, so a card here would never be seen. -->
         <p class="text-surface-600-400 text-sm">{m.push_installFirst()}</p>
-        <InstallApp permanent />
       {:else}
         <p class="text-surface-600-400 text-sm">{m.push_unsupported()}</p>
       {/if}

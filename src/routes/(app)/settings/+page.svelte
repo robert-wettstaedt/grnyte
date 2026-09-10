@@ -10,6 +10,7 @@
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import { sendTestPush } from '$lib/entities/notification/notifications.remote'
   import type { UserInvitationItem } from '$lib/entities/region/dto'
+  import { regionDisplayName } from '$lib/entities/region/mapper'
   import { acceptMyInvitation, listMyInvitations } from '$lib/entities/region/regions.remote'
   import { roleLabel } from '$lib/entities/rolePermission/mapper'
   import type { GradingScale, UnitSystem } from '$lib/entities/user/dto'
@@ -370,7 +371,7 @@
       {#each global.userRegions as region (region.regionFk)}
         <SettingLink
           href={resolve('/(app)/settings/regions/[regionId]', { regionId: String(region.regionFk) })}
-          label={region.name}
+          label={regionDisplayName(region)}
           value={roleLabel(region.role)}
         />
       {/each}

@@ -93,6 +93,7 @@
   let mediaFilters = $state<MediaFilter[]>([])
   let favoritesOnly = $state(false)
   let selectedFirstAscensionists = $state<number[]>([])
+  let firstAscensionistSearch = $state('')
   let sortField = $state('')
   let sortDir = $state<'asc' | 'desc'>('desc')
 
@@ -191,6 +192,7 @@
 
       const faParam = page.url.searchParams.get('firstAscensionists')
       selectedFirstAscensionists = faParam ? faParam.split(',').map(Number) : []
+      firstAscensionistSearch = ''
 
       if (showSort) {
         const sortParam = page.url.searchParams.get('sort')
@@ -295,8 +297,12 @@
   }
 </script>
 
+<!-- `"mobile"` and not `backdrop`: the sheet needs its scrim so the routes list behind it is
+     not readable through the filters, while the desktop panel has to stay non-modal, because
+     panning the map with the filters open is the point of docking it beside them. -->
 <Modal
   bind:open
+  backdrop="mobile"
   panel
   {panelClass}
   {contentClass}
@@ -391,6 +397,7 @@
         <FirstAscensionistSelect
           firstAscensionists={firstAscensionistGroups}
           currentUserId={global.user?.id}
+          bind:search={firstAscensionistSearch}
           bind:value={selectedFirstAscensionists}
         />
       </FilterSection>

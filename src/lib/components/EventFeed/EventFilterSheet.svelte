@@ -13,6 +13,7 @@
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { UserRegion } from '$lib/entities/region/dto'
+  import { regionDisplayName } from '$lib/entities/region/mapper'
   import { roleLabel } from '$lib/entities/rolePermission/mapper'
   import type { UserListItem } from '$lib/entities/user/dto'
   import { m } from '$lib/paraglide/messages'
@@ -32,7 +33,7 @@
     /** Selected region, or `undefined` for all of them. */
     regionFk?: number
     /** The user's regions. With one there is nothing to pick, so that section is hidden. */
-    regions?: Pick<UserRegion, 'name' | 'regionFk' | 'role'>[]
+    regions?: Pick<UserRegion, 'name' | 'regionFk' | 'role' | 'synced'>[]
     /** Selected actor, or `undefined` for everyone. */
     userFk?: number
   }
@@ -63,7 +64,7 @@
   const regionNames = (regionFks: number[]) =>
     regions
       .filter((region) => regionFks.includes(region.regionFk))
-      .map((region) => region.name)
+      .map((region) => regionDisplayName(region))
       .join(', ')
 </script>
 
@@ -95,7 +96,7 @@
           <MenuRow
             description={roleLabel(region.role)}
             icon="map"
-            label={region.name}
+            label={regionDisplayName(region)}
             selected={regionFk === region.regionFk}
             onclick={() => (regionFk = region.regionFk)}
           />

@@ -25,6 +25,10 @@
   // already pass their own cap, so the default only applies when they did not.
   // ponytail: a substring test, not a class parser. `max-h-` is unambiguous in a class list.
   const cappedByCaller = $derived(contentClass?.includes('max-h-') ?? false)
+
+  // Only `true` opts the panel into modal behaviour. `'mobile'` asks for the sheet's scrim
+  // and nothing here, so the page behind a panel stays interactive.
+  const isModal = $derived(backdrop === true)
 </script>
 
 {#if panel}
@@ -34,12 +38,12 @@
        component loads lazily and the trigger wouldn't exist until its chunk landed; the popover
        branch below is the exception, since Zag hands that button its own props. -->
 
-  <!-- backdrop opts this panel into modal behaviour: a blurred scrim, tap-outside
+  <!-- `backdrop` opts this panel into modal behaviour: a blurred scrim, tap-outside
        to close and a focus trap. Without it the panel stays non-modal (e.g. the
        search-bar panel, where the background must remain interactive). -->
-  <Dialog {open} onOpenChange={(event) => (open = event.open)} modal={backdrop} closeOnInteractOutside={backdrop}>
+  <Dialog {open} onOpenChange={(event) => (open = event.open)} modal={isModal} closeOnInteractOutside={isModal}>
     <Portal>
-      {#if backdrop}
+      {#if isModal}
         <Dialog.Backdrop class="bg-surface-50-950/50 fixed inset-0 z-40 backdrop-blur-sm" />
       {/if}
 
