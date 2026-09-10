@@ -19,7 +19,7 @@
 <!-- One container for all issues: `aria-errormessage` points at this id, only one element may carry it.
      Slides in because a failed submit adds it under a field the reader is already looking at. -->
 {#if issues.length > 0}
-  <div id={id == null ? undefined : `${id}-error`} transition:slide={{ duration }}>
+  <div id={id == null ? undefined : `${id}-error`} role="alert" transition:slide={{ duration }}>
     {#each issues as issue, i (i)}
       <p class="text-error-500 text-sm opacity-80">
         {resolveIssueMessage(issue.message)}
