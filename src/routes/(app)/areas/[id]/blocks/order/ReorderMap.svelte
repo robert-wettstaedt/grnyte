@@ -2,6 +2,7 @@
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { buildParkingFeatures, buildPathFeatures, createParkingLayer, createPathLayer } from '$lib/map/layers.svelte'
   import type { Coords } from '$lib/map/map'
+  import MapCredit from '$lib/map/MapCredit.svelte'
   import { defaults as defaultControls } from 'ol/control.js'
   import { boundingExtent } from 'ol/extent'
   import { Tile as TileLayer } from 'ol/layer.js'
@@ -27,14 +28,26 @@
 
   const { blocks, geoPaths, onselect, parking, selectedId }: Props = $props()
 
+  // What OL's KeyboardPan and KeyboardZoom act on, and so what counts as the reader taking over.
+
+  const PAN_KEYS = new Set(['+', '-', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp'])
+
   let map = $state<OlMap>()
   let hasSize = $state(false)
 
   // Imperative OL state: deliberately non-reactive lookups; reactivity comes from `blocks` /
   // `selectedId` reads in the effects below, not from these registries.
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- OL overlay element registry, not UI state
-  const pinEls = new Map<number, HTMLButtonElement>()
-  let fitted = false
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- OL overlay registry, not UI state
+  const pins = new Map<number, { el: HTMLButtonElement; overlay: Overlay }>()
+  // What the last fit framed, and whether the reader has taken the view over. Zero reports a query
+  // ready on a partial snapshot, so the first arrivals are routinely a subset: re-fitting as the
+  // set grows is what keeps the rest from streaming in off-screen. Waiting for a completion signal
+  // instead would leave the map unframed for as long as blocks keep arriving, which is the whole
+  // window a reader spends here. Parking counts
+  // towards the signature: it lands on its own related query, so tracking the block count alone
+  // left the `P` pin, which is the whole reference for "sort by distance", outside the viewport.
+  let fitted = ''
+  let userMoved = false
 
   const mapAttachment: Attachment = (node) => {
     const instance = new OlMap({
@@ -51,9 +64,33 @@
         }),
       ],
       target: node as HTMLElement,
-      view: new View({ center: fromLonLat([2.6, 48.4]), constrainResolution: true, zoom: 4 }),
+      // North is always up here too, for the same reason as the main map: the reset-north
+      // control is off, so a two-finger twist would rotate this permanently with no way back.
+      view: new View({ center: fromLonLat([2.6, 48.4]), constrainResolution: true, enableRotation: false, zoom: 4 }),
     })
     map = instance
+
+    // Any deliberate pan or zoom retires the auto-fit, so it cannot yank the view back. Tapping a
+    // pin is not one: `stopEvent` only keeps OL from panning, the DOM event still arrives here, so
+    // highlighting a block mid-sync used to strand every later one off-screen.
+    const takeOver = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest('.reorder-pin') != null) return
+      userMoved = true
+    }
+    // OL's own KeyboardPan and KeyboardZoom, which listen on the target element rather than the
+    // viewport. OL will not pan until the map itself can hold focus, which no map here does, but
+    // the pins are focusable buttons INSIDE this element: arrowing between them bubbles up here,
+    // and without the same guard the pointer path has, moving between pins retired the fit while
+    // the view never moved, stranding every block that synced in afterwards.
+    const takeOverKey = (event: KeyboardEvent) => {
+      if (event.target instanceof Element && event.target.closest('.reorder-pin') != null) return
+      if (PAN_KEYS.has(event.key)) userMoved = true
+    }
+    const element = node as HTMLElement
+    const viewport = instance.getViewport()
+    viewport.addEventListener('pointerdown', takeOver)
+    viewport.addEventListener('wheel', takeOver, { passive: true })
+    element.addEventListener('keydown', takeOverKey)
 
     const observer = new ResizeObserver(() => {
       instance.updateSize()
@@ -64,14 +101,17 @@
 
     return () => {
       observer.disconnect()
+      viewport.removeEventListener('pointerdown', takeOver)
+      viewport.removeEventListener('wheel', takeOver)
+      element.removeEventListener('keydown', takeOverKey)
       instance.setTarget(undefined)
       instance.dispose()
       map = undefined
     }
   }
 
-  // Create a badge per located block (once), then keep every badge's number in sync with its
-  // position in `blocks`. Positions are fixed (geolocation); only the label and highlight change.
+  // One badge per located block, added and removed as `blocks` changes, with every badge's number
+  // kept in sync with its position. Positions are fixed (geolocation); label and highlight change.
   $effect(() => {
     const instance = map
     if (instance == null) return
@@ -79,21 +119,20 @@
     blocks.forEach((block, index) => {
       if (block.geolocation == null) return
 
-      let el = pinEls.get(block.id)
+      let el = pins.get(block.id)?.el
       if (el == null) {
         el = document.createElement('button')
         el.type = 'button'
         el.className = 'reorder-pin'
         el.addEventListener('click', () => onselect?.(block.id))
-        instance.addOverlay(
-          new Overlay({
-            element: el,
-            position: fromLonLat([block.geolocation.long, block.geolocation.lat]),
-            positioning: 'center-center',
-            stopEvent: true,
-          }),
-        )
-        pinEls.set(block.id, el)
+        const overlay = new Overlay({
+          element: el,
+          position: fromLonLat([block.geolocation.long, block.geolocation.lat]),
+          positioning: 'center-center',
+          stopEvent: true,
+        })
+        instance.addOverlay(overlay)
+        pins.set(block.id, { el, overlay })
       }
 
       const isSelected = block.id === selectedId
@@ -104,6 +143,16 @@
       // selected pin above any overlapping neighbours.
       if (el.parentElement != null) el.parentElement.style.zIndex = isSelected ? '500' : ''
     })
+
+    // Drop badges for blocks that have left. The page hands over the previous area's list for the
+    // render before its own clear lands, and a block can be deleted while this is open.
+    const present = new Set(blocks.map((block) => block.id))
+    for (const [id, pin] of pins) {
+      if (!present.has(id)) {
+        instance.removeOverlay(pin.overlay)
+        pins.delete(id)
+      }
+    }
   })
 
   // Parking + approach paths, drawn through the main map's own layer/feature helpers so the two
@@ -126,19 +175,19 @@
     }
   })
 
-  // One-time fit to the located blocks + parking, once the map has a size AND the blocks have
-  // loaded: fitting on the parking pin alone would zoom right past them.
+  // Fit to the located blocks + parking, again whenever the set grows, until the reader moves.
   $effect(() => {
     const instance = map
-    if (instance == null || !hasSize || fitted) return
+    if (instance == null || !hasSize || userMoved) return
 
     const located = blocks.filter((block) => block.geolocation != null)
-    if (located.length === 0) return
+    const signature = `${located.length}:${parking != null}`
+    if (located.length === 0 || signature === fitted) return
 
     const coords = located.map((block) => fromLonLat([block.geolocation!.long, block.geolocation!.lat]))
     if (parking != null) coords.push(fromLonLat([parking.long, parking.lat]))
 
-    fitted = true
+    fitted = signature
     if (coords.length === 1) {
       instance.getView().setCenter(coords[0])
       instance.getView().setZoom(16)
@@ -148,7 +197,11 @@
   })
 </script>
 
-<div class="map h-full w-full" {@attach mapAttachment}></div>
+<div class="relative h-full w-full">
+  <div class="map h-full w-full" {@attach mapAttachment}></div>
+
+  <MapCredit />
+</div>
 
 <style>
   /* Quiet dark map, and an empty one that still reads as a map. Both exactly as the main map does
