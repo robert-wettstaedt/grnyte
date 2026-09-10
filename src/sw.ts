@@ -257,7 +257,7 @@ registerRoute(
  *
  * **No `maxAgeSeconds`**, for the reason the images route above records: `Date` on a cached response
  * never refreshes, so an age limit is an offline wall rather than a staleness policy, and it falls
- * on exactly the day the map is needed. OSM does re-render tiles as the data changes, so a crag
+ * on exactly the day the map is needed. OSM does re-render tiles as the data changes, so a sector
  * somebody keeps opening stays on the render that was cached first. A six-month-old forest road is
  * worth more than a blank screen; if that ever stops being true, the fix is a manual "refresh this
  * map" that deletes the cache, never an expiry.
@@ -271,11 +271,11 @@ registerRoute(
  * happens at a crag.
  *
  * ponytail: 2000 entries. What that costs depends on where somebody climbs, and the two samples
- * taken on 2026-08-29 disagree by more than double for good reason: a forest crag column averaged
+ * taken on 2026-08-29 disagree by more than double for good reason: a forest sector column averaged
  * 14 KB a tile (3.7 to 27.2), while 88 tiles over dense central-European data and the world zooms a
  * map pans through averaged 34 KB (up to 55.8). So the cap is worth 25 to 65 MB rather than one
  * number, and it is set against the quota (10.7 GB best-effort on the strictest engine) rather than
- * against a tile size. LRU on read, so the crags somebody keeps opening are the ones that stay. There
+ * against a tile size. LRU on read, so the sectors somebody keeps opening are the ones that stay. There
  * is deliberately no prefetch of a bounding box: bulk downloading is against the OSM tile usage
  * policy, and it is enforced (a 72-tile burst from here was answered with the rate-limit tile
  * within two minutes). Warming an area needs a tile source we are allowed to bulk fetch.

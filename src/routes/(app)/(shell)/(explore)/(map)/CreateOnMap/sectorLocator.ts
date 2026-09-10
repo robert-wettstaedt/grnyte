@@ -3,32 +3,32 @@ import type { Geolocation } from '$lib/entities/geolocation/dto'
 import { haversineMetres, type Coords } from '$lib/map/map'
 
 export interface LocatableBlock {
-  /** Ancestor chain, outermost first: the crag is the entry with `type === 'crag'`. */
+  /** Ancestor chain, outermost first: the sector is the entry with `type === 'sector'`. */
   areas: AreaListItem[]
   geolocation: Geolocation | undefined
 }
 
 /**
- * The crag whose nearest geolocated block is closest to `point`, or null when none is
+ * The sector whose nearest geolocated block is closest to `point`, or null when none is
  * within `maxMeters`. Callers pre-filter `blocks` to the regions the user can edit.
- * ponytail: nearest-block distance stands in for point-in-crag-bounds. At boulder
+ * ponytail: nearest-block distance stands in for point-in-sector-bounds. At boulder
  * spacing a 500 m radius covers containment; bbox hit-testing is the upgrade.
  */
-export function findNearestCrag(
+export function findNearestSector(
   blocks: LocatableBlock[],
   point: Coords,
   maxMeters = 500,
-): null | { cragId: number; distanceMeters: number } {
-  let best: null | { cragId: number; distanceMeters: number } = null
+): null | { distanceMeters: number; sectorId: number } {
+  let best: null | { distanceMeters: number; sectorId: number } = null
 
   for (const block of blocks) {
     if (block.geolocation == null) continue
-    const crag = block.areas.find((area) => area.type === 'crag')
-    if (crag == null) continue
+    const sector = block.areas.find((area) => area.type === 'sector')
+    if (sector == null) continue
 
     const distanceMeters = haversineMetres(block.geolocation, point)
     if (distanceMeters <= maxMeters && (best == null || distanceMeters < best.distanceMeters)) {
-      best = { cragId: crag.id, distanceMeters }
+      best = { distanceMeters, sectorId: sector.id }
     }
   }
 

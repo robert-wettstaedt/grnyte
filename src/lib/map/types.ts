@@ -7,7 +7,7 @@ export interface BlocksMapProps {
   /** Tap-to-add-waypoint mode (parking path drawing): a tap emits `onpathpoint` instead of navigating. */
   drawPath?: boolean
   focus?: MapFocus | null
-  /** Per-block route counts keyed by grade id (`gradeFk`), feeding the area/crag donut markers. */
+  /** Per-block route counts keyed by grade id (`gradeFk`), feeding the area/sector donut markers. */
   gradeCountByBlock?: Map<number, Map<number, number>>
   lineStrings?: null | string[]
   /** Fired synchronously when a tapped feature is about to navigate to its detail sheet,
@@ -52,8 +52,8 @@ export interface MapFocus {
   zoom?: number
 }
 
-// Below CRAG_ZOOM only the (outer) area rects show, so the far view isn't cluttered with
-// every crag; from CRAG_ZOOM the crag rects take over, and from BLOCK_ZOOM the blocks do.
-export const CRAG_ZOOM = 11
+// Below SECTOR_ZOOM only the (outer) area rects show, so the far view isn't cluttered with
+// every sector; from SECTOR_ZOOM the sector rects take over, and from BLOCK_ZOOM the blocks do.
+export const SECTOR_ZOOM = 11
 export const BLOCK_ZOOM = 14
 export const BLOCK_LABEL_ZOOM = 15

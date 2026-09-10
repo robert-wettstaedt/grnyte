@@ -1,7 +1,7 @@
 import { blockName } from '$lib/entities/block/mapper'
 import { toDisplayName } from '$lib/entities/displayName'
 /**
- * The one crag every case points at, and the builders that write events about it.
+ * The one sector every case points at, and the builders that write events about it.
  *
  * A case is the EVENTS a mutation writes, not rows invented for a screenshot: `eventAgo` produces
  * exactly what `toEvent` hands the feed, with the object already resolved, because that is what an
@@ -288,7 +288,7 @@ const WORLD = new Map<string, EventEntity>([
   ['user:5', userEntity(5)],
 ])
 
-/** What the world says a parent is, so a case does not restate the crag's shape per event. */
+/** What the world says a parent is, so a case does not restate the sector's shape per event. */
 const PARENTS = new Map<string, { id: number | string; type: EventObjectType }>([
   ['area:301', { id: 300, type: 'area' }],
   ['ascent:9001', { id: 506, type: 'route' }],

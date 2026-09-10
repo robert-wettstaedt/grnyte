@@ -398,7 +398,7 @@
           scopeType="route"
         />
 
-        <!-- The deepest crag screen, and the one whose content is exactly what goes missing without
+        <!-- The deepest sector screen, and the one whose content is exactly what goes missing without
              signal, so it is where the offline pitch is concrete rather than abstract. Renders
              nothing on a desktop, in an installed app, or once the nag policy has retired it. -->
         <InstallApp dismissible offline />

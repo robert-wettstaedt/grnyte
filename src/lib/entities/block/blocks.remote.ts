@@ -33,7 +33,7 @@ const blockActionSchema = z.object({
 /** Field shape the shared add/edit-block form binds to: `id` is set only when editing. */
 export type BlockFormInput = z.input<typeof blockActionSchema>
 
-/** Create a block under a crag (or a still-untyped area, which a block turns into a crag).
+/** Create a block under a sector (or a still-untyped area, which a block turns into a sector).
  *  Location is optional: when given, a geolocation row is created and linked both ways. */
 export const createBlock = authedForm(
   blockActionSchema,

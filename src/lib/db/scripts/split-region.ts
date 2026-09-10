@@ -19,7 +19,7 @@
  *
  * ## Preconditions, all reported together before anything is written
  *
- * Every root of the region must be a LIVE area with LIVE sub-areas. A root crag has no children to
+ * Every root of the region must be a LIVE area with LIVE sub-areas. A root sector has no children to
  * promote and its blocks need an `area_fk`; an empty root would dissolve into an empty region; a
  * soft-deleted root is invisible in the app but still holds `region_fk`. All three abort, named.
  * On top of that: no root may carry content of its own, no invitation may still be live, no
@@ -177,7 +177,7 @@ try {
         // is a deliberate hand-written delete or a restore, and either is a decision.
         fail(`${label} is soft-deleted; restore it or remove it by hand before running this`)
       } else if (root.type !== 'area') {
-        fail(`${label} has type ${root.type ?? 'null'}, expected 'area' (a crag or empty root cannot dissolve)`)
+        fail(`${label} has type ${root.type ?? 'null'}, expected 'area' (a sector or empty root cannot dissolve)`)
       } else if (root.liveChildren === 0) {
         fail(`${label} has no live sub-areas, so it would dissolve into an empty region`)
       }
@@ -194,7 +194,7 @@ try {
     const rootIds = roots.map((r) => r.id)
     if (rootIds.length > 0) {
       // `blocks` is checked as well as the rest, and not because a well-formed 'area' can hold one:
-      // `refreshAreaType` would have called it a crag. The stored column can be stale, and 1.0's was
+      // `refreshAreaType` would have called it a sector. The stored column can be stale, and 1.0's was
       // NOT NULL DEFAULT 'area', so prod may carry a root typed 'area' that holds blocks anyway.
       // Deleting it would dangle `blocks.area_fk`, which is NOT NULL, and replica mode would not
       // complain.

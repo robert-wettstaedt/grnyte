@@ -19,7 +19,7 @@
 </script>
 
 <!-- Typical distribution, coloured by the 4-tier difficulty scale (very easy → hard). -->
-<Story name="Typical crag" />
+<Story name="Typical sector" />
 
 <!-- One bucket per tier: shows all four band colours with nothing in between. -->
 <Story name="Full range" args={{ countByGrade: TIER_COUNTS }} />

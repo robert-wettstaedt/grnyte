@@ -23,7 +23,7 @@ let maintainer: SeedUser
 let member: SeedUser
 let second: SeedUser
 let regionId = 0
-let cragId = 0
+let sectorId = 0
 let blockId = 0
 
 /** The mentions the description carries. `!users:id!` is what the editor stores. */
@@ -63,11 +63,11 @@ beforeAll(async () => {
       on conflict do nothing`
   }
 
-  const [crag] = await sql<{ id: number }[]>`
+  const [sector] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
-    values ('__blocks_remote_crag__', 'crag', ${regionId}, ${maintainer.userId})
+    values ('__blocks_remote_crag__', 'sector', ${regionId}, ${maintainer.userId})
     returning id`
-  cragId = crag.id
+  sectorId = sector.id
 })
 
 afterAll(async () => {
@@ -113,7 +113,7 @@ describe.skipIf(!reachable)('block descriptions', () => {
     // Strings, because `blockActionSchema` builds on `stringToInt`, a codec over `z.string()`:
     // this is the shape a real `<form>` submits.
     await submit(createBlock, {
-      areaId: String(cragId),
+      areaId: String(sectorId),
       description: `Flat landing, out of the sun by three. Ask ${mention}.`,
       name: BLOCK,
     })
@@ -136,7 +136,7 @@ describe.skipIf(!reachable)('block descriptions', () => {
     await sql`delete from public.notifications where region_fk = ${regionId}`
 
     await submit(updateBlock, {
-      areaId: String(cragId),
+      areaId: String(sectorId),
       description: `Flat landing, out of the sun by three. Ask ${mention} or ${secondMention}.`,
       id: String(blockId),
       name: BLOCK,
@@ -146,7 +146,7 @@ describe.skipIf(!reachable)('block descriptions', () => {
   })
 
   it('stores a cleared description as NULL, not as an empty string', async () => {
-    await submit(updateBlock, { areaId: String(cragId), description: '', id: String(blockId), name: BLOCK })
+    await submit(updateBlock, { areaId: String(sectorId), description: '', id: String(blockId), name: BLOCK })
 
     expect(await storedDescription()).toBeNull()
   })

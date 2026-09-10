@@ -29,18 +29,18 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { deleteBlock, restoreBlock } from '../block/blocks.remote'
 import { deleteArea, restoreArea } from './areas.remote'
 
-/** One region holding one area -> crag -> block -> route chain: the smallest fixture that takes the
+/** One region holding one area -> sector -> block -> route chain: the smallest fixture that takes the
  *  soft path (a subtree with descendants) and still has a row in every table a restore writes. */
 interface Tree {
   areaId: number
   blockId: number
-  cragId: number
   regionId: number
   routeId: number
+  sectorId: number
 }
 
 /** Every marker cleared. Named, because both suites assert it and the shape is the whole point. */
-const LIVE = { area: false, block: false, crag: false, route: false }
+const LIVE = { area: false, block: false, route: false, sector: false }
 
 const trees: Tree[] = []
 
@@ -65,17 +65,17 @@ async function createTree(label: string): Promise<Tree> {
   const [area] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
     values (${`${name}_area`}, 'area', ${region.id}, ${actor.userId}) returning id`
-  const [crag] = await sql<{ id: number }[]>`
+  const [sector] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, parent_fk, region_fk, created_by)
-    values (${`${name}_crag`}, 'crag', ${area.id}, ${region.id}, ${actor.userId}) returning id`
+    values (${`${name}_crag`}, 'sector', ${area.id}, ${region.id}, ${actor.userId}) returning id`
   const [block] = await sql<{ id: number }[]>`
     insert into public.blocks (name, "order", area_fk, region_fk, created_by)
-    values (${`${name}_block`}, 0, ${crag.id}, ${region.id}, ${actor.userId}) returning id`
+    values (${`${name}_block`}, 0, ${sector.id}, ${region.id}, ${actor.userId}) returning id`
   const [route] = await sql<{ id: number }[]>`
     insert into public.routes (name, block_fk, region_fk, created_by)
     values (${`${name}_route`}, ${block.id}, ${region.id}, ${actor.userId}) returning id`
 
-  const tree = { areaId: area.id, blockId: block.id, cragId: crag.id, regionId: region.id, routeId: route.id }
+  const tree = { areaId: area.id, blockId: block.id, regionId: region.id, routeId: route.id, sectorId: sector.id }
   trees.push(tree)
 
   return tree
@@ -84,11 +84,11 @@ async function createTree(label: string): Promise<Tree> {
 /** The soft-delete marker at each level of one tree, as one shape. Compared whole, so a partial
  *  restore (the block back but its routes left behind, or the reverse) fails loudly instead of
  *  slipping past an assertion that only looked at the row it expected to move. */
-async function markers(tree: Tree): Promise<Record<'area' | 'block' | 'crag' | 'route', boolean>> {
-  const [row] = await sql<Record<'area' | 'block' | 'crag' | 'route', boolean>[]>`
+async function markers(tree: Tree): Promise<Record<'area' | 'block' | 'route' | 'sector', boolean>> {
+  const [row] = await sql<Record<'area' | 'block' | 'route' | 'sector', boolean>[]>`
     select
       (select deleted_at is not null from public.areas where id = ${tree.areaId}) as "area",
-      (select deleted_at is not null from public.areas where id = ${tree.cragId}) as "crag",
+      (select deleted_at is not null from public.areas where id = ${tree.sectorId}) as "sector",
       (select deleted_at is not null from public.blocks where id = ${tree.blockId}) as "block",
       (select deleted_at is not null from public.routes where id = ${tree.routeId}) as "route"`
 
@@ -128,8 +128,8 @@ afterAll(async () => {
       await sql`delete from public.events where region_fk = ${tree.regionId}`
       await sql`delete from public.routes where region_fk = ${tree.regionId}`
       await sql`delete from public.blocks where region_fk = ${tree.regionId}`
-      // The crag before its parent: `areas.parent_fk` points at another row in this same set.
-      await sql`delete from public.areas where id = ${tree.cragId}`
+      // The sector before its parent: `areas.parent_fk` points at another row in this same set.
+      await sql`delete from public.areas where id = ${tree.sectorId}`
       await sql`delete from public.areas where id = ${tree.areaId}`
       await sql`delete from public.region_members where region_fk = ${tree.regionId}`
       await sql`delete from public.regions where id = ${tree.regionId}`
@@ -159,7 +159,7 @@ describe.skipIf(!reachable)('softRestoreArea', () => {
     expect(await markers(areaHome)).toEqual(LIVE)
     // Same timestamp, different region, never named by the call. This is the assertion that fails
     // against the old helper: the three UPDATEs matched the instant and nothing else.
-    expect(await markers(areaOther)).toEqual({ area: true, block: true, crag: true, route: true })
+    expect(await markers(areaOther)).toEqual({ area: true, block: true, route: true, sector: true })
   })
 })
 
@@ -177,6 +177,6 @@ describe.skipIf(!reachable)('softRestoreBlock', () => {
     // Both still deleted, and each for its own reason: the blocks statement matched the timestamp
     // alone, and the routes statement named no block at all, so it could revive these routes under
     // a block that stayed gone. Their areas were never deleted, hence false at those two levels.
-    expect(await markers(blockOther)).toEqual({ area: false, block: true, crag: false, route: true })
+    expect(await markers(blockOther)).toEqual({ area: false, block: true, route: true, sector: false })
   })
 })

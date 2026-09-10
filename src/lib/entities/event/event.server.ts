@@ -280,7 +280,7 @@ export function withinGraceWindow(createdAt: Date | number): boolean {
  * Three behaviours:
  *
  * 1. **Column merge.** A to B then B to C inside the window is one row, A to C. The intermediate
- *    was never a state the crag was left in. `ON CONFLICT` does it in one statement; reading then
+ *    was never a state the guidebook was left in. `ON CONFLICT` does it in one statement; reading then
  *    writing separately could race a double submit into two contradictory rows.
  * 2. **Undo.** An edit that ends where it started deletes its row.
  * 3. **Empty update.** An `update` event left holding no changes deletes itself.

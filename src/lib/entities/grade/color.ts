@@ -26,7 +26,7 @@ export type GradeBand = 1 | 2 | 3 | 4
  * Buckets a grade into a 1–4 difficulty tier by its ordinal id, following the
  * common Font/V categories: very easy ≤5+ (VB–V2), easy 6A–7A (V3–6),
  * medium 7A+–7C+ (V7–10), hard ≥8A (V11+). Absolute by design: a 5+ reads
- * "very easy" everywhere, regardless of what else a crag holds. Returns
+ * "very easy" everywhere, regardless of what else a sector holds. Returns
  * `undefined` for an ungraded route, so callers render the neutral colour.
  *
  * The thresholds ARE grade ids (0 = FB 3 … 24 = FB 9A+), which is sound only

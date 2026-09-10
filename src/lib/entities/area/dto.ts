@@ -15,5 +15,5 @@ export interface AreaListItem {
   id: number
   /** From `toDisplayName`, so it is never blank. A plain string will not assign here. */
   name: DisplayName
-  type: 'area' | 'crag' | null
+  type: 'area' | 'sector' | null
 }

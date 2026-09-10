@@ -33,7 +33,7 @@ This project uses:
 
 ## Conventions
 
-- Read `CONTEXT.md` before writing user-facing copy, i18n keys, or naming a domain concept. It is short, and it records distinctions the code depends on (a crag is a typed area, `send` is the umbrella over `flash`/`redpoint`/`repeat`).
+- Read `CONTEXT.md` before writing user-facing copy, i18n keys, or naming a domain concept. It is short, and it records distinctions the code depends on (a sector is a typed area and "crag" is prose only, `send` is the umbrella over `flash`/`redpoint`/`repeat`).
 - Mutations are SvelteKit remote functions (`command` / `authedCommand`), RLS-gated. Never Zero mutators.
 - A mutation that acts on an existing row gates through `requireRow` / `requireRowForm` (`$lib/remote/require.server`): they fetch the row and hand it to the permission predicate, so the check's subject is always stored data, never request input. Do not hand-roll `findFirst` + 404 + `can*` in a handler. The one exception is a writer of `regions.settings`, which must load its row under a lock `requireRow` cannot express; converting one back silently removes the lock.
 - Every write to `regions.settings` goes through `settings.server.ts`, and nothing else may write

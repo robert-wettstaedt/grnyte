@@ -15,7 +15,7 @@
   interface Props {
     /**
      * The record's own "Created ... by ..." line, already resolved. Shown when the log is
-     * empty, which is exactly when the entity's own columns are all there is to say: a crag
+     * empty, which is exactly when the entity's own columns are all there is to say: a sector
      * imported before the log existed has no `created` row to render as a card.
      */
     emptyLabel?: string

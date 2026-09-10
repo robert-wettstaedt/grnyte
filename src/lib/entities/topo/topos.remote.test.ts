@@ -45,7 +45,7 @@ beforeAll(async () => {
 
   const [area] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
-    values ('__topos_area__', 'crag', ${regionId}, ${maintainer.userId}) returning id`
+    values ('__topos_area__', 'sector', ${regionId}, ${maintainer.userId}) returning id`
   const [block] = await sql<{ id: number }[]>`
     insert into public.blocks (name, area_fk, region_fk, created_by, "order")
     values ('__topos_block__', ${area.id}, ${regionId}, ${maintainer.userId}, 0) returning id`

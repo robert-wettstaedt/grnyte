@@ -1,18 +1,18 @@
 /**
- * Seed a large, realistic domain tree (area -> crag -> block -> route ->
+ * Seed a large, realistic domain tree (area -> sector -> block -> route ->
  * ascent [+ media]) into one region, to replace the ~5000-route volume that
  * region 1 used to provide for load/UX testing.
  *
  * `area.type` is derived from content (see area.server.ts): an area holding
- * sub-areas is type 'area', an area holding blocks is type 'crag'. So the roots
- * here are 'area' and their block-holding children are 'crag'.
+ * sub-areas is type 'area', an area holding blocks is type 'sector'. So the roots
+ * here are 'area' and their block-holding children are 'sector'.
  *
  * Run `seed-dev-region.ts` first (it creates the region + members this reads).
  *
  * Every block gets a clustered-but-distinct geolocation so the map renders.
  *
  * Config via env (defaults -> ~5000 routes):
- *   AREAS=10 CRAGS_PER_AREA=5 BLOCKS_PER_CRAG=5 ROUTES_PER_BLOCK=20
+ *   AREAS=10 SECTORS_PER_AREA=5 BLOCKS_PER_SECTOR=5 ROUTES_PER_BLOCK=20
  *   WITH_MEDIA=true   REGION_NAME='Volume Test'   SEED=42   RESET=false
  *
  * Additive by default (re-running stacks more data). RESET=true first wipes the
@@ -30,8 +30,8 @@ if (!DATABASE_URL) throw new Error('seed-volume: DATABASE_URL is required')
 
 const num = (name: string, def: number) => Number(process.env[name] ?? def)
 const AREAS = num('AREAS', 10)
-const CRAGS_PER_AREA = num('CRAGS_PER_AREA', 5)
-const BLOCKS_PER_CRAG = num('BLOCKS_PER_CRAG', 5)
+const SECTORS_PER_AREA = num('SECTORS_PER_AREA', 5)
+const BLOCKS_PER_SECTOR = num('BLOCKS_PER_SECTOR', 5)
 const ROUTES_PER_BLOCK = num('ROUTES_PER_BLOCK', 20)
 const WITH_MEDIA = (process.env.WITH_MEDIA ?? 'true') !== 'false'
 const REGION_NAME = process.env.REGION_NAME ?? 'Volume Test'
@@ -126,17 +126,17 @@ const areaIdList = await insertReturningIds('areas', areaRows, [
   'description',
 ])
 
-const cragRows = areaIdList.flatMap((areaId, ai) =>
-  Array.from({ length: CRAGS_PER_AREA }, (_, i) => ({
+const sectorRows = areaIdList.flatMap((areaId, ai) =>
+  Array.from({ length: SECTORS_PER_AREA }, (_, i) => ({
     created_by: author(),
-    description: 'Seeded crag.',
-    name: `Crag ${String(ai + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`,
+    description: 'Seeded sector.',
+    name: `Sector ${String(ai + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`,
     parent_fk: areaId,
     region_fk: region.id,
-    type: 'crag',
+    type: 'sector',
   })),
 )
-const cragIds = await insertReturningIds('areas', cragRows, [
+const sectorIds = await insertReturningIds('areas', sectorRows, [
   'name',
   'created_by',
   'region_fk',
@@ -144,28 +144,28 @@ const cragIds = await insertReturningIds('areas', cragRows, [
   'parent_fk',
   'description',
 ])
-// cragIds[k]'s parent area is cragRows[k].parent_fk
-const areaOfCrag = cragRows.map((r) => r.parent_fk as number)
-console.log(`  areas: ${areaIdList.length} areas + ${cragIds.length} crags`)
+// sectorIds[k]'s parent area is sectorRows[k].parent_fk
+const areaOfSector = sectorRows.map((r) => r.parent_fk as number)
+console.log(`  areas: ${areaIdList.length} areas + ${sectorIds.length} sectors`)
 
 // Clustered but distinct coords so blocks render as separate map markers:
-// areas spread across the region, crags cluster within their area, blocks
-// scatter within their crag. Continuous jitter => no two blocks coincide.
+// areas spread across the region, sectors cluster within their area, blocks
+// scatter within their sector. Continuous jitter => no two blocks coincide.
 const BASE = { lat: 46.5, long: 8.0 } // arbitrary alpine-ish anchor
 const jit = (range: number) => (rand() * 2 - 1) * range
 const areaCenters = areaIdList.map(() => ({ lat: BASE.lat + jit(0.25), long: BASE.long + jit(0.25) }))
-const cragCenters = cragRows.map((r) => {
+const sectorCenters = sectorRows.map((r) => {
   const c = areaCenters[areaIdList.indexOf(r.parent_fk as number)]
   return { lat: c.lat + jit(0.02), long: c.long + jit(0.02) }
 })
 
 const blockCoords: { lat: number; long: number }[] = []
-const blockMeta: { cragId: number; name: string; order: number }[] = []
-cragIds.forEach((cragId, ci) => {
-  const c = cragCenters[ci]
-  for (let i = 0; i < BLOCKS_PER_CRAG; i++) {
+const blockMeta: { name: string; order: number; sectorId: number }[] = []
+sectorIds.forEach((sectorId, ci) => {
+  const c = sectorCenters[ci]
+  for (let i = 0; i < BLOCKS_PER_SECTOR; i++) {
     blockCoords.push({ lat: c.lat + jit(0.0015), long: c.long + jit(0.0015) })
-    blockMeta.push({ cragId, name: `Block ${i + 1}`, order: i })
+    blockMeta.push({ name: `Block ${i + 1}`, order: i, sectorId })
   }
 })
 
@@ -177,7 +177,7 @@ const geoIds = await insertReturningIds(
   ['region_fk', 'lat', 'long', 'estimated'],
 )
 const blockRows = blockMeta.map((m, i) => ({
-  area_fk: m.cragId,
+  area_fk: m.sectorId,
   created_by: author(),
   geolocation_fk: geoIds[i],
   name: m.name,
@@ -196,15 +196,15 @@ await sql`
   update public.geolocations g set block_fk = d.bid
   from unnest(${geoIds}::int[], ${blockIds}::int[]) as d(gid, bid)
   where g.id = d.gid`
-const cragOfBlock = blockRows.map((r) => r.area_fk)
+const sectorOfBlock = blockRows.map((r) => r.area_fk)
 console.log(`  blocks: ${blockIds.length} (+ ${geoIds.length} geolocations)`)
 
-// areaFks/areaIds denormalise the block's area chain (leaf crag -> root area),
+// areaFks/areaIds denormalise the block's area chain (leaf sector -> root area),
 // matching routes.remote.ts so area filters find these routes.
 const routeRows = blockIds.flatMap((blockId, bi) => {
-  const cragId = cragOfBlock[bi]
-  const areaId = areaOfCrag[cragIds.indexOf(cragId)]
-  const areaFks = [cragId, areaId]
+  const sectorId = sectorOfBlock[bi]
+  const areaId = areaOfSector[sectorIds.indexOf(sectorId)]
+  const areaFks = [sectorId, areaId]
   const areaIds = areaFks.map((id) => `^${id}$`).join(',')
   return Array.from({ length: ROUTES_PER_BLOCK }, (_, i) => {
     // user_grade_fk / user_rating are the COMMUNITY values the UI

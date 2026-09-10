@@ -37,7 +37,7 @@ export type EventCategory = 'ascent' | 'update'
  * - the `notifyGuidebookEdits` setting, which is broader in both directions: every verb, and
  *   everything that is not an ascent or a person. Its own hint says "New areas, blocks, routes,
  *   topos and photos", which is the `create` traffic this set exists to keep OUT of the compact
- *   tier. (Its user-facing label still reads "Crag edits"; the copy pass has not happened yet.)
+ *   tier.
  *
  * Three questions, three sets. Keep them apart.
  */

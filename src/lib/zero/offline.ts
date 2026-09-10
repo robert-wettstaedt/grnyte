@@ -63,7 +63,7 @@ import type { queries } from './queries'
  * - `field`: the guidebook. Preloaded only where the reader might lose signal (see
  *   `isFieldDevice`), because this is the part with real server cost.
  * - `excluded`: deliberately never kept. These must render as "not available offline" and never as
- *   an empty list, or a gap in the sync reads as a fact about the crag.
+ *   an empty list, or a gap in the sync reads as a fact about the guidebook.
  *
  * A query with no entry is none of the three: it may or may not have local rows, depending on what
  * the reader happened to browse. Offline and empty, it says "not downloaded", which is the honest

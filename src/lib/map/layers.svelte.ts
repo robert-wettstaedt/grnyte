@@ -20,9 +20,9 @@ import Icon from 'ol/style/Icon'
 // `sideEffects` in its package.json, so no bundler may drop it, and importing one string from this
 // module would pull the whole library into StaticMap and so into every feed card.
 import { APPROACH_COLOR } from './tiles'
-import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, CRAG_ZOOM } from './types'
+import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, SECTOR_ZOOM } from './types'
 
-// Read-only fallback for areas/crags with no grade data, so we never allocate per feature.
+// Read-only fallback for areas/sectors with no grade data, so we never allocate per feature.
 const EMPTY_GRADE_COUNTS: Map<number, number> = new Map<number, number>()
 
 // The data layers are created once (empty) and kept stable; only their features are
@@ -31,7 +31,7 @@ const EMPTY_GRADE_COUNTS: Map<number, number> = new Map<number, number>()
 // flashes the map, so we never do that on a data update.
 
 // The outermost area grouping, drawn when zoomed out so the far view isn't cluttered with
-// every crag; from CRAG_ZOOM the crag rects take over.
+// every sector; from SECTOR_ZOOM the sector rects take over.
 export function buildAreaFeatures(
   areaBoundingBoxes: Map<number, { area: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>,
   routeCountByArea: Map<number, number>,
@@ -80,38 +80,6 @@ export function buildBlockFeatures(geoBlocks: BlockDetail[], routeCountByBlock: 
   return features
 }
 
-// A crag is the block-holding area: a rect around its blocks, shown at mid zoom until the
-// user zooms in far enough for the individual block markers to take over.
-export function buildCragFeatures(
-  cragBoundingBoxes: Map<number, { bounds: [number, number, number, number]; crag: BlockDetail['areas'][0] }>,
-  routeCountByCrag: Map<number, number>,
-  gradeCountByCrag: Map<number, Map<number, number>>,
-): Feature[] {
-  const features: Feature[] = []
-
-  for (const [cragId, { bounds, crag }] of cragBoundingBoxes) {
-    const [minLat, minLng, maxLat, maxLng] = bounds
-    const routeCount = routeCountByCrag.get(cragId) ?? 0
-    const gradeCounts = gradeCountByCrag.get(cragId) ?? EMPTY_GRADE_COUNTS
-    const extent = [...fromLonLat([minLng, minLat]), ...fromLonLat([maxLng, maxLat])]
-    const geometry = fromExtent(extent)
-
-    const feature = new Feature({ geometry, name: `${crag.name}` })
-    feature.set('routeCount', routeCount)
-    feature.set('areaId', cragId)
-    feature.setStyle([
-      new Style({
-        fill: new Fill({ color: 'rgba(255, 255, 255, 0.2)' }),
-        stroke: new Stroke({ color: '#313944', width: 1 }),
-      }),
-      ...createDonutMarkerStyles(crag.name, routeCount, gradeCounts, 32),
-    ])
-    features.push(feature)
-  }
-
-  return features
-}
-
 // `id` is optional so the reorder map can pass a bare reference point (no navigation),
 // while the main map passes full `Geolocation`s whose `parkingId` drives click-to-open.
 export function buildParkingFeatures(
@@ -146,8 +114,40 @@ export function buildPathFeatures(uniqueLineStrings: string[]): Feature[] {
   return features
 }
 
+// A sector is the block-holding area: a rect around its blocks, shown at mid zoom until the
+// user zooms in far enough for the individual block markers to take over.
+export function buildSectorFeatures(
+  sectorBoundingBoxes: Map<number, { bounds: [number, number, number, number]; sector: BlockDetail['areas'][0] }>,
+  routeCountBySector: Map<number, number>,
+  gradeCountBySector: Map<number, Map<number, number>>,
+): Feature[] {
+  const features: Feature[] = []
+
+  for (const [sectorId, { bounds, sector }] of sectorBoundingBoxes) {
+    const [minLat, minLng, maxLat, maxLng] = bounds
+    const routeCount = routeCountBySector.get(sectorId) ?? 0
+    const gradeCounts = gradeCountBySector.get(sectorId) ?? EMPTY_GRADE_COUNTS
+    const extent = [...fromLonLat([minLng, minLat]), ...fromLonLat([maxLng, maxLat])]
+    const geometry = fromExtent(extent)
+
+    const feature = new Feature({ geometry, name: `${sector.name}` })
+    feature.set('routeCount', routeCount)
+    feature.set('areaId', sectorId)
+    feature.setStyle([
+      new Style({
+        fill: new Fill({ color: 'rgba(255, 255, 255, 0.2)' }),
+        stroke: new Stroke({ color: '#313944', width: 1 }),
+      }),
+      ...createDonutMarkerStyles(sector.name, routeCount, gradeCounts, 32),
+    ])
+    features.push(feature)
+  }
+
+  return features
+}
+
 export function createAreaLayer(): VectorLayer {
-  const layer = new VectorLayer({ maxZoom: CRAG_ZOOM, source: new VectorSource() })
+  const layer = new VectorLayer({ maxZoom: SECTOR_ZOOM, source: new VectorSource() })
   layer.set('layerName', 'Markers')
   return layer
 }
@@ -224,12 +224,6 @@ export function createBlockLayer(mapInstance: OlMap, getSelectedId: () => number
   return layer
 }
 
-export function createCragLayer(): VectorLayer {
-  const layer = new VectorLayer({ maxZoom: BLOCK_ZOOM, minZoom: CRAG_ZOOM, source: new VectorSource() })
-  layer.set('layerName', 'Markers')
-  return layer
-}
-
 // `minZoom` defaults to BLOCK_ZOOM (the main map's zoom tiers); the reorder map passes 0 so the
 // parking always shows on its single-area view.
 export function createParkingLayer(minZoom = BLOCK_ZOOM): VectorLayer {
@@ -267,6 +261,12 @@ export function createPathLayer(minZoom = BLOCK_ZOOM): VectorLayer {
   return layer
 }
 
+export function createSectorLayer(): VectorLayer {
+  const layer = new VectorLayer({ maxZoom: BLOCK_ZOOM, minZoom: SECTOR_ZOOM, source: new VectorSource() })
+  layer.set('layerName', 'Markers')
+  return layer
+}
+
 export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
   return userRegions.flatMap((region) =>
     region.settings.mapLayers.map(
@@ -287,7 +287,7 @@ export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
   )
 }
 
-// Marker showing the area/crag's grade histogram as a small donut with the route
+// Marker showing the area/sector's grade histogram as a small donut with the route
 // count in the center. Built once per feature (the data-URI icon is expensive to
 // regenerate) and anchored at the polygon's interior point.
 function createDonutMarkerStyles(

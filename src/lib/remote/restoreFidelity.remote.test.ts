@@ -65,7 +65,7 @@ const REBUILT = new Set([
 let maintainer: SeedUser
 let regionId = 0
 let parentAreaId = 0
-let cragAreaId = 0
+let sectorAreaId = 0
 let blockId = 0
 
 /** Every column of one row, keyed by column name, straight from the table rather than from a list
@@ -100,20 +100,20 @@ beforeAll(async () => {
   maintainer = users.maintainer
   regionId = await createRegion()
 
-  // `canAddArea` wants a parent that is untyped or an 'area'; `canAddBlock` wants a 'crag'.
+  // `canAddArea` wants a parent that is untyped or an 'area'; `canAddBlock` wants a 'sector'.
   const [parent] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
     values ('__fidelity_parent__', 'area', ${regionId}, ${maintainer.userId}) returning id`
   parentAreaId = parent.id
 
-  const [crag] = await sql<{ id: number }[]>`
+  const [sector] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
-    values ('__fidelity_crag__', 'crag', ${regionId}, ${maintainer.userId}) returning id`
-  cragAreaId = crag.id
+    values ('__fidelity_crag__', 'sector', ${regionId}, ${maintainer.userId}) returning id`
+  sectorAreaId = sector.id
 
   const [block] = await sql<{ id: number }[]>`
     insert into public.blocks (name, area_fk, region_fk, created_by, "order")
-    values ('__fidelity_block_parent__', ${cragAreaId}, ${regionId}, ${maintainer.userId}, 0) returning id`
+    values ('__fidelity_block_parent__', ${sectorAreaId}, ${regionId}, ${maintainer.userId}, 0) returning id`
   blockId = block.id
 })
 
@@ -168,7 +168,7 @@ describe.skipIf(!reachable)('undo loses nothing', () => {
 
     const [block] = await sql<{ id: number }[]>`
       insert into public.blocks (name, description, area_fk, region_fk, created_by, "order", geolocation_fk)
-      values ('__fidelity_block__', '__fidelity_approach__', ${cragAreaId}, ${regionId},
+      values ('__fidelity_block__', '__fidelity_approach__', ${sectorAreaId}, ${regionId},
               ${maintainer.userId}, 7, ${geolocation.id})
       returning id`
 

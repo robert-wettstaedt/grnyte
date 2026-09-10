@@ -1,5 +1,7 @@
 import { toDisplayName } from '$lib/entities/displayName'
 import { toGeolocation } from '$lib/entities/geolocation/mapper'
+import { m } from '$lib/paraglide/messages'
+import type { Locale } from '$lib/paraglide/runtime'
 import type { Row } from '$lib/zero/types'
 import type { AreaDetail, AreaListItem } from './dto'
 
@@ -11,7 +13,7 @@ export interface AreaAncestor {
   readonly parent?: AreaAncestor | undefined
   // Zero marks this optional (the column carries a DB default), so it can arrive null even
   // though the DB itself is non-null; callers coalesce to 'area'.
-  readonly type: 'area' | 'crag' | null
+  readonly type: 'area' | 'sector' | null
 }
 
 /** What `toAreaDetail` reads: satisfied by both the list and the single-area query. */
@@ -22,6 +24,12 @@ export interface AreaDetailRow extends AreaAncestor {
   readonly geoPaths: null | readonly string[]
   readonly parkingLocations: readonly Row<'geolocations'>[]
   readonly regionFk: number
+}
+
+/** The area type as a reader sees it. Here rather than at the badge because the enum is stored
+ *  English and untranslated, so rendering it raw showed "Sector" to a German reader. */
+export function areaTypeLabel(type: 'area' | 'sector', locale?: Locale): string {
+  return type === 'sector' ? m.areas_typeSector({}, { locale }) : m.areas_typeArea({}, { locale })
 }
 
 export function toAncestors(row: AreaAncestor | undefined): AreaListItem[] {

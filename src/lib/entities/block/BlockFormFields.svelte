@@ -16,7 +16,7 @@
   // recommended location field. The surrounding chrome (header, submit) lives in `Form`;
   // location state + actions are owned by the parent (`BlockForm`). Mirrors AreaFormFields.
   interface Props {
-    /** The crag the block belongs to. */
+    /** The sector the block belongs to. */
     area: AreaDetail
     /** The pin is a rough guess ("?" on the map), not a confirmed spot. */
     estimated: boolean
@@ -90,7 +90,7 @@
   {onEstimatedChange}
 />
 
-<!-- `regionFk` scopes the entity-reference picker. A block always hangs off a crag, so it comes
+<!-- `regionFk` scopes the entity-reference picker. A block always hangs off a sector, so it comes
      straight off the area rather than through AreaFormFields' top-level-area fallback. -->
 <RemoteFormInputWrapper
   class="space-y-2.5"

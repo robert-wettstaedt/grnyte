@@ -75,7 +75,7 @@ beforeAll(async () => {
   // `entity_id` the old `activities` table used, so a fixture cannot invent ids here.
   const [homeArea] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
-    values ('__regions_remote_area__', 'crag', ${homeRegionId}, ${admin.userId}) returning id`
+    values ('__regions_remote_area__', 'sector', ${homeRegionId}, ${admin.userId}) returning id`
   const [homeBlock] = await sql<{ id: number }[]>`
     insert into public.blocks (name, area_fk, region_fk, created_by, "order")
     values ('__regions_remote_block__', ${homeArea.id}, ${homeRegionId}, ${admin.userId}, 0) returning id`
@@ -87,7 +87,7 @@ beforeAll(async () => {
     values (${homeRegionId}, ${homeRoute.id}, ${contributor.userId}, '2026-08-01', 'flash') returning id`
   const [otherArea] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
-    values ('__regions_remote_area_other__', 'crag', ${otherRegionId}, ${admin.userId}) returning id`
+    values ('__regions_remote_area_other__', 'sector', ${otherRegionId}, ${admin.userId}) returning id`
   const [otherBlock] = await sql<{ id: number }[]>`
     insert into public.blocks (name, area_fk, region_fk, created_by, "order")
     values ('__regions_remote_block_other__', ${otherArea.id}, ${otherRegionId}, ${admin.userId}, 0) returning id`

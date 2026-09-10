@@ -33,14 +33,14 @@ export function createMapData(props: BlocksMapProps) {
   const gradeCountByBlock = $derived(props.gradeCountByBlock ?? new Map<number, Map<number, number>>())
 
   // Area tier: the outermost grouping, shown when zoomed out so the far view isn't
-  // cluttered with every crag. Group each block under its first (outermost) area ancestor.
+  // cluttered with every sector. Group each block under its first (outermost) area ancestor.
   const blocksByArea = $derived.by(() => {
     const grouped = new Map<number, { area: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
 
     for (const block of geoBlocks) {
-      // Falls back to the outermost ancestor whatever its type. A crag sitting at the root of a
+      // Falls back to the outermost ancestor whatever its type. A sector sitting at the root of a
       // region has no 'area' above it, and without this its blocks were in no group at all below
-      // CRAG_ZOOM, so they vanished when zoomed out. A root crag is its own outermost
+      // SECTOR_ZOOM, so they vanished when zoomed out. A root sector is its own outermost
       // grouping; the two tiers then draw the same rect at different zooms, never together.
       const area = block.areas.find((area) => area.type === 'area') ?? block.areas[0]
       if (area == null) continue
@@ -56,18 +56,18 @@ export function createMapData(props: BlocksMapProps) {
     return grouped
   })
 
-  // Crag tier: the block-holding area, shown at mid zoom (between the area rects and the
+  // Sector tier: the block-holding area, shown at mid zoom (between the area rects and the
   // individual block markers).
-  const blocksByCrag = $derived.by(() => {
-    const grouped = new Map<number, { blocks: BlockDetail[]; crag: BlockDetail['areas'][0] }>()
+  const blocksBySector = $derived.by(() => {
+    const grouped = new Map<number, { blocks: BlockDetail[]; sector: BlockDetail['areas'][0] }>()
 
     for (const block of geoBlocks) {
-      const crag = block.areas.find((area) => area.type === 'crag')
-      if (crag == null) continue
+      const sector = block.areas.find((area) => area.type === 'sector')
+      if (sector == null) continue
 
-      const existing = grouped.get(crag.id)
+      const existing = grouped.get(sector.id)
       if (existing == null) {
-        grouped.set(crag.id, { blocks: [block], crag })
+        grouped.set(sector.id, { blocks: [block], sector })
       } else {
         existing.blocks.push(block)
       }
@@ -91,16 +91,16 @@ export function createMapData(props: BlocksMapProps) {
     return counts
   })
 
-  const routeCountByCrag = $derived.by(() => {
+  const routeCountBySector = $derived.by(() => {
     const counts = new Map<number, number>()
     const rcMap = routeCountByBlock
 
-    for (const [cragId, group] of blocksByCrag) {
+    for (const [sectorId, group] of blocksBySector) {
       let total = 0
       for (const block of group.blocks) {
         total += rcMap.get(block.id) ?? 0
       }
-      counts.set(cragId, total)
+      counts.set(sectorId, total)
     }
 
     return counts
@@ -127,10 +127,10 @@ export function createMapData(props: BlocksMapProps) {
     return counts
   })
 
-  const gradeCountByCrag = $derived.by(() => {
+  const gradeCountBySector = $derived.by(() => {
     const counts = new Map<number, Map<number, number>>()
-    for (const [cragId, group] of blocksByCrag) {
-      counts.set(cragId, mergeGradeCounts(group.blocks))
+    for (const [sectorId, group] of blocksBySector) {
+      counts.set(sectorId, mergeGradeCounts(group.blocks))
     }
     return counts
   })
@@ -157,10 +157,10 @@ export function createMapData(props: BlocksMapProps) {
     return boxes
   })
 
-  const cragBoundingBoxes = $derived.by(() => {
-    const boxes = new Map<number, { bounds: [number, number, number, number]; crag: BlockDetail['areas'][0] }>()
+  const sectorBoundingBoxes = $derived.by(() => {
+    const boxes = new Map<number, { bounds: [number, number, number, number]; sector: BlockDetail['areas'][0] }>()
 
-    for (const [cragId, group] of blocksByCrag) {
+    for (const [sectorId, group] of blocksBySector) {
       const coords = group.blocks.map((block) => block.geolocation!).filter((location) => location != null)
       if (coords.length === 0) continue
 
@@ -173,7 +173,7 @@ export function createMapData(props: BlocksMapProps) {
         Math.max(...lngs),
       ]
 
-      boxes.set(cragId, { bounds: withPadding(bounds, coords.length), crag: group.crag })
+      boxes.set(sectorId, { bounds: withPadding(bounds, coords.length), sector: group.sector })
     }
 
     return boxes
@@ -196,11 +196,8 @@ export function createMapData(props: BlocksMapProps) {
     get blocksByArea() {
       return blocksByArea
     },
-    get blocksByCrag() {
-      return blocksByCrag
-    },
-    get cragBoundingBoxes() {
-      return cragBoundingBoxes
+    get blocksBySector() {
+      return blocksBySector
     },
     get geoBlocks() {
       return geoBlocks
@@ -208,8 +205,8 @@ export function createMapData(props: BlocksMapProps) {
     get gradeCountByArea() {
       return gradeCountByArea
     },
-    get gradeCountByCrag() {
-      return gradeCountByCrag
+    get gradeCountBySector() {
+      return gradeCountBySector
     },
     get routeCountByArea() {
       return routeCountByArea
@@ -217,8 +214,11 @@ export function createMapData(props: BlocksMapProps) {
     get routeCountByBlock() {
       return routeCountByBlock
     },
-    get routeCountByCrag() {
-      return routeCountByCrag
+    get routeCountBySector() {
+      return routeCountBySector
+    },
+    get sectorBoundingBoxes() {
+      return sectorBoundingBoxes
     },
     get uniqueLineStrings() {
       return uniqueLineStrings

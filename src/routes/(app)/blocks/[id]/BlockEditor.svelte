@@ -27,7 +27,7 @@
 
   const global = getGlobalState()
   const block = blockDetail(() => Number(page.params.id))
-  // The block's immediate area (last crumb) is the crag the form frames against.
+  // The block's immediate area (last crumb) is the sector the form frames against.
   const area = areaDetail(() => block.data?.areas.at(-1)?.id ?? -1)
 
   // Keyed on the loaded row's id and not the route parameter: the seed reads data, so it has to
@@ -54,14 +54,14 @@
     <!-- flex-1: nested inside the block QueryState, whose wrapper has no definite height for
          this one's `min-h-full` to resolve against. Without it the map picker collapses. -->
     <QueryState resource={area} class="flex-1">
-      {#snippet ready(crag)}
+      {#snippet ready(sector)}
         {#if canEditBlock(global.userRegions, detail)}
           <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the id changes,
                so the `<form>` it owns is never destroyed and rebuilt under the remote form
                object, which accepts only one element at a time. -->
           <BlockForm
             seedKey={detail.id}
-            area={crag}
+            area={sector}
             editing
             form={updateBlock}
             {initialStep}

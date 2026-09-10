@@ -69,7 +69,7 @@ describe('groupEvents', () => {
     expect(groups[1].events.map((e) => e.objectId)).toEqual([1, 2])
   })
 
-  it('groups one person s edits to the same non crag entity by entity', () => {
+  it('groups one person s edits to the same non burst entity by entity', () => {
     const groups = groupEvents([
       event({ actorFk: 1, createdAt: day(1, 12), objectId: 5, objectType: 'user' }),
       event({ actorFk: 1, createdAt: day(1, 12) - MINUTE, objectId: 5, objectType: 'user' }),
@@ -230,7 +230,7 @@ describe('groupEvents', () => {
     expect(groups[0].events).toHaveLength(3)
   })
 
-  it('keeps uploads out of the editor s crag burst', () => {
+  it('keeps uploads out of the editor s burst', () => {
     const noon = day(1, 12)
     const groups = groupEvents([
       event({ createdAt: noon, objectId: 1, ...underBlock }),

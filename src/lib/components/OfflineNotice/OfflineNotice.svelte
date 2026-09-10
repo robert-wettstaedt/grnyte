@@ -8,8 +8,8 @@
    * reactions, other people's ascents. See `preloadForOffline` in `$lib/zero/z.svelte`.
    *
    * It exists so those sections cannot state an absence as a fact. "No grade opinions yet" and "event
-   * not found" are claims about the crag; offline they are claims about the connection, and the two
-   * must not look alike. Sized for a section, never the viewport, which is why this is not
+   * not found" are claims about the guidebook; offline they are claims about the connection, and
+   * the two must not look alike. Sized for a section, never the viewport, which is why this is not
    * `ErrorState` with its full-height tile and Reload button.
    *
    * Most callers get this through `QueryState`, which picks the wording from the resource's own

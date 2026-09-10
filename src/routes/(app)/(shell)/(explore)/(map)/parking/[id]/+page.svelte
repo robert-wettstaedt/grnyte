@@ -28,7 +28,7 @@
   const clip = createCopyButton()
 
   // The (map) layout draws the sheet header from sheetState: label it with the
-  // parking and, as a subtitle, the crag it belongs to.
+  // parking and, as a subtitle, the sector it belongs to.
   $effect(() => {
     sheetState.title = m.parking_title()
     sheetState.subtitle = breadcrumb

@@ -2789,7 +2789,7 @@ exports[`the case catalogue renders what it claims > FILE-03d: Delete a photo an
       ],
     },
   ],
-  "expected": "Two events, because the media word scopes the fold, and one card, because a crag burst does not key on it: "You removed media from Kante direkt" with a "2 files" sub line. Both rows share the sentence, so the headline keeps the removal verb rather than falling to "edited", and neither word wins, so both the headline and the count reach for the neutral one. Two change lines, Video removed and Photo removed.",
+  "expected": "Two events, because the media word scopes the fold, and one card, because a burst does not key on it: "You removed media from Kante direkt" with a "2 files" sub line. Both rows share the sentence, so the headline keeps the removal verb rather than falling to "edited", and neither word wins, so both the headline and the count reach for the neutral one. Two change lines, Video removed and Photo removed.",
 }
 `;
 
@@ -2946,7 +2946,7 @@ exports[`the case catalogue renders what it claims > FILE-03h: Delete a photo an
       "summary": [],
     },
   ],
-  "expected": "TWO cards, one per word, where the same pair on a route (FILE-03d) is one. An ascent groups as an entity rather than as a crag burst, and that key carries the metadata, so the client keeps apart exactly what the write path kept apart. Defensible either way, but the two shapes disagree with each other.",
+  "expected": "TWO cards, one per word, where the same pair on a route (FILE-03d) is one. An ascent groups as an entity rather than as a burst, and that key carries the metadata, so the client keeps apart exactly what the write path kept apart. Defensible either way, but the two shapes disagree with each other.",
 }
 `;
 
@@ -3916,7 +3916,7 @@ exports[`the case catalogue renders what it claims > GROUP-04b: Delete a route, 
       "summary": [],
     },
   ],
-  "expected": "Two cards from three events a minute apart: a KIND \`removal\` of "2 deletions" in Nordblock, and a KIND \`single\` rename between them. \`kindOf\` sends a \`delete\` to its own kind before the crag rule can claim it, so a deletion is never something a reader has to find inside "made 3 edits in Nordblock".",
+  "expected": "Two cards from three events a minute apart: a KIND \`removal\` of "2 deletions" in Nordblock, and a KIND \`single\` rename between them. \`kindOf\` sends a \`delete\` to its own kind before the burst rule can claim it, so a deletion is never something a reader has to find inside "made 3 edits in Nordblock".",
 }
 `;
 
@@ -3970,7 +3970,7 @@ exports[`the case catalogue renders what it claims > GROUP-05a: Two maintainers 
       "summary": [],
     },
   ],
-  "expected": "Two KIND \`single\` cards, "You renamed Kante direkt" and "Sofia Brandt changed the rating of Kante direkt". A route is a crag object, so both events are \`burst\` kind, and the burst key carries the actor: two people working on one route never share a card. Every other key carries it too now, so this is the rule rather than a property of bursts, and the next case is the one that used to break it.",
+  "expected": "Two KIND \`single\` cards, "You renamed Kante direkt" and "Sofia Brandt changed the rating of Kante direkt". A route is a burst object, so both events are \`burst\` kind, and the burst key carries the actor: two people working on one route never share a card. Every other key carries it too now, so this is the rule rather than a property of bursts, and the next case is the one that used to break it.",
 }
 `;
 

@@ -64,7 +64,7 @@ beforeAll(async () => {
     values (${REGION_NAME}, ${actor.userId}, 10) returning id`
   ;[{ id: areaId }] = await sql<{ id: number }[]>`
     insert into public.areas (name, created_by, region_fk, type)
-    values ('Klein Ilsetal', ${actor.userId}, ${regionId}, 'crag') returning id`
+    values ('Klein Ilsetal', ${actor.userId}, ${regionId}, 'sector') returning id`
   ;[{ id: blockId }] = await sql<{ id: number }[]>`
     insert into public.blocks (name, created_by, region_fk, area_fk, "order")
     values ('Nordblock', ${actor.userId}, ${regionId}, ${areaId}, 0) returning id`
@@ -106,7 +106,7 @@ describe.skipIf(!reachable)('entityNames', () => {
     // blank while the screen read "Unnamed". Whitespace for the area: legacy rows are untrimmed.
     const [{ id: blankArea }] = await sql<{ id: number }[]>`
       insert into public.areas (name, created_by, region_fk, type)
-      values ('   ', ${actor.userId}, ${regionId}, 'crag') returning id`
+      values ('   ', ${actor.userId}, ${regionId}, 'sector') returning id`
     const [{ id: blankRoute }] = await sql<{ id: number }[]>`
       insert into public.routes (name, created_by, region_fk, block_fk)
       values ('', ${actor.userId}, ${regionId}, ${blockId}) returning id`

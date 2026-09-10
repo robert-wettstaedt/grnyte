@@ -23,15 +23,15 @@
   import {
     buildAreaFeatures,
     buildBlockFeatures,
-    buildCragFeatures,
     buildParkingFeatures,
     buildPathFeatures,
+    buildSectorFeatures,
     createAreaLayer,
     createBlockLayer,
-    createCragLayer,
     createDrawnPathLayer,
     createParkingLayer,
     createPathLayer,
+    createSectorLayer,
     createWmsLayers,
   } from './layers.svelte'
   import { BLOCK_LABEL_ZOOM, type BlocksMapProps, type LayerEntry } from './types'
@@ -138,9 +138,9 @@
   // with its slice of `data` by its own effect below. A data change re-renders only the
   // one layer whose features changed (layers are never torn down and rebuilt), so a Zero
   // sync from another client no longer flashes the whole map (and the donut icons, which
-  // are expensive to regenerate, aren't reloaded unless their own area/crag changed).
+  // are expensive to regenerate, aren't reloaded unless their own area/sector changed).
   let areaLayer = $state<VectorLayer>()
-  let cragLayer = $state<VectorLayer>()
+  let sectorLayer = $state<VectorLayer>()
   let blockLayer = $state<VectorLayer>()
   let parkingLayer = $state<VectorLayer>()
   let pathLayer = $state<VectorLayer>()
@@ -150,13 +150,13 @@
     if (mapInstance == null) return
 
     const area = createAreaLayer()
-    const crag = createCragLayer()
+    const sector = createSectorLayer()
     const block = createBlockLayer(mapInstance, () => props.selectedBlockId)
     const parking = createParkingLayer()
     const path = createPathLayer()
 
     const markersLabel = m.map_markers()
-    const dataLayers = [area, crag, block, parking, path]
+    const dataLayers = [area, sector, block, parking, path]
     for (const layer of dataLayers) {
       layer.set('layerName', markersLabel)
       // Apply the current toggle state without depending on it (toggling handles the
@@ -164,7 +164,7 @@
       layer.setVisible(untrack(() => markersVisible))
     }
     // Navigable markers (everything except the path lines) drive the pointer cursor.
-    for (const layer of [area, crag, block, parking]) {
+    for (const layer of [area, sector, block, parking]) {
       layer.set('clickable', true)
     }
     block.set('isBlockLayer', true)
@@ -173,7 +173,7 @@
       mapInstance.addLayer(layer)
     }
     areaLayer = area
-    cragLayer = crag
+    sectorLayer = sector
     blockLayer = block
     parkingLayer = parking
     pathLayer = path
@@ -204,7 +204,7 @@
         mapInstance.removeLayer(layer)
       }
       areaLayer = undefined
-      cragLayer = undefined
+      sectorLayer = undefined
       blockLayer = undefined
       parkingLayer = undefined
       pathLayer = undefined
@@ -224,7 +224,10 @@
     syncFeatures(areaLayer, buildAreaFeatures(data.areaBoundingBoxes, data.routeCountByArea, data.gradeCountByArea)),
   )
   $effect(() =>
-    syncFeatures(cragLayer, buildCragFeatures(data.cragBoundingBoxes, data.routeCountByCrag, data.gradeCountByCrag)),
+    syncFeatures(
+      sectorLayer,
+      buildSectorFeatures(data.sectorBoundingBoxes, data.routeCountBySector, data.gradeCountBySector),
+    ),
   )
   $effect(() => syncFeatures(blockLayer, buildBlockFeatures(data.geoBlocks, data.routeCountByBlock)))
 

@@ -15,13 +15,13 @@ export function canAddArea(userRegions: UserRegion[], area: AreaPermissionTarget
 
 export function canAddBlock(userRegions: UserRegion[], area: AreaPermissionTarget): boolean {
   return (
-    (area.type == null || area.type === 'crag') &&
+    (area.type == null || area.type === 'sector') &&
     checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
   )
 }
 
 export function canAddParking(userRegions: UserRegion[], area: AreaPermissionTarget): boolean {
-  return area.type === 'crag' && checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
+  return area.type === 'sector' && checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
 }
 
 /** Region DELETE, or an EDITor removing what they themselves created (mirrors v1). */

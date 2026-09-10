@@ -2,7 +2,7 @@
   The one line a detail page carries about its own record: who last touched it, and when.
   Tapping it opens the full audit log.
 
-  Deliberately not a feed of everything under the entity. A crag's blocks, a block's routes
+  Deliberately not a feed of everything under the entity. A sector's blocks, a block's routes
   and a route's ascents all name it as their parent, and none of them is a change to it; the
   question this answers is "when was this last edited", which is the one the page cannot
   answer from anything else it renders.

@@ -28,7 +28,7 @@
   const global = getGlobalState()
 
   // A null-type area is undetermined: its first child fixes the type. A sub-area
-  // makes it an 'area', a block makes it a 'crag'. With edit rights both adds are
+  // makes it an 'area', a block makes it a 'sector'. With edit rights both adds are
   // allowed here, so the empty state is the fork; without them it's only a notice.
   // Per the design a block is the primary path (quickest way to actual routes),
   // and each option states what it costs you, so no paragraph has to.
@@ -37,7 +37,7 @@
 </script>
 
 {#if canAddBlockHere || canAddAreaHere}
-  <EmptyState motif="crag" title={m.areas_empty_title({ name: area.name })}>
+  <EmptyState motif="sector" title={m.areas_empty_title({ name: area.name })}>
     {#if canAddBlockHere}
       <a class={EMPTY_CHOICE_PRIMARY} href={resolve('/(app)/areas/[id]/blocks/add', { id: String(area.id) })}>
         <Icon name="block" size={20} class="shrink-0" />

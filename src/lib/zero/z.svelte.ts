@@ -223,8 +223,9 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
 
 /**
  * Keeps the guidebook in the local store, plus your own logbook and your regions' members, so the
- * crag is readable with no signal. "Guidebook" is the crag itself (see CONTEXT.md); the other two
- * ride along because the screens that render it need them, not because they are part of it.
+ * guidebook is readable with no signal. "Guidebook" is the corpus describing the rock (see
+ * CONTEXT.md); the other two ride along because the screens that render it need them, not because
+ * they are part of it.
  *
  * `preload()` and never `cleanup()`, and the "never" is the whole mechanism. A preload's TTL governs
  * how long its rows survive *after* `cleanup()` is called (see `PreloadOptions` in Zero's

@@ -2,14 +2,14 @@ import { browser } from '$app/environment'
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 
 /**
- * When this device last finished a sync, so an empty local store can be told apart from a crag that
- * genuinely has nothing in it.
+ * When this device last finished a sync, so an empty local store can be told apart from a guidebook
+ * that genuinely has nothing in it.
  *
  * Two stamps, not one, because "finished" is two different claims and conflating them states an
  * absence as a fact:
  * - `reference` is the five small always-preloaded queries (grades, the signed-in user, roles,
  *   permissions, memberships). Fast, and enough to render the shell.
- * - `guidebook` is the crag itself: areas, blocks, routes and their trees, thousands of rows. Slow.
+ * - `guidebook` is the corpus itself: areas, blocks, routes and their trees, thousands of rows. Slow.
  *   Note this is narrower than the whole `field` policy, which also carries your own logbook and
  *   your regions' members. Those are small, they sit behind a user-id lookup that can fail on its
  *   own, and coupling the stamp to that lookup would make it claim less than it means.

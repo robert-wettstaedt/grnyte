@@ -256,7 +256,7 @@ export const ROUTE_CASES: EventCase[] = [
         actorFk: ME,
         // The fold overwrites `new_value` on the open event's row for that column rather than
         // adding a second: 8 to 9 then 9 to 11 is one row, 8 to 11. The 9 was never a state the
-        // crag was left in.
+        // guidebook was left in.
         changes: [change({ columnName: 'gradeFk', newValue: '11', oldValue: '8' })],
         objectId: 500,
       }),

@@ -26,7 +26,7 @@
 <!-- All four difficulty tiers, sized to the ring. -->
 <Story name="All tiers" args={tiers} {template} />
 
-<!-- Typical crag: mostly easy, tapering to a couple of hard problems. -->
+<!-- Typical sector: mostly easy, tapering to a couple of hard problems. -->
 <Story name="Mostly easy" args={{ countByGrade: TYPICAL_COUNTS, total: graded(TYPICAL_COUNTS) }} {template} />
 
 <!-- Some routes ungraded: the grey tail arc fills the remainder of the ring. -->

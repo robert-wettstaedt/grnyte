@@ -6,7 +6,7 @@
 
   /** Distance lives on the location meta line: it is a fact about the place, not about this button. */
   interface Props {
-    /** Where to drive: a parking pin, or a crag's parking/block centroid. */
+    /** Where to drive: a parking pin, or a sector's parking/block centroid. */
     destination: Coords | undefined
     /** `cta` on a parking pin, which exists for nothing else; a tool square everywhere else. */
     variant?: 'cta' | 'tool'

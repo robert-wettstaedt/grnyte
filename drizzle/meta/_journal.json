@@ -372,6 +372,13 @@
       "when": 1788687041234,
       "tag": "0127_yummy_whirlwind",
       "breakpoints": true
+    },
+    {
+      "idx": 128,
+      "version": "7",
+      "when": 1789064054193,
+      "tag": "0128_area_type_sector",
+      "breakpoints": true
     }
   ]
 }

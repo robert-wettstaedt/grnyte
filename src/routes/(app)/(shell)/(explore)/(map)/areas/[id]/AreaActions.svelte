@@ -21,7 +21,7 @@
 
   interface Props {
     area: AreaDetail
-    /** Blocks beneath this crag, for the reorder row's gate. */
+    /** Blocks beneath this sector, for the reorder row's gate. */
     blockCount: number
     /** Where to drive, resolved by the page from parking or the block centroid. */
     destination: Coords | undefined
@@ -47,7 +47,7 @@
   // The level's main child takes the one labelled slot. A null-typed area is excluded: it is
   // always empty, so `AreaEmpty` already offers both adds.
   const create = $derived.by(() => {
-    if (area.type === 'crag' && canAddBlockHere) {
+    if (area.type === 'sector' && canAddBlockHere) {
       return { href: resolve('/(app)/areas/[id]/blocks/add', { id: String(area.id) }), label: m.common_block() }
     }
     if (area.type === 'area' && canAddAreaHere) {
@@ -65,8 +65,8 @@
 </script>
 
 <div>
-  <!-- Only a crag has a location of its own; a sub-area has nothing to say here. -->
-  {#if area.type === 'crag'}
+  <!-- Only a sector has a location of its own; a sub-area has nothing to say here. -->
+  {#if area.type === 'sector'}
     <LocationMeta
       distance={location.distance}
       href={destination == null && canAddParkingHere ? parkingHref : undefined}

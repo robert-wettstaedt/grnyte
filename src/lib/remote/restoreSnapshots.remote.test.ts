@@ -33,9 +33,9 @@ let maintainer: SeedUser
 let homeRegionId = 0
 let otherRegionId = 0
 let parentAreaId = 0
-let cragAreaId = 0
+let sectorAreaId = 0
 
-async function createArea(name: string, regionId: number, type: 'area' | 'crag'): Promise<number> {
+async function createArea(name: string, regionId: number, type: 'area' | 'sector'): Promise<number> {
   const [area] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
     values (${name}, ${type}, ${regionId}, ${maintainer.userId}) returning id`
@@ -94,9 +94,9 @@ beforeAll(async () => {
   homeRegionId = await createRegion(HOME)
   otherRegionId = await createRegion(OTHER)
 
-  // `canAddArea` wants a parent that is untyped or an 'area'; `canAddBlock` wants a 'crag'.
+  // `canAddArea` wants a parent that is untyped or an 'area'; `canAddBlock` wants a 'sector'.
   parentAreaId = await createArea('__restore_parent__', homeRegionId, 'area')
-  cragAreaId = await createArea('__restore_crag__', homeRegionId, 'crag')
+  sectorAreaId = await createArea('__restore_crag__', homeRegionId, 'sector')
 })
 
 afterAll(async () => {
@@ -176,7 +176,7 @@ describe.skipIf(!reachable)('restoreArea (hard)', () => {
     // The cast is the point: a request body is not TypeScript. The restore schema carries no `type`,
     // so this is the shape a hostile client sends rather than one a caller could write inline.
     const snapshot = {
-      area: { name: '__restore_typed_area__', parentFk: null, regionFk: homeRegionId, type: 'crag' },
+      area: { name: '__restore_typed_area__', parentFk: null, regionFk: homeRegionId, type: 'sector' },
       areaId: DEAD_ID,
       mode: 'hard',
       parking: [],
@@ -188,8 +188,8 @@ describe.skipIf(!reachable)('restoreArea (hard)', () => {
       select type from public.areas where name = '__restore_typed_area__'`
 
     // `refreshAreaType` owns this column, and the gate this restore ran (`canAddArea`) refuses
-    // 'crag' outright, so a snapshot must not be able to mint through undo what create rejects: a
-    // crag with no blocks, which `canAddParking` then accepts.
+    // 'sector' outright, so a snapshot must not be able to mint through undo what create rejects: a
+    // sector with no blocks, which `canAddParking` then accepts.
     expect(row.type).toBeNull()
   })
 
@@ -217,7 +217,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
   it("rebuilds the block on the stored area, with that area's region", async () => {
     await asRequest(maintainer.authId, () =>
       restoreBlock({
-        areaFk: cragAreaId,
+        areaFk: sectorAreaId,
         block: { description: 'Flat landing.', name: '__restore_block__', order: 0, regionFk: homeRegionId },
         blockId: DEAD_ID,
         geolocation: { estimated: true, lat: 47.3, long: 8.4 },
@@ -246,7 +246,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
       where b.name = '__restore_block__'`
 
     expect(row).toMatchObject({
-      areaFk: cragAreaId,
+      areaFk: sectorAreaId,
       createdBy: maintainer.userId,
       description: 'Flat landing.',
       estimated: true,
@@ -265,7 +265,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
     const status = await statusOf(() =>
       asRequest(maintainer.authId, () =>
         restoreBlock({
-          areaFk: cragAreaId,
+          areaFk: sectorAreaId,
           block: { description: null, name: '__restore_foreign_block__', order: 0, regionFk: otherRegionId },
           blockId: DEAD_ID,
           geolocation: null,
@@ -285,7 +285,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
     const status = await statusOf(() =>
       asRequest(maintainer.authId, () =>
         restoreBlock({
-          areaFk: cragAreaId,
+          areaFk: sectorAreaId,
           block: { description: null, name: '__restore_offglobe_block__', order: 0, regionFk: homeRegionId },
           blockId: DEAD_ID,
           geolocation: { estimated: false, lat: 999, long: 8.4 },
@@ -318,7 +318,7 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
   })
 
   it('refuses a rating the form would not accept, and creates nothing', async () => {
-    const blockId = await createBlock('__restore_rating_block__', cragAreaId, homeRegionId)
+    const blockId = await createBlock('__restore_rating_block__', sectorAreaId, homeRegionId)
 
     const status = await statusOf(() =>
       asRequest(maintainer.authId, () =>
@@ -342,7 +342,7 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
   })
 
   it('refuses a first ascent year outside the range the form allows', async () => {
-    const blockId = await createBlock('__restore_year_block__', cragAreaId, homeRegionId)
+    const blockId = await createBlock('__restore_year_block__', sectorAreaId, homeRegionId)
 
     const status = await statusOf(() =>
       asRequest(maintainer.authId, () =>
@@ -364,7 +364,7 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
   })
 
   it("drops a first ascensionist belonging to a region other than the route's", async () => {
-    const blockId = await createBlock('__restore_fa_block__', cragAreaId, homeRegionId)
+    const blockId = await createBlock('__restore_fa_block__', sectorAreaId, homeRegionId)
     const foreign = await createFirstAscensionist('__restore_foreign_fa__', otherRegionId)
     const own = await createFirstAscensionist('__restore_own_fa__', homeRegionId)
 
@@ -405,7 +405,7 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
    * with forged authorship into another region's block, carrying poisoned search tokens.
    */
   it('stamps the caller as author and recomputes the area chain from the stored block', async () => {
-    const blockId = await createBlock('__restore_derive_block__', cragAreaId, homeRegionId)
+    const blockId = await createBlock('__restore_derive_block__', sectorAreaId, homeRegionId)
 
     await asRequest(maintainer.authId, () =>
       restoreRoute({
@@ -424,8 +424,8 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
       from public.routes where name = '__restore_derive_route__'`
 
     expect(row).toEqual({
-      areaFks: [cragAreaId],
-      areaIds: `^${cragAreaId}$`,
+      areaFks: [sectorAreaId],
+      areaIds: `^${sectorAreaId}$`,
       createdBy: maintainer.userId,
       regionFk: homeRegionId,
     })

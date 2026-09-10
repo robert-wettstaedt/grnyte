@@ -17,7 +17,7 @@
   const topo = { height: 1000, id: 1, path: 'topo-sample.svg', width: 800 }
 
   const block = (id: number, name: string, overrides: Partial<BlockDetail> = {}): BlockDetail => ({
-    areas: [{ areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'crag' }],
+    areas: [{ areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'sector' }],
     createdAt: undefined,
     createdBy: 1,
     description: '',
@@ -42,7 +42,7 @@
   })
 </script>
 
-<!-- A crag's blocks: the routes/topos segmented control on top, then a linked header per block.
+<!-- A sector's blocks: the routes/topos segmented control on top, then a linked header per block.
      Nothing is logged against these blocks, so each shows its topo thumbnails beside the
      no-routes line. -->
 <Story name="Default" />
@@ -65,6 +65,6 @@
   }}
 />
 
-<!-- No blocks beneath the crag: the control is withheld rather than offering a choice between two
+<!-- No blocks beneath the sector: the control is withheld rather than offering a choice between two
      empty views, and the component renders nothing at all. -->
 <Story name="Empty" args={{ blocks: [] }} />

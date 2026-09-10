@@ -90,7 +90,7 @@ export const createArea = authedForm(areaActionSchema, async (value, { afterComm
       name: value.name,
       parentFk: value.parentFk,
       regionFk: value.regionFk,
-      // Derived, never submitted: `refreshAreaType` owns this column (a block makes a crag, a
+      // Derived, never submitted: `refreshAreaType` owns this column (a block makes a sector, a
       // sub-area makes an area). A new area holds neither, so it starts untyped.
       type: null,
     })
@@ -265,7 +265,7 @@ export const deleteArea = authedCommand(
     // Sub-areas and blocks are the spec's "children"; files are folded in because they
     // FK-reference the area and can't be recreated on undo: an area with files is
     // soft-deleted rather than hard-deleted so nothing is lost.
-    // The whole subtree, not only the direct children: deleting a crag takes its blocks and
+    // The whole subtree, not only the direct children: deleting a sector takes its blocks and
     // their routes with it, and after the delete none of it is left to count.
     //
     // The existence checks count soft-deleted descendants too: a row stamped last month still
@@ -279,7 +279,7 @@ export const deleteArea = authedCommand(
     ])
     const blockIds = blockRows.map((row) => row.id)
 
-    // Counted, not listed: a crag holds thousands of routes and the card needs one integer.
+    // Counted, not listed: a sector holds thousands of routes and the card needs one integer.
     // Live rows only, and before the delete stamps them: this is what this deletion takes.
     const [[areaCount], [routeCount]] = await Promise.all([
       db
@@ -368,8 +368,8 @@ async function hardRestoreArea(
   createdBy: number,
 ): Promise<Area> {
   // The snapshot is client-supplied, so `createdBy` is the caller and `type` is forced to null
-  // rather than trusted: the gate asks `canAddArea` with `type: null`, which refuses 'crag', so a
-  // snapshot naming 'crag' used to mint through undo a row that create would have rejected and
+  // rather than trusted: the gate asks `canAddArea` with `type: null`, which refuses 'sector', so a
+  // snapshot naming 'sector' used to mint through undo a row that create would have rejected and
   // `canAddParking` accepts. `refreshAreaType` owns that column anyway.
   const [created] = await db
     .insert(areas)
@@ -519,7 +519,7 @@ async function createParking(
   }
 }
 
-/** Add a parking location (a geolocation row) to a crag-type area, optionally with
+/** Add a parking location (a geolocation row) to a sector-type area, optionally with
  *  an approach path (an encoded polyline appended to the area's `geoPaths`). */
 export const addParking = authedForm(
   z.object({ areaId: stringToInt, lat: coordinate(90), long: coordinate(180), path: z.optional(z.string()) }),

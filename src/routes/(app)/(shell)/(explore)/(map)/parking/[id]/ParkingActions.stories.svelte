@@ -8,7 +8,7 @@
 
   // The one row where Directions keeps the labelled slot: it is all a parking pin is for.
   const parking: ParkingDetail = {
-    area: { areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'crag' },
+    area: { areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'sector' },
     id: 1,
     lat: 48.4104,
     long: 2.6118,

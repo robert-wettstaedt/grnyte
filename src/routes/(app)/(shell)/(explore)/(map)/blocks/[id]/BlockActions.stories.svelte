@@ -10,7 +10,7 @@
 
   // 343px is the mobile sheet's content box (375px viewport less its px-4).
   const block = (overrides: Partial<BlockDetail> = {}): BlockDetail => ({
-    areas: [{ areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'crag' }],
+    areas: [{ areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'sector' }],
     createdAt: undefined,
     createdBy: 1,
     description: '',

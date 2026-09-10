@@ -498,7 +498,7 @@ export const FILE_CASES: EventCase[] = [
       eventAgo(581, { actorFk: ME, metadata: 'photo', objectId: 500, objectType: 'route', verb: 'remove' }),
     ],
     expected:
-      'Two events, because the media word scopes the fold, and one card, because a crag burst does not key on it: "You removed media from Kante direkt" with a "2 files" sub line. Both rows share the sentence, so the headline keeps the removal verb rather than falling to "edited", and neither word wins, so both the headline and the count reach for the neutral one. Two change lines, Video removed and Photo removed.',
+      'Two events, because the media word scopes the fold, and one card, because a burst does not key on it: "You removed media from Kante direkt" with a "2 files" sub line. Both rows share the sentence, so the headline keeps the removal verb rather than falling to "edited", and neither word wins, so both the headline and the count reach for the neutral one. Two change lines, Video removed and Photo removed.',
     id: 'FILE-03d',
     writer: 'files.remote.ts:344',
   },
@@ -540,7 +540,7 @@ export const FILE_CASES: EventCase[] = [
       eventAgo(421, { actorFk: ME, metadata: 'photo', objectId: 9001, objectType: 'ascent', verb: 'remove' }),
     ],
     expected:
-      'TWO cards, one per word, where the same pair on a route (FILE-03d) is one. An ascent groups as an entity rather than as a crag burst, and that key carries the metadata, so the client keeps apart exactly what the write path kept apart. Defensible either way, but the two shapes disagree with each other.',
+      'TWO cards, one per word, where the same pair on a route (FILE-03d) is one. An ascent groups as an entity rather than as a burst, and that key carries the metadata, so the client keeps apart exactly what the write path kept apart. Defensible either way, but the two shapes disagree with each other.',
     id: 'FILE-03h',
     writer: 'files.remote.ts:344',
   },

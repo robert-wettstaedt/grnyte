@@ -14,13 +14,20 @@ Every level also carries `regionFk` directly, denormalised for RLS.
 
 ## Terms
 
-**crag**
-An area of type `'crag'` (`areaTypeEnum: ['area', 'crag']`): the leaf kind that holds
-blocks. A crag _is_ an area, not a separate entity, so "crag" in the UI is correct and
-must not be flattened to "area". Parking needs a real crag; blocks also accept a
-still-untyped area.
+**sector**
+An area of type `'sector'` (`areaTypeEnum: ['area', 'sector']`): the leaf kind that holds
+blocks. A sector _is_ an area, not a separate entity, so "sector" in the UI is correct and
+must not be flattened to "area". Parking needs a real sector; blocks also accept a
+still-untyped area. German: `Sektor`, which is what German bouldering guidebooks print
+above "Block 1 / Block 2".
 
-One entity, never a collection. "Crag" must not be stretched to mean the whole body of
+Renamed from `crag` in `0128_area_type_sector.sql`. **"Crag" survives as ordinary English
+prose**, exactly the split **block** (entity) and "boulder" (prose) already make below: the
+tagline "Private topos for private crags" and `install_offlineBody` ("ready at the crag
+with no signal") both keep it, and so does every comment about somebody physically at one.
+Never call the record a crag, and never translate the prose sense into German as `Sektor`.
+
+One entity, never a collection. Neither word may be stretched to mean the whole body of
 rock data — that is the **guidebook**, below. Two identifiers did exactly that, for two
 different sets, and were renamed: `notify_crag_edits` to `notify_guidebook_edits`, and
 `CRAG_OBJECT_TYPES` to `BURST_OBJECT_TYPES`.
@@ -28,8 +35,8 @@ different sets, and were renamed: `notify_crag_edits` to `notify_guidebook_edits
 **guidebook**
 The corpus describing the rock: areas, blocks, routes, topos and photos. What a printed
 guidebook would contain, which is why the app calls itself "a private guidebook and
-logbook" — the guidebook is the crag, the logbook is your ascents. Not a synonym for
-either `crag` (one area) or the offline `field` policy (which also carries your logbook
+logbook" — the guidebook is the rock, the logbook is your ascents. Not a synonym for
+either `sector` (one area) or the offline `field` policy (which also carries your logbook
 and your regions' members).
 
 The word is deliberately English-only as a domain term: it names identifiers and concepts,

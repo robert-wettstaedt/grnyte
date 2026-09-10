@@ -18,7 +18,7 @@
     name: toDisplayName('Roche aux Sabots'),
     parkingLocations: [],
     regionFk: 1,
-    type: 'crag',
+    type: 'sector',
     ...overrides,
   })
 

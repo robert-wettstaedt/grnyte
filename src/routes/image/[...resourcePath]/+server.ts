@@ -53,7 +53,7 @@ export async function GET({ locals, params, request, url }) {
 
   // Anonymous / non-member requests reached the bytes only via the public-visibility
   // fallback. They must never receive the untouched original: it carries EXIF (incl. the
-  // GPS coordinates of a private crag), so they only ever get a re-encoded derivative.
+  // GPS coordinates of a private sector), so they only ever get a re-encoded derivative.
   // A member of the file's region (`authorized` above) still gets the untouched original.
   const effectiveWidth = authorized ? width : (width ?? MAX_WIDTH)
 

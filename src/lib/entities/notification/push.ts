@@ -89,7 +89,7 @@ export const DIGEST_MAX_WAIT_MS = 2 * 60 * 60 * 1000
 /**
  * Whether a recipient's queued broadcast events are ready to go out.
  *
- * The quiet period is what turns a forty-minute crag import into one buzz instead of eight; the
+ * The quiet period is what turns a forty-minute sector import into one buzz instead of eight; the
  * ceiling is what stops a busy region from being silent forever. Both are measured against the
  * queue itself, so a reader who is caught up has nothing to be ready.
  *

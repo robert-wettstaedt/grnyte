@@ -12,6 +12,7 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
   import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
+  import { areaTypeLabel } from '$lib/entities/area/mapper'
   import { areaDetail, areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { createSaveState } from '$lib/entities/favorite/save.svelte'
@@ -48,7 +49,7 @@
 
   const areaHref = (id: number) => resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(id) })
 
-  // Blocks beneath this crag, ordered by the query; routes (above) are grouped
+  // Blocks beneath this sector, ordered by the query; routes (above) are grouped
   // under them by the BlocksList.
   const blocks = blockList(() => ({ areaId: Number(page.params.id) }))
 
@@ -67,7 +68,7 @@
     return counts
   })
 
-  // Parking if there is one, else the mean of the crag's block pins. A sub-area has no location.
+  // Parking if there is one, else the mean of the sector's block pins. A sub-area has no location.
   const destination = $derived.by(() => {
     const data = area.data
     if (data == null || data.type === 'area') return undefined
@@ -102,8 +103,6 @@
   const gradedCount = $derived(routes.data.length - ungradedCount)
 
   let selected = $state<null | { count: number; label: string }>(null)
-
-  const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
 
   // Only worth naming the region when the user belongs to more than one. With a
   // single region it's implied and would be noise in the breadcrumb.
@@ -179,7 +178,7 @@
         </a>
       {/if}
 
-      {#if detail.type === 'crag'}
+      {#if detail.type === 'sector'}
         <BlocksList blocks={blocks.data} routes={routes.data} />
       {:else if detail.type === 'area'}
         <AreaList areas={subAreas.data} />
@@ -221,7 +220,7 @@
         <span
           class="bg-primary-500/20 text-primary-700-300 inline-flex h-5.25 items-center rounded-[7px] px-2 text-[11px] font-bold tracking-[0.02em]"
         >
-          {capitalize(area.data.type)}
+          {areaTypeLabel(area.data.type)}
         </span>
       {/if}
     </div>

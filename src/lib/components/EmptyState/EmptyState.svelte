@@ -38,7 +38,7 @@
     body?: string
     /** The calls to action. First one filled, any second one outlined, see the callers. */
     children?: Snippet
-    motif: 'crag' | 'region' | 'routes'
+    motif: 'region' | 'routes' | 'sector'
     title: string
   }
 
@@ -64,8 +64,8 @@
         opacity="0.5"
       />
 
-      {#if motif === 'crag'}
-        <!-- A crag skyline with two anchors: what an area is waiting to be filled with. -->
+      {#if motif === 'sector'}
+        <!-- A sector skyline with two anchors: what an area is waiting to be filled with. -->
         <path
           class="es-draw"
           d="M22 86 L48 40 L64 66 L78 44 L98 86 Z"
@@ -99,7 +99,7 @@
           stroke-width="2.4"
         />
       {:else if motif === 'region'}
-        <!-- A region boundary drawn around one small crag: the container, and the first thing
+        <!-- A region boundary drawn around one small sector: the container, and the first thing
              that goes in it. -->
         <path
           class="es-draw"

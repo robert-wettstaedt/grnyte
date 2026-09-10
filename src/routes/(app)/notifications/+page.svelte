@@ -3,7 +3,7 @@
 
   Deliberately not a second feed. Region activity is already on screen in the feed, grouped and
   hydrated; what lands here is a mention, somebody touching your ascent, a role change or an
-  invitation you sent being accepted. That is also what the badge counts, so a badge full of crag
+  invitation you sent being accepted. That is also what the badge counts, so a badge full of sector
   edits can never train anybody to ignore it.
 -->
 <script lang="ts">

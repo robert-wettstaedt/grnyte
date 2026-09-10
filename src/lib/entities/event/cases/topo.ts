@@ -331,7 +331,7 @@ export const TOPO_CASES: EventCase[] = [
         actorFk: ME,
         // The fold overwrites `new_value` on the open event's change row and keeps its original
         // `old_value`, so the pair reads from where the photo started to where it ended up. The
-        // position in between was never a state the crag was left in.
+        // position in between was never a state the guidebook was left in.
         changes: [change({ columnName: 'topo', newValue: topoLines([KANTE], true), oldValue: topoLines([]) })],
         metadata: topoMetadata('lines', 700),
         objectId: 400,

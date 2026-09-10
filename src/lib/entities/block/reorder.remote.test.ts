@@ -36,7 +36,7 @@ beforeAll(async () => {
 
   const [area] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
-    values ('__blocks_reorder_crag__', 'crag', ${regionId}, ${maintainer.userId})
+    values ('__blocks_reorder_crag__', 'sector', ${regionId}, ${maintainer.userId})
     returning id`
   areaId = area.id
 
@@ -44,7 +44,7 @@ beforeAll(async () => {
   // happens to hold, and nothing on a fresh CI one.
   const [other] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
-    values ('__blocks_reorder_other__', 'crag', ${regionId}, ${maintainer.userId})
+    values ('__blocks_reorder_other__', 'sector', ${regionId}, ${maintainer.userId})
     returning id`
   const [block] = await sql<{ id: number }[]>`
     insert into public.blocks (name, area_fk, region_fk, created_by, "order")

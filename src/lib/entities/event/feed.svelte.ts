@@ -108,7 +108,7 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
 
     // Persisted only on the UNFILTERED feed. A scoped one (an entity's log, one actor's activity)
     // is a different list, and letting it move the global watermark would mark a region's whole
-    // backlog read because somebody opened one crag's history.
+    // backlog read because somebody opened one sector's history.
     if (seen != null && isGlobal(filter())) {
       void markEventFeedSeen({ seenAt: Math.round(seen.createdAt) }).catch(() => undefined)
     }

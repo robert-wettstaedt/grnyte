@@ -726,7 +726,7 @@ export const GROUPING_CASES: EventCase[] = [
       eventAgo(182, { actorFk: ME, objectId: 502, verb: 'delete' }),
     ],
     expected:
-      'Two cards from three events a minute apart: a KIND `removal` of "2 deletions" in Nordblock, and a KIND `single` rename between them. `kindOf` sends a `delete` to its own kind before the crag rule can claim it, so a deletion is never something a reader has to find inside "made 3 edits in Nordblock".',
+      'Two cards from three events a minute apart: a KIND `removal` of "2 deletions" in Nordblock, and a KIND `single` rename between them. `kindOf` sends a `delete` to its own kind before the burst rule can claim it, so a deletion is never something a reader has to find inside "made 3 edits in Nordblock".',
     id: 'GROUP-04b',
     writer: 'routes.remote.ts:428',
   },
@@ -747,7 +747,7 @@ export const GROUPING_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'Two KIND `single` cards, "You renamed Kante direkt" and "Sofia Brandt changed the rating of Kante direkt". A route is a crag object, so both events are `burst` kind, and the burst key carries the actor: two people working on one route never share a card. Every other key carries it too now, so this is the rule rather than a property of bursts, and the next case is the one that used to break it.',
+      'Two KIND `single` cards, "You renamed Kante direkt" and "Sofia Brandt changed the rating of Kante direkt". A route is a burst object, so both events are `burst` kind, and the burst key carries the actor: two people working on one route never share a card. Every other key carries it too now, so this is the rule rather than a property of bursts, and the next case is the one that used to break it.',
     id: 'GROUP-05a',
     writer: 'routes.remote.ts:257',
   },

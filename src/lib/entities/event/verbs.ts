@@ -108,7 +108,7 @@ export function stringifyDeletedAscent(climber: DeletedAscentClimber): string {
   return JSON.stringify(climber)
 }
 
-/** Only the non-zero counts, so an empty crag stores nothing rather than a row of zeroes. */
+/** Only the non-zero counts, so an empty sector stores nothing rather than a row of zeroes. */
 export function stringifyDeletionScale(scale: DeletionScale): string | undefined {
   const entries = Object.entries(scale).filter(([, value]) => typeof value === 'number' && value > 0)
   return entries.length === 0 ? undefined : JSON.stringify(Object.fromEntries(entries))

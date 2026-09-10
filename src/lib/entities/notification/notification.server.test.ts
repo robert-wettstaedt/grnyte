@@ -84,7 +84,7 @@ async function canReadRegion(who: Who): Promise<boolean> {
 async function removeFixtures() {
   await sql`delete from public.notifications where region_fk in (select id from public.regions where name = ${REGION_NAME})`
   await sql`delete from public.events where region_fk in (select id from public.regions where name = ${REGION_NAME})`
-  // Crag first, and in child-to-parent order: a notification's object columns are foreign keys, so
+  // Sector first, and in child-to-parent order: a notification's object columns are foreign keys, so
   // the route cannot go while a row still points at it.
   await sql`delete from public.ascents where region_fk in (select id from public.regions where name = ${REGION_NAME})`
   await sql`delete from public.routes where region_fk in (select id from public.regions where name = ${REGION_NAME})`
@@ -115,7 +115,7 @@ beforeAll(async () => {
   // made-up id is rejected by the database rather than stored and never looked at.
   const [{ id: areaId }] = await sql<{ id: number }[]>`
     insert into public.areas (name, created_by, region_fk, type)
-    values ('Klein Ilsetal', ${users.actor.userId}, ${regionId}, 'crag') returning id`
+    values ('Klein Ilsetal', ${users.actor.userId}, ${regionId}, 'sector') returning id`
   const [{ id: blockId }] = await sql<{ id: number }[]>`
     insert into public.blocks (name, created_by, region_fk, area_fk, "order")
     values ('Nordblock', ${users.actor.userId}, ${regionId}, ${areaId}, 0) returning id`

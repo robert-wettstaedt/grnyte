@@ -42,10 +42,10 @@ export const GRADES: Grade[] = (
 /**
  * Route counts keyed by grade id, the shape every grade chart takes. Two spreads cover what the
  * charts need to show, so the donut, the histogram and the map's range filter read the same
- * crag instead of each inventing one.
+ * sector instead of each inventing one.
  */
 
-/** A typical crag: bulk in the easy tier (6A–7A), tapering into medium, a couple hard. */
+/** A typical sector: bulk in the easy tier (6A–7A), tapering into medium, a couple hard. */
 export const TYPICAL_COUNTS = new Map<number, number>([
   [4, 1],
   [5, 4],

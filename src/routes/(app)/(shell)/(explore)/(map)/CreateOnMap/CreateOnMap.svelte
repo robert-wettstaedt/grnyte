@@ -10,11 +10,11 @@
   import { nameCollator } from '$lib/i18n/collator'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { findNearestCrag } from './cragLocator'
+  import { findNearestSector } from './sectorLocator'
 
   // The create entry point on the /explore map: a FAB (editors only) opens the region's create
   // menu. An area is made straight away; a block or a parking spot enters placement mode, a fixed
-  // centre pin over the pannable map plus a confirm card with the nearest crag prefilled.
+  // centre pin over the pannable map plus a confirm card with the nearest sector prefilled.
   // Confirming hands off to the existing add pages with `?lat&long`, so all validation and
   // persistence stays there.
   interface Props {
@@ -37,8 +37,8 @@
   let optionsOpen = $state(false)
   let pickerOpen = $state(false)
   let search = $state('')
-  /** Manual override from the crag picker; wins over the proximity match. */
-  let chosenCragId = $state<null | number>(null)
+  /** Manual override from the sector picker; wins over the proximity match. */
+  let chosenSectorId = $state<null | number>(null)
 
   const canCreate = $derived(global.userRegions.some((region) => region.permissions.includes(REGION_PERMISSION_EDIT)))
 
@@ -48,7 +48,7 @@
   const showFab = $derived(visible && canCreate && placing == null)
 
   // Names the parent the way the area-level menu does, so "area" here cannot be mistaken for a
-  // sub-area or a crag. Areas cannot be re-parented, which makes that mistake expensive.
+  // sub-area or a sector. Areas cannot be re-parented, which makes that mistake expensive.
   const soleRegion = $derived(global.userRegions.length === 1 ? global.userRegions[0] : undefined)
 
   // Only blocks the user could have placed themselves anchor the proximity match.
@@ -61,11 +61,11 @@
   )
 
   const nearest = $derived(
-    center == null || placing == null ? null : findNearestCrag(editableBlocks, { lat: center[0], long: center[1] }),
+    center == null || placing == null ? null : findNearestSector(editableBlocks, { lat: center[0], long: center[1] }),
   )
 
-  // Parking is stricter (needs an actual crag); blocks also allow still-untyped areas.
-  const candidateCrags = $derived.by(() => {
+  // Parking is stricter (needs an actual sector); blocks also allow still-untyped areas.
+  const candidateSectors = $derived.by(() => {
     const allowed = placing === 'parking' ? canAddParking : canAddBlock
     const byName = nameCollator()
     return areas.data
@@ -73,16 +73,16 @@
       .toSorted((a, b) => byName.compare(a.name, b.name))
   })
 
-  const filteredCrags = $derived(
+  const filteredSectors = $derived(
     search.trim() === ''
-      ? candidateCrags
-      : candidateCrags.filter((area) => area.name.toLowerCase().includes(search.trim().toLowerCase())),
+      ? candidateSectors
+      : candidateSectors.filter((area) => area.name.toLowerCase().includes(search.trim().toLowerCase())),
   )
 
-  const resolvedCrag = $derived.by(() => {
-    const id = chosenCragId ?? nearest?.cragId
+  const resolvedSector = $derived.by(() => {
+    const id = chosenSectorId ?? nearest?.sectorId
     if (id == null) return null
-    return candidateCrags.find((area) => area.id === id) ?? null
+    return candidateSectors.find((area) => area.id === id) ?? null
   })
 
   /** The point a long press asked for, until placement uses it. Not `center`: that only catches up
@@ -100,8 +100,8 @@
   }
 
   // `startPlacing` clears the search once per placement, but the picker opens repeatedly
-  // within one: without this, a term typed to find the last crag still filters the list on
-  // the next open, and a crag that is right there reads as "no crags found".
+  // within one: without this, a term typed to find the last sector still filters the list on
+  // the next open, and a sector that is right there reads as "no sectors found".
   const togglePicker = () => {
     if (!pickerOpen) {
       search = ''
@@ -111,10 +111,10 @@
 
   const startPlacing = (type: 'block' | 'parking') => {
     optionsOpen = false
-    chosenCragId = null
+    chosenSectorId = null
     search = ''
     // Frame the map at pin-dropping zoom before handing over the centre pin: zoomed out, the pin
-    // means nothing and `findNearestCrag` would match something continents away.
+    // means nothing and `findNearestSector` would match something continents away.
     const target = pressed ?? center
     if (target != null) {
       onrequestcenter(target)
@@ -123,12 +123,12 @@
   }
 
   const confirmCreate = () => {
-    const crag = resolvedCrag
-    if (crag == null || center == null || placing == null) return
+    const sector = resolvedSector
+    if (sector == null || center == null || placing == null) return
     const path =
       placing === 'parking'
-        ? resolve('/(app)/areas/[id]/parking/edit', { id: String(crag.id) })
-        : resolve('/(app)/areas/[id]/blocks/add', { id: String(crag.id) })
+        ? resolve('/(app)/areas/[id]/parking/edit', { id: String(sector.id) })
+        : resolve('/(app)/areas/[id]/blocks/add', { id: String(sector.id) })
     placing = null
     // eslint-disable-next-line svelte/no-navigation-without-resolve -- path is pre-resolved above
     goto(`${path}?lat=${center[0]}&long=${center[1]}`)
@@ -226,16 +226,16 @@
   >
     <div class="flex items-center justify-between gap-3">
       <div class="min-w-0">
-        <div class="text-surface-600-400 text-[11px] font-bold tracking-wider uppercase">{m.map_create_crag()}</div>
-        <Modal bind:open={pickerOpen} title={m.map_create_chooseCrag()}>
+        <div class="text-surface-600-400 text-[11px] font-bold tracking-wider uppercase">{m.map_create_sector()}</div>
+        <Modal bind:open={pickerOpen} title={m.map_create_chooseSector()}>
           {#snippet trigger(triggerProps)}
             <button
               {...triggerProps}
               class={[triggerProps.class, 'flex max-w-full items-center gap-1 truncate font-semibold']}
               onclick={togglePicker}
             >
-              <span class={['truncate', resolvedCrag == null && 'text-warning-600-400']}>
-                {resolvedCrag?.name ?? m.map_create_noCragNearby()}
+              <span class={['truncate', resolvedSector == null && 'text-warning-600-400']}>
+                {resolvedSector?.name ?? m.map_create_noSectorNearby()}
               </span>
               <Icon name="chevron-down" size={16} class="text-surface-600-400 shrink-0" />
             </button>
@@ -245,27 +245,27 @@
             <input
               bind:value={search}
               class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-2.5 text-base focus:ring-0 focus:outline-none"
-              placeholder={m.map_create_searchCrags()}
+              placeholder={m.map_create_searchSectors()}
               type="search"
             />
             <div class="flex max-h-64 flex-col overflow-y-auto">
-              {#each filteredCrags as crag (crag.id)}
+              {#each filteredSectors as sector (sector.id)}
                 <button
                   class="hover:bg-surface-200-800 flex flex-col items-start rounded-lg px-3 py-2 text-left"
                   onclick={() => {
-                    chosenCragId = crag.id
+                    chosenSectorId = sector.id
                     pickerOpen = false
                   }}
                 >
-                  <span class="font-medium">{crag.name}</span>
-                  {#if crag.areas.length > 0}
+                  <span class="font-medium">{sector.name}</span>
+                  {#if sector.areas.length > 0}
                     <span class="text-surface-600-400 truncate text-xs">
-                      {crag.areas.map((ancestor) => ancestor.name).join(' / ')}
+                      {sector.areas.map((ancestor) => ancestor.name).join(' / ')}
                     </span>
                   {/if}
                 </button>
               {:else}
-                <span class="text-surface-600-400 px-3 py-2 text-sm">{m.map_create_noCragsFound()}</span>
+                <span class="text-surface-600-400 px-3 py-2 text-sm">{m.map_create_noSectorsFound()}</span>
               {/each}
             </div>
           </div>
@@ -281,7 +281,7 @@
       <button class="btn preset-tonal-surface flex-1" onclick={() => (placing = null)}>
         {m.common_cancel()}
       </button>
-      <button class="btn preset-filled-primary-500 flex-1" disabled={resolvedCrag == null} onclick={confirmCreate}>
+      <button class="btn preset-filled-primary-500 flex-1" disabled={resolvedSector == null} onclick={confirmCreate}>
         {placing === 'parking' ? m.areas_addParkingLocation() : m.blocks_addBlock()}
       </button>
     </div>

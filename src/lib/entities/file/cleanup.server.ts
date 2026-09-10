@@ -22,7 +22,7 @@ type DeletableFile = Pick<File, 'bunnyStreamFk' | 'id' | 'path'>
  * fetched (the caller usually loaded them to permission-check anyway); their pre-unlink
  * `bunnyStreamFk` is what points at the hosted video.
  *
- * A hard delete, deliberately, even though ascents and crag entities tombstone. An upload
+ * A hard delete, deliberately, even though ascents and sector entities tombstone. An upload
  * is one event per file, so cascading `events.file_fk` removes exactly the card for the
  * photo that went and nothing else. Tombstoning instead would strand every parent: every
  * `files.*_fk` is ON DELETE NO ACTION, so a surviving row pins the ascent, route, block or

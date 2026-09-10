@@ -56,7 +56,7 @@ if (reachable) {
     const [reg] = await db.insert(schema.regions).values({ createdBy: a.id, name }).returning()
     const [ar] = await db
       .insert(schema.areas)
-      .values({ createdBy: a.id, name, regionFk: reg.id, type: 'crag' })
+      .values({ createdBy: a.id, name, regionFk: reg.id, type: 'sector' })
       .returning()
     const [b] = await db
       .insert(schema.blocks)
@@ -189,7 +189,7 @@ describe.skipIf(!usable)('changes merge, undo and empty out', () => {
     const rows = await changesOf(event.id)
 
     expect(rows).toHaveLength(1)
-    // B was never a state the crag was left in, so nobody is told about it.
+    // B was never a state the guidebook was left in, so nobody is told about it.
     expect(rows[0].oldValue).toBe('A')
     expect(rows[0].newValue).toBe('C')
   })

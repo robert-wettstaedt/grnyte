@@ -48,7 +48,7 @@ describe('resolveAvailability', () => {
   describe('preloaded data, offline and empty', () => {
     it('treats empty as an answer once the matching preload finished', () => {
       // Otherwise an area that genuinely has no routes tells a reader with a fully synced guidebook
-      // to connect and download it: a sync problem stated over a fact about the crag.
+      // to connect and download it: a sync problem stated over a fact about the guidebook.
       expect(resolveAvailability({ ...base, online: false, policy: 'field' })).toBe('ready')
       expect(resolveAvailability({ ...base, online: false, policy: 'always' })).toBe('ready')
     })

@@ -530,7 +530,7 @@ export const gradesRelations = relations(grades, ({ many }) => ({
 }))
 
 export const areaVisibilityEnum: ['public', 'private'] = ['public', 'private']
-export const areaTypeEnum: ['area', 'crag'] = ['area', 'crag']
+export const areaTypeEnum: ['area', 'sector'] = ['area', 'sector']
 export const areas = table(
   'areas',
   {
