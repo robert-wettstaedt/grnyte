@@ -6,6 +6,11 @@ import type { RegionMembership } from './dto'
  * The vocabulary route tags started out as, before regions owned their own. Every region that
  * existed when they became region-based was frozen at its real list by migration 0089, so this is
  * only what a region created afterwards starts with.
+ *
+ * And only until that region edits a tag. A region with no stored vocabulary reads as this list,
+ * and the first add, rename or retire writes the whole thing back, so from then on it holds an
+ * explicit copy and changing this array never reaches it. Editing this list therefore only affects
+ * regions that have never touched their tags.
  */
 export const DEFAULT_TAGS: readonly string[] = Object.freeze([
   'SD',

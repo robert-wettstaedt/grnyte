@@ -13,7 +13,10 @@
 import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { lockRegionSettings, writableKey, type WritableKey } from './settings.server'
 import { addTag, removeTag, renameTag, tagUsage } from './tags.server'
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 const REGION = '__tags_region__'
 const OTHER_REGION = '__tags_other__'
@@ -73,6 +76,42 @@ async function seedRegion(name: string, count: number): Promise<{ id: number; ro
 const tagRoute = (routeFk: number, regionFk: number, tag: string) =>
   sql`insert into public.routes_to_tags (route_fk, tag_fk, region_fk) values (${routeFk}, ${tag}, ${regionFk})`
 
+/**
+ * Run `fn` the way production runs these: inside one transaction, holding the row lock.
+ *
+ * The lock and the call have to share a transaction or the lock is not held while the statements
+ * run, which is the whole property `WritableKey` claims. An earlier version of this helper took the
+ * lock on the pool, where `for update` is taken and released inside that one statement, and every
+ * proof it minted was quietly lying.
+ *
+ * `tags` seeds the row first when a case wants a vocabulary other than the `beforeEach` one: the
+ * write compares against what is stored, so a list that disagreed with the row would be refused
+ * rather than tested.
+ */
+async function underLock<T>(
+  regionFk: number,
+  tags: string[] | undefined,
+  fn: (writable: WritableKey<'tags'>, tx: Tx) => Promise<T>,
+): Promise<T> {
+  if (tags != null) {
+    await sql`update public.regions set settings = jsonb_build_object('tags', ${sql.json(tags)}) where id = ${regionFk}`
+  }
+
+  return db.transaction(async (tx) => {
+    const locked = await lockRegionSettings(tx, regionFk)
+    if (locked == null) {
+      throw new Error(`region ${regionFk} not found`)
+    }
+
+    const writable = writableKey(locked, 'tags')
+    if (writable == null) {
+      throw new Error(`region ${regionFk} has a vocabulary this build cannot read`)
+    }
+
+    return fn(writable, tx)
+  })
+}
+
 beforeAll(async () => {
   if (!reachable) return
   ;({ admin } = await seedUsers({ admin: 'admin@grnyte.rocks' }))
@@ -123,7 +162,7 @@ describe.skipIf(!reachable)('tagUsage', () => {
 describe.skipIf(!reachable)('addTag', () => {
   it('appends without touching any route', async () => {
     await tagRoute(routes[0], regionId, 'SD')
-    await addTag(db, regionId, ['SD', 'high'], 'dyno')
+    await underLock(regionId, undefined, (writable, tx) => addTag(tx, writable, 'dyno'))
 
     expect(await storedTags(regionId)).toEqual(['SD', 'high', 'dyno'])
     expect(await tagUsage(db, regionId)).toEqual({ SD: 1 })
@@ -136,7 +175,9 @@ describe.skipIf(!reachable)('renameTag', () => {
     // the tag, so writing one takes the screen down with `each_key_duplicate`.
     await tagRoute(routes[0], regionId, 'SD')
 
-    await expect(renameTag(db, regionId, ['SD', 'high'], 'SD', 'high')).rejects.toThrow()
+    await expect(
+      underLock(regionId, undefined, (writable, tx) => renameTag(tx, writable, 'SD', 'high')),
+    ).rejects.toThrow()
 
     expect(await tagsOn(routes[0])).toEqual(['SD'])
     expect(await storedTags(regionId)).toEqual(['SD', 'high'])
@@ -148,7 +189,9 @@ describe.skipIf(!reachable)('renameTag', () => {
     // writing the vocabulary back unchanged. Silent, and visible nowhere on the screen.
     await tagRoute(routes[0], regionId, 'SD')
 
-    await expect(renameTag(db, regionId, ['SD', 'high'], 'SD', 'SD')).rejects.toThrow()
+    await expect(
+      underLock(regionId, undefined, (writable, tx) => renameTag(tx, writable, 'SD', 'SD')),
+    ).rejects.toThrow()
 
     expect(await tagsOn(routes[0])).toEqual(['SD'])
     expect(await storedTags(regionId)).toEqual(['SD', 'high'])
@@ -158,7 +201,7 @@ describe.skipIf(!reachable)('renameTag', () => {
     await tagRoute(routes[0], regionId, 'SD')
     await tagRoute(routes[1], regionId, 'SD')
 
-    await renameTag(db, regionId, ['SD', 'high'], 'SD', 'Sitzstart')
+    await underLock(regionId, undefined, (writable, tx) => renameTag(tx, writable, 'SD', 'Sitzstart'))
 
     expect(await storedTags(regionId)).toEqual(['Sitzstart', 'high'])
     expect(await tagUsage(db, regionId)).toEqual({ Sitzstart: 2 })
@@ -173,7 +216,7 @@ describe.skipIf(!reachable)('renameTag', () => {
     await tagRoute(routes[0], regionId, 'retired')
     await tagRoute(routes[1], regionId, 'SD')
 
-    await renameTag(db, regionId, ['SD', 'high'], 'SD', 'retired')
+    await underLock(regionId, undefined, (writable, tx) => renameTag(tx, writable, 'SD', 'retired'))
 
     // One row per route, not a duplicate and not a lost tag.
     expect(await tagsOn(routes[0])).toEqual(['retired'])
@@ -185,7 +228,7 @@ describe.skipIf(!reachable)('renameTag', () => {
     await tagRoute(routes[0], regionId, 'SD')
     await tagRoute(otherRoute, otherRegionId, 'SD')
 
-    await renameTag(db, regionId, ['SD', 'high'], 'SD', 'Sitzstart')
+    await underLock(regionId, undefined, (writable, tx) => renameTag(tx, writable, 'SD', 'Sitzstart'))
 
     expect(await tagsOn(routes[0])).toEqual(['Sitzstart'])
     expect(await tagsOn(otherRoute)).toEqual(['SD'])
@@ -199,7 +242,7 @@ describe.skipIf(!reachable)('removeTag', () => {
     await tagRoute(routes[0], regionId, 'high')
     await tagRoute(routes[1], regionId, 'SD')
 
-    await removeTag(db, regionId, ['SD', 'high'], 'SD')
+    await underLock(regionId, undefined, (writable, tx) => removeTag(tx, writable, 'SD'))
 
     expect(await tagsOn(routes[0])).toEqual(['high'])
     expect(await tagsOn(routes[1])).toEqual([])
@@ -210,7 +253,7 @@ describe.skipIf(!reachable)('removeTag', () => {
     await tagRoute(routes[0], regionId, 'SD')
     await tagRoute(otherRoute, otherRegionId, 'SD')
 
-    await removeTag(db, regionId, ['SD', 'high'], 'SD')
+    await underLock(regionId, undefined, (writable, tx) => removeTag(tx, writable, 'SD'))
 
     expect(await tagsOn(otherRoute)).toEqual(['SD'])
   })
@@ -222,7 +265,7 @@ describe.skipIf(!reachable)('removeTag', () => {
     // arrives: the placeholder vocabulary is the seven defaults, one of which is `SD`.
     await tagRoute(routes[0], regionId, 'SD')
 
-    await expect(removeTag(db, regionId, ['high'], 'SD')).rejects.toThrow()
+    await expect(underLock(regionId, ['high'], (writable, tx) => removeTag(tx, writable, 'SD'))).rejects.toThrow()
 
     expect(await tagsOn(routes[0])).toEqual(['SD'])
   })

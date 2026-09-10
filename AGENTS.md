@@ -35,7 +35,25 @@ This project uses:
 
 - Read `CONTEXT.md` before writing user-facing copy, i18n keys, or naming a domain concept. It is short, and it records distinctions the code depends on (a crag is a typed area, `send` is the umbrella over `flash`/`redpoint`/`repeat`).
 - Mutations are SvelteKit remote functions (`command` / `authedCommand`), RLS-gated. Never Zero mutators.
-- A mutation that acts on an existing row gates through `requireRow` / `requireRowForm` (`$lib/remote/require.server`): they fetch the row and hand it to the permission predicate, so the check's subject is always stored data, never request input. Do not hand-roll `findFirst` + 404 + `can*` in a handler.
+- A mutation that acts on an existing row gates through `requireRow` / `requireRowForm` (`$lib/remote/require.server`): they fetch the row and hand it to the permission predicate, so the check's subject is always stored data, never request input. Do not hand-roll `findFirst` + 404 + `can*` in a handler. The one exception is a handler that must load its row under a lock, which is every writer of `regions.settings` (see the bullet below): `requireRow`'s loader cannot express `for update`, so those gate on memberships first and then let the lock answer, and converting one back to `requireRow` silently removes the lock.
+- Every write to `regions.settings` goes through `settings.server.ts`, and nothing else may write
+  that column. It is one jsonb blob holding two independently edited keys, so every write is a
+  read-modify-write: `lockRegionSettings` takes the row lock, `writableKey` refuses a key this
+  build could not read whole, and `writeRegionSettings` merges so a sibling key survives. The
+  vocabulary a tag mutation rewrites comes off the returned proof, never from `ctx.userRegions`,
+  which the auth hook parses on another connection before the transaction opens: two admins adding
+  a tag at once each wrote their own stale copy back and the second erased the first one's word.
+  This seam existed once as `mergeSettings` and was dissolved by inlining it into one caller so a
+  compare-and-swap could be attached there, which is exactly how the guarded and unguarded copies
+  came to sit side by side. Two further things fall out of the lock and are easy to undo by
+  accident: Postgres applies the UPDATE policy to `for update`, so the lock is itself the write
+  gate and a demoted admin is stopped before the statements that destroy `routes_to_tags` rows;
+  and the read has to be `db.select(...).for('update')`, because `db.query.*.findFirst` cannot
+  express it. Gate on the caller's memberships BEFORE locking wherever the difference between
+  "gone" and "not allowed" is worth reporting, since an empty lock cannot tell them apart.
+  `settings.server.test.ts` opens with a deliberate negative control: it proves the same two
+  transactions lose a write without the lock, because a concurrency test that quietly serialises
+  passes for the wrong reason.
 - A remote form clears itself after a successful submit, but only while it uses Kit's own enhance
   callback. `<form {...myForm.enhance(cb)}>` **replaces** that callback, so `cb` has to clear the
   form itself, and a surface that reopens rather than navigating away should also clear on open.

@@ -78,6 +78,27 @@ evidence about anybody's ceiling.
 **community**
 The people in a region. Never crew, team or squad.
 
+**vocabulary**
+The set of route tags a region has defined, stored as one key of its `settings` blob. A region's
+own list, not a global one: two regions may both use the word `SD` and neither can see the other's.
+
+It is a vocabulary rather than a list because it is also the allowlist a route write is checked
+against (`regionTags`), so a word that is not in it cannot be stored on a route. That is why a
+vocabulary this build cannot read whole is refused rather than rewritten: saving back only the part
+that parsed would retire every word it could not represent, and those words are on real routes.
+
+A route may still carry a tag the vocabulary no longer holds, because retiring a word does not
+reach back through routes an edit has not touched since. So "in the vocabulary" and "on a route"
+are two different questions, and `renameTag` has to answer both.
+
+A region that has never edited its tags has no stored vocabulary at all, and reads as the starting
+set (`DEFAULT_TAGS`). The first edit writes the whole list, so from then on the region owns its
+vocabulary outright and a later change to the starting set never reaches it. That is intended: the
+list is the region's, not the app's. It does mean "the defaults" describes a region only until
+somebody touches a tag.
+
+In the UI the word is "Tags". "Vocabulary" names the concept and the code, not the copy.
+
 **feedback**
 What somebody sends about the app itself: a regression, a bug, an idea. Not about the rock
 and not about another person, which is what keeps it separate from a **report**. Its kinds

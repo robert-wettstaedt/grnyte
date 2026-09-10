@@ -5,18 +5,24 @@
  * statements that move and destroy `routes_to_tags` rows, and a mock would test nothing. The remote
  * functions keep the permission checks and the refusals; this keeps the SQL.
  *
- * Every function takes the region's current vocabulary rather than reading it, because the caller
- * has already read it from the request's own memberships. That is what keeps each one additive: it
- * touches the tag it was handed by name and leaves the rest of the list alone.
+ * Every function takes a {@link WritableKey}, which carries the vocabulary as it was read under the
+ * row lock. It used to take a bare `string[]` read from the request's own memberships instead, and
+ * that was the bug: the memberships are parsed in the auth hook, on another connection, before this
+ * transaction opens, so two admins editing at once both rewrote the whole array from their own
+ * stale copy and the second silently erased the first one's word.
  */
 import * as schema from '$lib/db/schema'
-import { regions, routesToTags } from '$lib/db/schema'
-import { and, count, eq, inArray, sql } from 'drizzle-orm'
+import { routesToTags } from '$lib/db/schema'
+import { and, count, eq, inArray } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { currentValue, writeRegionSettings, type WritableKey } from './settings.server'
 
 // The base connection type rather than `Context['db']`, the same way `guards.server.ts` does it:
-// production passes the RLS transaction, the tests pass the superuser pool.
+// production passes the RLS transaction, the tests pass the superuser pool. Only the read below
+// takes it: every writer takes `Tx`, because each one runs under the row lock its `WritableKey`
+// came from and a pool handle would mean that lock was already released.
 type Db = PostgresJsDatabase<typeof schema>
+type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
 /** The other half, for the writers that ADD a name. The vocabulary is a jsonb array with no unique
  *  constraint, and `tags/+page.svelte` keys its `{#each}` on the tag, so a duplicate takes the
@@ -43,22 +49,16 @@ function assertStored(stored: string[], name: string): void {
   }
 }
 
-/**
- * Write one key of a region's `settings`. Merged rather than assigned: `settings` is one jsonb blob
- * and each settings screen owns a single key of it, so a key added to `RegionSettings` later cannot
- * be wiped by an older screen.
- */
-const writeTags = (db: Db, regionFk: number, tags: string[]) =>
-  db
-    .update(regions)
-    .set({ settings: sql`coalesce(${regions.settings}, '{}'::jsonb) || ${JSON.stringify({ tags })}::jsonb` })
-    .where(eq(regions.id, regionFk))
+/** The region the lock was taken on. Never a caller-supplied id, so a write cannot land on a row
+ *  other than the one that was read. */
+const regionOf = (writable: WritableKey<'tags'>): number => writable.locked.regionFk
 
 /** Append a word to the vocabulary. Tagged on nothing until somebody applies it. */
-export function addTag(db: Db, regionFk: number, stored: string[], name: string) {
+export function addTag(db: Tx, writable: WritableKey<'tags'>, name: string) {
+  const stored = currentValue(writable)
   assertNotStored(stored, name)
 
-  return writeTags(db, regionFk, [...stored, name])
+  return writeRegionSettings(db, writable, [...stored, name])
 }
 
 /**
@@ -66,7 +66,10 @@ export function addTag(db: Db, regionFk: number, stored: string[], name: string)
  * why the screen confirms with the route count rather than offering an undo: putting the junction
  * rows back would collide on that same primary key after any later rename onto the freed name.
  */
-export async function removeTag(db: Db, regionFk: number, stored: string[], name: string) {
+export async function removeTag(db: Tx, writable: WritableKey<'tags'>, name: string) {
+  const stored = currentValue(writable)
+  const regionFk = regionOf(writable)
+
   // Belt and braces under the caller's refusal. The delete below is unconditional and
   // irreversible, and a route may carry a tag that has already left the vocabulary (see
   // `renameTag`), so a name this region does not have would destroy real junction rows for it.
@@ -76,9 +79,9 @@ export async function removeTag(db: Db, regionFk: number, stored: string[], name
 
   await db.delete(routesToTags).where(and(eq(routesToTags.regionFk, regionFk), eq(routesToTags.tagFk, name)))
 
-  await writeTags(
+  return writeRegionSettings(
     db,
-    regionFk,
+    writable,
     stored.filter((tag) => tag !== name),
   )
 }
@@ -87,7 +90,10 @@ export async function removeTag(db: Db, regionFk: number, stored: string[], name
  * Rename a tag, carrying it onto every route already tagged with it. That is the point: a region
  * localising `SD` to `Sitzstart` must not lose 300 route tags doing it.
  */
-export async function renameTag(db: Db, regionFk: number, stored: string[], from: string, to: string) {
+export async function renameTag(db: Tx, writable: WritableKey<'tags'>, from: string, to: string) {
+  const stored = currentValue(writable)
+  const regionFk = regionOf(writable)
+
   // The same backstop as `removeTag`: this deletes junction rows and mass-updates the rest, so it
   // must not run for a name the region does not have, whatever the screen above believed. Both
   // ends, because renaming onto a name already in the vocabulary writes a duplicate.
@@ -126,9 +132,9 @@ export async function renameTag(db: Db, regionFk: number, stored: string[], from
     .set({ tagFk: to })
     .where(and(eq(routesToTags.regionFk, regionFk), eq(routesToTags.tagFk, from)))
 
-  await writeTags(
+  return writeRegionSettings(
     db,
-    regionFk,
+    writable,
     stored.map((tag) => (tag === from ? to : tag)),
   )
 }

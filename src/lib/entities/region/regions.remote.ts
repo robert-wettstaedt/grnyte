@@ -6,9 +6,8 @@ import * as z from '$lib/forms/zod'
 import { getLocale } from '$lib/paraglide/runtime'
 import { authedCommand, authedForm, authedQuery, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
-import { requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { notify, notifyOutOfBand, retractOutOfBand } from '../notification/notification.server'
 import { assignableRoles, type AssignableRole } from '../rolePermission/dto'
@@ -28,9 +27,10 @@ import {
   type MailContext,
 } from './invite.server'
 import { canEditRegion, canReadRegion } from './permissions'
-import { mapLayerSchema, mapLayersFingerprint, readRegionSettings } from './settings'
+import { mapLayerSchema, mapLayersFingerprint } from './settings'
+import { currentValue, lockRegionSettings, writableKey, writeRegionSettings, type WritableKey } from './settings.server'
 import { addTag, removeTag, renameTag, tagUsage } from './tags.server'
-import { MAX_TAGS, regionTags, tagNameSchema } from './tagVocabulary'
+import { MAX_TAGS, tagNameSchema } from './tagVocabulary'
 
 const assignableRoleSchema = z.enum(assignableRoles)
 
@@ -46,6 +46,21 @@ function assertCanEdit({ userRegions }: Context, regionFk: number) {
 function assertIsMember({ userRegions }: Context, regionFk: number) {
   if (!canReadRegion(userRegions, regionFk)) {
     error(403, formError('form_noPermission'))
+  }
+}
+
+/**
+ * Throws unless a settings write actually landed.
+ *
+ * `writeRegionSettings` reports a write that matched no row rather than throwing, because what that
+ * means depends on the caller. Here it can only be the region disappearing or the write policy
+ * refusing it mid-transaction, since the lock rules out another writer. Silence was the old
+ * behaviour and the worst one: the junction rows had already moved, so a retired tag vanished from
+ * every route while the screen still showed it.
+ */
+function assertWritten(outcome: 'ok' | 'zero') {
+  if (outcome === 'zero') {
+    error(404, formError('region_notFound'))
   }
 }
 
@@ -130,57 +145,43 @@ const regionMapLayersSchema = z.object({
 export const updateRegionMapLayers = authedForm(regionMapLayersSchema, async ({ id, known, mapLayers }, ctx) => {
   const { db } = ctx
 
-  // Through `requireRowForm` rather than a hand-rolled findFirst, per AGENTS.md, and it is load
-  // bearing here: with the region row missing, `readRegionSettings(undefined)` used to report the
-  // layers complete and empty, so a `known` matching that answered a write against nothing with a
-  // success redirect.
-  const region = await requireRowForm(
-    () => db.query.regions.findFirst({ where: eq(regions.id, id) }),
-    (row) => canEditRegion(ctx.userRegions, row.id),
-    formError('region_notFound'),
-  )
+  // Membership first, so a non-admin is told so. The lock below cannot say: Postgres applies the
+  // update policy to `for update` too, so a member who may read this region but not administer it
+  // simply sees no row, and reporting that as "not found" would be a lie about a region they can
+  // see on screen.
+  if (!canEditRegion(ctx.userRegions, id)) {
+    invalid(formError('form_noPermission'))
+  }
 
-  const stored = readRegionSettings(region.settings)
+  // Locked, not merely read. This is also what makes the missing row safe: `readRegionSettings`
+  // reports an absent blob as complete and empty, so a `known` matching that once answered a write
+  // against nothing with a success redirect.
+  const locked = await lockRegionSettings(db, id)
+  if (locked == null) {
+    invalid(formError('region_notFound'))
+  }
+
   // Two different refusals, because they need two different answers. An unreadable blob is not
   // "someone else changed this": reopening recomputes the same flag, so that message sends the
   // admin round a loop it cannot leave.
-  if (!stored.layersComplete) {
+  const writable = writableKey(locked, 'mapLayers')
+  if (writable == null) {
     invalid(formError('region_mapLayersUnreadableBody'))
   }
-  if (mapLayersFingerprint(stored.settings.mapLayers) !== known) {
+
+  // The one guard the lock does not replace. The lock stops a concurrent writer; this stops a
+  // stale HUMAN, whose form rendered before somebody else's save and who would otherwise replace
+  // layers they never saw. Nothing about holding the row tells us what was on their screen.
+  if (mapLayersFingerprint(currentValue(writable)) !== known) {
     invalid(formError('region_mapLayersStale'))
   }
 
-  // Merged rather than assigned, because `settings` is one jsonb blob and each settings screen owns
-  // a single key of it: a key added to `RegionSettings` later must not be wiped by an older screen.
-  //
-  // Re-checked inside the UPDATE, against the blob this read saw. The comparison above and the
-  // write below are two statements at READ COMMITTED, so two admins submitting from the same
-  // fingerprint would both pass it and the second would silently win: exactly the lost update the
-  // fingerprint exists to stop, surviving in the gap between the check and the write.
-  const storedLayers = JSON.stringify((region.settings as null | { mapLayers?: unknown })?.mapLayers ?? null)
-  const written = await db
-    .update(regions)
-    .set({
-      settings: sql`coalesce(${regions.settings}, '{}'::jsonb) || ${JSON.stringify({ mapLayers })}::jsonb`,
-    })
-    .where(
-      and(
-        eq(regions.id, region.id),
-        sql`coalesce(${regions.settings} -> 'mapLayers', 'null'::jsonb) is not distinct from ${storedLayers}::jsonb`,
-      ),
-    )
-    .returning({ id: regions.id })
-
-  if (written.length === 0) {
-    // Told apart as far as a SELECT can. Zero rows also happens when the row went away between
-    // the read and the write, and answering that with "someone else changed the layers" sends the
-    // admin to reload something that 404s. What this cannot see is a write RLS refused while the
-    // read still succeeds (an admin demoted mid-request): the read policy is membership-based and
-    // the write policy role-based, so that case still reports stale. It does not loop, since the
-    // next request re-reads `userRegions` and refuses with `form_noPermission`.
-    const present = await db.query.regions.findFirst({ columns: { id: true }, where: eq(regions.id, region.id) })
-    invalid(formError(present == null ? 'region_notFound' : 'region_mapLayersStale'))
+  if ((await writeRegionSettings(db, writable, mapLayers)) === 'zero') {
+    // Under the lock another writer is ruled out, so this is the row going away or the write
+    // policy refusing while the read policy allowed the lock (an admin demoted mid-request). Both
+    // read as gone to this screen; the next request re-reads `userRegions` and refuses with
+    // `form_noPermission`.
+    invalid(formError('region_notFound'))
   }
 
   return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
@@ -194,12 +195,13 @@ export const updateRegionMapLayers = authedForm(regionMapLayersSchema, async ({ 
 export const regionTagUsage = authedQuery(
   z.object({ regionFk: z.number() }),
   ({ regionFk }, ctx): Promise<Record<string, number>> => {
-    // The three tag mutations below reach this check through `editableTags`; the read sitting next
-    // to them did not, and took the client's `regionFk` as given. All RLS ever gave it was a MEMBER
-    // scope, so any region_user could pull a region they cannot administer and how many routes
-    // carry each of its tags, and a stranger got a silent empty object instead of a refusal.
-    // Not routed through `editableTags`: that exists to hand a mutation the STORED vocabulary, and
-    // this query wants the gate, not the list. Admin rather than edit, because the screen it feeds
+    // The three tag mutations below reach this check through `lockEditableTags`; the read sitting
+    // next to them did not, and took the client's `regionFk` as given. All RLS ever gave it was a
+    // MEMBER scope, so any region_user could pull a region they cannot administer and how many
+    // routes carry each of its tags, and a stranger got a silent empty object instead of a refusal.
+    // Not routed through `lockEditableTags`: that locks the row to hand a mutation the stored
+    // vocabulary, and this query wants the gate, not the list and not a lock. Admin rather than
+    // edit, because the screen it feeds
     // (settings/regions/[regionId]/tags) is admin-only, the same as every other write in this file.
     assertCanEdit(ctx, regionFk)
 
@@ -208,34 +210,46 @@ export const regionTagUsage = authedQuery(
 )
 
 /**
- * The region's vocabulary as it stands right now, having checked the caller may rewrite it.
+ * Lock the region's row and return permission to rewrite its vocabulary.
  *
- * Read per request from `ctx.userRegions`, never from anything the client submitted. That is what
- * keeps the three mutations below additive: each one touches the tag it was handed by name and
- * leaves the rest of the list alone, so a tag another admin adds while this screen is open cannot
- * be deleted by a stale snapshot.
+ * The vocabulary comes back on the returned proof, read inside this transaction under `for update`.
+ * It used to come from `ctx.userRegions`, which the auth hook parses on another connection before
+ * the transaction opens: since all three mutations rewrite the whole array, two admins editing at
+ * once each wrote their own stale copy back and the second erased the first one's word.
+ *
+ * Two refusals in a deliberate order. The membership check answers first so a non-admin is told
+ * so, because the lock cannot tell them apart: Postgres applies the update policy to `for update`,
+ * so a non-admin simply sees no row and would otherwise get "not found". Past that, an empty lock
+ * means the region is gone or the caller was demoted between the hook's read and now, and either
+ * way this must not reach the statements that move `routes_to_tags` rows.
  */
-function editableTags(ctx: Context, regionFk: number): string[] {
+async function lockEditableTags(ctx: Context, regionFk: number): Promise<WritableKey<'tags'>> {
   assertCanEdit(ctx, regionFk)
 
-  // The three mutations below rewrite the whole vocabulary from what they read here, so reading a
-  // fallback means writing it: a blob this build cannot read whole would have its real tags
-  // replaced by the seven defaults, permanently, and `regionTags` is also the allowlist for what a
-  // route write may store, so the region's own tags become unwritable. `removeRegionTag` is worse
-  // still, since it deletes the `routes_to_tags` rows first.
-  const membership = ctx.userRegions.find((region) => region.regionFk === regionFk)
-  if (membership?.tagsComplete !== true) {
+  const locked = await lockRegionSettings(ctx.db, regionFk)
+  if (locked == null) {
+    error(404, formError('region_notFound'))
+  }
+
+  // Refused before any junction row moves, not merely rolled back after. A blob this build cannot
+  // read whole would have its real tags replaced by whatever was readable, permanently, and
+  // `regionTags` is also the allowlist for what a route write may store, so the region's own tags
+  // become unwritable. `removeRegionTag` is worse still, since it deletes the `routes_to_tags`
+  // rows first.
+  const writable = writableKey(locked, 'tags')
+  if (writable == null) {
     error(409, formError('region_tagsUnreadable'))
   }
 
-  return regionTags(ctx.userRegions, regionFk)
+  return writable
 }
 
 /** Add a word to a region's route-tag vocabulary. Tagged on nothing until somebody applies it. */
 export const addRegionTag = authedCommand(
   z.object({ name: tagNameSchema, regionFk: z.number() }),
   async ({ name, regionFk }, ctx) => {
-    const stored = editableTags(ctx, regionFk)
+    const writable = await lockEditableTags(ctx, regionFk)
+    const stored = currentValue(writable)
 
     // Nothing else catches this: the vocabulary is a jsonb array, so there is no unique constraint,
     // and a duplicated name would render as two identical chips forever.
@@ -247,7 +261,7 @@ export const addRegionTag = authedCommand(
       error(409, formError('region_tagsTooMany', { count: MAX_TAGS }))
     }
 
-    await addTag(ctx.db, regionFk, stored, name)
+    assertWritten(await addTag(ctx.db, writable, name))
   },
 )
 
@@ -255,7 +269,8 @@ export const addRegionTag = authedCommand(
 export const renameRegionTag = authedCommand(
   z.object({ from: z.string(), regionFk: z.number(), to: tagNameSchema }),
   async ({ from, regionFk, to }, ctx) => {
-    const stored = editableTags(ctx, regionFk)
+    const writable = await lockEditableTags(ctx, regionFk)
+    const stored = currentValue(writable)
 
     if (!stored.includes(from)) {
       error(404, formError('region_tagGone'))
@@ -269,7 +284,7 @@ export const renameRegionTag = authedCommand(
       error(409, formError('region_tagDuplicate'))
     }
 
-    await renameTag(ctx.db, regionFk, stored, from, to)
+    assertWritten(await renameTag(ctx.db, writable, from, to))
   },
 )
 
@@ -277,7 +292,8 @@ export const renameRegionTag = authedCommand(
 export const removeRegionTag = authedCommand(
   z.object({ name: z.string(), regionFk: z.number() }),
   async ({ name, regionFk }, ctx) => {
-    const stored = editableTags(ctx, regionFk)
+    const writable = await lockEditableTags(ctx, regionFk)
+    const stored = currentValue(writable)
 
     // Same refusal `renameRegionTag` gives, and for a sharper reason: the delete underneath is
     // unconditional, so a name this region does not have would take real junction rows with it.
@@ -286,7 +302,7 @@ export const removeRegionTag = authedCommand(
       error(404, formError('region_tagGone'))
     }
 
-    await removeTag(ctx.db, regionFk, stored, name)
+    assertWritten(await removeTag(ctx.db, writable, name))
   },
 )
 
