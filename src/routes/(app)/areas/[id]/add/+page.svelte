@@ -9,6 +9,7 @@
   import { canAddArea } from '$lib/entities/area/permissions'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
@@ -16,12 +17,17 @@
   const global = getGlobalState()
   const parent = areaDetail(() => Number(page.params.id))
 
-  $effect(() => {
-    createArea.fields.set({
-      parentFk: parent.data?.id.toString(),
-      regionFk: parent.data?.regionFk.toString(),
-    })
-  })
+  // Keyed on the parent's id rather than left as a bare effect: `fields.set` replaces the whole
+  // input, and `parent.data` is a Zero resource that hands back a new object on every snapshot,
+  // so re-running this would wipe a name the reader is part-way through typing.
+  seedOnKeyChange(
+    () => parent.data?.id,
+    () =>
+      createArea.fields.set({
+        parentFk: parent.data?.id.toString(),
+        regionFk: parent.data?.regionFk.toString(),
+      }),
+  )
 </script>
 
 <svelte:head>

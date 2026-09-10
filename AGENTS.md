@@ -36,6 +36,49 @@ This project uses:
 - Read `CONTEXT.md` before writing user-facing copy, i18n keys, or naming a domain concept. It is short, and it records distinctions the code depends on (a crag is a typed area, `send` is the umbrella over `flash`/`redpoint`/`repeat`).
 - Mutations are SvelteKit remote functions (`command` / `authedCommand`), RLS-gated. Never Zero mutators.
 - A mutation that acts on an existing row gates through `requireRow` / `requireRowForm` (`$lib/remote/require.server`): they fetch the row and hand it to the permission predicate, so the check's subject is always stored data, never request input. Do not hand-roll `findFirst` + 404 + `can*` in a handler.
+- A remote form clears itself after a successful submit, but only while it uses Kit's own enhance
+  callback. `<form {...myForm.enhance(cb)}>` **replaces** that callback, so `cb` has to clear the
+  form itself, and a surface that reopens rather than navigating away should also clear on open.
+  Which tool depends on what is stale. `myForm.fields.set({})` clears values and nothing else; Kit
+  exposes no way to clear ISSUES, so dropping those (and touched state) needs a real DOM reset
+  event. The hazard a reset carries is that it blanks work in progress, so it is wrong exactly
+  while there IS any: never mid-edit to clear a stale error. On open and after a successful submit
+  there is none, and it is the right tool there. `TopoAddRouteModal` does both and says why.
+  Fields live on a
+  module-level singleton that outlives the component, so what is skipped here comes back on the next
+  open and leaks into every other screen bound to the same remote function. Nothing catches it: it
+  typechecks, it lints, and no test covers a form that is opened twice.
+- Every add or edit form on a parameterised route seeds through `seedOnKeyChange`
+  (`$lib/forms/seedOnKeyChange.svelte`). `/areas/1/blocks/add` and `/areas/2/blocks/add` are one
+  route, so SvelteKit reuses the page instead of remounting it, and Zero answers from the local
+  store, so it never passes through a loading state that would rebuild it either. Everything
+  seeded once then follows the reader to the next entity: the remote form's fields, staged
+  uploads, wizard steps, row identities, local working copies. This has produced a block saved at
+  another block's coordinates, a rename applied to the region you came from, and a reorder of the
+  wrong area's blocks. Pass the route parameter when seeding to blank, the loaded row's id when
+  seeding from data (so the seed waits for the row). Component state a child seeds once from props
+  is out of reach: key those with `{#key}` on the same id. Not `form.for(key)`, which Kit
+  documents for forms repeated in a list and which posts the key as the `id` field. An undefined
+  or NaN key means "not loaded yet" and is ignored, so gate the key on the data the seed reads
+  having loaded, never on the selection or on a count. A key available before that data seeds from
+  an empty or partial snapshot and never comes back: that is how a cold load submitted an empty
+  form, and how a Zero resource blinking on the hourly token refresh wiped what was being typed.
+  Resources carry `isComplete` for exactly this. A seed clears values but not Kit's issues, so an error raised for one
+  entity can still render under the next one's blank field, and an issue raised for THIS entity
+  outlives the value being corrected. A DOM reset is not the fix HERE, mid-edit, though it is
+  what clears issues on open or after a submit (see the remote-form bullet above). Two reasons.
+  The first is that it writes the DOM without telling Svelte, so the component state and the
+  inputs diverge, while `fields.set({})` clears the thing that actually owns the values. The
+  second decides WHICH fields diverge: a reset restores each input to its `defaultValue`, and Svelte's `value={x}`
+  property write reaches that only in the value modes that reflect it, which are `hidden`,
+  `checkbox` and `radio`. Of those only `hidden` is genuinely safe, because checkedness is all a
+  checkbox submits and `defaultChecked` is never written. So a reset keeps the row identity that
+  made the error stale and throws away what somebody typed.
+  `src/lib/forms/resetBlanks.test.ts` pins the hidden and text cases and the checkbox trap,
+  because four wrong models preceded it.
+  Kit exposes no way to clear an issue either: `raw_issues` is internal, a preflight pass and a
+  merge both preserve server issues on purpose, and the only things that clear them are a
+  successful submit and a reset event.
 - i18n: add keys to BOTH `messages/en.json` and `messages/de.json` (`domain_camelCase`, kept sorted). One prefix per domain: never split singular and plural (`areas_*`, not `area_*` alongside it). No em-dashes anywhere (UI copy, translations, code comments).
 - Icons: use `<Icon name="...">`; only `icons.ts` and `Icon.svelte` may import lucide.
 - Conditional UI animates in and out. An element an `{#if}` adds or removes in response to a press

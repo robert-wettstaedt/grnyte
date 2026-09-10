@@ -61,14 +61,16 @@ export const nameSchema = z
   .string({ error: formError('form_required') })
   .check(z.trim(), z.minLength(3, { error: formError('form_charsMin', { count: 3 }) }))
 
-export const stringToInt = z.codec(
-  z.string({ error: formError('form_required') }).check(z.regex(z.regexes.integer, formError('form_numInvalid'))),
-  z.int(),
-  {
+/** `stringToInt`, with the message a particular field wants when the value is missing or not a
+ *  number. "Enter a valid number" is wrong under a `<select>`, where nothing can be entered. */
+export function intFromString(invalid: string, required = invalid) {
+  return z.codec(z.string({ error: required }).check(z.regex(z.regexes.integer, invalid)), z.int(), {
     decode: (str) => Number.parseInt(str, 10),
     encode: (num) => num.toString(),
-  },
-)
+  })
+}
+
+export const stringToInt = intFromString(formError('form_numInvalid'), formError('form_required'))
 
 export const stringToIntOptional = z.codec(
   z.optional(

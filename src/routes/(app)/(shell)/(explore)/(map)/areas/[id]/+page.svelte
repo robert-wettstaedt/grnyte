@@ -16,6 +16,7 @@
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { createSaveState } from '$lib/entities/favorite/save.svelte'
   import { createLocationState } from '$lib/entities/geolocation/location.svelte'
+  import { regionCrumb } from '$lib/entities/region/mapper'
   import { routeList } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -107,10 +108,10 @@
   // Only worth naming the region when the user belongs to more than one. With a
   // single region it's implied and would be noise in the breadcrumb.
   const regionName = $derived.by(() => {
-    if (global.userRegions.length <= 1 || area.data == null) {
+    if (area.data == null) {
       return null
     }
-    return global.userRegions.find((region) => region.regionFk === area.data!.regionFk)?.name ?? null
+    return regionCrumb(global.userRegions, area.data.regionFk) ?? null
   })
 
   // The shared Modal renders its header from sheetState, so feed it the title

@@ -9,6 +9,7 @@
   import { setBlockLocation, updateBlock } from '$lib/entities/block/blocks.remote'
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -29,15 +30,19 @@
   // The block's immediate area (last crumb) is the crag the form frames against.
   const area = areaDetail(() => block.data?.areas.at(-1)?.id ?? -1)
 
-  // Prefill once per block; reading live data on every change would clobber the user's edits.
-  let prefilledId: number | undefined
-  $effect(() => {
-    const data = block.data
-    if (data != null && data.id !== prefilledId) {
-      prefilledId = data.id
+  // Keyed on the loaded row's id and not the route parameter: the seed reads data, so it has to
+  // wait for the row rather than write the previous entity's values under the new id. Re-seeding
+  // on every snapshot would clobber edits in progress, which is what the guard is for.
+  seedOnKeyChange(
+    () => block.data?.id,
+    () => {
+      const data = block.data
+      if (data == null) {
+        return
+      }
       updateBlock.fields.set({ description: data.description, id: String(data.id), name: data.rawName })
-    }
-  })
+    },
+  )
 </script>
 
 <svelte:head>
@@ -51,7 +56,11 @@
     <QueryState resource={area} class="flex-1">
       {#snippet ready(crag)}
         {#if canEditBlock(global.userRegions, detail)}
+          <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the id changes,
+               so the `<form>` it owns is never destroyed and rebuilt under the remote form
+               object, which accepts only one element at a time. -->
           <BlockForm
+            seedKey={detail.id}
             area={crag}
             editing
             form={updateBlock}

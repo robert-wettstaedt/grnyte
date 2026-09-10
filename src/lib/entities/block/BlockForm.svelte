@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { AreaDetail } from '$lib/entities/area/dto'
   import Form from '$lib/forms/Form.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
   import { userLocation } from '$lib/map/geolocation.svelte'
@@ -35,6 +36,10 @@
     /** Move mode: when set, the picker's "Done" commits the pin directly through this callback
      *  (typically a save + navigate) instead of returning to the form to be submitted. */
     onLocationCommit?: (coords: Coords) => void
+    /** The entity this form is about: the area when adding, the block when editing. Required,
+     *  because an absent key never seeds: the state below would then keep the previous entity's
+     *  values on a route that reuses this component. */
+    seedKey: number | string
     submitLabel: string
     title: string
   }
@@ -48,6 +53,7 @@
     initialStep = 'form',
     onCancel,
     onLocationCommit,
+    seedKey,
     submitLabel,
     title,
   }: Props = $props()
@@ -70,12 +76,30 @@
     return [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)]
   })
 
+  // Seeded at mount and again whenever `seedKey` changes. Re-seeded here rather than by a
+  // `{#key}` around this component from outside: that would destroy and rebuild the `<form>`
+  // this owns, and a remote form object accepts exactly one form element (it throws otherwise,
+  // and releases the old one only in its teardown). Keeping the element and re-seeding the
+  // state avoids the question entirely.
   // svelte-ignore state_referenced_locally
   let step = $state<'form' | 'pin'>(initialStep)
   // svelte-ignore state_referenced_locally
   let committed = $state<Coords | null>(initialLocation)
   // svelte-ignore state_referenced_locally
   let estimated = $state(initialEstimated)
+
+  seedOnKeyChange(
+    () => seedKey,
+    () => {
+      step = initialStep
+      committed = initialLocation
+      estimated = initialEstimated
+      // Answer the held submit rather than dropping it: an unsettled promise never lets Kit's
+      // enhance callback return, so `pending` stays up and Save is disabled from then on.
+      closeConfirm(false)
+      locating = false
+    },
+  )
   let confirmOpen = $state(false)
   // Resolves the held submit (see beforeSubmit) once the user answers the confirm dialog.
   let confirmResolve: ((saveAnyway: boolean) => void) | undefined
@@ -111,6 +135,9 @@
     confirmResolve?.(saveAnyway)
     confirmResolve = undefined
   }
+
+  // Same reason, for the reader who navigates away with the confirm still open.
+  $effect(() => () => closeConfirm(false))
 </script>
 
 {#if step === 'pin'}

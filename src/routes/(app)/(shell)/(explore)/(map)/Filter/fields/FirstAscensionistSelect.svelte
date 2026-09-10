@@ -8,18 +8,22 @@
     currentUserId: number | undefined
     /** One entry per climber, already collapsed across regions by the caller. */
     firstAscensionists: FirstAscensionistGroup[]
+    /**
+     * The type-ahead term. Owned by the caller rather than held here, so the filter panel can
+     * clear it alongside everything else it resets on open: a desktop panel keeps its body
+     * mounted when it closes, so this component outlives a close and would keep the term.
+     */
+    search?: string
     /** Selected first-ascensionist ids. */
     value: number[]
   }
 
-  let { currentUserId, firstAscensionists, value = $bindable() }: Props = $props()
+  let { currentUserId, firstAscensionists, search = $bindable(''), value = $bindable() }: Props = $props()
 
   /** How many matches to render before asking the user to refine the search. */
   const RESULT_LIMIT = 30
   /** Beyond this the list scrolls, so searching beats scanning it. */
   const SEARCH_THRESHOLD = 5
-
-  let search = $state('')
 
   // Search and the "by me" shortcut are both ways to find a name in a long list.
   // A list short enough to read at a glance needs neither, and with a single

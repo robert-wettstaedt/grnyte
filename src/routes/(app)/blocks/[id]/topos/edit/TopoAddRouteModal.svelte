@@ -9,9 +9,13 @@
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { createRoute } from '$lib/entities/route/routes.remote'
   import RouteTagsInput from '$lib/entities/route/RouteTagsInput.svelte'
+  import FormError from '$lib/forms/FormError.svelte'
+  import FormHint from '$lib/forms/FormHint.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { tick } from 'svelte'
   import { flip } from 'svelte/animate'
+  import type { Attachment } from 'svelte/attachments'
   import { MediaQuery } from 'svelte/reactivity'
   import { fade, slide } from 'svelte/transition'
 
@@ -51,8 +55,48 @@
     newRouteOpen = false
     gradeFk = undefined
     tags = []
+    resetForOpen = false
     open = true
   }
+
+  /** Whether this open has already had its reset. See `clearForOpen`. */
+  let resetForOpen = false
+
+  /**
+   * Clear the form once per open.
+   *
+   * `fields.set({})` blanks the values but not Kit's issues, and only a real reset event drops
+   * all three (value, issues, touched): without one, a refused duplicate name reappeared under
+   * an empty field on the next open. The fields live on a module-level singleton that outlives
+   * this component, which is also how an abandoned name leaked into the full-page add form
+   * bound to the same `createRoute`.
+   *
+   * Once per OPEN and not per mount: step 2 remounts its form every time the reader goes back
+   * to the list and returns, and wiping the name there while `gradeFk` and `tags` (reset only
+   * in `openSheet`) survived was a half-reset, which reads as a bug either way you look at it.
+   */
+  const clearForOpen = (node: HTMLFormElement) => {
+    if (resetForOpen) {
+      return
+    }
+    resetForOpen = true
+    HTMLFormElement.prototype.reset.call(node)
+  }
+
+  const resetOnMount: Attachment<HTMLFormElement> = (node) => clearForOpen(node)
+
+  // Mobile mounts the sheet body on open, so the attachment above gets there first. A desktop
+  // panel keeps its body mounted across a close, so nothing remounts and only this fires.
+  // `isConnected` keeps it off a form the mobile sheet left detached.
+  $effect(() => {
+    if (!open) {
+      return
+    }
+    const form = createRoute.element
+    if (form?.isConnected === true) {
+      clearForOpen(form)
+    }
+  })
 
   function pick(routeId: number) {
     onAdd(routeId)
@@ -74,9 +118,16 @@
   // Both "Quick line" (step 1) and the new-route form (step 2) submit createRoute; the
   // new-route fields only exist in the DOM on step 2, so a quick line posts only blockId
   // (empty name, no grade). Only one of the two forms is ever mounted at a time.
-  const submit = createRoute.enhance(async ({ submit }) => {
+  const submit = createRoute.enhance(async ({ element, submit }) => {
     const ok = await submit()
     if (!ok) return
+
+    // Kit's own enhance callback resets the form after a successful submit, and passing one
+    // of ours replaced it: that is what left the typed name behind. Reset while the form is
+    // still mounted, so the listener that clears the field state is there to see the event.
+    await tick()
+    HTMLFormElement.prototype.reset.call(element)
+
     const id = createRoute.result?.data?.id
     if (id != null) {
       onAdd(id)
@@ -89,8 +140,10 @@
      Svelte implicitly binding it as a Modal prop or using it before declaration. -->
 {#snippet stepOneFooter()}
   <!-- Pinned as the sheet footer so it stays reachable without scrolling past the route list. -->
-  <form {...submit} class="w-full space-y-3">
+  <form {...submit} {@attach resetOnMount} class="w-full space-y-3">
     <input type="hidden" name="blockId" value={block.id} />
+
+    <FormError form={createRoute} />
 
     <p class="text-surface-600-400 text-center text-xs font-bold tracking-wide uppercase">{m.topo_orCreateNew()}</p>
 
@@ -167,8 +220,10 @@
        incoming one is already there, which shifts the sheet mid-swap. -->
   {#if newRouteOpen}
     <!-- Step 2: the full new-route form fills the sheet. -->
-    <form {...submit} id="topo-new-route-form" class="space-y-4" in:fade={{ duration }}>
+    <form {...submit} {@attach resetOnMount} id="topo-new-route-form" class="space-y-4" in:fade={{ duration }}>
       <input type="hidden" name="blockId" value={block.id} />
+
+      <FormError form={createRoute} />
 
       <label class="block space-y-2.5">
         <span class="text-surface-700-300 block text-sm font-semibold">{m.routes_form_nameLabel()}</span>
@@ -177,6 +232,7 @@
           class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-3.5 text-base font-semibold tracking-tight focus:ring-0 focus:outline-none"
           placeholder={m.routes_form_namePlaceholder()}
         />
+        <FormHint id="topo-route-name" issues={createRoute.fields.name.issues()} />
       </label>
 
       <div class="space-y-2.5">

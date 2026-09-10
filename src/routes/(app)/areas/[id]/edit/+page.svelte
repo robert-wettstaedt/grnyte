@@ -9,6 +9,7 @@
   import { canEditArea } from '$lib/entities/area/permissions'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
@@ -16,12 +17,16 @@
   const global = getGlobalState()
   const area = areaDetail(() => Number(page.params.id))
 
-  // Prefill once per area; reading live data on every change would clobber the user's edits.
-  let prefilledId: number | undefined
-  $effect(() => {
-    const data = area.data
-    if (data != null && data.id !== prefilledId) {
-      prefilledId = data.id
+  // Keyed on the loaded row's id and not the route parameter: the seed reads data, so it has to
+  // wait for the row rather than write the previous entity's values under the new id. Re-seeding
+  // on every snapshot would clobber edits in progress, which is what the guard is for.
+  seedOnKeyChange(
+    () => area.data?.id,
+    () => {
+      const data = area.data
+      if (data == null) {
+        return
+      }
       updateArea.fields.set({
         description: data.description,
         id: data.id.toString(),
@@ -29,8 +34,8 @@
         parentFk: data.areas.at(-1)?.id.toString(),
         regionFk: data.regionFk.toString(),
       })
-    }
-  })
+    },
+  )
 </script>
 
 <svelte:head>

@@ -12,6 +12,7 @@
   import { finalizeMediaUploads, type MediaUpload } from '$lib/entities/file/upload-manager.svelte'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
@@ -22,6 +23,21 @@
   const block = blockDetail(() => route.data?.blockFk ?? -1)
 
   let uploads = $state<MediaUpload[]>([])
+
+  // The fields live on a module-level remote singleton. `{#key}` below covers what
+  // AscentFormFields seeds once at mount, including the date, which defaults to today and is
+  // the one that lies quietly. `remove()` and not just dropping the array: it is the only
+  // thing that aborts the transfer, deletes the staged object and revokes the preview.
+  seedOnKeyChange(
+    () => page.params.id,
+    () => {
+      createAscent.fields.set({})
+      for (const upload of uploads) {
+        upload.remove()
+      }
+      uploads = []
+    },
+  )
 
   const routeHref = $derived(resolve('/(app)/routes/[id]', { id: page.params.id ?? '' }))
 
@@ -52,7 +68,9 @@
             submitLabel={m.common_save()}
             title={m.routes_logAscent()}
           >
-            <AscentFormFields block={blockData} form={createAscent} route={detail} bind:uploads />
+            {#key detail.id}
+              <AscentFormFields block={blockData} form={createAscent} route={detail} bind:uploads />
+            {/key}
           </Form>
         {:else}
           <ErrorState type="notfound" title={m.routes_notFound()} />

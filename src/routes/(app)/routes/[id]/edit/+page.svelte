@@ -11,6 +11,7 @@
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
   import { updateRoute } from '$lib/entities/route/routes.remote'
   import Form from '$lib/forms/Form.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
@@ -20,12 +21,16 @@
   // The block the route lives on frames the form (breadcrumb, region, hidden blockId).
   const block = blockDetail(() => route.data?.blockFk ?? -1)
 
-  // Prefill once per route; reading live data on every change would clobber the user's edits.
-  let prefilledId: number | undefined
-  $effect(() => {
-    const data = route.data
-    if (data != null && data.id !== prefilledId) {
-      prefilledId = data.id
+  // Keyed on the loaded row's id and not the route parameter: the seed reads data, so it has to
+  // wait for the row rather than write the previous entity's values under the new id. Re-seeding
+  // on every snapshot would clobber edits in progress, which is what the guard is for.
+  seedOnKeyChange(
+    () => route.data?.id,
+    () => {
+      const data = route.data
+      if (data == null) {
+        return
+      }
       updateRoute.fields.set({
         blockId: String(data.blockFk),
         description: data.description,
@@ -33,8 +38,8 @@
         id: String(data.id),
         name: data.rawName,
       })
-    }
-  })
+    },
+  )
 
   const onSubmitted = async () => {
     const id = updateRoute.result?.data?.id
@@ -59,7 +64,14 @@
             submitLabel={m.common_save()}
             title={m.routes_editRoute()}
           >
-            <RouteFormFields block={blockData} form={updateRoute} route={detail} />
+            <!-- Keyed on the id: this is one route, so `/x/1/edit` to `/x/2/edit` reuses the component
+             rather than remounting it, and Zero answers from the local store so the page never
+             passes through a loading state that would rebuild it. The remote fields re-seed on
+             an id change, but state seeded once at mount does not, which would save the new
+             entity carrying the old one's values. -->
+            {#key detail.id}
+              <RouteFormFields block={blockData} form={updateRoute} route={detail} />
+            {/key}
           </Form>
         {:else}
           <ErrorState type="notfound" title={m.routes_notFound()} />

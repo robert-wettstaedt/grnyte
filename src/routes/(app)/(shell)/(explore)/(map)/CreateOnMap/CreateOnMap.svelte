@@ -99,6 +99,16 @@
     optionsOpen = true
   }
 
+  // `startPlacing` clears the search once per placement, but the picker opens repeatedly
+  // within one: without this, a term typed to find the last crag still filters the list on
+  // the next open, and a crag that is right there reads as "no crags found".
+  const togglePicker = () => {
+    if (!pickerOpen) {
+      search = ''
+    }
+    pickerOpen = !pickerOpen
+  }
+
   const startPlacing = (type: 'block' | 'parking') => {
     optionsOpen = false
     chosenCragId = null
@@ -222,7 +232,7 @@
             <button
               {...triggerProps}
               class={[triggerProps.class, 'flex max-w-full items-center gap-1 truncate font-semibold']}
-              onclick={() => (pickerOpen = !pickerOpen)}
+              onclick={togglePicker}
             >
               <span class={['truncate', resolvedCrag == null && 'text-warning-600-400']}>
                 {resolvedCrag?.name ?? m.map_create_noCragNearby()}

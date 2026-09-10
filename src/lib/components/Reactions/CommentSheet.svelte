@@ -44,6 +44,15 @@
   let mounted = $state(false)
 
   const thread = createThread(() => ({ eventId, regionFk }), { enabled: () => open })
+
+  // The composer unmounts with the sheet, the thread does not. A reply aimed at a comment and
+  // then abandoned would still say "Replying to ..." the next time this thread is opened. The
+  // draft is deliberately kept across a close (see `thread.svelte.ts`); the target is not.
+  $effect(() => {
+    if (!open) {
+      thread.replyTo = undefined
+    }
+  })
 </script>
 
 <!-- Always shown, even on your own card: being the person a card is about is the most likely reason

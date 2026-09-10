@@ -34,6 +34,11 @@
 
   let doorOpen = $state(false)
 
+  // Fields live on the module-level remote singleton, so a value typed on an earlier visit
+  // would still be here for the rest of the session. Same reset as the settings pages; the
+  // ids this form needs are static hidden inputs, and submitting reads those from the DOM.
+  createRegion.fields.set({})
+
   /** The reveal is the animation, so somebody who asked for less motion gets the cut. */
   const still = new MediaQuery('(prefers-reduced-motion: reduce)')
   const duration = $derived(still.current ? 0 : 150)

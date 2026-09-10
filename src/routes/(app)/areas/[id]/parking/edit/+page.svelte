@@ -9,6 +9,7 @@
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
   import LocationPicker from '$lib/map/LocationPicker.svelte'
@@ -42,7 +43,7 @@
 
   // Location handed over by the quick-create map flow: frames the picker there, so the
   // map-centre pin starts on the pressed point.
-  const prefill = coordsFromParams(page.url.searchParams)
+  const prefill = $derived(coordsFromParams(page.url.searchParams))
 
   // Step 1 form state, kept here so it survives the per-step remount of StepPlace.
   let mode = $state<'coordinates' | 'map'>('map')
@@ -50,12 +51,36 @@
   let lngText = $state('')
   let picked = $state<null | { lat: number; long: number }>(null)
   // The parking committed when advancing to step 2, so StepPlace reframes there on return.
+  // Deliberately the initial value only: the effect below re-seeds it when the area changes.
+  // svelte-ignore state_referenced_locally
   let placedCenter = $state<[number, number] | null>(prefill == null ? null : [prefill.lat, prefill.long])
 
   // Step 2: the walking path as [lat, lng] points, starting at the parking. The path is
   // optional (save works with none); the encoded form is mirrored into the hidden input.
   let pathPoints = $state<[number, number][]>([])
   const encodedPath = $derived(pathPoints.length >= 2 ? encodePath(pathPoints) : '')
+
+  // The wizard's position, bound so the reset below can return it to the first step. Left
+  // behind, step 2 stays selected for the next area with nothing placed, and it is the last
+  // step, so Save is enabled and posts empty coordinates.
+  let step = $state(0)
+
+  // Everything above is the reader's placement work, and only the hidden `areaId` would follow
+  // them to another area, saving the new area's parking at the old area's coordinates with the
+  // old area's approach path.
+  seedOnKeyChange(
+    () => areaId,
+    () => {
+      addParking.fields.set({})
+      step = 0
+      mode = 'map'
+      latText = ''
+      lngText = ''
+      picked = null
+      placedCenter = prefill == null ? null : [prefill.lat, prefill.long]
+      pathPoints = []
+    },
+  )
 
   // Leaving the place step: seed the path at the parking, keeping any waypoints already traced.
   const seedPath = () => {
@@ -90,6 +115,7 @@
     {:else}
       <Form
         fill
+        bind:step
         form={addParking}
         onCancel={exit}
         submitLabel={m.common_save()}

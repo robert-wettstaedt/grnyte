@@ -12,6 +12,7 @@
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
   import { createRoute } from '$lib/entities/route/routes.remote'
   import Form from '$lib/forms/Form.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
@@ -20,6 +21,22 @@
   const block = blockDetail(() => Number(page.params.id))
 
   let uploads = $state<MediaUpload[]>([])
+
+  // Shares `createRoute` with the topo editor's add-route sheet, and the fields live on one
+  // module-level singleton, so a name typed there and abandoned would arrive here pre-filled.
+  // `remove()` and not just dropping the array: it is the only thing that aborts the transfer,
+  // deletes the staged object and revokes the preview, so media picked for one block cannot
+  // keep uploading on the reader's data and finalize against another.
+  seedOnKeyChange(
+    () => page.params.id,
+    () => {
+      createRoute.fields.set({})
+      for (const upload of uploads) {
+        upload.remove()
+      }
+      uploads = []
+    },
+  )
 
   // Record-first media: the route is created on submit; pending uploads then finalize
   // against it in the background while we move on to the new route's page (the wait is
@@ -47,7 +64,9 @@
         submitLabel={m.common_add()}
         title={m.routes_addRoute()}
       >
-        <RouteFormFields block={data} form={createRoute} bind:uploads />
+        {#key data.id}
+          <RouteFormFields block={data} form={createRoute} bind:uploads />
+        {/key}
       </Form>
     {:else}
       <ErrorState type="notfound" title={m.blocks_notFound()} />
