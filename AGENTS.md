@@ -127,6 +127,30 @@ This project uses:
 - Reuse before building: grep for an existing component/function first. If one fits but is not reusable, refactor it to be reusable and composable rather than hand-rolling a copy. Promote shared pieces to `$lib`. Prefer passing an entity DTO over a long list of individual props.
 - Entity modules live in `src/lib/entities/<name>/`, mirroring `area/` as the template.
 - An entity's display name comes from its mapper and nowhere else: `routeDisplayName` (`route/name.ts`, its own module because `route/mapper.ts` imports `topo/mapper.ts`, which needs the name helper: keeping it beside the mapper would close an import cycle), `blockName` (`block/mapper.ts`), `regionDisplayName` (`region/mapper.ts`). A helper two mappers both need goes in its own module for that reason. Names are genuinely optional in the DB, so an entity must never render as an empty string; the fallback (`common_unnamed`, `Block <order+1>`) belongs in the mapper so a feed card, a push notification and the screen they link to cannot disagree. Never inline `name ?? ''`, `name || 'Unnamed'` or a second copy of the fallback, on the client or the server.
+- Blocks inside an area are ordered by `order`, then `id`, stated once in `block/order.ts`
+  (`inAreaOrder`). `order.server.ts` holds the drizzle half, and its export is `inAreaOrderSql`
+  rather than the same name as its twin on purpose: nothing stops a `.svelte` file importing it
+  (eslint's restricted imports cover zod, Kit's illegal-import check covers `$lib/server/**`, not a
+  `.server.ts` suffix), so two exports under one name put drizzle and the whole schema into the
+  client bundle on one wrong autocomplete, and nothing catches it. `order.ts` carries WHY the
+  tie-break is `id` and why this was never a shipped bug; read it before changing either half, and
+  keep that derivation there rather than copying it here. A list spanning more than one area orders
+  by `name`, then `id` (`acrossAreasOrder`), because `order` is a position inside one area and every
+  area has a block at slot 0. That is not alphabetical: `blocks.name` is not null, so a nameless
+  block stores `''`, sorts first, and renders as "Block 3", so favourites, which shows only its
+  first six, can fill them with nameless blocks. A content search is unaffected in practice, not
+  structurally: its filter runs before the ordering, so a nameless block only reaches the cap if it
+  carries a matching description, and almost none do (1 of 255 in the dev database). `order.ts`
+  holds that figure and the rest of the reasoning; do not restate it here. `createdAt` is
+  deliberately not routed through the module: different question, no server twin, and it has to keep
+  agreeing with `listAreas` and `listRoutes` inside `recentlyAdded`. On the reorder screen the label
+  is `blockName(rawName, index)`, off the list position rather than the stored slot, so it agrees
+  with the badge beside it; it is honest about the list and not about the outcome, for the reason
+  the KNOWN GAP comment above `sortByDistance` gives. `order.server.test.ts` asserts the two halves
+  agree AND that `queries.ts` still calls them, which is the half that matters: pinning the helpers
+  alone leaves inlining the ordering back into the query green. The reorder fixture seeds names
+  descending against ascending ids, because with A, B, C, D the alphabet and the ids run the same
+  way and a name tie-break passes every assertion in the file.
 - Schema changes go through the pipeline: edit `schema.ts`, `generate:drizzle`, append any backfill SQL, `generate:zero`, `migrate`.
 - `auth.users` and `public.users` are both `users` to drizzle, so a query joining them needs
   `alias(authUsers, 'auth_user')` from `drizzle-orm/pg-core`. Without it the query throws

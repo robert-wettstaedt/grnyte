@@ -41,6 +41,17 @@ translating the noun. Copy is not settled yet; do not derive UI wording from thi
 The entity. In prose the physical rock is a "boulder", which is correct English and used
 deliberately in landing copy. Never call the record a boulder.
 
+**slot**
+A block's position inside its area, stored as `blocks.order` and shown 1-based, so slot 2
+renders as "Block 3" when a block has no name of its own. The reorder screen is the one place
+that names a block off its position in the list being dragged instead of its stored slot, so
+that the label agrees with the badge beside it while the two differ. Internal vocabulary: it names the
+concept in code and prose here, never in UI copy. Two things follow from it being per-area.
+The column is not uniquely constrained, so two blocks can hold one slot, which is reachable
+rather than observed, and `reorderBlocks` repairs an area by renumbering the whole of it. And a
+list spanning several areas has no slot ordering worth showing, because every area has a block
+at slot 0.
+
 **route**
 The entity. Bouldering colloquially says "problem"; grnyte does not. Route everywhere.
 

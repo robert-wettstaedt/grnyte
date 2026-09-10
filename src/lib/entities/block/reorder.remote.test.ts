@@ -70,11 +70,18 @@ afterAll(async () => {
   await sql.end()
 })
 
-/** Replaces the area's blocks with A, B, C, D at the given `order` values, ids ascending. */
-async function seedBlocks(orders = [0, 1, 2, 3]): Promise<Record<string, number>> {
+/**
+ * Replaces the area's blocks with four rows at the given `order` values, ids ascending in the order
+ * `names` lists them.
+ *
+ * `names` matters: with A, B, C, D the alphabet and the ids run the same way, so a rule that breaks
+ * a duplicate slot on `name` and one that breaks it on `id` produce identical output and the two
+ * tests at the bottom of this file pass either way. Pass them descending to tell the two apart.
+ */
+async function seedBlocks(orders = [0, 1, 2, 3], names = ['A', 'B', 'C', 'D']): Promise<Record<string, number>> {
   await sql`delete from public.blocks where area_fk = ${areaId}`
   const ids: Record<string, number> = {}
-  for (const [index, name] of ['A', 'B', 'C', 'D'].entries()) {
+  for (const [index, name] of names.entries()) {
     const [row] = await sql<{ id: number }[]>`
       insert into public.blocks (name, area_fk, region_fk, created_by, "order")
       values (${name}, ${areaId}, ${regionId}, ${maintainer.userId}, ${orders[index]})
@@ -148,5 +155,49 @@ describe.skipIf(!reachable)('reorderBlocks', () => {
     expect(await storedNames()).toEqual(['A', 'B', 'C', 'D'])
     expect(await storedOrders()).toEqual([0, 1, 2, 3])
     expect(ids.A).toBeLessThan(ids.B)
+  })
+
+  it('breaks a duplicate slot on id, so the repair matches the list the reader was shown', async () => {
+    // Names descending against ascending ids, which is what the other fixtures cannot express:
+    // D and C share slot 0, and the two candidate tie-breaks disagree about which of them is
+    // first. `id` says D (it was inserted first), `name` says C. The client read spelled `name`
+    // here until this commit, so the screen and this handler answered differently on exactly the
+    // input the repair advertises.
+    await seedBlocks([0, 0, 1, 2], ['D', 'C', 'B', 'A'])
+
+    await reorder([])
+
+    expect(await storedNames()).toEqual(['D', 'C', 'B', 'A'])
+    expect(await storedOrders()).toEqual([0, 1, 2, 3])
+  })
+
+  it('leaves the arrangement alone when the reader saves without editing', async () => {
+    // Idempotence on a duplicate slot, which no other case here covers: the reader opens the
+    // screen, touches nothing, and submits the whole list in the order they were shown. The
+    // duplicate collapses to 0..n-1 and nothing changes places.
+    //
+    // Deliberately cannot discriminate the tie-break, and that is the point of writing it down.
+    // `renumbered` fills the submitted slots with `queue` in submitted order, so when EVERY block
+    // is submitted the result is the submitted order whatever the enumeration was. Changing the
+    // server clause leaves this green. It is the executable form of why a reader can never lose
+    // their own arrangement to the ordering rule, which is the question this file keeps inviting.
+    const ids = await seedBlocks([0, 0, 1, 2], ['D', 'C', 'B', 'A'])
+
+    await reorder([ids.D, ids.C, ids.B, ids.A])
+
+    expect(await storedNames()).toEqual(['D', 'C', 'B', 'A'])
+    expect(await storedOrders()).toEqual([0, 1, 2, 3])
+  })
+
+  it('drops a block the submit never named into its id-order slot, not its name-order one', async () => {
+    // The two failures compounded: a partial submit leaves unnamed blocks on their slots, and
+    // which slots those are is the tie-break's answer. Under `name` the pair the reader swapped
+    // lands one row higher and D and C come back swapped with it.
+    const ids = await seedBlocks([0, 0, 1, 2], ['D', 'C', 'B', 'A'])
+
+    await reorder([ids.A, ids.B])
+
+    expect(await storedNames()).toEqual(['D', 'C', 'A', 'B'])
+    expect(await storedOrders()).toEqual([0, 1, 2, 3])
   })
 })

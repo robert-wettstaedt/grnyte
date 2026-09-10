@@ -10,6 +10,7 @@
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { reorderBlocks } from '$lib/entities/block/blocks.remote'
   import type { BlockDetail } from '$lib/entities/block/dto'
+  import { blockName } from '$lib/entities/block/mapper'
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
@@ -122,6 +123,10 @@
   // everything that synced afterwards behind it. Save navigates away, so "press it again once
   // everything is here" only helps somebody still on the page. A server-side count on the area is
   // the honest fix if this ever matters more than it does now.
+  //
+  // The row labels have the same gap, from the other end: they read "Block <index + 1>", which is
+  // honest about this list and not about the outcome, because a block the reader never saw keeps
+  // the slot it had and pushes theirs down one.
   const sortByDistance = () => {
     const ref = referencePoint
     if (ref == null) return
@@ -240,7 +245,14 @@
                   </button>
 
                   <span class="min-w-0 flex-1">
-                    <span class="block truncate font-semibold">{block.name}</span>
+                    <!-- Named off the list position, not the stored slot: a nameless block falls
+                         back to "Block <n>", and mid-drag its slot is whatever it was before the
+                         drag started, so the label read one number while the badge beside it read
+                         another. Only the badge: the map pins number off `ordered`, which drops
+                         the drag placeholder when its id is unknown, so in that one window the
+                         dragged block has no pin at all and the rows BELOW it sit one ahead of the
+                         pins that remain. -->
+                    <span class="block truncate font-semibold">{blockName(block.rawName, index)}</span>
                     {#if block.geolocation == null}
                       <span class="text-warning-800-200 flex items-center gap-1 text-xs">
                         <Icon name="alert-triangle" size={12} />

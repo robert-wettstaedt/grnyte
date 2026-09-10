@@ -2,6 +2,7 @@ import * as z from '$lib/forms/zod'
 import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
+import { acrossAreasOrder, inAreaOrder } from './order'
 
 export const blocksQueryDefs = {
   block: defineQuery(
@@ -57,7 +58,12 @@ export const blocksQueryDefs = {
       content: z.optional(z.string()),
       limit: z.optional(z.number()),
       references: z.optional(z.string()),
-      /** `createdAt` sorts newest first (the search flyout's "recently added"); default is the block order. */
+      /**
+       * `createdAt` sorts newest first (the search flyout's "recently added"). The default depends
+       * on `areaId`: a block's slot within one area, its name across several, because `order` is a
+       * position in a list the caller is not looking at. `'order'` is therefore only literally true
+       * when `areaId` is passed, and no caller passes it.
+       */
       sort: z.optional(z.enum(['createdAt', 'order'])),
     }),
     regionMemberCan(({ args, ctx }) => {
@@ -65,10 +71,16 @@ export const blocksQueryDefs = {
 
       const base = zql.blocks.where('deletedAt', 'IS', null)
 
+      // Both block orderings come off `./order`, which is the only thing keeping this spelling and
+      // the one `reorderBlocks` renumbers by from drifting apart again. `createdAt` is deliberately
+      // NOT routed through it: it is a different question (when was this added, not where does it
+      // sit), it has no server twin to agree with, and Zero appends `id asc` to it either way.
       let q = (
         args.sort === 'createdAt'
           ? base.orderBy('createdAt', 'desc')
-          : base.orderBy('order', 'asc').orderBy('name', 'asc')
+          : args.areaId === undefined
+            ? acrossAreasOrder(base)
+            : inAreaOrder(base)
       )
         .related('topos', (q) => r(q).orderBy('order', 'asc').orderBy('id', 'asc').related('file', r))
         .related('area', (q) => r(q).related('parent', r))

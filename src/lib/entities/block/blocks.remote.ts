@@ -13,6 +13,7 @@ import { canAddBlock } from '../area/permissions'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { stringifyDeletionScale } from '../event/verbs'
 import { notifyMentions } from '../notification/notification.server'
+import { inAreaOrderSql } from './order.server'
 import { canDeleteBlock, canEditBlock } from './permissions'
 
 const blockActionSchema = z.object({
@@ -626,10 +627,9 @@ export const reorderBlocks = authedCommand(
 
     const areaBlocks = await db.query.blocks.findMany({
       columns: { id: true },
-      // `id` breaks ties: `order` is not uniquely constrained, and an area left with duplicates
-      // by an older partial save is exactly the input this repair runs on, so without it the same
-      // input renumbers two blocks differently from one run to the next.
-      orderBy: (table, { asc }) => [asc(table.order), asc(table.id)],
+      // The same rule the client reads blocks by (`./order`), so the slots this enumerates are the
+      // ones the reader saw. Spelling it here again is how the two came to disagree.
+      orderBy: inAreaOrderSql,
       where: and(eq(blocks.areaFk, areaId), isNull(blocks.deletedAt)),
     })
     const belongsToArea = new Set(areaBlocks.map((row) => row.id))
