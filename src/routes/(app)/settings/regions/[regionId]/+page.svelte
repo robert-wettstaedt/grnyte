@@ -7,6 +7,7 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { MEMBERSHIP_UNDO_MS } from '$lib/entities/notification/push'
   import type { RegionInvitationItem, RegionMemberItem } from '$lib/entities/region/dto'
+  import { regionDisplayName } from '$lib/entities/region/mapper'
   import { seatState } from '$lib/entities/region/mapper'
   import { canEditRegion, isLastAdmin } from '$lib/entities/region/permissions'
   import {
@@ -24,6 +25,7 @@
   import { regionTags } from '$lib/entities/region/tagVocabulary'
   import type { AppRole, AssignableRole } from '$lib/entities/rolePermission/dto'
   import { resolveIssueMessage } from '$lib/forms/issue'
+  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -49,11 +51,22 @@
   // lower seat count than the admin sitting next to them. Only the list below is admin-only.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 
+  // The invite form's fields live on a module-level singleton, so an address typed for one region
+  // and abandoned would be waiting in the next one's invite box.
+  seedOnKeyChange(
+    () => regionId,
+    () => inviteRegionMember.fields.set({ email: '' }),
+  )
+
   // From the membership rather than `regionDetail`: settings ride along on the synced region row
   // the shell already holds, so the row needs nothing added to the detail query.
-  const mapLayerCount = $derived(
-    global.userRegions.find((region) => region.regionFk === regionId)?.settings?.mapLayers.length ?? 0,
-  )
+  const membership = $derived(global.userRegions.find((region) => region.regionFk === regionId))
+  const mapLayerCount = $derived(membership?.settings.mapLayers.length ?? 0)
+
+  // The one answer this screen gives to "what is this region called". Four inline fallbacks had
+  // grown here, three of them disagreeing with the mapper, so /settings listed a nameless region
+  // as "Unnamed" and one tap later its header said "Region" and its name row was blank.
+  const name = $derived(membership == null ? undefined : regionDisplayName(membership))
   const tagCount = $derived(regionTags(global.userRegions, regionId).length)
   const invitations = $derived(listRegionInvitations({ regionFk: regionId }))
 
@@ -94,11 +107,18 @@
   }
 
   const onLeave = async () => {
-    const name = region.data?.name ?? ''
+    // Captured before the mutation, because leaving revokes the read that named it. Falsy and not
+    // just null: this only fires from inside `QueryState`'s ready branch, so the row is there and
+    // the reachable case is a region whose name is '', which gave "You left " with the region
+    // missing from its own sentence.
+    const leaving = name
 
     try {
       await runCommand(leaveRegion({ regionFk: regionId }))
-      toaster.create({ title: m.region_left({ name }), type: 'info' })
+      toaster.create({
+        title: leaving == null ? m.region_leftUnnamed() : m.region_left({ name: leaving }),
+        type: 'info',
+      })
     } catch (cause) {
       notifyError(cause)
     }
@@ -168,10 +188,10 @@
 </script>
 
 <svelte:head>
-  <title>{region.data?.name ?? m.region_title()} – {PUBLIC_APPLICATION_NAME}</title>
+  <title>{name ?? m.region_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<PageHeader onback={() => back(resolve('/settings'))} title={region.data?.name ?? m.region_title()} />
+<PageHeader onback={() => back(resolve('/settings'))} title={name ?? m.region_title()} />
 
 <div class="container mx-auto max-w-2xl px-4 py-8 pb-24 md:pb-8">
   <QueryState resource={region}>
@@ -190,7 +210,7 @@
                 ? resolve('/(app)/settings/regions/[regionId]/name', { regionId: String(regionId) })
                 : undefined}
               label={m.settings_regionName()}
-              value={detail.name}
+              value={name ?? detail.name}
             />
 
             {#if detail.createdAt != null}
@@ -269,7 +289,7 @@
                     {onLeave}
                     onRemove={() => onRemove(member)}
                     onRole={(role) => onRole(member, role)}
-                    regionName={detail.name}
+                    regionName={name ?? detail.name}
                     role={displayRole(member)}
                     {self}
                   />

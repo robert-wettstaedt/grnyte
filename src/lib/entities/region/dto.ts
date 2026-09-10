@@ -69,10 +69,24 @@ export interface RegionMemberItem {
 
 /** An active region membership of the signed-in user, before permissions are resolved. */
 export interface RegionMembership {
+  /** Whether `settings.mapLayers` is every layer that is stored. False when one did not parse,
+   *  which is what an older tab sees of settings a newer build wrote. Reading the rest is fine and
+   *  is the point; writing the key back is not, because it would save the difference away. */
+  layersComplete: boolean
   name: string
   regionFk: number
   role: AppRole
-  settings: RegionSettings | undefined
+  settings: RegionSettings
+  /** Whether the region row itself has arrived. Memberships and regions are separate tables joined
+   *  on the client, so a membership routinely lands before the region it names. Until it does
+   *  `name` is '' and `settings` is empty of both layers and tags, which is deliberately NOT the
+   *  starting vocabulary a new region gets: offering seven tags this region may not use puts them
+   *  in the route picker and gets the reader's pick dropped by the server allowlist. Anything
+   *  seeding a form from a membership, or rendering its name, has to check this first. */
+  synced: boolean
+  /** The same question for `settings.tags`, which is also the allowlist for what a route write may
+   *  store, so replacing it with a fallback makes the region's real tags unwritable. */
+  tagsComplete: boolean
 }
 
 /**

@@ -5,6 +5,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { canAddArea } from '$lib/entities/area/permissions'
   import { areaList } from '$lib/entities/area/resources.svelte'
+  import { regionDisplayName } from '$lib/entities/region/mapper'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
@@ -29,7 +30,7 @@
   // them is rare enough not to guess which one they meant.
   const title = $derived(
     global.userRegions.length === 1
-      ? m.region_emptyTitle({ name: global.userRegions[0].name })
+      ? m.region_emptyTitle({ name: regionDisplayName(global.userRegions[0]) })
       : m.region_emptyTitleAny(),
   )
 

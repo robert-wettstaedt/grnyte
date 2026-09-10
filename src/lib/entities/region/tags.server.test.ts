@@ -131,6 +131,29 @@ describe.skipIf(!reachable)('addTag', () => {
 })
 
 describe.skipIf(!reachable)('renameTag', () => {
+  it('refuses a rename onto a name the vocabulary already has', async () => {
+    // A duplicate has no unique constraint to stop it, and the tags screen keys its `{#each}` on
+    // the tag, so writing one takes the screen down with `each_key_duplicate`.
+    await tagRoute(routes[0], regionId, 'SD')
+
+    await expect(renameTag(db, regionId, ['SD', 'high'], 'SD', 'high')).rejects.toThrow()
+
+    expect(await tagsOn(routes[0])).toEqual(['SD'])
+    expect(await storedTags(regionId)).toEqual(['SD', 'high'])
+  })
+
+  it('refuses a rename of a tag onto itself, which would delete every row carrying it', async () => {
+    // The input an exemption for `from === to` waved through: the delete matches `tagFk = to`
+    // among the routes carrying `from`, so a self-rename removed the tag from every route while
+    // writing the vocabulary back unchanged. Silent, and visible nowhere on the screen.
+    await tagRoute(routes[0], regionId, 'SD')
+
+    await expect(renameTag(db, regionId, ['SD', 'high'], 'SD', 'SD')).rejects.toThrow()
+
+    expect(await tagsOn(routes[0])).toEqual(['SD'])
+    expect(await storedTags(regionId)).toEqual(['SD', 'high'])
+  })
+
   it('carries the tag onto every route already tagged with it', async () => {
     await tagRoute(routes[0], regionId, 'SD')
     await tagRoute(routes[1], regionId, 'SD')
@@ -190,5 +213,17 @@ describe.skipIf(!reachable)('removeTag', () => {
     await removeTag(db, regionId, ['SD', 'high'], 'SD')
 
     expect(await tagsOn(otherRoute)).toEqual(['SD'])
+  })
+
+  it('refuses a tag the region does not have, rather than deleting its rows', async () => {
+    // The delete is unconditional and irreversible, and a route may carry a tag that has already
+    // left the vocabulary, so a caller handing over a name from somewhere other than the stored
+    // list would destroy real rows. Reachable through a screen that renders before its region row
+    // arrives: the placeholder vocabulary is the seven defaults, one of which is `SD`.
+    await tagRoute(routes[0], regionId, 'SD')
+
+    await expect(removeTag(db, regionId, ['high'], 'SD')).rejects.toThrow()
+
+    expect(await tagsOn(routes[0])).toEqual(['SD'])
   })
 })

@@ -1,14 +1,18 @@
 import { REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT, REGION_PERMISSION_READ } from '$lib/auth'
+import { emptyRegionSettings } from '$lib/entities/region/settings'
 import { describe, expect, it } from 'vitest'
 import type { UserRegion } from '../region/dto'
 import { canDeleteArea } from './permissions'
 
 const region = (regionFk: number, ...permissions: UserRegion['permissions']): UserRegion => ({
+  layersComplete: true,
   name: `region ${regionFk}`,
   permissions,
   regionFk,
   role: 'region_user',
-  settings: undefined,
+  settings: emptyRegionSettings(),
+  synced: true,
+  tagsComplete: true,
 })
 
 const ME = 7

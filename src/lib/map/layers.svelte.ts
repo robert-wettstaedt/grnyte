@@ -269,7 +269,7 @@ export function createPathLayer(minZoom = BLOCK_ZOOM): VectorLayer {
 
 export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
   return userRegions.flatMap((region) =>
-    (region.settings?.mapLayers ?? []).map(
+    region.settings.mapLayers.map(
       (regionLayer) =>
         new TileLayer({
           minZoom: regionLayer.minZoom ?? undefined,

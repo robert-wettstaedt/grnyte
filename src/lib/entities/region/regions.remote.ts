@@ -6,6 +6,7 @@ import * as z from '$lib/forms/zod'
 import { getLocale } from '$lib/paraglide/runtime'
 import { authedCommand, authedForm, authedQuery, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
+import { requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, sql } from 'drizzle-orm'
 import { createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
@@ -27,7 +28,7 @@ import {
   type MailContext,
 } from './invite.server'
 import { canEditRegion, canReadRegion } from './permissions'
-import { mapLayerSchema, type RegionSettings } from './settings'
+import { mapLayerSchema, mapLayersFingerprint, readRegionSettings } from './settings'
 import { addTag, removeTag, renameTag, tagUsage } from './tags.server'
 import { MAX_TAGS, regionTags, tagNameSchema } from './tagVocabulary'
 
@@ -100,31 +101,81 @@ export const updateRegion = authedForm(regionActionSchema, async ({ id, name }, 
   return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
 })
 
-/**
- * Write one key of a region's `settings`. Merged rather than assigned: `settings` is one jsonb blob
- * and each settings screen owns a single key of it, so a key added to `RegionSettings` later cannot
- * be wiped by saving an older screen.
- */
-const mergeSettings = (db: Context['db'], id: number, patch: Partial<RegionSettings>) =>
-  db
-    .update(regions)
-    .set({ settings: sql`coalesce(${regions.settings}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb` })
-    .where(eq(regions.id, id))
-
 const regionMapLayersSchema = z.object({
   id: stringToInt,
+  /** A fingerprint of the layers the form was seeded with, so a save can prove it is replacing
+   *  what it read. Written only by the seed. */
+  known: z.string(),
   mapLayers: z._default(z.optional(z.array(mapLayerSchema)), []),
 })
 
-/** Replace a region's WMS map overlays. An empty list is a valid submission: it removes them all. */
-export const updateRegionMapLayers = authedForm(regionMapLayersSchema, async ({ id, mapLayers }, ctx) => {
+/**
+ * Replace a region's WMS map overlays.
+ *
+ * Removing them all is a legitimate edit, which is exactly what made this dangerous: an empty
+ * submission was indistinguishable from a form that had rendered before its data arrived, and four
+ * separate gates on the client each closed one route to that and left another open. So the payload
+ * has to prove which layers it is replacing.
+ *
+ * A fingerprint and not a count, because every path that survived the count preserved it: another
+ * admin deleting one layer and adding another leaves three as three, and a stale form then
+ * resurrected the deleted one and destroyed the new one without a word.
+ */
+export const updateRegionMapLayers = authedForm(regionMapLayersSchema, async ({ id, known, mapLayers }, ctx) => {
   const { db } = ctx
 
-  if (!canEditRegion(ctx.userRegions, id)) {
-    invalid(formError('form_noPermission'))
+  // Through `requireRowForm` rather than a hand-rolled findFirst, per AGENTS.md, and it is load
+  // bearing here: with the region row missing, `readRegionSettings(undefined)` used to report the
+  // layers complete and empty, so a `known` matching that answered a write against nothing with a
+  // success redirect.
+  const region = await requireRowForm(
+    () => db.query.regions.findFirst({ where: eq(regions.id, id) }),
+    (row) => canEditRegion(ctx.userRegions, row.id),
+    formError('region_notFound'),
+  )
+
+  const stored = readRegionSettings(region.settings)
+  // Two different refusals, because they need two different answers. An unreadable blob is not
+  // "someone else changed this": reopening recomputes the same flag, so that message sends the
+  // admin round a loop it cannot leave.
+  if (!stored.layersComplete) {
+    invalid(formError('region_mapLayersUnreadableBody'))
+  }
+  if (mapLayersFingerprint(stored.settings.mapLayers) !== known) {
+    invalid(formError('region_mapLayersStale'))
   }
 
-  await mergeSettings(db, id, { mapLayers })
+  // Merged rather than assigned, because `settings` is one jsonb blob and each settings screen owns
+  // a single key of it: a key added to `RegionSettings` later must not be wiped by an older screen.
+  //
+  // Re-checked inside the UPDATE, against the blob this read saw. The comparison above and the
+  // write below are two statements at READ COMMITTED, so two admins submitting from the same
+  // fingerprint would both pass it and the second would silently win: exactly the lost update the
+  // fingerprint exists to stop, surviving in the gap between the check and the write.
+  const storedLayers = JSON.stringify((region.settings as null | { mapLayers?: unknown })?.mapLayers ?? null)
+  const written = await db
+    .update(regions)
+    .set({
+      settings: sql`coalesce(${regions.settings}, '{}'::jsonb) || ${JSON.stringify({ mapLayers })}::jsonb`,
+    })
+    .where(
+      and(
+        eq(regions.id, region.id),
+        sql`coalesce(${regions.settings} -> 'mapLayers', 'null'::jsonb) is not distinct from ${storedLayers}::jsonb`,
+      ),
+    )
+    .returning({ id: regions.id })
+
+  if (written.length === 0) {
+    // Told apart as far as a SELECT can. Zero rows also happens when the row went away between
+    // the read and the write, and answering that with "someone else changed the layers" sends the
+    // admin to reload something that 404s. What this cannot see is a write RLS refused while the
+    // read still succeeds (an admin demoted mid-request): the read policy is membership-based and
+    // the write policy role-based, so that case still reports stale. It does not loop, since the
+    // next request re-reads `userRegions` and refuses with `form_noPermission`.
+    const present = await db.query.regions.findFirst({ columns: { id: true }, where: eq(regions.id, region.id) })
+    invalid(formError(present == null ? 'region_notFound' : 'region_mapLayersStale'))
+  }
 
   return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
 })
@@ -160,6 +211,17 @@ export const regionTagUsage = authedQuery(
  */
 function editableTags(ctx: Context, regionFk: number): string[] {
   assertCanEdit(ctx, regionFk)
+
+  // The three mutations below rewrite the whole vocabulary from what they read here, so reading a
+  // fallback means writing it: a blob this build cannot read whole would have its real tags
+  // replaced by the seven defaults, permanently, and `regionTags` is also the allowlist for what a
+  // route write may store, so the region's own tags become unwritable. `removeRegionTag` is worse
+  // still, since it deletes the `routes_to_tags` rows first.
+  const membership = ctx.userRegions.find((region) => region.regionFk === regionFk)
+  if (membership?.tagsComplete !== true) {
+    error(409, formError('region_tagsUnreadable'))
+  }
+
   return regionTags(ctx.userRegions, regionFk)
 }
 
@@ -209,7 +271,16 @@ export const renameRegionTag = authedCommand(
 export const removeRegionTag = authedCommand(
   z.object({ name: z.string(), regionFk: z.number() }),
   async ({ name, regionFk }, ctx) => {
-    await removeTag(ctx.db, regionFk, editableTags(ctx, regionFk), name)
+    const stored = editableTags(ctx, regionFk)
+
+    // Same refusal `renameRegionTag` gives, and for a sharper reason: the delete underneath is
+    // unconditional, so a name this region does not have would take real junction rows with it.
+    // Returning quietly instead told the reader the tag was removed while it sat there untouched.
+    if (!stored.includes(name)) {
+      error(404, formError('region_tagGone'))
+    }
+
+    await removeTag(ctx.db, regionFk, stored, name)
   },
 )
 

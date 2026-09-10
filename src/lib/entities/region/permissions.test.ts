@@ -7,13 +7,17 @@ import {
 import { describe, expect, it } from 'vitest'
 import type { UserRegion } from './dto'
 import { canEditRegion, isLastAdmin } from './permissions'
+import { emptyRegionSettings } from './settings'
 
 const region = (regionFk: number, ...permissions: UserRegion['permissions']): UserRegion => ({
+  layersComplete: true,
   name: `region ${regionFk}`,
   permissions,
   regionFk,
   role: 'region_user',
-  settings: undefined,
+  settings: emptyRegionSettings(),
+  synced: true,
+  tagsComplete: true,
 })
 
 const ADMIN_OF_1 = [region(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT, REGION_PERMISSION_ADMIN)]

@@ -34,6 +34,7 @@ import {
   restoreInvitation,
   revokeInvitation,
 } from './invite.server'
+import { emptyRegionSettings } from './settings'
 
 /**
  * The one mock in this file. `.env` carries a live `RESEND_API_KEY` (the Playwright spec needs
@@ -73,7 +74,16 @@ const MAIL = { ambientLocale: 'en', origin: 'http://localhost:3000' }
 /** The caller's memberships, as `canEditRegion` wants them. `adminOf()` may administer the fixture
  *  region; `[]` is anybody else, which is what the 403 cases pass. */
 const adminOf = (fk = regionId): UserRegion[] => [
-  { name: REGION, permissions: ['region.admin'], regionFk: fk, role: 'region_admin', settings: undefined },
+  {
+    layersComplete: true,
+    name: REGION,
+    permissions: ['region.admin'],
+    regionFk: fk,
+    role: 'region_admin',
+    settings: emptyRegionSettings(),
+    synced: true,
+    tagsComplete: true,
+  },
 ]
 
 async function accept(token: string, who: Who = 'invitee') {

@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import { regionDisplayName } from '$lib/entities/region/mapper'
   import { canEditRegion } from '$lib/entities/region/permissions'
   import { routeMapList } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -60,7 +61,11 @@
   }
 </script>
 
-{#if show}
+<!-- `region.synced`, not `!= null`: `canEditRegion` already required the membership, and the
+     membership arrives before the region it names. Firing on the placeholder name would spend the
+     one-shot (`dismiss` writes the seen flag) on a card titled with a value that was never the
+     region's name. -->
+{#if show && region?.synced === true}
   <!-- ponytail: the native dialog, not the Skeleton one. It brings the focus trap, Escape and the
        backdrop for free, and Dialog.Description renders its content at 60% opacity, which is wrong
        for a card whose whole job is one bright call to action. -->
@@ -74,7 +79,9 @@
         <Icon name="tent-tree" size={27} />
       </span>
 
-      <h2 class="mt-4 text-xl font-bold tracking-tight">{m.region_live_title({ name: region?.name ?? '' })}</h2>
+      <h2 class="mt-4 text-xl font-bold tracking-tight">
+        {m.region_live_title({ name: regionDisplayName(region) })}
+      </h2>
       <p class="text-surface-600-400 mt-2 max-w-70 text-pretty">{m.region_live_body()}</p>
 
       <a

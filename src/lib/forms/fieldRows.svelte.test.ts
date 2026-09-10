@@ -8,13 +8,32 @@ const BLANK: Row = { name: '', url: '' }
 /** A form seeded with `values`, capturing whatever the rows write back. */
 const form = (values: (Partial<Row> | undefined)[], count = values.length) => {
   const written: Row[][] = []
-  const rows = fieldRows({ blank: BLANK, count, read: () => values, write: (next) => written.push(next) })
+  const rows = fieldRows({ blank: BLANK, read: () => values, write: (next) => written.push(next) })
+  // Identities come from `reset`, the one path in, which is what a page on a parameterised route
+  // calls again when the entity changes.
+  rows.reset(count)
   return { rows, written }
 }
 
 describe('fieldRows', () => {
   it('starts with one key per seeded row', () => {
     expect(form([{ name: 'a' }, { name: 'b' }]).rows.keys).toEqual([0, 1])
+  })
+
+  it('re-seeds one identity per row for a different entity', () => {
+    const { rows } = form([{ name: 'a' }, { name: 'b' }])
+    rows.add()
+    rows.reset(1)
+    expect(rows.keys).toEqual([0])
+  })
+
+  // No `add()` before the reset: one there advances the counter to the value the reset would set,
+  // which is what made the first version of this pass with the restart deleted.
+  it('restarts the key counter on re-seed, so a later row is not given a stale key', () => {
+    const { rows } = form([{ name: 'a' }, { name: 'b' }, { name: 'c' }])
+    rows.reset(1)
+    rows.add()
+    expect(rows.keys).toEqual([0, 1])
   })
 
   it('gives an added row a key of its own', () => {

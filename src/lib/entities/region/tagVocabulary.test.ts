@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { RegionMembership } from './dto'
+import { emptyRegionSettings } from './settings'
 import { allRegionTags, DEFAULT_TAGS, tagNameSchema } from './tagVocabulary'
 
 const region = (regionFk: number, tags?: string[]): RegionMembership => ({
+  layersComplete: true,
   name: `region ${regionFk}`,
   regionFk,
   role: 'region_user',
-  settings: tags == null ? undefined : { mapLayers: [], tags },
+  settings: tags == null ? emptyRegionSettings() : { mapLayers: [], tags },
+  synced: true,
+  tagsComplete: true,
 })
 
 describe('tagNameSchema', () => {
@@ -27,7 +31,9 @@ describe('allRegionTags', () => {
     expect(allRegionTags([region(1, ['high', 'SD']), region(2, ['SD', 'dyno'])])).toEqual(['SD', 'dyno', 'high'])
   })
 
-  it('reads a region whose settings failed to parse as having the defaults', () => {
+  it('reads a region with no vocabulary configured as having the defaults', () => {
+    // Not the parse-failure case, which `RegionMembership` can no longer express: `tagsComplete`
+    // carries that now, and `toRegionMembership` owns it (see mapper.test.ts).
     expect(allRegionTags([region(1)])).toEqual([...DEFAULT_TAGS].sort())
   })
 

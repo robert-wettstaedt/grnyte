@@ -5,12 +5,22 @@ import {
   REGION_PERMISSION_READ,
 } from '../src/lib/auth'
 import type { UserRegion } from '../src/lib/entities/region/dto'
+import { emptyRegionSettings } from '../src/lib/entities/region/settings'
 import type { User } from '../src/lib/entities/user/dto'
 
 /** The three permission tiers, as `parameters.globalState` fixtures. Region 1 throughout, so a
  *  story's entity only needs `regionFk: 1` to be governed by these. */
 const region = (permissions: UserRegion['permissions'], role: UserRegion['role']): UserRegion[] => [
-  { name: 'Fontainebleau', permissions, regionFk: 1, role, settings: undefined },
+  {
+    layersComplete: true,
+    name: 'Fontainebleau',
+    permissions,
+    regionFk: 1,
+    role,
+    settings: emptyRegionSettings(),
+    synced: true,
+    tagsComplete: true,
+  },
 ]
 
 export const MEMBER = region([REGION_PERMISSION_READ], 'region_user')

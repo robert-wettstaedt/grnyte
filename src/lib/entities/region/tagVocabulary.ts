@@ -7,7 +7,15 @@ import type { RegionMembership } from './dto'
  * existed when they became region-based was frozen at its real list by migration 0089, so this is
  * only what a region created afterwards starts with.
  */
-export const DEFAULT_TAGS = ['SD', 'benchmark', 'defined', 'high', 'project', 'trav-l-r', 'trav-r-l']
+export const DEFAULT_TAGS: readonly string[] = Object.freeze([
+  'SD',
+  'benchmark',
+  'defined',
+  'high',
+  'project',
+  'trav-l-r',
+  'trav-r-l',
+])
 
 /**
  * Ceiling on a region's vocabulary. Both pickers are flat chip walls with no search, and every tag
@@ -34,7 +42,7 @@ export const tagNameSchema = z.string({ error: formError('form_required') }).che
  * `each_key_duplicate`.
  */
 export function allRegionTags(userRegions: RegionMembership[]): string[] {
-  return [...new Set(userRegions.flatMap((region) => region.settings?.tags ?? DEFAULT_TAGS))].sort()
+  return [...new Set(userRegions.flatMap((region) => region.settings.tags))].sort()
 }
 
 /**
@@ -47,5 +55,5 @@ export function allRegionTags(userRegions: RegionMembership[]): string[] {
  */
 export function regionTags(userRegions: RegionMembership[], regionFk: number): string[] {
   const membership = userRegions.find((region) => region.regionFk === regionFk)
-  return membership == null ? [] : (membership.settings?.tags ?? DEFAULT_TAGS)
+  return membership == null ? [] : membership.settings.tags
 }

@@ -15,6 +15,7 @@
 import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import type { UserRegion } from '$lib/entities/region/dto'
+import { emptyRegionSettings } from '$lib/entities/region/settings'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { loadParentArea, requireEditableArea } from './guards.server'
 
@@ -28,11 +29,14 @@ let areaId = 0
 
 /** A membership carrying `permissions` in `regionFk`, the only two fields the gate reads. */
 const membership = (regionFk: number, ...permissions: UserRegion['permissions']): UserRegion => ({
+  layersComplete: true,
   name: '',
   permissions,
   regionFk,
   role: 'region_user',
-  settings: undefined,
+  settings: emptyRegionSettings(),
+  synced: true,
+  tagsComplete: true,
 })
 
 async function removeFixtures() {

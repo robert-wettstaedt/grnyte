@@ -16,6 +16,7 @@
 import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import type { UserRegion } from '$lib/entities/region/dto'
+import { emptyRegionSettings } from '$lib/entities/region/settings'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { requireEditableFile, resolveAttachRegion } from './guards.server'
 
@@ -35,11 +36,14 @@ let ascentId = 0
 const fileId = '__file_authz_file__'
 
 const membership = (regionFk: number, ...permissions: UserRegion['permissions']): UserRegion => ({
+  layersComplete: true,
   name: '',
   permissions,
   regionFk,
   role: 'region_user',
-  settings: undefined,
+  settings: emptyRegionSettings(),
+  synced: true,
+  tagsComplete: true,
 })
 
 async function removeFixtures() {

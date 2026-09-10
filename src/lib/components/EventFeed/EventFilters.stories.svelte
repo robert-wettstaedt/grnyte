@@ -5,8 +5,11 @@
   import { ME, PEOPLE } from './fixtures'
 
   const regions = [
-    { name: 'Frankenjura', regionFk: 1, role: 'region_admin' as const },
-    { name: 'Ticino', regionFk: 2, role: 'region_user' as const },
+    { name: 'Frankenjura', regionFk: 1, role: 'region_admin' as const, synced: true },
+    { name: 'Ticino', regionFk: 2, role: 'region_user' as const, synced: true },
+    // A membership whose region row has not arrived: no name yet, which is what the mapper's
+    // fallback is for. Without one here nothing exercised that branch.
+    { name: '', regionFk: 3, role: 'region_user' as const, synced: false },
   ]
 
   // What the page hands down: the members of the regions in scope, without the signed-in user,

@@ -41,6 +41,8 @@
       name: membership.name,
       regionFk: membership.regionFk,
       role: membership.role,
+      // Carried so the filter chips can name an unsynced region the way every other screen does.
+      synced: membership.synced,
     })),
   )
 

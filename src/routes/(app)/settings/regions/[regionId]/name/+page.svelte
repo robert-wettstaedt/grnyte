@@ -7,6 +7,7 @@
   import { updateRegion } from '$lib/entities/region/regions.remote'
   import AuthField from '$lib/forms/AuthField.svelte'
   import Form from '$lib/forms/Form.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
@@ -14,20 +15,29 @@
 
   const global = getGlobalState()
 
-  const regionId = Number(page.params.regionId)
+  // Derived, not read once: this is one route, so `/settings/regions/2/name` to
+  // `/settings/regions/6/name` reuses the page. Read once, the hidden id stayed on the region
+  // the reader arrived from and Save renamed that one, under a URL naming the other. The
+  // permission check below reads the same value, so it was stale too.
+  const regionId = $derived(Number(page.params.regionId))
 
   // Renaming a region is admin-only, and so is the link into here, so this only catches somebody
   // typing the URL. The server rejects them either way. This is so they find out before typing.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 
-  // Seeded once at init from the memberships the app shell already has, the same way the username
-  // page reads global.user. No async load, so `Form` stays the route's direct child: wrapping it
-  // in a QueryState puts a flex container between it and the page and breaks its full-height
-  // sticky-header layout.
-  updateRegion.fields.set({
-    id: String(regionId),
-    name: global.userRegions.find((region) => region.regionFk === regionId)?.name ?? '',
-  })
+  // Keyed on `synced`: the membership row can land before the region it names, and the name would
+  // then seed as '' under a field the schema rejects. No async load
+  // either way, so `Form` stays the route's direct child: a QueryState between them breaks its
+  // full-height sticky-header layout.
+  const membership = $derived(global.userRegions.find((region) => region.regionFk === regionId))
+  seedOnKeyChange(
+    () => (membership?.synced === true ? regionId : undefined),
+    () => {
+      // Narrowing only: the key above is undefined whenever the membership is.
+      if (membership == null) return
+      updateRegion.fields.set({ id: String(regionId), name: membership.name })
+    },
+  )
 
   const goBack = () => back(resolve('/(app)/settings/regions/[regionId]', { regionId: String(regionId) }))
 

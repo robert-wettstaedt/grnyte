@@ -18,6 +18,31 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 // production passes the RLS transaction, the tests pass the superuser pool.
 type Db = PostgresJsDatabase<typeof schema>
 
+/** The other half, for the writers that ADD a name. The vocabulary is a jsonb array with no unique
+ *  constraint, and `tags/+page.svelte` keys its `{#each}` on the tag, so a duplicate takes the
+ *  screen down with `each_key_duplicate` rather than showing twice. Same reasoning as
+ *  {@link assertStored}: the caller refuses first, this holds if one is added that does not. */
+function assertNotStored(stored: string[], name: string): void {
+  if (stored.includes(name)) {
+    throw new Error(`tag "${name}" is already in the region's stored vocabulary`)
+  }
+}
+
+/** An invariant, not a refusal: this module keeps the SQL and the remote functions keep the
+ *  refusals, so by the time either writer below runs the caller has already answered a missing
+ *  tag with `region_tagGone`. Both of them move or destroy `routes_to_tags` rows unconditionally,
+ *  which is irreversible, so they assert rather than trust it. Throws a plain error because
+ *  reaching it is a bug in the caller, not something to render.
+ *
+ *  Deliberately duplicated with those callers' checks, not left over from them: three separate
+ *  reviewers have now read this pair and proposed deleting one half as redundant. It is not
+ *  redundant, it is the half that still holds when a caller is added without one. */
+function assertStored(stored: string[], name: string): void {
+  if (!stored.includes(name)) {
+    throw new Error(`tag "${name}" is not in the region's stored vocabulary`)
+  }
+}
+
 /**
  * Write one key of a region's `settings`. Merged rather than assigned: `settings` is one jsonb blob
  * and each settings screen owns a single key of it, so a key added to `RegionSettings` later cannot
@@ -31,6 +56,8 @@ const writeTags = (db: Db, regionFk: number, tags: string[]) =>
 
 /** Append a word to the vocabulary. Tagged on nothing until somebody applies it. */
 export function addTag(db: Db, regionFk: number, stored: string[], name: string) {
+  assertNotStored(stored, name)
+
   return writeTags(db, regionFk, [...stored, name])
 }
 
@@ -40,6 +67,13 @@ export function addTag(db: Db, regionFk: number, stored: string[], name: string)
  * rows back would collide on that same primary key after any later rename onto the freed name.
  */
 export async function removeTag(db: Db, regionFk: number, stored: string[], name: string) {
+  // Belt and braces under the caller's refusal. The delete below is unconditional and
+  // irreversible, and a route may carry a tag that has already left the vocabulary (see
+  // `renameTag`), so a name this region does not have would destroy real junction rows for it.
+  // Throws rather than returning: a quiet no-op here would report success for a deletion that
+  // never happened.
+  assertStored(stored, name)
+
   await db.delete(routesToTags).where(and(eq(routesToTags.regionFk, regionFk), eq(routesToTags.tagFk, name)))
 
   await writeTags(
@@ -54,6 +88,18 @@ export async function removeTag(db: Db, regionFk: number, stored: string[], name
  * localising `SD` to `Sitzstart` must not lose 300 route tags doing it.
  */
 export async function renameTag(db: Db, regionFk: number, stored: string[], from: string, to: string) {
+  // The same backstop as `removeTag`: this deletes junction rows and mass-updates the rest, so it
+  // must not run for a name the region does not have, whatever the screen above believed. Both
+  // ends, because renaming onto a name already in the vocabulary writes a duplicate.
+  //
+  // `assertNotStored` is deliberately unconditional. Exempting `from === to` looked like a
+  // harmless no-op and was the opposite: the delete below matches `tagFk = to` among the routes
+  // carrying `from`, so a self-rename deletes every junction row for that tag, the update then
+  // touches nothing, and the vocabulary is written back unchanged. The tag stays on screen and is
+  // gone from every route. A self-rename refuses here by construction, since `to` is stored.
+  assertStored(stored, from)
+  assertNotStored(stored, to)
+
   // `routes_to_tags`' (route_fk, tag_fk) primary key is not deferrable, and a route can carry a tag
   // that has already left the vocabulary: `updateRoute` widens its allowlist with the route's own
   // current tags, so an edit cannot strip one the region retired mid-session. So `to` may already

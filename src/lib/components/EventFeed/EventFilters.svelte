@@ -9,6 +9,7 @@
   import type { EventCategory } from '$lib/entities/event/dto'
   import { UNREAD_CAP } from '$lib/entities/notification/resources.svelte'
   import type { UserRegion } from '$lib/entities/region/dto'
+  import { regionDisplayName } from '$lib/entities/region/mapper'
   import type { UserListItem } from '$lib/entities/user/dto'
   import { m } from '$lib/paraglide/messages'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
@@ -35,7 +36,7 @@
     regionFk?: number
     /** The user's regions. The design hides the region controls for a single-region user,
      *  who has nothing to narrow to. */
-    regions?: Pick<UserRegion, 'name' | 'regionFk' | 'role'>[]
+    regions?: Pick<UserRegion, 'name' | 'regionFk' | 'role' | 'synced'>[]
     /** Unread directed notifications. `0` renders the bell without a count. */
     unreadNotifications?: number
     /** Selected actor, or `undefined` for everyone. */
@@ -65,7 +66,10 @@
   // `undefined`; `all` is that value, and never leaves this component.
   const segment = $derived(category ?? 'all')
 
-  const regionName = $derived(regions.find((region) => region.regionFk === regionFk)?.name)
+  const regionName = $derived.by(() => {
+    const region = regions.find((entry) => entry.regionFk === regionFk)
+    return region == null ? undefined : regionDisplayName(region)
+  })
 
   // The header says what the feed is scoped to only while nothing is picked. Once a region is,
   // the chip below is the readout, and it is the one that can be tapped away; printing the name

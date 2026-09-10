@@ -3,6 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import { canEditRegion } from '$lib/entities/region/permissions'
   import { addRegionTag, regionTagUsage, removeRegionTag, renameRegionTag } from '$lib/entities/region/regions.remote'
@@ -26,6 +27,7 @@
   // Derived, not a snapshot: the vocabulary is whatever the synced membership says right now. A
   // snapshot taken once at init and submitted back as a whole list would delete a tag another
   // admin added while the page sat open, junction rows and all, on a save that touched nothing.
+  const membership = $derived(global.userRegions.find((region) => region.regionFk === regionId))
   const tags = $derived(regionTags(global.userRegions, regionId))
 
   // One grouped count for the whole screen. Every mutation invalidates it, and until it lands each
@@ -103,6 +105,17 @@
 
 {#if !isAdmin}
   <ErrorState type="notfound" title={m.region_notFound()} />
+{:else if membership?.synced !== true}
+  <!-- No editor until the region row is here. `isAdmin` reads the role off the membership, which
+       arrives first, so this screen opened early and listed the DEFAULT vocabulary as the region's
+       own, with live rename and remove controls. -->
+  <LoadingIndicator class="flex h-full w-full items-center justify-center" size={20} />
+{:else if !membership.tagsComplete}
+  <!-- Refused before rendering, the way the map-layers screen is. `editableTags` already refuses
+       the write, but listing the seven defaults as though they were this region's own, with
+       working-looking rename and remove controls, invites an admin to act on tags that are not
+       theirs and then answers the press with a 409. -->
+  <ErrorState type="generic" title={m.region_tagsUnreadableTitle()} description={m.region_tagsUnreadableBody()} />
 {:else}
   <PageHeader onback={goBack} title={m.region_tags()} />
 
