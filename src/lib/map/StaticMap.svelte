@@ -16,6 +16,7 @@
 </script>
 
 <script lang="ts">
+  import MapCredit from '$lib/map/MapCredit.svelte'
   import { m } from '$lib/paraglide/messages'
   import { APPROACH_COLOR, osmTileUrl, pointPx, TILE_SIZE, tileView } from './tiles'
 
@@ -131,14 +132,7 @@
       </span>
     {/each}
 
-    <a
-      class="text-surface-950-50 bg-surface-50-950/70 absolute right-0 bottom-0 rounded-tl px-1 text-[10px] leading-tight"
-      href="https://www.openstreetmap.org/copyright"
-      rel="noreferrer"
-      target="_blank"
-    >
-      © OpenStreetMap
-    </a>
+    <MapCredit />
   </div>
 {/if}
 

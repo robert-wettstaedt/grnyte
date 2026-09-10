@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { browser } from '$app/environment'
   import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -7,9 +8,9 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'
-  import { Attribution, defaults as defaultControls } from 'ol/control.js'
-  import { boundingExtent } from 'ol/extent'
+  import { defaults as defaultControls } from 'ol/control.js'
   import 'ol/ol.css'
+  import { boundingExtent } from 'ol/extent'
   import type Feature from 'ol/Feature.js'
   import OlGeolocation from 'ol/Geolocation.js'
   import { defaults as defaultInteractions } from 'ol/interaction.js'
@@ -21,6 +22,7 @@
   import View from 'ol/View.js'
   import { untrack } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
+  import { parseCredit } from './attribution'
   import { createMapData } from './data.svelte'
   import { setupGeolocation } from './geolocation'
   import {
@@ -64,6 +66,7 @@
   let isTrackingGeolocation = $state(false)
   let geolocationErrorCode = $state<number>()
   let isLayersSheetOpen = $state(false)
+  let isAttributionOpen = $state(false)
   let layerEntries = $state<LayerEntry[]>([])
   let hasAutoFitted = $state(false)
   // Visibility of the "Markers" group, tracked separately so the toggle state is
@@ -301,6 +304,33 @@
     layerEntries = layerEntries.map((entry) => (entry.name === name ? { ...entry, visible: newVisible } : entry))
   }
 
+  // Every floating control shares this. The fill alone is near-white in light mode and
+  // vanishes over a pale tile, so the border is what keeps the button's edge readable.
+  const CONTROL_CLASS = 'btn-icon preset-outlined-surface-300-700'
+
+  // Credits owed by the region layers, read from settings rather than off the OL sources so
+  // the list is complete before the first tile lands. OSM's own credit is rendered separately.
+  //
+  // Deliberately every layer the user's regions define, not only the ones currently drawn.
+  // OL's control credited the drawn frame, so a layer toggled off or below its minZoom
+  // dropped out; this over-credits instead, which is the safe direction for a licence.
+  //
+  // Each one is stored as HTML and parsed rather than interpolated: the links in them are what
+  // the licences actually require, and `{@html}` on region-admin input would be an XSS against
+  // every member of that region. `parseCredit` needs a DOM, hence the browser guard.
+  const creditStrings = $derived(
+    global.userRegions
+      .flatMap((region) => region.settings.mapLayers.flatMap((layer) => layer.attributions ?? []))
+      .filter((credit, index, all) => all.indexOf(credit) === index),
+  )
+
+  // Parsed only while the sheet is open. Each credit costs a whole DOM document, nothing reads
+  // the parts until then, and a desktop panel renders its body even closed, so every map paid
+  // for this on mount, static previews included.
+  const regionCredits = $derived(
+    !browser || !isAttributionOpen ? [] : creditStrings.map((credit) => ({ credit, parts: parseCredit(credit) })),
+  )
+
   const getLayerIcon = (layerName: string, markersLabel: string): IconName => {
     const normalizedLayerName = layerName.trim().toLowerCase()
     if (normalizedLayerName === 'osm' || normalizedLayerName === 'openstreetmap') {
@@ -322,9 +352,10 @@
     const isStatic = untrack(() => props.static)
 
     const mapInstance = new OlMap({
-      controls: defaultControls({ attribution: false, rotate: false, zoom: false }).extend([
-        new Attribution({ collapsible: true }),
-      ]),
+      // No OL controls at all. Zoom, geolocation, layers and attribution are all Svelte
+      // buttons in the column below, so each one is a real Skeleton button instead of a
+      // foreign widget restyled to resemble one.
+      controls: defaultControls({ attribution: false, rotate: false, zoom: false }),
       interactions: isStatic ? [] : defaultInteractions(),
       layers: [
         // `crossOrigin` is OpenLayers' own default, spelled out because `src/sw.ts` depends on it: an
@@ -353,6 +384,9 @@
       view: new View({
         center: savedView?.center ?? fromLonLat([2.6117597, 48.4103865]),
         constrainResolution: true,
+        // North is always up. Nothing here offers to straighten a rotated map (the
+        // reset-north control is off), and an approach description assumes north.
+        enableRotation: false,
         zoom: savedView?.zoom ?? 4,
       }),
     })
@@ -515,25 +549,40 @@
   }
 </script>
 
-<div class="map-container relative z-10 h-full">
+<div class="relative z-10 h-full">
   <div class="map h-full" {@attach mapAttachment}></div>
 
-  {#if !props.static}
-    <div class="absolute right-2 bottom-20.5 z-20 mb-10 flex flex-col gap-1 md:bottom-2">
-      <button class="btn-icon preset-filled-surface-100-900" onclick={handleZoomIn} aria-label={m.map_zoomIn()}>
+  <!-- The credit is not a control and is not optional: OSM's licence wants it wherever its
+       tiles are drawn, static previews included. Only the interactive controls are gated. -->
+  <div
+    class={['absolute right-2 z-20 flex flex-col gap-1', props.static ? 'bottom-1' : 'bottom-20.5 mb-10 md:bottom-2']}
+  >
+    {#if !props.static}
+      <button
+        type="button"
+        class={[CONTROL_CLASS, 'preset-filled-surface-100-900']}
+        onclick={handleZoomIn}
+        aria-label={m.map_zoomIn()}
+      >
         <Icon name="plus" size={16} />
       </button>
 
-      <button class="btn-icon preset-filled-surface-100-900" onclick={handleZoomOut} aria-label={m.map_zoomOut()}>
+      <button
+        type="button"
+        class={[CONTROL_CLASS, 'preset-filled-surface-100-900']}
+        onclick={handleZoomOut}
+        aria-label={m.map_zoomOut()}
+      >
         <Icon name="minus" size={16} />
       </button>
 
       <div class="h-8"></div>
 
       <button
+        type="button"
         aria-label={m.map_showMyLocation()}
         class={[
-          'btn-icon',
+          CONTROL_CLASS,
           isTrackingGeolocation
             ? 'preset-filled-primary-500'
             : geolocationErrorCode != null
@@ -554,11 +603,12 @@
       >
         {#snippet trigger(props)}
           <button
+            type="button"
             {...props}
             aria-label={m.map_toggleLayers()}
             class={[
               props.class,
-              'btn-icon',
+              CONTROL_CLASS,
               isLayersSheetOpen ? 'preset-filled-primary-500' : 'preset-filled-surface-100-900',
             ]}
             onclick={() => (isLayersSheetOpen = !isLayersSheetOpen)}
@@ -570,6 +620,7 @@
         <div class="mt-4 flex flex-wrap justify-around gap-2">
           {#each layerEntries as entry (entry.name)}
             <button
+              type="button"
               aria-label={entry.label}
               aria-pressed={entry.visible}
               class="flex w-25 flex-col items-center justify-center gap-1"
@@ -599,10 +650,81 @@
           {/each}
         </div>
       </Modal>
+    {/if}
 
-      <div class="h-8"></div>
-    </div>
-  {/if}
+    <Modal
+      bind:open={isAttributionOpen}
+      popoverProps={{ positioning: { placement: 'left' } }}
+      snapPoints={[0.4]}
+      title={m.map_attribution()}
+    >
+      {#snippet trigger(triggerProps)}
+        {#if props.static}
+          <!-- A preview has no control column to sit in, so the credit shows itself rather than
+               hiding behind an icon, the way StaticMap's does. Pressing it opens the full list. -->
+          <button
+            type="button"
+            {...triggerProps}
+            aria-label={m.map_showAttribution()}
+            class={[
+              triggerProps.class,
+              'text-surface-950-50 bg-surface-50-950/70 rounded px-1 text-[10px] leading-tight',
+            ]}
+            onclick={() => (isAttributionOpen = !isAttributionOpen)}
+          >
+            &copy; OpenStreetMap
+          </button>
+        {:else}
+          <button
+            type="button"
+            {...triggerProps}
+            aria-label={m.map_showAttribution()}
+            class={[
+              triggerProps.class,
+              CONTROL_CLASS,
+              isAttributionOpen ? 'preset-filled-primary-500' : 'preset-filled-surface-100-900',
+            ]}
+            onclick={() => (isAttributionOpen = !isAttributionOpen)}
+          >
+            <Icon name="info" size={16} />
+          </button>
+        {/if}
+      {/snippet}
+
+      <!-- OSM's credit is required by the ODbL, so it renders whether or not a region adds
+           layers of its own. Region credits carry their own links, which is the whole point of
+           them: `parseCredit` re-emits the stored markup as text and anchors, never as HTML. -->
+      <ul class="space-y-2 text-sm">
+        <li class="text-surface-700-300">
+          &copy;
+          <a
+            class="text-primary-500 hover:underline"
+            href="https://www.openstreetmap.org/copyright"
+            rel="noreferrer"
+            target="_blank"
+          >
+            OpenStreetMap
+          </a>
+          contributors
+        </li>
+
+        {#each regionCredits as { credit, parts } (credit)}
+          <li class="text-surface-700-300">
+            {#each parts as part, index (index)}
+              {#if part.href == null}
+                {part.text}
+              {:else}
+                <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external credit URL, scheme-checked by parseCredit -->
+                <a class="text-primary-500 hover:underline" href={part.href} rel="noreferrer" target="_blank">
+                  {part.text}
+                </a>
+              {/if}
+            {/each}
+          </li>
+        {/each}
+      </ul>
+    </Modal>
+  </div>
 </div>
 
 <style>
@@ -644,49 +766,5 @@
     border: 3px solid white;
     border-radius: 50%;
     box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
-  }
-
-  .map-container :global(.ol-attribution) {
-    bottom: calc(var(--spacing) * 20.5);
-    left: auto;
-    right: calc(var(--spacing) * 2);
-    height: calc(var(--text-base) * 2);
-    background: var(--color-surface-100-900);
-    padding-top: calc(var(--spacing) * 2);
-    padding-bottom: calc(var(--spacing) * 2);
-
-    @media (min-width: 768px) {
-      bottom: calc(var(--spacing) * 4);
-    }
-  }
-
-  .map-container :global(.ol-attribution button) {
-    align-items: center;
-    background: var(--color-surface-100-900);
-    border-radius: var(--radius-base);
-    box-sizing: content-box;
-    color: var(--color-surface-contrast-100-900);
-    display: inline-flex;
-    font-size: var(--text-base);
-    height: var(--text-base);
-    justify-content: center;
-    outline: none;
-    padding: calc(var(--spacing) * 2);
-    text-decoration-line: none;
-    white-space: nowrap;
-    width: var(--text-base);
-
-    &:hover {
-      filter: brightness(75%);
-    }
-  }
-
-  .map-container :global(.ol-attribution ul) {
-    color: var(--color-surface-contrast-100-900);
-    text-shadow: none;
-  }
-
-  .map-container :global(.ol-attribution a) {
-    color: var(--color-blue-500);
   }
 </style>
