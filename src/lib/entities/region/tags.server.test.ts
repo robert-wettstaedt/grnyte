@@ -14,7 +14,7 @@ import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { lockRegionSettings, writableKey, type WritableKey } from './settings.server'
-import { addTag, removeTag, renameTag, tagUsage } from './tags.server'
+import { addTag, dropSupersededTagRows, removeTag, renameTag, tagUsage } from './tags.server'
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
@@ -213,6 +213,30 @@ describe.skipIf(!reachable)('renameTag', () => {
     expect(await tagsOn(routes[0])).toEqual(['retired'])
     expect(await tagsOn(routes[1])).toEqual(['retired'])
     expect(await storedTags(regionId)).toEqual(['retired', 'high'])
+  })
+
+  // Aimed at the statement, not at `renameTag`: the vocabulary check above already refuses
+  // `from === to`, so this is the half that still holds for a caller written without it.
+  it('leaves every row alone when the delete is handed a self-rename', async () => {
+    await tagRoute(routes[0], regionId, 'SD')
+    await tagRoute(routes[1], regionId, 'SD')
+
+    await db.transaction((tx) => dropSupersededTagRows(tx, regionId, 'SD', 'SD'))
+
+    expect(await tagsOn(routes[0])).toEqual(['SD'])
+    expect(await tagsOn(routes[1])).toEqual(['SD'])
+  })
+
+  it('drops only the losing duplicate when the delete runs on its own', async () => {
+    await tagRoute(routes[0], regionId, 'SD')
+    await tagRoute(routes[0], regionId, 'retired')
+    await tagRoute(routes[1], regionId, 'retired')
+
+    await db.transaction((tx) => dropSupersededTagRows(tx, regionId, 'SD', 'retired'))
+
+    // Only route 0 carries both, so only its `retired` row is superseded.
+    expect(await tagsOn(routes[0])).toEqual(['SD'])
+    expect(await tagsOn(routes[1])).toEqual(['retired'])
   })
 
   it('moves only the renaming region rows, so two regions may share a word', async () => {

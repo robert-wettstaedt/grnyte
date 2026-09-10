@@ -8,7 +8,7 @@
  */
 import * as schema from '$lib/db/schema'
 import { routesToTags } from '$lib/db/schema'
-import { and, count, eq, inArray } from 'drizzle-orm'
+import { and, count, eq, inArray, ne } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { currentValue, writeRegionSettings, type WritableKey } from './settings.server'
 
@@ -46,6 +46,31 @@ export function addTag(db: Tx, writable: WritableKey<'tags'>, name: string) {
   return writeRegionSettings(db, writable, [...stored, name])
 }
 
+/**
+ * The losing half of a rename: rows already carrying `to` on a route that also carries `from`. The
+ * (route_fk, tag_fk) primary key is not deferrable, so they go before the update.
+ *
+ * `ne(tagFk, from)` is what makes the statement safe on its own rather than safe because a caller
+ * checked: with `from === to` the other clauses match every row carrying the tag, and the delete
+ * would strip it off every route.
+ */
+export function dropSupersededTagRows(db: Tx, regionFk: number, from: string, to: string) {
+  return db.delete(routesToTags).where(
+    and(
+      eq(routesToTags.regionFk, regionFk),
+      eq(routesToTags.tagFk, to),
+      ne(routesToTags.tagFk, from),
+      inArray(
+        routesToTags.routeFk,
+        db
+          .select({ routeFk: routesToTags.routeFk })
+          .from(routesToTags)
+          .where(and(eq(routesToTags.regionFk, regionFk), eq(routesToTags.tagFk, from))),
+      ),
+    ),
+  )
+}
+
 /** Retire a tag, deleting it from every route that carries it. Irreversible, so the screen
  *  confirms with the route count rather than offering an undo. */
 export async function removeTag(db: Tx, writable: WritableKey<'tags'>, name: string) {
@@ -71,28 +96,12 @@ export async function renameTag(db: Tx, writable: WritableKey<'tags'>, from: str
   const stored = currentValue(writable)
   const regionFk = regionOf(writable)
 
-  // Both ends: renaming onto a name already in the vocabulary writes a duplicate.
-  // `assertNotStored` is unconditional on purpose. Exempting `from === to` looks like a no-op and
-  // is the opposite: the delete matches `tagFk = to`, so a self-rename strips the tag off
-  // every route while leaving it on screen.
+  // Renaming onto a name the vocabulary already has writes a duplicate, and `from === to` is that
+  // case, so it is refused here rather than exempted. The statements below survive it either way.
   assertStored(stored, from)
   assertNotStored(stored, to)
 
-  // The (route_fk, tag_fk) primary key is not deferrable, and a route may already carry both
-  // `from` and `to`, so the rename drops the loser first. The vocabulary cannot rule that out.
-  await db.delete(routesToTags).where(
-    and(
-      eq(routesToTags.regionFk, regionFk),
-      eq(routesToTags.tagFk, to),
-      inArray(
-        routesToTags.routeFk,
-        db
-          .select({ routeFk: routesToTags.routeFk })
-          .from(routesToTags)
-          .where(and(eq(routesToTags.regionFk, regionFk), eq(routesToTags.tagFk, from))),
-      ),
-    ),
-  )
+  await dropSupersededTagRows(db, regionFk, from, to)
 
   // `regionFk` keeps the rename inside its own region: two regions may both use `SD`.
   await db
