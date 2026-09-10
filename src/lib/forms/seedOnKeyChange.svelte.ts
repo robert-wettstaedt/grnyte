@@ -16,19 +16,14 @@ export function seedOnKeyChange(key: () => number | string | undefined, seed: ()
   $effect(() => {
     const next = key()
 
-    // `undefined` means "not loaded yet", never a new identity. A row can go away and come back
-    // (Zero swaps its client on the hourly token refresh), and treating that as 5 -> undefined -> 5
-    // would re-seed on the way back and silently revert whatever the reader had typed. Holding
-    // `applied` across the gap is what makes the return a no-op.
-    // NaN too: `Number(params.id)` on a non-numeric URL never equals `applied`, so the guard
-    // would never hold and every dependency change would re-seed.
+    // `undefined` means "not loaded yet", never a new identity: a Zero resource can blink out and
+    // back, and re-seeding on the way back reverts what was typed. NaN too, which equals nothing.
     if (next === undefined || Number.isNaN(next) || next === applied) {
       return
     }
 
     applied = next
-    // untrack: the seed's reads are not identity. Without it they wake this effect one extra
-    // time after each seed, only to early-return above.
+    // untrack: the seed's reads are not identity, and would wake this effect an extra time.
     untrack(seed)
   })
 }

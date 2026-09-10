@@ -1,10 +1,6 @@
 <script lang="ts">
-  // OSM's licence wants the credit wherever its tiles are drawn. A map with a control column
-  // puts it there (`Map.svelte`); a map without one shows it in the corner, which is this. Kept
-  // in one place so the two that have no column cannot drift apart on wording or position.
-  //
-  // Region WMS layers carry their own required credits, and only `Map.svelte`'s sheet lists
-  // those. A map that draws region layers needs that sheet, not this.
+  // OSM's licence wants the credit wherever its tiles are drawn; this is the corner variant, for
+  // a map with no control column. Region WMS layers need `Map.svelte`'s credits sheet instead.
 </script>
 
 <a

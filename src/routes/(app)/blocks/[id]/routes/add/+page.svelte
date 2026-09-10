@@ -22,11 +22,10 @@
 
   let uploads = $state<MediaUpload[]>([])
 
-  // Shares `createRoute` with the topo editor's add-route sheet, and the fields live on one
-  // module-level singleton, so a name typed there and abandoned would arrive here pre-filled.
-  // `remove()` and not just dropping the array: it is the only thing that aborts the transfer,
-  // deletes the staged object and revokes the preview, so media picked for one block cannot
-  // keep uploading on the reader's data and finalize against another.
+  // Shares `createRoute`'s field singleton with the topo editor's sheet, so a name abandoned
+  // there would arrive here pre-filled.
+  // `remove()` and not just dropping the array: only it aborts the transfer and deletes the
+  // staged object, so media picked for one block cannot finalize against another.
   seedOnKeyChange(
     () => page.params.id,
     () => {

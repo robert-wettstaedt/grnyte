@@ -1,15 +1,9 @@
 /**
- * The two halves of the block ordering rule, asserted against each other and against the call site.
+ * The two halves of the block ordering rule, asserted against each other and against the call
+ * site. They sit in different files in two query languages, and no compiler can compare them.
  *
- * Named `.server.` so it lands in the node project: it imports the drizzle half, and that pulls in
- * `$lib/db/schema`. What it is really testing is the pair, because the point of the pair is that
- * neither may drift: they sit in different files, in two query languages, and no compiler can
- * compare them.
- *
- * Three levels, and the third is the one that matters most. Asserting the helpers agree does not
- * stop somebody inlining `.orderBy('order','asc').orderBy('name','asc')` back into `queries.ts`,
- * which is the precise failure the module exists to prevent, so the last test reads the ordering
- * off the built query instead of off the helper.
+ * The last test reads the ordering off the BUILT query: asserting the helpers agree leaves
+ * inlining the ordering back into `queries.ts` green, which is the failure to prevent.
  */
 import { blocks } from '$lib/db/schema'
 import { blocksQueryDefs } from '$lib/entities/block/queries'
@@ -20,11 +14,7 @@ import { describe, expect, it } from 'vitest'
 import { acrossAreasOrder, inAreaOrder, type BlockQuery } from './order'
 import { inAreaOrderSql } from './order.server'
 
-/**
- * One `orderBy` call. Typed off the real query rather than as `[string, string]`, so the expected
- * literals below are checked against the schema: rename the column and this file stops compiling
- * rather than passing while the query breaks.
- */
+/** One `orderBy` call, typed off the real query so a renamed column stops this compiling. */
 type Ordering = Parameters<BlockQuery['orderBy']>
 
 /** A stand-in for a zql query that records what was asked of it. */
@@ -72,31 +62,28 @@ describe('block ordering', () => {
   })
 
   it('has the client read and the renumbering rule name the same columns in the same directions', () => {
-    // The whole point of the pair. Directions are compared, not just column names: a server `desc`
-    // would otherwise drop out of the regex and fail on length, pointing at the wrong thing.
+    // Directions compared too, not just column names: a server `desc` would otherwise fail on
+    // length and point at the wrong thing.
     const { calls, q } = recorder()
     inAreaOrder(q as never)
     expect(serverOrdering()).toEqual(calls)
   })
 
   it('drops the slot entirely across areas, and still ends on id', () => {
-    // `order` is a position inside one area, so every area contributes a block at slot 0 and
-    // ordering a search or a backlink list by it buckets the results by nothing. The trailing `id`
-    // is explicitness rather than stability: Zero appends the primary key with or without it.
+    // `order` is a position inside one area, so ordering a cross-area list by it buckets on
+    // nothing. The trailing `id` is explicitness: Zero appends the primary key either way.
     const { calls, q } = recorder()
     acrossAreasOrder(q as never)
     expect(calls).toEqual(ACROSS_AREAS)
   })
 
   it('picks the rule off `areaId` at the call site, not just in the helpers', () => {
-    // Reads the built query rather than the helper, because everything above stays green if
-    // `queries.ts` stops calling them. This is the branch a reader actually sees: the area screen
-    // gets slots, the search flyout gets names.
+    // The built query, not the helper: everything above stays green if `queries.ts` stops
+    // calling them.
     expect(builtOrdering({ areaId: 1 })).toEqual(IN_AREA)
     expect(builtOrdering({})).toEqual(ACROSS_AREAS)
-    // `null` matches no rows at all, because `blocks.areaFk` is not null. Pinned anyway: the sort
-    // branches on `=== undefined` and the `where` two lines below it on `!== undefined`, so this is
-    // the assertion that keeps those two from drifting into disagreeing about what `null` selects.
+    // `null` matches no rows (`blocks.areaFk` is not null). Pinned because the sort branches on
+    // `=== undefined` and the `where` on `!== undefined`, and those two must agree.
     expect(builtOrdering({ areaId: null })).toEqual(IN_AREA)
   })
 })

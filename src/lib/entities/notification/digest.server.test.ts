@@ -102,12 +102,8 @@ describe.skipIf(!reachable)('entityNames', () => {
   })
 
   it('names a nameless area, route and ascent instead of returning the empty string', async () => {
-    // The defect this pins. Every kind here except `block` came off `row.name` raw, so a push
-    // about a nameless route arrived with a blank title while the screen it linked to read
-    // "Unnamed". The fixture above cannot see it, because everything it seeds has a name.
-    //
-    // Whitespace for the area, empty for the route: names are trimmed on write, but imported and
-    // legacy rows are not, and a whitespace name renders blank exactly like an empty one.
+    // Every kind except `block` came off `row.name` raw, so a push about a nameless route arrived
+    // blank while the screen read "Unnamed". Whitespace for the area: legacy rows are untrimmed.
     const [{ id: blankArea }] = await sql<{ id: number }[]>`
       insert into public.areas (name, created_by, region_fk, type)
       values ('   ', ${actor.userId}, ${regionId}, 'crag') returning id`
@@ -130,10 +126,8 @@ describe.skipIf(!reachable)('entityNames', () => {
     // An ascent is named by its route, off the same joined column, so it had the same hole.
     expect(resolved.get(`ascent:${blankAscent}`)).toBe(m.common_unnamed())
 
-    // In the recipient's language, not the server's. A route rather than a block on purpose:
-    // `common_unnamed` is "Unnamed" in en and "Ohne Namen" in de, so this reddens if the locale
-    // thread is cut, while `common_block` is "Block" in BOTH locales and the same assertion on a
-    // nameless block would pass with the plumbing torn out.
+    // A route, not a block: `common_unnamed` differs between locales, `common_block` does not,
+    // so only this reddens if the locale thread is cut.
     const german = await entityNames(refs, 'de')
     expect(german.get(`route:${blankRoute}`)).toBe(m.common_unnamed({}, { locale: 'de' }))
   })

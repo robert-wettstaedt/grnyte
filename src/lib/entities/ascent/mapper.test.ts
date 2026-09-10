@@ -84,10 +84,8 @@ describe('toUserAscentDetail', () => {
   })
 
   it('names a nameless area for the crumb instead of dropping it', () => {
-    // `areaName` came off the row raw, and `locationCrumb` then filtered `name !== ''`, so a
-    // nameless area did not read "Unnamed" in the trail: it VANISHED from it, which is harder to
-    // notice than a blank. Whitespace rather than '', because that reached the same filter and
-    // survived it, producing a crumb made of spaces.
+    // `areaName` came off the row raw and `locationCrumb` filtered `name !== ''`, so a nameless
+    // area vanished from the trail. Whitespace, because that survived the filter as spaces.
     const detail = toUserAscentDetail(
       row({ block: { area: { name: '   ' }, name: 'Le Toit', order: 0 }, name: 'Arch Nemesis' }),
     )

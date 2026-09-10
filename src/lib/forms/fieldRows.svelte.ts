@@ -16,8 +16,7 @@ export function fieldRows<T extends Record<string, string>>(options: {
   read: () => (Partial<T> | undefined)[]
   write: (rows: T[]) => void
 }) {
-  // Starts empty and is seeded by `reset`, so a page on a parameterised route has one path in
-  // rather than a constructor count that its re-seed would immediately overwrite.
+  // Starts empty and is seeded by `reset`, so a reused page has one path in rather than two.
   let keys = $state<number[]>([])
   let nextKey = 0
 
@@ -59,8 +58,7 @@ export function fieldRows<T extends Record<string, string>>(options: {
     },
 
     /** Re-seed the identities for a different entity: one row per stored entry, keys restarted.
-     *  A page on a parameterised route is reused across ids, so without this the previous
-     *  entity's row count and keys stay while the form's values are re-seeded under them. */
+     *  Without it the previous entity's row count survives under the new values. */
     reset(count: number) {
       keys = Array.from({ length: count }, (_, index) => index)
       nextKey = count

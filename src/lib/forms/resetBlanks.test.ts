@@ -1,19 +1,9 @@
 /**
- * What a DOM form reset does to an input Svelte has written a value into.
+ * What a DOM form reset does to an input Svelte has written a value into. Four wrong models
+ * preceded this, the last of them wrong in the direction that loses data.
  *
- * This exists because four wrong models preceded it, across three people, all argued from
- * framework source rather than measured: "the hidden ids blank", "the field the reader last
- * touched blanks", "it depends on render order, do not reason about it", and "hidden, checkbox and
- * radio all survive". Each was confidently wrong, and the last one was wrong in the direction that
- * loses data. `Form.svelte` and AGENTS.md both state the rule, so the rule gets a test.
- *
- * Svelte compiles `value={x}` to a property write. Whether that reaches the content attribute (and
- * therefore `defaultValue`, which is what a reset restores) is decided by the input's type, and
- * nothing else: not the render order, not the branch it sits in, not what the reader touched.
- *
- * This runs in jsdom, so it pins jsdom's implementation of the value modes rather than any real
- * browser's. That is what a regression guard needs; the rule itself was confirmed separately in
- * Chrome, which is where the checkbox trap below was first measured.
+ * Svelte compiles `value={x}` to a property write, and whether that reaches `defaultValue` (what a
+ * reset restores) is decided by the input's type alone. jsdom here; confirmed in Chrome.
  */
 import { describe, expect, it } from 'vitest'
 
@@ -43,8 +33,8 @@ describe('a DOM form reset', () => {
   })
 
   it('unchecks a checkbox, which is the only thing a checkbox submits', () => {
-    // The trap the fourth model fell into: a checkbox's `value` DOES reflect, so probing `.value`
-    // says it is safe. Checkedness is what reaches form data, and `.checked` writes no attribute.
+    // The trap: a checkbox's `value` DOES reflect, so probing `.value` says it is safe. But
+    // checkedness is what it submits, and `.checked` writes no attribute.
     const input = written('checkbox', (element) => {
       element.value = 'yes'
       element.checked = true

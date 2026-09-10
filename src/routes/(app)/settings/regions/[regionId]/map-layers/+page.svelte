@@ -20,21 +20,17 @@
   const global = getGlobalState()
   const fields = updateRegionMapLayers.fields
 
-  // Derived, not read once: this is one route, so `/settings/regions/2/map-layers` to
-  // `/settings/regions/6/map-layers` reuses the page. Read once, the hidden id and the rows both
-  // stayed on the region the reader arrived from, and Save overwrote that region's layers under
-  // a URL naming the other. The permission check reads the same value, so it was stale too.
+  // Derived, not read once: this is one route, so the page is reused between regions. Read once,
+  // Save overwrote the previous region's layers under a URL naming the other.
   const regionId = $derived(Number(page.params.regionId))
 
   // Region settings are admin-only, and the link into here is too, so this only catches somebody
   // typing the URL. The server rejects them either way: this is so they find out before typing.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 
-  // From the memberships the app shell already has, the same way the name page reads
-  // global.userRegions. No async load, so `Form` stays the route's direct child: wrapping it in a
-  // QueryState puts a flex container between it and the page and breaks its sticky header.
-  // Kept separate from `stored`: a membership that has not synced yet and a region with no
-  // layers both give `[]`, and seeding on the first would submit the second.
+  // From the memberships the shell already has. No async load, so `Form` stays the route's direct
+  // child: a wrapper between them breaks its sticky header.
+  // Separate from `stored`: an unsynced membership and a region with no layers both give `[]`.
   const membership = $derived(global.userRegions.find((region) => region.regionFk === regionId))
   const stored = $derived(membership?.settings.mapLayers ?? [])
 
@@ -43,16 +39,13 @@
   const rows = fieldRows({
     blank: { attributions: '', minZoom: '', name: '', opacity: '', url: '' },
     read: () => fields.mapLayers.value() ?? [],
-    // `known` is carried through untouched: it describes what was LOADED, not what is on screen,
-    // so recomputing it here would make every local edit agree with itself and prove nothing.
+    // `known` describes what was LOADED, not what is on screen: recomputing it proves nothing.
     write: (mapLayers) => fields.set({ id: String(regionId), known: fields.known.value() ?? '', mapLayers }),
   })
 
-  // Keyed on `synced`, which says the region row itself has landed: the membership row can arrive
-  // without it, and seeding then submits an empty list, which this form's handler reads as "remove
-  // them all". The id alone is there from the first frame and would never re-seed.
-  // `layersComplete` too, for the same reason by another route: a blob this build cannot read
-  // whole holds fewer layers than are stored, and saving that deletes the rest.
+  // Keyed on `synced`, not the id: a membership can arrive without its region row, and seeding
+  // then submits an empty list, which the handler reads as "remove them all".
+  // `layersComplete` too: a half-read blob holds fewer layers than are stored.
   seedOnKeyChange(
     () => (membership?.synced === true && membership.layersComplete ? regionId : undefined),
     () => {

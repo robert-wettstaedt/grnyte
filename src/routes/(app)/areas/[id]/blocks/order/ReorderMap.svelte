@@ -29,21 +29,17 @@
   const PAN_KEYS = new Set(['+', '-', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp'])
 
   let map = $state<OlMap>()
-  // Held so the fit effect can read `hasSize`, which the base map owns: fitting to an extent before
-  // the element has a size computes against a zero viewport and lands on a nonsense zoom.
+  // Held so the fit effect can read `hasSize`: fitting before the element has a size lands on a
+  // nonsense zoom.
   let baseMap = $state<ReturnType<typeof createBaseMap>>()
 
   // Imperative OL state: deliberately non-reactive lookups; reactivity comes from `blocks` /
   // `selectedId` reads in the effects below, not from these registries.
   // eslint-disable-next-line svelte/prefer-svelte-reactivity -- OL overlay registry, not UI state
   const pins = new Map<number, { el: HTMLButtonElement; overlay: Overlay }>()
-  // What the last fit framed, and whether the reader has taken the view over. Zero reports a query
-  // ready on a partial snapshot, so the first arrivals are routinely a subset: re-fitting as the
-  // set grows is what keeps the rest from streaming in off-screen. Waiting for a completion signal
-  // instead would leave the map unframed for as long as blocks keep arriving, which is the whole
-  // window a reader spends here. Parking counts
-  // towards the signature: it lands on its own related query, so tracking the block count alone
-  // left the `P` pin, which is the whole reference for "sort by distance", outside the viewport.
+  // What the last fit framed, and whether the reader has taken the view over. Zero reports ready
+  // on a partial snapshot, so re-fitting as the set grows keeps the rest from arriving off-screen.
+  // Parking counts towards the signature: it lands on its own related query.
   let fitted = ''
   let userMoved = false
 
@@ -53,18 +49,14 @@
     map = instance
     baseMap = base
 
-    // Any deliberate pan or zoom retires the auto-fit, so it cannot yank the view back. Tapping a
-    // pin is not one: `stopEvent` only keeps OL from panning, the DOM event still arrives here, so
-    // highlighting a block mid-sync used to strand every later one off-screen.
+    // A deliberate pan or zoom retires the auto-fit. Tapping a pin is not one: `stopEvent` only
+    // stops OL panning, the DOM event still arrives here.
     const takeOver = (event: Event) => {
       if (event.target instanceof Element && event.target.closest('.reorder-pin') != null) return
       userMoved = true
     }
-    // OL's own KeyboardPan and KeyboardZoom, which listen on the target element rather than the
-    // viewport. OL will not pan until the map itself can hold focus, which no map here does, but
-    // the pins are focusable buttons INSIDE this element: arrowing between them bubbles up here,
-    // and without the same guard the pointer path has, moving between pins retired the fit while
-    // the view never moved, stranding every block that synced in afterwards.
+    // OL's KeyboardPan and KeyboardZoom listen on the target element, and the pins are focusable
+    // buttons inside it: arrowing between them bubbles up here and would retire the fit.
     const takeOverKey = (event: KeyboardEvent) => {
       if (event.target instanceof Element && event.target.closest('.reorder-pin') != null) return
       if (PAN_KEYS.has(event.key)) userMoved = true
@@ -85,8 +77,7 @@
     }
   }
 
-  // One badge per located block, added and removed as `blocks` changes, with every badge's number
-  // kept in sync with its position. Positions are fixed (geolocation); label and highlight change.
+  // One badge per located block. Positions are fixed (geolocation); label and highlight change.
   $effect(() => {
     const instance = map
     if (instance == null) return
@@ -119,8 +110,8 @@
       if (el.parentElement != null) el.parentElement.style.zIndex = isSelected ? '500' : ''
     })
 
-    // Drop badges for blocks that have left. The page hands over the previous area's list for the
-    // render before its own clear lands, and a block can be deleted while this is open.
+    // Drop badges for blocks that have left: the page hands over the previous area's list for
+    // one render, and a block can be deleted while this is open.
     const present = new Set(blocks.map((block) => block.id))
     for (const [id, pin] of pins) {
       if (!present.has(id)) {
@@ -156,9 +147,8 @@
     if (instance == null || baseMap?.hasSize !== true || userMoved) return
 
     const located = blocks.filter((block) => block.geolocation != null)
-    // Content, not a count: a block leaving as another arrives keeps the count at three and the
-    // map never refits. Sorted, because `blocks` arrives in the reader's order and a drag must
-    // not refit the map under them: what to fit is a set, not a sequence.
+    // Content, not a count: one block leaving as another arrives keeps the count. Sorted, because
+    // a drag reorders `blocks` and must not refit the map under the reader.
     const signature = located
       .map((block) => `${block.id}@${block.geolocation!.lat},${block.geolocation!.long}`)
       .sort()

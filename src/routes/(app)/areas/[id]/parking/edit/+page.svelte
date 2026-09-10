@@ -60,14 +60,12 @@
   let pathPoints = $state<[number, number][]>([])
   const encodedPath = $derived(pathPoints.length >= 2 ? encodePath(pathPoints) : '')
 
-  // The wizard's position, bound so the reset below can return it to the first step. Left
-  // behind, step 2 stays selected for the next area with nothing placed, and it is the last
-  // step, so Save is enabled and posts empty coordinates.
+  // The wizard's position, bound so the reset can return it to step 1. Left behind, the next
+  // area opens on the last step with nothing placed and Save posts empty coordinates.
   let step = $state(0)
 
-  // Everything above is the reader's placement work, and only the hidden `areaId` would follow
-  // them to another area, saving the new area's parking at the old area's coordinates with the
-  // old area's approach path.
+  // Otherwise the hidden `areaId` follows the reader, saving one area's parking at another's
+  // coordinates.
   seedOnKeyChange(
     () => areaId,
     () => {

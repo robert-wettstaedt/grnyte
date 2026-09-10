@@ -41,17 +41,6 @@ translating the noun. Copy is not settled yet; do not derive UI wording from thi
 The entity. In prose the physical rock is a "boulder", which is correct English and used
 deliberately in landing copy. Never call the record a boulder.
 
-**slot**
-A block's position inside its area, stored as `blocks.order` and shown 1-based, so slot 2
-renders as "Block 3" when a block has no name of its own. The reorder screen is the one place
-that names a block off its position in the list being dragged instead of its stored slot, so
-that the label agrees with the badge beside it while the two differ. Internal vocabulary: it names the
-concept in code and prose here, never in UI copy. Two things follow from it being per-area.
-The column is not uniquely constrained, so two blocks can hold one slot, which is reachable
-rather than observed, and `reorderBlocks` repairs an area by renumbering the whole of it. And a
-list spanning several areas has no slot ordering worth showing, because every area has a block
-at slot 0.
-
 **route**
 The entity. Bouldering colloquially says "problem"; grnyte does not. Route everywhere.
 
@@ -89,27 +78,6 @@ evidence about anybody's ceiling.
 **community**
 The people in a region. Never crew, team or squad.
 
-**vocabulary**
-The set of route tags a region has defined, stored as one key of its `settings` blob. A region's
-own list, not a global one: two regions may both use the word `SD` and neither can see the other's.
-
-It is a vocabulary rather than a list because it is also the allowlist a route write is checked
-against (`regionTags`), so a word that is not in it cannot be stored on a route. That is why a
-vocabulary this build cannot read whole is refused rather than rewritten: saving back only the part
-that parsed would retire every word it could not represent, and those words are on real routes.
-
-A route may still carry a tag the vocabulary no longer holds, because retiring a word does not
-reach back through routes an edit has not touched since. So "in the vocabulary" and "on a route"
-are two different questions, and `renameTag` has to answer both.
-
-A region that has never edited its tags has no stored vocabulary at all, and reads as the starting
-set (`DEFAULT_TAGS`). The first edit writes the whole list, so from then on the region owns its
-vocabulary outright and a later change to the starting set never reaches it. That is intended: the
-list is the region's, not the app's. It does mean "the defaults" describes a region only until
-somebody touches a tag.
-
-In the UI the word is "Tags". "Vocabulary" names the concept and the code, not the copy.
-
 **feedback**
 What somebody sends about the app itself: a regression, a bug, an idea. Not about the rock
 and not about another person, which is what keeps it separate from a **report**. Its kinds
@@ -122,6 +90,23 @@ feedback in every way that matters: anyone may file one without an account, it n
 of content rather than the app, and answering it is a legal obligation with its own deadlines.
 The two must never share a form, a table or a word. The public page is `/legal/report`; the
 in-app reporting flow is not built yet.
+
+## Internal terms
+
+These name concepts in code and in prose here, never in UI copy. They are in this file so that one
+word is used for each of them, not because a reader ever sees the word.
+
+**slot**
+A block's position inside its area, stored as `blocks.order` and shown 1-based, so slot 2 renders
+as "Block 3" when a block has no name of its own. Per-area, so a list spanning several areas has no
+slot ordering worth showing: every area has a block at slot 0. `block/order.ts` holds the rest.
+
+**vocabulary**
+The set of route tags a region has defined, stored as one key of its `settings` blob. A region's
+own list, not a global one: two regions may both use the word `SD` and neither can see the other's.
+A vocabulary rather than a list because it is also the allowlist a route write is checked against
+(`regionTags`), so a word that is not in it cannot be stored on a route. In the UI the word is
+"Tags". `settings.ts` and `tagVocabulary.ts` hold how it is read and who owns it.
 
 ## Events
 

@@ -51,8 +51,8 @@
   // lower seat count than the admin sitting next to them. Only the list below is admin-only.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 
-  // The invite form's fields live on a module-level singleton, so an address typed for one region
-  // and abandoned would be waiting in the next one's invite box.
+  // The invite fields live on a module-level singleton, so an abandoned address follows the
+  // reader into the next region's invite box.
   seedOnKeyChange(
     () => regionId,
     () => inviteRegionMember.fields.set({ email: '' }),
@@ -63,9 +63,8 @@
   const membership = $derived(global.userRegions.find((region) => region.regionFk === regionId))
   const mapLayerCount = $derived(membership?.settings.mapLayers.length ?? 0)
 
-  // The one answer this screen gives to "what is this region called". Four inline fallbacks had
-  // grown here, three of them disagreeing with the mapper, so /settings listed a nameless region
-  // as "Unnamed" and one tap later its header said "Region" and its name row was blank.
+  // The one answer this screen gives to "what is this region called": four inline fallbacks had
+  // grown here, three of them disagreeing with the mapper.
   const name = $derived(membership == null ? undefined : regionDisplayName(membership))
   const tagCount = $derived(regionTags(global.userRegions, regionId).length)
   const invitations = $derived(listRegionInvitations({ regionFk: regionId }))
@@ -107,10 +106,8 @@
   }
 
   const onLeave = async () => {
-    // Captured before the mutation, because leaving revokes the read that named it. Falsy and not
-    // just null: this only fires from inside `QueryState`'s ready branch, so the row is there and
-    // the reachable case is a region whose name is '', which gave "You left " with the region
-    // missing from its own sentence.
+    // Captured before the mutation, because leaving revokes the read that named it. Falsy, not
+    // just null: a region whose name is '' gave "You left " with nothing after it.
     const leaving = name
 
     try {

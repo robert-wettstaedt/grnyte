@@ -35,84 +35,31 @@ This project uses:
 
 - Read `CONTEXT.md` before writing user-facing copy, i18n keys, or naming a domain concept. It is short, and it records distinctions the code depends on (a crag is a typed area, `send` is the umbrella over `flash`/`redpoint`/`repeat`).
 - Mutations are SvelteKit remote functions (`command` / `authedCommand`), RLS-gated. Never Zero mutators.
-- A mutation that acts on an existing row gates through `requireRow` / `requireRowForm` (`$lib/remote/require.server`): they fetch the row and hand it to the permission predicate, so the check's subject is always stored data, never request input. Do not hand-roll `findFirst` + 404 + `can*` in a handler. The one exception is a handler that must load its row under a lock, which is every writer of `regions.settings` (see the bullet below): `requireRow`'s loader cannot express `for update`, so those gate on memberships first and then let the lock answer, and converting one back to `requireRow` silently removes the lock.
+- A mutation that acts on an existing row gates through `requireRow` / `requireRowForm` (`$lib/remote/require.server`): they fetch the row and hand it to the permission predicate, so the check's subject is always stored data, never request input. Do not hand-roll `findFirst` + 404 + `can*` in a handler. The one exception is a writer of `regions.settings`, which must load its row under a lock `requireRow` cannot express; converting one back silently removes the lock.
 - Every write to `regions.settings` goes through `settings.server.ts`, and nothing else may write
-  that column. It is one jsonb blob holding two independently edited keys, so every write is a
-  read-modify-write: `lockRegionSettings` takes the row lock, `writableKey` refuses a key this
-  build could not read whole, and `writeRegionSettings` merges so a sibling key survives. The
-  vocabulary a tag mutation rewrites comes off the returned proof, never from `ctx.userRegions`,
-  which the auth hook parses on another connection before the transaction opens: two admins adding
-  a tag at once each wrote their own stale copy back and the second erased the first one's word.
-  This seam existed once as `mergeSettings` and was dissolved by inlining it into one caller so a
-  compare-and-swap could be attached there, which is exactly how the guarded and unguarded copies
-  came to sit side by side. Two further things fall out of the lock and are easy to undo by
-  accident: Postgres applies the UPDATE policy to `for update`, so the lock is itself the write
-  gate and a demoted admin is stopped before the statements that destroy `routes_to_tags` rows;
-  and the read has to be `db.select(...).for('update')`, because `db.query.*.findFirst` cannot
-  express it. Gate on the caller's memberships BEFORE locking wherever the difference between
-  "gone" and "not allowed" is worth reporting, since an empty lock cannot tell them apart.
-  `settings.server.test.ts` opens with a deliberate negative control: it proves the same two
-  transactions lose a write without the lock, because a concurrency test that quietly serialises
-  passes for the wrong reason.
-- A remote form clears itself after a successful submit, but only while it uses Kit's own enhance
-  callback. `<form {...myForm.enhance(cb)}>` **replaces** that callback, so `cb` has to clear the
-  form itself, and a surface that reopens rather than navigating away should also clear on open.
-  Which tool depends on what is stale. `myForm.fields.set({})` clears values and nothing else; Kit
-  exposes no way to clear ISSUES, so dropping those (and touched state) needs a real DOM reset
-  event. The hazard a reset carries is that it blanks work in progress, so it is wrong exactly
-  while there IS any: never mid-edit to clear a stale error. On open and after a successful submit
-  there is none, and it is the right tool there. `TopoAddRouteModal` does both and says why.
-  Fields live on a
-  module-level singleton that outlives the component, so what is skipped here comes back on the next
-  open and leaks into every other screen bound to the same remote function. Nothing catches it: it
-  typechecks, it lints, and no test covers a form that is opened twice.
+  that column: it is one jsonb blob with two independently edited keys, so every write locks the
+  row, proves the key read whole, and merges. Read that module before touching any of it.
+- A remote form clears itself after a successful submit, but `<form {...myForm.enhance(cb)}>`
+  **replaces** the callback that does it, so `cb` has to clear the form; a surface that reopens
+  rather than navigating away clears on open too. Its fields live on a module-level singleton that
+  outlives the component, so what is skipped leaks into every screen bound to the same function.
+  `fields.set({})` clears values; only a real DOM reset event clears Kit's issues, and that one is
+  wrong mid-edit because it blanks work in progress. `Form.svelte` and `TopoAddRouteModal` say why.
 - Every add or edit form on a parameterised route seeds through `seedOnKeyChange`
-  (`$lib/forms/seedOnKeyChange.svelte`). `/areas/1/blocks/add` and `/areas/2/blocks/add` are one
-  route, so SvelteKit reuses the page instead of remounting it, and Zero answers from the local
-  store, so it never passes through a loading state that would rebuild it either. Everything
-  seeded once then follows the reader to the next entity: the remote form's fields, staged
-  uploads, wizard steps, row identities, local working copies. This has produced a block saved at
-  another block's coordinates, a rename applied to the region you came from, and a reorder of the
-  wrong area's blocks. Pass the route parameter when seeding to blank, the loaded row's id when
-  seeding from data (so the seed waits for the row). Component state a child seeds once from props
-  is out of reach: key those with `{#key}` on the same id. Not `form.for(key)`, which Kit
-  documents for forms repeated in a list and which posts the key as the `id` field. An undefined
-  or NaN key means "not loaded yet" and is ignored, so gate the key on the data the seed reads
-  having loaded, never on the selection or on a count. A key available before that data seeds from
-  an empty or partial snapshot and never comes back: that is how a cold load submitted an empty
-  form, and how a Zero resource blinking on the hourly token refresh wiped what was being typed.
-  Resources carry `isComplete` for exactly this. A seed clears values but not Kit's issues, so an error raised for one
-  entity can still render under the next one's blank field, and an issue raised for THIS entity
-  outlives the value being corrected. A DOM reset is not the fix HERE, mid-edit, though it is
-  what clears issues on open or after a submit (see the remote-form bullet above). Two reasons.
-  The first is that it writes the DOM without telling Svelte, so the component state and the
-  inputs diverge, while `fields.set({})` clears the thing that actually owns the values. The
-  second decides WHICH fields diverge: a reset restores each input to its `defaultValue`, and Svelte's `value={x}`
-  property write reaches that only in the value modes that reflect it, which are `hidden`,
-  `checkbox` and `radio`. Of those only `hidden` is genuinely safe, because checkedness is all a
-  checkbox submits and `defaultChecked` is never written. So a reset keeps the row identity that
-  made the error stale and throws away what somebody typed.
-  `src/lib/forms/resetBlanks.test.ts` pins the hidden and text cases and the checkbox trap,
-  because four wrong models preceded it.
-  Kit exposes no way to clear an issue either: `raw_issues` is internal, a preflight pass and a
-  merge both preserve server issues on purpose, and the only things that clear them are a
-  successful submit and a reset event.
+  (`$lib/forms/seedOnKeyChange.svelte.ts`): `/areas/1/blocks/add` and `/areas/2/blocks/add` are one
+  route, so anything seeded once follows the reader to the next entity. Pass the route parameter
+  when seeding to blank, the loaded row's id when seeding from data, and gate the key on that data
+  having loaded rather than on a selection or a count. Component state a child seeds from props is
+  out of reach: key those with `{#key}` on the same id, never `form.for(key)`, which posts the key
+  as an `id` field. The module says what a key may and may not be.
 - i18n: add keys to BOTH `messages/en.json` and `messages/de.json` (`domain_camelCase`, kept sorted). One prefix per domain: never split singular and plural (`areas_*`, not `area_*` alongside it). No em-dashes anywhere (UI copy, translations, code comments).
 - Icons: use `<Icon name="...">`; only `icons.ts` and `Icon.svelte` may import lucide.
-- Every OpenLayers instance comes from `createBaseMap` (`$lib/map/base.svelte`), which owns the
-  controls, the OSM tile layer, the view defaults, the resize latch and teardown. Two adapters sit
-  on it, `Map.svelte` and the reorder screen's `ReorderMap.svelte`, and they differ in behaviour
-  (one navigates on a tap, the other drags positions) rather than in the map underneath. They used
-  to build that map each, and the copies drifted: two default centres, and an auto-fit rule improved
-  in one file only. Do not construct `new OlMap` anywhere else, and do not restyle `.osm-layer` in a
-  component: those rules live in `app.css` for the same reason. `StaticMap.svelte` is the deliberate
-  exception and not a client of any of this, because it draws raw `<img>` tiles and has no OL
-  instance at all: a feed of five cards would otherwise be five canvases. Never hand a region's map
-  layer its `attributions` (`createWmsLayers`): OL renders a source's attributions as HTML and those
-  strings are written by a region admin, so that is an XSS against everyone in the region. The
-  credits sheet reads them off region settings and parses them through `$lib/map/attribution`
-  instead. `base.svelte.test.ts` pins both that and the three OSM tile settings `src/sw.ts` needs
-  for offline caching, none of which any compiler checks.
+- Every OpenLayers instance comes from `createBaseMap` (`$lib/map/base.svelte.ts`): never
+  `new OlMap` elsewhere, and never restyle `.osm-layer` in a component, those rules live in
+  `app.css`. `StaticMap.svelte` is the deliberate exception, drawing raw `<img>` tiles.
+  Never hand a region's map layer its `attributions`: OL renders them as HTML and a region admin
+  writes them, so that is an XSS against everyone in the region. The credits sheet parses them
+  through `$lib/map/attribution` instead, and `base.svelte.test.ts` pins it.
 - Conditional UI animates in and out. An element an `{#if}` adds or removes in response to a press
   (a disclosure, a toast, an inline form, a sheet) gets a `svelte/transition`, so it reads as
   growing out of the control that opened it instead of snapping into place. `slide` for a
@@ -126,70 +73,22 @@ This project uses:
   so it stays on hover, focus and state changes of elements that are already mounted.
 - Reuse before building: grep for an existing component/function first. If one fits but is not reusable, refactor it to be reusable and composable rather than hand-rolling a copy. Promote shared pieces to `$lib`. Prefer passing an entity DTO over a long list of individual props.
 - Entity modules live in `src/lib/entities/<name>/`, mirroring `area/` as the template.
-- An entity's display name comes from its mapper and nowhere else, and that is a TYPE rather than a
-  convention now: `entities/displayName.ts` brands `DisplayName` and mints it, and the `name` field
-  of `AreaListItem`, `BlockListItem` and `RouteListItem` will not take a plain string. Most entities
-  call `toDisplayName` directly, because "the name, or `common_unnamed`" is the whole rule for them.
-  An entity earns its OWN helper only by answering differently: `blockName` falls back to a position
-  ("Block 3") and `regionDisplayName` reports a membership that has not synced yet. Two helpers that
-  did not clear that bar have been deleted, `routeDisplayName` and `areaDisplayName`, and with them
-  `route/name.ts`, which existed only to stop `topo/mapper.ts` closing an import cycle back through
-  `route/mapper.ts`. Nothing can cycle through `displayName.ts`: it imports only paraglide. So a
-  one-line helper that forwards to `toDisplayName` is an artefact, not a seam.
-  Names are genuinely optional in the DB, so an entity must never render as an empty string; the
-  fallback (`common_unnamed`, `Block <order+1>`) belongs in the mapper so a feed card, a push
-  notification and the screen they link to cannot disagree. Never inline `name ?? ''`,
-  `name || 'Unnamed'` or a second copy of the fallback, on the client or the server. The type
-  exists because the convention lost, and `displayName.ts` carries the commits: `entityNames` in
-  `digest.server.ts` was written reading all five names off the row, one line was fixed a day later
-  by a commit that happened to touch both files, and the rest never were. Of those, `user` was
-  never a defect (a username is required by the schema), so three were: area, route and the ascent
-  that inherits the route's column. Only routes had a helper to reach for; blocks had the fallback
-  inlined in the mapper with nothing callable, and areas had neither. So a push about a nameless
-  route arrived blank while the screen it linked to read "Unnamed". Two more turned up on the first
-  compile, both building breadcrumb ancestors from `row.name`. That is a call site nobody had a
-  reason to return to rather than carelessness, which is what a docstring cannot sweep and a type can. Pass `locale` on the server:
-  it renders once per recipient. A fixture builds names through the helpers too, so a story can
-  show the nameless case at all.
-- Blocks inside an area are ordered by `order`, then `id`, stated once in `block/order.ts`
-  (`inAreaOrder`). `order.server.ts` holds the drizzle half, and its export is `inAreaOrderSql`
-  rather than the same name as its twin on purpose: nothing stops a `.svelte` file importing it
-  (eslint's restricted imports cover zod, Kit's illegal-import check covers `$lib/server/**`, not a
-  `.server.ts` suffix), so two exports under one name put drizzle and the whole schema into the
-  client bundle on one wrong autocomplete, and nothing catches it. `order.ts` carries WHY the
-  tie-break is `id` and why this was never a shipped bug; read it before changing either half, and
-  keep that derivation there rather than copying it here. A list spanning more than one area orders
-  by `name`, then `id` (`acrossAreasOrder`), because `order` is a position inside one area and every
-  area has a block at slot 0. That is not alphabetical: `blocks.name` is not null, so a nameless
-  block stores `''`, sorts first, and renders as "Block 3", so favourites, which shows only its
-  first six, can fill them with nameless blocks. A content search is unaffected in practice, not
-  structurally: its filter runs before the ordering, so a nameless block only reaches the cap if it
-  carries a matching description, and almost none do (1 of 255 in the dev database). `order.ts`
-  holds that figure and the rest of the reasoning; do not restate it here. `createdAt` is
-  deliberately not routed through the module: different question, no server twin, and it has to keep
-  agreeing with `listAreas` and `listRoutes` inside `recentlyAdded`. On the reorder screen the label
-  is `blockName(rawName, index)`, off the list position rather than the stored slot, so it agrees
-  with the badge beside it; it is honest about the list and not about the outcome, for the reason
-  the KNOWN GAP comment above `sortByDistance` gives. `order.server.test.ts` asserts the two halves
-  agree AND that `queries.ts` still calls them, which is the half that matters: pinning the helpers
-  alone leaves inlining the ordering back into the query green. The reorder fixture seeds names
-  descending against ascending ids, because with A, B, C, D the alphabet and the ids run the same
-  way and a name tie-break passes every assertion in the file.
+- An entity's display name comes from its mapper and nowhere else, and that is a TYPE now:
+  `entities/displayName.ts` brands `DisplayName`, and a list item's `name` will not take a plain
+  string. Most entities call `toDisplayName`; an entity earns its own helper only by answering
+  differently (`blockName` falls back to "Block 3"). Names are optional in the DB, so an entity must
+  never render as an empty string: keep the fallback in the mapper, never inline `name ?? ''` or
+  `name || 'Unnamed'`, on the client or the server. Pass `locale` on the server, and build fixture
+  names through the helpers too.
+- Block ordering is stated once in `block/order.ts` (inside an area by slot, across areas by name),
+  with the drizzle half in `order.server.ts` under a deliberately different export name. Read
+  `order.ts` before changing either half; it carries the reasoning, and this file will not repeat it.
 - Check a value at its point of use, not a re-derivation of it. A guard that calls the builder
-  again pins a different pair of values than the comparison reads; a comment that says a type is
-  `any` is not the type; a test that exercises the helper does not show the call site still uses it.
-  Three things in the repo are that principle rather than descriptions of it: the `IsAny` tripwire
-  in `event/mapper.ts` asserts on `EventRow['route']` itself and fails the day it stops being `any`,
-  `block/order.server.test.ts` reads the ordering off the BUILT query so inlining it back into
-  `queries.ts` reddens, and `event/routeRelation.server.test.ts` asserts non-empty on the same two
-  locals it then compares. The failure this avoids is not a wrong method, it is a sound method
-  aimed one level off the thing that runs, which is why it never feels like carelessness at the
-  time. Green means nothing until the probe is shown to have reached the code: grep the mutated
-  text before believing a surviving mutation, and assert a value that DIFFERS across the branch
-  under test before believing a passing test. It applies to prose too: a COUNT written into a
-  comment is a re-derivation of the call sites, so name the thing rather than counting it, or put
-  the number somewhere a build can break. Three counts in this change drifted, two of them inside
-  the module documenting why the previous convention had drifted.
+  again pins different values than the comparison reads; a comment saying a type is `any` is not
+  the type; a test exercising the helper does not show the call site still calls it. The failure is
+  a sound method aimed one level off the thing that runs, which never feels like carelessness at
+  the time, so green means nothing until the probe is shown to have reached the code. It applies to
+  prose: a count written into a comment is a re-derivation, so name the thing rather than count it.
 - Schema changes go through the pipeline: edit `schema.ts`, `generate:drizzle`, append any backfill SQL, `generate:zero`, `migrate`.
 - `auth.users` and `public.users` are both `users` to drizzle, so a query joining them needs
   `alias(authUsers, 'auth_user')` from `drizzle-orm/pg-core`. Without it the query throws

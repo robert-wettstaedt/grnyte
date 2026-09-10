@@ -63,17 +63,11 @@
   let resetForOpen = false
 
   /**
-   * Clear the form once per open.
+   * Clear the form once per open. A real reset event, because `fields.set({})` blanks values but
+   * not Kit's issues, and the fields live on a singleton that outlives this component.
    *
-   * `fields.set({})` blanks the values but not Kit's issues, and only a real reset event drops
-   * all three (value, issues, touched): without one, a refused duplicate name reappeared under
-   * an empty field on the next open. The fields live on a module-level singleton that outlives
-   * this component, which is also how an abandoned name leaked into the full-page add form
-   * bound to the same `createRoute`.
-   *
-   * Once per OPEN and not per mount: step 2 remounts its form every time the reader goes back
-   * to the list and returns, and wiping the name there while `gradeFk` and `tags` (reset only
-   * in `openSheet`) survived was a half-reset, which reads as a bug either way you look at it.
+   * Per OPEN, not per mount: step 2 remounts its form, and clearing the name there while
+   * `gradeFk` and `tags` survived is a half-reset.
    */
   const clearForOpen = (node: HTMLFormElement) => {
     if (resetForOpen) {
@@ -85,9 +79,8 @@
 
   const resetOnMount: Attachment<HTMLFormElement> = (node) => clearForOpen(node)
 
-  // Mobile mounts the sheet body on open, so the attachment above gets there first. A desktop
-  // panel keeps its body mounted across a close, so nothing remounts and only this fires.
-  // `isConnected` keeps it off a form the mobile sheet left detached.
+  // Mobile mounts the sheet body on open, so the attachment gets there first; a desktop panel
+  // keeps its body mounted, so only this fires. `isConnected` keeps it off a detached form.
   $effect(() => {
     if (!open) {
       return
@@ -122,9 +115,8 @@
     const ok = await submit()
     if (!ok) return
 
-    // Kit's own enhance callback resets the form after a successful submit, and passing one
-    // of ours replaced it: that is what left the typed name behind. Reset while the form is
-    // still mounted, so the listener that clears the field state is there to see the event.
+    // Passing our own enhance callback replaced Kit's, which is what left the typed name behind.
+    // Reset while the form is still mounted, so the listener sees the event.
     await tick()
     HTMLFormElement.prototype.reset.call(element)
 

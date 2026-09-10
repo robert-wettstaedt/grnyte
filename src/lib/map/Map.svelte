@@ -57,8 +57,7 @@
   })
 
   let map = $state<OlMap>()
-  // The base map owns the size latch: fitting to an extent before the element has been laid out
-  // computes against a zero viewport and lands on a nonsense zoom.
+  // The base map owns the size latch: fitting before layout lands on a nonsense zoom.
   let baseMap = $state<ReturnType<typeof createBaseMap>>()
   const mapHasSize = $derived(baseMap?.hasSize === true)
   let isTrackingGeolocation = $state(false)
@@ -302,29 +301,20 @@
     layerEntries = layerEntries.map((entry) => (entry.name === name ? { ...entry, visible: newVisible } : entry))
   }
 
-  // Every floating control shares this. The fill alone is near-white in light mode and
-  // vanishes over a pale tile, so the border is what keeps the button's edge readable.
+  // The fill alone is near-white in light mode and vanishes over a pale tile.
   const CONTROL_CLASS = 'btn-icon preset-outlined-surface-300-700'
 
-  // Credits owed by the region layers, read from settings rather than off the OL sources so
-  // the list is complete before the first tile lands. OSM's own credit is rendered separately.
-  //
-  // Deliberately every layer the user's regions define, not only the ones currently drawn.
-  // OL's control credited the drawn frame, so a layer toggled off or below its minZoom
-  // dropped out; this over-credits instead, which is the safe direction for a licence.
-  //
-  // Each one is stored as HTML and parsed rather than interpolated: the links in them are what
-  // the licences actually require, and `{@html}` on region-admin input would be an XSS against
-  // every member of that region. `parseCredit` needs a DOM, hence the browser guard.
+  // Credits from settings, not off the OL sources, so the list is complete before the first tile
+  // lands. Every layer the regions define, not only the drawn ones: over-crediting is the safe
+  // direction for a licence. Parsed, never `{@html}`: these are region-admin input.
   const creditStrings = $derived(
     global.userRegions
       .flatMap((region) => region.settings.mapLayers.flatMap((layer) => layer.attributions ?? []))
       .filter((credit, index, all) => all.indexOf(credit) === index),
   )
 
-  // Parsed only while the sheet is open. Each credit costs a whole DOM document, nothing reads
-  // the parts until then, and a desktop panel renders its body even closed, so every map paid
-  // for this on mount, static previews included.
+  // Parsed only while the sheet is open: each credit costs a whole DOM document, and a desktop
+  // panel renders its body even closed.
   const regionCredits = $derived(
     !browser || !isAttributionOpen ? [] : creditStrings.map((credit) => ({ credit, parts: parseCredit(credit) })),
   )
@@ -352,8 +342,7 @@
     const base = createBaseMap(node as HTMLElement, {
       extraLayers: wmsLayers,
       interactive: !isStatic,
-      // Seeded so a rebuilt map does not snap back to the world view; `savedView` is captured on
-      // moveend below for exactly that.
+      // Seeded so a rebuilt map does not snap back to the world view.
       view: savedView,
     })
     const mapInstance = base.map

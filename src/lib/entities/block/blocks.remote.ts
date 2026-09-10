@@ -610,12 +610,9 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
   }
 })
 
-/** Persist a new block order for an area: `orderedIds` is the blocks the client could see, top to
- *  bottom, and deliberately not required to be all of them. Zero reports a query ready on a partial
- *  snapshot, so a subset arrives in good faith; those ids are placed into the slots those blocks
- *  already occupied and everything absent keeps its own, which preserves the reader's relative
- *  order without moving anything they never saw. Foreign and stale ids are dropped, so a client
- *  cannot renumber blocks outside the area. Used by the reorder page. */
+/** Persist a new block order for an area. `orderedIds` is what the client could see, top to
+ *  bottom, and deliberately not all of them: submitted ids take the slots those blocks already
+ *  held, everything absent keeps its own. Foreign and stale ids are dropped. */
 export const reorderBlocks = authedCommand(
   z.object({ areaId: z.number(), orderedIds: z.array(z.number()) }),
   async ({ areaId, orderedIds }, { db, userRegions }) => {
@@ -627,29 +624,19 @@ export const reorderBlocks = authedCommand(
 
     const areaBlocks = await db.query.blocks.findMany({
       columns: { id: true },
-      // The same rule the client reads blocks by (`./order`), so the slots this enumerates are the
-      // ones the reader saw. Spelling it here again is how the two came to disagree.
+      // The same rule the client reads blocks by (`./order`), so the slots match what was seen.
       orderBy: inAreaOrderSql,
       where: and(eq(blocks.areaFk, areaId), isNull(blocks.deletedAt)),
     })
     const belongsToArea = new Set(areaBlocks.map((row) => row.id))
 
-    // Renumber the whole area, not only what was sent. Zero reports a query ready on a partial
-    // snapshot, so the screen can submit a subset in good faith; numbering just those left the
-    // rest on their old slots, and `order` is not uniquely constrained, so the area came back
-    // with duplicates interleaved.
-    //
-    // The submitted ids land in the slots the submitted blocks already occupied, in the order
-    // given, and a block the reader never saw keeps the slot it had. Putting the submitted ones
-    // in front instead meant a Save with no edit at all reordered the rest for every member of
-    // the region, silently and permanently.
+    // The whole area, not only what was sent: numbering just those left duplicates behind, and
+    // putting them in front reordered blocks the reader never saw.
     const queue = [...new Set(orderedIds)].filter((id) => belongsToArea.has(id))
     const submitted = new Set(queue)
     const renumbered = areaBlocks.map((row) => (submitted.has(row.id) ? queue.shift()! : row.id))
 
-    // ponytail: one UPDATE per block, fine for the handful of blocks an area has; a single CASE
-    // update is the upgrade if an area ever holds hundreds. Already atomic: `authedCommand` runs
-    // the whole handler inside one RLS transaction.
+    // One UPDATE per block, fine at this size; a single CASE update is the upgrade for hundreds.
     let order = 0
     for (const id of renumbered) {
       await db.update(blocks).set({ order }).where(eq(blocks.id, id))

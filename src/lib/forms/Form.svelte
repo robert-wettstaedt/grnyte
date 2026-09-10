@@ -141,24 +141,14 @@
       await tick()
       element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
       if (succeeded) {
-        // Kit's own enhance callback clears the form after a successful submit, and supplying
-        // ours replaced it. Every full-page form goes through here, so without this the values
-        // stay on the module-level remote singleton for the rest of the session. See AGENTS.md.
+        // Supplying our own enhance callback replaced Kit's, which clears the form after a
+        // successful submit; the values otherwise sit on the remote singleton all session.
         //
-        // `fields.set({})` and NOT `element.reset()`. A reset restores every input to its
-        // `defaultValue`, and Svelte writes `value={x}` as a property. For `type="hidden"` that
-        // property reflects the content attribute, so hidden fields survive. For `text`, `number`
-        // and the other value-mode inputs the two are decoupled, `defaultValue` stays empty, and a
-        // reset blanks exactly the visible fields somebody has typed into. Checkboxes and radios
-        // are a separate case and NOT safe: the `value` attribute survives, but `checked` does not,
-        // because Svelte never writes `defaultChecked` either, and checkedness is the only thing
-        // they contribute to form data. `resetBlanks.test.ts` pins all of it. Clearing the
-        // singleton touches only what the singleton owns, and Kit already empties the issues from a
-        // successful response.
-        // After `onSubmitted`, not before: it can await (routes/add waits up to 5s for Zero to
-        // sync), and clearing first blanks the form on screen for that whole wait. `finally` so a
-        // throw still clears. Not a double-submit guard: Kit holds `pending` up across this
-        // callback, so Submit is disabled throughout either way.
+        // `fields.set({})` and NOT `element.reset()`: a reset restores each input to its
+        // `defaultValue`, which Svelte's property write only reaches for `hidden`, `checkbox` and
+        // `radio`, so it blanks exactly the visible fields. `resetBlanks.test.ts` pins it.
+        // After `onSubmitted`, which can await: clearing first blanks the form for that wait.
+        // `finally` so a throw still clears.
         try {
           await onSubmitted?.()
         } finally {

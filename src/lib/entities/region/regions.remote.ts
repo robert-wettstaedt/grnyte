@@ -49,15 +49,8 @@ function assertIsMember({ userRegions }: Context, regionFk: number) {
   }
 }
 
-/**
- * Throws unless a settings write actually landed.
- *
- * `writeRegionSettings` reports a write that matched no row rather than throwing, because what that
- * means depends on the caller. Here it can only be the region disappearing or the write policy
- * refusing it mid-transaction, since the lock rules out another writer. Silence was the old
- * behaviour and the worst one: the junction rows had already moved, so a retired tag vanished from
- * every route while the screen still showed it.
- */
+/** Throws unless a settings write actually landed. Silence was the old behaviour and the worst
+ *  one: the junction rows had already moved, so a retired tag vanished while the screen showed it. */
 function assertWritten(outcome: 'ok' | 'zero') {
   if (outcome === 'zero') {
     error(404, formError('region_notFound'))
@@ -66,28 +59,20 @@ function assertWritten(outcome: 'ok' | 'zero') {
 
 const regionCreateSchema = z.object({ name: nameSchema })
 
-/**
- * Found a region, with its creator as `region_admin`.
- *
- * The one write in this file open to a caller who administers nothing yet: it is what the
- * zero-region onboarding screen submits, and the same form serves the settings entry point for
- * somebody starting a second one.
- */
+/** Found a region, with its creator as `region_admin`. The one write here open to a caller who
+ *  administers nothing yet. */
 export const createRegion = authedForm(
   regionCreateSchema,
   async ({ name }, { user }): Promise<MutationResult<{ regionId: number }>> => {
-    // The friendly, bannered version of the cap. `createRegionForUser` re-checks it inside its own
-    // transaction, and that check is the one that enforces it.
+    // The friendly version of the cap. `createRegionForUser` re-checks it and enforces it.
     if ((await listOwnedRegions(user.id)).length >= MAX_OWNED_REGIONS) {
       invalid(formError('region_capReached', { count: MAX_OWNED_REGIONS }))
     }
 
     const region = await createRegionForUser({ authUserId: user.authUserFk, name, userId: user.id })
 
-    // Deliberately no `redirectTo`: that navigates client-side, and the Zero client is session
-    // scoped with `userRegions` preloaded at init, so the new membership would sync nowhere and
-    // the destination would render as if the region did not exist. The page reloads the document
-    // instead, the same way accepting an invitation does.
+    // No `redirectTo`: the Zero client is session scoped, so the new membership would sync
+    // nowhere. The page reloads the document instead, like accepting an invitation does.
     return { data: { regionId: region.id } }
   },
 )
@@ -102,107 +87,79 @@ export const updateRegion = authedForm(regionActionSchema, async ({ id, name }, 
     invalid(formError('form_noPermission'))
   }
 
-  // One statement, not a read then a write: `returning` says whether the row was there, and
-  // under RLS a region the caller cannot see is the same "not found" either way.
+  // One statement: `returning` says whether the row was there, and under RLS an invisible
+  // region is the same "not found" either way.
   const [updated] = await db.update(regions).set({ name }).where(eq(regions.id, id)).returning({ id: regions.id })
 
   if (updated == null) {
     error(404, 'Region not found')
   }
 
-  // No event row: an event's object columns have no 'region' member, and the feed renders
-  // content changes rather than settings ones.
+  // No event row: object columns have no 'region' member, and the feed renders content changes.
 
   return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
 })
 
 const regionMapLayersSchema = z.object({
   id: stringToInt,
-  /** A fingerprint of the layers the form was seeded with, so a save can prove it is replacing
-   *  what it read. Written only by the seed.
-   *
-   *  Defaulted, so a tab loaded before this deployed refuses the write instead of failing
-   *  silently: its POST carries no `known`, and a required field's invalid_type has nowhere to
-   *  render (bare hidden input, and `FormError` only shows empty-path issues). `''` never equals
-   *  a fingerprint, so it lands on the stale refusal. That tab renders the KEY, not the copy,
-   *  since `region_mapLayersStale` shipped with this field, but a visible refusal beats none. */
+  /** Fingerprint of the layers the form was seeded with, so a save proves what it replaces.
+   *  Defaulted, so a tab loaded before this deployed lands on the stale refusal rather than
+   *  an unrenderable invalid_type issue. */
   known: z._default(z.optional(z.string()), ''),
   mapLayers: z._default(z.optional(z.array(mapLayerSchema)), []),
 })
 
 /**
- * Replace a region's WMS map overlays.
- *
- * Removing them all is a legitimate edit, which is exactly what made this dangerous: an empty
- * submission was indistinguishable from a form that had rendered before its data arrived, and four
- * separate gates on the client each closed one route to that and left another open. So the payload
- * has to prove which layers it is replacing.
- *
- * A fingerprint and not a count, because every path that survived the count preserved it: another
- * admin deleting one layer and adding another leaves three as three, and a stale form then
- * resurrected the deleted one and destroyed the new one without a word.
+ * Replace a region's WMS map overlays. Removing them all is legitimate, so an empty submission is
+ * indistinguishable from a form that rendered before its data arrived: the payload has to prove
+ * which layers it replaces. A fingerprint and not a count, because a delete plus an add leaves
+ * three as three.
  */
 export const updateRegionMapLayers = authedForm(regionMapLayersSchema, async ({ id, known, mapLayers }, ctx) => {
   const { db } = ctx
 
-  // Membership first, so a non-admin is told so. The lock below cannot say: Postgres applies the
-  // update policy to `for update` too, so a member who may read this region but not administer it
-  // simply sees no row, and reporting that as "not found" would be a lie about a region they can
-  // see on screen.
+  // Membership first, so a non-admin is told so: the lock cannot say, since Postgres applies the
+  // update policy to `for update` and a non-admin simply sees no row.
   if (!canEditRegion(ctx.userRegions, id)) {
     invalid(formError('form_noPermission'))
   }
 
-  // Locked, not merely read. This is also what makes the missing row safe: `readRegionSettings`
-  // reports an absent blob as complete and empty, so a `known` matching that once answered a write
-  // against nothing with a success redirect.
+  // Locked, not merely read. Also what makes a missing row safe: an absent blob reads as complete
+  // and empty, so a matching `known` once answered a write against nothing with a success.
   const locked = await lockRegionSettings(db, id)
   if (locked == null) {
     invalid(formError('region_notFound'))
   }
 
-  // Two different refusals, because they need two different answers. An unreadable blob is not
-  // "someone else changed this": reopening recomputes the same flag, so that message sends the
-  // admin round a loop it cannot leave.
+  // Two refusals, two answers: an unreadable blob is not "someone else changed this", and that
+  // message would send the admin round a loop reopening cannot leave.
   const writable = writableKey(locked, 'mapLayers')
   if (writable == null) {
     invalid(formError('region_mapLayersUnreadableBody'))
   }
 
-  // The one guard the lock does not replace. The lock stops a concurrent writer; this stops a
-  // stale HUMAN, whose form rendered before somebody else's save and who would otherwise replace
-  // layers they never saw. Nothing about holding the row tells us what was on their screen.
+  // The lock stops a concurrent writer; this stops a stale HUMAN, whose form rendered before
+  // somebody else's save. Holding the row says nothing about what was on their screen.
   if (mapLayersFingerprint(currentValue(writable)) !== known) {
     invalid(formError('region_mapLayersStale'))
   }
 
   if ((await writeRegionSettings(db, writable, mapLayers)) === 'zero') {
-    // Under the lock another writer is ruled out, so this is the row going away or the write
-    // policy refusing while the read policy allowed the lock (an admin demoted mid-request). Both
-    // read as gone to this screen; the next request re-reads `userRegions` and refuses with
-    // `form_noPermission`.
+    // The row went away, or an admin was demoted mid-request. Both read as gone here; the next
+    // request re-reads `userRegions` and refuses with `form_noPermission`.
     invalid(formError('region_notFound'))
   }
 
   return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
 })
 
-/**
- * How many routes carry each of a region's tags, for the settings screen: one grouped read for the
- * whole list rather than one per tag. Until it lands, that screen's remove control stays disabled
- * rather than offering to destroy an unknown quantity.
- */
+/** How many routes carry each of a region's tags: one grouped read, not one per tag. Until it
+ *  lands the remove control stays disabled rather than destroying an unknown quantity. */
 export const regionTagUsage = authedQuery(
   z.object({ regionFk: z.number() }),
   ({ regionFk }, ctx): Promise<Record<string, number>> => {
-    // The three tag mutations below reach this check through `lockEditableTags`; the read sitting
-    // next to them did not, and took the client's `regionFk` as given. All RLS ever gave it was a
-    // MEMBER scope, so any region_user could pull a region they cannot administer and how many
-    // routes carry each of its tags, and a stranger got a silent empty object instead of a refusal.
-    // Not routed through `lockEditableTags`: that locks the row to hand a mutation the stored
-    // vocabulary, and this query wants the gate, not the list and not a lock. Admin rather than
-    // edit, because the screen it feeds
-    // (settings/regions/[regionId]/tags) is admin-only, the same as every other write in this file.
+    // Admin, not member: RLS only ever scoped this to members, so any region_user could pull tag
+    // counts for a region they cannot administer. Not via `lockEditableTags`: no lock wanted here.
     assertCanEdit(ctx, regionFk)
 
     return tagUsage(ctx.db, regionFk)
@@ -210,18 +167,11 @@ export const regionTagUsage = authedQuery(
 )
 
 /**
- * Lock the region's row and return permission to rewrite its vocabulary.
+ * Lock the region's row and return permission to rewrite its vocabulary, which comes back on the
+ * proof rather than from `ctx.userRegions`: the hook parses that on another connection, so two
+ * admins adding a tag at once each wrote a stale copy back and the second erased the first's word.
  *
- * The vocabulary comes back on the returned proof, read inside this transaction under `for update`.
- * It used to come from `ctx.userRegions`, which the auth hook parses on another connection before
- * the transaction opens: since all three mutations rewrite the whole array, two admins editing at
- * once each wrote their own stale copy back and the second erased the first one's word.
- *
- * Two refusals in a deliberate order. The membership check answers first so a non-admin is told
- * so, because the lock cannot tell them apart: Postgres applies the update policy to `for update`,
- * so a non-admin simply sees no row and would otherwise get "not found". Past that, an empty lock
- * means the region is gone or the caller was demoted between the hook's read and now, and either
- * way this must not reach the statements that move `routes_to_tags` rows.
+ * Membership is checked before the lock, which cannot tell "gone" from "not allowed".
  */
 async function lockEditableTags(ctx: Context, regionFk: number): Promise<WritableKey<'tags'>> {
   assertCanEdit(ctx, regionFk)
@@ -231,11 +181,8 @@ async function lockEditableTags(ctx: Context, regionFk: number): Promise<Writabl
     error(404, formError('region_notFound'))
   }
 
-  // Refused before any junction row moves, not merely rolled back after. A blob this build cannot
-  // read whole would have its real tags replaced by whatever was readable, permanently, and
-  // `regionTags` is also the allowlist for what a route write may store, so the region's own tags
-  // become unwritable. `removeRegionTag` is worse still, since it deletes the `routes_to_tags`
-  // rows first.
+  // Refused before any junction row moves. A blob this build cannot read whole would have its
+  // real tags permanently replaced by whatever was readable.
   const writable = writableKey(locked, 'tags')
   if (writable == null) {
     error(409, formError('region_tagsUnreadable'))
@@ -251,8 +198,7 @@ export const addRegionTag = authedCommand(
     const writable = await lockEditableTags(ctx, regionFk)
     const stored = currentValue(writable)
 
-    // Nothing else catches this: the vocabulary is a jsonb array, so there is no unique constraint,
-    // and a duplicated name would render as two identical chips forever.
+    // Nothing else catches this: a jsonb array has no unique constraint.
     if (stored.includes(name)) {
       error(409, formError('region_tagDuplicate'))
     }
@@ -295,9 +241,8 @@ export const removeRegionTag = authedCommand(
     const writable = await lockEditableTags(ctx, regionFk)
     const stored = currentValue(writable)
 
-    // Same refusal `renameRegionTag` gives, and for a sharper reason: the delete underneath is
-    // unconditional, so a name this region does not have would take real junction rows with it.
-    // Returning quietly instead told the reader the tag was removed while it sat there untouched.
+    // The delete underneath is unconditional, so a name this region does not have would take
+    // real junction rows with it.
     if (!stored.includes(name)) {
       error(404, formError('region_tagGone'))
     }
@@ -306,31 +251,18 @@ export const removeRegionTag = authedCommand(
   },
 )
 
-/**
- * Pending invitations for a region.
- *
- * A server query rather than a Zero query on purpose: Zero syncs whole rows, and
- * `region_invitations` carries the `token` that joins a region. Selecting the display
- * columns here keeps that token off every member's device.
- */
+/** Pending invitations for a region. A server query, not Zero: Zero syncs whole rows and
+ *  `region_invitations` carries the `token` that joins a region. */
 export const listRegionInvitations = authedQuery(
   z.object({ regionFk: z.number() }),
   async ({ regionFk }, ctx): Promise<RegionInvitationItem[]> => {
-    // MEMBERSHIP, not admin. The screen renders the list only to admins, but it runs this query for
-    // every member on purpose: a pending invitation holds a seat, so a member who could not see them
-    // would be shown a lower seat count than the admin sitting next to them
-    // (settings/regions/[regionId]/+page.svelte). Requiring admin here breaks that counter and 403s
-    // on every ordinary member's page load.
-    //
-    // So this reproduces exactly what the `region members can read region_invitations` policy gave
-    // it, which is what the handler has to own once RLS keeps region scoping only. The one thing it
-    // adds is refusing a non-member, who previously got a silent empty list.
+    // MEMBERSHIP, not admin: a pending invitation holds a seat, so every member runs this for the
+    // seat counter. Admin here 403s on every ordinary member's page load.
     assertIsMember(ctx, regionFk)
 
     const rows = await ctx.db.query.regionInvitations.findMany({
       columns: { email: true, id: true, lastSentAt: true },
-      // The same predicate the accept path uses, so a timed-out invitation stops holding a seat
-      // here as well as there.
+      // The same predicate the accept path uses, so a timed-out invitation stops holding a seat.
       where: and(eq(regionInvitations.regionFk, regionFk), livePredicate()),
       with: { invitedBy: { columns: { username: true } } },
     })
@@ -344,11 +276,8 @@ export const listRegionInvitations = authedQuery(
   },
 )
 
-/**
- * The request-scoped half of a mail send. This is the adapter: `invite.server.ts` takes these as
- * arguments precisely so it never has to reach for `getRequestEvent()` or `getLocale()` itself,
- * which is what keeps it importable from a test.
- */
+/** The request-scoped half of a mail send, so `invite.server.ts` never reaches for
+ *  `getRequestEvent()` itself and stays importable from a test. */
 const mailContext = (): MailContext => ({ ambientLocale: getLocale(), origin: getRequestEvent().url.origin })
 
 /** Invite an address to a region and mail them the link. Returns whether the mail went out. */
@@ -381,17 +310,12 @@ export const inviteRegionMember = authedForm(
       mailContext(),
     )
 
-    // After the send, and only when it went out. The invitee has no user row yet, so the row is
-    // logged against the inviter with the address as its value, the shape the revoke erases.
-    //
-    // `sendInvitationEmail` reports failure rather than throwing, and logging ahead of it put
-    // "You invited lea@example.com" in the region's log for a mail nobody received. The
-    // invitation itself survives a failed send, so a successful Resend logs it then, and
-    // `resendInvitation` checks the log first so a resend never re-announces an invitation.
+    // After the send, and only when it went out: logging ahead of it put "You invited ..." in the
+    // log for a mail nobody received. `resendInvitation` checks the log so a resend never
+    // re-announces.
     if (sent) {
-      // `subject_fk` holds the INVITER here, degenerately: an invitation names an address and
-      // the invitee has no account to point at. The address is in `metadata`, which is what the
-      // card renders from and what keeps two invitations from folding into one.
+      // `subject_fk` holds the INVITER: the invitee has no account to point at. The address is
+      // in `metadata`, which is what the card renders and what keeps two invitations apart.
       await insertEvent(db, {
         actorFk: user.id,
         metadata: address,
@@ -427,10 +351,8 @@ export const revokeRegionInvitation = authedCommand(
   async ({ invitationFk }, { db, user, userRegions }): Promise<MutationResult<RevokedInvitationSnapshot>> => {
     const { email, regionFk } = await revokeInvitation(db, invitationFk, userRegions)
 
-    // The invitation's own shape, in reverse: `subject_fk` holds the ACTOR, because the invitee
-    // still has no account to point at, and the address is in `metadata`. That pair is what tells
-    // this apart from `removeRegionMember`, which writes the same verb with the removed person as
-    // its subject and no metadata at all, so read the two together and never the verb alone.
+    // `subject_fk` holds the ACTOR and the address is in `metadata`. That pair is what tells this
+    // apart from `removeRegionMember`, which writes the same verb: never read the verb alone.
     await insertEvent(db, {
       actorFk: user.id,
       metadata: email,
@@ -450,21 +372,14 @@ export const restoreRegionInvitation = authedCommand(
   async ({ invitationFk }, { db, userRegions }) => {
     const { email, regionFk } = await restoreInvitation(db, invitationFk, userRegions)
 
-    // Keyed on the address rather than on who revoked it: any admin's undo erases the record,
-    // the same way restoreRegionMember's does. The command takes only an id, so an admin can
-    // restore an invitation somebody else revoked, and pinning the caller would leave that admin's
-    // "revoked" card standing next to a live pending invitation. The address is also what keeps
-    // this off a member removal, whose `remove` event carries no metadata.
+    // Keyed on the address, not on who revoked it: any admin may undo any admin's revoke, and
+    // pinning the caller would leave a "revoked" card beside a live invitation.
     await deleteEvent(db, { metadata: email, regionFk, verb: 'remove' })
   },
 )
 
-/**
- * Accept an invitation as the signed-in user.
- *
- * The address comes from the verified token rather than `ctx.user`, which is the `public.users` row
- * and carries none. The write itself runs off the RLS transaction, see `acceptInvitation`.
- */
+/** Accept an invitation. The address comes from the verified token, not `ctx.user`, which is the
+ *  `public.users` row and carries none. */
 export const acceptRegionInvitation = authedCommand(
   z.object({ token: z.uuid() }),
   async ({ token }): Promise<MutationResult<{ regionFk: number; regionName: string }>> => {
@@ -478,25 +393,15 @@ export const acceptRegionInvitation = authedCommand(
   },
 )
 
-/**
- * Live invitations addressed to the signed-in user, for their settings screen.
- *
- * A plain `query` rather than `authedQuery`: it reads over the base `db` (see
- * `listInvitationsForEmail`), so there is no RLS transaction to open, and a signed-out caller is
- * an empty list rather than a 401: the settings screen is behind the auth guard anyway.
- */
+/** Live invitations addressed to the signed-in user. A plain `query`: it reads over the base `db`,
+ *  and a signed-out caller gets an empty list rather than a 401. */
 export const listMyInvitations = query(async (): Promise<UserInvitationItem[]> => {
   const email = getRequestEvent().locals.claims?.email
   return email == null ? [] : listInvitationsForEmail(email)
 })
 
-/**
- * Accept an invitation from the in-app list, which knows the row id but never the token.
- *
- * The lookup runs on the caller's RLS transaction, where `users can read own region_invitations`
- * scopes it to rows addressed to them; `acceptInvitation` then re-checks the address against the
- * verified token, so a guessed id gets nowhere either way.
- */
+/** Accept an invitation from the in-app list, which knows the row id but never the token. RLS
+ *  scopes the lookup to the caller, and `acceptInvitation` re-checks the address. */
 export const acceptMyInvitation = authedCommand(
   z.object({ invitationFk: z.number() }),
   async ({ invitationFk }, { db }): Promise<MutationResult<{ regionFk: number; regionName: string }>> => {
@@ -542,14 +447,8 @@ export const updateRegionMemberRole = authedCommand(
       regionFk,
     })
 
-    // What you can do in a region has changed, and the feed card says it in the third person to
-    // everybody. `metadata` carries the role because the sentence needs to name it and the user
-    // row the notification points at cannot: a person holds a different role per region.
-    //
-    // Deferred so the recipient check reads the committed membership rather than this
-    // transaction's private view. It does not matter while every assignable role holds
-    // `region.read`, and it is exactly what would silently drop the notification the day one
-    // does not.
+    // `metadata` carries the role because a person holds a different one per region.
+    // Deferred so the recipient check reads the committed membership, not this transaction's view.
     afterCommit(() =>
       notify({
         actorFk: user.id,
@@ -592,18 +491,15 @@ export const removeRegionMember = authedCommand(
       verb: 'remove',
     })
 
-    // Queued, not sent: the row waits out `DIRECTED_DEBOUNCE_MS`, and the Undo this returns a
-    // snapshot for deletes it inside that window, which is why that snackbar is the one place in
-    // the app with a bounded duration. `notifyOutOfBand` rather than `notify`, because the
-    // recipient is no longer a member and `notify` would find nobody to tell.
+    // Queued, not sent: Undo deletes the row inside `DIRECTED_DEBOUNCE_MS`, which is why that
+    // snackbar has a bounded duration. `notifyOutOfBand`, since the recipient is no longer a member.
     afterCommit(() => notifyOutOfBand({ actorFk: user.id, regionFk, sourceType: 'membership_removed', userFk }))
 
     return {
       data: {
         invitedByFk: member.invitedByFk,
         regionFk,
-        // Throws only for a membership hand-set to `app_admin`, which grants no region permission
-        // and which neither this screen nor any mutation can produce.
+        // Throws only for a membership hand-set to `app_admin`, which nothing here can produce.
         role: assignableRoleSchema.parse(member.role),
         userFk,
       },
@@ -637,11 +533,8 @@ export const restoreRegionMember = authedCommand(
       })
     }
 
-    // Scoped to this region: a member can be removed from several of them, and undoing one must
-    // not erase the record of the others. Not scoped to the caller either: `assertCanEdit` above
-    // lets any admin undo any admin's removal, so pinning the actor would leave the original card
-    // next to a member standing right there. `metadata: null` is what keeps it off a revoked
-    // invitation, which writes the same verb with the address in metadata.
+    // Scoped to this region but not to the caller: any admin may undo any admin's removal.
+    // `metadata: null` is what keeps it off a revoked invitation, which writes the same verb.
     await deleteEvent(db, {
       metadata: null,
       object: { id: snapshot.userFk, type: 'user' },
@@ -649,8 +542,7 @@ export const restoreRegionMember = authedCommand(
       verb: 'remove',
     })
 
-    // And take back the notice the removal queued, which is the whole reason the queue is a row
-    // rather than a send.
+    // And take back the notice the removal queued: the reason the queue is a row, not a send.
     //
     // Deferred like the write it undoes: `retractOutOfBand` runs on the privileged handle, so it
     // takes a second connection while this handler holds the RLS transaction's own and commits

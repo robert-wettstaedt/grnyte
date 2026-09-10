@@ -76,13 +76,8 @@ export interface EventEntity {
   href?: string
   /** The ascent's humidity, half of the conditions pill in the same strip as the grade. */
   humidity?: number
-  /**
-   * The card's headline text. Deliberately NOT `DisplayName`, though it usually holds one: an
-   * invitation puts an email address here, and a tombstone row (`row: 'none'`) puts `''`, so the
-   * slot is "what this card is about" rather than "what this entity is called". Branding it forced
-   * casts at those two, which teaches exactly the habit the brand exists to stop. `crumbs` above
-   * IS branded, because a crumb is always an entity's name.
-   */
+  /** The card's headline text, deliberately NOT `DisplayName`: an invitation puts an email
+   *  address here and a tombstone puts `''`, so it is "what this card is about". */
   name: string
   /** An ascent's notes, quoted under the rows. */
   note?: string

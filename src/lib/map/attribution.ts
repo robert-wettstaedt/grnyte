@@ -5,11 +5,9 @@ export interface CreditPart {
 }
 
 /**
- * Region credits are stored as HTML, because that is what OpenLayers' attribution control
- * consumed, and the links in them are the point: BKG and the Bayerische Vermessungsverwaltung
- * require a link, not a name. Rendering the stored string with `{@html}` would hand every
- * region admin script execution against every member of their region, so the markup is parsed
- * here instead and re-emitted as text and anchors only.
+ * Region credits are stored as HTML and the links in them are required by the licence, but the
+ * string is region-admin input: parsed here and re-emitted as text and anchors only, never
+ * `{@html}`.
  */
 export function parseCredit(html: string): CreditPart[] {
   const parts: CreditPart[] = []
@@ -21,12 +19,8 @@ export function parseCredit(html: string): CreditPart[] {
 // `DESC` and `TITLE` are SVG's tooltip and a11y text, which is not a credit either.
 const NON_PROSE = new Set(['DESC', 'METADATA', 'NOSCRIPT', 'SCRIPT', 'STYLE', 'TEMPLATE', 'TITLE'])
 
-/**
- * Depth-first, because a credit pasted from a provider's page routinely wraps its link in a
- * `<span>` or a `<p>`, and a link found one level down is still the link the licence wants.
- * Anything that is neither text nor an element (a comment, most often a build note left in
- * the markup somebody copied) carries no credit and is skipped rather than flattened.
- */
+/** Depth-first: a pasted credit routinely wraps its link in a `<span>`, and a link one level
+ *  down is still the link the licence wants. Comments carry no credit and are skipped. */
 function collect(parent: Node, parts: CreditPart[]): void {
   for (const node of parent.childNodes) {
     if (!isProse(node)) {
@@ -48,8 +42,7 @@ function collect(parent: Node, parts: CreditPart[]): void {
     }
 
     const href = safeHref(element)
-    // A logo-only credit has no text of its own. The host beats dropping the link entirely,
-    // which is what filtering the label out of an anchor would otherwise do.
+    // A logo-only credit has no text of its own, and the host beats dropping the link.
     const label = proseText(element).trim()
     const text = label !== '' ? label : href == null ? '' : hostOf(href)
     if (text !== '') {
@@ -100,10 +93,8 @@ function safeHref(anchor: Element): string | undefined {
   }
 
   try {
-    // A fixed https base, so a protocol-relative `//host/path` resolves (providers write those,
-    // and dropping one would leave a required link as plain text) while a genuinely relative
-    // href still fails: it would resolve against this base rather than the credit's own host,
-    // which is not something to publish as an attribution.
+    // A fixed https base, so a protocol-relative `//host/path` resolves while a genuinely
+    // relative href still fails: it would resolve against this base, not the credit's own host.
     const url = new URL(raw, 'https://invalid.localhost/')
     if (url.hostname === 'invalid.localhost') {
       return undefined

@@ -107,17 +107,12 @@ interface UserRow {
  * The context line under an entity row: an optional leading region crumb, then the
  * containment chain, with blanks dropped.
  *
- * Exported so the `?q=` results page builds the same line as the dropdown.
+ * Exported so the `?q=` results page builds the same line as the dropdown. Every segment is a
+ * `DisplayName` minted by its mapper, so absent is the only case left to drop: it used to drop
+ * empty ones too, which made a nameless area vanish rather than read "Unnamed".
  *
- * It used to drop empty segments as well as absent ones, and argued for it here: a parent area
- * with no name would render as a stray separator. That was a second copy of "an empty name is not
- * a name", and it answered the question the wrong way, because a nameless area then VANISHED from
- * the trail rather than reading "Unnamed", which is harder to notice than a blank. Every segment is
- * a `DisplayName` now, minted by its mapper, so absent is the only case left.
- *
- * Not `(crumb): crumb is DisplayName`, deliberately, and this is the assembler where it mattered:
- * a user-defined predicate ASSERTS the narrowing, so with raw `string` inputs it laundered one into
- * a `DisplayName` exactly like a cast. The inferred predicate narrows without asserting.
+ * Not `crumb is DisplayName`: a user-defined predicate ASSERTS the narrowing, laundering a raw
+ * string exactly like a cast. The inferred predicate does not.
  */
 export function entityCrumbs(
   region: DisplayName | undefined,

@@ -48,32 +48,26 @@
   const isDndShadow = (block: BlockDetail) => SHADOW_ITEM_MARKER_PROPERTY_NAME in block
 
   // What the drop zone renders. Mid-drag the library owns this array and reads back whatever we
-  // render as the drop result, so it is handed over untouched: reconciling dropped the placeholder
-  // (its string id matches no row) and re-appended the dragged block last, and that is what the
-  // drop then returned. Otherwise the reader's order for the blocks they have seen, plus anything
-  // that arrived since (Zero reports ready on a partial snapshot), minus anything deleted.
+  // render as the drop result, so it is handed over untouched. Otherwise: the reader's order,
+  // plus anything that arrived since, minus anything deleted.
   const list = $derived.by(() => {
     const live = blocks.data
     if (staged == null) return live
     if (dragging) return staged
-    // Mapped back onto the live rows, not kept as they were staged: a block moved before its
-    // geolocation or a rename landed would otherwise hold that older copy for good.
+    // Mapped back onto the live rows: a block moved before a rename landed would hold the old copy.
     const byId = new Map(live.map((block) => [block.id, block]))
     const kept = staged.flatMap((block) => byId.get(block.id) ?? [])
     const keptIds = new Set(kept.map((block) => block.id))
     return [...kept, ...live.filter((block) => !keptIds.has(block.id))]
   })
 
-  // The same order with the placeholder resolved back to the block it stands for, which is what
-  // the map draws and what Save writes. Dropping it instead left the list one row short for the
-  // length of the drag: the map refitted on pick-up and again on drop, the dragged block's pin
-  // was destroyed and rebuilt, and the centroid the distance sort measures from moved.
+  // The same order with the placeholder resolved back to the block it stands for. Dropping it
+  // instead left the list a row short mid-drag, so the map refitted and the centroid moved.
   const ordered = $derived(
     list.flatMap((block) => {
       if (!isDndShadow(block)) return [block]
-      // Dropped rather than passed through when the id is unknown: the placeholder's own id is a
-      // string, and `save` maps these straight into `orderedIds`, where `z.array(z.number())`
-      // would reject the whole submission and lose the reader's reorder to a generic error.
+      // Dropped when the id is unknown: the placeholder's id is a string, which `orderedIds`
+      // rejects, losing the whole reorder to a generic error.
       return draggedId == null ? [] : [{ ...block, id: draggedId }]
     }),
   )
@@ -109,24 +103,12 @@
       ? Number.POSITIVE_INFINITY
       : haversineMetres(ref, { lat: block.geolocation.lat, long: block.geolocation.long })
 
-  // Seed the order by distance from the reference point.
-  // Un-located blocks (infinite distance) settle at the bottom, stable among themselves.
+  // Seed the order by distance. Un-located blocks settle at the bottom, stable among themselves.
   //
-  // KNOWN GAP, accepted. A drag says "this block goes above that one", which stays true of a
-  // subset and which the handler applies to the slots those blocks hold. Sorting is a claim about
-  // every block, so run on a partial snapshot it interleaves a sorted subset with unsorted blocks
-  // the reader never saw. Nothing here can tell "I have every block" apart from "the transport
-  // says so": `isComplete` is the only candidate and it goes false whenever the socket parks, so
-  // gating on it killed the button while the list was sitting complete in the local replica. It is
-  // left ungated deliberately, but it is not free: `list` appends late arrivals at the tail, so a
-  // reader who sorts, waits and then saves puts the sorted subset in slots 0..k-1 and pushes
-  // everything that synced afterwards behind it. Save navigates away, so "press it again once
-  // everything is here" only helps somebody still on the page. A server-side count on the area is
-  // the honest fix if this ever matters more than it does now.
-  //
-  // The row labels have the same gap, from the other end: they read "Block <index + 1>", which is
-  // honest about this list and not about the outcome, because a block the reader never saw keeps
-  // the slot it had and pushes theirs down one.
+  // KNOWN GAP, accepted: a drag stays true of a subset, but sorting is a claim about every block,
+  // so on a partial snapshot it interleaves sorted rows with ones the reader never saw. Left
+  // ungated because `isComplete` goes false whenever the socket parks, which killed the button.
+  // The row labels ("Block <index + 1>") carry the same gap from the other end.
   const sortByDistance = () => {
     const ref = referencePoint
     if (ref == null) return

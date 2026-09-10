@@ -15,20 +15,16 @@
 
   const global = getGlobalState()
 
-  // Derived, not read once: this is one route, so `/settings/regions/2/name` to
-  // `/settings/regions/6/name` reuses the page. Read once, the hidden id stayed on the region
-  // the reader arrived from and Save renamed that one, under a URL naming the other. The
-  // permission check below reads the same value, so it was stale too.
+  // Derived, not read once: this is one route, so the page is reused between regions. Read once,
+  // Save renamed the region the reader arrived from, under a URL naming the other.
   const regionId = $derived(Number(page.params.regionId))
 
   // Renaming a region is admin-only, and so is the link into here, so this only catches somebody
   // typing the URL. The server rejects them either way. This is so they find out before typing.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 
-  // Keyed on `synced`: the membership row can land before the region it names, and the name would
-  // then seed as '' under a field the schema rejects. No async load
-  // either way, so `Form` stays the route's direct child: a QueryState between them breaks its
-  // full-height sticky-header layout.
+  // Keyed on `synced`: a membership can land before the region it names, seeding '' under a
+  // field the schema rejects. `Form` stays the route's direct child, or its sticky header breaks.
   const membership = $derived(global.userRegions.find((region) => region.regionFk === regionId))
   seedOnKeyChange(
     () => (membership?.synced === true ? regionId : undefined),

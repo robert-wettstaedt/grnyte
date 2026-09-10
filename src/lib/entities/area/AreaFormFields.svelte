@@ -27,24 +27,18 @@
   // only means the reference search finds nothing yet.
   const regionFk = $derived(area?.regionFk ?? Number(form.fields.regionFk.value() ?? 0))
 
-  // `''` counts as absent, not just `undefined`: a top-level area's hidden `parentFk` submits an
-  // empty string, and `/areas/add` clears the field to '' so a parent left behind by
-  // `/areas/[id]/add` cannot nest it. Testing only for null hid the region field on both.
+  // `''` counts as absent too: a top-level area's hidden `parentFk` submits an empty string, and
+  // testing only for null hid the region field.
   const isNewTopLevel = $derived(form.fields.id.value() == null && (form.fields.parentFk.value() ?? '') === '')
 
-  // The membership the field actually points at, so what is shown and what is submitted cannot
-  // disagree. Read off the field, not off the membership list: `/areas/add?regionFk=<one you are
-  // not in>` deliberately preselects nothing, and captioning that with "the only region I can see"
-  // would name a region the form is not going to create in.
+  // Read off the field, not the membership list, so what is shown and what is submitted agree:
+  // an unpreselected form must not be captioned with a region it will not create in.
   const selectedRegion = $derived(
     global.userRegions.find((region) => String(region.regionFk) === form.fields.regionFk.value()),
   )
 
-  // The select is the fallback, not the exception. It is the only control the reader can correct,
-  // and the only one whose wrapper renders the `regionFk` issue (`FormError` shows form-level ones
-  // only). Skipping it whenever there was a single membership left the unset case as a lone hidden
-  // input: Create was refused by the schema, nothing rendered the refusal, and there was nothing on
-  // screen to change.
+  // The select is the fallback, not the exception: it is the only control that can be corrected
+  // and the only one whose wrapper renders the `regionFk` issue.
   const showRegionSelect = $derived(
     isNewTopLevel && (global.userRegions.length > 1 || selectedRegion == null || !selectedRegion.synced),
   )

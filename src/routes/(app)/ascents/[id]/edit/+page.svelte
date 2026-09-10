@@ -29,9 +29,8 @@
 
   // The custom inputs seed themselves from the `ascent` prop; this covers the field-driven ones
   // (notes).
-  // Keyed on the loaded row's id and not the route parameter: the seed reads data, so it has to
-  // wait for the row rather than write the previous entity's values under the new id. Re-seeding
-  // on every snapshot would clobber edits in progress, which is what the guard is for.
+  // Keyed on the loaded row's id, not the route parameter: the seed reads data, so it has to
+  // wait for the row rather than write the previous entity's values under the new id.
   seedOnKeyChange(
     () => ascent.data?.id,
     () => {

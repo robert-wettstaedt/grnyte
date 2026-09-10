@@ -1,17 +1,10 @@
 // @vitest-environment node
 /**
- * What guards a write to a region's `settings`.
+ * What guards a write to a region's `settings`. Real database and real overlapping transactions:
+ * a lost update, a row lock and RLS on `for update` have no in-process equivalent.
  *
- * Real database and real overlapping transactions, because every property here is one only a
- * database can have. A lost update, a row lock and an RLS policy applied to `for update` have no
- * in-process equivalent, and the bug this module exists to close survived four rounds of review
- * precisely because nothing exercised two writers at once.
- *
- * The first test is a deliberate negative control. A concurrency test that silently runs its two
- * transactions one after the other passes for the wrong reason and proves nothing, so before
- * asserting the guard holds, this asserts that the same harness without the guard loses a write.
- *
- * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
+ * The first test is a negative control: a harness that quietly serialises passes for the wrong
+ * reason. Skipped when DATABASE_URL is unreachable.
  */
 import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
@@ -22,13 +15,8 @@ import { addRegionTag, removeRegionTag } from './regions.remote'
 import { lockRegionSettings, writableKey, writeRegionSettings } from './settings.server'
 import { addTag } from './tags.server'
 
-/**
- * Forces one write to report `'zero'`, so the handlers' response to it can be asserted.
- *
- * Mocked rather than staged for real because the lock makes a genuine zero-row write unreachable
- * from outside the handler: no other writer can get at the row, and the caller cannot reach into
- * the handler's transaction. Off by default, so every other test in this file runs the real thing.
- */
+/** Forces one write to report `'zero'`. Mocked because the lock makes a real zero-row write
+ *  unreachable from outside the handler. Off by default. */
 const forced = vi.hoisted(() => ({ zero: false }))
 
 vi.mock('./settings.server', async (importOriginal) => {
@@ -124,16 +112,12 @@ afterAll(async () => {
 
 describe.skipIf(!reachable)('the harness really overlaps two transactions', () => {
   it('loses a write when both read before either writes, which is the bug being fixed', async () => {
-    // The shape of the old code: read the vocabulary somewhere else, rewrite the whole array from
-    // that copy. Both transactions read `["SD"]`, so whichever commits second erases the other's
-    // word. The barrier is what makes it deterministic, and it is also the proof that these two
-    // genuinely overlap: were they serialised onto one connection, the first would wait here for a
-    // release the second could never reach, and this test would time out rather than pass.
+    // The old shape: read the vocabulary elsewhere, rewrite the whole array. The barrier makes it
+    // deterministic and proves the two overlap: serialised, this would time out rather than pass.
     const arrived = [Promise.withResolvers<void>(), Promise.withResolvers<void>()]
 
-    /** Read inside the transaction, the way the code under test does. Reading on the pool instead
-     *  would be a read of committed data on a third connection, which is not what either writer
-     *  sees and made this pass for the wrong reason. */
+    /** Read inside the transaction, as the code under test does: a pool read is a third
+     *  connection seeing committed data, which is not what either writer sees. */
     const readInTx = async (tx: Tx): Promise<string[]> => {
       const rows = await tx.execute<{ tags: null | string[] }>(
         drizzleSql`select settings -> 'tags' as tags from public.regions where id = ${regionId}`,
@@ -167,9 +151,8 @@ describe.skipIf(!reachable)('the harness really overlaps two transactions', () =
 
 describe.skipIf(!reachable)('lockRegionSettings', () => {
   it('serialises two writers, so neither loses the other tag', async () => {
-    // The first holds the lock across a real delay, so the second is guaranteed to arrive while it
-    // is held rather than after it. What the second reads once it gets in is the whole point: it
-    // must see the first one's word and add to it, not to the copy it would have read on arrival.
+    // The first holds the lock across a real delay, so the second arrives while it is held and
+    // must add to the first one's word rather than to what it would have read on arrival.
     const write = async (name: string, hold: boolean) =>
       as(admin, async (tx) => {
         const locked = await lockRegionSettings(tx, regionId)
@@ -188,16 +171,14 @@ describe.skipIf(!reachable)('lockRegionSettings', () => {
   })
 
   it('hands nothing to a member who may read the region but not update it', async () => {
-    // Postgres applies the UPDATE policy's `using` clause to `for update`, not only the SELECT one,
-    // so the lock is itself the write gate. This is what stops a caller demoted between the auth
-    // hook's read and this transaction reaching the statements that destroy `routes_to_tags` rows.
+    // Postgres applies the UPDATE policy to `for update`, so the lock is itself the write gate:
+    // a caller demoted since the auth hook's read never reaches the destructive statements.
     expect(await as(member, (tx) => lockRegionSettings(tx, regionId))).toBeUndefined()
     expect(await as(admin, (tx) => lockRegionSettings(tx, regionId))).toBeDefined()
   })
 
   it('reads a region whose settings have never been written', async () => {
-    // A region inserts with a null blob, so "nothing configured" has to read as complete and
-    // writable. Reporting it unreadable would make a new region's first tag unsaveable.
+    // A region inserts with a null blob: reporting that unreadable makes its first tag unsaveable.
     await sql`update public.regions set settings = null where id = ${regionId}`
 
     const locked = await as(admin, (tx) => lockRegionSettings(tx, regionId))
@@ -208,8 +189,7 @@ describe.skipIf(!reachable)('lockRegionSettings', () => {
 
 describe.skipIf(!reachable)('writeRegionSettings', () => {
   it('leaves a sibling key this build has never heard of untouched', async () => {
-    // The entire reason the write merges rather than assigns, and nothing asserted it on either
-    // path. An older build saving its own key must not delete a newer one's.
+    // Why the write merges rather than assigns: an older build must not delete a newer key.
     await sql`update public.regions
               set settings = '{"tags":["SD"],"futureKey":{"kept":true}}'::jsonb where id = ${regionId}`
 
@@ -222,9 +202,8 @@ describe.skipIf(!reachable)('writeRegionSettings', () => {
   })
 
   it('refuses a key that did not read whole, rather than writing what it could read', async () => {
-    // A vocabulary holding something this build cannot represent: writing back what parsed would
-    // silently drop the rest, and `regionTags` is the allowlist a route write is checked against,
-    // so the region's own tags would become unwritable.
+    // Writing back only what parsed would drop the rest, and `regionTags` is the allowlist a
+    // route write is checked against.
     await sql`update public.regions set settings = '{"tags":["SD",5]}'::jsonb where id = ${regionId}`
 
     const locked = await as(admin, (tx) => lockRegionSettings(tx, regionId))
@@ -233,14 +212,8 @@ describe.skipIf(!reachable)('writeRegionSettings', () => {
   })
 
   it('writes the other key, with the compare-and-swap matching on a float', async () => {
-    // `mapLayers` had no coverage at all, and it is not interchangeable with `tags` here: the key
-    // reaches the predicate as a bound parameter, and `jsonb -> unknown` resolves to `-> integer`
-    // (subscript an array) as readily as `-> text` (look a key up). The `::text` cast in the write
-    // is what settles it, and this is what would fail if somebody removed the cast.
-    //
-    // A float opacity because the compare-and-swap compares `JSON.stringify` output against what
-    // Postgres stored: a number that did not survive that round trip identically would refuse every
-    // save of the region, permanently, with no way for the admin out of it.
+    // Reddens if the `::text` cast in the write goes: `jsonb -> unknown` also resolves to
+    // `-> integer`. A float opacity, because the compare-and-swap round-trips `JSON.stringify`.
     const layer = {
       attributions: null,
       minZoom: 14,
@@ -260,8 +233,7 @@ describe.skipIf(!reachable)('writeRegionSettings', () => {
     })
     expect(first).toBe('ok')
 
-    // Read back, then write again from that read. The second save is the one that exercises the
-    // predicate against a stored value rather than against `null`.
+    // The second save is the one exercising the predicate against a stored value, not `null`.
     const second = await as(admin, async (tx) => {
       const locked = await lockRegionSettings(tx, regionId)
       expect(locked?.stored.settings.mapLayers).toEqual([layer])
@@ -276,11 +248,8 @@ describe.skipIf(!reachable)('writeRegionSettings', () => {
   })
 
   it('reports a write that matched no row instead of returning quietly', async () => {
-    // The old `writeTags` had no `returning` at all, so a write that landed nowhere looked exactly
-    // like one that did. This drives the compare-and-swap directly, which is the backstop for the
-    // case the lock cannot cover: a future caller that writes without locking first. Moving the key
-    // inside the transaction holding the lock is the only way to stage that, since no other writer
-    // can get at the row while it is held.
+    // The old `writeTags` had no `returning`, so a write landing nowhere looked like one that did.
+    // Staged inside the locked transaction, the only way to reach the compare-and-swap.
     const outcome = await as(admin, async (tx) => {
       const locked = await lockRegionSettings(tx, regionId)
       const writable = writableKey(locked!, 'tags')!
@@ -310,9 +279,8 @@ describe.skipIf(!reachable)('the tag commands end to end', () => {
   })
 
   it('fails the command when the write lands nowhere, rather than reporting success', async () => {
-    // What `assertWritten` is for. Without it the junction rows had already moved, so a retired tag
-    // vanished from every route while the screen still showed it: the caller saw success either
-    // way. Reverting that throw to a no-op has to turn this red, which is the whole point of it.
+    // What `assertWritten` is for: without it a retired tag vanished from every route while the
+    // screen still showed it. Reverting that throw to a no-op has to turn this red.
     await sql`insert into public.routes_to_tags (route_fk, tag_fk, region_fk)
               values (${routeId}, 'SD', ${regionId})`
     forced.zero = true
@@ -324,8 +292,7 @@ describe.skipIf(!reachable)('the tag commands end to end', () => {
   })
 
   it('refuses to retire a tag before touching a single junction row', async () => {
-    // Fail fast rather than roll back. The delete is irreversible and the transaction would undo
-    // it, but a refusal that arrives first is one that never has to.
+    // Fail fast rather than roll back: a refusal that arrives first is one that never has to.
     await sql`insert into public.routes_to_tags (route_fk, tag_fk, region_fk)
               values (${routeId}, 'SD', ${regionId})`
     await sql`update public.regions set settings = '{"tags":["SD",5]}'::jsonb where id = ${regionId}`

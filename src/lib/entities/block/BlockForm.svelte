@@ -37,8 +37,7 @@
      *  (typically a save + navigate) instead of returning to the form to be submitted. */
     onLocationCommit?: (coords: Coords) => void
     /** The entity this form is about: the area when adding, the block when editing. Required,
-     *  because an absent key never seeds: the state below would then keep the previous entity's
-     *  values on a route that reuses this component. */
+     *  because an absent key never seeds and the previous entity's values would survive. */
     seedKey: number | string
     submitLabel: string
     title: string
@@ -76,11 +75,8 @@
     return [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)]
   })
 
-  // Seeded at mount and again whenever `seedKey` changes. Re-seeded here rather than by a
-  // `{#key}` around this component from outside: that would destroy and rebuild the `<form>`
-  // this owns, and a remote form object accepts exactly one form element (it throws otherwise,
-  // and releases the old one only in its teardown). Keeping the element and re-seeding the
-  // state avoids the question entirely.
+  // Re-seeded here rather than by a `{#key}` from outside, which would rebuild the `<form>`:
+  // a remote form object accepts exactly one form element and throws on a second.
   // svelte-ignore state_referenced_locally
   let step = $state<'form' | 'pin'>(initialStep)
   // svelte-ignore state_referenced_locally
@@ -94,8 +90,7 @@
       step = initialStep
       committed = initialLocation
       estimated = initialEstimated
-      // Answer the held submit rather than dropping it: an unsettled promise never lets Kit's
-      // enhance callback return, so `pending` stays up and Save is disabled from then on.
+      // Answer the held submit: an unsettled promise leaves `pending` up and Save disabled.
       closeConfirm(false)
       locating = false
     },

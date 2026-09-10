@@ -58,12 +58,8 @@ export const blocksQueryDefs = {
       content: z.optional(z.string()),
       limit: z.optional(z.number()),
       references: z.optional(z.string()),
-      /**
-       * `createdAt` sorts newest first (the search flyout's "recently added"). The default depends
-       * on `areaId`: a block's slot within one area, its name across several, because `order` is a
-       * position in a list the caller is not looking at. `'order'` is therefore only literally true
-       * when `areaId` is passed, and no caller passes it.
-       */
+      /** `createdAt` sorts newest first. The default depends on `areaId`: a block's slot within
+       *  one area, its name across several, so `'order'` is only literally true with `areaId`. */
       sort: z.optional(z.enum(['createdAt', 'order'])),
     }),
     regionMemberCan(({ args, ctx }) => {
@@ -71,10 +67,9 @@ export const blocksQueryDefs = {
 
       const base = zql.blocks.where('deletedAt', 'IS', null)
 
-      // Both block orderings come off `./order`, which is the only thing keeping this spelling and
-      // the one `reorderBlocks` renumbers by from drifting apart again. `createdAt` is deliberately
-      // NOT routed through it: it is a different question (when was this added, not where does it
-      // sit), it has no server twin to agree with, and Zero appends `id asc` to it either way.
+      // Both orderings come off `./order`, which is what keeps this and the one `reorderBlocks`
+      // renumbers by from drifting. `createdAt` is not routed through it: different question,
+      // no server twin.
       let q = (
         args.sort === 'createdAt'
           ? base.orderBy('createdAt', 'desc')

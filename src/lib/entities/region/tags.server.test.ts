@@ -77,16 +77,9 @@ const tagRoute = (routeFk: number, regionFk: number, tag: string) =>
   sql`insert into public.routes_to_tags (route_fk, tag_fk, region_fk) values (${routeFk}, ${tag}, ${regionFk})`
 
 /**
- * Run `fn` the way production runs these: inside one transaction, holding the row lock.
- *
- * The lock and the call have to share a transaction or the lock is not held while the statements
- * run, which is the whole property `WritableKey` claims. An earlier version of this helper took the
- * lock on the pool, where `for update` is taken and released inside that one statement, and every
- * proof it minted was quietly lying.
- *
- * `tags` seeds the row first when a case wants a vocabulary other than the `beforeEach` one: the
- * write compares against what is stored, so a list that disagreed with the row would be refused
- * rather than tested.
+ * Run `fn` the way production does: inside one transaction, holding the row lock. On the pool
+ * `for update` releases inside its own statement, and every proof `WritableKey` minted would lie.
+ * `tags` seeds the row first, since the write compares against what is stored.
  */
 async function underLock<T>(
   regionFk: number,
@@ -171,8 +164,7 @@ describe.skipIf(!reachable)('addTag', () => {
 
 describe.skipIf(!reachable)('renameTag', () => {
   it('refuses a rename onto a name the vocabulary already has', async () => {
-    // A duplicate has no unique constraint to stop it, and the tags screen keys its `{#each}` on
-    // the tag, so writing one takes the screen down with `each_key_duplicate`.
+    // No unique constraint stops a duplicate, and the tags screen keys its `{#each}` on the tag.
     await tagRoute(routes[0], regionId, 'SD')
 
     await expect(
@@ -184,9 +176,8 @@ describe.skipIf(!reachable)('renameTag', () => {
   })
 
   it('refuses a rename of a tag onto itself, which would delete every row carrying it', async () => {
-    // The input an exemption for `from === to` waved through: the delete matches `tagFk = to`
-    // among the routes carrying `from`, so a self-rename removed the tag from every route while
-    // writing the vocabulary back unchanged. Silent, and visible nowhere on the screen.
+    // What an exemption for `from === to` waves through: the delete matches `tagFk = to` among
+    // the routes carrying `from`, so a self-rename strips the tag off every route.
     await tagRoute(routes[0], regionId, 'SD')
 
     await expect(
@@ -259,10 +250,8 @@ describe.skipIf(!reachable)('removeTag', () => {
   })
 
   it('refuses a tag the region does not have, rather than deleting its rows', async () => {
-    // The delete is unconditional and irreversible, and a route may carry a tag that has already
-    // left the vocabulary, so a caller handing over a name from somewhere other than the stored
-    // list would destroy real rows. Reachable through a screen that renders before its region row
-    // arrives: the placeholder vocabulary is the seven defaults, one of which is `SD`.
+    // The delete is unconditional, and a route may carry a tag that already left the vocabulary.
+    // Reachable: a screen rendering before its region row shows the seven defaults.
     await tagRoute(routes[0], regionId, 'SD')
 
     await expect(underLock(regionId, ['high'], (writable, tx) => removeTag(tx, writable, 'SD'))).rejects.toThrow()
