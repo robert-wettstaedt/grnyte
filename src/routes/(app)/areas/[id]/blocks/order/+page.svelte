@@ -26,6 +26,9 @@
     TRIGGERS,
     type DndEvent,
   } from 'svelte-dnd-action'
+  import { flip } from 'svelte/animate'
+  import type { Attachment } from 'svelte/attachments'
+  import { MediaQuery } from 'svelte/reactivity'
   import ReorderMap from './ReorderMap.svelte'
 
   const global = getGlobalState()
@@ -46,6 +49,39 @@
 
   // svelte-dnd-action's stand-in for the row being dragged: a copy of it under a string id.
   const isDndShadow = (block: BlockDetail) => SHADOW_ITEM_MARKER_PROPERTY_NAME in block
+
+  // Zero under reduced motion. Shared with the zone, which needs the same number.
+  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
+  const duration = $derived(still.current ? 0 : 150)
+
+  // Which ids the live list has already carried, so a row knows whether it just synced in. Reset
+  // per area here, not in `seedOnKeyChange`, whose effect order against this one is unspecified.
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a ledger, not UI state
+  const seen = new Set<number>()
+  let seenArea = -1
+  let primed = false
+  $effect(() => {
+    if (seenArea !== areaId) {
+      seen.clear()
+      seenArea = areaId
+      primed = false
+    }
+    // An empty first snapshot must not prime, or the whole list reads as arrivals a tick later.
+    if (blocks.data.length === 0) return
+    for (const block of blocks.data) seen.add(block.id)
+    primed = true
+  })
+
+  // Judged against `blocks.data`, not the rendered list: a drag swaps the row out for the shadow
+  // and back, so every drop would flash. An attachment because the library's README warns off
+  // Svelte transitions, and opacity only because `animate:flip` owns `transform` here.
+  const fadeInIfNew =
+    (block: BlockDetail): Attachment =>
+    (node) => {
+      if (!primed || seenArea !== areaId || duration === 0) return
+      if (isDndShadow(block) || seen.has(block.id)) return
+      node.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing: 'ease-out' })
+    }
 
   // What the drop zone renders. Mid-drag the library owns this array and reads back whatever we
   // render as the drop result, so it is handed over untouched. Otherwise: the reader's order,
@@ -205,7 +241,7 @@
             <ul
               bind:this={listEl}
               class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-4"
-              use:dragHandleZone={{ dropTargetStyle: {}, flipDurationMs: 150, items: list }}
+              use:dragHandleZone={{ dropTargetStyle: {}, flipDurationMs: duration, items: list }}
               onconsider={consider}
               onfinalize={finalize}
             >
@@ -216,6 +252,8 @@
                     'bg-surface-100-900 border-surface-200-800 flex items-center gap-3 rounded-xl border p-3',
                     block.id === selectedId && 'ring-primary-500 ring-2',
                   ]}
+                  animate:flip={{ duration }}
+                  {@attach fadeInIfNew(block)}
                 >
                   <button
                     class="bg-primary-500/15 text-primary-500 flex size-8 flex-none items-center justify-center rounded-md text-sm font-bold tabular-nums"

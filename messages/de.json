@@ -181,7 +181,7 @@
   "blocks_add_locateError": "Dein Standort ließ sich nicht ermitteln",
   "blocks_add_located": "Verortet",
   "blocks_add_locating": "Standort wird ermittelt…",
-  "blocks_add_locationBody": "Damit andere ihn am Fels finden und du gleich hier ein Topo bauen kannst.",
+  "blocks_add_locationBody": "Damit andere ihn finden und du gleich hier ein Topo bauen kannst.",
   "blocks_add_locationNote": "Du kannst das später nachholen, aber verortete Blöcke sind leichter zu finden und zu teilen.",
   "blocks_add_locationSet": "Standort gesetzt",
   "blocks_add_locationTitle": "Block auf der Karte platzieren",
