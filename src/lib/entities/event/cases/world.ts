@@ -22,7 +22,7 @@
  * Storybook and tests only. Nothing in the app imports this.
  */
 import type { MediaFile } from '$lib/entities/file/dto'
-import { routeDisplayName } from '$lib/entities/route/mapper'
+import { routeDisplayName } from '$lib/entities/route/name'
 import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from '$lib/entities/topo/change'
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { EventObjectType } from '../dto'

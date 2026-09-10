@@ -1,4 +1,4 @@
-import { m } from '$lib/paraglide/messages'
+import { routeDisplayName } from '$lib/entities/route/name'
 import { queries } from '$lib/zero/queries'
 import { createResource, waitForRow } from '$lib/zero/resource.svelte'
 import { toBlockDetail } from './mapper'
@@ -44,7 +44,7 @@ export function blockRouteList(id: () => number) {
         description: route.description ?? '',
         gradeFk: route.userGradeFk ?? undefined,
         id: route.id,
-        name: route.name.length === 0 ? m.common_unnamed() : route.name,
+        name: routeDisplayName(route.name),
         rating: route.userRating ?? 0,
         regionFk: route.regionFk,
         tags: route.tags.map((tag) => tag.tagFk),

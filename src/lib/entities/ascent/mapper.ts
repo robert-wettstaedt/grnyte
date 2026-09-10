@@ -1,5 +1,6 @@
+import { blockName } from '$lib/entities/block/mapper'
 import { toMediaFile } from '$lib/entities/file/mapper'
-import { m } from '$lib/paraglide/messages'
+import { routeDisplayName } from '$lib/entities/route/name'
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
 import type { AscentDetail, RouteAscent, UserAscent, UserAscentDetail } from './dto'
@@ -72,10 +73,9 @@ export function toUserAscentDetail(row: UserAscentDetailRow): UserAscentDetail {
   return {
     ...toRouteAscent(row),
     areaName: block?.area?.name,
-    blockName:
-      block == null ? undefined : block.name.length === 0 ? `${m.common_block()} ${block.order + 1}` : block.name,
+    blockName: block == null ? undefined : blockName(block.name, block.order),
     routeFk: row.routeFk,
     routeGradeFk: row.route?.userGradeFk ?? undefined,
-    routeName: row.route?.name ?? '',
+    routeName: routeDisplayName(row.route?.name ?? ''),
   }
 }

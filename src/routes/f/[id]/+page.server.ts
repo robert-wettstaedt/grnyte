@@ -6,6 +6,7 @@ import type { MediaFile } from '$lib/entities/file/dto'
 import { toMediaFile } from '$lib/entities/file/mapper'
 import { canDeleteFile, canEditFile } from '$lib/entities/file/permissions'
 import { toGrade } from '$lib/entities/grade/mapper'
+import { routeDisplayName } from '$lib/entities/route/name'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -111,7 +112,7 @@ export const load = (async ({ locals, params }) => {
         : {
             gradeFk: routeRow.userGradeFk ?? routeRow.gradeFk ?? undefined,
             id: routeRow.id,
-            name: routeRow.name ?? '',
+            name: routeDisplayName(routeRow.name ?? ''),
             rating: routeRow.userRating ?? routeRow.rating ?? undefined,
           },
   }

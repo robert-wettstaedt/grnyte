@@ -3,7 +3,7 @@ import { cardView, type CardGroup, type CardRow, type CardView } from '$lib/enti
 import { eventEntityKey, type EventEntity, type EventEntityMap, type EventEntityRef } from '$lib/entities/event/entity'
 import type { ReactionChip } from '$lib/entities/reaction/dto'
 import { reactionChips } from '$lib/entities/reaction/mapper'
-import { routeDisplayName } from '$lib/entities/route/mapper'
+import { routeDisplayName } from '$lib/entities/route/name'
 import type { TopoView } from '$lib/entities/topo/dto'
 import { FIELD_EDIT_OBJECT_TYPES } from './dto'
 import type { EventGroup } from './grouping'

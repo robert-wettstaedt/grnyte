@@ -1,3 +1,4 @@
+import { routeDisplayName } from '$lib/entities/route/name'
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
 import type { TopoLine, TopoPoint, TopoView } from './dto'
@@ -135,7 +136,7 @@ export function toTopoViews(block: Pick<BlockRow, 'routes' | 'topos'>): TopoView
             return {
               gradeFk: route?.userGradeFk ?? undefined,
               id: tr.id,
-              name: route?.name ?? '',
+              name: routeDisplayName(route?.name ?? ''),
               points: convertPathToPoints(tr.path!),
               routeId: tr.routeFk!,
               topType: tr.topType,

@@ -41,7 +41,10 @@ interface BlockRow {
  * caller, which renders once per recipient rather than in the reader's own session.
  */
 export function blockName(name: string, order: number, locale?: Locale): string {
-  return name.length === 0 ? `${m.common_block({}, { locale })} ${order + 1}` : name
+  // Trimmed for the same reason as `routeDisplayName`: a whitespace name is a blank label, and
+  // padding eats characters a truncating row would otherwise have fit.
+  const trimmed = name.trim()
+  return trimmed.length === 0 ? `${m.common_block({}, { locale })} ${order + 1}` : trimmed
 }
 
 export function toBlockDetail(row: BlockDetailRow): BlockDetail {

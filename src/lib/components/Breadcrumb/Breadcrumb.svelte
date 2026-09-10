@@ -9,6 +9,7 @@
   import { resolve } from '$app/paths'
   import type { AreaDetail, AreaListItem } from '$lib/entities/area/dto'
   import type { UserRegion } from '$lib/entities/region/dto'
+  import { regionCrumb } from '$lib/entities/region/mapper'
 
   interface Props {
     /** The area whose location trail is shown. */
@@ -27,12 +28,9 @@
 
   // Only worth naming the region when the user belongs to more than one. With a
   // single region it's implied and would be noise in the breadcrumb.
-  const regionName = $derived.by(() => {
-    if (userRegions.length <= 1) {
-      return null
-    }
-    return userRegions.find((region) => 'regionFk' in area && region.regionFk === area.regionFk)?.name ?? null
-  })
+  // `regionCrumb` and not a local copy: it already answers this exact question, including the
+  // "only worth saying across several regions" rule and the unsynced-region name.
+  const regionName = $derived('regionFk' in area ? (regionCrumb(userRegions, area.regionFk) ?? null) : null)
 
   // When `includeSelf`, the area joins its own ancestors as the final crumb so the
   // trail reads the whole path down to (and including) it.
