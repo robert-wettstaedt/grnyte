@@ -1,3 +1,4 @@
+import { alreadyDisplayable, toDisplayName, type DisplayName } from '$lib/entities/displayName'
 import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
@@ -10,7 +11,10 @@ export type RegionMemberRow = QueryRow<typeof queries.listUserRegions>
 
 /** A region name for a search breadcrumb, shown only when the signed-in user spans
  *  more than one region (with a single region it's implied and would only be noise). */
-export function regionCrumb(userRegions: RegionMembership[], regionFk: null | number | undefined): string | undefined {
+export function regionCrumb(
+  userRegions: RegionMembership[],
+  regionFk: null | number | undefined,
+): DisplayName | undefined {
   if (userRegions.length <= 1 || regionFk == null) {
     return undefined
   }
@@ -27,12 +31,11 @@ export function regionCrumb(userRegions: RegionMembership[], regionFk: null | nu
  * at each call site, for the reason AGENTS.md gives: a breadcrumb, a select option and a settings
  * row must not disagree about what a region is called.
  */
-export function regionDisplayName(region: Pick<RegionMembership, 'name' | 'synced'>): string {
+export function regionDisplayName(region: Pick<RegionMembership, 'name' | 'synced'>): DisplayName {
   if (!region.synced) {
-    return m.common_syncing()
+    return alreadyDisplayable(m.common_syncing())
   }
-  const trimmed = region.name.trim()
-  return trimmed.length === 0 ? m.common_unnamed() : trimmed
+  return toDisplayName(region.name)
 }
 
 /**

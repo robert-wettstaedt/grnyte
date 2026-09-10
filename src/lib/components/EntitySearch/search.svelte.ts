@@ -2,6 +2,7 @@ import { resolve } from '$app/paths'
 import type { IconName } from '$lib/components/Icon/icons'
 import { toAreaListItem, type AreaAncestor } from '$lib/entities/area/mapper'
 import { toBlockListItem } from '$lib/entities/block/mapper'
+import type { DisplayName } from '$lib/entities/displayName'
 import { toRouteListItem, type RouteListRow } from '$lib/entities/route/mapper'
 import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
@@ -92,7 +93,7 @@ interface EntitySearchOptions {
    * global search when the signed-in user spans more than one region. Returning
    * `undefined` (or omitting the option) leaves crumbs untouched.
    */
-  regionCrumb?: (regionFk: number) => string | undefined
+  regionCrumb?: (regionFk: number) => DisplayName | undefined
   /** Regions to search users within; empty hides the People group. */
   regionFks: () => number[]
 }
@@ -106,12 +107,23 @@ interface UserRow {
  * The context line under an entity row: an optional leading region crumb, then the
  * containment chain, with blanks dropped.
  *
- * Exported so the `?q=` results page builds the same line as the dropdown. An empty
- * segment has to go, not only a null one: a parent area with no name would otherwise
- * render as a stray separator between two crumbs.
+ * Exported so the `?q=` results page builds the same line as the dropdown.
+ *
+ * It used to drop empty segments as well as absent ones, and argued for it here: a parent area
+ * with no name would render as a stray separator. That was a second copy of "an empty name is not
+ * a name", and it answered the question the wrong way, because a nameless area then VANISHED from
+ * the trail rather than reading "Unnamed", which is harder to notice than a blank. Every segment is
+ * a `DisplayName` now, minted by its mapper, so absent is the only case left.
+ *
+ * Not `(crumb): crumb is DisplayName`, deliberately, and this is the assembler where it mattered:
+ * a user-defined predicate ASSERTS the narrowing, so with raw `string` inputs it laundered one into
+ * a `DisplayName` exactly like a cast. The inferred predicate narrows without asserting.
  */
-export function entityCrumbs(region: string | undefined, rest: Array<null | string | undefined>): string[] {
-  return [region, ...rest].filter((crumb): crumb is string => crumb != null && crumb.length > 0)
+export function entityCrumbs(
+  region: DisplayName | undefined,
+  rest: Array<DisplayName | null | undefined>,
+): DisplayName[] {
+  return [region, ...rest].filter((crumb) => crumb != null)
 }
 
 /**
@@ -124,8 +136,8 @@ export function entityCrumbs(region: string | undefined, rest: Array<null | stri
  * are what decide that a nameless route reads `common_unnamed` and a nameless block
  * reads "Block <order>", so a list formatting its own label would render a blank row.
  */
-export function entityMappers(regionCrumb?: (regionFk: number) => string | undefined) {
-  const crumbs = (regionFk: null | number | undefined, rest: Array<null | string | undefined>): string[] =>
+export function entityMappers(regionCrumb?: (regionFk: number) => DisplayName | undefined) {
+  const crumbs = (regionFk: null | number | undefined, rest: Array<DisplayName | null | undefined>): DisplayName[] =>
     entityCrumbs(regionCrumb != null && regionFk != null ? regionCrumb(regionFk) : undefined, rest)
 
   return {

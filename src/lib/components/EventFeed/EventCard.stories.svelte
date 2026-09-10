@@ -327,7 +327,7 @@
      vocabulary. Effort outranks grade; the climb outranks the applause.
 
      Every `name` below is a route the card actually shows. `accoladeOf` reads it off the very
-     event the claim came from (`routeDisplayName(event.entity?.name)`), so a fixture naming
+     event the claim came from (`toDisplayName(event.entity?.name)`), so a fixture naming
      anything else renders a banner the app cannot produce, and on a session card it breaks the
      one thing the banner is for: saying which of the rows it means. ── -->
 

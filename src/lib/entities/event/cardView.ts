@@ -548,9 +548,17 @@ function loggedAscent(entity: EventEntity | null | undefined): CardAscent | unde
  * A name that is genuinely one. A name column holds `''` as readily as `null` (a route added
  * without a name stores an empty `newValue`), and an empty string reaches the screen as a
  * blank slot rather than falling through to the next candidate or to a tombstone label.
+ *
+ * Trimmed rather than length-checked, for the reason `mintDisplayName` gives: a whitespace name
+ * renders blank exactly like an empty one. Not branded `DisplayName`, deliberately, because this
+ * reads a raw value out of the event log rather than an entity's name off a mapper, and deciding
+ * whether a stored log value is usable at all is a different question from naming an entity. It
+ * reaches the push title through `headlineEntityName`, so the two rules have to agree even though
+ * only one of them is a display name.
  */
 function named(value: null | string | undefined): string | undefined {
-  return value == null || value.length === 0 ? undefined : value
+  const trimmed = value?.trim()
+  return trimmed == null || trimmed.length === 0 ? undefined : trimmed
 }
 
 /**

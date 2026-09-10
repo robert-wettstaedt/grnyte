@@ -10,11 +10,11 @@
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { ASCENT_TYPES, STATUS } from '$lib/entities/ascent/AscentType.svelte'
   import AscentTypeGlyph from '$lib/entities/ascent/AscentTypeGlyph.svelte'
+  import { toDisplayName } from '$lib/entities/displayName'
   import type { ChangeView, PairFormat, SourceSide } from '$lib/entities/event/change'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
-  import { routeDisplayName } from '$lib/entities/route/name'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { resolveMessage } from '$lib/i18n/message'
@@ -72,7 +72,7 @@
   }
 
   /** A line's route, or the placeholder a route saved without a name renders as everywhere else. */
-  const lineName = routeDisplayName
+  const lineName = toDisplayName
 </script>
 
 <!-- eslint-disable svelte/no-navigation-without-resolve -- the one href in this file is a

@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { toDisplayName } from '$lib/entities/displayName'
   import { convertPathToPoints } from '$lib/entities/topo/mapper'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
@@ -12,7 +13,13 @@
   const base = {
     crumbs: 'Roadside · The Arch',
     grade: '7a+',
-    route: { description: 'Sit start on crimps', gradeFk: 12, name: 'Arch Nemesis', rating: 3, tags: [] },
+    route: {
+      description: 'Sit start on crimps',
+      gradeFk: 12,
+      name: toDisplayName('Arch Nemesis'),
+      rating: 3,
+      tags: [],
+    },
     status: 'redpoint',
   } satisfies ComponentProps<typeof RouteRow>
 

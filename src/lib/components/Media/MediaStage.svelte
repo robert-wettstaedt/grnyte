@@ -52,7 +52,7 @@
 
   // Route context (name/grade/rating), shown by the share page; unset in the in-app viewer.
   // Already a display name: `file.route` is populated only by the share page's loader, which
-  // runs it through `routeDisplayName`, so resolving it again here would be a second opinion.
+  // runs it through `toDisplayName`, so resolving it again here would be a second opinion.
   // Guarded on the relation rather than the string, the way `routeHref` below is, so this stays
   // "there is no route" and never becomes an inlined fallback for a nameless one.
   const routeName = $derived(file.route == null ? '' : file.route.name)

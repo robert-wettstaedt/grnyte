@@ -1,3 +1,4 @@
+import type { DisplayName } from '$lib/entities/displayName'
 import type { TopoPoint } from '$lib/entities/topo/dto'
 
 export type RouteDetail = RouteListItem & {
@@ -15,10 +16,10 @@ export type RouteDetail = RouteListItem & {
 
 export interface RouteListItem {
   /** Name of the route's area, for a breadcrumb (search results). */
-  areaName?: string
+  areaName?: DisplayName
   blockFk: number
   /** Name of the route's block, for a breadcrumb (search results). */
-  blockName?: string
+  blockName?: DisplayName
   createdAt: Date | undefined
   createdBy: number
   description: string
@@ -28,7 +29,8 @@ export interface RouteListItem {
    *  surfaces via {@link RouteDetail.rawGradeFk}. */
   gradeFk: number | undefined
   id: number
-  name: string
+  /** From `toDisplayName`, so it is never blank. `rawName` below is the stored string. */
+  name: DisplayName
   /** Community rating (`userRating`), same one-vote-per-user rule as the grade. */
   rating: number
   /** The stored name as typed, empty for unnamed routes (`name` is the `common_unnamed`

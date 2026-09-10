@@ -1,5 +1,6 @@
 <script module lang="ts">
   import type { AreaDetail } from '$lib/entities/area/dto'
+  import { toDisplayName } from '$lib/entities/displayName'
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import { defineMeta } from '@storybook/addon-svelte-csf'
@@ -14,7 +15,7 @@
     description: '',
     geoPaths: [],
     id: 1,
-    name: 'Roche aux Sabots',
+    name: toDisplayName('Roche aux Sabots'),
     parkingLocations: [],
     regionFk: 1,
     type: 'crag',
@@ -66,14 +67,14 @@
 <!-- A sub-area holds areas, not blocks, and has no location of its own to report. -->
 <Story
   name="Sub-area"
-  args={{ area: area({ name: 'Trois Pignons', type: 'area' }), blockCount: 0, destination: undefined }}
+  args={{ area: area({ name: toDisplayName('Trois Pignons'), type: 'area' }), blockCount: 0, destination: undefined }}
   parameters={{ globalState: { user: USER, userRegions: MAINTAINER } }}
 />
 
 <!-- An untyped area is always empty, so `AreaEmpty` offers both adds and the row withholds its CTA. -->
 <Story
   name="Untyped area"
-  args={{ area: area({ name: 'New area', type: null }), blockCount: 0, destination: undefined }}
+  args={{ area: area({ name: toDisplayName('New area'), type: null }), blockCount: 0, destination: undefined }}
   parameters={{ globalState: { user: USER, userRegions: MAINTAINER } }}
 />
 

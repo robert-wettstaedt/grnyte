@@ -1,3 +1,5 @@
+import { blockName } from '$lib/entities/block/mapper'
+import { toDisplayName } from '$lib/entities/displayName'
 /**
  * The cards that exist only because several events landed together.
  *
@@ -291,7 +293,10 @@ export const GROUPING_CASES: EventCase[] = [
       eventAgo(381, {
         actorFk: ME,
         changes: [change({ columnName: 'name', newValue: 'Verschneidung', oldValue: 'Verschneidungsweg' })],
-        entity: { ...routeEntity('Verschneidung', 10), crumbs: ['Steinbruch', 'Westwand', 'Südblock'] },
+        entity: {
+          ...routeEntity('Verschneidung', 10),
+          crumbs: [toDisplayName('Steinbruch'), toDisplayName('Westwand'), blockName('Südblock', 0)],
+        },
         objectId: 510,
         parent: { id: 401, type: 'block' },
         parentEntity: blockEntity('Südblock'),
@@ -304,7 +309,10 @@ export const GROUPING_CASES: EventCase[] = [
       eventAgo(383, {
         actorFk: ME,
         changes: [change({ columnName: 'gradeFk', newValue: '13', oldValue: '12' })],
-        entity: { ...routeEntity('Kamin', 13), crumbs: ['Steinbruch', 'Westwand', 'Südblock'] },
+        entity: {
+          ...routeEntity('Kamin', 13),
+          crumbs: [toDisplayName('Steinbruch'), toDisplayName('Westwand'), blockName('Südblock', 0)],
+        },
         objectId: 511,
         parent: { id: 401, type: 'block' },
         parentEntity: blockEntity('Südblock'),
@@ -770,11 +778,16 @@ export const GROUPING_CASES: EventCase[] = [
       }),
       eventAgo(132, {
         actorFk: ME,
-        entity: ascentEntity('Sonnenplatte', 10, ME, 'redpoint', { crumbs: ['Jura', 'Balmfluh'] }),
+        entity: ascentEntity('Sonnenplatte', 10, ME, 'redpoint', {
+          crumbs: [toDisplayName('Jura'), toDisplayName('Balmfluh')],
+        }),
         objectId: 9118,
         objectType: 'ascent',
         parent: { id: 520, type: 'route' },
-        parentEntity: { ...routeEntity('Sonnenplatte', 10), crumbs: ['Jura', 'Balmfluh'] },
+        parentEntity: {
+          ...routeEntity('Sonnenplatte', 10),
+          crumbs: [toDisplayName('Jura'), toDisplayName('Balmfluh')],
+        },
         regionFk: 2,
         verb: 'create',
       }),
@@ -788,11 +801,16 @@ export const GROUPING_CASES: EventCase[] = [
       }),
       eventAgo(136, {
         actorFk: ME,
-        entity: ascentEntity('Kaminriss', 13, ME, 'flash', { crumbs: ['Jura', 'Balmfluh'] }),
+        entity: ascentEntity('Kaminriss', 13, ME, 'flash', {
+          crumbs: [toDisplayName('Jura'), toDisplayName('Balmfluh')],
+        }),
         objectId: 9120,
         objectType: 'ascent',
         parent: { id: 521, type: 'route' },
-        parentEntity: { ...routeEntity('Kaminriss', 13), crumbs: ['Jura', 'Balmfluh'] },
+        parentEntity: {
+          ...routeEntity('Kaminriss', 13),
+          crumbs: [toDisplayName('Jura'), toDisplayName('Balmfluh')],
+        },
         regionFk: 2,
         verb: 'create',
       }),

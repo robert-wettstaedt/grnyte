@@ -1,5 +1,7 @@
 <script module lang="ts">
   import type { BlockDetail } from '$lib/entities/block/dto'
+  import { blockName } from '$lib/entities/block/mapper'
+  import { toDisplayName } from '$lib/entities/displayName'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import BlocksList from './BlocksList.svelte'
 
@@ -15,13 +17,13 @@
   const topo = { height: 1000, id: 1, path: 'topo-sample.svg', width: 800 }
 
   const block = (id: number, name: string, overrides: Partial<BlockDetail> = {}): BlockDetail => ({
-    areas: [{ areas: [], id: 2, name: 'Roche aux Sabots', type: 'crag' }],
+    areas: [{ areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'crag' }],
     createdAt: undefined,
     createdBy: 1,
     description: '',
     geolocation: { estimated: false, id: id * 10, lat: 48.4104 + id / 1000, long: 2.6118 },
     id,
-    name,
+    name: blockName(name, 0),
     order: id - 1,
     rawName: name,
     regionFk: 1,

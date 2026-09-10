@@ -1,5 +1,7 @@
 <script module lang="ts">
   import type { BlockDetail } from '$lib/entities/block/dto'
+  import { blockName } from '$lib/entities/block/mapper'
+  import { toDisplayName } from '$lib/entities/displayName'
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import type { RouteDetail } from '$lib/entities/route/dto'
@@ -9,13 +11,13 @@
 
   // A full page rather than a sheet, but the same 375px phone, so the row has the same budget.
   const block: BlockDetail = {
-    areas: [{ areas: [], id: 2, name: 'Roche aux Sabots', type: 'crag' }],
+    areas: [{ areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'crag' }],
     createdAt: undefined,
     createdBy: 1,
     description: '',
     geolocation: { estimated: false, id: 10, lat: 48.4104, long: 2.6118 },
     id: 3,
-    name: 'Le Toit',
+    name: blockName('Le Toit', 0),
     order: 0,
     rawName: 'Le Toit',
     regionFk: 1,
@@ -31,7 +33,7 @@
     firstAscentYear: undefined,
     gradeFk: 12,
     id: 5,
-    name: 'La Marie Rose',
+    name: toDisplayName('La Marie Rose'),
     rating: 3,
     rawGradeFk: 12,
     rawName: 'La Marie Rose',

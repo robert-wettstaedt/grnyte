@@ -1,9 +1,9 @@
 import type { Accolade } from '$lib/entities/ascent/accolade'
+import { toDisplayName } from '$lib/entities/displayName'
 import { cardView, type CardGroup, type CardRow, type CardView } from '$lib/entities/event/cardView'
 import { eventEntityKey, type EventEntity, type EventEntityMap, type EventEntityRef } from '$lib/entities/event/entity'
 import type { ReactionChip } from '$lib/entities/reaction/dto'
 import { reactionChips } from '$lib/entities/reaction/mapper'
-import { routeDisplayName } from '$lib/entities/route/name'
 import type { TopoView } from '$lib/entities/topo/dto'
 import { FIELD_EDIT_OBJECT_TYPES } from './dto'
 import type { EventGroup } from './grouping'
@@ -191,7 +191,7 @@ function accoladeOf(group: EventGroup): CardAccolade | undefined {
     // anybody for it.
     return accolade == null || event.verb !== 'create' || event.objectType !== 'ascent'
       ? []
-      : [{ accolade, name: routeDisplayName(event.entity?.name ?? '') }]
+      : [{ accolade, name: toDisplayName(event.entity?.name ?? '') }]
   })
 
   const earned = claims.find((claim) => claim.accolade.kind === 'project') ?? claims[0]
@@ -212,7 +212,7 @@ function accoladeOf(group: EventGroup): CardAccolade | undefined {
 
   return promoted == null
     ? undefined
-    : { accolade: { kind: 'community' }, name: routeDisplayName(promoted.entity?.name ?? '') }
+    : { accolade: { kind: 'community' }, name: toDisplayName(promoted.entity?.name ?? '') }
 }
 
 /**

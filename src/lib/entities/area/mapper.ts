@@ -1,3 +1,4 @@
+import { toDisplayName } from '$lib/entities/displayName'
 import { toGeolocation } from '$lib/entities/geolocation/mapper'
 import type { Row } from '$lib/zero/types'
 import type { AreaDetail, AreaListItem } from './dto'
@@ -31,7 +32,7 @@ export function toAncestors(row: AreaAncestor | undefined): AreaListItem[] {
     ancestors.unshift({
       areas: [],
       id: current.id,
-      name: current.name,
+      name: toDisplayName(current.name),
       type: current.type,
     })
     current = current.parent
@@ -56,7 +57,7 @@ export function toAreaListItem(row: AreaAncestor): AreaListItem {
   return {
     areas: toAncestors(row),
     id: row.id,
-    name: row.name,
+    name: toDisplayName(row.name),
     type: row.type,
   }
 }

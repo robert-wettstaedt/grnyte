@@ -1,9 +1,10 @@
+import { toDisplayName } from '$lib/entities/displayName'
 import { describe, expect, it } from 'vitest'
 import { findNearestCrag, type LocatableBlock } from './cragLocator'
 
-const crag = (id: number) => ({ areas: [], id, name: `Crag ${id}`, type: 'crag' as const })
+const crag = (id: number) => ({ areas: [], id, name: toDisplayName(`Crag ${id}`), type: 'crag' as const })
 const block = (cragId: number, lat: number, long: number): LocatableBlock => ({
-  areas: [{ areas: [], id: 99, name: 'Region', type: 'area' }, crag(cragId)],
+  areas: [{ areas: [], id: 99, name: toDisplayName('Region'), type: 'area' }, crag(cragId)],
   geolocation: { estimated: false, id: 0, lat, long },
 })
 

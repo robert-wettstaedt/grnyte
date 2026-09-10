@@ -16,6 +16,7 @@
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
+  import type { DisplayName } from '$lib/entities/displayName'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { regionCrumb } from '$lib/entities/region/mapper'
   import type { RouteListItem } from '$lib/entities/route/dto'
@@ -55,11 +56,11 @@
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
   // Same builder as the search bar's dropdown, so the two never disagree about a row.
-  const crumbsOf = (regionFk: null | number | undefined, rest: Array<null | string | undefined>): string[] =>
+  const crumbsOf = (regionFk: null | number | undefined, rest: Array<DisplayName | null | undefined>): DisplayName[] =>
     entityCrumbs(regionCrumb(global.userRegions, regionFk), rest)
 
   interface ResultBase {
-    crumbs: string[]
+    crumbs: DisplayName[]
     href: string
     id: number
     name: string

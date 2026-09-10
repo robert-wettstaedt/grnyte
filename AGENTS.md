@@ -126,7 +126,31 @@ This project uses:
   so it stays on hover, focus and state changes of elements that are already mounted.
 - Reuse before building: grep for an existing component/function first. If one fits but is not reusable, refactor it to be reusable and composable rather than hand-rolling a copy. Promote shared pieces to `$lib`. Prefer passing an entity DTO over a long list of individual props.
 - Entity modules live in `src/lib/entities/<name>/`, mirroring `area/` as the template.
-- An entity's display name comes from its mapper and nowhere else: `routeDisplayName` (`route/name.ts`, its own module because `route/mapper.ts` imports `topo/mapper.ts`, which needs the name helper: keeping it beside the mapper would close an import cycle), `blockName` (`block/mapper.ts`), `regionDisplayName` (`region/mapper.ts`). A helper two mappers both need goes in its own module for that reason. Names are genuinely optional in the DB, so an entity must never render as an empty string; the fallback (`common_unnamed`, `Block <order+1>`) belongs in the mapper so a feed card, a push notification and the screen they link to cannot disagree. Never inline `name ?? ''`, `name || 'Unnamed'` or a second copy of the fallback, on the client or the server.
+- An entity's display name comes from its mapper and nowhere else, and that is a TYPE rather than a
+  convention now: `entities/displayName.ts` brands `DisplayName` and mints it, and the `name` field
+  of `AreaListItem`, `BlockListItem` and `RouteListItem` will not take a plain string. Most entities
+  call `toDisplayName` directly, because "the name, or `common_unnamed`" is the whole rule for them.
+  An entity earns its OWN helper only by answering differently: `blockName` falls back to a position
+  ("Block 3") and `regionDisplayName` reports a membership that has not synced yet. Two helpers that
+  did not clear that bar have been deleted, `routeDisplayName` and `areaDisplayName`, and with them
+  `route/name.ts`, which existed only to stop `topo/mapper.ts` closing an import cycle back through
+  `route/mapper.ts`. Nothing can cycle through `displayName.ts`: it imports only paraglide. So a
+  one-line helper that forwards to `toDisplayName` is an artefact, not a seam.
+  Names are genuinely optional in the DB, so an entity must never render as an empty string; the
+  fallback (`common_unnamed`, `Block <order+1>`) belongs in the mapper so a feed card, a push
+  notification and the screen they link to cannot disagree. Never inline `name ?? ''`,
+  `name || 'Unnamed'` or a second copy of the fallback, on the client or the server. The type
+  exists because the convention lost, and `displayName.ts` carries the commits: `entityNames` in
+  `digest.server.ts` was written reading all five names off the row, one line was fixed a day later
+  by a commit that happened to touch both files, and the rest never were. Of those, `user` was
+  never a defect (a username is required by the schema), so three were: area, route and the ascent
+  that inherits the route's column. Only routes had a helper to reach for; blocks had the fallback
+  inlined in the mapper with nothing callable, and areas had neither. So a push about a nameless
+  route arrived blank while the screen it linked to read "Unnamed". Two more turned up on the first
+  compile, both building breadcrumb ancestors from `row.name`. That is a call site nobody had a
+  reason to return to rather than carelessness, which is what a docstring cannot sweep and a type can. Pass `locale` on the server:
+  it renders once per recipient. A fixture builds names through the helpers too, so a story can
+  show the nameless case at all.
 - Blocks inside an area are ordered by `order`, then `id`, stated once in `block/order.ts`
   (`inAreaOrder`). `order.server.ts` holds the drizzle half, and its export is `inAreaOrderSql`
   rather than the same name as its twin on purpose: nothing stops a `.svelte` file importing it
@@ -151,6 +175,21 @@ This project uses:
   alone leaves inlining the ordering back into the query green. The reorder fixture seeds names
   descending against ascending ids, because with A, B, C, D the alphabet and the ids run the same
   way and a name tie-break passes every assertion in the file.
+- Check a value at its point of use, not a re-derivation of it. A guard that calls the builder
+  again pins a different pair of values than the comparison reads; a comment that says a type is
+  `any` is not the type; a test that exercises the helper does not show the call site still uses it.
+  Three things in the repo are that principle rather than descriptions of it: the `IsAny` tripwire
+  in `event/mapper.ts` asserts on `EventRow['route']` itself and fails the day it stops being `any`,
+  `block/order.server.test.ts` reads the ordering off the BUILT query so inlining it back into
+  `queries.ts` reddens, and `event/routeRelation.server.test.ts` asserts non-empty on the same two
+  locals it then compares. The failure this avoids is not a wrong method, it is a sound method
+  aimed one level off the thing that runs, which is why it never feels like carelessness at the
+  time. Green means nothing until the probe is shown to have reached the code: grep the mutated
+  text before believing a surviving mutation, and assert a value that DIFFERS across the branch
+  under test before believing a passing test. It applies to prose too: a COUNT written into a
+  comment is a re-derivation of the call sites, so name the thing rather than counting it, or put
+  the number somewhere a build can break. Three counts in this change drifted, two of them inside
+  the module documenting why the previous convention had drifted.
 - Schema changes go through the pipeline: edit `schema.ts`, `generate:drizzle`, append any backfill SQL, `generate:zero`, `migrate`.
 - `auth.users` and `public.users` are both `users` to drizzle, so a query joining them needs
   `alias(authUsers, 'auth_user')` from `drizzle-orm/pg-core`. Without it the query throws

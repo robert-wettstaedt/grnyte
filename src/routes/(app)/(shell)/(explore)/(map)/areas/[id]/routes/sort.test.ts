@@ -1,3 +1,4 @@
+import { toDisplayName } from '$lib/entities/displayName'
 import type { RouteListItem } from '$lib/entities/route/dto'
 import { describe, expect, it } from 'vitest'
 import { sortRoutes } from './sort'
@@ -10,7 +11,7 @@ const route = (over: Partial<RouteListItem>): RouteListItem => ({
   firstAscentYear: undefined,
   gradeFk: undefined,
   id: 0,
-  name: '',
+  name: toDisplayName(''),
   rating: 0,
   regionFk: 0,
   tags: [],
@@ -32,7 +33,12 @@ describe('sortRoutes', () => {
   })
 
   it('name asc is alphabetical', () => {
-    const out = sortRoutes([route({ id: 1, name: 'B' }), route({ id: 2, name: 'A' })], 'name', 'asc', noDistance)
+    const out = sortRoutes(
+      [route({ id: 1, name: toDisplayName('B') }), route({ id: 2, name: toDisplayName('A') })],
+      'name',
+      'asc',
+      noDistance,
+    )
     expect(ids(out)).toEqual([2, 1])
   })
 

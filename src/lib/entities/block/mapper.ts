@@ -1,4 +1,6 @@
 import { toAncestors, type AreaAncestor } from '$lib/entities/area/mapper'
+import { toDisplayName } from '$lib/entities/displayName'
+import { mintDisplayName, type DisplayName } from '$lib/entities/displayName'
 import { toGeolocation } from '$lib/entities/geolocation/mapper'
 import { m } from '$lib/paraglide/messages'
 import type { Locale } from '$lib/paraglide/runtime'
@@ -40,11 +42,10 @@ interface BlockRow {
  * "Block 3" while the screen it links to reads something else. `locale` is explicit for that
  * caller, which renders once per recipient rather than in the reader's own session.
  */
-export function blockName(name: string, order: number, locale?: Locale): string {
-  // Trimmed for the same reason as `routeDisplayName`: a whitespace name is a blank label, and
-  // padding eats characters a truncating row would otherwise have fit.
-  const trimmed = name.trim()
-  return trimmed.length === 0 ? `${m.common_block({}, { locale })} ${order + 1}` : trimmed
+export function blockName(name: string, order: number, locale?: Locale): DisplayName {
+  // A block's fallback is its position, not the generic placeholder: "Block 3" locates it in the
+  // area, which is what a reader needs from a nameless boulder.
+  return mintDisplayName(name, () => `${m.common_block({}, { locale })} ${order + 1}`)
 }
 
 export function toBlockDetail(row: BlockDetailRow): BlockDetail {
@@ -78,7 +79,7 @@ export function toBlockListItem(row: BlockRow): BlockListItem {
     areas.push({
       areas: [],
       id: row.area.id,
-      name: row.area.name,
+      name: toDisplayName(row.area.name),
       type: row.area.type ?? 'area',
     })
   }

@@ -2,11 +2,11 @@ import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth'
 import { enrichMarkdown } from '$lib/components/Markdown/lib/enrich.server'
 import { db } from '$lib/db/db.server'
 import { files } from '$lib/db/schema'
+import { toDisplayName } from '$lib/entities/displayName'
 import type { MediaFile } from '$lib/entities/file/dto'
 import { toMediaFile } from '$lib/entities/file/mapper'
 import { canDeleteFile, canEditFile } from '$lib/entities/file/permissions'
 import { toGrade } from '$lib/entities/grade/mapper'
-import { routeDisplayName } from '$lib/entities/route/name'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -112,7 +112,7 @@ export const load = (async ({ locals, params }) => {
         : {
             gradeFk: routeRow.userGradeFk ?? routeRow.gradeFk ?? undefined,
             id: routeRow.id,
-            name: routeDisplayName(routeRow.name ?? ''),
+            name: toDisplayName(routeRow.name ?? ''),
             rating: routeRow.userRating ?? routeRow.rating ?? undefined,
           },
   }

@@ -2,6 +2,8 @@ import { db as baseDb } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { areas, ascents, blocks, routes, users } from '$lib/db/schema'
 import { blockName } from '$lib/entities/block/mapper'
+import { toDisplayName } from '$lib/entities/displayName'
+import { alreadyDisplayable, type DisplayName } from '$lib/entities/displayName'
 import { headlineEntityName } from '$lib/entities/event/cardView'
 import { objectOf, type EventObjectType } from '$lib/entities/event/dto'
 import { eventEntityKey, eventRefs, type EventEntityRef } from '$lib/entities/event/entity'
@@ -147,8 +149,8 @@ export async function digestCopy(
 export async function entityNames(
   refs: readonly EventEntityRef[],
   locale: Locale = baseLocale,
-): Promise<Map<string, string>> {
-  const names = new Map<string, string>()
+): Promise<Map<string, DisplayName>> {
+  const names = new Map<string, DisplayName>()
 
   const idsOf = (type: EventObjectType): number[] => [
     ...new Set(refs.flatMap((ref) => (ref.type === type ? [Number(ref.id)] : [])).filter(Number.isInteger)),
@@ -165,7 +167,7 @@ export async function entityNames(
       .select({ id: areas.id, name: areas.name })
       .from(areas)
       .where(inArray(areas.id, areaIds))) {
-      names.set(`area:${row.id}`, row.name)
+      names.set(`area:${row.id}`, toDisplayName(row.name, locale))
     }
   }
 
@@ -185,7 +187,7 @@ export async function entityNames(
       .select({ id: routes.id, name: routes.name })
       .from(routes)
       .where(inArray(routes.id, routeIds))) {
-      names.set(`route:${row.id}`, row.name)
+      names.set(`route:${row.id}`, toDisplayName(row.name, locale))
     }
   }
 
@@ -194,7 +196,9 @@ export async function entityNames(
       .select({ id: users.id, name: users.username })
       .from(users)
       .where(inArray(users.id, userIds))) {
-      names.set(`user:${row.id}`, row.name)
+      // A username, which the schema requires and the sign-up flow will not leave blank, so there
+      // is no fallback to reach for. Stated rather than assumed, because the map's type asks.
+      names.set(`user:${row.id}`, alreadyDisplayable(row.name))
     }
   }
 
@@ -204,7 +208,9 @@ export async function entityNames(
       .from(ascents)
       .innerJoin(routes, eq(routes.id, ascents.routeFk))
       .where(inArray(ascents.id, ascentIds))) {
-      names.set(`ascent:${row.id}`, row.name)
+      // Named by its route, so it inherits the route's fallback: a push about an ascent of a
+      // nameless route read blank here too, from the same joined column.
+      names.set(`ascent:${row.id}`, toDisplayName(row.name, locale))
     }
   }
 

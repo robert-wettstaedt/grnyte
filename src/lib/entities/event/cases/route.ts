@@ -35,7 +35,7 @@ export const ROUTE_CASES: EventCase[] = [
     events: [
       eventAgo(290, {
         actorFk: ME,
-        // Built through `routeEntity`, which runs the blank through `routeDisplayName`: by the time
+        // Built through `routeEntity`, which runs the blank through `toDisplayName`: by the time
         // a card sees the route the placeholder is already its name, so nothing downstream has to
         // know the column was empty.
         entity: routeEntity('', 12),

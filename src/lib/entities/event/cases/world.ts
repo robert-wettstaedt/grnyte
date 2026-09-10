@@ -1,3 +1,5 @@
+import { blockName } from '$lib/entities/block/mapper'
+import { toDisplayName } from '$lib/entities/displayName'
 /**
  * The one crag every case points at, and the builders that write events about it.
  *
@@ -22,7 +24,6 @@
  * Storybook and tests only. Nothing in the app imports this.
  */
 import type { MediaFile } from '$lib/entities/file/dto'
-import { routeDisplayName } from '$lib/entities/route/name'
 import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from '$lib/entities/topo/change'
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { EventObjectType } from '../dto'
@@ -68,7 +69,13 @@ let nextId = 1
 
 /** A hydrated area, as the mapper builds one off `events.area`. */
 export function areaEntity(name: string, parentName?: string): EventEntity {
-  return { crumbs: parentName == null ? [] : [parentName], description: undefined, href: '#', name, row: 'area' }
+  return {
+    crumbs: parentName == null ? [] : [toDisplayName(parentName)],
+    description: undefined,
+    href: '#',
+    name,
+    row: 'area',
+  }
 }
 
 /** A hydrated ascent: its route's row, plus what the climber said about it. */
@@ -96,7 +103,7 @@ export function ascentEntity(
  */
 export function blockEntity(name = 'Nordblock', estimated?: boolean): EventEntity {
   return {
-    crumbs: ['Steinbruch', 'Westwand'],
+    crumbs: [toDisplayName('Steinbruch'), toDisplayName('Westwand')],
     href: '#',
     name,
     pin: estimated == null ? undefined : { estimated, id: 1, ...PIN },
@@ -176,14 +183,14 @@ export function photo(id: string): MediaFile {
 /**
  * A hydrated route, named the way the feed gets one.
  *
- * Through `routeDisplayName`, because the mapper has already swapped a blank name for the
+ * Through `toDisplayName`, because the mapper has already swapped a blank name for the
  * `common_unnamed` placeholder by the time a card sees it: a fixture passing `''` would be
  * describing a state the app cannot produce.
  */
 export function routeEntity(rawName: string, gradeFk: number): EventEntity {
-  const name = routeDisplayName(rawName)
+  const name = toDisplayName(rawName)
   return {
-    crumbs: ['Steinbruch', 'Westwand', 'Nordblock'],
+    crumbs: [toDisplayName('Steinbruch'), toDisplayName('Westwand'), blockName('Nordblock', 0)],
     href: '#',
     name,
     route: { description: '', gradeFk, name, rating: 2, tags: [] },

@@ -1,4 +1,5 @@
 import type { AreaListItem } from '$lib/entities/area/dto'
+import type { DisplayName } from '$lib/entities/displayName'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 
 export type BlockDetail = BlockListItem & {
@@ -19,7 +20,8 @@ export type BlockDetail = BlockListItem & {
 export type BlockListItem = {
   areas: AreaListItem[]
   id: number
-  name: string
+  /** From `blockName`, so it is never blank: "Block 3" when the block has no name of its own. */
+  name: DisplayName
   order: number
   regionFk: number
 }

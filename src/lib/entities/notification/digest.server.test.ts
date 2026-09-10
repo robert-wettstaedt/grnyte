@@ -101,6 +101,43 @@ describe.skipIf(!reachable)('entityNames', () => {
     expect(resolved.get(`ascent:${ascentId}`)).toBe('Kante direkt')
   })
 
+  it('names a nameless area, route and ascent instead of returning the empty string', async () => {
+    // The defect this pins. Every kind here except `block` came off `row.name` raw, so a push
+    // about a nameless route arrived with a blank title while the screen it linked to read
+    // "Unnamed". The fixture above cannot see it, because everything it seeds has a name.
+    //
+    // Whitespace for the area, empty for the route: names are trimmed on write, but imported and
+    // legacy rows are not, and a whitespace name renders blank exactly like an empty one.
+    const [{ id: blankArea }] = await sql<{ id: number }[]>`
+      insert into public.areas (name, created_by, region_fk, type)
+      values ('   ', ${actor.userId}, ${regionId}, 'crag') returning id`
+    const [{ id: blankRoute }] = await sql<{ id: number }[]>`
+      insert into public.routes (name, created_by, region_fk, block_fk)
+      values ('', ${actor.userId}, ${regionId}, ${blockId}) returning id`
+    const [{ id: blankAscent }] = await sql<{ id: number }[]>`
+      insert into public.ascents (type, created_by, region_fk, route_fk)
+      values ('flash', ${actor.userId}, ${regionId}, ${blankRoute}) returning id`
+
+    const refs = [
+      { id: String(blankArea), type: 'area' as const },
+      { id: String(blankRoute), type: 'route' as const },
+      { id: String(blankAscent), type: 'ascent' as const },
+    ]
+
+    const resolved = await entityNames(refs)
+    expect(resolved.get(`area:${blankArea}`)).toBe(m.common_unnamed())
+    expect(resolved.get(`route:${blankRoute}`)).toBe(m.common_unnamed())
+    // An ascent is named by its route, off the same joined column, so it had the same hole.
+    expect(resolved.get(`ascent:${blankAscent}`)).toBe(m.common_unnamed())
+
+    // In the recipient's language, not the server's. A route rather than a block on purpose:
+    // `common_unnamed` is "Unnamed" in en and "Ohne Namen" in de, so this reddens if the locale
+    // thread is cut, while `common_block` is "Block" in BOTH locales and the same assertion on a
+    // nameless block would pass with the plumbing torn out.
+    const german = await entityNames(refs, 'de')
+    expect(german.get(`route:${blankRoute}`)).toBe(m.common_unnamed({}, { locale: 'de' }))
+  })
+
   it('asks nothing of an empty ref list', async () => {
     expect(await entityNames([])).toEqual(new Map())
   })

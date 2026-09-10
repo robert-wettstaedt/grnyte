@@ -1,5 +1,7 @@
 <script module lang="ts">
   import type { BlockDetail } from '$lib/entities/block/dto'
+  import { blockName } from '$lib/entities/block/mapper'
+  import { toDisplayName } from '$lib/entities/displayName'
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import { defineMeta } from '@storybook/addon-svelte-csf'
@@ -8,13 +10,13 @@
 
   // 343px is the mobile sheet's content box (375px viewport less its px-4).
   const block = (overrides: Partial<BlockDetail> = {}): BlockDetail => ({
-    areas: [{ areas: [], id: 2, name: 'Roche aux Sabots', type: 'crag' }],
+    areas: [{ areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'crag' }],
     createdAt: undefined,
     createdBy: 1,
     description: '',
     geolocation: { estimated: false, id: 10, lat: 48.4104, long: 2.6118 },
     id: 1,
-    name: 'Le Toit',
+    name: blockName('Le Toit', 0),
     order: 0,
     rawName: 'Le Toit',
     regionFk: 1,

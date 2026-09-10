@@ -1,3 +1,4 @@
+import { locationCrumb } from '$lib/components/Profile/crumbs'
 import { m } from '$lib/paraglide/messages'
 import { describe, expect, it } from 'vitest'
 import { toUserAscentDetail, type UserAscentDetailRow } from './mapper'
@@ -27,7 +28,7 @@ describe('toUserAscentDetail', () => {
   // The bug this covers: `routeName` used to be `row.route?.name ?? ''`, so a nameless route
   // rendered as an empty link in the profile's logbook row, leaving the ascent-type badge
   // alone on its line, and named nothing in the delete confirmation. Meanwhile a `!routes:n!`
-  // reference in the same row's note resolved through `routeDisplayName` and DID show the
+  // reference in the same row's note resolved through `toDisplayName` and DID show the
   // placeholder, so one screen disagreed with itself about what a nameless route is called.
   it('names a route with no name', () => {
     expect(toUserAscentDetail(row({ name: '' })).routeName).toBe(m.common_unnamed())
@@ -80,5 +81,18 @@ describe('toUserAscentDetail', () => {
       row({ block: { area: { name: 'Roadside' }, name: 'Le Toit', order: 0 }, name: 'Arch Nemesis' }),
     )
     expect(detail.areaName).toBe('Roadside')
+  })
+
+  it('names a nameless area for the crumb instead of dropping it', () => {
+    // `areaName` came off the row raw, and `locationCrumb` then filtered `name !== ''`, so a
+    // nameless area did not read "Unnamed" in the trail: it VANISHED from it, which is harder to
+    // notice than a blank. Whitespace rather than '', because that reached the same filter and
+    // survived it, producing a crumb made of spaces.
+    const detail = toUserAscentDetail(
+      row({ block: { area: { name: '   ' }, name: 'Le Toit', order: 0 }, name: 'Arch Nemesis' }),
+    )
+
+    expect(detail.areaName).toBe(m.common_unnamed())
+    expect(locationCrumb(detail)).toEqual([m.common_unnamed(), 'Le Toit'])
   })
 })

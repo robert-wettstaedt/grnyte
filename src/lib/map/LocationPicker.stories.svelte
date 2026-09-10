@@ -1,5 +1,7 @@
 <script module lang="ts">
   import type { BlockDetail } from '$lib/entities/block/dto'
+  import { blockName } from '$lib/entities/block/mapper'
+  import { toDisplayName } from '$lib/entities/displayName'
   import LocationPicker from '$lib/map/LocationPicker.svelte'
   import type { MapData } from '$lib/map/types'
   import { defineMeta } from '@storybook/addon-svelte-csf'
@@ -10,15 +12,15 @@
   // for the map to draw markers underneath the pin.
   const block = (id: number, name: string, lat: number, long: number): BlockDetail => ({
     areas: [
-      { areas: [], id: 1, name: 'Trois Pignons', type: 'area' },
-      { areas: [], id: 2, name: 'Roche aux Sabots', type: 'crag' },
+      { areas: [], id: 1, name: toDisplayName('Trois Pignons'), type: 'area' },
+      { areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'crag' },
     ],
     createdAt: undefined,
     createdBy: 1,
     description: '',
     geolocation: { estimated: false, id: id * 10, lat, long },
     id,
-    name,
+    name: blockName(name, id - 1),
     order: id - 1,
     rawName: name,
     regionFk: 1,

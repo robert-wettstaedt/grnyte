@@ -1,6 +1,6 @@
 <script module lang="ts">
+  import { toDisplayName } from '$lib/entities/displayName'
   import type { MediaFile } from '$lib/entities/file/dto'
-  import { routeDisplayName } from '$lib/entities/route/name'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import { ADMIN, MEMBER, USER } from '../../../../.storybook/regions'
@@ -150,14 +150,14 @@
 />
 
 <!-- A route may genuinely have no name. The placeholder comes from the mapper
-     (`routeDisplayName`), so the row never renders an empty link, which is what used to leave
+     (`toDisplayName`), so the row never renders an empty link, which is what used to leave
      the ascent-type badge sitting alone on the first line. -->
 <Story
   name="Logbook, unnamed route"
   args={{
     crumbs: 'Sub Area · blabla',
-    route: { href: '#', name: routeDisplayName('') },
-    routeName: routeDisplayName(''),
+    route: { href: '#', name: toDisplayName('') },
+    routeName: toDisplayName(''),
   }}
 />
 

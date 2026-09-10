@@ -1,6 +1,6 @@
 import { blockName } from '$lib/entities/block/mapper'
+import { toDisplayName } from '$lib/entities/displayName'
 import { toMediaFile } from '$lib/entities/file/mapper'
-import { routeDisplayName } from '$lib/entities/route/name'
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
 import type { AscentDetail, RouteAscent, UserAscent, UserAscentDetail } from './dto'
@@ -72,10 +72,10 @@ export function toUserAscentDetail(row: UserAscentDetailRow): UserAscentDetail {
   const block = row.route?.block
   return {
     ...toRouteAscent(row),
-    areaName: block?.area?.name,
+    areaName: block?.area == null ? undefined : toDisplayName(block.area.name),
     blockName: block == null ? undefined : blockName(block.name, block.order),
     routeFk: row.routeFk,
     routeGradeFk: row.route?.userGradeFk ?? undefined,
-    routeName: routeDisplayName(row.route?.name ?? ''),
+    routeName: toDisplayName(row.route?.name ?? ''),
   }
 }

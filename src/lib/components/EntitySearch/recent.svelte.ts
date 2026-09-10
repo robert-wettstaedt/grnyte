@@ -1,4 +1,5 @@
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+import type { DisplayName } from '$lib/entities/displayName'
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
 import { entityMappers, type EntityCandidate, type EntityType } from './search.svelte'
@@ -37,7 +38,7 @@ interface SectionOptions {
   /** Only query while the flyout is open on its empty state. */
   enabled: () => boolean
   /** Prepends a region name to each candidate's crumbs; see {@link entityMappers}. */
-  regionCrumb?: (regionFk: number) => string | undefined
+  regionCrumb?: (regionFk: number) => DisplayName | undefined
 }
 
 /** Forget every stored view. The flyout offers this because the list names places and

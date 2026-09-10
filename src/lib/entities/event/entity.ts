@@ -1,5 +1,6 @@
 import type { Accolade } from '$lib/entities/ascent/accolade'
 import type { AscentType } from '$lib/entities/ascent/dto'
+import type { DisplayName } from '$lib/entities/displayName'
 import type { MediaFile } from '$lib/entities/file/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 import type { RouteListItem } from '$lib/entities/route/dto'
@@ -64,7 +65,9 @@ export interface EventEntity {
   /** That climber's username, for the headline slot. */
   climberName?: string
   /** Breadcrumb path for the row, e.g. the parent area and block. */
-  crumbs?: string[]
+  /** Ancestor names, each minted: a crumb is an entity's name, so a blank one is a stray separator
+   *  rather than a shorter trail. */
+  crumbs?: DisplayName[]
   /** Secondary line for area and block rows. */
   description?: string
   /** Media the card renders full width above the rows. */
@@ -73,7 +76,13 @@ export interface EventEntity {
   href?: string
   /** The ascent's humidity, half of the conditions pill in the same strip as the grade. */
   humidity?: number
-  /** Display name; the card's headline interpolates it. */
+  /**
+   * The card's headline text. Deliberately NOT `DisplayName`, though it usually holds one: an
+   * invitation puts an email address here, and a tombstone row (`row: 'none'`) puts `''`, so the
+   * slot is "what this card is about" rather than "what this entity is called". Branding it forced
+   * casts at those two, which teaches exactly the habit the brand exists to stop. `crumbs` above
+   * IS branded, because a crumb is always an entity's name.
+   */
   name: string
   /** An ascent's notes, quoted under the rows. */
   note?: string

@@ -46,7 +46,7 @@
   let visibilityOverride = $state<'private' | 'public'>()
   const file = $derived(visibilityOverride == null ? data.file : { ...data.file, visibility: visibilityOverride })
 
-  // Already a display name: the loader runs it through `routeDisplayName`.
+  // Already a display name: the loader runs it through `toDisplayName`.
   const title = $derived(data.file.route == null ? m.files_sharedFile() : data.file.route.name)
   const ogImage = $derived(
     data.file.bunnyStreamFk != null

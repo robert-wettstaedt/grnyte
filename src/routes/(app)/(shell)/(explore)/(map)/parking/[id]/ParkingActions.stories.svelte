@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { toDisplayName } from '$lib/entities/displayName'
   import type { ParkingDetail } from '$lib/entities/geolocation/dto'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import { defineMeta } from '@storybook/addon-svelte-csf'
@@ -7,7 +8,7 @@
 
   // The one row where Directions keeps the labelled slot: it is all a parking pin is for.
   const parking: ParkingDetail = {
-    area: { areas: [], id: 2, name: 'Roche aux Sabots', type: 'crag' },
+    area: { areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'crag' },
     id: 1,
     lat: 48.4104,
     long: 2.6118,

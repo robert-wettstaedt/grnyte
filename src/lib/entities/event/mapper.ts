@@ -1,6 +1,8 @@
 import { entityHref } from '$lib/components/EntitySearch/search.svelte'
 import { parseAccolade } from '$lib/entities/ascent/accolade'
 import { blockName } from '$lib/entities/block/mapper'
+import { toDisplayName } from '$lib/entities/displayName'
+import type { DisplayName } from '$lib/entities/displayName'
 import type { EventEntity } from '$lib/entities/event/entity'
 import { fileParent, toMediaFile } from '$lib/entities/file/mapper'
 import { toGeolocation } from '$lib/entities/geolocation/mapper'
@@ -87,6 +89,21 @@ export type EventRow = QueryRow<typeof queries.listEvents>
 
 export type EventVerb = EventRow['verb']
 
+/**
+ * `EventRow['route']` resolves to `any`: the relation is nested deeply enough to defeat the query
+ * type, and `const x: 1 = route.name` typechecks. Two things downstream rest on that and neither
+ * says so on its own, so this is the trip-wire for both. `routeEntity`'s crumbs are `DisplayName`
+ * by convention rather than by the compiler, and `toRouteListItem(route as unknown as RouteListRow)`
+ * converts nothing, so if `listEvents` stops syncing a field that mapper reads, every feed card
+ * renders `undefined` for it with no error anywhere.
+ *
+ * This line fails the day Zero's types get sharper, which is the day both of those can be fixed
+ * and the comments above them deleted. Failing in that direction is the point.
+ */
+type IsAny<T> = 0 extends 1 & T ? true : false
+const _routeRelationIsStillAny: IsAny<NonNullable<EventRow['route']>> = true
+void _routeRelationIsStillAny
+
 /** A synced row as the feed renders it. */
 export function toEvent(row: EventRow, userRegions: RegionMembership[]): EventListItem {
   const object = objectOf(row)
@@ -172,16 +189,23 @@ export function toEventEntity(
 }
 
 function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity | undefined {
-  const crumbs = (regionFk: null | number | undefined, rest: (null | string | undefined)[]) =>
-    [regionCrumb(userRegions, regionFk), ...rest].filter((crumb): crumb is string => crumb != null)
+  // `rest` is `DisplayName`, so absent is the only case left to drop. It used to take raw row names
+  // and filter nulls only, which let `''` through as a stray separator between two crumbs.
+  //
+  // Inferred predicate, not `crumb is DisplayName`: an explicit guard would assert the narrowing
+  // and let a raw row name back in, which is what this signature exists to stop.
+  const crumbs = (regionFk: null | number | undefined, rest: (DisplayName | null | undefined)[]) =>
+    [regionCrumb(userRegions, regionFk), ...rest].filter((crumb) => crumb != null)
 
   if (row.area != null) {
     const area = row.area
     return {
-      crumbs: crumbs(area.regionFk, [area.parent?.name]),
+      crumbs: crumbs(area.regionFk, [area.parent == null ? undefined : toDisplayName(area.parent.name)]),
       description: area.description ?? undefined,
       href: entityHref({ id: area.id, label: area.name, type: 'areas' }),
-      name: area.name,
+      // Through `toDisplayName` for the same reason the block below goes through `blockName`:
+      // areas can be nameless too, and this is a card's headline.
+      name: toDisplayName(area.name),
       paths: (area.geoPaths ?? []).flatMap(decodeApproach),
       row: 'area',
     }
@@ -194,7 +218,7 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity |
     // push digest cannot disagree, and the same trap `routeEntity` documents further down.
     const name = blockName(block.name, block.order)
     return {
-      crumbs: crumbs(block.regionFk, [block.area?.name]),
+      crumbs: crumbs(block.regionFk, [block.area == null ? undefined : toDisplayName(block.area.name)]),
       description: block.description ?? undefined,
       href: entityHref({ id: block.id, label: name, type: 'blocks' }),
       name,
@@ -298,7 +322,7 @@ function parentEntityOf(row: EventRow, userRegions: RegionMembership[]): EventEn
   const areaEntity = (area: { id: number; name: string }): EventEntity => ({
     crumbs: [],
     href: entityHref({ id: area.id, label: area.name, type: 'areas' }),
-    name: area.name,
+    name: toDisplayName(area.name),
     row: 'area',
   })
 
@@ -346,9 +370,18 @@ function routeEntity(route: NonNullable<EventRow['route']>, userRegions: RegionM
   // "unnamed" fallback and an empty block name for `Block N`, and it exists so nothing downstream
   // ever sees the empty string. Reading `route.name` here put it straight back.
   return {
-    crumbs: [regionCrumb(userRegions, route.regionFk), route.block?.area?.name, item.blockName].filter(
-      (crumb): crumb is string => crumb != null && crumb.length > 0,
-    ),
+    // `item.areaName`, not `route.block?.area?.name`: that is what the comment above is asking for,
+    // and reading the raw row here put the empty string back exactly as reading `route.name` would.
+    // With both minted, absent is the only case left, so the length check went with it.
+    //
+    // Held by this comment and not by the type, uniquely in this file. `EventRow['route']` resolves
+    // to `any` (the relation is nested deeply enough to defeat the query type: even `route.name`
+    // typechecks against `const x: 1`), so `any` satisfies `DisplayName[]` and swapping this back
+    // to the raw row compiles clean. The `area` and `block` branches above ARE enforced, because
+    // their names reach the crumb helper through its typed parameter. Verified by mutation, not
+    // assumed: putting a plain `string` in this array does error, which is what makes the `any`
+    // the explanation rather than a guess.
+    crumbs: [regionCrumb(userRegions, route.regionFk), item.areaName, item.blockName].filter((crumb) => crumb != null),
     href: entityHref({ id: route.id, label: item.name, type: 'routes' }),
     name: item.name,
     route: item,
