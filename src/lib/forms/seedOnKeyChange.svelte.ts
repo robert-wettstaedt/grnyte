@@ -1,3 +1,5 @@
+import { untrack } from 'svelte'
+
 /**
  * Run `seed` when the identity a surface is about changes, and once when it arrives. Every add
  * and edit form on a parameterised route needs it; AGENTS.md says why, and which key to pass.
@@ -25,6 +27,8 @@ export function seedOnKeyChange(key: () => number | string | undefined, seed: ()
     }
 
     applied = next
-    seed()
+    // untrack: the seed's reads are not identity. Without it they wake this effect one extra
+    // time after each seed, only to early-return above.
+    untrack(seed)
   })
 }

@@ -181,7 +181,14 @@
     if (instance == null || !hasSize || userMoved) return
 
     const located = blocks.filter((block) => block.geolocation != null)
-    const signature = `${located.length}:${parking != null}`
+    // Content, not a count: a block leaving as another arrives keeps the count at three and the
+    // map never refits. Sorted, because `blocks` arrives in the reader's order and a drag must
+    // not refit the map under them: what to fit is a set, not a sequence.
+    const signature = located
+      .map((block) => `${block.id}@${block.geolocation!.lat},${block.geolocation!.long}`)
+      .sort()
+      .join('|')
+      .concat(parking == null ? '' : `|P@${parking.lat},${parking.long}`)
     if (located.length === 0 || signature === fitted) return
 
     const coords = located.map((block) => fromLonLat([block.geolocation!.long, block.geolocation!.lat]))

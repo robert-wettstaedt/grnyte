@@ -155,8 +155,15 @@
         // they contribute to form data. `resetBlanks.test.ts` pins all of it. Clearing the
         // singleton touches only what the singleton owns, and Kit already empties the issues from a
         // successful response.
-        form.fields.set({})
-        await onSubmitted?.()
+        // After `onSubmitted`, not before: it can await (routes/add waits up to 5s for Zero to
+        // sync), and clearing first blanks the form on screen for that whole wait. `finally` so a
+        // throw still clears. Not a double-submit guard: Kit holds `pending` up across this
+        // callback, so Submit is disabled throughout either way.
+        try {
+          await onSubmitted?.()
+        } finally {
+          form.fields.set({})
+        }
       }
     } catch (error) {
       if (!isOnline()) {

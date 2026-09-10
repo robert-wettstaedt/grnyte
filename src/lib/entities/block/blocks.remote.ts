@@ -618,15 +618,11 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
 export const reorderBlocks = authedCommand(
   z.object({ areaId: z.number(), orderedIds: z.array(z.number()) }),
   async ({ areaId, orderedIds }, { db, userRegions }) => {
-    const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
-
-    if (area == null) {
-      error(404, 'Area not found')
-    }
-
-    if (!canEditBlock(userRegions, area)) {
-      error(403, formError('form_noPermission'))
-    }
+    await requireRow(
+      () => db.query.areas.findFirst({ where: eq(areas.id, areaId) }),
+      (row) => canEditBlock(userRegions, row),
+      formError('areas_notFound'),
+    )
 
     const areaBlocks = await db.query.blocks.findMany({
       columns: { id: true },

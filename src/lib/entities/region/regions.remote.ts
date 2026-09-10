@@ -104,8 +104,14 @@ export const updateRegion = authedForm(regionActionSchema, async ({ id, name }, 
 const regionMapLayersSchema = z.object({
   id: stringToInt,
   /** A fingerprint of the layers the form was seeded with, so a save can prove it is replacing
-   *  what it read. Written only by the seed. */
-  known: z.string(),
+   *  what it read. Written only by the seed.
+   *
+   *  Defaulted, so a tab loaded before this deployed refuses the write instead of failing
+   *  silently: its POST carries no `known`, and a required field's invalid_type has nowhere to
+   *  render (bare hidden input, and `FormError` only shows empty-path issues). `''` never equals
+   *  a fingerprint, so it lands on the stale refusal. That tab renders the KEY, not the copy,
+   *  since `region_mapLayersStale` shipped with this field, but a visible refusal beats none. */
+  known: z._default(z.optional(z.string()), ''),
   mapLayers: z._default(z.optional(z.array(mapLayerSchema)), []),
 })
 
