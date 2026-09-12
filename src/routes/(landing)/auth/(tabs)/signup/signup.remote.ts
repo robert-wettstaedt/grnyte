@@ -2,7 +2,7 @@ import { form, getRequestEvent } from '$app/server'
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { notifyAdminsOfSignup } from '$lib/entities/notification/signup.server'
-import { authError, formError, usernameSchema } from '$lib/forms/schemas'
+import { authError, formError, passwordSchema, passwordsMatch, usernameSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { getLocale } from '$lib/paraglide/runtime'
 import { invalid } from '@sveltejs/kit'
@@ -12,17 +12,10 @@ const signUpSchema = z
   .object({
     confirmPassword: z.string({ error: formError('form_required') }),
     email: z.email({ error: formError('form_required') }),
-    password: z
-      .string({ error: formError('form_required') })
-      .check(z.minLength(8, { error: formError('form_charsMin', { count: 8 }) })),
+    password: passwordSchema,
     username: usernameSchema,
   })
-  .check(
-    z.refine((v) => v.password === v.confirmPassword, {
-      error: formError('auth_passwordMismatch'),
-      path: ['confirmPassword'],
-    }),
-  )
+  .check(passwordsMatch)
 
 // No username-uniqueness check here on purpose: a fresh account belongs to no region yet, so there
 // is nothing it could collide with, and an unauthenticated "taken" answer would turn sign-up into a

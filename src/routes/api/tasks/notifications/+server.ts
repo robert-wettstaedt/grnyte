@@ -1,4 +1,3 @@
-import { CRON_API_KEY } from '$env/static/private'
 import { db } from '$lib/db/db.server'
 import {
   areas,
@@ -34,11 +33,11 @@ import { isPushConfigured, sendPushToUser, subscriptionsFor } from '$lib/entitie
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import { contactLocale, resolveMessage } from '$lib/i18n/message'
 import type { Locale } from '$lib/paraglide/runtime'
+import { isCronAuthorized } from '$lib/remote/cron.server'
 import { json } from '@sveltejs/kit'
 import { and, count, eq, gt, inArray, isNull, lte, max, ne, notInArray, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { authUsers } from 'drizzle-orm/supabase'
-import { timingSafeEqual } from 'node:crypto'
 import type { RequestHandler } from './$types'
 
 /**
@@ -69,19 +68,6 @@ import type { RequestHandler } from './$types'
  * $$);
  * ```
  */
-
-/** Same x-api-key gate the pg_cron caller uses for the cleanup task. */
-const authorized = (request: Request): boolean => {
-  const key = request.headers.get('x-api-key')
-  if (key == null || key.length === 0 || CRON_API_KEY.length === 0) {
-    return false
-  }
-  try {
-    return timingSafeEqual(Buffer.from(key), Buffer.from(CRON_API_KEY))
-  } catch {
-    return false
-  }
-}
 
 /**
  * Run `task` over `items` a few at a time, and collect the results.
@@ -708,7 +694,7 @@ async function unreadCounts(userFks: readonly number[]): Promise<Map<number, num
 }
 
 export const POST: RequestHandler = async ({ request, url }) => {
-  if (!authorized(request)) {
+  if (!isCronAuthorized(request)) {
     return new Response('Unauthorized', { status: 401 })
   }
 

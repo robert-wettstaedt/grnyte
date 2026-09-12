@@ -1,21 +1,14 @@
 import { form, getRequestEvent } from '$app/server'
-import { authError, formError } from '$lib/forms/schemas'
+import { authError, formError, passwordSchema, passwordsMatch } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { invalid } from '@sveltejs/kit'
 
 const resetPasswordSchema = z
   .object({
     confirmPassword: z.string({ error: formError('form_required') }),
-    password: z
-      .string({ error: formError('form_required') })
-      .check(z.minLength(8, { error: formError('form_charsMin', { count: 8 }) })),
+    password: passwordSchema,
   })
-  .check(
-    z.refine((v) => v.password === v.confirmPassword, {
-      error: formError('auth_passwordMismatch'),
-      path: ['confirmPassword'],
-    }),
-  )
+  .check(passwordsMatch)
 
 export const resetPassword = form(resetPasswordSchema, async ({ password }) => {
   const {

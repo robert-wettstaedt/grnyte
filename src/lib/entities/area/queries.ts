@@ -1,4 +1,5 @@
 import * as z from '$lib/forms/zod'
+import { applyTextFilters } from '$lib/zero/filters'
 import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
@@ -50,17 +51,7 @@ export const areasQueryDefs = {
         q = q.where('parentFk', 'IS', args.parentFk)
       }
 
-      if (args.content != null) {
-        q = q.where((q) =>
-          q.or(q.cmp('name', 'ILIKE', `%${args.content}%`), q.cmp('description', 'ILIKE', `%${args.content}%`)),
-        )
-      }
-
-      // Find areas whose description contains a reference token (e.g. `!blocks:42!`): the
-      // backlinks for the referenced entity. The token's delimiters keep it exact.
-      if (args.references != null) {
-        q = q.where('description', 'ILIKE', `%${args.references}%`)
-      }
+      q = applyTextFilters(q, args)
 
       if (args.limit != null) {
         q = q.limit(args.limit)

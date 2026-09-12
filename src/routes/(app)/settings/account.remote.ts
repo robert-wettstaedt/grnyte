@@ -1,6 +1,6 @@
 import { form, getRequestEvent } from '$app/server'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
-import { authError, formError } from '$lib/forms/schemas'
+import { authError, formError, passwordSchema, passwordsMatch } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { createClient } from '@supabase/supabase-js'
 import { error, invalid } from '@sveltejs/kit'
@@ -60,16 +60,9 @@ const updatePasswordSchema = z
   .object({
     confirmPassword: z.string({ error: formError('form_required') }),
     currentPassword: z.string({ error: formError('form_required') }),
-    password: z
-      .string({ error: formError('form_required') })
-      .check(z.minLength(8, { error: formError('form_charsMin', { count: 8 }) })),
+    password: passwordSchema,
   })
-  .check(
-    z.refine((v) => v.password === v.confirmPassword, {
-      error: formError('auth_passwordMismatch'),
-      path: ['confirmPassword'],
-    }),
-  )
+  .check(passwordsMatch)
 
 /**
  * Change the password. Unlike the email change there is no second inbox in the loop, so the current

@@ -1,13 +1,13 @@
-import { CRON_API_KEY, SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private'
+import { SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private'
 import { PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
 import { feedback, notifications } from '$lib/db/schema'
 import { STAGING_BUCKET } from '$lib/entities/file/upload'
+import { isCronAuthorized } from '$lib/remote/cron.server'
 import { getVideoProvider } from '$lib/videos/provider.server'
 import { createClient } from '@supabase/supabase-js'
 import { json } from '@sveltejs/kit'
 import { and, isNotNull, isNull, lt, or } from 'drizzle-orm'
-import { timingSafeEqual } from 'node:crypto'
 import type { RequestHandler } from './$types'
 
 /** Staging orphans past this age are abandoned-form or failed-finalize leftovers. */
@@ -22,19 +22,6 @@ const NOTIFICATION_UNREAD_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000
 
 /** Feedback. 12 months, mirrored in the privacy notice, section 7: change both together. */
 const FEEDBACK_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000
-
-/** Same x-api-key gate the pg_cron caller uses (mirrors the 1.0 notifications cron). */
-const authorized = (request: Request): boolean => {
-  const key = request.headers.get('x-api-key')
-  if (key == null || key.length === 0 || CRON_API_KEY.length === 0) {
-    return false
-  }
-  try {
-    return timingSafeEqual(Buffer.from(key), Buffer.from(CRON_API_KEY))
-  } catch {
-    return false
-  }
-}
 
 /** Delete staging objects older than the cutoff. Service-role: the sweep spans every user's own-uid folder. */
 const sweepStaging = async (before: Date): Promise<number> => {
@@ -139,7 +126,7 @@ const sweepFeedback = async (before: Date): Promise<number> => {
 }
 
 export const POST: RequestHandler = async ({ request }) => {
-  if (!authorized(request)) {
+  if (!isCronAuthorized(request)) {
     return new Response('Unauthorized', { status: 401 })
   }
   const now = Date.now()

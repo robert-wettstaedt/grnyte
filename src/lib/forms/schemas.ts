@@ -69,6 +69,17 @@ export const nameSchema = z
   .string({ error: formError('form_required') })
   .check(z.trim(), z.minLength(3, { error: formError('form_charsMin', { count: 3 }) }))
 
+/** An account password. Length is the only rule we own, Supabase owns the rest (`weak_password`). */
+export const passwordSchema = z
+  .string({ error: formError('form_required') })
+  .check(z.minLength(8, { error: formError('form_charsMin', { count: 8 }) }))
+
+/** Object-level check that `confirmPassword` repeats `password`. Apply with `.check()`. */
+export const passwordsMatch = z.refine<{ confirmPassword: string; password: string }>(
+  (v) => v.password === v.confirmPassword,
+  { error: formError('auth_passwordMismatch'), path: ['confirmPassword'] },
+)
+
 /** `stringToInt`, with the message a particular field wants when the value is missing or not a
  *  number. "Enter a valid number" is wrong under a `<select>`, where nothing can be entered. */
 export function intFromString(invalid: string, required = invalid) {

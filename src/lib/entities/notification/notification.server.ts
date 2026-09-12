@@ -17,6 +17,21 @@ import { objectColumns, type EventObject } from '$lib/entities/event/event.serve
 import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { NotificationSourceType } from './dto'
 
+/** The columns of the `notifications_source_idx` constraint, in its order. Keep the two in step. */
+const NOTIFICATION_CONFLICT_TARGET = [
+  notifications.userFk,
+  notifications.sourceType,
+  notifications.actorFk,
+  notifications.regionFk,
+  notifications.eventFk,
+  notifications.areaFk,
+  notifications.ascentFk,
+  notifications.blockFk,
+  notifications.fileFk,
+  notifications.routeFk,
+  notifications.subjectFk,
+]
+
 /** One recipient, in both the shapes a row needs: the app's id and the one RLS compares. */
 export interface NotificationRecipient {
   authUserFk: string
@@ -137,19 +152,7 @@ export async function notify(input: NotifyInput): Promise<void> {
       // the object are both in it, and the nulls compare equal (see `notifications_source_idx`),
       // so a row that is about a card is separated by the card and a row that is not is separated
       // by the object.
-      target: [
-        notifications.userFk,
-        notifications.sourceType,
-        notifications.actorFk,
-        notifications.regionFk,
-        notifications.eventFk,
-        notifications.areaFk,
-        notifications.ascentFk,
-        notifications.blockFk,
-        notifications.fileFk,
-        notifications.routeFk,
-        notifications.subjectFk,
-      ],
+      target: NOTIFICATION_CONFLICT_TARGET,
     })
 }
 
@@ -248,19 +251,7 @@ export async function notifyOutOfBand(input: {
     .onConflictDoUpdate({
       set: { createdAt: new Date(), pushedAt: null, readAt: null },
       setWhere: isNotNull(notifications.readAt),
-      target: [
-        notifications.userFk,
-        notifications.sourceType,
-        notifications.actorFk,
-        notifications.regionFk,
-        notifications.eventFk,
-        notifications.areaFk,
-        notifications.ascentFk,
-        notifications.blockFk,
-        notifications.fileFk,
-        notifications.routeFk,
-        notifications.subjectFk,
-      ],
+      target: NOTIFICATION_CONFLICT_TARGET,
     })
 }
 

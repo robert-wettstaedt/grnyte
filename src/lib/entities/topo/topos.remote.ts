@@ -1,6 +1,6 @@
 import { command } from '$app/server'
 import * as schema from '$lib/db/schema'
-import { blocks, files, routes, topoRoutes, topoRouteTopTypeEnum, topos, type Topo } from '$lib/db/schema'
+import { files, routes, topoRoutes, topoRouteTopTypeEnum, topos, type Topo } from '$lib/db/schema'
 import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -12,8 +12,8 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../file/cleanup.server'
 import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from './change'
 import { topoLinesFingerprint } from './fingerprint'
+import { requireEditableTopo, requireEditableTopoBlock, requireEditableTopoWithFile } from './guards.server'
 import { convertPathToPoints } from './mapper'
-import { canEditTopo } from './permissions'
 
 /** Where a topo change lands in the feed: on the block, since a topo has no page or row of its
  *  own. The area is reachable from there through `blocks.area_fk`. */
@@ -109,13 +109,7 @@ const ownBlockImage = <T extends { blockFk: null | number }>(
 export const createTopo = authedCommand(
   z.object({ blockId: z.number(), fileId: z.string().check(z.minLength(1)) }),
   async ({ blockId, fileId }, { db, user, userRegions }): Promise<MutationResult<Topo>> => {
-    const block = await db.query.blocks.findFirst({ where: eq(blocks.id, blockId) })
-    if (block == null) {
-      error(404, formError('blocks_notFound'))
-    }
-    if (!canEditTopo(userRegions, block)) {
-      error(403, formError('form_noPermission'))
-    }
+    const block = await requireEditableTopoBlock(db, userRegions, blockId)
 
     // `canEditTopo` authorized the block; `fileId` was a second client value nothing looked at, so
     // an editor could point a topo at any file id they could read, and `deleteTopo` then destroys
@@ -154,18 +148,8 @@ export const deleteTopo = command(
     const { rls, user, userRegions } = await authedRls()
 
     const storage = await rls(async (db): Promise<FileStorageTarget[]> => {
-      const topo = await db.query.topos.findFirst({
-        where: eq(topos.id, id),
-        // `blockFk` on the file: the guards below refuse to point a topo at, or destroy, a file that
-        // is not this block's.
-        with: { file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } } },
-      })
-      if (topo == null) {
-        error(404, formError('topo_notFound'))
-      }
-      if (!canEditTopo(userRegions, topo)) {
-        error(403, formError('form_noPermission'))
-      }
+      // Inside the transaction on purpose: a throw here unwinds past the post-commit storage removal.
+      const topo = await requireEditableTopoWithFile(db, userRegions, id)
 
       // topo_routes → topos → files: FK order matters (routes reference the topo, the topo the file).
       await db.delete(topoRoutes).where(eq(topoRoutes.topoFk, id))
@@ -197,16 +181,8 @@ export const replaceTopoImage = command(
     const { rls, user, userRegions } = await authedRls()
 
     const storage = await rls(async (db): Promise<FileStorageTarget[]> => {
-      const topo = await db.query.topos.findFirst({
-        where: eq(topos.id, topoId),
-        with: { file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } } },
-      })
-      if (topo == null) {
-        error(404, formError('topo_notFound'))
-      }
-      if (!canEditTopo(userRegions, topo)) {
-        error(403, formError('form_noPermission'))
-      }
+      // Inside the transaction on purpose: a throw here unwinds past the post-commit storage removal.
+      const topo = await requireEditableTopoWithFile(db, userRegions, topoId)
 
       // Nothing to swap, and the one call that would destroy the image the topo still points at:
       // the update below is a no-op against the same id, and the delete then hits a NO ACTION
@@ -243,13 +219,7 @@ export const replaceTopoImage = command(
 export const reorderTopos = authedCommand(
   z.object({ blockId: z.number(), orderedIds: z.array(z.number()) }),
   async ({ blockId, orderedIds }, { db, user, userRegions }) => {
-    const block = await db.query.blocks.findFirst({ where: eq(blocks.id, blockId) })
-    if (block == null) {
-      error(404, formError('blocks_notFound'))
-    }
-    if (!canEditTopo(userRegions, block)) {
-      error(403, formError('form_noPermission'))
-    }
+    const block = await requireEditableTopoBlock(db, userRegions, blockId)
 
     // Only reorder the block's own topos: a stale client snapshot (or a crafted call)
     // may contain ids of deleted topos or of another block entirely.
@@ -297,13 +267,7 @@ export const saveTopoLines = authedCommand(
     topoId: z.number(),
   }),
   async ({ known, lines, topoId }, { db, user, userRegions }) => {
-    const topo = await db.query.topos.findFirst({ where: eq(topos.id, topoId) })
-    if (topo == null) {
-      error(404, formError('topo_notFound'))
-    }
-    if (!canEditTopo(userRegions, topo)) {
-      error(403, formError('form_noPermission'))
-    }
+    const topo = await requireEditableTopo(db, userRegions, topoId)
 
     // Lines may only reference one of the block's own LIVE routes: regionFk is stamped from
     // the topo, so an unchecked routeFk would let a crafted call attach a foreign route, and a

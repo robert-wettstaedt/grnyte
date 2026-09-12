@@ -1,22 +1,26 @@
 import * as z from '$lib/forms/zod'
+import { applyTextFilters } from '$lib/zero/filters'
 import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import type { Schema } from '$lib/zero/zero-schema'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery, type Query } from '@rocicorp/zero'
 
-interface RouteFilterArgs {
-  areaId?: null | number
-  content?: string
-  firstAscensionists?: number[]
-  hasBeta?: boolean
-  hasTopo?: boolean
-  maxGrade?: number
-  minGrade?: number
-  minRating?: number
-  references?: string
-  regionFk?: number
-  tags?: string[]
+/** The filter keys `listRoutes` and `listRoutesForMap` share, spread into both query schemas. */
+const routeFilterShape = {
+  areaId: z.nullish(z.number()),
+  content: z.optional(z.string()),
+  firstAscensionists: z.optional(z.array(z.number())),
+  hasBeta: z.optional(z.boolean()),
+  hasTopo: z.optional(z.boolean()),
+  maxGrade: z.optional(z.number()),
+  minGrade: z.optional(z.number()),
+  minRating: z.optional(z.number()),
+  references: z.optional(z.string()),
+  regionFk: z.optional(z.number()),
+  tags: z.optional(z.array(z.string())),
 }
+
+type RouteFilterArgs = z.infer<z.ZodMiniObject<typeof routeFilterShape>>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic over any related-tree shape; the filters below never read it
 type RoutesQuery = Query<'routes', Schema, any>
@@ -78,17 +82,7 @@ function applyRouteFilters<Q extends RoutesQuery>(
     )
   }
 
-  if (args.content != null) {
-    q = q.where((q) =>
-      q.or(q.cmp('name', 'ILIKE', `%${args.content}%`), q.cmp('description', 'ILIKE', `%${args.content}%`)),
-    )
-  }
-
-  // Find routes whose description references the given entity (e.g. `!areas:7!`): its
-  // backlinks. The token's delimiters keep it exact (`!areas:7!` ≠ `!areas:71!`).
-  if (args.references != null) {
-    q = q.where('description', 'ILIKE', `%${args.references}%`)
-  }
+  q = applyTextFilters(q, args)
 
   return q as Q
 }
@@ -96,21 +90,11 @@ function applyRouteFilters<Q extends RoutesQuery>(
 export const routesQueryDefs = {
   listRoutes: defineQuery(
     z.object({
-      areaId: z.nullish(z.number()),
-      content: z.optional(z.string()),
-      firstAscensionists: z.optional(z.array(z.number())),
-      hasBeta: z.optional(z.boolean()),
-      hasTopo: z.optional(z.boolean()),
-      maxGrade: z.optional(z.number()),
-      minGrade: z.optional(z.number()),
-      minRating: z.optional(z.number()),
+      ...routeFilterShape,
       pageSize: z.optional(z.number()),
-      references: z.optional(z.string()),
-      regionFk: z.optional(z.number()),
       routeId: z.optional(z.union([z.number(), z.array(z.number())])),
       sort: z.optional(z.enum(['rating', 'grade', 'firstAscentYear', 'createdAt'])),
       sortOrder: z.optional(z.enum(['asc', 'desc'])),
-      tags: z.optional(z.array(z.string())),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
@@ -165,20 +149,7 @@ export const routesQueryDefs = {
    * Filters still apply server-side via `whereExists`, which doesn't sync the related rows.
    */
   listRoutesForMap: defineQuery(
-    z.object({
-      areaId: z.nullish(z.number()),
-      content: z.optional(z.string()),
-      firstAscensionists: z.optional(z.array(z.number())),
-      hasBeta: z.optional(z.boolean()),
-      hasTopo: z.optional(z.boolean()),
-      maxGrade: z.optional(z.number()),
-      minGrade: z.optional(z.number()),
-      minRating: z.optional(z.number()),
-      pageSize: z.optional(z.number()),
-      references: z.optional(z.string()),
-      regionFk: z.optional(z.number()),
-      tags: z.optional(z.array(z.string())),
-    }),
+    z.object({ ...routeFilterShape, pageSize: z.optional(z.number()) }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
       const q = applyRouteFilters(zql.routes.where('deletedAt', 'IS', null), args, r)
