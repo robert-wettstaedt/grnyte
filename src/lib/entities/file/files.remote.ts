@@ -105,14 +105,14 @@ export const finalizeImage = command(
     const { rls, supabase, user, userRegions } = await authedRls()
 
     if (!isImageFileName(stagingPath)) {
-      error(400, 'Unsupported image format')
+      error(400, formError('upload_invalidType'))
     }
 
     const regionFk = await rls((db) => resolveAttachRegion(db, user.id, userRegions, entityType, entityId))
 
     const download = await supabase.storage.from(STAGING_BUCKET).download(stagingPath)
     if (download.error != null) {
-      error(400, 'Uploaded file not found')
+      error(400, formError('upload_stagedMissing'))
     }
 
     const uploaded = await download.data.arrayBuffer()
@@ -125,7 +125,7 @@ export const finalizeImage = command(
       try {
         buffer = Buffer.from(await heicConvert({ buffer, format: 'JPEG', quality: 1 }))
       } catch {
-        error(400, 'Not a readable image')
+        error(400, formError('upload_unreadableImage'))
       }
       extension = 'jpg'
     }
@@ -136,7 +136,7 @@ export const finalizeImage = command(
         .catch(() => ({})),
     )
     if (dimensions == null) {
-      error(400, 'Not a readable image')
+      error(400, formError('upload_unreadableImage'))
     }
 
     // Ascent media lives under the uploader's folder; everything else is topo imagery.
@@ -235,7 +235,7 @@ export const setFileVisibility = authedCommand(
 
     const [updated] = await db.update(files).set({ visibility }).where(eq(files.id, fileId)).returning()
     if (updated == null) {
-      error(403, 'Not allowed to change this file')
+      error(403, formError('form_noPermission'))
     }
     return { data: updated }
   },
@@ -255,7 +255,7 @@ export const setVideoSource = authedCommand(
   async ({ fileId, source }, { db, user, userRegions }): Promise<MutationResult<BunnyStream>> => {
     const file = await requireEditableFile(db, userRegions, user.id, fileId)
     if (file.bunnyStreamFk == null) {
-      error(400, 'Only videos carry a source')
+      error(400, formError('media_sourceVideoOnly'))
     }
 
     // Read before writing: the diff needs the value being replaced, and `returning()` can
@@ -271,7 +271,7 @@ export const setVideoSource = authedCommand(
       .where(eq(bunnyStreams.id, file.bunnyStreamFk))
       .returning()
     if (updated == null) {
-      error(403, 'Not allowed to change this video')
+      error(403, formError('form_noPermission'))
     }
 
     await createUpdateEvent(db, {
@@ -308,7 +308,7 @@ export const deleteFile = command(
         with: { ascent: { columns: { createdBy: true } } },
       })
       if (file == null) {
-        error(404, 'File not found')
+        error(404, formError('files_notFound'))
       }
 
       const canDelete = canDeleteFile(userRegions, user.id, {
@@ -316,14 +316,14 @@ export const deleteFile = command(
         regionFk: file.regionFk,
       })
       if (!canDelete) {
-        error(403, 'Not allowed to delete this file')
+        error(403, formError('form_noPermission'))
       }
 
       const storage = await deleteFileRows(db, [file])
       if (storage.length === 0) {
         // Pre-gate passed but RLS still kept the row (policy drift): fail loudly
         // rather than log a deletion event and toast success for a live file.
-        error(403, 'Not allowed to delete this file')
+        error(403, formError('form_noPermission'))
       }
 
       // On the PARENT, not the file: the file row is gone by now, and its own upload event went
@@ -380,7 +380,7 @@ export const finalizeVideo = authedCommand(
     // The GUID is client-supplied: the token proves this user created this
     // video via createBunnyVideo, so made-up or foreign GUIDs can't be attached.
     if (!getVideoProvider().verifyUpload(videoId, user.authUserFk, token)) {
-      error(403, 'Unknown video')
+      error(403, formError('media_unknownVideo'))
     }
 
     // Same gate as finalizeImage: pre-check so it fails with a real message instead of an
@@ -407,7 +407,7 @@ export const finalizeVideo = authedCommand(
       // Safety net: the checks above should make this unreachable; if RLS
       // still swallows the update, roll the whole attach back rather than
       // leave a file without its video.
-      error(403, 'Not allowed to attach videos here')
+      error(403, formError('form_noPermission'))
     }
     return { data: linked }
   },

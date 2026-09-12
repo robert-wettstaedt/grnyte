@@ -40,7 +40,7 @@ export const updateEmail = form(
     // `claims`, deliberately not `requireAuthed`: that also demands a `public.users` row, and an
     // account whose sign-up half-completed must still be able to fix its address.
     if (claims == null) {
-      error(401, 'Not authenticated')
+      error(401, formError('auth_notSignedIn'))
     }
 
     const { error: updateError } = await supabase.auth.updateUser(
@@ -86,7 +86,7 @@ export const updatePassword = form(updatePasswordSchema, async ({ currentPasswor
   // whether a password is correct, into a guessing oracle against any account in the project.
   // `claims`, not `requireAuthed`, for the same reason as `updateEmail` above.
   if (claims?.email == null) {
-    error(401, 'Not authenticated')
+    error(401, formError('auth_notSignedIn'))
   }
 
   if (!(await verifyPassword(claims.email, currentPassword))) {

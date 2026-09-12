@@ -4,15 +4,15 @@
   // cannot help on touch, which is where these bars mostly live.
   export const ACTION_TOOL =
     'btn preset-tonal h-12 min-w-12 shrink-0 flex-col items-center justify-center gap-0.5 px-1.5'
-  // 10px matches the count badge beside the icon, and is the size the rest of the app uses for
-  // small labels.
+  // A step below the 11px the count badge beside it uses: every tool carries a label now, and they
+  // have to fit alongside a CTA that must not truncate.
   export const ACTION_TOOL_LABEL = 'text-[10px] leading-none font-semibold'
 </script>
 
 <script lang="ts">
   import type { Snippet } from 'svelte'
 
-  /** One labelled action at most: two never fit the 343px mobile sheet in German. */
+  /** One CTA at most. Every tool carries a label too, so the row has no slack left. */
   interface Props {
     /** The tool squares, in a fixed order across screens. */
     children: Snippet
@@ -26,7 +26,7 @@
 <div class="flex gap-2">
   {@render cta?.()}
 
-  <!-- gap-1.5, not gap-2: the 6px is what keeps a CTA off its min-content width at 360px. -->
+  <!-- gap-1.5, not gap-2: the labels left the CTA little room, and this is part of what it keeps. -->
   <div class="ml-auto flex gap-1.5">
     {@render children()}
   </div>

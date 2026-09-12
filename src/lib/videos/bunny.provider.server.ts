@@ -5,6 +5,7 @@
  */
 import { BUNNY_STREAM_API_KEY } from '$env/static/private'
 import { PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
+import { formError } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
 import { createHash, timingSafeEqual } from 'node:crypto'
 import type { VideoProvider, VideoUploadAuth } from './provider.server'
@@ -35,7 +36,7 @@ async function bunnyFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { AccessKey: BUNNY_STREAM_API_KEY, 'Content-Type': 'application/json' },
   })
   if (!response.ok) {
-    error(502, 'The video host rejected the request')
+    error(502, formError('media_videoServiceFailed'))
   }
   return response.json() as Promise<T>
 }

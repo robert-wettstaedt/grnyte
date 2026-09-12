@@ -14,12 +14,21 @@
 import { page } from '$app/state'
 import { PUBLIC_BUNNY_STREAM_LIBRARY_ID, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import type { File as FileRow } from '$lib/db/schema'
+import { resolveErrorMessage } from '$lib/forms/issue'
 import { m } from '$lib/paraglide/messages'
 import { toaster } from '$lib/state/toast'
 import { SvelteMap } from 'svelte/reactivity'
 import { Upload as TusUpload } from 'tus-js-client'
 import { createBunnyVideo, finalizeImage, finalizeVideo } from './files.remote'
 import { imageMimeOf, STAGING_BUCKET, stagingPath, type FileEntityType } from './upload'
+
+// Kit's `HttpError` does not extend `Error`, so an `instanceof` test misses every failure a
+// finalize remote function throws and falls back to the generic copy.
+// Kit's `HttpError` does not extend `Error`, so an `instanceof` test alone misses every failure a
+// finalize remote function throws. The fallback keeps TUS's own `Error.message`, which is more use
+// than the generic copy when a transfer dies.
+const uploadError = (cause: unknown): string =>
+  resolveErrorMessage(cause, () => (cause instanceof Error ? cause.message : m.upload_failed()))
 
 /** What a drop zone holds and a form finalizes: `kind` discriminates the two pipelines. */
 export type MediaUpload = ImageUpload | VideoUpload
@@ -162,7 +171,7 @@ abstract class MediaUploadBase {
       return row
     } catch (error) {
       this.status = 'failed'
-      this.error ??= error instanceof Error ? error.message : m.upload_failed()
+      this.error ??= uploadError(error)
       throw error
     } finally {
       exitBusy(this)
@@ -254,7 +263,7 @@ export class ImageUpload extends MediaUploadBase {
       this.status = 'staged'
     } catch (error) {
       this.status = 'failed'
-      this.error = error instanceof Error ? error.message : m.upload_failed()
+      this.error = uploadError(error)
       throw error
     } finally {
       this.xhr = undefined
@@ -359,7 +368,7 @@ export class VideoUpload extends MediaUploadBase {
       this.status = 'staged'
     } catch (error) {
       this.status = 'failed'
-      this.error = error instanceof Error ? error.message : m.upload_failed()
+      this.error = uploadError(error)
       throw error
     } finally {
       this.settle = undefined

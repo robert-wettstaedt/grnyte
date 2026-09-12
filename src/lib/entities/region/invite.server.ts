@@ -151,7 +151,7 @@ export async function acceptInvitation({ authUserId, email, token }: AcceptInvit
     })
 
     if (user == null) {
-      error(404, 'User not found')
+      error(404, formError('users_notFound'))
     }
 
     const existing = await tx.query.regionMembers.findFirst({
@@ -255,7 +255,7 @@ export async function createInvitation(
   ])
 
   if (region == null) {
-    error(404, 'Region not found')
+    error(404, formError('region_notFound'))
   }
 
   if (members + invitations >= region.maxMembers) {
@@ -413,7 +413,7 @@ export async function resendInvitation(
   const invitation = await loadEditable(db, invitationFk, userRegions)
 
   if (invitation.region == null) {
-    error(404, 'Invitation not found')
+    error(404, formError('invite_missing'))
   }
 
   assertResendAllowed(invitation.lastSentAt)
@@ -721,7 +721,7 @@ async function loadEditable(db: Db, invitationFk: number, userRegions: UserRegio
   })
 
   if (invitation == null) {
-    error(404, 'Invitation not found')
+    error(404, formError('invite_missing'))
   }
 
   if (!canEditRegion(userRegions, invitation.regionFk)) {

@@ -14,6 +14,7 @@
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
+  import { notifyError } from '$lib/state/toast'
 
   // Shared body for the two block-editor routes: /edit opens on the form, /move jumps
   // straight to the map picker. Both submit `updateBlock`, so the form must carry the
@@ -71,7 +72,11 @@
             initialEstimated={detail.geolocation?.estimated ?? false}
             onCancel={() => back(resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(detail.id) }))}
             onLocationCommit={initialStep === 'pin'
-              ? (coords) => void runCommand(setBlockLocation({ id: detail.id, lat: coords.lat, long: coords.long }))
+              ? // Not `withUndo`, so the failure has to be reported here.
+                (coords) =>
+                  void runCommand(setBlockLocation({ id: detail.id, lat: coords.lat, long: coords.long })).catch(
+                    notifyError,
+                  )
               : undefined}
             submitLabel={m.common_save()}
             {title}
@@ -79,7 +84,7 @@
         {:else}
           <ErrorState
             type="generic"
-            title={m.form_noPermission()}
+            title={m.form_noPermissionTitle()}
             description={m.form_noEditPermission()}
             primaryAction={{
               href: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(detail.id) }),

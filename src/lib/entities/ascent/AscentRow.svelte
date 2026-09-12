@@ -16,7 +16,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { openMedia } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { toaster } from '$lib/state/toast'
+  import { notifyError, toaster } from '$lib/state/toast'
   import { slide } from 'svelte/transition'
   import { deleteAscent } from './ascents.remote'
   import AscentType from './AscentType.svelte'
@@ -67,7 +67,14 @@
   // Deleting takes the attached media with it, so it confirms instead of offering
   // undo. No navigation needed: the removal syncs and the row drops out of the list.
   const onDelete = async () => {
-    await deleteAscent({ id: ascent.id })
+    try {
+      await deleteAscent({ id: ascent.id })
+    } catch (cause) {
+      // Not `withUndo`, so the failure has to be reported here.
+      notifyError(cause)
+      return
+    }
+
     toaster.create({ title: m.ascents_deleted(), type: 'info' })
   }
 

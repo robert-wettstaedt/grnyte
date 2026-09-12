@@ -58,8 +58,8 @@
       const visibility = next ? 'public' : 'private'
       await setFileVisibility({ fileId: file.id, visibility })
       onVisibilityChange?.(visibility)
-    } catch {
-      notifyError()
+    } catch (cause) {
+      notifyError(cause)
     } finally {
       saving = false
     }

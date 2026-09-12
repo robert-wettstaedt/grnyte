@@ -1,5 +1,6 @@
 import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth'
 import { areas, blocks, favorites, routes } from '$lib/db/schema'
+import { formError } from '$lib/forms/schemas'
 import { authedCommand } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
@@ -27,7 +28,12 @@ export const toggleFavorite = authedCommand(
     // stranger could walk the id space and learn exactly which routes, blocks and areas exist in
     // regions they cannot open. The favorite itself is own-row, so there is nothing else to say.
     if (entity == null || !checkRegionPermission(userRegions, [REGION_PERMISSION_READ], entity.regionFk)) {
-      error(404, `${entityType} not found`)
+      error(
+        404,
+        formError(
+          entityType === 'route' ? 'routes_notFound' : entityType === 'block' ? 'blocks_notFound' : 'areas_notFound',
+        ),
+      )
     }
 
     const objectColumn =

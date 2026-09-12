@@ -8,7 +8,7 @@
 
   /** Presentational: state comes from `createSaveState`, so the action rows render without Zero. */
   interface Props {
-    /** Savers including the signed-in user. Hidden at 0, and never widens the square. */
+    /** Savers including the signed-in user. Hidden at 0; shown, it widens the tool past the others. */
     count?: number
     ontoggle: () => void
     pending?: boolean
@@ -17,8 +17,7 @@
 
   const { count = 0, ontoggle, pending = false, saved = false }: Props = $props()
 
-  // Says what a press does, not what the state is: on a filled bookmark "Saved" answered the
-  // wrong question. The visible label stays the short noun.
+  // The tooltip says what a press does, so it flips with state.
   const action = $derived(
     count > 0
       ? saved
@@ -28,13 +27,16 @@
         ? m.favorite_remove()
         : m.favorite_add(),
   )
+
+  // The accessible name stays put: `aria-pressed` carries the state, and flipping both announces it twice.
+  const name = $derived(count > 0 ? m.favorite_labelWithCount({ count }) : m.favorite_label())
 </script>
 
 <KbdTooltip label={action}>
   {#snippet trigger(attributes)}
     <button
       {...attributes}
-      aria-label={action}
+      aria-label={name}
       aria-pressed={saved}
       class={[ACTION_TOOL, saved && 'preset-tonal-primary']}
       disabled={pending || !isOnline()}

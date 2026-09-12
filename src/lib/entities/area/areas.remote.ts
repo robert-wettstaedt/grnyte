@@ -259,7 +259,7 @@ export const deleteArea = authedCommand(
     const area = await requireRow(
       () => db.query.areas.findFirst({ where: eq(areas.id, id) }),
       (row) => canDeleteArea(userRegions, user.id, row),
-      'Area not found',
+      formError('areas_notFound'),
     )
 
     // Sub-areas and blocks are the spec's "children"; files are folded in because they
@@ -557,7 +557,7 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
   // Guard against deleting a block's location through this route: only an
   // area-attached geolocation (areaFk set) is a parking.
   if (parking == null || parking.areaFk == null) {
-    error(404, 'Parking not found')
+    error(404, formError('parking_notFound'))
   }
 
   if (!canDeleteParking(userRegions, parking)) {

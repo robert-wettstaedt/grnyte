@@ -10,6 +10,7 @@ import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import * as schema from '$lib/db/schema'
 import { files } from '$lib/db/schema'
 import type { UserRegion } from '$lib/entities/region/dto'
+import { formError } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -34,7 +35,7 @@ export async function requireEditableFile(
     with: { ascent: { columns: { createdBy: true } } },
   })
   if (file == null) {
-    error(404, 'File not found')
+    error(404, formError('files_notFound'))
   }
   if (
     !canEditFile(userRegions, userId, {
@@ -42,7 +43,7 @@ export async function requireEditableFile(
       regionFk: file.regionFk,
     })
   ) {
-    error(403, 'Not allowed to change this file')
+    error(403, formError('form_noPermission'))
   }
   return file
 }
@@ -66,10 +67,10 @@ export async function resolveAttachRegion(
       where: (ascents, { and, isNull }) => and(eq(ascents.id, id), isNull(ascents.deletedAt)),
     })
     if (ascent == null) {
-      error(404, 'ascent not found')
+      error(404, formError('ascents_notFound'))
     }
     if (ascent.createdBy !== userId) {
-      error(403, 'Only the ascent author can attach media to it')
+      error(403, formError('media_onlyAscentAuthor'))
     }
     return ascent.regionFk
   }
@@ -81,10 +82,11 @@ export async function resolveAttachRegion(
       ? db.query.blocks.findFirst({ columns, where: (blocks) => eq(blocks.id, id) })
       : db.query.routes.findFirst({ columns, where: (routes) => eq(routes.id, id) }))
   if (entity == null) {
-    error(404, `${type} not found`)
+    // Per entity: interpolating the raw enum would leave "block"/"area" untranslated.
+    error(404, formError(type === 'area' ? 'areas_notFound' : type === 'block' ? 'blocks_notFound' : 'routes_notFound'))
   }
   if (!checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], entity.regionFk)) {
-    error(403, `Attaching media to a ${type} requires edit permission`)
+    error(403, formError('form_noPermission'))
   }
   return entity.regionFk
 }

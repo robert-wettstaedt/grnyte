@@ -1,4 +1,4 @@
-import { formError } from '$lib/forms/schemas'
+import { formError, type FormMessage } from '$lib/forms/schemas'
 import { error, invalid } from '@sveltejs/kit'
 
 /**
@@ -10,16 +10,18 @@ import { error, invalid } from '@sveltejs/kit'
  * For `command` / `authedCommand` handlers: 404 then 403, both via `error`. See {@link requireRowForm}
  * for the `form` variant, which reports through `invalid` instead.
  *
+ * `notFound` is a {@link FormMessage}, so it has to be a wrapped key, not a raw literal.
+ *
  *     const block = await requireRow(
  *       () => db.query.blocks.findFirst({ where: eq(blocks.id, id) }),
  *       (row) => canDeleteBlock(userRegions, user.id, row),
- *       'Block not found',
+ *       formError('blocks_notFound'),
  *     )
  */
 export async function requireRow<T>(
   load: () => Promise<T | undefined>,
   allow: (row: T) => boolean,
-  notFound: string,
+  notFound: FormMessage,
 ): Promise<T> {
   const row = await load()
   if (row == null) {
@@ -39,7 +41,7 @@ export async function requireRow<T>(
 export async function requireRowForm<T>(
   load: () => Promise<T | undefined>,
   allow: (row: T) => boolean,
-  notFound: string,
+  notFound: FormMessage,
 ): Promise<T> {
   const row = await load()
   if (row == null) {

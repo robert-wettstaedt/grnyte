@@ -92,7 +92,7 @@ export const updateRegion = authedForm(regionActionSchema, async ({ id, name }, 
   const [updated] = await db.update(regions).set({ name }).where(eq(regions.id, id)).returning({ id: regions.id })
 
   if (updated == null) {
-    error(404, 'Region not found')
+    error(404, formError('region_notFound'))
   }
 
   // No event row: object columns have no 'region' member, and the feed renders content changes.
@@ -289,7 +289,7 @@ export const inviteRegionMember = authedForm(
 
     const region = await db.query.regions.findFirst({ columns: { name: true }, where: eq(regions.id, regionFk) })
     if (region == null) {
-      error(404, 'Region not found')
+      error(404, formError('region_notFound'))
     }
 
     const address = normalizeEmail(email)
@@ -386,7 +386,7 @@ export const acceptRegionInvitation = authedCommand(
     const claims = getRequestEvent().locals.claims
 
     if (claims?.email == null) {
-      error(401, 'Not authenticated')
+      error(401, formError('auth_notSignedIn'))
     }
 
     return { data: await acceptInvitation({ authUserId: claims.sub, email: claims.email, token }) }
@@ -408,7 +408,7 @@ export const acceptMyInvitation = authedCommand(
     const claims = getRequestEvent().locals.claims
 
     if (claims?.email == null) {
-      error(401, 'Not authenticated')
+      error(401, formError('auth_notSignedIn'))
     }
 
     const invitation = await db.query.regionInvitations.findFirst({

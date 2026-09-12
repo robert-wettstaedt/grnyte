@@ -25,10 +25,10 @@
       <span class="text-sm font-bold">{m.common_directions()}</span>
     </a>
   {:else}
-    <!-- Short visible label, full one announced: the tool cannot shrink below 48px, so a word of
-         six characters or fewer is free, while "Directions" squeezed the bar's CTA into an ellipsis. -->
+    <!-- Short label, and the name matches it so voice control can target the visible word.
+         "Directions" squeezed the bar's CTA into an ellipsis. -->
     <a
-      aria-label={m.common_directions()}
+      aria-label={m.common_directionsShort()}
       class={ACTION_TOOL}
       href={directionsUrl}
       rel="noopener noreferrer"

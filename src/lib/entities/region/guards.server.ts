@@ -88,7 +88,7 @@ export async function findActiveMember(db: Db, regionFk: number, userFk: number)
   })
 
   if (member == null) {
-    error(404, 'Member not found')
+    error(404, formError('region_memberNotFound'))
   }
 
   return member
@@ -115,7 +115,7 @@ export async function resolveRestore(
   const removal = await db.query.events.findFirst({ where: removalEvent(regionFk, userFk) })
 
   if (removal == null) {
-    error(404, 'Nothing to restore')
+    error(404, formError('region_nothingToRestore'))
   }
 
   // Neither of these feeds the other, so they go together rather than one round-trip after the
@@ -128,7 +128,7 @@ export async function resolveRestore(
   ])
 
   if (user == null) {
-    error(404, 'User not found')
+    error(404, formError('users_notFound'))
   }
 
   return { alreadyMember: existing != null, authUserFk: user.authUserFk }

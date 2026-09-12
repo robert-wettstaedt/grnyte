@@ -83,8 +83,8 @@
             {:else}
               <ErrorState
                 type="generic"
-                title={m.form_noPermission()}
-                description={m.form_noEditPermission()}
+                title={m.form_noPermissionTitle()}
+                description={m.ascents_notYours()}
                 primaryAction={{ href: routeHref, label: m.routes_viewRoute() }}
               />
             {/if}

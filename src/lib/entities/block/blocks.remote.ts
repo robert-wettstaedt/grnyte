@@ -240,7 +240,7 @@ export const setBlockLocation = authedCommand(
     const block = await requireRow(
       () => db.query.blocks.findFirst({ where: eq(blocks.id, value.id) }),
       (row) => canEditBlock(userRegions, row),
-      'Block not found',
+      formError('blocks_notFound'),
     )
 
     const existing =
@@ -285,7 +285,7 @@ export const estimateBlockLocationFromPhoto = authedCommand(
     const block = await requireRow(
       () => db.query.blocks.findFirst({ where: eq(blocks.id, value.id) }),
       (row) => canEditBlock(userRegions, row),
-      'Block not found',
+      formError('blocks_notFound'),
     )
 
     if (block.geolocationFk != null) return
@@ -396,7 +396,7 @@ export const deleteBlock = authedCommand(
     const block = await requireRow(
       () => db.query.blocks.findFirst({ where: eq(blocks.id, id) }),
       (row) => canDeleteBlock(userRegions, user.id, row),
-      'Block not found',
+      formError('blocks_notFound'),
     )
 
     // Routes/topos/files FK-reference the block; a block with any of them is soft-deleted so

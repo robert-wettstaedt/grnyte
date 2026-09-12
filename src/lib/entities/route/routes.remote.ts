@@ -332,7 +332,7 @@ export const deleteRoute = authedCommand(
     const route = await requireRow(
       () => db.query.routes.findFirst({ where: eq(routes.id, id) }),
       (row) => canDeleteRoute(userRegions, user.id, row),
-      'Route not found',
+      formError('routes_notFound'),
     )
 
     // Ascents/files/topo lines FK-reference the route; with any of them present the route

@@ -297,6 +297,8 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     !PUBLIC_PREFIXES.some((path) => event.url.pathname.startsWith(path))
   ) {
     // Not signed out, just unverifiable, so /auth would ask for a password that is not the problem.
+    // Stays a plain English literal: thrown from a hook it renders through `src/error.html`, which
+    // prints the message verbatim with no paraglide, so a `formError` marker would show as JSON.
     if (event.locals.backendUnavailable) {
       error(503, 'Service temporarily unavailable')
     }

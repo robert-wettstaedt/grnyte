@@ -63,7 +63,7 @@
 {#if regions.length === 0}
   <!-- A permission state, not a 404: nobody looked up an area. Reachable by URL, and by the
        explore empty state's CTA if the region's roles change between render and click. -->
-  <ErrorState type="generic" title={m.form_noPermission()} description={m.areas_noAddableRegion()} />
+  <ErrorState type="generic" title={m.form_noPermissionTitle()} description={m.areas_noAddableRegion()} />
 {:else}
   <Form form={createArea} onCancel={goBack} submitLabel={m.common_add()} title={m.areas_newTopLevelArea()}>
     <AreaFormFields form={createArea} />

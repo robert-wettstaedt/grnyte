@@ -49,7 +49,7 @@
     {:else if !checkRegionPermission(global.userRegions, [REGION_PERMISSION_EDIT], data.regionFk)}
       <ErrorState
         type="generic"
-        title={m.form_noPermission()}
+        title={m.form_noPermissionTitle()}
         description={m.form_noEditPermission()}
         primaryAction={{
           href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),

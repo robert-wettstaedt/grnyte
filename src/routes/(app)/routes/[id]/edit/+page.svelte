@@ -76,7 +76,7 @@
         {:else}
           <ErrorState
             type="generic"
-            title={m.form_noPermission()}
+            title={m.form_noPermissionTitle()}
             description={m.form_noEditPermission()}
             primaryAction={{
               href: resolve('/(app)/routes/[id]', { id: String(detail.id) }),

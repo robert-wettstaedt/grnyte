@@ -79,7 +79,7 @@
   // runs once, then the user drives selection.
   let selectionApplied = false
   $effect(() => {
-    if (selectionApplied || topos.data.length === 0) return
+    if (selectionApplied || topos.data.length === 0 || !canEditHere) return
     selectionApplied = true
 
     const routeParam = page.url.searchParams.get('route')
@@ -211,8 +211,8 @@
         const snapshot = result.data
         notifyUndo({ message: m.routes_deleted(), onUndo: () => restoreRoute(snapshot) })
       }
-    } catch {
-      notifyError()
+    } catch (cause) {
+      notifyError(cause)
     }
   }
 
@@ -259,8 +259,8 @@
             const result = await createTopo({ blockId: block.data.id, fileId: row.id })
             if (result?.data != null) editor.topoId = result.data.id
           }
-        } catch {
-          notifyError()
+        } catch (cause) {
+          notifyError(cause)
         } finally {
           // These uploads are headless: no tile ever renders the preview, and nothing
           // registers them in pendingUploads, so nothing else would ever revoke the blob
@@ -328,8 +328,8 @@
       // Drop the deleted topo's local doc too, or its dirty leftovers would make Save 404.
       editor.forget(id)
       editor.topoId = remaining?.id
-    } catch {
-      notifyError()
+    } catch (cause) {
+      notifyError(cause)
     }
   }
 
@@ -337,8 +337,8 @@
     if (block.data == null) return
     try {
       await reorderTopos({ blockId: block.data.id, orderedIds })
-    } catch {
-      notifyError()
+    } catch (cause) {
+      notifyError(cause)
     }
   }
 
@@ -357,18 +357,21 @@
     // Save each dirty topo independently: one failed photo must not skip the rest, and the
     // ones that did save should still clear their pill.
     let failed = 0
+    let firstFailure: unknown
     for (const id of editor.dirtyTopoIds) {
       try {
         await saveTopoLines({ lines: editor.savedLinesFor(id), topoId: id })
         // Stamp the saved baseline so the pill/guard clear now, not after the Zero echo.
         editor.markSaved(id)
         pendingSync = [...pendingSync, id]
-      } catch {
+      } catch (cause) {
         failed++
+        // Keep the first cause: the count alone reduced every failure to the generic toast.
+        firstFailure ??= cause
       }
     }
     saving = false
-    if (failed > 0) notifyError()
+    if (failed > 0) notifyError(firstFailure)
   }
 
   $effect(() => {
@@ -388,7 +391,8 @@
 
   // Guards every way out (back button, browser back, breadcrumbs), not only `leave`.
   beforeNavigate((navigation) => {
-    if (editor.dirty && !confirm(m.topo_leaveConfirm())) {
+    // Nothing to lose behind the permission screen.
+    if (canEditHere && editor.dirty && !confirm(m.topo_leaveConfirm())) {
       navigation.cancel()
     }
   })
@@ -407,13 +411,14 @@
   <title>{m.topo_editTopos()} – {block.data?.name ?? m.common_block()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<svelte:window onkeydown={onKeydown} />
+<!-- Guarded, not moved: `<svelte:window>` has to stay at the top level. -->
+<svelte:window onkeydown={canEditHere ? onKeydown : undefined} />
 <svelte:document onfullscreenchange={() => (isFullscreen = document.fullscreenElement != null)} />
 
 {#if !canEditHere}
   <ErrorState
     type="generic"
-    title={m.form_noPermission()}
+    title={m.form_noPermissionTitle()}
     description={m.form_noEditPermission()}
     primaryAction={{ href: blockHref, label: m.blocks_viewBlock() }}
   />

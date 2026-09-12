@@ -91,18 +91,13 @@
   }
 
   const onRemove = async (member: RegionMemberItem) => {
-    try {
-      await withUndo(removeRegionMember({ regionFk: regionId, userFk: member.userId }), {
-        // The one bounded undo in the app, and the bound is load-bearing rather than cosmetic:
-        // the removal queues a notice for the person removed, and undoing inside this window is
-        // what takes it back before it goes out. See MEMBERSHIP_UNDO_MS.
-        duration: MEMBERSHIP_UNDO_MS,
-        message: m.region_memberRemoved({ name: member.username }),
-        onUndo: (snapshot) => restoreRegionMember(snapshot),
-      })
-    } catch (cause) {
-      notifyError(cause)
-    }
+    await withUndo(removeRegionMember({ regionFk: regionId, userFk: member.userId }), {
+      // Bounded on purpose: the removal queues a notice, and undoing inside the window takes
+      // it back before it goes out. See MEMBERSHIP_UNDO_MS.
+      duration: MEMBERSHIP_UNDO_MS,
+      message: m.region_memberRemoved({ name: member.username }),
+      onUndo: (snapshot) => restoreRegionMember(snapshot),
+    })
   }
 
   const onLeave = async () => {
@@ -158,19 +153,16 @@
   }
 
   const onRevoke = async (invitation: RegionInvitationItem) => {
-    try {
-      await withUndo(revokeRegionInvitation({ invitationFk: invitation.id }), {
-        message: m.region_inviteRevoked({ email: invitation.email }),
-        onUndo: async (snapshot) => {
-          const result = await restoreRegionInvitation(snapshot)
-          await refreshInvitations()
-          return result
-        },
-      })
-      await refreshInvitations()
-    } catch (cause) {
-      notifyError(cause)
-    }
+    // No catch: `withUndo` reports the failure itself. The refresh runs either way.
+    await withUndo(revokeRegionInvitation({ invitationFk: invitation.id }), {
+      message: m.region_inviteRevoked({ email: invitation.email }),
+      onUndo: async (snapshot) => {
+        const result = await restoreRegionInvitation(snapshot)
+        await refreshInvitations()
+        return result
+      },
+    })
+    await refreshInvitations()
   }
 
   // Leaving must not orphan the region, so the sole remaining admin cannot. The server refuses

@@ -98,8 +98,8 @@
   const onDelete = async () => {
     try {
       await deleteFile({ id: currentFile.id })
-    } catch {
-      notifyError()
+    } catch (cause) {
+      notifyError(cause)
       return
     }
     toaster.create({ title: m.media_deleted(), type: 'info' })

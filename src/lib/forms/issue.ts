@@ -4,11 +4,13 @@ import { m } from '$lib/paraglide/messages'
 /**
  * The same thing for a rejected command. `error(4xx, formError(...))` puts the key on
  * SvelteKit's `HttpError.body.message`; anything else (a network drop, a 500) has no key to
- * resolve, so it falls back to the generic copy.
+ * resolve, so `fallback` decides. Pass one where the generic copy is not the best answer: the
+ * upload manager reads a TUS `Error.message` there. It is the only place that knows the
+ * `HttpError` shape, so a change to Kit's envelope lands in one file.
  */
-export function resolveErrorMessage(cause: unknown): string {
+export function resolveErrorMessage(cause: unknown, fallback: () => string = m.error_generic_title): string {
   const raw = (cause as null | { body?: { message?: string } })?.body?.message
-  return raw == null ? m.error_generic_title() : resolveIssueMessage(raw)
+  return raw == null ? fallback() : resolveIssueMessage(raw)
 }
 
 /**

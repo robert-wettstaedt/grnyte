@@ -35,9 +35,9 @@
 
     try {
       await onchange(next)
-    } catch {
+    } catch (cause) {
       value = previous
-      notifyError()
+      notifyError(cause)
     }
   }
 </script>

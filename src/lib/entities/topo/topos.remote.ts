@@ -2,6 +2,7 @@ import { command } from '$app/server'
 import * as schema from '$lib/db/schema'
 import { blocks, files, routes, topoRoutes, topoRouteTopTypeEnum, topos, type Topo } from '$lib/db/schema'
 import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
+import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { authedCommand, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
@@ -72,12 +73,12 @@ async function requireFreeBlockImage(
 ): Promise<void> {
   const file = await db.query.files.findFirst({ columns: { blockFk: true }, where: eq(files.id, fileId) })
   if (blockFk == null || file?.blockFk !== blockFk) {
-    error(404, 'File not found')
+    error(404, formError('files_notFound'))
   }
 
   const claimed = await db.query.topos.findFirst({ columns: { id: true }, where: eq(topos.fileFk, fileId) })
   if (claimed != null) {
-    error(409, 'That image is already a topo')
+    error(409, formError('topo_alreadyTopo'))
   }
 }
 
@@ -108,10 +109,10 @@ export const createTopo = authedCommand(
   async ({ blockId, fileId }, { db, user, userRegions }): Promise<MutationResult<Topo>> => {
     const block = await db.query.blocks.findFirst({ where: eq(blocks.id, blockId) })
     if (block == null) {
-      error(404, 'Block not found')
+      error(404, formError('blocks_notFound'))
     }
     if (!canEditTopo(userRegions, block)) {
-      error(403, 'Not allowed to edit topos here')
+      error(403, formError('form_noPermission'))
     }
 
     // `canEditTopo` authorized the block; `fileId` was a second client value nothing looked at, so
@@ -128,7 +129,7 @@ export const createTopo = authedCommand(
       .values({ blockFk: blockId, fileFk: fileId, order: nextOrder, regionFk: block.regionFk })
       .returning()
     if (created == null) {
-      error(500, 'Failed to create topo')
+      error(500, formError('topo_createFailed'))
     }
 
     await insertTopoEvent(db, user, 'photoAdded', {
@@ -158,10 +159,10 @@ export const deleteTopo = command(
         with: { file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } } },
       })
       if (topo == null) {
-        error(404, 'Topo not found')
+        error(404, formError('topo_notFound'))
       }
       if (!canEditTopo(userRegions, topo)) {
-        error(403, 'Not allowed to edit topos here')
+        error(403, formError('form_noPermission'))
       }
 
       // topo_routes → topos → files: FK order matters (routes reference the topo, the topo the file).
@@ -199,10 +200,10 @@ export const replaceTopoImage = command(
         with: { file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } } },
       })
       if (topo == null) {
-        error(404, 'Topo not found')
+        error(404, formError('topo_notFound'))
       }
       if (!canEditTopo(userRegions, topo)) {
-        error(403, 'Not allowed to edit topos here')
+        error(403, formError('form_noPermission'))
       }
 
       // Nothing to swap, and the one call that would destroy the image the topo still points at:
@@ -242,10 +243,10 @@ export const reorderTopos = authedCommand(
   async ({ blockId, orderedIds }, { db, user, userRegions }) => {
     const block = await db.query.blocks.findFirst({ where: eq(blocks.id, blockId) })
     if (block == null) {
-      error(404, 'Block not found')
+      error(404, formError('blocks_notFound'))
     }
     if (!canEditTopo(userRegions, block)) {
-      error(403, 'Not allowed to edit topos here')
+      error(403, formError('form_noPermission'))
     }
 
     // Only reorder the block's own topos: a stale client snapshot (or a crafted call)
@@ -290,10 +291,10 @@ export const saveTopoLines = authedCommand(
   async ({ lines, topoId }, { db, user, userRegions }) => {
     const topo = await db.query.topos.findFirst({ where: eq(topos.id, topoId) })
     if (topo == null) {
-      error(404, 'Topo not found')
+      error(404, formError('topo_notFound'))
     }
     if (!canEditTopo(userRegions, topo)) {
-      error(403, 'Not allowed to edit topos here')
+      error(403, formError('form_noPermission'))
     }
 
     // Lines may only reference one of the block's own LIVE routes: regionFk is stamped from
@@ -310,7 +311,7 @@ export const saveTopoLines = authedCommand(
           })
     const liveRouteIds = new Set(blockRoutes.filter((route) => route.deletedAt == null).map((route) => route.id))
     if (lines.some((line) => !liveRouteIds.has(line.routeFk))) {
-      error(400, 'Route is not on this block')
+      error(400, formError('topo_routeNotOnBlock'))
     }
 
     // Last-writer-wins dedupe: a payload with the same routeFk twice must not create two rows

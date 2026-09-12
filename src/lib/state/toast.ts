@@ -47,7 +47,18 @@ export function notifySend(sent: boolean, sentTitle: string, notSentTitle: strin
  */
 export function notifyUndo(opts: UndoToastData): void {
   toaster.create({
-    action: { label: m.common_undo(), onClick: () => void opts.onUndo() },
+    action: {
+      label: m.common_undo(),
+      // The restore can fail too. Async wrapper, so a synchronous throw is caught as well.
+      onClick: () =>
+        void (async () => {
+          try {
+            await opts.onUndo()
+          } catch (cause) {
+            notifyError(cause)
+          }
+        })(),
+    },
     duration: opts.duration ?? Number.POSITIVE_INFINITY,
     title: opts.message,
     type: 'info',
@@ -79,7 +90,16 @@ export async function withUndo<T, U>(
     waitFor?: (data: U) => unknown
   },
 ): Promise<void> {
-  const snapshot = await runCommand(pending)
+  let snapshot: T | undefined
+  try {
+    snapshot = await runCommand(pending)
+  } catch (cause) {
+    // Reported here rather than at the call sites, and swallowed: a failed delete has nothing
+    // left to undo, so saying so is the whole reaction.
+    notifyError(cause)
+    return
+  }
+
   if (snapshot != null) {
     // Run the undo through `runCommand` too, so a restore that returns `redirectTo` navigates.
     notifyUndo({

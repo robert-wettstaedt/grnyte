@@ -26,22 +26,31 @@
   // Rejects when the user dismisses the share sheet; nothing to recover from.
   const share = () => void navigator.share(shareData).catch(() => {})
 
-  // The visible label stays "Share" in every state; only the announced action follows the
-  // clipboard fallback, so the button does not change width when a copy lands.
+  // Label and accessible name stay "Share" so voice control can target the visible word (WCAG 2.5.3).
+  // The clipboard fallback rides on the tooltip and the icon instead of renaming the control.
   const action = $derived(canShare ? m.share_share() : clip.copied ? m.share_linkCopied() : m.share_copyLink())
 </script>
 
-<KbdTooltip label={action}>
-  {#snippet trigger(attributes)}
-    <button
-      {...attributes}
-      aria-label={action}
-      class={ACTION_TOOL}
-      onclick={canShare ? share : () => clip.copy(page.url.href)}
-      type="button"
-    >
-      <Icon name={clip.copied ? 'check' : 'share'} size={19} />
-      <span class={ACTION_TOOL_LABEL}>{m.share_share()}</span>
-    </button>
-  {/snippet}
-</KbdTooltip>
+{#snippet button(attributes: Record<string, unknown>)}
+  <button
+    {...attributes}
+    aria-label={m.share_share()}
+    class={ACTION_TOOL}
+    onclick={canShare ? share : () => clip.copy(page.url.href)}
+    type="button"
+  >
+    <Icon name={clip.copied ? 'check' : 'share'} size={19} />
+    <span class={ACTION_TOOL_LABEL}>{m.share_share()}</span>
+  </button>
+{/snippet}
+
+{#if action === m.share_share()}
+  <!-- Web Share available, so the tooltip would only repeat the visible word. -->
+  {@render button({})}
+{:else}
+  <KbdTooltip label={action}>
+    {#snippet trigger(attributes)}
+      {@render button(attributes)}
+    {/snippet}
+  </KbdTooltip>
+{/if}

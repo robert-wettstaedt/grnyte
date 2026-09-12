@@ -35,7 +35,7 @@ export const toggleReaction = authedCommand(
       // the two is being reacted to decides whose authorship is checked, so the card's rule only
       // applies when the reaction is on the card.
       (row) => commentId != null || row.actorFk !== user.id,
-      'Event not found',
+      formError('feed_notFound'),
     )
 
     // The comment being reacted to, read under RLS and checked against what is STORED: live, a
@@ -47,7 +47,7 @@ export const toggleReaction = authedCommand(
             () => db.query.reactions.findFirst({ where: eq(reactions.id, commentId) }),
             (row) =>
               row.type === 'comment' && row.eventFk === eventId && row.deletedAt == null && row.userFk !== user.id,
-            'Comment not found',
+            formError('comments_notFound'),
           )
 
     // One transaction, because the clear and the insert are one act. Apart, a failing insert
@@ -139,7 +139,7 @@ export const postComment = authedCommand(
     const event = await requireRow(
       () => db.query.events.findFirst({ where: eq(events.id, eventId) }),
       () => true,
-      'Event not found',
+      formError('feed_notFound'),
     )
 
     // The parent, also read under RLS and also checked against what is STORED: that it is a live
@@ -151,7 +151,7 @@ export const postComment = authedCommand(
         : await requireRow(
             () => db.query.reactions.findFirst({ where: eq(reactions.id, parentId) }),
             (row) => row.type === 'comment' && row.eventFk === eventId && row.deletedAt == null,
-            'Comment not found',
+            formError('comments_notFound'),
           )
 
     // Answering a reply files under what that reply answers. See the one-level note above.
@@ -206,7 +206,7 @@ export const deleteComment = authedCommand(
       // `toggleReaction`, and re-stamping an already-cleared row would re-fire the notification
       // drop for a comment that has been gone for a week.
       (row) => row.userFk === user.id && row.type === 'comment' && row.deletedAt == null,
-      'Comment not found',
+      formError('comments_notFound'),
     )
 
     await db.update(reactions).set({ deletedAt: new Date() }).where(eq(reactions.id, commentId))
@@ -239,7 +239,7 @@ export const restoreComment = authedCommand(
       // Cleared, yours, and a comment. Restoring somebody else's, or a row that is not deleted, is
       // not an undo of anything this person did.
       (row) => row.userFk === user.id && row.type === 'comment' && row.deletedAt != null,
-      'Comment not found',
+      formError('comments_notFound'),
     )
 
     await db.update(reactions).set({ deletedAt: null }).where(eq(reactions.id, commentId))

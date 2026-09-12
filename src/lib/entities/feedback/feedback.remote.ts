@@ -81,7 +81,7 @@ export const listFeedback = query(async (): Promise<FeedbackItem[]> => {
 
   // RLS is on with no policies, so this reads through the privileged client: this check is the gate.
   if (!locals.userPermissions?.includes(APP_PERMISSION_ADMIN)) {
-    httpError(403, 'Forbidden')
+    httpError(403, formError('form_noPermission'))
   }
 
   const rows = await db
@@ -135,7 +135,7 @@ export const replyToFeedback = command(
 
     // Same gate as `listFeedback`: RLS cannot express "app admin" without a region to hang it on.
     if (!locals.userPermissions?.includes(APP_PERMISSION_ADMIN)) {
-      httpError(403, 'Forbidden')
+      httpError(403, formError('form_noPermission'))
     }
 
     // Privileged handle: neither `auth.users` nor `user_settings` is readable by `authenticated`,
@@ -155,7 +155,7 @@ export const replyToFeedback = command(
       .limit(1)
 
     if (row == null) {
-      httpError(404, 'Feedback not found')
+      httpError(404, formError('feedback_notFound'))
     }
 
     // The UPDATE is the gate, not a check before it: a separate read-then-check leaves a window
@@ -169,7 +169,7 @@ export const replyToFeedback = command(
       .returning({ id: feedback.id })
 
     if (updated == null) {
-      httpError(409, 'Feedback already answered')
+      httpError(409, formError('feedback_alreadyAnswered'))
     }
 
     // No address to answer: the row is still closed and the text stored, but do not let the inbox

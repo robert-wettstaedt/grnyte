@@ -2,10 +2,10 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { addParking } from '$lib/entities/area/areas.remote'
+  import { canAddParking } from '$lib/entities/area/permissions'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
@@ -108,27 +108,29 @@
 
 <QueryState resource={area}>
   {#snippet ready(data)}
-    {#if !checkRegionPermission(global.userRegions, [REGION_PERMISSION_EDIT], data.regionFk)}
-      <ErrorState
-        type="generic"
-        title={m.form_noPermission()}
-        description={m.form_noEditPermission()}
-        primaryAction={{
-          href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),
-          label: m.areas_viewArea(),
-        }}
-      />
-    {:else if data.type !== 'sector'}
-      <!-- Not a permission problem: parking hangs off a sector, and this is not one. -->
-      <ErrorState
-        type="generic"
-        title={m.areas_parkingNeedsSectorTitle()}
-        description={m.areas_parkingNeedsSectorBody()}
-        primaryAction={{
-          href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),
-          label: m.areas_viewArea(),
-        }}
-      />
+    {#if !canAddParking(global.userRegions, data)}
+      {#if data.type !== 'sector'}
+        <!-- Not a permission problem: parking hangs off a sector, and this is not one. -->
+        <ErrorState
+          type="generic"
+          title={m.areas_parkingNeedsSectorTitle()}
+          description={m.areas_parkingNeedsSectorBody()}
+          primaryAction={{
+            href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),
+            label: m.areas_viewArea(),
+          }}
+        />
+      {:else}
+        <ErrorState
+          type="generic"
+          title={m.form_noPermissionTitle()}
+          description={m.form_noEditPermission()}
+          primaryAction={{
+            href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),
+            label: m.areas_viewArea(),
+          }}
+        />
+      {/if}
     {:else}
       <Form
         fill

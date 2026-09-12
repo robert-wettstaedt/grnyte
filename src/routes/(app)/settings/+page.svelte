@@ -75,9 +75,9 @@
     gradingScale = value
     try {
       await updateUserSettings({ gradingScale: value })
-    } catch {
+    } catch (cause) {
       gradingScale = previous
-      notifyError()
+      notifyError(cause)
     }
   }
 
@@ -100,9 +100,9 @@
     unitSystem = value
     try {
       await updateUserSettings({ unitSystem: value === 'auto' ? null : value })
-    } catch {
+    } catch (cause) {
       unitSystem = previous
-      notifyError()
+      notifyError(cause)
     }
   }
 

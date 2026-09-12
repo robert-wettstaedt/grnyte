@@ -12,6 +12,26 @@ import ts from 'typescript-eslint'
 const gitignorePath = path.resolve(import.meta.dirname, '.gitignore')
 
 /**
+ * no-raw-error-message: a thrown message is user-facing copy, so it has to be a `formError('<key>')`.
+ * `FormMessage` brands the `requireRow` slots; `error()`/`invalid()` come from SvelteKit and cannot be.
+ *
+ * Not endpoints or hooks: those render through `src/error.html`, which substitutes the message
+ * verbatim with no paraglide. `invalid` takes the message first, `error` second, hence two indices.
+ */
+const noRawErrorMessage = [
+  ...['error', 'httpError'].flatMap((fn) =>
+    ['Literal', 'TemplateLiteral'].map((node) => ({
+      message: `Wrap the message in formError('<key>') so it is translated. Raw strings render in English for every reader.`,
+      selector: `CallExpression[callee.name='${fn}'][arguments.1.type='${node}']`,
+    })),
+  ),
+  ...['Literal', 'TemplateLiteral'].map((node) => ({
+    message: `Wrap the message in formError('<key>') so it is translated. Raw strings render in English for every reader.`,
+    selector: `CallExpression[callee.name='invalid'][arguments.0.type='${node}']`,
+  })),
+]
+
+/**
  * no-drizzle-mass-assignment
  *
  * Spreading a payload into a write means the columns that move are whichever ones the caller chose
@@ -159,15 +179,23 @@ export default defineConfig(
     },
   },
   {
+    // Remote functions and the helpers they throw from. Mass-assignment comes along because flat
+    // config replaces a rule's options wholesale rather than merging them.
+    files: ['**/*.remote.ts', 'src/lib/entities/**/*.ts', 'src/lib/remote/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', ...noDrizzleMassAssignment, ...noRawErrorMessage],
+    },
+  },
+  {
     // Avoid barrel files: index.ts that re-exports a folder's modules.
     files: ['**/index.ts'],
     rules: {
-      // The mass-assignment selectors come along, because flat config replaces this rule's options
-      // wholesale rather than merging them: without them an `index.ts` could mass-assign and lint
-      // clean, which is exactly the file a shared helper ends up in.
+      // Both earlier sets come along: flat config replaces a rule's options wholesale, and this
+      // block is later, so it wins for an index.ts the remote block also matches.
       'no-restricted-syntax': [
         'error',
         ...noDrizzleMassAssignment,
+        ...noRawErrorMessage,
         {
           message: "Avoid barrel files: don't re-export a folder's modules from index.ts. Import the modules directly.",
           selector: 'ExportAllDeclaration',

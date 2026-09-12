@@ -78,8 +78,8 @@
       await deleteFile({ id: data.file.id })
       toaster.create({ title: m.media_deleted(), type: 'info' })
       await goto(parentHref(data.controls?.parent))
-    } catch {
-      notifyError()
+    } catch (cause) {
+      notifyError(cause)
     }
   }
 

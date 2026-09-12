@@ -38,8 +38,8 @@
     try {
       await setVideoSource({ fileId: file.id, source: normalized ?? null })
       open = false
-    } catch {
-      notifyError()
+    } catch (cause) {
+      notifyError(cause)
     } finally {
       saving = false
     }

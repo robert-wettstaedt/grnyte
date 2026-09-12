@@ -6,12 +6,20 @@ type MessageKey = keyof Messages
 type Messages = (typeof import('$lib/paraglide/messages'))['m']
 type ParamsOf<K extends MessageKey> = Parameters<Messages[K]>[0]
 
+declare const brand: unique symbol
+
+/**
+ * A message the client resolves through paraglide. Assignable to `string` but not the reverse, so a
+ * slot that promises translation cannot take a raw English sentence. Same shape as {@link DisplayName}.
+ */
+export type FormMessage = string & { readonly [brand]: 'formMessage' }
+
 /** Build a locale-agnostic zod error payload that FormHint resolves via paraglide `m[key](params)`. */
 export function formError<K extends MessageKey>(
   key: K,
   ...params: keyof ParamsOf<K> extends never ? [] : [params: ParamsOf<K>]
-): string {
-  return JSON.stringify({ message: key, params: params[0] })
+): FormMessage {
+  return JSON.stringify({ message: key, params: params[0] }) as FormMessage
 }
 
 /** Supabase's stable error codes mapped onto our copy. Everything else gets the generic key. */
@@ -35,7 +43,7 @@ const authErrorKeys = {
  * mapping. The unmapped tail is mostly infrastructure trouble (mailer down, provider outage) that
  * reads the same to the user whatever we call it, so it collapses into one generic message.
  */
-export function authError(error: AuthError): string {
+export function authError(error: AuthError): FormMessage {
   return formError(authErrorKeys[error.code as keyof typeof authErrorKeys] ?? 'auth_unexpectedError')
 }
 

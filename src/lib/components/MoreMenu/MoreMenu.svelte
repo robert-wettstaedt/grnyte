@@ -40,7 +40,7 @@
       onclick={() => (open = !open)}
     >
       <!-- No tooltip: Modal already owns this trigger's wiring, and it would only repeat the label. -->
-      <Icon name="more" />
+      <Icon name="more" size={19} />
       <span class={ACTION_TOOL_LABEL}>{m.common_more()}</span>
     </button>
   {/snippet}

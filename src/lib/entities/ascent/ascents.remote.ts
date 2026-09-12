@@ -198,7 +198,7 @@ export const deleteAscent = command(
       const ascent = await requireRow(
         () => db.query.ascents.findFirst({ where: and(eq(ascents.id, id), isNull(ascents.deletedAt)) }),
         (row) => canEditAscent(userRegions, user.id, row),
-        'Ascent not found',
+        formError('ascents_notFound'),
       )
 
       const fileRows = await db.query.files.findMany({

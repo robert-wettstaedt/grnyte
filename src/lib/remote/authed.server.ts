@@ -1,6 +1,7 @@
 import { command, form, getRequestEvent, query } from '$app/server'
 import { createRlsClient, db } from '$lib/db/db.server'
 import type { UserRegion } from '$lib/entities/region/dto'
+import { formError } from '$lib/forms/schemas'
 import type { MutationResult } from '$lib/remote/mutation'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { error, redirect, type InvalidField, type RemoteForm, type RemoteFormInput } from '@sveltejs/kit'
@@ -101,10 +102,10 @@ export function requireAuthed(): {
   const { backendUnavailable, claims, user } = getRequestEvent().locals
 
   if (backendUnavailable) {
-    error(503, 'Service temporarily unavailable')
+    error(503, formError('error_serviceUnavailable'))
   }
   if (claims == null || user == null) {
-    error(401, 'Not authenticated')
+    error(401, formError('auth_notSignedIn'))
   }
 
   return { claims, user }
