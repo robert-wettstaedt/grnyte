@@ -222,28 +222,6 @@
   "blocks_viewBlock": "View block",
   "blocks_viewRoutes": "Routes",
   "blocks_viewTopos": "Topos",
-  "bookmark_save": "Save",
-  "bookmark_saveWithCount": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Save. {count} save.",
-        "countPlural=other": "Save. {count} saves."
-      }
-    }
-  ],
-  "bookmark_saved": "Saved",
-  "bookmark_savedWithCount": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Saved. {count} save.",
-        "countPlural=other": "Saved. {count} saves."
-      }
-    }
-  ],
   "comments_cancelReply": "Cancel reply",
   "comments_delete": "Delete comment",
   "comments_deleted": "Comment deleted",
@@ -284,6 +262,7 @@
   "common_delete": "Delete",
   "common_details": "Details",
   "common_directions": "Directions",
+  "common_directionsShort": "Maps",
   "common_done": "Done",
   "common_edit": "Edit",
   "common_filter": "Filter",
@@ -1153,6 +1132,29 @@
   "faq_metaDescription": "Common questions about {name}: who can see your region, what it costs, how to get your data out, and why there is no public side to it.",
   "faq_overview": "All questions",
   "faq_title": "FAQ",
+  "favorite_add": "Add favorite",
+  "favorite_addWithCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Add favorite. {count} favorite.",
+        "countPlural=other": "Add favorite. {count} favorites."
+      }
+    }
+  ],
+  "favorite_label": "Favorite",
+  "favorite_remove": "Remove favorite",
+  "favorite_removeWithCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Remove favorite. {count} favorite.",
+        "countPlural=other": "Remove favorite. {count} favorites."
+      }
+    }
+  ],
   "feed_allRegions": "All regions",
   "feed_empty": "No activity yet",
   "feed_emptyBody": "Ascents and guidebook edits from your regions show up here.",
@@ -1465,7 +1467,6 @@
       }
     }
   ],
-  "profile_removeFavorite": "Remove favorite",
   "profile_sends": "Sends",
   "profile_sessionsCount": [
     {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ACTION_CTA, ACTION_TOOL } from '$lib/components/ActionBar/ActionBar.svelte'
+  import { ACTION_CTA, ACTION_TOOL, ACTION_TOOL_LABEL } from '$lib/components/ActionBar/ActionBar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { mapsUrl, type Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
@@ -19,17 +19,24 @@
 
 {#if directionsUrl != null}
   <!-- eslint-disable svelte/no-navigation-without-resolve -- external maps deep link, not an app route -->
-  <a
-    aria-label={variant === 'tool' ? m.common_directions() : undefined}
-    class={variant === 'cta' ? [ACTION_CTA, 'preset-filled-primary-500'] : ACTION_TOOL}
-    href={directionsUrl}
-    rel="noopener noreferrer"
-    target="_blank"
-  >
-    <Icon name="navigation" size={variant === 'cta' ? 18 : 19} />
-    {#if variant === 'cta'}
+  {#if variant === 'cta'}
+    <a class={[ACTION_CTA, 'preset-filled-primary-500']} href={directionsUrl} rel="noopener noreferrer" target="_blank">
+      <Icon name="navigation" size={18} />
       <span class="text-sm font-bold">{m.common_directions()}</span>
-    {/if}
-  </a>
+    </a>
+  {:else}
+    <!-- Short visible label, full one announced: the tool cannot shrink below 48px, so a word of
+         six characters or fewer is free, while "Directions" squeezed the bar's CTA into an ellipsis. -->
+    <a
+      aria-label={m.common_directions()}
+      class={ACTION_TOOL}
+      href={directionsUrl}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      <Icon name="navigation" size={19} />
+      <span class={ACTION_TOOL_LABEL}>{m.common_directionsShort()}</span>
+    </a>
+  {/if}
   <!-- eslint-enable svelte/no-navigation-without-resolve -->
 {/if}

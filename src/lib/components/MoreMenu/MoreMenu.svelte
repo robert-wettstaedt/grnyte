@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ACTION_TOOL } from '$lib/components/ActionBar/ActionBar.svelte'
+  import { ACTION_TOOL, ACTION_TOOL_LABEL } from '$lib/components/ActionBar/ActionBar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -39,7 +39,9 @@
       aria-label={m.common_more()}
       onclick={() => (open = !open)}
     >
+      <!-- No tooltip: Modal already owns this trigger's wiring, and it would only repeat the label. -->
       <Icon name="more" />
+      <span class={ACTION_TOOL_LABEL}>{m.common_more()}</span>
     </button>
   {/snippet}
 

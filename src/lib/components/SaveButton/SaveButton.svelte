@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { ACTION_TOOL } from '$lib/components/ActionBar/ActionBar.svelte'
+  import { ACTION_TOOL, ACTION_TOOL_LABEL } from '$lib/components/ActionBar/ActionBar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import KbdTooltip from '$lib/components/KbdTooltip/KbdTooltip.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { m } from '$lib/paraglide/messages'
   import { isOnline } from '$lib/state/online.svelte'
@@ -16,34 +17,45 @@
 
   const { count = 0, ontoggle, pending = false, saved = false }: Props = $props()
 
-  const label = $derived(
+  // Says what a press does, not what the state is: on a filled bookmark "Saved" answered the
+  // wrong question. The visible label stays the short noun.
+  const action = $derived(
     count > 0
       ? saved
-        ? m.bookmark_savedWithCount({ count })
-        : m.bookmark_saveWithCount({ count })
+        ? m.favorite_removeWithCount({ count })
+        : m.favorite_addWithCount({ count })
       : saved
-        ? m.bookmark_saved()
-        : m.bookmark_save(),
+        ? m.favorite_remove()
+        : m.favorite_add(),
   )
 </script>
 
-<button
-  aria-label={label}
-  aria-pressed={saved}
-  class={[ACTION_TOOL, 'gap-1', saved && 'preset-tonal-primary']}
-  disabled={pending || !isOnline()}
-  onclick={ontoggle}
-  type="button"
->
-  {#if pending}
-    <LoadingIndicator size="19px" />
-  {:else}
-    <Icon name="bookmark" fill={saved ? 'currentColor' : 'none'} size={19} />
-  {/if}
+<KbdTooltip label={action}>
+  {#snippet trigger(attributes)}
+    <button
+      {...attributes}
+      aria-label={action}
+      aria-pressed={saved}
+      class={[ACTION_TOOL, saved && 'preset-tonal-primary']}
+      disabled={pending || !isOnline()}
+      onclick={ontoggle}
+      type="button"
+    >
+      <span class="flex items-center gap-1">
+        {#if pending}
+          <LoadingIndicator size="19px" />
+        {:else}
+          <Icon name="bookmark" fill={saved ? 'currentColor' : 'none'} size={19} />
+        {/if}
 
-  {#if count > 0}
-    <span aria-hidden="true" class="text-[11px] leading-none font-bold tabular-nums">
-      {count > 99 ? '99+' : count}
-    </span>
-  {/if}
-</button>
+        {#if count > 0}
+          <span aria-hidden="true" class="text-[11px] leading-none font-bold tabular-nums">
+            {count > 99 ? '99+' : count}
+          </span>
+        {/if}
+      </span>
+
+      <span class={ACTION_TOOL_LABEL}>{m.favorite_label()}</span>
+    </button>
+  {/snippet}
+</KbdTooltip>

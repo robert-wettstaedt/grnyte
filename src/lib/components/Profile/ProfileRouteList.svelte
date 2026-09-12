@@ -48,7 +48,7 @@
     <button
       type="button"
       class="btn-icon btn-icon-sm hover:preset-tonal-surface text-surface-500"
-      aria-label={m.profile_removeFavorite()}
+      aria-label={m.favorite_remove()}
       onclick={() => onRemove?.(route)}
     >
       <Icon name="close" size={18} />

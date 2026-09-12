@@ -222,28 +222,6 @@
   "blocks_viewBlock": "Block ansehen",
   "blocks_viewRoutes": "Routen",
   "blocks_viewTopos": "Topos",
-  "bookmark_save": "Speichern",
-  "bookmark_saveWithCount": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Speichern. {count} Mal gespeichert.",
-        "countPlural=other": "Speichern. {count} Mal gespeichert."
-      }
-    }
-  ],
-  "bookmark_saved": "Gespeichert",
-  "bookmark_savedWithCount": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Gespeichert. {count} Mal gespeichert.",
-        "countPlural=other": "Gespeichert. {count} Mal gespeichert."
-      }
-    }
-  ],
   "comments_cancelReply": "Antwort abbrechen",
   "comments_delete": "Kommentar löschen",
   "comments_deleted": "Kommentar gelöscht",
@@ -284,6 +262,7 @@
   "common_delete": "Löschen",
   "common_details": "Details",
   "common_directions": "Anfahrt",
+  "common_directionsShort": "Anfahrt",
   "common_done": "Fertig",
   "common_edit": "Bearbeiten",
   "common_filter": "Filter",
@@ -1153,6 +1132,29 @@
   "faq_metaDescription": "Häufige Fragen zu {name}: wer deine Region sehen kann, was es kostet, wie du an deine Daten kommst, und warum es keine öffentliche Seite gibt.",
   "faq_overview": "Alle Fragen",
   "faq_title": "FAQ",
+  "favorite_add": "Favorit hinzufügen",
+  "favorite_addWithCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Favorit hinzufügen. {count} Favorit.",
+        "countPlural=other": "Favorit hinzufügen. {count} Favoriten."
+      }
+    }
+  ],
+  "favorite_label": "Favorit",
+  "favorite_remove": "Favorit entfernen",
+  "favorite_removeWithCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Favorit entfernen. {count} Favorit.",
+        "countPlural=other": "Favorit entfernen. {count} Favoriten."
+      }
+    }
+  ],
   "feed_allRegions": "Alle Regionen",
   "feed_empty": "Noch keine Aktivität",
   "feed_emptyBody": "Begehungen und Änderungen an Gebieten und Routen aus deinen Regionen erscheinen hier.",
@@ -1465,7 +1467,6 @@
       }
     }
   ],
-  "profile_removeFavorite": "Favorit entfernen",
   "profile_sends": "Begehungen",
   "profile_sessionsCount": [
     {
