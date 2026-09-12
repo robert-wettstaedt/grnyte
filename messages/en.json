@@ -1702,6 +1702,7 @@
       }
     }
   ],
+  "routes_listsStale": "The tags or first ascensionists changed while this page was open. Reopen it and make the change again.",
   "routes_logAscent": "Log ascent",
   "routes_nameExists": "A route named “{name}” already exists on this block",
   "routes_noOpinions": "No opinions yet",

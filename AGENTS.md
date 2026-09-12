@@ -52,6 +52,13 @@ This project uses:
   having loaded rather than on a selection or a count. Component state a child seeds from props is
   out of reach: key those with `{#key}` on the same id, never `form.for(key)`, which posts the key
   as an `id` field. The module says what a key may and may not be.
+  `{#key}` on the id is not enough when what a child seeds comes from a RELATED row, because
+  "loaded" is not one event: a resource is ready as soon as its own row is local, so tags or first
+  ascensionists are still in flight while the id is already correct, the key never re-fires, and the
+  form seeds empty. Gate the mount on `isComplete`, latched per id because it drops whenever the
+  socket parks. `routes/[id]/edit` is the worked example, and `updateRoute` is why it matters: it
+  deletes what the submit leaves out, so an unloaded list is silent data loss rather than a blank
+  field. `e2e/form-seeding.spec.ts` is what caught it.
 - i18n: add keys to BOTH `messages/en.json` and `messages/de.json` (`domain_camelCase`, kept sorted). One prefix per domain: never split singular and plural (`areas_*`, not `area_*` alongside it). No em-dashes anywhere (UI copy, translations, code comments).
 - Icons: use `<Icon name="...">`; only `icons.ts` and `Icon.svelte` may import lucide.
 - Every OpenLayers instance comes from `createBaseMap` (`$lib/map/base.svelte.ts`): never

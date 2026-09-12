@@ -1,3 +1,4 @@
+import { fingerprint } from '$lib/forms/fingerprint'
 import { formError, nameSchema, stringToIntOptional, stringToNumberOptional } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { DEFAULT_TAGS } from './tagVocabulary'
@@ -66,18 +67,12 @@ export function mapLayersFingerprint(layers: MapLayer[]): string {
       layer.attributions ?? null,
       layer.minZoom ?? null,
       layer.opacity ?? null,
-      // Plain comparison, not `localeCompare`: this runs in the browser and in Node, and two
-      // collators disagreeing would mean a permanent stale refusal on every save of that region.
+      // Plain comparison, not `localeCompare`, for the reason `fingerprint` gives.
       layer.params == null ? null : Object.entries(layer.params).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
     ]),
   )
 
-  // djb2. Not a security boundary, just a short stable value two readers of the same rows agree on.
-  let hash = 5381
-  for (let index = 0; index < canonical.length; index += 1) {
-    hash = ((hash * 33) ^ canonical.charCodeAt(index)) >>> 0
-  }
-  return `${layers.length}-${hash.toString(36)}`
+  return `${layers.length}-${fingerprint(canonical)}`
 }
 
 /**

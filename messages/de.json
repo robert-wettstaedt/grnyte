@@ -1702,6 +1702,7 @@
       }
     }
   ],
+  "routes_listsStale": "Die Tags oder Erstbegeher haben sich geändert, während diese Seite offen war. Öffne sie erneut und nimm die Änderung noch einmal vor.",
   "routes_logAscent": "Begehung eintragen",
   "routes_nameExists": "Eine Route namens „{name}“ existiert schon an diesem Block",
   "routes_noOpinions": "Noch keine Meinungen",

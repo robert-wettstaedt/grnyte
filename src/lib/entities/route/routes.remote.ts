@@ -25,6 +25,7 @@ import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { notifyMentions } from '../notification/notification.server'
 import { regionTags } from '../region/tagVocabulary'
+import { routeListsFingerprint } from './fingerprint'
 import { resolveFirstAscensionists } from './firstAscensionist.server'
 import { canAddRoute, canDeleteRoute, canEditRoute } from './permissions'
 import { recalcUserGradeAndRating } from './user-grade.server'
@@ -46,6 +47,9 @@ const routeActionSchema = z.object({
   ),
   gradeFk: stringToIntOptional,
   id: stringToIntOptional,
+  /** Fingerprint of the tags and first ascensionists the form loaded. Optional because
+   *  `createRoute` shares this schema and replaces nothing; `updateRoute` insists on it. */
+  known: z.optional(z.string()),
   name: z._default(z.optional(z.string().check(z.trim())), ''),
   // 1–3 stars; the field is absent when unrated (0 stars → no rating, not "0 stars").
   rating: z.pipe(stringToIntOptional, z.optional(z.int().check(z.gte(1), z.lte(3)))),
@@ -207,6 +211,21 @@ export const updateRoute = authedForm(
     const newTags = [...new Set(allowedTags(allowed, value.tags))].sort()
     const tagsChanged = oldTags.join(',') !== newTags.join(',')
 
+    const oldFaRows = await db.query.routesToFirstAscensionists.findMany({
+      where: eq(routesToFirstAscensionists.routeFk, route.id),
+      with: { firstAscensionist: true },
+    })
+
+    // A replacement, not a patch: both list diffs drop whatever the submit omits, so it has to
+    // prove which lists it replaces. Read before the first write.
+    const stored = routeListsFingerprint(
+      oldTags,
+      oldFaRows.map((row) => ({ name: row.firstAscensionist.name, userFk: row.firstAscensionist.userFk ?? undefined })),
+    )
+    if (value.known !== stored) {
+      invalid(formError('routes_listsStale'))
+    }
+
     await db
       .update(routes)
       .set({
@@ -236,10 +255,6 @@ export const updateRoute = authedForm(
       }
     }
 
-    const oldFaRows = await db.query.routesToFirstAscensionists.findMany({
-      where: eq(routesToFirstAscensionists.routeFk, route.id),
-      with: { firstAscensionist: true },
-    })
     const newFaRows = await resolveFirstAscensionists(db, value.firstAscensionists, route.regionFk, user.id)
     const removedFa = oldFaRows.filter((row) => !newFaRows.some((fa) => fa.id === row.firstAscensionistFk))
     const addedFa = newFaRows.filter((fa) => !oldFaRows.some((row) => row.firstAscensionistFk === fa.id))
