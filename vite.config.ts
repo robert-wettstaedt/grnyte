@@ -236,6 +236,9 @@ export default defineConfig({
     // spec (`npm run test:e2e` owns that one). `.claude/` holds agent worktrees - whole checkouts
     // of this repo, whose tests would run again against a stale copy of the source.
     exclude: [...configDefaults.exclude, '**/.claude/**', 'e2e/**'],
+    // One run at a time per database: the DB-backed suites tear down by fixture name, so a second
+    // concurrent run deletes the first one's rows mid-suite. See the file for why a file lock.
+    globalSetup: ['./vitest-global-setup.ts'],
     // Two projects, because `environment` is resolved per PROJECT and not per file.
     //
     // `environment: 'jsdom'` puts `browser` into Vite's resolve conditions for the whole project,
