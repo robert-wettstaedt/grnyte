@@ -22,7 +22,28 @@
       "vite-plugin-pwa/vanillajs",
       "vite-plugin-pwa/pwa-assets"
     ]
-  }
+  },
+  // Kit's generated list, spelled out because TypeScript does not merge `include`, plus `e2e/`,
+  // which nothing else type-checks. Anything added to Kit's list has to be copied here too.
+  "include": [
+    ".svelte-kit/ambient.d.ts",
+    ".svelte-kit/env.d.ts",
+    ".svelte-kit/non-ambient.d.ts",
+    ".svelte-kit/types/**/$types.d.ts",
+    "vite.config.js",
+    "vite.config.ts",
+    "playwright.config.ts",
+    "src/**/*.js",
+    "src/**/*.ts",
+    "src/**/*.svelte",
+    "test/**/*.js",
+    "test/**/*.ts",
+    "test/**/*.svelte",
+    "tests/**/*.js",
+    "tests/**/*.ts",
+    "tests/**/*.svelte",
+    "e2e/**/*.ts"
+  ]
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
   // except $lib which is handled by https://kit.svelte.dev/docs/configuration#files
   //

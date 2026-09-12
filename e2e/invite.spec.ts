@@ -22,11 +22,9 @@ import { deleteAccountRows } from '../src/lib/db/testAccounts'
 import { reachable, seedUsers, sql, type SeedUser } from '../src/lib/db/testDb'
 // Same reason, and it resolves for the same one: `dto.ts` imports nothing at runtime, only types.
 import { acceptPath } from '../src/lib/entities/region/dto'
-import { reachableUrl, visit } from './support'
+import { APP, assertLocalStack, reachableUrl, signIn, visit } from './support'
 
-const APP = 'http://localhost:3000'
 const MAILBOX = 'http://localhost:9010'
-const ZERO = 'http://localhost:4848'
 
 const REGION = '__e2e_invite__'
 const ADMIN = 'maintainer@grnyte.rocks'
@@ -41,23 +39,16 @@ const username = `e2e${Date.now()}`
 let admin: SeedUser
 let regionId = 0
 
-/** Prerequisites named out loud, so a missing service reads as "start this" rather than as a
- *  mystery timeout ninety seconds in. */
+/** The shared list plus this journey's own two: it sends a real invite and reads a mail catcher. */
 async function assertPrerequisites() {
-  const missing: string[] = []
+  const extra: string[] = []
 
-  if (!reachable) missing.push('local Supabase Postgres (DATABASE_URL is unreachable)')
-  if (!(await reachableUrl(APP))) missing.push(`the app on :3000 (npm run dev)`)
-  if (!(await reachableUrl(ZERO))) missing.push('zero-cache on :4848 (npm run dev:zero)')
   if (!(await reachableUrl(`${MAILBOX}/api/v1/mailbox/e2e`))) {
-    missing.push('supabase-mail on :9010 (the local Supabase stack)')
+    extra.push('supabase-mail on :9010 (the local Supabase stack)')
   }
-  if (!process.env.RESEND_API_KEY) missing.push('RESEND_API_KEY in .env (the invite mail is sent for real)')
-  if (!PASSWORD) missing.push('E2E_PASSWORD in .env (the shared seed-login password)')
+  if (!process.env.RESEND_API_KEY) extra.push('RESEND_API_KEY in .env (the invite mail is sent for real)')
 
-  if (missing.length > 0) {
-    throw new Error(`e2e prerequisites are not running:\n  - ${missing.join('\n  - ')}`)
-  }
+  await assertLocalStack(reachable, PASSWORD, extra)
 }
 
 async function confirmationToken(address: string): Promise<string | undefined> {
@@ -99,23 +90,6 @@ async function confirmationUrl(address: string): Promise<string> {
  */
 function rowFor(page: Page, text: string) {
   return page.getByRole('button').filter({ hasText: text })
-}
-
-async function signIn(page: Page, email: string, password: string) {
-  await visit(page, '/auth/signin')
-
-  // A precise hydration signal for this page: the email field's `autofocus` is implemented as a
-  // Svelte attachment, so focus only lands once the component is alive. Without it the first
-  // click hits server-rendered HTML with no submit handler yet and silently does nothing.
-  await expect(page.getByLabel('Email')).toBeFocused()
-
-  await page.getByLabel('Email').fill(email)
-  // By autocomplete, not by label: `AuthField` wraps the input AND its trailing action in one
-  // `<label>`, so this field's accessible name is "Password Forgot?" rather than "Password".
-  // The signup page has no action link, so a label locator works there.
-  await page.locator('input[autocomplete="current-password"]').fill(password)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.waitForURL(/\/explore/)
 }
 
 test.beforeAll(async () => {

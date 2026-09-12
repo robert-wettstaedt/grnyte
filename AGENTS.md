@@ -38,7 +38,12 @@ This project uses:
 - A mutation that acts on an existing row gates through `requireRow` / `requireRowForm` (`$lib/remote/require.server`): they fetch the row and hand it to the permission predicate, so the check's subject is always stored data, never request input. Do not hand-roll `findFirst` + 404 + `can*` in a handler. The one exception is a writer of `regions.settings`, which must load its row under a lock `requireRow` cannot express; converting one back silently removes the lock.
 - Every write to `regions.settings` goes through `settings.server.ts`, and nothing else may write
   that column: it is one jsonb blob with two independently edited keys, so every write locks the
-  row, proves the key read whole, and merges. Read that module before touching any of it.
+  row, proves the key read whole, and merges. Read that module before touching any of it. The one
+  exception is a fixture INSERTING a region (`e2e/fixtures.ts`): a row that does not exist yet has
+  no other writer and nothing to merge with, so locking buys nothing. It types the blob as
+  `RegionSettings` instead, which is the half that matters: an `attributions` written as a string
+  where the schema wants `string[]` is dropped on read, and the form then refuses to seed, with
+  nothing failing until a browser renders it.
 - A remote form clears itself after a successful submit, but `<form {...myForm.enhance(cb)}>`
   **replaces** the callback that does it, so `cb` has to clear the form; a surface that reopens
   rather than navigating away clears on open too. Its fields live on a module-level singleton that

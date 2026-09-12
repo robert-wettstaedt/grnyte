@@ -9,9 +9,13 @@
  * Not a test file itself, so vitest never picks it up; it is imported by the ones that are. Each
  * test file gets its own module instance (vitest isolates per file), so each owns its pool and is
  * free to `sql.end()` in `afterAll`.
+ *
+ * That last part is a fact about vitest, NOT about this module. Playwright runs its spec files in
+ * one worker process, so they share this instance and the first `sql.end()` strands the rest: a
+ * spec there wants its own {@link connect} pool plus {@link resolveSeedUsers}.
  */
 import 'dotenv/config'
-import { connect } from './testAccounts'
+import { connect, resolveSeedUsers, type SeedUser } from './testAccounts'
 
 export const sql = connect()
 
@@ -22,18 +26,8 @@ export const reachable = await sql`select 1`.then(
   () => false,
 )
 
-export interface SeedUser {
-  authId: string
-  email: string
-  userId: number
-}
+export type { SeedUser } from './testAccounts'
 
-/**
- * Resolves the dev seed logins to their `auth.users` and `public.users` ids, keyed the way the
- * caller named them. Throws rather than returning a partial map: a missing seed user makes every
- * assertion in the file meaningless, and the failure is far easier to read here than as an
- * undefined id three fixtures later.
- */
 /**
  * An account that belongs to one suite and nothing else, created on the spot.
  *
@@ -66,19 +60,7 @@ export async function dropThrowawayUser(user: SeedUser): Promise<void> {
   await sql`delete from auth.users where id = ${user.authId}`
 }
 
+/** {@link resolveSeedUsers} on this module's pool, which is what every vitest suite wants. */
 export async function seedUsers<K extends string>(emails: Record<K, string>): Promise<Record<K, SeedUser>> {
-  const wanted: string[] = Object.values(emails)
-
-  const rows = await sql<SeedUser[]>`
-    select au.email, au.id as "authId", u.id as "userId"
-    from auth.users au join public.users u on u.auth_user_fk = au.id
-    where au.email = any(${wanted})`
-
-  return Object.fromEntries(
-    (Object.entries(emails) as [K, string][]).map(([who, email]) => {
-      const row = rows.find((candidate: SeedUser) => candidate.email === email)
-      if (row == null) throw new Error(`seed user ${email} is missing from the dev database`)
-      return [who, row]
-    }),
-  ) as Record<K, SeedUser>
+  return resolveSeedUsers(sql, emails)
 }
