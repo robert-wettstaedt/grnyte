@@ -25,7 +25,6 @@
       }
     }
   ],
-  "areas_createArea": "Create area",
   "areas_createAreaError": "Could not create the area. Please try again.",
   "areas_createdBy": "Created by {username}",
   "areas_delete": "Delete area",
@@ -54,15 +53,22 @@
   "areas_newArea": "New area",
   "areas_newTopLevelArea": "New top-level area",
   "areas_noAddableRegion": "None of your regions take new areas from you. Ask an admin of the region for edit access.",
-  "areas_notFound": "Area not found.",
+  "areas_notASectorBody": "This area holds other areas. Open one of its sectors to add a block.",
+  "areas_notASectorTitle": "Blocks go in sectors",
+  "areas_notAnAreaBody": "This one is a sector, which holds blocks instead.",
+  "areas_notAnAreaTitle": "Sub-areas go in areas",
+  "areas_notFound": "Area not found",
   "areas_parentNotFound": "The parent area no longer exists.",
   "areas_parkingLocations": "Parking",
+  "areas_parkingNeedsSectorBody": "This area holds other areas. Open one of its sectors to set parking.",
+  "areas_parkingNeedsSectorTitle": "Parking goes on a sector",
   "areas_regionRequired": "Choose a region",
   "areas_title": "Areas",
   "areas_typeArea": "Area",
   "areas_typeSector": "Sector",
   "areas_ungraded": "Ungraded",
   "areas_ungradedCount": "+{count} ungraded",
+  "areas_viewArea": "View area",
   "areas_youAreHere": "You’re here",
   "ascents_community": "Community",
   "ascents_count": [
@@ -213,8 +219,31 @@
   "blocks_order_select": "Highlight on map",
   "blocks_order_sortByDistance": "Sort by distance",
   "blocks_order_title": "Reorder blocks",
+  "blocks_viewBlock": "View block",
   "blocks_viewRoutes": "Routes",
   "blocks_viewTopos": "Topos",
+  "bookmark_save": "Save",
+  "bookmark_saveWithCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Save. {count} save.",
+        "countPlural=other": "Save. {count} saves."
+      }
+    }
+  ],
+  "bookmark_saved": "Saved",
+  "bookmark_savedWithCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Saved. {count} save.",
+        "countPlural=other": "Saved. {count} saves."
+      }
+    }
+  ],
   "comments_cancelReply": "Cancel reply",
   "comments_delete": "Delete comment",
   "comments_deleted": "Comment deleted",
@@ -274,27 +303,7 @@
   "common_route": "Route",
   "common_routes": "Routes",
   "common_save": "Save",
-  "common_saveWithCount": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Save. {count} save.",
-        "countPlural=other": "Save. {count} saves."
-      }
-    }
-  ],
   "common_saved": "Saved",
-  "common_savedWithCount": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Saved. {count} save.",
-        "countPlural=other": "Saved. {count} saves."
-      }
-    }
-  ],
   "common_search": "Search areas, blocks, routes",
   "common_showLess": "Show less",
   "common_showMore": "Show more",
@@ -1232,6 +1241,7 @@
       }
     }
   ],
+  "form_noEditPermission": "You can view this, but changing it needs edit access in this region. Ask a region admin.",
   "form_noPermission": "You don’t have permission to do this.",
   "form_numInvalid": "Enter a valid number",
   "form_required": "This field is required",
@@ -1407,7 +1417,7 @@
   "parking_latitude": "Latitude",
   "parking_longitude": "Longitude",
   "parking_mapHint": "Move the map to position the pin",
-  "parking_notFound": "Parking not found.",
+  "parking_notFound": "Parking not found",
   "parking_pathDrawHint": "Tap to trace the trail",
   "parking_pathHint": "Optional. Trace the trail from the parking, or save without one.",
   "parking_previewEmpty": "Enter valid coordinates to preview the spot",
@@ -1502,7 +1512,6 @@
   "region_capBody": "That’s the limit for one account. Open one of them to rename or manage it.",
   "region_capReached": "You can start at most {count} regions.",
   "region_capTitle": "You already own {count} regions",
-  "region_create": "Create region",
   "region_createdAt": "Created",
   "region_createdBy": "Created by",
   "region_emptyBody": "Give it its first area, one named place to climb, like a patch of forest or a crag.",
@@ -1550,7 +1559,7 @@
   "region_memberRemoved": "{name} removed",
   "region_members": "Members",
   "region_new": "New region",
-  "region_notFound": "Region not found.",
+  "region_notFound": "Region not found",
   "region_ownedCount": "You own {owned} of {total} regions.",
   "region_removeMember": "Remove {name}",
   "region_role": "Role",
@@ -1600,6 +1609,7 @@
   "region_tagsUnreadableTitle": "These tags can’t be read",
   "region_title": "Region",
   "region_viewProfile": "View profile",
+  "region_viewRegion": "View region",
   "roles_admin": "Admin",
   "roles_maintainer": "Maintainer",
   "roles_user": "User",
@@ -1682,6 +1692,7 @@
   "routes_searchPlaceholder": "Search routes",
   "routes_showDetails": "Details",
   "routes_showOnMap": "Show on map",
+  "routes_viewRoute": "View route",
   "search_hint": "Search areas, blocks, routes and people",
   "search_newlyAdded": "Newly added",
   "search_noResults": "No results for “{query}”",
@@ -1813,8 +1824,6 @@
   "topo_routes": "Routes",
   "topo_routesCount": "Routes ({count})",
   "topo_routesOnPhoto": "Routes on this photo",
-  "topo_save": "Save",
-  "topo_saved": "Saved",
   "topo_searchRoutes": "Search routes",
   "topo_selectLine": "Select or move route line",
   "topo_selectRoutePrompt": "Select a route to draw its line",

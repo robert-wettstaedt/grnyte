@@ -199,7 +199,15 @@
 <QueryState resource={area} class="h-full">
   {#snippet ready(detail)}
     {#if !canEditBlock(global.userRegions, detail)}
-      <ErrorState type="notfound" title={m.areas_notFound()} />
+      <ErrorState
+        type="generic"
+        title={m.form_noPermission()}
+        description={m.form_noEditPermission()}
+        primaryAction={{
+          href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(areaId) }),
+          label: m.areas_viewArea(),
+        }}
+      />
     {:else}
       <div class="flex h-full flex-col">
         <PageHeader backLabel={m.common_cancel()} onback={cancel} title={m.blocks_order_title()}>

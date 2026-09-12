@@ -19,11 +19,11 @@
   const label = $derived(
     count > 0
       ? saved
-        ? m.common_savedWithCount({ count })
-        : m.common_saveWithCount({ count })
+        ? m.bookmark_savedWithCount({ count })
+        : m.bookmark_saveWithCount({ count })
       : saved
-        ? m.common_saved()
-        : m.common_save(),
+        ? m.bookmark_saved()
+        : m.bookmark_save(),
   )
 </script>
 

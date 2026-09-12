@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { beforeNavigate, goto } from '$app/navigation'
+  import { beforeNavigate } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
+  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
@@ -67,12 +68,9 @@
     }))
   })
 
-  // Region-EDIT gates the whole editor.
-  $effect(() => {
-    if (block.data != null && !canEditTopo(global.userRegions, block.data)) {
-      goto(blockHref)
-    }
-  })
+  // Region-EDIT gates the whole editor. Rendered, not redirected: a silent bounce back to the
+  // block left the reader with no idea why the editor refused to open.
+  const canEditHere = $derived(block.data == null || canEditTopo(global.userRegions, block.data))
 
   // Initial selection, applied once topos load. A ?topo=<id> deep-link (from the topo detail
   // page) opens on that photo; ?route=<id> (from a route detail page) opens on the photo the
@@ -412,142 +410,151 @@
 <svelte:window onkeydown={onKeydown} />
 <svelte:document onfullscreenchange={() => (isFullscreen = document.fullscreenElement != null)} />
 
-<div class={['bg-surface-950 absolute inset-0 top-0', routesOpen && 'md:right-94 lg:right-105']}>
-  {#if currentTopo == null}
-    <div class="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
-      <p class="text-surface-600-400 max-w-xs text-sm">{m.topo_emptyState()}</p>
-      <button class="btn preset-filled-primary-500" disabled={photoBusy} onclick={() => pickPhoto()}>
-        {#if photoBusy}
-          <LoadingIndicator />
-        {:else}
-          <Icon name="image" size={18} />
-        {/if}
-        {m.topo_addPhoto()}
-      </button>
-    </div>
-  {:else if currentTopoEditable}
-    <TopoEditorStage
-      class="h-full w-full"
-      imagePath={currentTopo.imagePath}
-      width={currentTopo.imageWidth}
-      height={currentTopo.imageHeight}
-      alt={m.topo_alt()}
-      lines={linesHidden ? [] : stageLines}
-      onZoom={(value, atRest) => {
-        zoom = value
-        viewAtRest = atRest
-      }}
-      resetZoom={zoomResetSignal}
-      {editor}
-    />
-  {:else}
-    <!-- Legacy pixel-space topo: read-only (the editor would mangle its coordinates). -->
-    <div class="absolute inset-0 flex items-center justify-center p-4">
-      <Topo
-        class="max-h-full w-auto"
+{#if !canEditHere}
+  <ErrorState
+    type="generic"
+    title={m.form_noPermission()}
+    description={m.form_noEditPermission()}
+    primaryAction={{ href: blockHref, label: m.blocks_viewBlock() }}
+  />
+{:else}
+  <div class={['bg-surface-950 absolute inset-0 top-0', routesOpen && 'md:right-94 lg:right-105']}>
+    {#if currentTopo == null}
+      <div class="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
+        <p class="text-surface-600-400 max-w-xs text-sm">{m.topo_emptyState()}</p>
+        <button class="btn preset-filled-primary-500" disabled={photoBusy} onclick={() => pickPhoto()}>
+          {#if photoBusy}
+            <LoadingIndicator />
+          {:else}
+            <Icon name="image" size={18} />
+          {/if}
+          {m.topo_addPhoto()}
+        </button>
+      </div>
+    {:else if currentTopoEditable}
+      <TopoEditorStage
+        class="h-full w-full"
         imagePath={currentTopo.imagePath}
         width={currentTopo.imageWidth}
         height={currentTopo.imageHeight}
         alt={m.topo_alt()}
-        lines={linesHidden ? [] : readOnlyLines}
+        lines={linesHidden ? [] : stageLines}
+        onZoom={(value, atRest) => {
+          zoom = value
+          viewAtRest = atRest
+        }}
+        resetZoom={zoomResetSignal}
+        {editor}
       />
-    </div>
-    <div class="pointer-events-none absolute inset-x-0 top-16 z-20 flex justify-center px-3">
-      <p class="preset-filled-surface-50-950 rounded-full px-3 py-1.5 text-center text-xs shadow-lg">
-        {m.topo_legacyReadOnly()}
-      </p>
-    </div>
-  {/if}
-</div>
-
-<TopoEditorHud
-  {editor}
-  bind:linesHidden
-  {isFullscreen}
-  {zoom}
-  {viewAtRest}
-  {saving}
-  onLeave={leave}
-  onToggleFullscreen={toggleFullscreen}
-  onResetZoom={() => zoomResetSignal++}
-  onSave={save}
-/>
-
-{#if currentTopo != null && currentTopoEditable && selectedRoute != null}
-  <TopoRouteCard
-    {editor}
-    route={selectedRoute}
-    canDelete={canDeleteSelectedRoute}
-    onDeleteRoute={deleteSelectedRoute}
-  />
-{:else}
-  <div
-    class="p-safe-3 pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-stretch gap-2"
-    transition:fly={{ duration: 220, y: 24 }}
-  >
-    {#if currentTopo != null && currentTopoEditable && selectedRoute == null}
-      <div class="pointer-events-auto flex justify-start">
-        <Modal
-          backdrop
-          bind:open={routesOpen}
-          panel
-          panelClass="fixed inset-y-0 right-0 z-40"
-          contentClass="h-full w-94 rounded-none border-y-0 border-r-0 lg:w-105"
-          title={m.topo_routesOnPhoto()}
-          subtitle={m.topo_position({ position: currentTopoIndex + 1, total: topos.data.length })}
-          snapPoints={[0.7]}
-        >
-          {#snippet trigger(props)}
-            <button
-              {...props}
-              type="button"
-              class="preset-filled-surface-50-950 flex h-11 items-center gap-2 rounded-2xl px-4 text-sm font-bold shadow-lg"
-              onclick={() => (routesOpen = true)}
-            >
-              <Icon name="list" size={18} />
-              {m.topo_routes()}
-              <span class="tabular-nums opacity-60">{topoRoutes.length}</span>
-            </button>
-          {/snippet}
-
-          {#if topoRoutes.length === 0}
-            <p class="text-surface-600-400 py-6 text-center text-sm">{m.topo_noRoutesDrawn()}</p>
-          {:else}
-            <nav class="flex flex-col gap-1.5">
-              {#each topoRoutes as route (route.id)}
-                <RouteRow
-                  {route}
-                  active={route.id === editor.selectedRouteFk}
-                  grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-                  number={routeNumber.get(route.id)}
-                  status={ascentStatus.get(route.id)}
-                  detailsHref={resolve('/(app)/routes/[id]', { id: String(route.id) })}
-                  onclick={() => editRoute(route.id)}
-                />
-              {/each}
-            </nav>
-          {/if}
-
-          {#snippet footer()}
-            {#if block.data != null}
-              <TopoAddRouteModal block={block.data} {candidates} onAdd={addRouteLine} />
-            {/if}
-          {/snippet}
-        </Modal>
+    {:else}
+      <!-- Legacy pixel-space topo: read-only (the editor would mangle its coordinates). -->
+      <div class="absolute inset-0 flex items-center justify-center p-4">
+        <Topo
+          class="max-h-full w-auto"
+          imagePath={currentTopo.imagePath}
+          width={currentTopo.imageWidth}
+          height={currentTopo.imageHeight}
+          alt={m.topo_alt()}
+          lines={linesHidden ? [] : readOnlyLines}
+        />
+      </div>
+      <div class="pointer-events-none absolute inset-x-0 top-16 z-20 flex justify-center px-3">
+        <p class="preset-filled-surface-50-950 rounded-full px-3 py-1.5 text-center text-xs shadow-lg">
+          {m.topo_legacyReadOnly()}
+        </p>
       </div>
     {/if}
-
-    <TopoPhotoStrip
-      topos={topos.data}
-      currentTopoId={currentTopo?.id}
-      {photoBusy}
-      onSelect={(topoId) => (editor.topoId = topoId)}
-      onAddPhoto={() => pickPhoto()}
-      onReplacePhoto={(topoId) => pickPhoto(topoId)}
-      onDeletePhoto={deleteCurrentTopo}
-      onReorder={persistReorder}
-    />
-
-    <input bind:this={fileInput} type="file" accept="image/*" class="hidden" onchange={onFilePicked} />
   </div>
+
+  <TopoEditorHud
+    {editor}
+    bind:linesHidden
+    {isFullscreen}
+    {zoom}
+    {viewAtRest}
+    {saving}
+    onLeave={leave}
+    onToggleFullscreen={toggleFullscreen}
+    onResetZoom={() => zoomResetSignal++}
+    onSave={save}
+  />
+
+  {#if currentTopo != null && currentTopoEditable && selectedRoute != null}
+    <TopoRouteCard
+      {editor}
+      route={selectedRoute}
+      canDelete={canDeleteSelectedRoute}
+      onDeleteRoute={deleteSelectedRoute}
+    />
+  {:else}
+    <div
+      class="p-safe-3 pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-stretch gap-2"
+      transition:fly={{ duration: 220, y: 24 }}
+    >
+      {#if currentTopo != null && currentTopoEditable && selectedRoute == null}
+        <div class="pointer-events-auto flex justify-start">
+          <Modal
+            backdrop
+            bind:open={routesOpen}
+            panel
+            panelClass="fixed inset-y-0 right-0 z-40"
+            contentClass="h-full w-94 rounded-none border-y-0 border-r-0 lg:w-105"
+            title={m.topo_routesOnPhoto()}
+            subtitle={m.topo_position({ position: currentTopoIndex + 1, total: topos.data.length })}
+            snapPoints={[0.7]}
+          >
+            {#snippet trigger(props)}
+              <button
+                {...props}
+                type="button"
+                class="preset-filled-surface-50-950 flex h-11 items-center gap-2 rounded-2xl px-4 text-sm font-bold shadow-lg"
+                onclick={() => (routesOpen = true)}
+              >
+                <Icon name="list" size={18} />
+                {m.topo_routes()}
+                <span class="tabular-nums opacity-60">{topoRoutes.length}</span>
+              </button>
+            {/snippet}
+
+            {#if topoRoutes.length === 0}
+              <p class="text-surface-600-400 py-6 text-center text-sm">{m.topo_noRoutesDrawn()}</p>
+            {:else}
+              <nav class="flex flex-col gap-1.5">
+                {#each topoRoutes as route (route.id)}
+                  <RouteRow
+                    {route}
+                    active={route.id === editor.selectedRouteFk}
+                    grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
+                    number={routeNumber.get(route.id)}
+                    status={ascentStatus.get(route.id)}
+                    detailsHref={resolve('/(app)/routes/[id]', { id: String(route.id) })}
+                    onclick={() => editRoute(route.id)}
+                  />
+                {/each}
+              </nav>
+            {/if}
+
+            {#snippet footer()}
+              {#if block.data != null}
+                <TopoAddRouteModal block={block.data} {candidates} onAdd={addRouteLine} />
+              {/if}
+            {/snippet}
+          </Modal>
+        </div>
+      {/if}
+
+      <TopoPhotoStrip
+        topos={topos.data}
+        currentTopoId={currentTopo?.id}
+        {photoBusy}
+        onSelect={(topoId) => (editor.topoId = topoId)}
+        onAddPhoto={() => pickPhoto()}
+        onReplacePhoto={(topoId) => pickPhoto(topoId)}
+        onDeletePhoto={deleteCurrentTopo}
+        onReorder={persistReorder}
+      />
+
+      <input bind:this={fileInput} type="file" accept="image/*" class="hidden" onchange={onFilePicked} />
+    </div>
+  {/if}
 {/if}

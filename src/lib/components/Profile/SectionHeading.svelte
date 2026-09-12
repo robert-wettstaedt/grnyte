@@ -15,9 +15,10 @@
 <div
   class="bg-surface-50-950/90 sticky top-0 z-20 -mx-4 flex items-center justify-between gap-2 px-4 py-2 backdrop-blur"
 >
-  <!-- `min-w-0` so the flex item may shrink below its text width, which is what lets `truncate`
-       fire. Without both, a long title (German "Schwierigkeitspyramide" beside the pyramid's own
-       toggle) pushes the control off the right edge on a phone. -->
-  <h2 class="text-surface-600-400 min-w-0 truncate text-sm font-bold tracking-wide uppercase">{title}</h2>
+  <!-- Wraps rather than truncates, which ate half of German "Abgeschlossene Projekte".
+       `min-w-0` keeps the control on screen; `hyphens-auto` breaks a spaceless compound. -->
+  <h2 class="text-surface-600-400 min-w-0 text-sm font-bold tracking-wide wrap-break-word hyphens-auto uppercase">
+    {title}
+  </h2>
   {#if action}{@render action()}{/if}
 </div>

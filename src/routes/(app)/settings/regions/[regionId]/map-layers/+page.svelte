@@ -67,7 +67,15 @@
 </svelte:head>
 
 {#if !isAdmin}
-  <ErrorState type="notfound" title={m.region_notFound()} />
+  <ErrorState
+    type="generic"
+    title={m.form_noPermission()}
+    description={m.form_noEditPermission()}
+    primaryAction={{
+      href: resolve('/(app)/settings/regions/[regionId]', { regionId: String(regionId) }),
+      label: m.region_viewRegion(),
+    }}
+  />
 {:else if membership?.synced !== true}
   <!-- No form until the region row is here. Rendering one meanwhile is what made this screen
        destructive four rounds running: an empty list is a valid submission that means "remove them

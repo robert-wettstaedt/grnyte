@@ -74,7 +74,15 @@
             {/key}
           </Form>
         {:else}
-          <ErrorState type="notfound" title={m.routes_notFound()} />
+          <ErrorState
+            type="generic"
+            title={m.form_noPermission()}
+            description={m.form_noEditPermission()}
+            primaryAction={{
+              href: resolve('/(app)/routes/[id]', { id: String(detail.id) }),
+              label: m.routes_viewRoute(),
+            }}
+          />
         {/if}
       {/snippet}
     </QueryState>

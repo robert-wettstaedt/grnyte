@@ -29,7 +29,7 @@
   form={updatePassword}
   onCancel={goBack}
   {onSubmitted}
-  submitLabel={m.auth_savePassword()}
+  submitLabel={m.common_save()}
   title={m.settings_changePassword()}
 >
   <!-- The current password is what stops a stolen session from taking the account over for good. -->

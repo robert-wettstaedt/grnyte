@@ -170,7 +170,7 @@
           class="btn preset-filled-primary-500 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)] disabled:opacity-60"
           disabled={createRegion.pending > 0}
         >
-          {m.region_create()}
+          {m.common_add()}
         </button>
       </form>
 
@@ -220,7 +220,7 @@
     </div>
   </div>
 {:else}
-  <Form form={createRegion} onCancel={goBack} {onSubmitted} submitLabel={m.region_create()} title={m.region_new()}>
+  <Form form={createRegion} onCancel={goBack} {onSubmitted} submitLabel={m.common_add()} title={m.region_new()}>
     {@render nameField()}
 
     <p class="text-surface-500 mt-3 text-xs">

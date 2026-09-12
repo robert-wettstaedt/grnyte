@@ -54,7 +54,15 @@
         <AreaFormFields area={data} form={updateArea} />
       </Form>
     {:else}
-      <ErrorState type="notfound" title={m.areas_notFound()} />
+      <ErrorState
+        type="generic"
+        title={m.form_noPermission()}
+        description={m.form_noEditPermission()}
+        primaryAction={{
+          href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),
+          label: m.areas_viewArea(),
+        }}
+      />
     {/if}
   {/snippet}
 

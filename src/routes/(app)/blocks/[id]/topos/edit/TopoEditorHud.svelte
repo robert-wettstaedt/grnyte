@@ -161,7 +161,7 @@
         >
           {m.topo_discard()}
         </button>
-        <KbdTooltip label={m.topo_save()} key={`${mod}S`}>
+        <KbdTooltip label={m.common_save()} key={`${mod}S`}>
           {#snippet trigger(attributes)}
             <button
               {...attributes}
@@ -169,7 +169,7 @@
               disabled={saving}
               onclick={onSave}
             >
-              {m.topo_save()}
+              {m.common_save()}
             </button>
           {/snippet}
         </KbdTooltip>
@@ -180,7 +180,7 @@
         transition:scale={{ duration: 200, start: 0.8 }}
       >
         <Icon name="check" size={14} />
-        {m.topo_saved()}
+        {m.common_saved()}
       </div>
     {/if}
   </div>

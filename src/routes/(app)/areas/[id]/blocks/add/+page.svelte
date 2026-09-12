@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { canAddBlock } from '$lib/entities/area/permissions'
@@ -45,8 +46,27 @@
         submitLabel={m.common_add()}
         title={m.blocks_addBlock()}
       />
+    {:else if !checkRegionPermission(global.userRegions, [REGION_PERMISSION_EDIT], data.regionFk)}
+      <ErrorState
+        type="generic"
+        title={m.form_noPermission()}
+        description={m.form_noEditPermission()}
+        primaryAction={{
+          href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),
+          label: m.areas_viewArea(),
+        }}
+      />
     {:else}
-      <ErrorState type="notfound" title={m.areas_notFound()} />
+      <!-- Not a permission problem: the area is the wrong type to hold this. -->
+      <ErrorState
+        type="generic"
+        title={m.areas_notASectorTitle()}
+        description={m.areas_notASectorBody()}
+        primaryAction={{
+          href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),
+          label: m.areas_viewArea(),
+        }}
+      />
     {/if}
   {/snippet}
 

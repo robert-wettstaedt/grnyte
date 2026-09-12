@@ -77,7 +77,15 @@
             {title}
           />
         {:else}
-          <ErrorState type="notfound" title={m.blocks_notFound()} />
+          <ErrorState
+            type="generic"
+            title={m.form_noPermission()}
+            description={m.form_noEditPermission()}
+            primaryAction={{
+              href: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(detail.id) }),
+              label: m.blocks_viewBlock(),
+            }}
+          />
         {/if}
       {/snippet}
     </QueryState>

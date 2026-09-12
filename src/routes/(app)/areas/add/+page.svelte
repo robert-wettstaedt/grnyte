@@ -65,7 +65,7 @@
        explore empty state's CTA if the region's roles change between render and click. -->
   <ErrorState type="generic" title={m.form_noPermission()} description={m.areas_noAddableRegion()} />
 {:else}
-  <Form form={createArea} onCancel={goBack} submitLabel={m.areas_createArea()} title={m.areas_newTopLevelArea()}>
+  <Form form={createArea} onCancel={goBack} submitLabel={m.common_add()} title={m.areas_newTopLevelArea()}>
     <AreaFormFields form={createArea} />
   </Form>
 {/if}

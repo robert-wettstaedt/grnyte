@@ -81,7 +81,12 @@
                 {/key}
               </Form>
             {:else}
-              <ErrorState type="notfound" title={m.ascents_notFound()} />
+              <ErrorState
+                type="generic"
+                title={m.form_noPermission()}
+                description={m.form_noEditPermission()}
+                primaryAction={{ href: routeHref, label: m.routes_viewRoute() }}
+              />
             {/if}
           {/snippet}
         </QueryState>

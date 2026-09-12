@@ -104,7 +104,15 @@
 </svelte:head>
 
 {#if !isAdmin}
-  <ErrorState type="notfound" title={m.region_notFound()} />
+  <ErrorState
+    type="generic"
+    title={m.form_noPermission()}
+    description={m.form_noEditPermission()}
+    primaryAction={{
+      href: resolve('/(app)/settings/regions/[regionId]', { regionId: String(regionId) }),
+      label: m.region_viewRegion(),
+    }}
+  />
 {:else if membership?.synced !== true}
   <!-- No editor until the region row is here. `isAdmin` reads the role off the membership, which
        arrives first, so this screen opened early and listed the DEFAULT vocabulary as the region's
