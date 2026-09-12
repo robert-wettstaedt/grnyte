@@ -1,18 +1,13 @@
 <script module lang="ts">
   import { browser } from '$app/environment'
-
-  const DESKTOP_QUERY = '(min-width: 48rem)'
+  import { DESKTOP_QUERY, preloadBranch } from '$lib/components/Modal/branch'
 
   const loadDesktop = () => import('./Panel.desktop.svelte')
   const loadMobile = () => import('./Modal.mobile.svelte')
 
-  // Same split as Modal.svelte, and it has to be done here too: this file shares
-  // Modal.mobile.svelte, so a static import here alone would keep svelte-bottom-sheet in the
-  // desktop bundle no matter what its sibling does. Started on module evaluation because a viewer
-  // route mounts this already open, so the chunk has to be in flight during hydration.
-  if (browser) {
-    void ((window.matchMedia?.(DESKTOP_QUERY).matches ?? false) ? loadDesktop() : loadMobile())
-  }
+  // Has to split here too: this file shares Modal.mobile.svelte, so a static import here alone
+  // would keep svelte-bottom-sheet in the desktop bundle. A viewer route mounts this open.
+  preloadBranch(loadDesktop, loadMobile)
 </script>
 
 <script lang="ts">

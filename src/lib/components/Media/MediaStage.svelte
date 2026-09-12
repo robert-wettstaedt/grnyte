@@ -29,6 +29,7 @@
   import { bunnyHls, bunnyIframe } from '$lib/videos/bunny'
   import { createHlsAttachment } from '$lib/videos/hls'
   import type { Attachment } from 'svelte/attachments'
+  import { MEDIA_TOOL } from './toolbar'
 
   interface Props {
     file: MediaFile
@@ -152,8 +153,6 @@
   // Legacy rows can hold a non-URL source (the z.url() validation arrived later);
   // render the credit only when it parses instead of crashing the whole stage.
   const host = $derived(sourceHost(file.source))
-
-  const btn = 'btn preset-glass-neutral btn-lg h-12 w-12 shrink-0 px-0'
 </script>
 
 {#if isVideo && videoFailed}
@@ -362,7 +361,12 @@
 
     {#if isVideo}
       <div class="flex items-center gap-3">
-        <button type="button" class={btn} aria-label={paused ? m.media_play() : m.media_pause()} onclick={togglePlay}>
+        <button
+          type="button"
+          class={MEDIA_TOOL}
+          aria-label={paused ? m.media_play() : m.media_pause()}
+          onclick={togglePlay}
+        >
           <Icon name={paused ? 'play' : 'pause'} size={20} fill="currentColor" />
         </button>
 
@@ -382,7 +386,7 @@
 
         <button
           type="button"
-          class={btn}
+          class={MEDIA_TOOL}
           aria-label={muted ? m.media_unmute() : m.media_mute()}
           onclick={() => (muted = !muted)}
         >

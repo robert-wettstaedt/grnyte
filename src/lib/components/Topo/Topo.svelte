@@ -1,11 +1,12 @@
 <script lang="ts">
-  import Image from '$lib/components/Image/Image.svelte'
   import { gradeVar, type GradeBand } from '$lib/entities/grade/color'
   import type { TopoPoint } from '$lib/entities/topo/dto'
   import { buildLine } from '$lib/entities/topo/path'
   import { m } from '$lib/paraglide/messages'
   import type { ClassValue } from 'svelte/elements'
+  import { TopoImageBox } from './imageBox.svelte'
   import { panzoom } from './panzoom'
+  import TopoImage from './TopoImage.svelte'
   import TopoLine from './TopoLine.svelte'
 
   interface LineInput {
@@ -57,30 +58,11 @@
     zoomable = false,
   }: Props = $props()
 
-  // The stored dims are the authoritative viewBox: they are the ORIGINAL's pixel
-  // space, which legacy pixel paths (any the migration couldn't convert) were
-  // drawn against: the loaded image is a smaller derivative, so its natural size
-  // is the wrong space for them. 0–1 fraction paths are scale-invariant and the
-  // aspect ratio is identical either way, so stored-dims-first is also free for
-  // the normal case, and box + overlay render before the image arrives. Natural
-  // size (bound to the loaded image) is only the fallback for files without
-  // backfilled dims, there the overlay waits for the load, as before. The Image
-  // is keyed on `imagePath` so a topo switch remounts it and resets these to 0.
-  let naturalWidth = $state(0)
-  let naturalHeight = $state(0)
-
-  const boxWidth = $derived(width || naturalWidth || 0)
-  const boxHeight = $derived(height || naturalHeight || 0)
-
-  const ready = $derived(boxWidth > 0 && boxHeight > 0)
-
-  // Marker size as a fraction of the image, so dots/arrows stay sized relative to
-  // the rock at any zoom.
-  const unit = $derived(Math.min(boxWidth, boxHeight) * 0.016)
+  const box = new TopoImageBox(() => ({ height, width }))
 
   const rendered = $derived(
     lines.map((line) => {
-      const { bracket, d, starts, top } = buildLine(line.points, curved, boxWidth, boxHeight)
+      const { bracket, d, starts, top } = buildLine(line.points, curved, box.width, box.height)
       return {
         band: line.band,
         bracket,
@@ -155,33 +137,16 @@
 
 <div
   class={['bg-surface-950 relative overflow-hidden rounded-xl', className]}
-  style:aspect-ratio={ready ? `${boxWidth} / ${boxHeight}` : undefined}
-  use:panzoom={{ aspect: ready ? boxWidth / boxHeight : undefined, enabled: zoomable }}
+  style:aspect-ratio={box.aspectRatio}
+  use:panzoom={{ aspect: box.aspect, enabled: zoomable }}
 >
   <div class="absolute inset-0">
-    {#key imagePath}
-      <!-- The viewer works fine off the 1024 derivative; the multi-MB original stays on the server.
-           Eager: the topo IS the content wherever it renders, and the default lazy load never fires
-           if the box is measured while a bottom sheet still sizes it to zero height. High priority
-           on top of that, because eager only opts out of lazy loading and still queues the topo
-           behind map tiles and scripts, while this is the LCP of the screen a shared link opens. -->
-      <Image
-        path={imagePath}
-        {alt}
-        fetchpriority="high"
-        loading="eager"
-        class="pointer-events-none h-full w-full touch-none bg-transparent! select-none"
-        fit="contain"
-        previewWidth={1024}
-        bind:naturalWidth
-        bind:naturalHeight
-      />
-    {/key}
+    <TopoImage {alt} {box} path={imagePath} />
 
-    {#if ready}
+    {#if box.ready}
       <svg
         class={['absolute inset-0 h-full w-full', !interactive && 'pointer-events-none']}
-        viewBox="0 0 {boxWidth} {boxHeight}"
+        viewBox={box.viewBox}
         fill="none"
       >
         {#each ordered as line (line.id)}
@@ -208,8 +173,8 @@
                  number badge is tap-to-toggle when interactive (it sits below the line's hit-path). -->
             <TopoLine
               {line}
-              {unit}
-              {boxHeight}
+              unit={box.unit}
+              boxHeight={box.height}
               badgeAttrs={pressable
                 ? {
                     class: 'select-none',
@@ -235,7 +200,7 @@
             <circle
               cx={hold.x}
               cy={hold.y}
-              r={unit}
+              r={box.unit}
               fill="oklch(0 0 0 / 0.35)"
               stroke="oklch(0 0 0 / 0.6)"
               stroke-width="6"
@@ -244,7 +209,7 @@
             <circle
               cx={hold.x}
               cy={hold.y}
-              r={unit}
+              r={box.unit}
               fill="none"
               stroke={gradeVar(hold.band)}
               stroke-width="3"

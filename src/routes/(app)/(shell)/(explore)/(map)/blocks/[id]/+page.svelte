@@ -5,7 +5,6 @@
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import { trackView } from '$lib/components/EntitySearch/recent.svelte'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import CollapsibleMarkdown from '$lib/components/Markdown/CollapsibleMarkdown.svelte'
@@ -85,7 +84,7 @@
   <title>{block.data?.name ?? m.common_block()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={block}>
+<QueryState notFound={m.common_block()} resource={block}>
   {#snippet ready(detail)}
     <div class="space-y-5">
       <BlockActions block={detail} {location} routeCount={routes.data.length} {save} />
@@ -163,10 +162,6 @@
         scopeType="block"
       />
     </div>
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.common_block()} />
   {/snippet}
 </QueryState>
 

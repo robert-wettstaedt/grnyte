@@ -1,12 +1,12 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Map from '$lib/map/Map.svelte'
-  import type { MapData, MapFocus } from '$lib/map/types'
+  import type { Bounds, MapData, MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
-    areaExtent: [number, number, number, number] | null
+    areaExtent: Bounds | null
     latText?: string
     lngText?: string
     mapData: MapData

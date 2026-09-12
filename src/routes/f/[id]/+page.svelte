@@ -15,6 +15,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MediaStage from '$lib/components/Media/MediaStage.svelte'
   import ShareSheet from '$lib/components/Media/ShareSheet.svelte'
+  import { MEDIA_TOOL } from '$lib/components/Media/toolbar'
   import { deleteFile } from '$lib/entities/file/files.remote'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { imageSrc } from '$lib/images/derivatives'
@@ -82,8 +83,6 @@
       notifyError(cause)
     }
   }
-
-  const btn = 'btn preset-glass-neutral btn-lg h-12 w-12 shrink-0 px-0'
 </script>
 
 <svelte:head>
@@ -124,7 +123,7 @@
       {#if controls.canDelete}
         <ConfirmDialog title={m.media_delete()} saveText={m.common_delete()} onsave={onDelete}>
           {#snippet trigger(props)}
-            <button {...props} type="button" class={[props.class, btn]} aria-label={m.common_delete()}>
+            <button {...props} type="button" class={[props.class, MEDIA_TOOL]} aria-label={m.common_delete()}>
               <Icon name="trash" size={20} />
             </button>
           {/snippet}

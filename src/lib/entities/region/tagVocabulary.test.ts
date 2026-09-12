@@ -1,16 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { RegionMembership } from './dto'
+import { userRegion } from './fixture'
 import { emptyRegionSettings } from './settings'
 import { allRegionTags, DEFAULT_TAGS, tagNameSchema } from './tagVocabulary'
 
 const region = (regionFk: number, tags?: string[]): RegionMembership => ({
-  layersComplete: true,
-  name: `region ${regionFk}`,
-  regionFk,
-  role: 'region_user',
+  ...userRegion(regionFk),
   settings: tags == null ? emptyRegionSettings() : { mapLayers: [], tags },
-  synced: true,
-  tagsComplete: true,
 })
 
 describe('tagNameSchema', () => {

@@ -1,12 +1,12 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
-  import Modal from '$lib/components/Modal/Modal.svelte'
   import type { RegionInvitationItem } from '$lib/entities/region/dto'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { now } from '$lib/state/now.svelte'
+  import SettingsSheetRow from './SettingsSheetRow.svelte'
 
   // A pending invitation as a settings row, built the way MemberRow builds its own so the two
   // read alike on the same screen: the whole row opens a sheet (popover on desktop) holding the
@@ -37,36 +37,21 @@
   })
 </script>
 
-<Modal
-  backdrop
-  bind:open
-  panel={false}
-  contentClass="max-h-[var(--available-height)] w-80 overflow-y-auto"
-  popoverProps={{ positioning: { placement: 'bottom-end' } }}
-  subtitle={sentAt}
-  title={invitation.email}
->
-  {#snippet trigger(props)}
-    <button
-      {...props}
-      type="button"
-      class={[props.class, 'hover:bg-surface-100-900 flex w-full items-center gap-3 p-4 text-left']}
-      onclick={() => (open = !open)}
-    >
-      <span class="min-w-0 grow">
-        <span class="block truncate">{invitation.email}</span>
-        {#if invitation.invitedBy != null}
-          <span class="text-surface-600-400 block truncate text-xs">
-            {m.region_invitedBy({ name: invitation.invitedBy })}
-          </span>
-        {/if}
-      </span>
+<SettingsSheetRow bind:open class="gap-3" subtitle={sentAt} title={invitation.email}>
+  {#snippet label()}
+    <span class="min-w-0 grow">
+      <span class="block truncate">{invitation.email}</span>
+      {#if invitation.invitedBy != null}
+        <span class="text-surface-600-400 block truncate text-xs">
+          {m.region_invitedBy({ name: invitation.invitedBy })}
+        </span>
+      {/if}
+    </span>
 
-      <span class="flex flex-none items-center gap-2">
-        <span class="text-surface-600-400 text-sm">{sentAt}</span>
-        <Icon name="chevron-right" class="text-surface-400-600" />
-      </span>
-    </button>
+    <span class="flex flex-none items-center gap-2">
+      <span class="text-surface-600-400 text-sm">{sentAt}</span>
+      <Icon name="chevron-right" class="text-surface-400-600" />
+    </span>
   {/snippet}
 
   <MenuRow
@@ -89,4 +74,4 @@
       }}
     />
   </div>
-</Modal>
+</SettingsSheetRow>

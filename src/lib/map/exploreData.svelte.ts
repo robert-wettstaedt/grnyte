@@ -5,9 +5,28 @@
 import { areaList } from '$lib/entities/area/resources.svelte'
 import { blockList } from '$lib/entities/block/resources.svelte'
 import { routeMapList } from '$lib/entities/route/resources.svelte'
-import { isParsedFilterActive, type ParsedRouteFilter } from './filter'
+import { blockBounds } from './data.svelte'
+import { isParsedFilterActive, parseRouteFilter, type ParsedRouteFilter } from './filter'
 import { filteredRouteList } from './filteredRoutes.svelte'
 import type { MapData } from './types'
+
+/**
+ * What a location picker draws: the unfiltered /explore dataset, plus the box around one area's
+ * blocks. The picker frames on that box, and in map mode the saved coordinate is the map centre.
+ */
+export function createAreaPickerMapData(areaId: () => number, userId: () => number | undefined) {
+  const blocks = blockList(() => ({ areaId: areaId() }))
+  const mapData = createExploreMapData(() => parseRouteFilter(new URLSearchParams()), userId)
+  const areaExtent = $derived(blockBounds(blocks.data))
+
+  return {
+    /** Null until one of the area's blocks has a pin, which leaves the picker unframed. */
+    get areaExtent() {
+      return areaExtent
+    },
+    mapData,
+  }
+}
 
 /**
  * The /explore map dataset: all blocks/areas/parking/paths plus the per-block

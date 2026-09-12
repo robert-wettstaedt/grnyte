@@ -20,7 +20,6 @@ import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { pathToFileURL } from 'node:url'
 import Database from 'postgres'
 import sharp from 'sharp'
-import { createClient } from 'webdav'
 import drizzleConfig from '../../../../drizzle.config'
 import {
   DERIVATIVE_QUALITY,
@@ -30,6 +29,7 @@ import {
   orientedDimensions,
 } from '../../images/derivatives'
 import * as schema from '../schema'
+import { connectNextcloud } from './nextcloud'
 
 /** `/topos/138.jpg` → `/topos` (stored paths always have a leading slash). */
 const parentOf = (path: string): string => path.slice(0, path.lastIndexOf('/'))
@@ -39,17 +39,7 @@ const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
 const CONCURRENCY = 4
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
-  const { NEXTCLOUD_URL, NEXTCLOUD_USER_NAME, NEXTCLOUD_USER_PASSWORD } = process.env
-  if (NEXTCLOUD_URL == null || NEXTCLOUD_USER_NAME == null || NEXTCLOUD_USER_PASSWORD == null) {
-    throw new Error('NEXTCLOUD_URL / NEXTCLOUD_USER_NAME / NEXTCLOUD_USER_PASSWORD must be set')
-  }
-
-  // The app's image access goes through the ImageProvider, but that module reads
-  // `$env/static/private` (SvelteKit-only), so this script talks WebDAV directly.
-  const dav = createClient(`${NEXTCLOUD_URL}/remote.php/dav/files`, {
-    password: NEXTCLOUD_USER_PASSWORD,
-    username: NEXTCLOUD_USER_NAME,
-  })
+  const { dav, userPath } = connectNextcloud()
 
   // One PROPFIND per folder instead of one exists() round-trip per derivative.
   // Promise-cached so concurrent workers don't list the same folder twice.
@@ -58,7 +48,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     let listing = listings.get(dir)
     if (listing == null) {
       listing = dav
-        .getDirectoryContents(`${NEXTCLOUD_USER_NAME}${dir}`)
+        .getDirectoryContents(userPath(dir))
         .then((entries) => new Set(entries.map((entry) => entry.basename)))
         .catch((err: unknown) => {
           console.warn(`Could not list "${dir}":`, err instanceof Error ? err.message : err)
@@ -115,7 +105,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
 
     let buffer: Buffer
     try {
-      buffer = Buffer.from((await dav.getFileContents(`${NEXTCLOUD_USER_NAME}${path}`)) as ArrayBuffer)
+      buffer = Buffer.from((await dav.getFileContents(userPath(path))) as ArrayBuffer)
     } catch (err) {
       console.warn(`Could not download "${path}":`, err instanceof Error ? err.message : err)
       skip('unreadable image', ids)
@@ -147,7 +137,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
           .resize({ fit: 'inside', height: size, width: size, withoutEnlargement: true })
           .webp({ quality: DERIVATIVE_QUALITY })
           .toBuffer()
-        await dav.putFileContents(`${NEXTCLOUD_USER_NAME}${derivativePath(path, size)}`, webp)
+        await dav.putFileContents(userPath(derivativePath(path, size)), webp)
       } catch (err) {
         console.warn(`Could not write ${size}px derivative of "${path}":`, err instanceof Error ? err.message : err)
         skip('derivative failed', ids)

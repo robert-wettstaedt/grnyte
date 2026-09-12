@@ -7,11 +7,9 @@
   import { addParking } from '$lib/entities/area/areas.remote'
   import { canAddParking } from '$lib/entities/area/permissions'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
-  import { blockList } from '$lib/entities/block/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
-  import { createExploreMapData } from '$lib/map/exploreData.svelte'
-  import { parseRouteFilter } from '$lib/map/filter'
+  import { createAreaPickerMapData } from '$lib/map/exploreData.svelte'
   import LocationPicker from '$lib/map/LocationPicker.svelte'
   import { coordsFromParams } from '$lib/map/map'
   import { encodePath } from '$lib/map/polyline'
@@ -24,22 +22,12 @@
   const global = getGlobalState()
   const areaId = $derived(Number(page.params.id))
   const area = areaDetail(() => areaId)
-  const blocks = blockList(() => ({ areaId }))
 
-  // The same blocks/areas/parking the /explore map renders.
-  const explore = createExploreMapData(
-    () => parseRouteFilter(new URLSearchParams()),
+  // The same blocks/areas/parking the /explore map renders, framed on the area's blocks.
+  const picker = createAreaPickerMapData(
+    () => areaId,
     () => global.user?.id,
   )
-
-  // Frame the map on the bounding box of the area's blocks.
-  const areaExtent = $derived.by<[number, number, number, number] | null>(() => {
-    const coords = blocks.data.map((block) => block.geolocation).filter((geo) => geo != null)
-    if (coords.length === 0) return null
-    const lats = coords.map((geo) => geo.lat)
-    const lngs = coords.map((geo) => geo.long)
-    return [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)]
-  })
 
   // Location handed over by the quick-create map flow: frames the picker there, so the
   // map-centre pin starts on the pressed point.
@@ -90,6 +78,7 @@
   // Frame step 2 on both the parking and the area, so the trail's ends are visible.
   const pathFocus = $derived.by<MapFocus | null>(() => {
     if (picked == null) return null
+    const areaExtent = picker.areaExtent
     const lats = [picked.lat]
     const lngs = [picked.long]
     if (areaExtent != null) {
@@ -106,7 +95,7 @@
   <title>{m.areas_addParkingLocation()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={area}>
+<QueryState notFound={m.areas_notFound()} resource={area}>
   {#snippet ready(data)}
     {#if !canAddParking(global.userRegions, data)}
       {#if data.type !== 'sector'}
@@ -152,16 +141,20 @@
       </Form>
     {/if}
   {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.areas_notFound()} />
-  {/snippet}
 </QueryState>
 
 {#snippet placeStep()}
-  <LocationPicker mapData={explore} {areaExtent} {placedCenter} bind:mode bind:latText bind:lngText bind:picked />
+  <LocationPicker
+    mapData={picker.mapData}
+    areaExtent={picker.areaExtent}
+    {placedCenter}
+    bind:mode
+    bind:latText
+    bind:lngText
+    bind:picked
+  />
 {/snippet}
 
 {#snippet pathStep()}
-  <StepPath mapData={explore} {pathFocus} bind:pathPoints />
+  <StepPath mapData={picker.mapData} {pathFocus} bind:pathPoints />
 {/snippet}

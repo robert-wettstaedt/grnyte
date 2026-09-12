@@ -18,6 +18,7 @@
   import { createCopyButton } from '$lib/state/clipboard.svelte'
   import { notifyError } from '$lib/state/toast'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
+  import { MEDIA_TOOL } from './toolbar'
 
   interface Props {
     /** Whether the viewer may change visibility (region EDIT / own ascent). */
@@ -77,7 +78,7 @@
     <button
       {...props}
       type="button"
-      class={[props.class, 'btn preset-glass-neutral btn-lg relative h-12 w-12 px-0']}
+      class={[props.class, MEDIA_TOOL, 'relative']}
       aria-label={m.share_share()}
       title={isPublic ? m.share_statusPublic() : m.share_statusPrivate()}
       onclick={() => (open = !open)}

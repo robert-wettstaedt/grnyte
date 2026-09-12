@@ -2,10 +2,10 @@
   import Dialog from '$lib/components/Dialog/Dialog.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
-  import Modal from '$lib/components/Modal/Modal.svelte'
   import { tagNameSchema } from '$lib/entities/region/tagVocabulary'
   import { resolveIssueMessage } from '$lib/forms/issue'
   import { m } from '$lib/paraglide/messages'
+  import SettingsSheetRow from '../SettingsSheetRow.svelte'
 
   // A tag as a settings row: the word, how many routes carry it, chevron, same shape as MemberRow.
   // The row opens the tag's sheet (popover on desktop), where renaming is the primary verb and
@@ -50,38 +50,22 @@
   }
 </script>
 
-<!-- panel={false}: a trigger-anchored popover on desktop (this is a page, not the map sheet), a
-     bottom sheet on mobile. The mobile branch renders the trigger without wiring, so the click
-     handler is ours, and it re-seeds the draft so an abandoned edit never carries into the next
-     open. -->
-<Modal
-  backdrop
+<SettingsSheetRow
   bind:open
-  panel={false}
-  contentClass="max-h-[var(--available-height)] w-80 overflow-y-auto"
-  popoverProps={{ positioning: { placement: 'bottom-end' } }}
+  class="justify-between gap-4"
+  ontrigger={() => (draft = tag)}
   subtitle={usage == null ? undefined : m.routes_routesCount({ count: usage })}
   title={tag}
 >
-  {#snippet trigger(props)}
-    <button
-      {...props}
-      type="button"
-      class={[props.class, 'hover:bg-surface-100-900 flex w-full items-center justify-between gap-4 p-4 text-left']}
-      onclick={() => {
-        draft = tag
-        open = !open
-      }}
-    >
-      <span class="min-w-0 truncate">{tag}</span>
+  {#snippet label()}
+    <span class="min-w-0 truncate">{tag}</span>
 
-      <span class="flex flex-none items-center gap-2">
-        {#if usage != null}
-          <span class="text-surface-600-400 text-sm">{m.routes_routesCount({ count: usage })}</span>
-        {/if}
-        <Icon name="chevron-right" class="text-surface-400-600" />
-      </span>
-    </button>
+    <span class="flex flex-none items-center gap-2">
+      {#if usage != null}
+        <span class="text-surface-600-400 text-sm">{m.routes_routesCount({ count: usage })}</span>
+      {/if}
+      <Icon name="chevron-right" class="text-surface-400-600" />
+    </span>
   {/snippet}
 
   <form
@@ -129,7 +113,7 @@
       }}
     />
   </div>
-</Modal>
+</SettingsSheetRow>
 
 <!-- Guarded rather than always mounted: Dialog portals its content into the body on mount, the same
      reason MemberRow guards its leave dialog. -->

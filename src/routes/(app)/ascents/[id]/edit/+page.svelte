@@ -57,7 +57,7 @@
   <title>{m.ascents_editAscent()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={ascent}>
+<QueryState notFound={m.ascents_notFound()} resource={ascent}>
   {#snippet ready(detail)}
     <QueryState resource={route}>
       {#snippet ready(routeData)}
@@ -92,9 +92,5 @@
         </QueryState>
       {/snippet}
     </QueryState>
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.ascents_notFound()} />
   {/snippet}
 </QueryState>

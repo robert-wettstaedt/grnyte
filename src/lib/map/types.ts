@@ -32,6 +32,10 @@ export interface BlocksMapProps {
   static?: boolean
 }
 
+/** A geographic extent, `[minLat, minLng, maxLat, maxLng]`. Latitude first, the opposite of
+ *  OpenLayers' lng-first order. */
+export type Bounds = [number, number, number, number]
+
 export interface LayerEntry {
   icon: IconName
   label: string
@@ -47,7 +51,7 @@ export type MapData = Pick<
 
 export interface MapFocus {
   center?: [number, number] // [lat, lng]
-  extent?: [number, number, number, number] // [minLat, minLng, maxLat, maxLng]
+  extent?: Bounds
   padding?: [number, number, number, number] // [top, right, bottom, left] in pixels
   zoom?: number
 }

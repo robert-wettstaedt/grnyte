@@ -3,12 +3,21 @@
    Plain Map avoids per-key signal overhead; see exploreData.svelte.ts for the dev-mode cost. */
 import type { BlockDetail } from '$lib/entities/block/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
-import type { BlocksMapProps } from './types'
+import type { Coords } from './map'
+import type { BlocksMapProps, Bounds } from './types'
 
-export const withPadding = (
-  bounds: [number, number, number, number],
-  blockCount: number,
-): [number, number, number, number] => {
+const boundsOfCoords = (coords: Coords[]): Bounds | null => {
+  if (coords.length === 0) return null
+  const lats = coords.map((location) => location.lat)
+  const lngs = coords.map((location) => location.long)
+  return [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)]
+}
+
+/** The box around the blocks that carry a pin, null when none does. */
+export const blockBounds = (blocks: { geolocation: Coords | null | undefined }[]): Bounds | null =>
+  boundsOfCoords(blocks.map((block) => block.geolocation).filter((location) => location != null))
+
+export const withPadding = (bounds: Bounds, blockCount: number): Bounds => {
   let [minLat, minLng, maxLat, maxLng] = bounds
   const latSpan = maxLat - minLat
   const lngSpan = maxLng - minLng
@@ -119,6 +128,13 @@ export function createMapData(props: BlocksMapProps) {
     return merged
   }
 
+  // The padded box a tier draws, so both zoom tiers frame their rects the same way.
+  const boundsOf = (blocks: BlockDetail[]): Bounds | null => {
+    const coords = blocks.map((block) => block.geolocation).filter((location) => location != null)
+    const bounds = boundsOfCoords(coords)
+    return bounds == null ? null : withPadding(bounds, coords.length)
+  }
+
   const gradeCountByArea = $derived.by(() => {
     const counts = new Map<number, Map<number, number>>()
     for (const [areaId, group] of blocksByArea) {
@@ -136,44 +152,26 @@ export function createMapData(props: BlocksMapProps) {
   })
 
   const areaBoundingBoxes = $derived.by(() => {
-    const boxes = new Map<number, { area: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>()
+    const boxes = new Map<number, { area: BlockDetail['areas'][0]; bounds: Bounds }>()
 
     for (const [areaId, group] of blocksByArea) {
-      const coords = group.blocks.map((block) => block.geolocation!).filter((location) => location != null)
-      if (coords.length === 0) continue
+      const bounds = boundsOf(group.blocks)
+      if (bounds == null) continue
 
-      const lats = coords.map((location) => location.lat)
-      const lngs = coords.map((location) => location.long)
-      const bounds: [number, number, number, number] = [
-        Math.min(...lats),
-        Math.min(...lngs),
-        Math.max(...lats),
-        Math.max(...lngs),
-      ]
-
-      boxes.set(areaId, { area: group.area, bounds: withPadding(bounds, coords.length) })
+      boxes.set(areaId, { area: group.area, bounds })
     }
 
     return boxes
   })
 
   const sectorBoundingBoxes = $derived.by(() => {
-    const boxes = new Map<number, { bounds: [number, number, number, number]; sector: BlockDetail['areas'][0] }>()
+    const boxes = new Map<number, { bounds: Bounds; sector: BlockDetail['areas'][0] }>()
 
     for (const [sectorId, group] of blocksBySector) {
-      const coords = group.blocks.map((block) => block.geolocation!).filter((location) => location != null)
-      if (coords.length === 0) continue
+      const bounds = boundsOf(group.blocks)
+      if (bounds == null) continue
 
-      const lats = coords.map((location) => location.lat)
-      const lngs = coords.map((location) => location.long)
-      const bounds: [number, number, number, number] = [
-        Math.min(...lats),
-        Math.min(...lngs),
-        Math.max(...lats),
-        Math.max(...lngs),
-      ]
-
-      boxes.set(sectorId, { bounds: withPadding(bounds, coords.length), sector: group.sector })
+      boxes.set(sectorId, { bounds, sector: group.sector })
     }
 
     return boxes

@@ -1,22 +1,13 @@
 <script module lang="ts">
   import { browser } from '$app/environment'
-
-  const DESKTOP_QUERY = '(min-width: 48rem)'
+  import { DESKTOP_QUERY, preloadBranch } from '$lib/components/Modal/branch'
 
   const loadDesktop = () => import('./Modal.desktop.svelte')
   const loadMobile = () => import('./Modal.mobile.svelte')
 
-  // Fetch only the branch this viewport can show, so a desktop that can never render a
-  // sheet stops carrying svelte-bottom-sheet. Statically importing both put the sheet and the
-  // dialog in one chunk, which every visitor paid for whatever screen they were on.
-  //
-  // Started here, on module evaluation, instead of being left to the `{#await}` below: on a detail
-  // route this sheet IS the page body (`open` starts true in the map layout), so the fetch has to
-  // run alongside hydration rather than after it. The service worker precaches the chunk, so only
-  // a first visit pays for it at all.
-  if (browser) {
-    void ((window.matchMedia?.(DESKTOP_QUERY).matches ?? false) ? loadDesktop() : loadMobile())
-  }
+  // Eager because on a detail route this sheet IS the page body (`open` starts true in the map
+  // layout), so the fetch has to run alongside hydration rather than after it.
+  preloadBranch(loadDesktop, loadMobile)
 </script>
 
 <script lang="ts">

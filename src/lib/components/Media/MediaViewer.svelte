@@ -28,6 +28,7 @@
   import MediaStage from './MediaStage.svelte'
   import ShareSheet from './ShareSheet.svelte'
   import SourceSheet from './SourceSheet.svelte'
+  import { MEDIA_TOOL } from './toolbar'
 
   interface Props {
     file: MediaFile
@@ -275,8 +276,7 @@
   const previewSrc = (f: MediaFile) =>
     f.bunnyStreamFk != null ? bunnyThumbnail(f.bunnyStreamFk) : imageSrc(f.path, 256)
 
-  const btn = 'btn preset-glass-neutral btn-lg h-12 w-12 shrink-0 px-0'
-  const arrow = `${btn} absolute top-1/2 z-20 -translate-y-1/2`
+  const arrow = `${MEDIA_TOOL} absolute top-1/2 z-20 -translate-y-1/2`
   const slide = 'absolute inset-0 flex items-center justify-center'
 </script>
 
@@ -354,7 +354,7 @@
           class="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 bg-linear-to-b from-black/60 to-transparent p-3 pb-10"
           style:opacity={chromeOpacity}
         >
-          <Dialog.CloseTrigger class={btn} aria-label={m.common_close()}>
+          <Dialog.CloseTrigger class={MEDIA_TOOL} aria-label={m.common_close()}>
             <Icon name="close" size={20} />
           </Dialog.CloseTrigger>
 
@@ -377,7 +377,7 @@
                 onsave={onDelete}
               >
                 {#snippet trigger(props)}
-                  <button {...props} type="button" class={[props.class, btn]} aria-label={m.common_delete()}>
+                  <button {...props} type="button" class={[props.class, MEDIA_TOOL]} aria-label={m.common_delete()}>
                     <Icon name="trash" size={20} />
                   </button>
                 {/snippet}

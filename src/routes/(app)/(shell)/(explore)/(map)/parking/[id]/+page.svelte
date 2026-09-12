@@ -2,7 +2,6 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { createLocationState } from '$lib/entities/geolocation/location.svelte'
@@ -39,7 +38,7 @@
   <title>{m.parking_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={parking}>
+<QueryState notFound={m.parking_notFound()} resource={parking}>
   {#snippet ready(data)}
     {@const coords = formatCoord(data.lat, data.long)}
     <div class="space-y-5">
@@ -62,10 +61,6 @@
         />
       </button>
     </div>
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.parking_notFound()} />
   {/snippet}
 </QueryState>
 

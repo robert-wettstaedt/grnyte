@@ -14,8 +14,7 @@
  */
 import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import type { UserRegion } from '$lib/entities/region/dto'
-import { emptyRegionSettings } from '$lib/entities/region/settings'
+import { userRegion } from '$lib/entities/region/fixture'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { loadParentArea, requireEditableArea } from './guards.server'
 
@@ -26,18 +25,6 @@ const EMAILS = { owner: 'maintainer@grnyte.rocks' } as const
 let users = {} as Record<keyof typeof EMAILS, SeedUser>
 let regionId = 0
 let areaId = 0
-
-/** A membership carrying `permissions` in `regionFk`, the only two fields the gate reads. */
-const membership = (regionFk: number, ...permissions: UserRegion['permissions']): UserRegion => ({
-  layersComplete: true,
-  name: '',
-  permissions,
-  regionFk,
-  role: 'region_user',
-  settings: emptyRegionSettings(),
-  synced: true,
-  tagsComplete: true,
-})
 
 async function removeFixtures() {
   await sql`delete from public.areas where region_fk in (select id from public.regions where name = ${REGION})`
@@ -65,21 +52,21 @@ describe.skipIf(!reachable)('requireEditableArea', () => {
   it('refuses an editor whose EDIT is in a DIFFERENT region (the escalation)', async () => {
     // The attacker holds EDIT in region 999, and targets an area in `regionId`. Under the old
     // code they would submit `regionFk: 999` and pass; here the gate reads the stored row.
-    await expect(requireEditableArea(db, [membership(999, 'region.edit')], areaId)).rejects.toThrow()
+    await expect(requireEditableArea(db, [userRegion(999, 'region.edit')], areaId)).rejects.toThrow()
   })
 
   it('refuses a plain member (READ) of the area’s own region', async () => {
-    await expect(requireEditableArea(db, [membership(regionId, 'region.read')], areaId)).rejects.toThrow()
+    await expect(requireEditableArea(db, [userRegion(regionId, 'region.read')], areaId)).rejects.toThrow()
   })
 
   it('allows an editor of the area’s own region, and returns the stored row', async () => {
-    const area = await requireEditableArea(db, [membership(regionId, 'region.edit')], areaId)
+    const area = await requireEditableArea(db, [userRegion(regionId, 'region.edit')], areaId)
     expect(area.id).toBe(areaId)
     expect(area.regionFk).toBe(regionId)
   })
 
   it('refuses when the id is missing', async () => {
-    await expect(requireEditableArea(db, [membership(regionId, 'region.edit')], undefined)).rejects.toThrow()
+    await expect(requireEditableArea(db, [userRegion(regionId, 'region.edit')], undefined)).rejects.toThrow()
   })
 })
 

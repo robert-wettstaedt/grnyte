@@ -15,7 +15,8 @@
  */
 import { asc, eq, isNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { deriveAccolade, type AccoladeAscent } from '../../entities/ascent/accolade'
+import { deriveAccolade } from '../../entities/ascent/accolade'
+import { toAccoladeAscent } from '../../entities/ascent/accolade.server'
 import * as schema from '../schema'
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
@@ -49,15 +50,9 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
   let written = 0
 
   for (const climb of byClimber.values()) {
-    const history: AccoladeAscent[] = climb.map((row) => ({
-      // A pg `date` compared as UTC-midnight millis, exactly as the client reads it, so the
-      // backfill and the live write path cannot disagree about which day an ascent happened on.
-      dateTime: row.dateTime == null ? undefined : new Date(row.dateTime).getTime(),
-      gradeFk: row.gradeFk ?? undefined,
-      id: row.id,
-      routeFk: row.routeFk,
-      type: row.type,
-    }))
+    // The write path's own projection, so the backfill cannot disagree with it about which day an
+    // ascent happened on.
+    const history = climb.map((row) => toAccoladeAscent(row))
 
     for (const [index, row] of climb.entries()) {
       // Only what this climber had logged by the time of this send, sliced BY DATE rather than by

@@ -15,7 +15,7 @@
  * which is the realistic victim: somebody's photo, in a region the attacker legitimately edits.
  */
 import { createThrowawayUser, dropThrowawayUser, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest } from '$lib/remote/testHarness'
+import { asRequest, statusOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createTopo, replaceTopoImage } from './topos.remote'
 
@@ -100,16 +100,6 @@ afterAll(async () => {
 async function freshTopo(): Promise<number> {
   const result = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: ownFileId }))
   return result!.data!.id
-}
-
-/** The status of a refusal, or undefined when the call went through. */
-async function statusOf(run: () => Promise<unknown>): Promise<number | undefined> {
-  try {
-    await run()
-    return undefined
-  } catch (error) {
-    return (error as { status?: number })?.status
-  }
 }
 
 describe.skipIf(!reachable)('topo images', () => {

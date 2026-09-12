@@ -6,22 +6,11 @@ import {
 } from '$lib/auth'
 import { describe, expect, it } from 'vitest'
 import type { UserRegion } from './dto'
+import { userRegion } from './fixture'
 import { canEditRegion, isLastAdmin } from './permissions'
-import { emptyRegionSettings } from './settings'
 
-const region = (regionFk: number, ...permissions: UserRegion['permissions']): UserRegion => ({
-  layersComplete: true,
-  name: `region ${regionFk}`,
-  permissions,
-  regionFk,
-  role: 'region_user',
-  settings: emptyRegionSettings(),
-  synced: true,
-  tagsComplete: true,
-})
-
-const ADMIN_OF_1 = [region(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT, REGION_PERMISSION_ADMIN)]
-const MAINTAINER_OF_1 = [region(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT)]
+const ADMIN_OF_1 = [userRegion(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT, REGION_PERMISSION_ADMIN)]
+const MAINTAINER_OF_1 = [userRegion(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT)]
 
 describe('canEditRegion', () => {
   it('lets a region admin administer their own region', () => {
@@ -37,7 +26,7 @@ describe('canEditRegion', () => {
   })
 
   it('refuses a plain member', () => {
-    expect(canEditRegion([region(1, REGION_PERMISSION_READ)], 1)).toBe(false)
+    expect(canEditRegion([userRegion(1, REGION_PERMISSION_READ)], 1)).toBe(false)
   })
 
   it('refuses somebody with no membership at all', () => {
@@ -50,7 +39,7 @@ describe('canEditRegion', () => {
     // policies on `regions` / `region_members` make app admins a database-level back office,
     // and this asserts that none of that leaks into an in-app permission.
     const APP_ADMIN_MAINTAINER: UserRegion[] = [
-      { ...region(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT, APP_PERMISSION_ADMIN), role: 'app_admin' },
+      { ...userRegion(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT, APP_PERMISSION_ADMIN), role: 'app_admin' },
     ]
 
     expect(canEditRegion(APP_ADMIN_MAINTAINER, 1)).toBe(false)

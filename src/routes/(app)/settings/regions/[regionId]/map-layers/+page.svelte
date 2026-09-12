@@ -16,6 +16,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
+  import RegionAdminRequired from '../RegionAdminRequired.svelte'
 
   const global = getGlobalState()
   const fields = updateRegionMapLayers.fields
@@ -67,15 +68,7 @@
 </svelte:head>
 
 {#if !isAdmin}
-  <ErrorState
-    type="generic"
-    title={m.form_noPermissionTitle()}
-    description={m.form_noAdminPermission()}
-    primaryAction={{
-      href: resolve('/(app)/settings/regions/[regionId]', { regionId: String(regionId) }),
-      label: m.region_viewRegion(),
-    }}
-  />
+  <RegionAdminRequired {regionId} />
 {:else if membership?.synced !== true}
   <!-- No form until the region row is here. Rendering one meanwhile is what made this screen
        destructive four rounds running: an empty list is a valid submission that means "remove them

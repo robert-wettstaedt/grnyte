@@ -4,6 +4,8 @@
   import Disclosure from '$lib/components/Disclosure/Disclosure.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { listErrorLogs } from '$lib/logging/errors.remote'
   import { m } from '$lib/paraglide/messages'
@@ -12,8 +14,7 @@
 
   // Created once rather than inside a $derived: the query takes no arguments, so there is
   // nothing for it to react to.
-  const logs = listErrorLogs()
-  const groups = $derived(logs.current ?? [])
+  const logs = remoteResource(listErrorLogs())
 
   // A snapshot is enough: nobody watches "4 minutes ago" tick over on a log screen.
   const now = Date.now()
@@ -42,47 +43,39 @@
 <div class="container mx-auto max-w-3xl space-y-4 px-4 py-8 pb-24 md:pb-8">
   <p class="text-surface-600-400 text-sm">{m.settings_errorLogsHint()}</p>
 
-  {#if logs.error}
-    <div class="card preset-tonal-error px-4 py-3 text-sm" role="alert">{m.queryState_error()}</div>
-  {:else if logs.loading && logs.current == null}
-    <div class="space-y-4 py-4" aria-busy="true">
-      <div class="placeholder animate-pulse"></div>
-      <div class="placeholder animate-pulse"></div>
-      <div class="placeholder animate-pulse"></div>
-    </div>
-  {:else if groups.length === 0}
-    <p class="text-surface-600-400 py-8 text-center">{m.queryState_empty()}</p>
-  {:else}
-    <!-- `overflow-hidden`, or a first/last summary's hover background squares off the rounded corners. -->
-    <div class="divide-surface-200-800 border-surface-200-800 divide-y overflow-hidden rounded-xl border">
-      {#each groups as group (group.source + group.error)}
-        <!-- The stack is long, so every row expands independently. -->
-        <Disclosure
-          panelClass="space-y-2 px-4 pb-4"
-          summaryClass="hover:bg-surface-100-900 flex w-full items-center gap-3 p-4"
-        >
-          {#snippet summary(open)}
-            <span class="badge preset-tonal-error flex-none">{group.count}×</span>
+  <QueryState resource={logs}>
+    {#snippet ready(groups)}
+      <!-- `overflow-hidden`, or a first/last summary's hover background squares off the rounded corners. -->
+      <div class="divide-surface-200-800 border-surface-200-800 divide-y overflow-hidden rounded-xl border">
+        {#each groups as group (group.source + group.error)}
+          <!-- The stack is long, so every row expands independently. -->
+          <Disclosure
+            panelClass="space-y-2 px-4 pb-4"
+            summaryClass="hover:bg-surface-100-900 flex w-full items-center gap-3 p-4"
+          >
+            {#snippet summary(open)}
+              <span class="badge preset-tonal-error flex-none">{group.count}×</span>
 
-            <span class="min-w-0 flex-1">
-              <span class="block truncate text-sm">{headline(group.error)}</span>
-              <span class="text-surface-600-400 block truncate text-xs">
-                {group.source} · {formatUploadedAt(group.lastSeen, now, getLocale())}
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm">{headline(group.error)}</span>
+                <span class="text-surface-600-400 block truncate text-xs">
+                  {group.source} · {formatUploadedAt(group.lastSeen, now, getLocale())}
+                </span>
               </span>
-            </span>
 
-            <span class={['text-surface-500 flex-none transition-transform', open && 'rotate-180']}>
-              <Icon name="chevron-down" size={18} />
-            </span>
-          {/snippet}
+              <span class={['text-surface-500 flex-none transition-transform', open && 'rotate-180']}>
+                <Icon name="chevron-down" size={18} />
+              </span>
+            {/snippet}
 
-          {#if group.paths.length > 0}
-            <p class="text-surface-600-400 text-xs">{group.paths.join(', ')}</p>
-          {/if}
+            {#if group.paths.length > 0}
+              <p class="text-surface-600-400 text-xs">{group.paths.join(', ')}</p>
+            {/if}
 
-          <pre class="bg-surface-100-900 overflow-x-auto rounded-lg p-3 text-xs">{body(group.error)}</pre>
-        </Disclosure>
-      {/each}
-    </div>
-  {/if}
+            <pre class="bg-surface-100-900 overflow-x-auto rounded-lg p-3 text-xs">{body(group.error)}</pre>
+          </Disclosure>
+        {/each}
+      </div>
+    {/snippet}
+  </QueryState>
 </div>

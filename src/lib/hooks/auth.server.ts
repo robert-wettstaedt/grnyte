@@ -76,6 +76,29 @@ export async function getUserPermissions(
   }
 }
 
+/** The profile row plus the `user_settings` columns handlers branch on. Shared with `testHarness`,
+ *  so a test's session user is the shape a real request carries. */
+export function loadSessionUser(
+  db: PostgresJsDatabase<typeof schema>,
+  authUserId: string,
+): Promise<App.SafeSession['user']> {
+  return db.query.users.findFirst({
+    where: (table, { eq }) => eq(table.authUserFk, authUserId),
+    with: {
+      userSettings: {
+        columns: {
+          gradingScale: true,
+          notifyAscents: true,
+          notifyCommunity: true,
+          notifyDirected: true,
+          notifyGuidebookEdits: true,
+          unitSystem: true,
+        },
+      },
+    },
+  })
+}
+
 /** A request with no usable identity. A function rather than a shared const: `userRegions` is
  *  handed out to callers, and one accidental push on a shared array would leak across requests. */
 function anonymous(): App.SafeSession & { claims: undefined } {
@@ -99,21 +122,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
   }
 
   async function getPageState(authUserId: string): Promise<App.SafeSession> {
-    const user = await db.query.users.findFirst({
-      where: (table, { eq }) => eq(table.authUserFk, authUserId),
-      with: {
-        userSettings: {
-          columns: {
-            gradingScale: true,
-            notifyAscents: true,
-            notifyCommunity: true,
-            notifyDirected: true,
-            notifyGuidebookEdits: true,
-            unitSystem: true,
-          },
-        },
-      },
-    })
+    const user = await loadSessionUser(db, authUserId)
 
     return {
       ...(await getUserPermissions(db, authUserId)),

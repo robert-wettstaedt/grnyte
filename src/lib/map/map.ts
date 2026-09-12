@@ -19,6 +19,26 @@ export const coordsFromParams = (params: URLSearchParams): Coords | null => {
   return Number.isFinite(lat) && Number.isFinite(long) ? { lat, long } : null
 }
 
+/** Where a sector is measured from: its parking, else the mean of its block pins.
+ *  One point for both readers: a maintainer sorts blocks by distance from it, a climber navigates to it. */
+export const sectorReferencePoint = (
+  parking: Coords | null | undefined,
+  blockPins: Iterable<Coords | null | undefined>,
+): Coords | null => {
+  if (parking != null) return { lat: parking.lat, long: parking.long }
+
+  let count = 0
+  let lat = 0
+  let long = 0
+  for (const pin of blockPins) {
+    if (pin == null) continue
+    lat += pin.lat
+    long += pin.long
+    count += 1
+  }
+  return count === 0 ? null : { lat: lat / count, long: long / count }
+}
+
 /** Platform-specific maps deep link: driving directions to coords, or a name search. */
 export const mapsUrl = (dest: MapsDestination): string => {
   const apple = isIOS()

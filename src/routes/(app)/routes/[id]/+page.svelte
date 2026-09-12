@@ -5,7 +5,6 @@
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Breadcrumb, { CRUMB_LINK } from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import { trackView } from '$lib/components/EntitySearch/recent.svelte'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -156,7 +155,7 @@
 
 <svelte:window onkeydown={handleNavKey} />
 
-<QueryState resource={route}>
+<QueryState notFound={m.routes_notFound()} resource={route}>
   {#snippet ready(detail)}
     {@const canEdit = canEditRoute(global.userRegions, detail)}
 
@@ -424,9 +423,5 @@
         </div>
       </footer>
     </div>
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.routes_notFound()} />
   {/snippet}
 </QueryState>

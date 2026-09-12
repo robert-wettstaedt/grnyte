@@ -32,7 +32,7 @@
   <title>{m.blocks_addBlock()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={area}>
+<QueryState notFound={m.areas_notFound()} resource={area}>
   {#snippet ready(data)}
     {#if canAddBlock(global.userRegions, data)}
       <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the area changes, so
@@ -68,9 +68,5 @@
         }}
       />
     {/if}
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.areas_notFound()} />
   {/snippet}
 </QueryState>

@@ -14,7 +14,7 @@
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
-  import { haversineMetres, type Coords } from '$lib/map/map'
+  import { haversineMetres, sectorReferencePoint, type Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -124,15 +124,12 @@
     const parking = area.data?.parkingLocations.at(0)
     return parking == null ? null : { lat: parking.lat, long: parking.long }
   })
-  const referencePoint = $derived.by<Coords | null>(() => {
-    if (parkingPoint != null) return parkingPoint
-    const coords = ordered.map((block) => block.geolocation).filter((geo) => geo != null)
-    if (coords.length === 0) return null
-    return {
-      lat: coords.reduce((sum, geo) => sum + geo.lat, 0) / coords.length,
-      long: coords.reduce((sum, geo) => sum + geo.long, 0) / coords.length,
-    }
-  })
+  const referencePoint = $derived(
+    sectorReferencePoint(
+      parkingPoint,
+      ordered.map((block) => block.geolocation),
+    ),
+  )
 
   const distanceTo = (ref: Coords, block: BlockDetail): number =>
     block.geolocation == null
@@ -196,7 +193,7 @@
   <title>{m.blocks_order_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={area} class="h-full">
+<QueryState notFound={m.areas_notFound()} resource={area} class="h-full">
   {#snippet ready(detail)}
     {#if !canEditBlock(global.userRegions, detail)}
       <ErrorState
@@ -313,9 +310,5 @@
         </div>
       </div>
     {/if}
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.areas_notFound()} />
   {/snippet}
 </QueryState>

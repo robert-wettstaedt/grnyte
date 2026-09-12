@@ -42,7 +42,7 @@
   <title>{m.areas_editArea()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={area}>
+<QueryState notFound={m.areas_notFound()} resource={area}>
   {#snippet ready(data)}
     {#if canEditArea(global.userRegions, data)}
       <Form
@@ -64,9 +64,5 @@
         }}
       />
     {/if}
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.areas_notFound()} />
   {/snippet}
 </QueryState>

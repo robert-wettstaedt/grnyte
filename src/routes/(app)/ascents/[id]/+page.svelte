@@ -3,7 +3,6 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { ascentDetail } from '$lib/entities/ascent/resources.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -26,15 +25,11 @@
   <title>{m.ascents_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={ascent}>
+<QueryState notFound={m.ascents_notFound()} resource={ascent}>
   {#snippet ready(_detail)}
     <!-- The effect above is already navigating away; hold the loading look. -->
     <div class="space-y-4 px-4 py-4" aria-busy="true">
       <div class="placeholder animate-pulse"></div>
     </div>
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.ascents_notFound()} />
   {/snippet}
 </QueryState>

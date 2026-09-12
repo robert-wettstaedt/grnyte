@@ -19,7 +19,7 @@ import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { restoreArea } from '$lib/entities/area/areas.remote'
 import { restoreBlock } from '$lib/entities/block/blocks.remote'
 import { restoreRoute } from '$lib/entities/route/routes.remote'
-import { asRequest } from '$lib/remote/testHarness'
+import { asRequest, statusOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const HOME = '__restore_home__'
@@ -67,22 +67,6 @@ async function createRegion(name: string): Promise<number> {
     values (${region.id}, ${maintainer.userId}, ${maintainer.authId}, 'region_maintainer', true)`
 
   return region.id
-}
-
-/**
- * The status a handler rejected with, or `undefined` when it did not reject at all.
- *
- * Both `error()` and Kit's schema rejection throw a plain `HttpError`, which is not an `Error`, so
- * `rejects.toThrow()` cannot read it. The status is also the assertion worth making: a 400 from the
- * schema and a 403 from the gate are two different refusals.
- */
-async function statusOf(run: () => Promise<unknown>): Promise<number | undefined> {
-  try {
-    await run()
-    return undefined
-  } catch (thrown) {
-    return (thrown as { status?: number })?.status
-  }
 }
 
 beforeAll(async () => {

@@ -29,7 +29,7 @@
 </svelte:head>
 
 <main class="relative min-w-0 flex-1 overflow-y-auto">
-  <QueryState resource={user}>
+  <QueryState notFound={m.profile_title()} resource={user}>
     {#snippet ready(data)}
       <ProfileView userId={data.id} username={data.username} isSelf={data.id === global.user?.id} onBack={goBack} />
     {/snippet}
@@ -53,10 +53,6 @@
         <div class="placeholder animate-pulse"></div>
         <div class="placeholder animate-pulse"></div>
       </div>
-    {/snippet}
-
-    {#snippet empty()}
-      <ErrorState type="notfound" title={m.profile_title()} />
     {/snippet}
 
     {#snippet error()}

@@ -14,14 +14,15 @@
  * database, the handler runs in a real RLS transaction, and the statements it issues are the
  * statements production issues.
  *
- * NOTE: this file is imported by `*.remote.test.ts`, which run in the `server` vitest project
+ * NOTE: this file is imported by `*.remote.test.ts` and `*.server.test.ts`, which run in the
+ * `server` vitest project
  * (`vite.config.ts`). They cannot run in the jsdom project: `$app/paths` resolves to its client
  * build under the `browser` condition and touches `window` at import time.
  */
 import { SUPABASE_JWT_SECRET } from '$env/static/private'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { db } from '$lib/db/db.server'
-import { getUserPermissions } from '$lib/hooks/auth.server'
+import { getUserPermissions, loadSessionUser } from '$lib/hooks/auth.server'
 import { with_request_store } from '@sveltejs/kit/internal/server'
 import { eq } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
@@ -34,26 +35,11 @@ import { SignJWT } from 'jose'
  * handler agrees with the test's idea of the memberships, not with the database's.
  */
 export async function asRequest<T>(authUserId: string, fn: () => Promise<T> | T): Promise<T> {
-  // `getUserPermissions` deliberately returns `user: undefined`; the `supabase` handle's own
-  // `getPageState` is what loads the row, with `userSettings` attached. Mirror it, or every handler
-  // 401s on `user == null` in `authed.server.ts`.
+  // `getUserPermissions` deliberately returns `user: undefined`, so the row is loaded alongside it
+  // the way the `supabase` handle does. Without it every handler 401s on `user == null`.
   const [permissions, user, [authUser]] = await Promise.all([
     getUserPermissions(db, authUserId),
-    db.query.users.findFirst({
-      where: (table, { eq }) => eq(table.authUserFk, authUserId),
-      with: {
-        userSettings: {
-          columns: {
-            gradingScale: true,
-            notifyAscents: true,
-            notifyCommunity: true,
-            notifyDirected: true,
-            notifyGuidebookEdits: true,
-            unitSystem: true,
-          },
-        },
-      },
-    }),
+    loadSessionUser(db, authUserId),
     // The address, read live from auth.users for the same reason the permissions are: it is what
     // the invitation handlers and the password re-check gate on, and those were untestable while
     // the harness had none.
@@ -141,6 +127,19 @@ export function callForm<T>(form: unknown, data: Record<string, unknown>): Promi
   }
 
   return internal.fn(data, { validate_only: false }, new FormData())
+}
+
+/**
+ * The status `run` rejected with, or `undefined` when it resolved. Kit throws a plain `HttpError`,
+ * not an `Error`, so `rejects.toThrow()` cannot read it, and the status is the real assertion.
+ */
+export async function statusOf(run: () => Promise<unknown>): Promise<number | undefined> {
+  try {
+    await run()
+    return undefined
+  } catch (thrown) {
+    return (thrown as { status?: number })?.status
+  }
 }
 
 /**

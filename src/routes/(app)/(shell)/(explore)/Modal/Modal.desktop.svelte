@@ -4,6 +4,7 @@
   import { m } from '$lib/paraglide/messages'
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
   import NavFooter from './NavFooter.svelte'
+  import SheetHeading from './SheetHeading.svelte'
   import { sheetState } from './sheetState.svelte'
   import type { ModalProps } from './types'
 
@@ -37,23 +38,13 @@
           <header class="flex shrink-0 flex-col gap-2 px-4 py-2 shadow">
             <div class="flex items-start justify-between gap-2">
               <div class="flex min-w-0 flex-1 items-center gap-2">
-                {#if sheetState.headerLeft}
-                  {@render sheetState.headerLeft()}
-                {/if}
-
-                <Dialog.Title class="flex min-w-0 flex-col">
-                  {#if typeof sheetState.subtitle === 'string'}
-                    <span class="text-surface-600-400 shrink-0 text-xs">{sheetState.subtitle}</span>
-                  {:else if sheetState.subtitle != null}
-                    {@render sheetState.subtitle()}
-                  {/if}
-
-                  {#if typeof sheetState.title === 'string'}
-                    <span class="text-lg">{sheetState.title}</span>
-                  {:else if sheetState.title != null}
-                    {@render sheetState.title()}
-                  {/if}
-                </Dialog.Title>
+                <SheetHeading>
+                  {#snippet wrapper(column)}
+                    <Dialog.Title class="flex min-w-0 flex-col">
+                      {@render column()}
+                    </Dialog.Title>
+                  {/snippet}
+                </SheetHeading>
               </div>
 
               <Dialog.CloseTrigger

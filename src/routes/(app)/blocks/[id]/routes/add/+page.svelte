@@ -53,7 +53,7 @@
   <title>{m.routes_addRoute()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={block}>
+<QueryState notFound={m.blocks_notFound()} resource={block}>
   {#snippet ready(data)}
     {#if canAddRoute(global.userRegions, data)}
       <Form
@@ -78,9 +78,5 @@
         }}
       />
     {/if}
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.blocks_notFound()} />
   {/snippet}
 </QueryState>

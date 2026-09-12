@@ -5,11 +5,11 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
-  import Modal from '$lib/components/Modal/Modal.svelte'
   import type { RegionMemberItem } from '$lib/entities/region/dto'
   import { assignableRoles, type AppRole, type AssignableRole } from '$lib/entities/rolePermission/dto'
   import { roleLabel } from '$lib/entities/rolePermission/mapper'
   import { m } from '$lib/paraglide/messages'
+  import SettingsSheetRow from './SettingsSheetRow.svelte'
 
   // A member as a settings row: label, current role, chevron, same as every other row on the
   // screen. The whole row opens the member's sheet (popover on desktop), which is where the
@@ -47,41 +47,23 @@
   const subtitle = $derived(canManage || (self && canLeave) ? m.areas_manage() : roleLabel(role))
 </script>
 
-<!-- panel={false}: a trigger-anchored popover on desktop (this is a page, not the map sheet),
-     a bottom sheet on mobile. The mobile branch renders the trigger without wiring, so the
-     click handler is ours. -->
-<Modal
-  backdrop
-  bind:open
-  panel={false}
-  contentClass="max-h-[var(--available-height)] w-80 overflow-y-auto"
-  popoverProps={{ positioning: { placement: 'bottom-end' } }}
-  {subtitle}
-  title={member.username}
->
-  {#snippet trigger(props)}
-    <button
-      {...props}
-      type="button"
-      class={[props.class, 'hover:bg-surface-100-900 flex w-full items-center gap-3 p-4 text-left']}
-      onclick={() => (open = !open)}
-    >
-      <Avatar name={member.username} size={36} />
+<SettingsSheetRow bind:open class="gap-3" {subtitle} title={member.username}>
+  {#snippet label()}
+    <Avatar name={member.username} size={36} />
 
-      <span class="min-w-0 grow">
-        <span class="block truncate font-semibold">{member.username}</span>
-        {#if member.invitedBy != null}
-          <span class="text-surface-600-400 block truncate text-xs">
-            {m.region_invitedBy({ name: member.invitedBy })}
-          </span>
-        {/if}
-      </span>
+    <span class="min-w-0 grow">
+      <span class="block truncate font-semibold">{member.username}</span>
+      {#if member.invitedBy != null}
+        <span class="text-surface-600-400 block truncate text-xs">
+          {m.region_invitedBy({ name: member.invitedBy })}
+        </span>
+      {/if}
+    </span>
 
-      <span class="flex flex-none items-center gap-2">
-        <span class="text-surface-600-400 text-sm">{roleLabel(role)}</span>
-        <Icon name="chevron-right" class="text-surface-400-600" />
-      </span>
-    </button>
+    <span class="flex flex-none items-center gap-2">
+      <span class="text-surface-600-400 text-sm">{roleLabel(role)}</span>
+      <Icon name="chevron-right" class="text-surface-400-600" />
+    </span>
   {/snippet}
 
   <MenuRow
@@ -135,7 +117,7 @@
       />
     </div>
   {/if}
-</Modal>
+</SettingsSheetRow>
 
 <!-- Leaving is irreversible without a fresh invite, so it confirms rather than offering undo.
      Guarded by the same condition as the menu row that opens it: Dialog portals its content into

@@ -2,7 +2,6 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import MediaLightbox from '$lib/components/Media/MediaLightbox.svelte'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
@@ -10,7 +9,7 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import AscentRow from '$lib/entities/ascent/AscentRow.svelte'
   import { ASCENT_TYPES, STATUS } from '$lib/entities/ascent/AscentType.svelte'
-  import type { AscentType } from '$lib/entities/ascent/dto'
+  import type { AscentType, RouteAscent } from '$lib/entities/ascent/dto'
   import { splitAscents } from '$lib/entities/ascent/list'
   import { routeAscentList } from '$lib/entities/ascent/resources.svelte'
   import { gradeLabel } from '$lib/entities/grade/label'
@@ -19,6 +18,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { flip } from 'svelte/animate'
+  import { MediaQuery } from 'svelte/reactivity'
   import { fade } from 'svelte/transition'
 
   const global = getGlobalState()
@@ -78,6 +78,11 @@
     el.scrollIntoView({ block: 'center' })
   })
 
+  // Rows reorder and fade as the filter changes; a Svelte transition ignores the media query.
+  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
+  const flipDuration = $derived(still.current ? 0 : 200)
+  const fadeDuration = $derived(still.current ? 0 : 150)
+
   const chipStyle = (active: boolean, color: string) =>
     active
       ? `background:color-mix(in oklab, ${color} 20%, transparent); color:${color}; border-color:color-mix(in oklab, ${color} 45%, transparent)`
@@ -88,8 +93,27 @@
   <title>{m.ascents_title()} – {route.data?.name ?? m.common_route()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={route}>
+<QueryState notFound={m.routes_notFound()} resource={route}>
   {#snippet ready(detail)}
+    <!-- One section shape for both lists. `mine` frames every row, `community` only the
+         deep-linked one; the id is what the scroll effect above looks up. -->
+    {#snippet ascentSection(list: RouteAscent[], heading: string, headingClass: string, frameAll: boolean)}
+      <section class="flex flex-col gap-2">
+        <h2 class={['text-xs font-bold tracking-wider uppercase', headingClass]}>{heading}</h2>
+        {#each list as ascent (ascent.id)}
+          <div animate:flip={{ duration: flipDuration }} transition:fade={{ duration: fadeDuration }}>
+            <AscentRow
+              {ascent}
+              expanded={ascent.id === targetId}
+              highlight={frameAll || ascent.id === targetId}
+              id={`ascent-${ascent.id}`}
+              routeName={detail.name}
+            />
+          </div>
+        {/each}
+      </section>
+    {/snippet}
+
     <div class="flex min-h-full w-full flex-col">
       <PageHeader onback={() => back(routeHref)}>
         <div class="flex min-w-0 flex-1 flex-col">
@@ -134,39 +158,16 @@
           {#if split.mine.length > 0}
             <PushSetup dismissible />
 
-            <section class="flex flex-col gap-2">
-              <h2 class="text-primary-400 text-xs font-bold tracking-wider uppercase">{m.ascents_yourLogbook()}</h2>
-              {#each split.mine as ascent (ascent.id)}
-                <div animate:flip={{ duration: 200 }} transition:fade={{ duration: 150 }}>
-                  <AscentRow
-                    {ascent}
-                    expanded={ascent.id === targetId}
-                    highlight
-                    id={`ascent-${ascent.id}`}
-                    routeName={detail.name}
-                  />
-                </div>
-              {/each}
-            </section>
+            {@render ascentSection(split.mine, m.ascents_yourLogbook(), 'text-primary-400', true)}
           {/if}
 
           {#if split.community.length > 0}
-            <section class="flex flex-col gap-2">
-              <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
-                {m.ascents_community()} · {split.community.length}
-              </h2>
-              {#each split.community as ascent (ascent.id)}
-                <div animate:flip={{ duration: 200 }} transition:fade={{ duration: 150 }}>
-                  <AscentRow
-                    {ascent}
-                    expanded={ascent.id === targetId}
-                    highlight={ascent.id === targetId}
-                    id={`ascent-${ascent.id}`}
-                    routeName={detail.name}
-                  />
-                </div>
-              {/each}
-            </section>
+            {@render ascentSection(
+              split.community,
+              `${m.ascents_community()} · ${split.community.length}`,
+              'text-surface-600-400',
+              false,
+            )}
           {/if}
 
           {#if filtered.length === 0}
@@ -178,9 +179,5 @@
       <!-- One viewer for every row's thumbs; unfiltered so an open file survives chip changes. -->
       <MediaLightbox items={viewerFiles} shareText={detail.name} />
     </div>
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.routes_notFound()} />
   {/snippet}
 </QueryState>

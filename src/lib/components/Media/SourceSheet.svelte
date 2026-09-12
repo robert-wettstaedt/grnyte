@@ -13,6 +13,7 @@
   import { m } from '$lib/paraglide/messages'
   import { notifyError } from '$lib/state/toast'
   import SourceField from './SourceField.svelte'
+  import { MEDIA_TOOL } from './toolbar'
 
   interface Props {
     file: MediaFile
@@ -57,7 +58,7 @@
     <button
       {...props}
       type="button"
-      class={[props.class, 'btn preset-glass-neutral btn-lg h-12 w-12 px-0']}
+      class={[props.class, MEDIA_TOOL]}
       aria-label={m.media_editSource()}
       onclick={() => {
         raw = file.source ?? ''

@@ -4,7 +4,6 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import { trackView } from '$lib/components/EntitySearch/recent.svelte'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -17,11 +16,12 @@
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { createSaveState } from '$lib/entities/favorite/save.svelte'
   import { createLocationState } from '$lib/entities/geolocation/location.svelte'
+  import { countRoutesByGrade } from '$lib/entities/grade/counts'
   import { regionCrumb } from '$lib/entities/region/mapper'
   import { routeList } from '$lib/entities/route/resources.svelte'
+  import { sectorReferencePoint } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { SvelteMap } from 'svelte/reactivity'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import AreaActions from './AreaActions.svelte'
   import AreaEmpty, { areaEmptyIsActionable } from './AreaEmpty.svelte'
@@ -58,30 +58,14 @@
   // routes.
   const routes = routeList(() => ({ areaId: Number(page.params.id) }))
 
-  const countByGrade = $derived.by(() => {
-    const counts = new SvelteMap<number, number>()
-    for (const route of routes.data) {
-      if (route.gradeFk != null) {
-        counts.set(route.gradeFk, (counts.get(route.gradeFk) ?? 0) + 1)
-      }
-    }
-    return counts
-  })
+  const countByGrade = $derived(countRoutesByGrade(routes.data))
 
-  // Parking if there is one, else the mean of the sector's block pins. A sub-area has no location.
+  // A sub-area has no location of its own, so it gets no destination.
   const destination = $derived.by(() => {
     const data = area.data
     if (data == null || data.type === 'area') return undefined
-
-    const parking = data.parkingLocations.at(0)
-    if (parking != null) return parking
-
-    const coords = blocks.data.map((block) => block.geolocation).filter((geo) => geo != null)
-    if (coords.length === 0) return undefined
-    return {
-      lat: coords.reduce((sum, geo) => sum + geo.lat, 0) / coords.length,
-      long: coords.reduce((sum, geo) => sum + geo.long, 0) / coords.length,
-    }
+    const pins = blocks.data.map((block) => block.geolocation)
+    return sectorReferencePoint(data.parkingLocations.at(0), pins) ?? undefined
   })
 
   const location = createLocationState(() => destination)
@@ -128,7 +112,7 @@
   <title>{area.data?.name ?? m.areas_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={area}>
+<QueryState notFound={m.areas_notFound()} resource={area}>
   {#snippet ready(detail)}
     <div class="space-y-5">
       {#if emptyLeads}
@@ -198,10 +182,6 @@
         scopeType="area"
       />
     </div>
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.areas_notFound()} />
   {/snippet}
 </QueryState>
 

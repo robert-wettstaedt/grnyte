@@ -15,8 +15,7 @@
  */
 import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import type { UserRegion } from '$lib/entities/region/dto'
-import { emptyRegionSettings } from '$lib/entities/region/settings'
+import { userRegion } from '$lib/entities/region/fixture'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { requireEditableFile, resolveAttachRegion } from './guards.server'
 
@@ -34,17 +33,6 @@ let regionId = 0
 let areaId = 0
 let ascentId = 0
 const fileId = '__file_authz_file__'
-
-const membership = (regionFk: number, ...permissions: UserRegion['permissions']): UserRegion => ({
-  layersComplete: true,
-  name: '',
-  permissions,
-  regionFk,
-  role: 'region_user',
-  settings: emptyRegionSettings(),
-  synced: true,
-  tagsComplete: true,
-})
 
 async function removeFixtures() {
   const inRegion = sql`(select id from public.regions where name = ${REGION})`
@@ -94,7 +82,7 @@ describe.skipIf(!reachable)('resolveAttachRegion', () => {
   // tests exist for never runs.
   it('refuses a READ member attaching to a non-ascent entity (finalizeImage had no gate)', async () => {
     await expect(
-      resolveAttachRegion(db, users.stranger.userId, [membership(regionId, 'region.read')], 'area', areaId),
+      resolveAttachRegion(db, users.stranger.userId, [userRegion(regionId, 'region.read')], 'area', areaId),
     ).rejects.toMatchObject({ status: 403 })
   })
 
@@ -102,7 +90,7 @@ describe.skipIf(!reachable)('resolveAttachRegion', () => {
     const region = await resolveAttachRegion(
       db,
       users.stranger.userId,
-      [membership(regionId, 'region.edit')],
+      [userRegion(regionId, 'region.edit')],
       'area',
       areaId,
     )
@@ -113,7 +101,7 @@ describe.skipIf(!reachable)('resolveAttachRegion', () => {
     const region = await resolveAttachRegion(
       db,
       users.owner.userId,
-      [membership(regionId, 'region.read')],
+      [userRegion(regionId, 'region.read')],
       'ascent',
       ascentId,
     )
@@ -125,7 +113,7 @@ describe.skipIf(!reachable)('resolveAttachRegion', () => {
     // `isNull(ascents.deletedAt)`, so a soft-deleted fixture 404s and would pass a bare toThrow
     // without ever reaching the `ascent.createdBy !== userId` check this test is named for.
     await expect(
-      resolveAttachRegion(db, users.stranger.userId, [membership(regionId, 'region.admin')], 'ascent', ascentId),
+      resolveAttachRegion(db, users.stranger.userId, [userRegion(regionId, 'region.admin')], 'ascent', ascentId),
     ).rejects.toMatchObject({ status: 403 })
   })
 })
@@ -136,17 +124,17 @@ describe.skipIf(!reachable)('requireEditableFile', () => {
     // 403 is what keeps the deliberate divergence here under test: a maintainer must not flip
     // someone else's ascent media public, even though the files UPDATE policy would let them.
     await expect(
-      requireEditableFile(db, [membership(regionId, 'region.edit')], users.stranger.userId, fileId),
+      requireEditableFile(db, [userRegion(regionId, 'region.edit')], users.stranger.userId, fileId),
     ).rejects.toMatchObject({ status: 403 })
   })
 
   it('lets the ascent owner change their own media’s visibility', async () => {
-    const file = await requireEditableFile(db, [membership(regionId, 'region.read')], users.owner.userId, fileId)
+    const file = await requireEditableFile(db, [userRegion(regionId, 'region.read')], users.owner.userId, fileId)
     expect(file.id).toBe(fileId)
   })
 
   it('lets a region admin change any ascent media’s visibility', async () => {
-    const file = await requireEditableFile(db, [membership(regionId, 'region.admin')], users.stranger.userId, fileId)
+    const file = await requireEditableFile(db, [userRegion(regionId, 'region.admin')], users.stranger.userId, fileId)
     expect(file.id).toBe(fileId)
   })
 })

@@ -69,7 +69,7 @@
   <title>{title} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={block}>
+<QueryState notFound={m.blocks_notFound()} resource={block}>
   {#snippet ready(detail)}
     <!-- flex-1: nested inside the block QueryState, whose wrapper has no definite height for
          this one's `min-h-full` to resolve against. Without it the map picker collapses. -->
@@ -123,9 +123,5 @@
         {/if}
       {/snippet}
     </QueryState>
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.blocks_notFound()} />
   {/snippet}
 </QueryState>

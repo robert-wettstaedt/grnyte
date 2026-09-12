@@ -20,7 +20,7 @@ import Icon from 'ol/style/Icon'
 // `sideEffects` in its package.json, so no bundler may drop it, and importing one string from this
 // module would pull the whole library into StaticMap and so into every feed card.
 import { APPROACH_COLOR } from './tiles'
-import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, SECTOR_ZOOM } from './types'
+import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, SECTOR_ZOOM, type Bounds } from './types'
 
 // Read-only fallback for areas/sectors with no grade data, so we never allocate per feature.
 const EMPTY_GRADE_COUNTS: Map<number, number> = new Map<number, number>()
@@ -33,7 +33,7 @@ const EMPTY_GRADE_COUNTS: Map<number, number> = new Map<number, number>()
 // The outermost area grouping, drawn when zoomed out so the far view isn't cluttered with
 // every sector; from SECTOR_ZOOM the sector rects take over.
 export function buildAreaFeatures(
-  areaBoundingBoxes: Map<number, { area: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>,
+  areaBoundingBoxes: Map<number, { area: BlockDetail['areas'][0]; bounds: Bounds }>,
   routeCountByArea: Map<number, number>,
   gradeCountByArea: Map<number, Map<number, number>>,
 ): Feature[] {
@@ -117,7 +117,7 @@ export function buildPathFeatures(uniqueLineStrings: string[]): Feature[] {
 // A sector is the block-holding area: a rect around its blocks, shown at mid zoom until the
 // user zooms in far enough for the individual block markers to take over.
 export function buildSectorFeatures(
-  sectorBoundingBoxes: Map<number, { bounds: [number, number, number, number]; sector: BlockDetail['areas'][0] }>,
+  sectorBoundingBoxes: Map<number, { bounds: Bounds; sector: BlockDetail['areas'][0] }>,
   routeCountBySector: Map<number, number>,
   gradeCountBySector: Map<number, Map<number, number>>,
 ): Feature[] {

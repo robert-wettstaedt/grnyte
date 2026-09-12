@@ -10,7 +10,7 @@
   import { createRoute } from '$lib/entities/route/routes.remote'
   import RouteTagsInput from '$lib/entities/route/RouteTagsInput.svelte'
   import FormError from '$lib/forms/FormError.svelte'
-  import FormHint from '$lib/forms/FormHint.svelte'
+  import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { tick } from 'svelte'
@@ -217,15 +217,22 @@
 
       <FormError form={createRoute} />
 
-      <label class="block space-y-2.5">
-        <span class="text-surface-700-300 block text-sm font-semibold">{m.routes_form_nameLabel()}</span>
-        <input
-          {...createRoute.fields.name.as('text')}
-          class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-3.5 text-base font-semibold tracking-tight focus:ring-0 focus:outline-none"
-          placeholder={m.routes_form_namePlaceholder()}
-        />
-        <FormHint id="topo-route-name" issues={createRoute.fields.name.issues()} />
-      </label>
+      <RemoteFormInputWrapper
+        class="space-y-2.5"
+        field={createRoute.fields.name}
+        id="topo-route-name"
+        label={m.routes_form_nameLabel()}
+        required
+      >
+        {#snippet children(props)}
+          <input
+            {...createRoute.fields.name.as('text')}
+            {...props}
+            class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-3.5 text-base font-semibold tracking-tight focus:ring-0 focus:outline-none"
+            placeholder={m.routes_form_namePlaceholder()}
+          />
+        {/snippet}
+      </RemoteFormInputWrapper>
 
       <div class="space-y-2.5">
         <span class="text-surface-700-300 block text-sm font-semibold">{m.routes_form_gradeLabel()}</span>

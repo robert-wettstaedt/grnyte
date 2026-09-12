@@ -7,6 +7,7 @@
   import Modal from '$lib/components/Modal/Modal.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import AscentRow from '$lib/entities/ascent/AscentRow.svelte'
+  import type { UserAscentDetail } from '$lib/entities/ascent/dto'
   import { deriveProjects, type ProjectRoute } from '$lib/entities/ascent/projects'
   import { userAscentDetailList } from '$lib/entities/ascent/resources.svelte'
   import { dayCounts, groupSessions } from '$lib/entities/ascent/sessions'
@@ -193,6 +194,17 @@
   </div>
 {/snippet}
 
+<!-- One row shape for both logbook lists (recent sessions and the day sheet), so their
+     thumbnails keep feeding the single ?media lightbox host at the bottom. -->
+{#snippet ascentRow(ascent: UserAscentDetail)}
+  <AscentRow
+    {ascent}
+    crumbs={locationCrumb(ascent)}
+    routeName={ascent.routeName}
+    route={{ href: resolve('/(app)/routes/[id]', { id: String(ascent.routeFk) }), name: ascent.routeName }}
+  />
+{/snippet}
+
 <div class="container mx-auto max-w-3xl space-y-8 px-4 py-8 pb-24 md:pb-8">
   <ProfileHeader
     {username}
@@ -269,15 +281,7 @@
               <div class="space-y-1.5">
                 <h3 class="text-surface-500 text-xs font-semibold">{formatDay(session.day, now(), getLocale())}</h3>
                 {#each session.ascents as ascent (ascent.id)}
-                  <AscentRow
-                    {ascent}
-                    crumbs={locationCrumb(ascent)}
-                    routeName={ascent.routeName}
-                    route={{
-                      href: resolve('/(app)/routes/[id]', { id: String(ascent.routeFk) }),
-                      name: ascent.routeName,
-                    }}
-                  />
+                  {@render ascentRow(ascent)}
                 {/each}
               </div>
             {/each}
@@ -367,12 +371,7 @@
     {:else if daySession != null}
       <div class="flex flex-col gap-1.5">
         {#each daySession.ascents as ascent (ascent.id)}
-          <AscentRow
-            {ascent}
-            crumbs={locationCrumb(ascent)}
-            routeName={ascent.routeName}
-            route={{ href: resolve('/(app)/routes/[id]', { id: String(ascent.routeFk) }), name: ascent.routeName }}
-          />
+          {@render ascentRow(ascent)}
         {/each}
       </div>
     {/if}

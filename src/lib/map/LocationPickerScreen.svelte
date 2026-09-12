@@ -2,7 +2,7 @@
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
   import LocationPicker from '$lib/map/LocationPicker.svelte'
-  import type { MapData } from '$lib/map/types'
+  import type { Bounds, MapData } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
 
   type Coords = { lat: number; long: number }
@@ -11,7 +11,7 @@
   // map · coordinates picker. Owns the picker's transient state so callers only deal
   // in the committed result. Reused by the add-block flow and (later) "move on the map".
   interface Props {
-    areaExtent: [number, number, number, number] | null
+    areaExtent: Bounds | null
     /** Label of the screen returned to (shown next to the back arrow). */
     backLabel: string
     /** Seed the picker, e.g. the existing location when adjusting. */

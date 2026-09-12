@@ -17,8 +17,10 @@ import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { inviteEmailContent } from '$lib/email/invite'
 import type { SendEmailInput } from '$lib/email/send.server'
+import { statusOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UserRegion } from './dto'
+import { userRegion } from './fixture'
 import {
   acceptInvitation,
   assertResendAllowed,
@@ -34,7 +36,6 @@ import {
   restoreInvitation,
   revokeInvitation,
 } from './invite.server'
-import { emptyRegionSettings } from './settings'
 
 /**
  * The one mock in this file. `.env` carries a live `RESEND_API_KEY` (the Playwright spec needs
@@ -74,16 +75,7 @@ const MAIL = { ambientLocale: 'en', origin: 'http://localhost:3000' }
 /** The caller's memberships, as `canEditRegion` wants them. `adminOf()` may administer the fixture
  *  region; `[]` is anybody else, which is what the 403 cases pass. */
 const adminOf = (fk = regionId): UserRegion[] => [
-  {
-    layersComplete: true,
-    name: REGION,
-    permissions: ['region.admin'],
-    regionFk: fk,
-    role: 'region_admin',
-    settings: emptyRegionSettings(),
-    synced: true,
-    tagsComplete: true,
-  },
+  { ...userRegion(fk, 'region.admin'), name: REGION, role: 'region_admin' },
 ]
 
 async function accept(token: string, who: Who = 'invitee') {
@@ -128,14 +120,6 @@ async function reset() {
 const queued = () => sql<{ userFk: number }[]>`
   select user_fk as "userFk" from public.notifications
   where region_fk = ${regionId} and source_type = 'invitation_received'`
-
-/** The status code SvelteKit's `error()` threw, or 0 when the call resolved. */
-async function statusOf(promise: Promise<unknown>): Promise<number> {
-  return promise.then(
-    () => 0,
-    (cause) => (cause as { status?: number }).status ?? -1,
-  )
-}
 
 beforeAll(async () => {
   if (!reachable) return
@@ -191,11 +175,11 @@ describe.skipIf(!reachable)('createInvitation', () => {
     await sql`update public.regions set max_members = 3 where id = ${regionId}`
     await invite()
 
-    expect(await statusOf(invite('somebody-else@grnyte.rocks'))).toBe(409)
+    expect(await statusOf(() => invite('somebody-else@grnyte.rocks'))).toBe(409)
   })
 
   it('refuses an address that is already an active member', async () => {
-    expect(await statusOf(invite(EMAILS.member))).toBe(409)
+    expect(await statusOf(() => invite(EMAILS.member))).toBe(409)
   })
 
   it('ignores a timed-out invitation when counting seats and when reusing', async () => {
@@ -237,7 +221,7 @@ describe.skipIf(!reachable)('acceptInvitation', () => {
     await accept(token)
 
     // A used link is spent, so reopening it says so.
-    expect(await statusOf(accept(token))).toBe(410)
+    expect(await statusOf(() => accept(token))).toBe(410)
 
     // A second live invitation for somebody who has since joined (a re-invite, or a link that was
     // still open in another tab) resolves instead of adding a second membership.
@@ -254,28 +238,28 @@ describe.skipIf(!reachable)('acceptInvitation', () => {
   })
 
   it('refuses an unknown token', async () => {
-    expect(await statusOf(accept('00000000-0000-4000-8000-000000000000'))).toBe(404)
+    expect(await statusOf(() => accept('00000000-0000-4000-8000-000000000000'))).toBe(404)
   })
 
   it('refuses a timed-out invitation', async () => {
     const { id, token } = await invite()
     await sql`update public.region_invitations set expires_at = now() - interval '1 day' where id = ${id}`
 
-    expect(await statusOf(accept(token))).toBe(410)
+    expect(await statusOf(() => accept(token))).toBe(410)
   })
 
   it('refuses a revoked invitation, identically to a timed-out one', async () => {
     const { id, token } = await invite()
     await sql`update public.region_invitations set status = 'expired', expires_at = now() where id = ${id}`
 
-    expect(await statusOf(accept(token))).toBe(410)
+    expect(await statusOf(() => accept(token))).toBe(410)
   })
 
   it('refuses an account whose address is not the invited one', async () => {
     const { token } = await invite()
 
     // What makes a forwarded invitation useless to whoever received it.
-    expect(await statusOf(accept(token, 'member'))).toBe(403)
+    expect(await statusOf(() => accept(token, 'member'))).toBe(403)
   })
 
   it('reads a malformed token as unknown rather than letting Postgres throw', async () => {
@@ -288,7 +272,7 @@ describe.skipIf(!reachable)('acceptInvitation', () => {
     const { id, token } = await invite()
     await sql`update public.regions set max_members = 2 where id = ${regionId}`
 
-    expect(await statusOf(accept(token))).toBe(409)
+    expect(await statusOf(() => accept(token))).toBe(409)
 
     const [row] = await sql<{ status: string }[]>`select status from public.region_invitations where id = ${id}`
     expect(row.status).toBe('pending')
@@ -418,7 +402,7 @@ describe.skipIf(!reachable)('revokeInvitation / restoreInvitation', () => {
 
     await revokeInvitation(db, id, adminOf())
     expect(await findLiveInvitationByEmail(EMAILS.invitee)).toBeUndefined()
-    expect(await statusOf(accept(token))).toBe(410)
+    expect(await statusOf(() => accept(token))).toBe(410)
 
     await restoreInvitation(db, id, adminOf())
     // Same token, so the link already in the invitee's inbox starts working again.
@@ -444,12 +428,12 @@ describe.skipIf(!reachable)('revokeInvitation / restoreInvitation', () => {
   it('refuses somebody who does not administer the region', async () => {
     const { id } = await invite()
 
-    expect(await statusOf(revokeInvitation(db, id, []))).toBe(403)
-    expect(await statusOf(restoreInvitation(db, id, adminOf(regionId + 1000)))).toBe(403)
+    expect(await statusOf(() => revokeInvitation(db, id, []))).toBe(403)
+    expect(await statusOf(() => restoreInvitation(db, id, adminOf(regionId + 1000)))).toBe(403)
   })
 
   it('refuses an invitation that is not there', async () => {
-    expect(await statusOf(revokeInvitation(db, -1, adminOf()))).toBe(404)
+    expect(await statusOf(() => revokeInvitation(db, -1, adminOf()))).toBe(404)
   })
 })
 
@@ -494,7 +478,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
 
     // The throttle is now armed, which is exactly the case a retry loop would exploit.
     expect(
-      await statusOf(resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL)),
+      await statusOf(() => resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL)),
     ).toBe(429)
     expect(mail.sent).toHaveLength(1)
   })
@@ -504,7 +488,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
     await resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL)
 
     expect(
-      await statusOf(resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL)),
+      await statusOf(() => resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL)),
     ).toBe(429)
     expect(mail.sent).toHaveLength(1)
   })
@@ -512,7 +496,9 @@ describe.skipIf(!reachable)('resendInvitation', () => {
   it('refuses somebody who does not administer the region, without mailing', async () => {
     const { id } = await invite()
 
-    expect(await statusOf(resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: [] }, MAIL))).toBe(403)
+    expect(
+      await statusOf(() => resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: [] }, MAIL)),
+    ).toBe(403)
     expect(mail.sent).toHaveLength(0)
   })
 

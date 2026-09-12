@@ -4,6 +4,7 @@
   import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
   import { m } from '$lib/paraglide/messages'
   import { BottomSheet, type TypeOfBottomSheet } from 'svelte-bottom-sheet'
+  import SheetHeading from './SheetHeading.svelte'
   import { sheetState } from './sheetState.svelte'
   import type { ModalProps } from './types'
 
@@ -107,23 +108,7 @@
             </button>
           {/if}
 
-          {#if sheetState.headerLeft}
-            {@render sheetState.headerLeft()}
-          {/if}
-
-          <div class="flex min-w-0 flex-col">
-            {#if typeof sheetState.subtitle === 'string'}
-              <span class="text-surface-600-400 shrink-0 text-xs">{sheetState.subtitle}</span>
-            {:else if sheetState.subtitle != null}
-              {@render sheetState.subtitle()}
-            {/if}
-
-            {#if typeof sheetState.title === 'string'}
-              <span class="text-lg">{sheetState.title}</span>
-            {:else if sheetState.title != null}
-              {@render sheetState.title()}
-            {/if}
-          </div>
+          <SheetHeading />
         </div>
 
         {#if !back}

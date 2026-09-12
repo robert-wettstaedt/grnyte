@@ -68,7 +68,7 @@
   <title>{m.routes_editRoute()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={route}>
+<QueryState notFound={m.routes_notFound()} resource={route}>
   {#snippet ready(detail)}
     <QueryState resource={block}>
       {#snippet ready(blockData)}
@@ -115,9 +115,5 @@
         {/if}
       {/snippet}
     </QueryState>
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.routes_notFound()} />
   {/snippet}
 </QueryState>

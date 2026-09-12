@@ -12,7 +12,7 @@
  * Skipped when DATABASE_URL is unreachable, like every other DB-backed suite here.
  */
 import { createThrowawayUser, dropThrowawayUser, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest } from '$lib/remote/testHarness'
+import { asRequest, statusOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { userContributionCount } from '../event/events.remote'
 import { listRegionInvitations } from './regions.remote'
@@ -120,17 +120,6 @@ afterAll(async () => {
   }
   await sql.end()
 })
-
-/** The status of the HttpError a handler threw, or `undefined` when it returned normally. A refusal
- *  is an exception here, so the assertion has to be on the status rather than on a return value. */
-async function statusOf(run: () => Promise<unknown>): Promise<number | undefined> {
-  try {
-    await run()
-    return undefined
-  } catch (error) {
-    return (error as { status?: number })?.status
-  }
-}
 
 describe.skipIf(!reachable)('listRegionInvitations', () => {
   it("lists a region's pending invitations for an admin of that region", async () => {

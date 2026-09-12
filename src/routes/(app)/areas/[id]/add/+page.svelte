@@ -35,7 +35,7 @@
   <title>{m.areas_addArea()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState resource={parent}>
+<QueryState notFound={m.areas_notFound()} resource={parent}>
   {#snippet ready(area)}
     {#if canAddArea(global.userRegions, area)}
       <Form
@@ -68,9 +68,5 @@
         }}
       />
     {/if}
-  {/snippet}
-
-  {#snippet empty()}
-    <ErrorState type="notfound" title={m.areas_notFound()} />
   {/snippet}
 </QueryState>

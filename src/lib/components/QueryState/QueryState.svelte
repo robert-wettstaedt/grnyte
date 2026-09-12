@@ -1,4 +1,5 @@
 <script lang="ts" generics="TOut">
+  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import type { QueryResource } from '$lib/zero/resource.svelte'
@@ -11,6 +12,7 @@
     error,
     forceState,
     loading,
+    notFound,
     ready,
     resource,
   }: {
@@ -30,6 +32,11 @@
      */
     forceState?: 'empty' | 'error' | 'loading'
     loading?: Snippet
+    /**
+     * Title for the "this entity does not exist" empty branch, which is what a detail or edit route
+     * wants instead of the generic empty line. Ignored when `empty` is given.
+     */
+    notFound?: string
     /** Rendered once there is data to show; receives the DTO-mapped data. */
     ready: Snippet<[NonNullable<TOut>]>
     resource: QueryResource<TOut>
@@ -73,6 +80,8 @@
 {:else if isEmpty}
   {#if empty}
     {@render empty()}
+  {:else if notFound != null}
+    <ErrorState type="notfound" title={notFound} />
   {:else}
     <p class="text-surface-600-400 py-8 text-center" in:fade={{ duration: 150 }}>{m.queryState_empty()}</p>
   {/if}

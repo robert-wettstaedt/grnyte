@@ -42,6 +42,26 @@ export async function recordAccolades(
 }
 
 /**
+ * A stored row as the pure derivation reads it. The date conversion is load-bearing: a pg `date`
+ * reaches the client as UTC-midnight millis, and the derivation compares climb days by equality.
+ */
+export function toAccoladeAscent(row: {
+  dateTime: null | string
+  gradeFk: null | number
+  id: number
+  routeFk: number
+  type: AscentType
+}): AccoladeAscent {
+  return {
+    dateTime: row.dateTime == null ? undefined : new Date(row.dateTime).getTime(),
+    gradeFk: row.gradeFk ?? undefined,
+    id: row.id,
+    routeFk: row.routeFk,
+    type: row.type,
+  }
+}
+
+/**
  * Drop every stored claim of this climber's that the write could have falsified.
  *
  * What a maintainer's edit gets instead of a recompute, for the reason `recordAccolades` gives.
@@ -211,28 +231,5 @@ async function syncAccolades(db: Db, userFk: number, routeFk: number): Promise<v
       .update(ascents)
       .set({ accolade: next })
       .where(and(eq(ascents.id, target.id), eq(ascents.createdBy, userFk)))
-  }
-}
-
-/**
- * A stored row as the pure derivation reads it.
- *
- * The date conversion is the load-bearing part: a pg `date` reaches the Zero client as UTC-midnight
- * millis and the derivation compares climb days by equality, so reading it any other way here would
- * make the server and the client disagree about which two ascents happened on the same day.
- */
-function toAccoladeAscent(row: {
-  dateTime: null | string
-  gradeFk: null | number
-  id: number
-  routeFk: number
-  type: AscentType
-}): AccoladeAscent {
-  return {
-    dateTime: row.dateTime == null ? undefined : new Date(row.dateTime).getTime(),
-    gradeFk: row.gradeFk ?? undefined,
-    id: row.id,
-    routeFk: row.routeFk,
-    type: row.type,
   }
 }

@@ -2,7 +2,6 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import { canEditRegion } from '$lib/entities/region/permissions'
   import { updateRegion } from '$lib/entities/region/regions.remote'
   import AuthField from '$lib/forms/AuthField.svelte'
@@ -12,6 +11,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
+  import RegionAdminRequired from '../RegionAdminRequired.svelte'
 
   const global = getGlobalState()
 
@@ -48,15 +48,7 @@
 </svelte:head>
 
 {#if !isAdmin}
-  <ErrorState
-    type="generic"
-    title={m.form_noPermissionTitle()}
-    description={m.form_noAdminPermission()}
-    primaryAction={{
-      href: resolve('/(app)/settings/regions/[regionId]', { regionId: String(regionId) }),
-      label: m.region_viewRegion(),
-    }}
-  />
+  <RegionAdminRequired {regionId} />
 {:else}
   <Form
     form={updateRegion}

@@ -2,8 +2,8 @@
   import { resolve } from '$app/paths'
   import AreaRow from '$lib/components/EntityRow/AreaRow.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
+  import { countRoutesByGrade } from '$lib/entities/grade/counts'
   import { routeList } from '$lib/entities/route/resources.svelte'
-  import { SvelteMap } from 'svelte/reactivity'
 
   interface Props {
     area: AreaDetail
@@ -16,15 +16,7 @@
   // the whole sub-tree, not only routes attached directly to this area.
   const routes = routeList(() => ({ areaId: area.id }))
 
-  const countByGrade = $derived.by(() => {
-    const counts = new SvelteMap<number, number>()
-    for (const route of routes.data) {
-      if (route.gradeFk != null) {
-        counts.set(route.gradeFk, (counts.get(route.gradeFk) ?? 0) + 1)
-      }
-    }
-    return counts
-  })
+  const countByGrade = $derived(countRoutesByGrade(routes.data))
 </script>
 
 <AreaRow

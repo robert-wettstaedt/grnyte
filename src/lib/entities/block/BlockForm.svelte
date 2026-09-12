@@ -2,8 +2,7 @@
   import type { AreaDetail } from '$lib/entities/area/dto'
   import Form from '$lib/forms/Form.svelte'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
-  import { createExploreMapData } from '$lib/map/exploreData.svelte'
-  import { parseRouteFilter } from '$lib/map/filter'
+  import { createAreaPickerMapData } from '$lib/map/exploreData.svelte'
   import { userLocation } from '$lib/map/geolocation.svelte'
   import LocationPickerScreen from '$lib/map/LocationPickerScreen.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -14,7 +13,6 @@
   import BlockLocationConfirm from './BlockLocationConfirm.svelte'
   import type { BlockFormInput } from './blocks.remote'
   import { blockPinFingerprint } from './fingerprint'
-  import { blockList } from './resources.svelte'
 
   type Coords = { lat: number; long: number }
 
@@ -63,22 +61,13 @@
   }: Props = $props()
 
   const global = getGlobalState()
-  const blocks = blockList(() => ({ areaId: area.id }))
 
-  // The same blocks/areas/parking the /explore map renders, for the picker + located preview.
-  const explore = createExploreMapData(
-    () => parseRouteFilter(new URLSearchParams()),
+  // The same blocks/areas/parking the /explore map renders (for the picker + located preview),
+  // framed on the area's existing blocks.
+  const picker = createAreaPickerMapData(
+    () => area.id,
     () => global.user?.id,
   )
-
-  // Frame the picker on the bounding box of the area's existing blocks.
-  const areaExtent = $derived.by<[number, number, number, number] | null>(() => {
-    const coords = blocks.data.map((block) => block.geolocation).filter((geo) => geo != null)
-    if (coords.length === 0) return null
-    const lats = coords.map((geo) => geo.lat)
-    const lngs = coords.map((geo) => geo.long)
-    return [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)]
-  })
 
   // Re-seeded here rather than by a `{#key}` from outside, which would rebuild the `<form>`:
   // a remote form object accepts exactly one form element and throws on a second.
@@ -147,8 +136,8 @@
 
 {#if step === 'pin'}
   <LocationPickerScreen
-    mapData={explore}
-    {areaExtent}
+    mapData={picker.mapData}
+    areaExtent={picker.areaExtent}
     initial={committed}
     title={m.blocks_add_setLocationTitle()}
     backLabel={title}
@@ -174,7 +163,7 @@
       {locating}
       {estimated}
       location={committed}
-      mapData={explore}
+      mapData={picker.mapData}
       onEstimatedChange={(value) => (estimated = value)}
       onPickLocation={() => (step = 'pin')}
       onRemove={() => (committed = null)}

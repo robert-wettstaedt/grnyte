@@ -18,10 +18,10 @@
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { pathToFileURL } from 'node:url'
 import Database from 'postgres'
-import { createClient } from 'webdav'
 import drizzleConfig from '../../../../drizzle.config'
 import { isDerivableImage } from '../../images/derivatives'
 import * as schema from '../schema'
+import { connectNextcloud } from './nextcloud'
 
 /** Storage path of the pristine sibling, e.g. `/topos/138.jpg` → `/topos/138.orig.jpg`. */
 const origPathOf = (path: string): string => path.replace(/\.([^./]+)$/, '.orig.$1')
@@ -32,17 +32,7 @@ const parentOf = (path: string): string => path.slice(0, path.lastIndexOf('/'))
 const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
-  const { NEXTCLOUD_URL, NEXTCLOUD_USER_NAME, NEXTCLOUD_USER_PASSWORD } = process.env
-  if (NEXTCLOUD_URL == null || NEXTCLOUD_USER_NAME == null || NEXTCLOUD_USER_PASSWORD == null) {
-    throw new Error('NEXTCLOUD_URL / NEXTCLOUD_USER_NAME / NEXTCLOUD_USER_PASSWORD must be set')
-  }
-
-  // The app's image access goes through the ImageProvider, but that module reads
-  // `$env/static/private` (SvelteKit-only), so this script talks WebDAV directly.
-  const dav = createClient(`${NEXTCLOUD_URL}/remote.php/dav/files`, {
-    password: NEXTCLOUD_USER_PASSWORD,
-    username: NEXTCLOUD_USER_NAME,
-  })
+  const { dav, userPath } = connectNextcloud()
 
   // One PROPFIND per folder instead of one exists() round-trip per file.
   const listings = new Map<string, Set<string>>()
@@ -55,7 +45,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
 
     let names = new Set<string>()
     try {
-      const entries = await dav.getDirectoryContents(`${NEXTCLOUD_USER_NAME}${dir}`)
+      const entries = await dav.getDirectoryContents(userPath(dir))
       names = new Set(entries.map((entry) => entry.basename))
     } catch (err) {
       console.warn(`Could not list "${dir}":`, err instanceof Error ? err.message : err)
@@ -86,7 +76,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
 
     if (!dryRun) {
       try {
-        await dav.moveFile(`${NEXTCLOUD_USER_NAME}${orig}`, `${NEXTCLOUD_USER_NAME}${path}`)
+        await dav.moveFile(userPath(orig), userPath(path))
         // Keep the cached listing truthful: the orig is consumed now.
         siblings.delete(nameOf(orig))
       } catch (err) {

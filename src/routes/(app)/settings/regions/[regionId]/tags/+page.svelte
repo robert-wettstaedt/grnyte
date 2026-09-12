@@ -14,6 +14,7 @@
   import { back } from '$lib/state/navigation.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
   import SettingSection from '../../../SettingSection.svelte'
+  import RegionAdminRequired from '../RegionAdminRequired.svelte'
   import TagRow from './TagRow.svelte'
 
   const global = getGlobalState()
@@ -104,15 +105,7 @@
 </svelte:head>
 
 {#if !isAdmin}
-  <ErrorState
-    type="generic"
-    title={m.form_noPermissionTitle()}
-    description={m.form_noAdminPermission()}
-    primaryAction={{
-      href: resolve('/(app)/settings/regions/[regionId]', { regionId: String(regionId) }),
-      label: m.region_viewRegion(),
-    }}
-  />
+  <RegionAdminRequired {regionId} />
 {:else if membership?.synced !== true}
   <!-- No editor until the region row is here. `isAdmin` reads the role off the membership, which
        arrives first, so this screen opened early and listed the DEFAULT vocabulary as the region's

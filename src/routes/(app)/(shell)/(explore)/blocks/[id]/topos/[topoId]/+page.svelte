@@ -180,7 +180,7 @@
 </div>
 
 <Panel bind:open onclose={() => goto(blockHref)}>
-  <QueryState resource={topos}>
+  <QueryState notFound={m.topo_alt()} resource={topos}>
     {#snippet ready()}
       {#if topo == null}
         <ErrorState type="notfound" title={m.topo_alt()} />
@@ -209,10 +209,6 @@
           {/each}
         </nav>
       {/if}
-    {/snippet}
-
-    {#snippet empty()}
-      <ErrorState type="notfound" title={m.topo_alt()} />
     {/snippet}
   </QueryState>
 </Panel>

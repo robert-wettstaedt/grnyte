@@ -3,6 +3,7 @@
   import { siblingScrollSurface } from '$lib/components/SiblingNav/siblingNav'
   import { m } from '$lib/paraglide/messages'
   import NavFooter from './NavFooter.svelte'
+  import SheetHeading from './SheetHeading.svelte'
   import { sheetState } from './sheetState.svelte'
   import type { ModalProps } from './types'
 
@@ -26,23 +27,7 @@
           <Icon name="arrow-left" />
         </button>
 
-        {#if sheetState.headerLeft}
-          {@render sheetState.headerLeft()}
-        {/if}
-
-        <div class="flex min-w-0 flex-col">
-          {#if typeof sheetState.subtitle === 'string'}
-            <span class="text-surface-600-400 shrink-0 text-xs">{sheetState.subtitle}</span>
-          {:else if sheetState.subtitle != null}
-            {@render sheetState.subtitle()}
-          {/if}
-
-          {#if typeof sheetState.title === 'string'}
-            <span class="truncate text-lg">{sheetState.title}</span>
-          {:else if sheetState.title != null}
-            {@render sheetState.title()}
-          {/if}
-        </div>
+        <SheetHeading />
       </div>
 
       {#if sheetState.toolbar}

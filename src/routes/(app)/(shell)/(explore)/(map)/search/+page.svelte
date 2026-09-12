@@ -208,7 +208,9 @@
     <div class="placeholder animate-pulse"></div>
   </div>
 {:else if results.length === 0}
-  <p class="text-surface-600-400 py-10 text-center text-sm">{m.search_noResults({ query })}</p>
+  <!-- `wrap-anywhere`: this echoes the query back, and one unbroken token would otherwise pan the
+       mobile sheet sideways (its overflow-x is auto). -->
+  <p class="text-surface-600-400 py-10 text-center text-sm wrap-anywhere">{m.search_noResults({ query })}</p>
 {:else}
   <div class="flex flex-col gap-5">
     {#if showTop}
