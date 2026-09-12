@@ -75,6 +75,9 @@ type BlockRow = QueryRow<typeof queries.blockTopos>
  * Find which topo to show for a single route. A route can be drawn on several
  * topos; pick the one where its line has the most points (the most complete
  * drawing), falling back to the first match.
+ *
+ * KNOWN, not fixed: on a partial Zero snapshot a drawn route looks undrawn, so this returns
+ * nothing. The topo editor no longer asks this early, but the next caller will be misled.
  */
 /**
  * From a route's own `topoRoutes` rows, pick the most complete drawn line and its

@@ -1,9 +1,7 @@
 /**
- * Delete something, then take it back from the snackbar. Undo is the only safety net on these
- * deletes: none of them confirm first. The handlers are covered in `restoreFidelity.remote.test.ts`;
- * what only a browser shows is that the toast carries the snapshot the delete produced. Assertions
- * read the database, because a toast saying "restored" and a row that never came back look the
- * same from the page.
+ * Delete something, then take it back from the snackbar: the only safety net on deletes that never
+ * confirm. Assertions read the database, because a toast saying "restored" and a row that never came
+ * back look the same from the page.
  */
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 // `testAccounts`, never `testDb`: that one opens its pool at module scope.

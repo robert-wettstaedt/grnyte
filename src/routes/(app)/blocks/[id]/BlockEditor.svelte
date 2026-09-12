@@ -3,6 +3,8 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import BlockForm from '$lib/entities/block/BlockForm.svelte'
@@ -14,6 +16,7 @@
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
+  import { isOnline } from '$lib/state/online.svelte'
   import { notifyError } from '$lib/state/toast'
 
   // Shared body for the two block-editor routes: /edit opens on the form, /move jumps
@@ -31,11 +34,27 @@
   // The block's immediate area (last crumb) is the sector the form frames against.
   const area = areaDetail(() => block.data?.areas.at(-1)?.id ?? -1)
 
-  // Keyed on the loaded row's id and not the route parameter: the seed reads data, so it has to
-  // wait for the row rather than write the previous entity's values under the new id. Re-seeding
-  // on every snapshot would clobber edits in progress, which is what the guard is for.
+  /**
+   * Whether the pin is known to be here, not just the block's own row. A form opened on a partial
+   * snapshot stamps a proof claiming there was no pin, and the seed key (the block id) never
+   * changes to re-stamp it, so every save refuses until a reload. Unreproduced, kept because that
+   * state cannot recover. Worked example: `routes/[id]/edit`.
+   *
+   * An effect, not a `$derived`: a latch has to remember, or a parked socket tears the form down.
+   */
+  let hydratedId = $state<number | undefined>()
+  $effect(() => {
+    const id = block.data?.id
+    if (id == null || !block.isComplete || hydratedId === id) return
+    hydratedId = id
+  })
+
+  // Keyed on the hydrated id and not the route parameter or the raw row: the seed reads data, so it
+  // has to wait for the row rather than write the previous entity's values under the new id, and it
+  // may as well land at the moment the form appears. Re-seeding on every snapshot would clobber
+  // edits in progress, which is what the guard is for.
   seedOnKeyChange(
-    () => block.data?.id,
+    () => hydratedId,
     () => {
       const data = block.data
       if (data == null) {
@@ -56,7 +75,27 @@
          this one's `min-h-full` to resolve against. Without it the map picker collapses. -->
     <QueryState resource={area} class="flex-1">
       {#snippet ready(sector)}
-        {#if canEditBlock(global.userRegions, detail)}
+        {#if !canEditBlock(global.userRegions, detail)}
+          <ErrorState
+            type="generic"
+            title={m.form_noPermissionTitle()}
+            description={m.form_noEditPermission()}
+            primaryAction={{
+              href: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(detail.id) }),
+              label: m.blocks_viewBlock(),
+            }}
+          />
+        {:else if hydratedId !== detail.id}
+          <!-- No form until the pin is here, and outside `BlockForm` so no Save sits over the
+               spinner: a submit with no coordinates validly means "remove the pin". -->
+          {#if isOnline()}
+            <LoadingIndicator class="flex h-full w-full items-center justify-center" size={20} />
+          {:else}
+            <!-- Offline the pin is not coming, so the spinner would never resolve. `QueryState`
+                 cannot answer this: the block's own row is local, so it reads 'ready'. -->
+            <OfflineNotice />
+          {/if}
+        {:else}
           <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the id changes,
                so the `<form>` it owns is never destroyed and rebuilt under the remote form
                object, which accepts only one element at a time. -->
@@ -80,16 +119,6 @@
               : undefined}
             submitLabel={m.common_save()}
             {title}
-          />
-        {:else}
-          <ErrorState
-            type="generic"
-            title={m.form_noPermissionTitle()}
-            description={m.form_noEditPermission()}
-            primaryAction={{
-              href: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(detail.id) }),
-              label: m.blocks_viewBlock(),
-            }}
           />
         {/if}
       {/snippet}

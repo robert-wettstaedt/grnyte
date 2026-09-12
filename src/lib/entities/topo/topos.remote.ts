@@ -11,6 +11,8 @@ import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../file/cleanup.server'
 import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from './change'
+import { topoLinesFingerprint } from './fingerprint'
+import { convertPathToPoints } from './mapper'
 import { canEditTopo } from './permissions'
 
 /** Where a topo change lands in the feed: on the block, since a topo has no page or row of its
@@ -287,8 +289,14 @@ const topoLineSchema = z.object({
  * line by `routeFk` (a route has at most one line per photo) and deletes lines no longer present.
  */
 export const saveTopoLines = authedCommand(
-  z.object({ lines: z.array(topoLineSchema), topoId: z.number() }),
-  async ({ lines, topoId }, { db, user, userRegions }) => {
+  z.object({
+    /** Fingerprint of the lines the editor loaded. Defaulted, not optional: '' never equals a
+     *  real fingerprint, so a client that sends none is refused. */
+    known: z._default(z.optional(z.string()), ''),
+    lines: z.array(topoLineSchema),
+    topoId: z.number(),
+  }),
+  async ({ known, lines, topoId }, { db, user, userRegions }) => {
     const topo = await db.query.topos.findFirst({ where: eq(topos.id, topoId) })
     if (topo == null) {
       error(404, formError('topo_notFound'))
@@ -320,6 +328,25 @@ export const saveTopoLines = authedCommand(
     const desiredRoutes = new Set(linesByRoute.keys())
 
     const existing = await db.query.topoRoutes.findMany({ where: eq(topoRoutes.topoFk, topoId) })
+
+    // A replacement, not a patch: the delete loop below drops every drawn line the submit omits, so
+    // it has to prove which set it replaces. Read before the first write.
+    //
+    // Measured over the rows the EDITOR can see: path-less rows, soft-deleted routes' lines and
+    // unparseable paths are all invisible there, so counting one would refuse that photo forever.
+    const storedDrawn = existing
+      .filter(
+        (row) =>
+          row.routeFk != null &&
+          liveRouteIds.has(row.routeFk) &&
+          (row.path?.trim() ?? '') !== '' &&
+          convertPathToPoints(row.path!).length > 0,
+      )
+      .map((row) => row.routeFk as number)
+    if (known !== topoLinesFingerprint(storedDrawn)) {
+      error(409, formError('topo_linesStale'))
+    }
+
     const existingByRoute = new Map(existing.map((row) => [row.routeFk, row]))
 
     for (const line of linesByRoute.values()) {

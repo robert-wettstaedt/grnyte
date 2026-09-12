@@ -13,6 +13,7 @@ import { canAddBlock } from '../area/permissions'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { stringifyDeletionScale } from '../event/verbs'
 import { notifyMentions } from '../notification/notification.server'
+import { blockPinFingerprint } from './fingerprint'
 import { inAreaOrderSql } from './order.server'
 import { canDeleteBlock, canEditBlock } from './permissions'
 
@@ -25,6 +26,9 @@ const blockActionSchema = z.object({
     z.transform((value) => value === 'true'),
   ),
   id: z.optional(stringToInt),
+  /** Fingerprint of the pin the form loaded. Defaulted, not optional: '' never equals a real one,
+   *  so a client that sends none is refused. `createBlock` shares this schema and ignores it. */
+  known: z._default(z.optional(z.string()), ''),
   lat: optionalCoordinate(90),
   long: optionalCoordinate(180),
   name: z._default(z.optional(z.string().check(z.trim())), ''),
@@ -149,16 +153,25 @@ export const updateBlock = authedForm(
       invalid(issue.name(formError('blocks_nameExists', { name: existingBlock.name })))
     }
 
+    // Read once: both the staleness proof's subject and the change line's `oldValue`.
+    const storedPin =
+      block.geolocationFk == null
+        ? null
+        : ((await db.query.geolocations.findFirst({ where: eq(geolocations.id, block.geolocationFk) })) ?? null)
+
+    // Every submit carries the whole location, so one that omits it deletes the pin. Read before
+    // the first write.
+    if (value.known !== blockPinFingerprint(storedPin)) {
+      invalid(formError('blocks_pinStale'))
+    }
+
     // Sync the optional location: move the existing pin, attach a new one, or remove it. The two
     // sides of the pin are collected rather than logged here, so one submit writes one diff below.
     let geolocationFk = block.geolocationFk
     let oldLocation: null | string = null
     let newLocation: null | string = null
     if (value.lat != null && value.long != null) {
-      const existing =
-        geolocationFk == null
-          ? null
-          : await db.query.geolocations.findFirst({ where: eq(geolocations.id, geolocationFk) })
+      const existing = storedPin
 
       oldLocation = existing == null ? null : stringifyCoords(existing, existing.estimated)
       newLocation = stringifyCoords({ lat: value.lat, long: value.long }, value.estimated)
@@ -184,7 +197,7 @@ export const updateBlock = authedForm(
     } else if (geolocationFk != null) {
       // Read the pin before dropping it: `oldValue` is the only place the feed can learn where
       // the block used to be, since the row it points at is about to be gone.
-      const removed = await db.query.geolocations.findFirst({ where: eq(geolocations.id, geolocationFk) })
+      const removed = storedPin
       oldLocation = removed == null ? null : stringifyCoords(removed, removed.estimated)
 
       // Removed: break the block→geo link first so the row can be deleted.

@@ -64,6 +64,20 @@ This project uses:
   socket parks. `routes/[id]/edit` is the worked example, and `updateRoute` is why it matters: it
   deletes what the submit leaves out, so an unloaded list is silent data loss rather than a blank
   field. `e2e/form-seeding.spec.ts` is what caught it.
+- A handler that REPLACES a list or a related row rather than patching it has to prove what it is
+  replacing. The form posts a `known` fingerprint of what it loaded and the handler refuses a submit
+  whose fingerprint no longer matches, before its first write. Four handlers are that shape and all
+  four carry it: `updateRoute`, `updateBlock`, `saveTopoLines`, `updateRegionMapLayers`. A count is
+  not a substitute, because a delete plus an add leaves it unchanged. The hash itself is one
+  function (`$lib/forms/fingerprint.ts`): both sides of every such comparison have to agree byte for
+  byte forever, the browser that seeded the form and the Node process that checks it, and a second
+  copy is one widened hash away from a permanent stale refusal on one entity and nothing anywhere
+  else. Two things decide whether such a guard is real. Measure it over exactly what the handler can
+  DELETE and no more, or it refuses saves that took nothing away: paths are deliberately absent from
+  the topo one because `erased()` keys on route ids. And capture it where the loaded value stops
+  being observable, which is the seed for a form and the FIRST EDIT for the topo editor, whose
+  committed set is read live. A fingerprint computed at submit time describes whatever has synced by
+  then, matches its own check every time and protects nothing, which no test of the handler can see.
 - i18n: add keys to BOTH `messages/en.json` and `messages/de.json` (`domain_camelCase`, kept sorted). One prefix per domain: never split singular and plural (`areas_*`, not `area_*` alongside it). No em-dashes anywhere (UI copy, translations, code comments).
 - Icons: use `<Icon name="...">`; only `icons.ts` and `Icon.svelte` may import lucide.
 - Every OpenLayers instance comes from `createBaseMap` (`$lib/map/base.svelte.ts`): never

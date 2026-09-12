@@ -1,5 +1,6 @@
 import { SvelteMap } from 'svelte/reactivity'
 import type { TopoPoint } from './dto'
+import { topoLinesFingerprint } from './fingerprint'
 import { serializePoints } from './path'
 
 /** A route's line while it is being drawn: the editable counterpart of a `topo_routes` row. */
@@ -28,6 +29,10 @@ const uid = (): string =>
 
 const cloneLines = (lines: EditLine[]): EditLine[] =>
   lines.map((line) => ({ ...line, points: line.points.map((point) => ({ ...point })) }))
+
+/** What a Save replaces: the routes carrying a drawn line. Empty ones are never stored. */
+const basisOf = (lines: EditLine[]): string =>
+  topoLinesFingerprint(lines.filter((line) => line.points.length > 0).map((line) => line.routeFk))
 
 /** Order-independent signature of a topo's line set, for dirty comparison. */
 const signature = (lines: EditLine[]): string =>
@@ -82,7 +87,12 @@ export class TopoEditor {
     return this.currentLine?.points.find((point) => point.id === this.selectedPointId)
   }
 
-  #committedFor: (topoId: number) => EditLine[]
+  /** The committed set at the clone, fingerprinted. Never recomputed: `#committedFor` reads live,
+   *  so a fingerprint taken at Save would match its own source every time. */
+  #basis = new SvelteMap<number, string>()
+
+  /** `undefined` means "not knowable yet", not "no lines": see the bail in {@link TopoEditor.#apply}. */
+  #committedFor: (topoId: number) => EditLine[] | undefined
 
   #docs = new SvelteMap<number, EditLine[]>()
 
@@ -99,7 +109,7 @@ export class TopoEditor {
   // dirt is measured against it: the pill/guard clear immediately instead of waiting for the echo.
   #saved = new SvelteMap<number, string>()
 
-  constructor(committedFor: (topoId: number) => EditLine[]) {
+  constructor(committedFor: (topoId: number) => EditLine[] | undefined) {
     this.#committedFor = committedFor
   }
 
@@ -111,6 +121,12 @@ export class TopoEditor {
       }
     })
     this.selectedRouteFk = routeFk
+  }
+
+  /** What this Save replaces, or `undefined` when the topo was never edited. No fallback to the
+   *  live set: that would compute the server's own answer and pass every check. */
+  basisFor(topoId: number): string | undefined {
+    return this.#basis.get(topoId)
   }
 
   /** Hold a snapshot for a drag gesture; it becomes an undo step only if the gesture mutates. */
@@ -131,6 +147,11 @@ export class TopoEditor {
     if (this.selectedPointId === pointId) this.selectedPointId = undefined
   }
 
+  // --- history ------------------------------------------------------------
+  // The stacks always get a NEW array on change: SvelteMap.set skips notifying
+  // when the value is reference-equal, so pushing/popping in place would leave
+  // canUndo/canRedo stale (a disabled Redo button after every undo).
+
   /** Revert the current topo to its committed lines. */
   discard(): void {
     if (this.topoId != null) this.forget(this.topoId)
@@ -138,13 +159,9 @@ export class TopoEditor {
     this.selectedPointId = undefined
   }
 
-  // --- history ------------------------------------------------------------
-  // The stacks always get a NEW array on change: SvelteMap.set skips notifying
-  // when the value is reference-equal, so pushing/popping in place would leave
-  // canUndo/canRedo stale (a disabled Redo button after every undo).
-
   /** Revert every topo (used when leaving the editor). */
   discardAll(): void {
+    this.#basis.clear()
     this.#docs.clear()
     this.#past.clear()
     this.#future.clear()
@@ -193,6 +210,7 @@ export class TopoEditor {
 
   /** Drop a topo's local doc and history, e.g. after its lines are saved or the topo is deleted. */
   forget(topoId: number): void {
+    this.#basis.delete(topoId)
     this.#docs.delete(topoId)
     this.#past.delete(topoId)
     this.#future.delete(topoId)
@@ -228,18 +246,20 @@ export class TopoEditor {
   isDirty(topoId: number): boolean {
     const doc = this.#docs.get(topoId)
     if (doc == null) return false
-    const baseline = this.#saved.get(topoId) ?? signature(this.#committedFor(topoId))
+    const baseline = this.#saved.get(topoId) ?? signature(this.#committedFor(topoId) ?? [])
     return signature(doc) !== baseline
   }
 
   /** Working lines for a topo: the local doc if it has been touched, else the committed set. */
   lines(topoId: number): EditLine[] {
-    return this.#docs.get(topoId) ?? this.#committedFor(topoId)
+    return this.#docs.get(topoId) ?? this.#committedFor(topoId) ?? []
   }
 
   /** Stamp the just-saved signature as the dirty baseline (called after `saveTopoLines` resolves). */
   markSaved(topoId: number): void {
     this.#saved.set(topoId, signature(this.lines(topoId)))
+    // A second Save in this session replaces what we just sent.
+    this.#basis.set(topoId, topoLinesFingerprint(this.savedLinesFor(topoId).map((line) => line.routeFk)))
   }
 
   /** Move a single point by a normalized delta with no snapping: for keyboard nudges. */
@@ -357,7 +377,8 @@ export class TopoEditor {
   /** True once the committed lines have caught up to what was saved: safe to drop the local doc. */
   syncedWithCommitted(topoId: number): boolean {
     const saved = this.#saved.get(topoId)
-    return saved != null && signature(this.#committedFor(topoId)) === saved
+    const committed = this.#committedFor(topoId)
+    return saved != null && committed != null && signature(committed) === saved
   }
 
   undo(): void {
@@ -373,6 +394,14 @@ export class TopoEditor {
   #apply(mutate: (lines: EditLine[]) => void, snapshot = true): void {
     const id = this.topoId
     if (id == null) return
+    // Stamp on the first edit, the last moment the committed set is observable. Gated here, not on
+    // the markup, because `#apply` is the only clone site (the route card and `keydown.ts` reach it
+    // too). `undefined` means not knowable yet, and a basis stamped then is frozen for the session.
+    if (!this.#docs.has(id)) {
+      const committed = this.#committedFor(id)
+      if (committed == null) return
+      this.#basis.set(id, basisOf(committed))
+    }
     if (snapshot) this.#pushUndo(id)
     else this.#commitPending(id)
     const next = cloneLines(this.lines(id))

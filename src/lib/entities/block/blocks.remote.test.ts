@@ -15,6 +15,7 @@ import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { asRequest, callForm } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createBlock, updateBlock } from './blocks.remote'
+import { blockPinFingerprint } from './fingerprint'
 
 const REGION = '__blocks_remote_region__'
 const BLOCK = '__blocks_remote_block__'
@@ -139,6 +140,9 @@ describe.skipIf(!reachable)('block descriptions', () => {
       areaId: String(sectorId),
       description: `Flat landing, out of the sun by three. Ask ${mention} or ${secondMention}.`,
       id: String(blockId),
+      // This block was created without a location, so that is what the save replaces. Without it
+      // `updateBlock` refuses: an omitted fingerprint cannot match a real one, by design.
+      known: blockPinFingerprint(null),
       name: BLOCK,
     })
 
@@ -146,7 +150,13 @@ describe.skipIf(!reachable)('block descriptions', () => {
   })
 
   it('stores a cleared description as NULL, not as an empty string', async () => {
-    await submit(updateBlock, { areaId: String(sectorId), description: '', id: String(blockId), name: BLOCK })
+    await submit(updateBlock, {
+      areaId: String(sectorId),
+      description: '',
+      id: String(blockId),
+      known: blockPinFingerprint(null),
+      name: BLOCK,
+    })
 
     expect(await storedDescription()).toBeNull()
   })

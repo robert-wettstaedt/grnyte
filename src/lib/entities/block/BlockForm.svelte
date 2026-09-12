@@ -13,9 +13,14 @@
   import BlockFormFields from './BlockFormFields.svelte'
   import BlockLocationConfirm from './BlockLocationConfirm.svelte'
   import type { BlockFormInput } from './blocks.remote'
+  import { blockPinFingerprint } from './fingerprint'
   import { blockList } from './resources.svelte'
 
   type Coords = { lat: number; long: number }
+
+  /** The loaded pin as `blockPinFingerprint` measures it. */
+  const pinOf = (location: Coords | null, isEstimated: boolean) =>
+    blockPinFingerprint(location == null ? null : { estimated: isEstimated, lat: location.lat, long: location.long })
 
   // The combined add/edit-block form: switches between the field form and a full-screen picker
   // sub-editor, and gates submit with a confirm when no location is set. Edit reuses this verbatim,
@@ -83,6 +88,10 @@
   let committed = $state<Coords | null>(initialLocation)
   // svelte-ignore state_referenced_locally
   let estimated = $state(initialEstimated)
+  /** What this form claims to replace, stamped WITH the pin. Not `$derived`: `initialLocation` is
+   *  live, so a derived proof would match its own check every time. */
+  // svelte-ignore state_referenced_locally
+  let known = $state(pinOf(initialLocation, initialEstimated))
 
   seedOnKeyChange(
     () => seedKey,
@@ -90,6 +99,7 @@
       step = initialStep
       committed = initialLocation
       estimated = initialEstimated
+      known = pinOf(initialLocation, initialEstimated)
       // Answer the held submit: an unsettled promise leaves `pending` up and Save disabled.
       closeConfirm(false)
       locating = false
@@ -155,6 +165,9 @@
   />
 {:else}
   <Form {form} onBeforeSubmit={beforeSubmit} {onCancel} {submitLabel} {title}>
+    <!-- Only rendered fields are submitted, so the staleness proof needs an input of its own. -->
+    <input name="known" type="hidden" value={known} />
+
     <BlockFormFields
       {area}
       {form}

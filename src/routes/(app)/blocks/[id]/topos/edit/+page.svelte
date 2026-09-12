@@ -60,9 +60,14 @@
   // Legacy pixel-space paths (pre-normalization rows the migration skipped) are normalized by
   // the image dimensions here so editing them doesn't clamp the coords into 0-1 and mangle them.
   const editor = new TopoEditor((topoId) => {
+    // `undefined`, not `[]`: "cannot say yet" rather than "no lines". A partial snapshot maps an
+    // empty list for a photo that has plenty, and the basis stamped from it would be frozen.
+    if (!topos.isComplete) return undefined
     const view = topos.data.find((v) => v.id === topoId)
-    return (view?.lines ?? []).map((line) => ({
-      points: normalizePoints(line.points, view?.imageWidth, view?.imageHeight),
+    if (view == null) return undefined
+
+    return view.lines.map((line) => ({
+      points: normalizePoints(line.points, view.imageWidth, view.imageHeight),
       routeFk: line.routeId,
       topType: line.topType,
     }))
@@ -79,7 +84,10 @@
   // runs once, then the user drives selection.
   let selectionApplied = false
   $effect(() => {
-    if (selectionApplied || topos.data.length === 0 || !canEditHere) return
+    // `isComplete`, because this effect can DRAW: `?route=` arms a line, which stamps the basis.
+    // A partial snapshot also makes `selectTopoForRoute` miss a route that is already drawn, so it
+    // would arm a second one. Deferring is safe: nothing is latched until it runs.
+    if (selectionApplied || !topos.isComplete || topos.data.length === 0 || !canEditHere) return
     selectionApplied = true
 
     const routeParam = page.url.searchParams.get('route')
@@ -360,7 +368,7 @@
     let firstFailure: unknown
     for (const id of editor.dirtyTopoIds) {
       try {
-        await saveTopoLines({ lines: editor.savedLinesFor(id), topoId: id })
+        await saveTopoLines({ known: editor.basisFor(id), lines: editor.savedLinesFor(id), topoId: id })
         // Stamp the saved baseline so the pill/guard clear now, not after the Zero echo.
         editor.markSaved(id)
         pendingSync = [...pendingSync, id]

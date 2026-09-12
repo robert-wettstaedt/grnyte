@@ -1,11 +1,7 @@
 /**
- * Every add and edit form, driven across two entities on the same route.
- *
- * A remote form's fields live on a module-level singleton, so `/areas/1/blocks/add` and
- * `/areas/2/blocks/add` share one set and only a browser can show whether `seedOnKeyChange` blanks
- * them. A full page load would rebuild the singleton and hide the bug, hence `assertSameDocument`
- * after every hop. Blank assertions go through a locator, never a read of `formValues`, where an
- * unrendered input is absent and reads as blank.
+ * Every add and edit form, driven across two entities on one route. A remote form's fields live on a
+ * module-level singleton, and a full page load would rebuild it and hide the bug, hence
+ * `assertSameDocument` after every hop. Blank assertions use a locator, never `formValues`.
  */
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 // `testAccounts`, never `testDb`: that one opens its pool at module scope.
@@ -40,16 +36,11 @@ let page: Page
 test.describe.configure({ mode: 'serial' })
 
 /**
- * Follow a link by its href and wait for that page to be the one we are on.
+ * Follow a link by href and wait for that page. The wait IS the helper: `click()` resolves on
+ * dispatch, not on navigation, so without it a walk runs against the page it started from.
+ * Playwright's auto-wait hides that whenever the next link is absent from the current page.
  *
- * The wait is not belt and braces, it is the whole helper. `click()` resolves when the event is
- * dispatched, not when SvelteKit has navigated, so a second click fires against the page the first
- * one was leaving. Playwright's own auto-wait hides that whenever the next link is absent from the
- * current page, which is most hops here and is why this went unnoticed: it is a navigation wait by
- * accident. Where the link IS present, the walk runs entirely against its starting page, and the
- * trace shows six hops resolving inside 700ms.
- *
- * Anchored so a page BELOW the target does not satisfy it: `/areas/1` must not match `/areas/1/edit`.
+ * Anchored, so `/areas/1` does not match `/areas/1/edit`.
  */
 async function clickTo(target: Page, href: string) {
   await target.locator(`a[href="${href}"]`).first().click()
@@ -277,6 +268,10 @@ test('edit block reseeds its map pin', async () => {
   // BlockForm re-seeds the pin itself rather than being rebuilt by a `{#key}`.
   expect(Number(values.lat)).toBeCloseTo(47.222222, 4)
   expect(Number(values.lat)).not.toBeCloseTo(Number(before.lat), 4)
+  // The staleness proof rides on the pin, so it has to follow it. Carrying Alpha's across would
+  // wedge every save of Beta. Meaningful only because the two blocks have different pins.
+  expect(values.known).toBeTruthy()
+  expect(values.known).not.toBe(before.known)
 })
 
 test('add parking reseeds its pin between two sectors', async () => {

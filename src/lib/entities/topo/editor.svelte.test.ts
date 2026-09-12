@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TopoEditor, type EditLine } from './editor.svelte'
+import { topoLinesFingerprint } from './fingerprint'
 
 /** A fresh editor over an empty topo (id 1), plus its committed store. */
 function setup(committed: EditLine[] = []) {
@@ -238,5 +239,122 @@ describe('TopoEditor', () => {
 
     editor.undo() // one step reverts the whole burst
     expect(editor.currentLine?.points[0]).toMatchObject({ x: 0.4, y: 0.8 })
+  })
+})
+
+/**
+ * The staleness basis, and the one way it can be wrong. `#committedFor` reads live, so a
+ * fingerprint taken at Save would match its own source every time and protect nothing, invisibly.
+ * Only moving the committed set underneath a dirty editor tells the two apart.
+ */
+describe('TopoEditor staleness basis', () => {
+  /** A drawn line, which is what `savedLinesFor` keeps and the server stores. */
+  const line = (routeFk: number): EditLine => ({
+    points: [
+      { id: `${routeFk}-a`, type: 'start', x: 0.1, y: 0.9 },
+      { id: `${routeFk}-b`, type: 'top', x: 0.2, y: 0.1 },
+    ],
+    routeFk,
+    topType: 'top',
+  })
+
+  it('has nothing to report for a topo that was never edited', () => {
+    // An untouched topo is never in `dirtyTopoIds`, so it is never saved. `undefined` rather than a
+    // computed value keeps it that way: were it ever sent, '' would be refused server-side.
+    const { editor } = setup([line(1)])
+
+    expect(editor.basisFor(1)).toBeUndefined()
+  })
+
+  it('stamps the committed set at the first edit', () => {
+    const { editor } = setup([line(1), line(2)])
+
+    editor.addLine(3)
+
+    expect(editor.basisFor(1)).toBe(topoLinesFingerprint([1, 2]))
+  })
+
+  it('does NOT follow the committed set once the topo is dirty', () => {
+    // Somebody else's line syncs in while this editor holds unsaved work. `lines()` is already
+    // frozen to the local doc; the basis has to be too, or Save claims to replace what arrived.
+    const { editor, store } = setup([line(1), line(2)])
+
+    editor.addLine(3)
+    store[1] = [line(1), line(2), line(4)]
+
+    expect(editor.basisFor(1)).toBe(topoLinesFingerprint([1, 2]))
+    expect(editor.basisFor(1)).not.toBe(topoLinesFingerprint([1, 2, 4]))
+  })
+
+  it('counts only drawn lines, because an empty one is never stored', () => {
+    // `savedLinesFor` drops point-less lines, so the server never sees them and must not be told to
+    // expect them. Otherwise a photo carrying one would be refused on every save.
+    const { editor } = setup([line(1), { points: [], routeFk: 2, topType: 'top' }])
+
+    editor.addLine(3)
+
+    expect(editor.basisFor(1)).toBe(topoLinesFingerprint([1]))
+  })
+
+  it('re-stamps after a save, so a second save in the same session is not refused', () => {
+    const { editor } = setup([line(1)])
+
+    editor.addLine(2)
+    editor.markSaved(1)
+
+    expect(editor.basisFor(1)).toBe(topoLinesFingerprint(editor.savedLinesFor(1).map((l) => l.routeFk)))
+  })
+
+  it('refuses to open a working doc while the committed set is not knowable', () => {
+    // `undefined` is "cannot say yet", not "no lines". A basis stamped then is frozen for the
+    // session, so every Save would refuse.
+    const committed: EditLine[] | undefined = undefined
+    const editor = new TopoEditor(() => committed)
+    editor.topoId = 1
+
+    editor.addLine(3)
+
+    expect(editor.hasDoc(1)).toBe(false)
+    expect(editor.basisFor(1)).toBeUndefined()
+    expect(editor.isDirty(1)).toBe(false)
+  })
+
+  it('covers the entry points that never touch the editor stage', () => {
+    // Why the gate is in `#apply`, not the markup: `keydown.ts` calls `movePointBy` from a
+    // top-level `<svelte:window>`, and the route card reaches `#apply` too.
+    const committed: EditLine[] | undefined = undefined
+    const editor = new TopoEditor(() => committed)
+    editor.topoId = 1
+
+    editor.movePointBy('any-point', 0.01, 0)
+    editor.setTopType('topout')
+    editor.removeLine(1)
+
+    expect(editor.hasDoc(1)).toBe(false)
+    expect(editor.basisFor(1)).toBeUndefined()
+  })
+
+  it('opens and stamps normally once the committed set becomes knowable', () => {
+    // The gate defers the edit, it does not disable it. The stamp is the set that arrived.
+    // A holder rather than a reassigned `let`, which `prefer-const` misreads through the closure.
+    const source: { lines: EditLine[] | undefined } = { lines: undefined }
+    const editor = new TopoEditor(() => source.lines)
+    editor.topoId = 1
+
+    editor.addLine(3)
+    source.lines = [line(1), line(2)]
+    editor.addLine(3)
+
+    expect(editor.hasDoc(1)).toBe(true)
+    expect(editor.basisFor(1)).toBe(topoLinesFingerprint([1, 2]))
+  })
+
+  it('drops the basis when the working doc is discarded', () => {
+    const { editor } = setup([line(1)])
+
+    editor.addLine(2)
+    editor.forget(1)
+
+    expect(editor.basisFor(1)).toBeUndefined()
   })
 })
