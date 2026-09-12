@@ -44,34 +44,6 @@ describe('Markdown Conversion', () => {
     expect(html).toContain('<a href="/routes/12">Routes</a>')
   })
 
-  it.each([
-    ['javascript:alert(1)'],
-    ['JaVaScRiPt:alert(1)'],
-    ['data:text/html;base64,PHNjcmlwdD4='],
-    ['vbscript:msgbox(1)'],
-  ])('refuses the scheme in %s and leaves the words behind', async (url) => {
-    const html = await convertMarkdownToHtml(`[tap here](${url})`)
-    expect(html).not.toContain('href')
-    expect(html).toContain('<strong>tap here</strong>')
-  })
-
-  it('emits no link for a scheme broken across a line, which is not a link to begin with', async () => {
-    const html = await convertMarkdownToHtml('[tap here](java\nscript:alert(1))')
-    expect(html).not.toContain('href')
-  })
-
-  it('refuses an unsafe image source, keeping its alt text', async () => {
-    const html = await convertMarkdownToHtml('![the crux](javascript:alert(1))')
-    expect(html).not.toContain('<img')
-    expect(html).toContain('the crux')
-  })
-
-  it('refuses an unsafe scheme in the sync pipeline too', () => {
-    const html = convertMarkdownToHtmlSync('[tap here](javascript:alert(1))', [])
-    expect(html).not.toContain('href')
-    expect(html).toContain('<strong>tap here</strong>')
-  })
-
   it('renders nothing for null input', async () => {
     const html = await convertMarkdownToHtml(null)
     expect(html).toBe('')
@@ -310,5 +282,105 @@ describe('Markdown users references (sync path)', () => {
     const html = convertMarkdownToHtmlSync(enriched, [], 'strong')
     expect(html).toContain('<strong>@alice</strong>')
     expect(html).not.toContain('href')
+  })
+})
+
+/**
+ * Both pipelines, because the matrix used to run only against the async one, which has no
+ * production callers: every render goes through `convertMarkdownToHtmlSync` in `Markdown.svelte`.
+ */
+const pipelines = [
+  ['async', (markdown: string) => convertMarkdownToHtml(markdown)],
+  ['sync', (markdown: string) => Promise.resolve(convertMarkdownToHtmlSync(markdown, []))],
+] as const
+
+const UNSAFE = [
+  'javascript:alert(1)',
+  'JaVaScRiPt:alert(1)',
+  'data:text/html;base64,PHNjcmlwdD4=',
+  'vbscript:msgbox(1)',
+]
+
+describe.each(pipelines)('URL safety (%s pipeline)', (_label, render) => {
+  it.each(UNSAFE)('refuses the scheme in %s and leaves the words behind', async (url) => {
+    const html = await render(`[tap here](${url})`)
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
+  // A reference resolves through a `definition`, so a guard on `link` alone never sees the URL.
+  it.each(UNSAFE)('refuses the scheme in %s written as a reference link', async (url) => {
+    const html = await render(`[tap here][x]\n\n[x]: ${url}`)
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
+  it('refuses an unsafe collapsed reference link', async () => {
+    const html = await render('[tap here][]\n\n[tap here]: javascript:alert(1)')
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
+  it('refuses an unsafe shortcut reference link', async () => {
+    const html = await render('[tap here]\n\n[tap here]: javascript:alert(1)')
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
+  it('matches a reference to its definition case-insensitively, as the renderer does', async () => {
+    const html = await render('[tap here][ID]\n\n[id]: javascript:alert(1)')
+    expect(html).not.toContain('href')
+  })
+
+  it('emits no link for a scheme broken across a line, which is not a link to begin with', async () => {
+    const html = await render('[tap here](java\nscript:alert(1))')
+    expect(html).not.toContain('href')
+  })
+
+  it('refuses an unsafe image source, keeping its alt text', async () => {
+    const html = await render('![the crux](javascript:alert(1))')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('the crux')
+  })
+
+  it('refuses an unsafe image reference, keeping its alt text', async () => {
+    const html = await render('![the crux][y]\n\n[y]: javascript:alert(1)')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('the crux')
+  })
+
+  it('keeps a safe reference link', async () => {
+    const html = await render('[ok][w]\n\n[w]: https://example.com')
+    expect(html).toContain('<a href="https://example.com">ok</a>')
+  })
+
+  it('keeps a relative reference link, which resolves against our own origin', async () => {
+    const html = await render('[ok][r]\n\n[r]: /routes/12')
+    expect(html).toContain('<a href="/routes/12">ok</a>')
+  })
+
+  it('leaves a reference with no definition as the text that was written', async () => {
+    const html = await render('[nope][missing]')
+    expect(html).not.toContain('href')
+    expect(html).toContain('[nope][missing]')
+  })
+
+  // A repeated identifier resolves to the FIRST definition, so checking the last would inspect a
+  // URL the renderer never uses. Safe-then-unsafe is the ordering a guard keyed on `set` passes.
+  it('refuses a duplicated definition whose first spelling is unsafe', async () => {
+    const html = await render('[tap here][x]\n\n[x]: javascript:alert(1)\n[x]: https://example.com')
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
+  it('keeps a duplicated definition whose first spelling is safe', async () => {
+    const html = await render('[ok][x]\n\n[x]: https://example.com\n[x]: javascript:alert(1)')
+    expect(html).toContain('<a href="https://example.com">ok</a>')
+  })
+
+  it('refuses a duplicated image definition whose first spelling is unsafe', async () => {
+    const html = await render('![the crux][y]\n\n[y]: javascript:alert(1)\n[y]: https://example.com/a.jpg')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('the crux')
   })
 })
