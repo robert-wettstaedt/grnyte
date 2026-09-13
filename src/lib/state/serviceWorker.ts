@@ -3,10 +3,12 @@ import { updated } from '$app/state'
 import { reportClientError } from '$lib/logging/report'
 import { isOnline } from '$lib/state/online.svelte'
 import { CLAIM_CHECK } from '$lib/state/serviceWorkerMessages'
+import { isUpdateReady, setUpdateReady } from '$lib/state/updateReady.svelte'
 import { onMount } from 'svelte'
 import { pwaInfo } from 'virtual:pwa-info'
 
 const UPDATE_CHECK_MS = 60 * 60 * 1000
+const FOCUS_CHECK_MS = 60 * 1000
 
 /**
  * Register once from the root layout: registers the worker, and hard-navigates at the next screen
@@ -23,10 +25,8 @@ const UPDATE_CHECK_MS = 60 * 60 * 1000
  * fetch, and offline the full navigation is what `sw.ts` answers with the precached shell.
  */
 export function registerServiceWorker(): void {
-  let staleSinceActivate = false
-
   beforeNavigate((navigation) => {
-    if (!staleSinceActivate || navigation.willUnload || navigation.to == null) {
+    if (!isUpdateReady() || navigation.willUnload || navigation.to == null) {
       return
     }
 
@@ -77,17 +77,15 @@ export function registerServiceWorker(): void {
      * `controllerchange` fires on every `clients.claim()`, every time.
      */
     const onControllerChange = () => {
-      staleSinceActivate = true
+      setUpdateReady(true)
 
-      // A document loaded after a deploy is already the new build and still sees this. `check()`
-      // compares the baked version against `_app/version.json`, which `kit.includeVersionFile`
-      // precaches, so it answers offline too. Only ever disarms: a check that cannot answer leaves
-      // the flag set, because a needless reload beats a reader stuck on a build whose chunks are gone.
+      // A document loaded after a deploy is already the new build, so stand down again. Kit's
+      // `check()` returns false on any failure, and always false in dev: verify against preview.
       void updated
         .check()
         .then((isStale) => {
           if (!isStale) {
-            staleSinceActivate = false
+            setUpdateReady(false)
           }
         })
         .catch(() => {})
@@ -96,18 +94,29 @@ export function registerServiceWorker(): void {
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
     handlesOwnUpdate = true
 
+    // `sw.ts` claims before it pings, so a document mounting inside that window answers the ping and
+    // misses `controllerchange`. Re-derive once. Only ever ARMS: the event path owns disarming.
+    void updated
+      .check()
+      .then((isStale) => {
+        if (isStale) {
+          setUpdateReady(true)
+        }
+      })
+      .catch(() => {})
+
     void import('virtual:pwa-register').then(({ registerSW }) => {
       registerSW({
         immediate: true,
-        // Load-bearing despite being empty. `autoUpdate` runs `onNeedReload ?? location.reload()`, so
-        // omitting it does not mean "do nothing", it means reload the instant a worker activates.
+        // Load-bearing despite being empty. `autoUpdate` reloads on workbox's `activated` unless this
+        // is supplied (`if (onNeedReload) onNeedReload() else window.location.reload()`).
         onNeedReload: () => {},
-        onRegisteredSW: (swUrl, registration) => {
+        onRegisteredSW: (_swUrl, registration) => {
           if (disposed) {
             return
           }
 
-          stopPolling = pollForUpdate(swUrl, registration)
+          stopPolling = pollForUpdate(registration)
         },
         // A failed registration takes the offline shell, the image cache and push with it, and the
         // plugin swallows the rejection. Nothing else would say so.
@@ -127,16 +136,10 @@ export function registerServiceWorker(): void {
 }
 
 /**
- * Ask whether a newer worker exists, hourly and on returning to the foreground.
- *
- * The browser only checks on a *document* navigation, and this app almost never does one. The
- * visibility half is not redundant: a frozen tab runs no timers, so an installed PWA coming back
- * after a week would otherwise wait up to another hour.
- *
- * An hour, not the 20s 1.0 shipped: this is a request per open tab, forever, for a file that changes
- * only on deploy.
+ * Hourly, plus on refocus at most once a minute, since the browser only checks on a document
+ * navigation. An hour-gated refocus never fired: the interval re-stamps `lastCheckedAt` first.
  */
-function pollForUpdate(swUrl: string, registration: ServiceWorkerRegistration | undefined): () => void {
+function pollForUpdate(registration: ServiceWorkerRegistration | undefined): () => void {
   if (registration == null) {
     return () => {}
   }
@@ -153,11 +156,9 @@ function pollForUpdate(swUrl: string, registration: ServiceWorkerRegistration | 
     lastCheckedAt = Date.now()
 
     try {
-      const response = await fetch(swUrl, { cache: 'no-store', headers: { 'cache-control': 'no-cache' } })
-
-      if (response.status === 200) {
-        await registration.update()
-      }
+      // No pre-fetch: `updateViaCache` defaults to `imports`, so the spec sends `update()`'s own script
+      // request with cache mode `no-cache`, and an unchanged worker answers 304 with no body.
+      await registration.update()
     } catch {
       // Expected on a bad network. Left to reject, `hooks.client.ts` would write a `clientErrorLogs`
       // row per tab per hour.
@@ -165,7 +166,7 @@ function pollForUpdate(swUrl: string, registration: ServiceWorkerRegistration | 
   }
 
   const onVisibilityChange = () => {
-    if (document.visibilityState === 'visible' && Date.now() - lastCheckedAt >= UPDATE_CHECK_MS) {
+    if (document.visibilityState === 'visible' && Date.now() - lastCheckedAt >= FOCUS_CHECK_MS) {
       void check()
     }
   }

@@ -6,6 +6,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import UpdateBadge from '$lib/components/UpdateBadge/UpdateBadge.svelte'
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
   import Map from '$lib/map/Map.svelte'
@@ -13,6 +14,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { liveSearchQuery } from '$lib/state/searchQuery.svelte'
+  import { applyUpdateOnClick } from '$lib/state/updateReady.svelte'
   import { visualViewport } from '$lib/state/visualViewport.svelte'
   import { fade, fly } from 'svelte/transition'
   import Modal from '../Modal/Modal.svelte'
@@ -204,9 +206,10 @@
     in:fly={{ y: -200 }}
     out:fly={{ y: -200 }}
   >
-    <a class="shrink-0 md:hidden" href={resolve('/explore')}>
+    <a class="relative shrink-0 md:hidden" href={resolve('/explore')} onclick={applyUpdateOnClick}>
       <!-- 44px reads as optically equal to the 48px bar (a solid square looks heavier than the padded pill). -->
       <img class="h-11 w-11" src={Logo} alt={PUBLIC_APPLICATION_NAME} width={44} height={44} />
+      <UpdateBadge />
     </a>
 
     <SearchBar>

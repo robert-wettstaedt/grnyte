@@ -1806,6 +1806,7 @@
   "status_offline": "You’re offline. Changes won’t save.",
   "status_reconnecting": "Reconnecting. You might not see the latest changes.",
   "status_reload": "Reload",
+  "status_updateReady": "A new version is ready.",
   "sync_externalResources": "Sync external resources",
   "tab_explore": "Explore",
   "tab_feed": "Feed",

@@ -3,7 +3,9 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
+  import UpdateBadge from '$lib/components/UpdateBadge/UpdateBadge.svelte'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { applyUpdateOnClick } from '$lib/state/updateReady.svelte'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
   import { isNavItemActive, navItems } from './items'
   import NavIcon from './NavIcon.svelte'
@@ -16,8 +18,11 @@
   class="border-surface-300-700 preset-glass-neutral fixed top-0 left-0 z-30 hidden h-full w-20 border-r md:flex"
 >
   <Navigation.Header class="flex justify-center">
-    <a href={resolve('/(app)')} aria-label={PUBLIC_APPLICATION_NAME}>
+    <!-- No `aria-label`: it would replace the subtree, so `UpdateBadge`'s announcement would never
+         be read here while the mobile logo reads it. The image's `alt` names the link either way. -->
+    <a href={resolve('/(app)')} class="relative" onclick={applyUpdateOnClick}>
       <img src={Logo} alt={PUBLIC_APPLICATION_NAME} class="size-10" />
+      <UpdateBadge />
     </a>
   </Navigation.Header>
 

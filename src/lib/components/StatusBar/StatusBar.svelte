@@ -4,6 +4,7 @@
   import type { IconName } from '$lib/components/Icon/icons'
   import { m } from '$lib/paraglide/messages'
   import { isOnline } from '$lib/state/online.svelte'
+  import { isUpdateReady } from '$lib/state/updateReady.svelte'
   import { getZ } from '$lib/zero/z.svelte'
 
   // Zero states that no reconnect loop recovers from: only a fresh client (i.e. a
@@ -58,6 +59,7 @@
     online: boolean,
     connection: string,
     announcement: (() => string) | null,
+    updateReady: boolean,
   ): null | Status {
     // Terminal first, offline second. These states carry the only action the bar ever offers, and
     // the offline branch has none: a reader whose sync is dead and whose reachability flag happens
@@ -88,17 +90,30 @@
       return { action: 'dismiss', icon: 'info', message: announcement, role: 'status', tone: 'preset-tonal-primary' }
     }
 
+    // Last: the swap happens by itself at the next screen change, so this is for the reader parked
+    // on one screen. An admin announcement is time-boxed and outranks a routine update notice.
+    if (updateReady) {
+      return {
+        action: 'reload',
+        icon: 'info',
+        message: m.status_updateReady,
+        role: 'status',
+        tone: 'preset-tonal-primary',
+      }
+    }
+
     return null
   }
 </script>
 
 <script lang="ts">
   import { browser } from '$app/environment'
-  // All four props exist only so the story can show states that are near-impossible
-  // to trigger live (`needs-auth`, `closed`, an announcement). Unset, the bar reads
-  // the real device, the real Zero connection and the ANNOUNCEMENT constant. The
-  // announcement comes in whole rather than as bare copy so that dismissing it
-  // (which needs the id) works the same in the story as it does in production.
+  // These props exist only so the story can show states that are near-impossible to
+  // trigger live (`needs-auth`, `closed`, an announcement, a deploy mid-session). Unset,
+  // the bar reads the real device, the real Zero connection, the ANNOUNCEMENT constant
+  // and the real service worker. The announcement comes in whole rather than as bare
+  // copy so that dismissing it (which needs the id) works the same in the story as it
+  // does in production.
   interface Props {
     announcement?: Announcement
     connectionState?: { name: string }
@@ -106,6 +121,7 @@
      *  10s of blank canvas reads as a broken story rather than as a deliberate delay. */
     holdMs?: number
     online?: boolean
+    updateReady?: boolean
   }
 
   const props: Props = $props()
@@ -143,7 +159,9 @@
     announcement != null && isAnnouncementActive(announcement, dismissed, Date.now()) ? announcement.message : null,
   )
 
-  const status = $derived(resolveStatus(online, settled, activeMessage))
+  const updateReady = $derived(props.updateReady ?? isUpdateReady())
+
+  const status = $derived(resolveStatus(online, settled, activeMessage, updateReady))
 
   function readDismissed() {
     return new Set((localStorage.getItem(DISMISS_KEY) ?? '').split(',').filter(Boolean))

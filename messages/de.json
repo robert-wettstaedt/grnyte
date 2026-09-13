@@ -1806,6 +1806,7 @@
   "status_offline": "Du bist offline. Änderungen lassen sich gerade nicht speichern.",
   "status_reconnecting": "Verbindung wird wiederhergestellt… Du siehst möglicherweise nicht die neuesten Änderungen.",
   "status_reload": "Neu laden",
+  "status_updateReady": "Eine neue Version ist bereit.",
   "sync_externalResources": "Externe Ressourcen synchronisieren",
   "tab_explore": "Entdecken",
   "tab_feed": "Feed",
