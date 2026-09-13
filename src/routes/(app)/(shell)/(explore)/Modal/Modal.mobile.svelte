@@ -41,19 +41,19 @@
     onclose?.()
   }
 
-  // Viewport offset of the sheet's top edge, so `floating` controls can sit right
-  // above it and follow as it's dragged. The sheet grows from the bottom via
-  // `max-height`, so a ResizeObserver fires on every drag/snap frame. Published on
-  // sheetState so the page behind can size itself to the uncovered area.
-  // ponytail: at a near-full drag the buttons translate off the top. Acceptable.
+  // Frame-relative top of the sheet, so floating controls and the page behind can track it.
+  // From heights, not a rect: the open animation is a translateY a rect would measure wrong.
   $effect(() => {
     const sheetEl = titleEl?.closest('.bottom-sheet')
     if (sheetEl == null) return
 
-    const measure = () => (sheetState.sheetTop = sheetEl.getBoundingClientRect().top)
+    const frame = sheetEl.closest('[data-app-frame]') ?? document.documentElement
+    const measure = () => (sheetState.sheetTop = frame.clientHeight - sheetEl.clientHeight)
     measure()
+    // The frame too: the status bar shrinks it without resizing the sheet.
     const observer = new ResizeObserver(measure)
     observer.observe(sheetEl)
+    observer.observe(frame)
     return () => {
       observer.disconnect()
       sheetState.sheetTop = null

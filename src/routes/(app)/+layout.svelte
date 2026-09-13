@@ -169,8 +169,9 @@
 
     <!-- transform-gpu makes this row the containing block for the app's `fixed` chrome
          (nav rail, tab bar, map overlays), so they sit below the bar instead of under
-         it. Dialogs portal to <body> and stay viewport-fixed, which is what they want. -->
-    <div class="flex min-h-0 flex-1 transform-gpu">
+         it. Dialogs portal to <body> and stay viewport-fixed, which is what they want.
+         `data-app-frame` is how that chrome measures against this row, not the viewport. -->
+    <div class="flex min-h-0 flex-1 transform-gpu" data-app-frame>
       <!-- Walls off client render/effect crashes so one broken page doesn't blank the
            whole app. Does NOT catch event-handler or async errors: see hooks.client. -->
       <svelte:boundary onerror={(error) => reportClientError(error)}>

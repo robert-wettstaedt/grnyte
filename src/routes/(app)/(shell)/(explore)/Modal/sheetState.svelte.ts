@@ -29,9 +29,9 @@ export const sheetState = {
   set requestSnap(value: 0.25 | 0.5 | 0.75 | null) {
     _requestSnap = value
   },
-  /** Viewport offset of the mobile sheet's top edge, live-updated as it's dragged
-   *  or snapped. Lets the page behind size itself to the uncovered area (e.g. the
-   *  topo viewer). Null on desktop or while no sheet is mounted. */
+  /** Top edge of the mobile sheet inside `[data-app-frame]` (not the viewport: the status
+   *  bar pushes the frame down), live as it's dragged. Lets the page behind size itself to
+   *  the uncovered area. Null on desktop or while no sheet is mounted. */
   get sheetTop() {
     return _sheetTop
   },
