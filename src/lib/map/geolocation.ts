@@ -27,6 +27,25 @@ export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallb
   mapInstance.addOverlay(geolocationOverlay)
 
   let markerEl: HTMLDivElement | null = null
+  // Unwrapped so the cone takes the short way round at 359° -> 0° instead of spinning back.
+  let shownHeading: number | undefined
+
+  // Heading is north-based; the marker sits in screen space, so subtract the view rotation.
+  const applyHeading = () => {
+    if (markerEl == null) return
+    const heading = geolocation.getHeading()
+    const speed = geolocation.getSpeed()
+    // Standing still, heading is noise (and most browsers report none at all).
+    const moving = heading != null && (speed == null || speed > 0.5)
+
+    markerEl.classList.toggle('geolocation-marker--moving', moving)
+    if (!moving) return
+
+    const target = heading - mapInstance.getView().getRotation()
+    const turn = Math.atan2(Math.sin(target - (shownHeading ?? target)), Math.cos(target - (shownHeading ?? target)))
+    shownHeading = (shownHeading ?? target) + turn
+    markerEl.style.setProperty('--heading', `${shownHeading}rad`)
+  }
 
   geolocation.on('change', () => {
     const position = geolocation.getPosition()
@@ -35,10 +54,14 @@ export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallb
     if (markerEl == null) {
       markerEl = document.createElement('div')
       markerEl.className = 'geolocation-marker'
+      const cone = document.createElement('div')
+      cone.className = 'geolocation-marker__heading'
+      markerEl.append(cone)
       geolocationOverlay.setElement(markerEl)
     }
 
     geolocationOverlay.setPosition(position)
+    applyHeading()
     callbacks.setError(undefined)
 
     if (callbacks.getIsTracking()) {
@@ -58,6 +81,9 @@ export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallb
     callbacks.setIsTracking(false)
   })
 
+  // The map can be rotated (pinch / alt+shift-drag), which moves north under the cone.
+  mapInstance.getView().on('change:rotation', applyHeading)
+
   // Reuse an already-granted permission: resume tracking on (re)mount without re-prompting.
   // Querying the Permissions API never shows a prompt.
   void navigator.permissions
@@ -71,6 +97,7 @@ export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallb
     .catch(() => {})
 
   return () => {
+    mapInstance.getView().un('change:rotation', applyHeading)
     geolocation.setTracking(false)
   }
 }

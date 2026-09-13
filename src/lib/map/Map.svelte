@@ -687,11 +687,34 @@
   }
 
   :global(.geolocation-marker) {
+    position: relative;
     width: 16px;
     height: 16px;
     background-color: #3b82f6;
     border: 3px solid white;
     border-radius: 50%;
     box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+  }
+
+  /* Heading cone, hidden until the device reports a direction while moving. */
+  :global(.geolocation-marker__heading) {
+    position: absolute;
+    inset: -22px;
+    display: none;
+    rotate: var(--heading, 0rad);
+    transition: rotate 200ms linear;
+    background: conic-gradient(from -30deg, rgba(59, 130, 246, 0.65), transparent 60deg);
+    /* Ring out from the dot, fading before the square edge so the fan stays a fan. */
+    mask-image: radial-gradient(circle at 50% 50%, transparent 10px, black 12px, black 18px, transparent 27px);
+  }
+
+  :global(.geolocation-marker--moving .geolocation-marker__heading) {
+    display: block;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(.geolocation-marker__heading) {
+      transition: none;
+    }
   }
 </style>
