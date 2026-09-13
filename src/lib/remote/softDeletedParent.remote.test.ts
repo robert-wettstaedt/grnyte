@@ -543,6 +543,17 @@ describe.skipIf(!reachable)('markdown references', () => {
     expect(enriched, 'and it should tombstone').toContain(btoa(REFERENCE_TOMBSTONE))
   })
 
+  it('resolves an UPPERCASE token against the right table', async () => {
+    // The regex is case-insensitive; the type branch was not, so !AREAS:n! read the routes table.
+    const [area] = await sql<{ id: number }[]>`
+      insert into public.areas (name, type, region_fk, created_by, parent_fk)
+      values ('__softdel_upper_area__', 'area', ${regionId}, ${maintainer.userId}, ${parentAreaId}) returning id`
+
+    const enriched = await enrichMarkdown(`see !AREAS:${area.id}!`, db, regionId)
+
+    expect(enriched, 'the area name, not a route name or a tombstone').toContain(btoa('__softdel_upper_area__'))
+  })
+
   it('still resolves a live route', async () => {
     const [route] = await sql<{ id: number }[]>`
       insert into public.routes (name, block_fk, region_fk, created_by)

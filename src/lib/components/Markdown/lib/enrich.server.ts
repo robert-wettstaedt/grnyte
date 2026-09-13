@@ -68,10 +68,13 @@ export const enrichMarkdown = async (
 
   const refs = await Promise.all(
     matches.map(async (match) => {
-      const [type, id] = match[0]
+      // Lowercased: the regex matches case-insensitively, so `!AREAS:5!` used to miss every
+      // `type ===` branch below and read the routes table instead. Also normalises what is emitted.
+      const [rawType, id] = match[0]
         .trim()
         .substring(1, match[0].length - 1)
         .split(':')
+      const type = rawType.toLowerCase()
 
       const idNumber = Number(id)
 

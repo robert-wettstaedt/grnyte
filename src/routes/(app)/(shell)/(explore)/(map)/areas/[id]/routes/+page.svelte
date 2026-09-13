@@ -131,7 +131,11 @@
 
 <svelte:head>
   <title>
-    {area.data == null ? m.areas_allRoutes() : `${m.areas_allRoutes()} · ${area.data.name}`} – {PUBLIC_APPLICATION_NAME}
+    {area.isEmpty
+      ? m.areas_notFound()
+      : area.data == null
+        ? m.areas_allRoutes()
+        : `${m.areas_allRoutes()} · ${area.data.name}`} – {PUBLIC_APPLICATION_NAME}
   </title>
 </svelte:head>
 
@@ -159,21 +163,27 @@
   </SearchField>
 {/snippet}
 
-<QueryState resource={routes}>
+<!-- The area is resolved outside the list, so a cleared one would otherwise show an untitled
+     sheet over an empty route list rather than saying it is gone. -->
+<QueryState notFound={m.areas_notFound()} resource={area}>
   {#snippet ready()}
-    <nav class="flex flex-col gap-1.5">
-      {#each visible as route (route.id)}
-        <RouteRow
-          {route}
-          grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-          status={ascentStatus.get(route.id)}
-          href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
-        />
-      {/each}
+    <QueryState resource={routes}>
+      {#snippet ready()}
+        <nav class="flex flex-col gap-1.5">
+          {#each visible as route (route.id)}
+            <RouteRow
+              {route}
+              grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
+              status={ascentStatus.get(route.id)}
+              href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
+            />
+          {/each}
 
-      {#if visible.length < sorted.length}
-        <div bind:this={sentinel} class="h-px"></div>
-      {/if}
-    </nav>
+          {#if visible.length < sorted.length}
+            <div bind:this={sentinel} class="h-px"></div>
+          {/if}
+        </nav>
+      {/snippet}
+    </QueryState>
   {/snippet}
 </QueryState>

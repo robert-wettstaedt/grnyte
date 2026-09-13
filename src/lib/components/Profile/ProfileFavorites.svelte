@@ -44,6 +44,14 @@
   const favBlocks = blockList(() => ({ blockId: favBlockIds }), { enabled: () => favBlockIds.length > 0 })
   const favRoutes = routesByIds(() => favRouteIds)
 
+  // A favorite outlives the thing it points at: the row survives a soft delete while the entity
+  // stops resolving. Gate each list on what came BACK, not on how many ids were stored, or a
+  // subheading renders over "Nothing here yet." `isEmpty` is ready-and-empty, so this does not
+  // hide a list that is still loading.
+  const hasRoutes = $derived(favRouteIds.length > 0 && !favRoutes.isEmpty)
+  const hasBlocks = $derived(favBlockIds.length > 0 && !favBlocks.isEmpty)
+  const hasAreas = $derived(favAreaIds.length > 0 && !favAreas.isEmpty)
+
   // Removing a favorite. Zero re-syncs the list, so the row drops out on its own once the write
   // lands.
   const removeFavorite = async (entityType: 'area' | 'block' | 'route', entityId: number): Promise<void> => {
@@ -111,11 +119,11 @@
   </Dialog>
 {/snippet}
 
-{#if favorites.data.length > 0}
+{#if hasRoutes || hasBlocks || hasAreas}
   <section class="space-y-3">
     <SectionHeading title={m.profile_favorites()} action={isSelf ? removeAllAction : undefined} />
 
-    {#if favRouteIds.length > 0}
+    {#if hasRoutes}
       <div class="space-y-2">
         {@render subheading(m.common_routes())}
         <ProfileRouteList
@@ -128,7 +136,7 @@
       </div>
     {/if}
 
-    {#if favBlockIds.length > 0}
+    {#if hasBlocks}
       <QueryState resource={favBlocks}>
         {#snippet ready(blocks)}
           <div class="space-y-2">
@@ -139,7 +147,7 @@
       </QueryState>
     {/if}
 
-    {#if favAreaIds.length > 0}
+    {#if hasAreas}
       <QueryState resource={favAreas}>
         {#snippet ready(areas)}
           <div class="space-y-2">
