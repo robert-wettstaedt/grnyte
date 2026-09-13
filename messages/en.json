@@ -1377,6 +1377,7 @@
   "map_create_regionSection": "Add to the region",
   "map_create_searchSectors": "Search sectors…",
   "map_create_sector": "Sector",
+  "map_create_sectorsWithoutLocation": "No location yet",
   "map_create_title": "Create",
   "map_layers": "Layers",
   "map_loading": "Loading map…",

@@ -34,3 +34,25 @@ export function findNearestSector(
 
   return best
 }
+
+/**
+ * Metres from `point` to each sector's nearest geolocated block, the same proxy `findNearestSector`
+ * uses. A sector with no geolocated block is absent, not `Infinity`: unknown is not "far".
+ */
+export function sectorDistances(blocks: LocatableBlock[], point: Coords): Map<number, number> {
+  const bySector = new Map<number, number>()
+
+  for (const block of blocks) {
+    if (block.geolocation == null) continue
+    const sector = block.areas.find((area) => area.type === 'sector')
+    if (sector == null) continue
+
+    const distanceMeters = haversineMetres(block.geolocation, point)
+    const best = bySector.get(sector.id)
+    if (best == null || distanceMeters < best) {
+      bySector.set(sector.id, distanceMeters)
+    }
+  }
+
+  return bySector
+}

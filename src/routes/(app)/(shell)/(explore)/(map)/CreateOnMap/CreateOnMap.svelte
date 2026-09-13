@@ -2,15 +2,18 @@
   import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
+  import Row from '$lib/components/EntityRow/Row.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import type { AreaListItem } from '$lib/entities/area/dto'
   import { canAddBlock, canAddParking } from '$lib/entities/area/permissions'
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { nameCollator } from '$lib/i18n/collator'
+  import { formatMetres } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { findNearestSector } from './sectorLocator'
+  import { findNearestSector, sectorDistances } from './sectorLocator'
 
   // The create entry point on the /explore map: a FAB (editors only) opens the region's create
   // menu. An area is made straight away; a block or a parking spot enters placement mode, a fixed
@@ -79,6 +82,18 @@
       : candidateSectors.filter((area) => area.name.toLowerCase().includes(search.trim().toLowerCase())),
   )
 
+  // From the pin, not the reader: it is the subject here, and what `nearest` prefills from. Frozen
+  // at open, or the map moving behind the sheet would reorder rows under a scrolling finger.
+  let distances = $state(new Map<number, number>())
+
+  // Nearest first; sectors with no distance keep their alphabetical place under their own heading.
+  const locatedSectors = $derived(
+    filteredSectors
+      .filter((area) => distances.has(area.id))
+      .toSorted((a, b) => distances.get(a.id)! - distances.get(b.id)!),
+  )
+  const unlocatedSectors = $derived(filteredSectors.filter((area) => !distances.has(area.id)))
+
   const resolvedSector = $derived.by(() => {
     const id = chosenSectorId ?? nearest?.sectorId
     if (id == null) return null
@@ -105,6 +120,7 @@
   const togglePicker = () => {
     if (!pickerOpen) {
       search = ''
+      distances = center == null ? new Map() : sectorDistances(editableBlocks, { lat: center[0], long: center[1] })
     }
     pickerOpen = !pickerOpen
   }
@@ -138,6 +154,27 @@
   const formatCoord = (coord: [number, number]): string =>
     `${Math.abs(coord[0]).toFixed(5)}°${coord[0] >= 0 ? 'N' : 'S'}, ${Math.abs(coord[1]).toFixed(5)}°${coord[1] >= 0 ? 'E' : 'W'}`
 </script>
+
+<!-- `Row` rather than `AreaRow`, which would put a thumbnail on every one. `tabular-nums` is what
+     makes the distances read as a ranking. -->
+{#snippet sectorRow(sector: AreaListItem)}
+  {@const metres = distances.get(sector.id)}
+  <Row
+    crumbs={sector.areas.map((ancestor) => ancestor.name)}
+    onclick={() => {
+      chosenSectorId = sector.id
+      pickerOpen = false
+    }}
+    title={sector.name}
+    variant="option"
+  >
+    {#snippet rightContent()}
+      {#if metres != null}
+        <span class="text-surface-500 shrink-0 text-[11px] font-semibold tabular-nums">{formatMetres(metres)}</span>
+      {/if}
+    {/snippet}
+  </Row>
+{/snippet}
 
 {#if placing == null}
   <Modal
@@ -249,24 +286,24 @@
               type="search"
             />
             <div class="flex max-h-64 flex-col overflow-y-auto">
-              {#each filteredSectors as sector (sector.id)}
-                <button
-                  class="hover:bg-surface-200-800 flex flex-col items-start rounded-lg px-3 py-2 text-left"
-                  onclick={() => {
-                    chosenSectorId = sector.id
-                    pickerOpen = false
-                  }}
-                >
-                  <span class="font-medium">{sector.name}</span>
-                  {#if sector.areas.length > 0}
-                    <span class="text-surface-600-400 truncate text-xs">
-                      {sector.areas.map((ancestor) => ancestor.name).join(' / ')}
-                    </span>
-                  {/if}
-                </button>
-              {:else}
-                <span class="text-surface-600-400 px-3 py-2 text-sm">{m.map_create_noSectorsFound()}</span>
+              {#each locatedSectors as sector (sector.id)}
+                {@render sectorRow(sector)}
               {/each}
+
+              <!-- Only a heading when both groups are populated: on its own, the tail IS the list. -->
+              {#if locatedSectors.length > 0 && unlocatedSectors.length > 0}
+                <h3 class="text-surface-500 px-1 pt-3 pb-1 text-xs font-bold tracking-wider uppercase">
+                  {m.map_create_sectorsWithoutLocation()}
+                </h3>
+              {/if}
+
+              {#each unlocatedSectors as sector (sector.id)}
+                {@render sectorRow(sector)}
+              {/each}
+
+              {#if filteredSectors.length === 0}
+                <span class="text-surface-600-400 px-3 py-2 text-sm">{m.map_create_noSectorsFound()}</span>
+              {/if}
             </div>
           </div>
         </Modal>

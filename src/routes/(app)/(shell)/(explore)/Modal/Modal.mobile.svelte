@@ -24,6 +24,23 @@
   let innerHeight = $state(window.innerHeight)
   let sheet = $state<ReturnType<TypeOfBottomSheet> | undefined>(undefined)
 
+  // svelte-bottom-sheet re-fires `onclose` whenever its `settings` object changes while closed, and
+  // ours is rebuilt on every `innerHeight` change. Fire only on a real open -> closed edge.
+  let wasOpen = false
+
+  // Parent effects run before the child's, so this beats BottomSheet's close.
+  $effect(() => {
+    if (open) {
+      wasOpen = true
+    }
+  })
+
+  const handleClose = () => {
+    if (!wasOpen) return
+    wasOpen = false
+    onclose?.()
+  }
+
   // Viewport offset of the sheet's top edge, so `floating` controls can sit right
   // above it and follow as it's dragged. The sheet grows from the bottom via
   // `max-height`, so a ResizeObserver fires on every drag/snap frame. Published on
@@ -137,7 +154,7 @@
 {/snippet}
 
 <BottomSheet
-  {onclose}
+  onclose={handleClose}
   bind:this={sheet}
   bind:isSheetOpen={open}
   settings={{
