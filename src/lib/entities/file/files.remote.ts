@@ -11,7 +11,7 @@ import { authedCommand, authedRls, requireAuthed } from '$lib/remote/authed.serv
 import type { MutationResult } from '$lib/remote/mutation'
 import { getVideoProvider } from '$lib/videos/provider.server'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
-import { error } from '@sveltejs/kit'
+import { error, isHttpError } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import heicConvert from 'heic-convert'
@@ -386,14 +386,22 @@ export const finalizeVideo = authedCommand(
     // Same gate as finalizeImage: pre-check so it fails with a real message instead of an
     // opaque RLS rollback after two inserts.
     //
-    // Bunny has the bytes already and `listStaleUploads` skips anything past status 0, so a refusal
-    // strands the asset forever. 404 only: a transient failure must not destroy a good upload.
+    // Bunny has the bytes already and the sweeper cannot see a video that got past status 0, so a
+    // refusal strands the asset forever. `verifyUpload` proved ownership above and `remove` is
+    // idempotent, so take it back. Only on a refusal WE raised: anything else is transient, and
+    // deleting there would destroy an upload that deserved to land.
     let regionFk: number
     try {
       regionFk = await resolveAttachRegion(db, user.id, userRegions, entityType, entityId)
     } catch (thrown) {
-      if ((thrown as { status?: number })?.status === 404) {
-        await getVideoProvider().remove(videoId)
+      if (isHttpError(thrown)) {
+        // Isolated: a DELETE that fails at Bunny must not replace the refusal the caller needs,
+        // which would turn a 403 into a 502 and invite a retry of a request that can only refuse.
+        try {
+          await getVideoProvider().remove(videoId)
+        } catch (reclaimFailed) {
+          console.error('[finalizeVideo] reclaim failed', videoId, reclaimFailed)
+        }
       }
       throw thrown
     }
