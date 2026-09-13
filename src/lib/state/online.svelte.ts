@@ -150,12 +150,23 @@ export function isOnline(): boolean {
  * - **Terminal states are a broken sync, not a broken network.** See {@link TERMINAL}.
  */
 export function reportConnectionState(state: { name: string }): void {
-  // Only a *change* is acted on. Zero re-emits the same state on every retry, five seconds apart,
-  // so treating each emission as news means the ten-second hold below is restarted before it can
-  // ever fire and the app never notices it is offline. The name is the whole signal: `reason` is an
-  // opaque message string in the public type and differs between otherwise identical retries.
   currentConnectionState = state.name
 
+  const verdict = connectionVerdict(state.name)
+
+  // Level-triggered, deliberately: `probeReachability` can set the flag false at any moment, so a
+  // connection that never changes name again still has to be able to clear it.
+  //
+  // `online` too: `navigator.onLine` is read once at load and only moved by transition events, so a
+  // false reading at startup (routine for an iOS web app, whose network attaches after the web view)
+  // would otherwise stick forever. A live socket outranks it.
+  if (verdict === 'reachable') {
+    reachable = true
+    online = true
+  }
+
+  // The hold below is edge-triggered. Zero re-emits the same state every five seconds, so acting on
+  // each emission restarts the timer before it can ever fire.
   if (state.name === reported) {
     return
   }
@@ -167,14 +178,7 @@ export function reportConnectionState(state: { name: string }): void {
     timer = null
   }
 
-  const verdict = connectionVerdict(state.name)
-
-  if (verdict === 'reachable') {
-    reachable = true
-    return
-  }
-
-  if (verdict === 'no-evidence') {
+  if (verdict !== 'unreachable') {
     return
   }
 
@@ -220,7 +224,13 @@ export function reportConnectionState(state: { name: string }): void {
 async function probeReachability(): Promise<void> {
   try {
     await fetch(`${base}/_app/version.json?reachability=${Date.now()}`, { cache: 'no-store' })
+    // A completed request proves the network, whatever `navigator.onLine` claimed at load.
+    online = true
   } catch {
-    reachable = false
+    // A live Zero socket outranks one failed request. Without this a single blip latches the flag
+    // false, and nothing clears it while Zero sits in `connected`.
+    if (currentConnectionState !== 'connected') {
+      reachable = false
+    }
   }
 }

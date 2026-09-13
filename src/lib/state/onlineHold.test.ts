@@ -111,3 +111,81 @@ describe('states that are not about the network', () => {
     expect(isOnline()).toBe(true)
   })
 })
+
+describe('the probe and the socket', () => {
+  /**
+   * `reachable` is written by two sources with different trigger semantics: the probe sets it false
+   * at any moment, while `reportConnectionState` acts on a change of state NAME. A probe failing
+   * while Zero sat in `connected` therefore latched the flag false with nothing able to clear it,
+   * and the app claimed to be offline while syncing normally. Seen on an installed PWA whose client
+   * group was active on the server with the banner up.
+   */
+  const failProbe = async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Load failed'))
+    dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(0)
+  }
+
+  it('does not let a failed probe outrank a live socket', async () => {
+    reportConnectionState({ name: 'connected' })
+    await failProbe()
+
+    // One failed request is weaker evidence than a socket that is up right now. Believing it
+    // latched the banner on until the connection state happened to change, which it never did.
+    expect(isOnline()).toBe(true)
+  })
+
+  it('still settles an offline start in one request', async () => {
+    // The probe exists so a cold start on a dead network renders its offline state immediately
+    // instead of spinning for the ten-second hold. Only a live socket may override it.
+    reportConnectionState({ name: 'connecting' })
+    await failProbe()
+
+    expect(isOnline()).toBe(false)
+  })
+
+  it('clears that flag when the connection reports in, with or without a transition', async () => {
+    reportConnectionState({ name: 'connecting' })
+    await failProbe()
+    expect(isOnline()).toBe(false)
+
+    reportConnectionState({ name: 'connected' })
+    expect(isOnline()).toBe(true)
+
+    // And again with no change of name: `connected` is documented as the one input that clears the
+    // flag unconditionally, so it must not depend on having transitioned to get there.
+    reportConnectionState({ name: 'connected' })
+    expect(isOnline()).toBe(true)
+  })
+})
+
+describe('the navigator.onLine latch', () => {
+  /**
+   * `navigator.onLine` is read once at module load and afterwards only moved by transition events.
+   * A false reading at startup - routine for an iOS home-screen web app, whose network attaches
+   * after the web view boots - therefore stuck forever: no `online` event fires, because from the
+   * browser's point of view nothing changed. Neither the probe nor the connection reporter could
+   * clear it, since both only wrote `reachable`. A freshly installed PWA synced its whole guidebook
+   * and still showed "You're offline".
+   */
+  it('lets a live socket override a browser that claims to be offline', () => {
+    dispatchEvent(new Event('offline'))
+    expect(isOnline()).toBe(false)
+
+    // Zero has a socket to the server, which is proof the network works whatever the browser says.
+    reportConnectionState({ name: 'connected' })
+    expect(isOnline()).toBe(true)
+  })
+
+  it('lets a completed probe override it too', async () => {
+    dispatchEvent(new Event('offline'))
+    expect(isOnline()).toBe(false)
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 404 }))
+    // `online` fires the probe; the point is that the probe's SUCCESS is what clears the flag.
+    dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(isOnline()).toBe(true)
+  })
+})
