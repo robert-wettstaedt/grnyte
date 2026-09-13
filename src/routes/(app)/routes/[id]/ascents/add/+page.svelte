@@ -58,7 +58,7 @@
 
 <QueryState notFound={m.routes_notFound()} resource={route}>
   {#snippet ready(detail)}
-    <QueryState resource={block}>
+    <QueryState notFound={m.blocks_notFound()} resource={block}>
       {#snippet ready(blockData)}
         {#if canLogAscent(global.userRegions, detail)}
           <Form

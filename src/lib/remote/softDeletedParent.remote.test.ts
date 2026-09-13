@@ -5,10 +5,12 @@
  * Each needs a SECOND row, deleted first, to be what the handler fails to see. Fixtures are raw
  * inserts so the setup does not depend on the decision under test. Skipped without DATABASE_URL.
  */
+import { enrichMarkdown } from '$lib/components/Markdown/lib/enrich.server'
+import { REFERENCE_TOMBSTONE } from '$lib/components/Markdown/lib/remark-references'
 import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { hasDeletedAncestor } from '$lib/entities/area/area.server'
-import { addParking, deleteParking, restoreArea, restoreParking } from '$lib/entities/area/areas.remote'
+import { addParking, createArea, deleteParking, restoreArea, restoreParking } from '$lib/entities/area/areas.remote'
 import { createAscent } from '$lib/entities/ascent/ascents.remote'
 import { createBlock, reorderBlocks, restoreBlock } from '$lib/entities/block/blocks.remote'
 import { toggleFavorite } from '$lib/entities/favorite/favorites.remote'
@@ -465,5 +467,89 @@ describe.skipIf(!reachable)('reorderBlocks', () => {
 
   it('still reorders a live sector', async () => {
     await asRequest(maintainer.authId, () => reorderBlocks({ areaId: sectorAreaId, orderedIds: [blockId] }))
+  })
+})
+
+describe.skipIf(!reachable)('a cleared sibling does not reserve its name', () => {
+  // The reader cannot see it, so it must not block them. Cost accepted: restoring it afterwards
+  // can leave two siblings sharing a name. A successful form submit leaves via a 303 redirect.
+  it('lets an area reuse a cleared sibling name, but still refuses a live one', async () => {
+    const name = '__softdel_dupe_area__'
+    await sql`
+      insert into public.areas (name, type, region_fk, created_by, parent_fk, deleted_at)
+      values (${name}, 'area', ${regionId}, ${maintainer.userId}, ${parentAreaId}, now())`
+
+    const reused = await statusOf(() =>
+      asRequest(maintainer.authId, () =>
+        callForm(createArea, { name, parentFk: String(parentAreaId), regionFk: String(regionId) }),
+      ),
+    )
+    expect(reused, 'a cleared sibling must not block the name').toBe(303)
+
+    const [live] = await sql<{ count: number }[]>`
+      select count(*)::int as count from public.areas where name = ${name} and deleted_at is null`
+    expect(live.count).toBe(1)
+
+    // The control: the check still fires against the LIVE row it just made, so the filter has not
+    // simply disabled uniqueness.
+    // The payload, not merely "did not redirect": `statusOf` returns `thrown.status`, and a crash
+    // has none either, so a bare toBeUndefined() cannot tell a refusal from a handler that died.
+    const blocked = await asRequest(maintainer.authId, () =>
+      callForm(createArea, { name, parentFk: String(parentAreaId), regionFk: String(regionId) }),
+    )
+    expect(blocked, 'a live sibling must still block it, by name').toMatchObject({
+      issues: [{ message: JSON.stringify({ message: 'areas_nameExists', params: { name } }) }],
+    })
+
+    const [total] = await sql<{ count: number }[]>`
+      select count(*)::int as count from public.areas where name = ${name} and deleted_at is null`
+    expect(total.count, 'and no second live row should exist').toBe(1)
+  })
+
+  it('lets a block reuse a cleared sibling name, but still refuses a live one', async () => {
+    const name = '__softdel_dupe_block__'
+    await sql`
+      insert into public.blocks (name, area_fk, region_fk, created_by, "order", deleted_at)
+      values (${name}, ${sectorAreaId}, ${regionId}, ${maintainer.userId}, 9, now())`
+
+    const reused = await statusOf(() =>
+      asRequest(maintainer.authId, () => callForm(createBlock, { areaId: String(sectorAreaId), name })),
+    )
+    expect(reused, 'a cleared block must not reserve its name').toBe(303)
+
+    const blocked = await asRequest(maintainer.authId, () =>
+      callForm(createBlock, { areaId: String(sectorAreaId), name }),
+    )
+    expect(blocked, 'a live sibling must still block it, by name').toMatchObject({
+      issues: [{ message: JSON.stringify({ message: 'blocks_nameExists', params: { name } }) }],
+    })
+
+    const [live] = await sql<{ count: number }[]>`
+      select count(*)::int as count from public.blocks where name = ${name} and deleted_at is null`
+    expect(live.count).toBe(1)
+  })
+})
+
+describe.skipIf(!reachable)('markdown references', () => {
+  // The resolver's own comment promised a tombstone for a deleted target; it resolved the name.
+  it('tombstones a cleared route instead of naming it', async () => {
+    const [route] = await sql<{ id: number }[]>`
+      insert into public.routes (name, block_fk, region_fk, created_by, deleted_at)
+      values ('__softdel_referenced__', ${blockId}, ${regionId}, ${maintainer.userId}, now()) returning id`
+
+    const enriched = await enrichMarkdown(`see !routes:${route.id}!`, db, regionId)
+
+    expect(enriched, 'the cleared name must not be published').not.toContain(btoa('__softdel_referenced__'))
+    expect(enriched, 'and it should tombstone').toContain(btoa(REFERENCE_TOMBSTONE))
+  })
+
+  it('still resolves a live route', async () => {
+    const [route] = await sql<{ id: number }[]>`
+      insert into public.routes (name, block_fk, region_fk, created_by)
+      values ('__softdel_live_ref__', ${blockId}, ${regionId}, ${maintainer.userId}) returning id`
+
+    const enriched = await enrichMarkdown(`see !routes:${route.id}!`, db, regionId)
+
+    expect(enriched, 'a live route must still resolve').toContain(btoa('__softdel_live_ref__'))
   })
 })

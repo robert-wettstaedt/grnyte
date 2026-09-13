@@ -60,7 +60,10 @@ export const createBlock = authedForm(
       value.name.length === 0
         ? null
         : await db.query.blocks.findFirst({
-            where: (table, { and, eq }) => and(eq(table.name, value.name), eq(table.areaFk, value.areaId)),
+            // Live siblings only, as in createArea: a cleared block reserving its name blocks a
+            // create against something no screen shows the reader.
+            where: (table, { and, eq, isNull }) =>
+              and(isNull(table.deletedAt), eq(table.name, value.name), eq(table.areaFk, value.areaId)),
           })
 
     if (existingBlock != null) {
@@ -150,8 +153,13 @@ export const updateBlock = authedForm(
       value.name.length === 0
         ? null
         : await db.query.blocks.findFirst({
-            where: (table, { and, eq, ne }) =>
-              and(eq(table.name, value.name), eq(table.areaFk, block.areaFk), ne(table.id, block.id)),
+            where: (table, { and, eq, isNull, ne }) =>
+              and(
+                isNull(table.deletedAt),
+                eq(table.name, value.name),
+                eq(table.areaFk, block.areaFk),
+                ne(table.id, block.id),
+              ),
           })
 
     if (existingBlock != null) {

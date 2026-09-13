@@ -65,8 +65,12 @@ export const createArea = authedForm(areaActionSchema, async (value, { afterComm
     invalid(formError('form_noPermission'))
   }
 
+  // Live siblings only: a cleared one is absent from the tree, the map and search, so refusing
+  // against it names a blocker the reader cannot find or clear. Restoring it later can leave two
+  // siblings sharing a name, which is the accepted cost of the reader-facing reading.
   const existingAreasResult = await db.query.areas.findMany({
     where: and(
+      isNull(areas.deletedAt),
       eq(areas.name, value.name),
       parentArea == null ? eq(areas.regionFk, value.regionFk) : eq(areas.parentFk, parentArea.id),
     ),
@@ -128,6 +132,7 @@ export const updateArea = authedForm(
 
     const existingAreasResult = await db.query.areas.findMany({
       where: and(
+        isNull(areas.deletedAt),
         eq(areas.name, value.name),
         area.parentFk == null ? isNull(areas.parentFk) : eq(areas.parentFk, area.parentFk),
         not(eq(areas.id, area.id)),

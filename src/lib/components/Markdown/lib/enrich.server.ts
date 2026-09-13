@@ -10,7 +10,7 @@
  * only in `npm run build`, never in vitest).
  */
 import * as schema from '$lib/db/schema'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import rehypeStringify from 'rehype-stringify'
 import remarkGfm from 'remark-gfm'
@@ -107,9 +107,12 @@ export const enrichMarkdown = async (
                 .select({ name: dbSchema.name })
                 .from(dbSchema)
                 .where(
-                  regionFk == null
-                    ? eq(dbSchema.id, idNumber)
-                    : and(eq(dbSchema.id, idNumber), eq(dbSchema.regionFk, regionFk)),
+                  // `and` drops undefined, so the region clause stays optional.
+                  and(
+                    isNull(dbSchema.deletedAt),
+                    eq(dbSchema.id, idNumber),
+                    regionFk == null ? undefined : eq(dbSchema.regionFk, regionFk),
+                  ),
                 )
               return results.at(0)
             })()

@@ -8,6 +8,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import TopoEditorStage from '$lib/components/Topo/TopoEditorStage.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
@@ -77,6 +78,16 @@
   // block left the reader with no idea why the editor refused to open.
   const canEditHere = $derived(block.data == null || canEditTopo(global.userRegions, block.data))
 
+  // Precedence copied from QueryState (offline, then error, then empty), which this page cannot
+  // use: it is `absolute inset-0` and reads `block.data` from `<svelte:head>` at the top level.
+  // Keep the order, or the two surfaces drift.
+  const blockOffline = $derived(block.availability === 'excluded' || block.availability === 'unsynced')
+  const blockErrored = $derived(block.status === 'error')
+
+  // `canEditHere` reads a missing block as "still loading", so every consumer needs this instead:
+  // the window handler and the effects would otherwise stay armed behind the not-found screen.
+  const editorLive = $derived(!blockOffline && !blockErrored && !block.isEmpty && canEditHere)
+
   // Initial selection, applied once topos load. A ?topo=<id> deep-link (from the topo detail
   // page) opens on that photo; ?route=<id> (from a route detail page) opens on the photo the
   // route is drawn on with its line selected, or on the first photo with a fresh line armed
@@ -87,7 +98,7 @@
     // `isComplete`, because this effect can DRAW: `?route=` arms a line, which stamps the basis.
     // A partial snapshot also makes `selectTopoForRoute` miss a route that is already drawn, so it
     // would arm a second one. Deferring is safe: nothing is latched until it runs.
-    if (selectionApplied || !topos.isComplete || topos.data.length === 0 || !canEditHere) return
+    if (selectionApplied || !topos.isComplete || topos.data.length === 0 || !editorLive) return
     selectionApplied = true
 
     const routeParam = page.url.searchParams.get('route')
@@ -400,7 +411,7 @@
   // Guards every way out (back button, browser back, breadcrumbs), not only `leave`.
   beforeNavigate((navigation) => {
     // Nothing to lose behind the permission screen.
-    if (canEditHere && editor.dirty && !confirm(m.topo_leaveConfirm())) {
+    if (editorLive && editor.dirty && !confirm(m.topo_leaveConfirm())) {
       navigation.cancel()
     }
   })
@@ -416,14 +427,22 @@
 </script>
 
 <svelte:head>
-  <title>{m.topo_editTopos()} – {block.data?.name ?? m.common_block()} – {PUBLIC_APPLICATION_NAME}</title>
+  <title
+    >{block.isEmpty ? m.blocks_notFound() : `${m.topo_editTopos()} – ${block.data?.name ?? m.common_block()}`} – {PUBLIC_APPLICATION_NAME}</title
+  >
 </svelte:head>
 
 <!-- Guarded, not moved: `<svelte:window>` has to stay at the top level. -->
-<svelte:window onkeydown={canEditHere ? onKeydown : undefined} />
+<svelte:window onkeydown={editorLive ? onKeydown : undefined} />
 <svelte:document onfullscreenchange={() => (isFullscreen = document.fullscreenElement != null)} />
 
-{#if !canEditHere}
+{#if blockOffline}
+  <OfflineNotice excluded={block.availability === 'excluded'} />
+{:else if blockErrored}
+  <ErrorState type="generic" title={m.queryState_error()} />
+{:else if block.isEmpty}
+  <ErrorState type="notfound" title={m.blocks_notFound()} />
+{:else if !canEditHere}
   <ErrorState
     type="generic"
     title={m.form_noPermissionTitle()}

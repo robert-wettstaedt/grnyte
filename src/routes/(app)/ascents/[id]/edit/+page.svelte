@@ -59,9 +59,9 @@
 
 <QueryState notFound={m.ascents_notFound()} resource={ascent}>
   {#snippet ready(detail)}
-    <QueryState resource={route}>
+    <QueryState notFound={m.routes_notFound()} resource={route}>
       {#snippet ready(routeData)}
-        <QueryState resource={block}>
+        <QueryState notFound={m.blocks_notFound()} resource={block}>
           {#snippet ready(blockData)}
             {#if canEditAscent(global.userRegions, global.user?.id, detail)}
               <Form
