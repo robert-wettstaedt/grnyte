@@ -8,10 +8,13 @@
 import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { hasDeletedAncestor } from '$lib/entities/area/area.server'
-import { restoreArea } from '$lib/entities/area/areas.remote'
-import { createBlock, restoreBlock } from '$lib/entities/block/blocks.remote'
+import { addParking, deleteParking, restoreArea, restoreParking } from '$lib/entities/area/areas.remote'
+import { createAscent } from '$lib/entities/ascent/ascents.remote'
+import { createBlock, reorderBlocks, restoreBlock } from '$lib/entities/block/blocks.remote'
+import { toggleFavorite } from '$lib/entities/favorite/favorites.remote'
 import { restoreComment } from '$lib/entities/reaction/reactions.remote'
 import { createRoute, deleteRoute, restoreRoute } from '$lib/entities/route/routes.remote'
+import { createTopo } from '$lib/entities/topo/topos.remote'
 import { asRequest, callForm, statusOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -57,6 +60,11 @@ afterAll(async () => {
   if (reachable) {
     await sql`delete from public.reactions where region_fk = ${regionId}`
     await sql`delete from public.events where region_fk = ${regionId}`
+    await sql`update public.blocks set geolocation_fk = null where region_fk = ${regionId}`
+    await sql`delete from public.geolocations where region_fk = ${regionId}`
+    await sql`delete from public.topos where region_fk = ${regionId}`
+    await sql`delete from public.files where region_fk = ${regionId}`
+    await sql`delete from public.favorites where route_fk in (select id from public.routes where region_fk = ${regionId})`
     await sql`delete from public.ascents where region_fk = ${regionId}`
     await sql`delete from public.routes where region_fk = ${regionId}`
     await sql`delete from public.blocks where region_fk = ${regionId}`
@@ -308,5 +316,154 @@ describe.skipIf(!reachable)('the ancestor walk fails closed', () => {
       // Unlink first: parent_fk has no ON DELETE action, so the cycle blocks its own cleanup.
       await sql`update public.areas set parent_fk = null where id in (${a.id}, ${b.id})`
     }
+  })
+})
+
+describe.skipIf(!reachable)('the write gates refuse a cleared subject', () => {
+  it('will not add a topo to a cleared block', async () => {
+    // The seed this whole audit started from. A REAL file on the block, so the block gate is the
+    // only thing that can refuse: a missing fileId 404s on its own and hides the gate entirely.
+    const fileId = '__softdel_topo_file__'
+    await sql`
+      insert into public.files (id, region_fk, path, block_fk, created_by)
+      values (${fileId}, ${regionId}, '/topos/145.jpg', ${blockId}, ${maintainer.userId})`
+    await sql`update public.blocks set deleted_at = now() where id = ${blockId}`
+
+    try {
+      const status = await statusOf(() => asRequest(maintainer.authId, () => createTopo({ blockId, fileId })))
+      expect(status, 'a cleared block must not take a new topo').toBe(404)
+
+      const [made] = await sql<{ count: number }[]>`
+        select count(*)::int as count from public.topos where block_fk = ${blockId}`
+      expect(made.count, 'and no topo row should exist').toBe(0)
+    } finally {
+      await sql`update public.blocks set deleted_at = null where id = ${blockId}`
+    }
+
+    // Live control: the same call on a live block must succeed, or the refusal above proves nothing.
+    await asRequest(maintainer.authId, () => createTopo({ blockId, fileId }))
+    const [live] = await sql<{ count: number }[]>`
+      select count(*)::int as count from public.topos where block_fk = ${blockId}`
+    expect(live.count, 'the same call must work on a live block').toBe(1)
+  })
+
+  it('will not log an ascent on a cleared route', async () => {
+    const [route] = await sql<{ id: number }[]>`
+      insert into public.routes (name, block_fk, region_fk, created_by, deleted_at)
+      values ('__softdel_gone_route__', ${blockId}, ${regionId}, ${maintainer.userId}, now()) returning id`
+
+    const result = await asRequest(maintainer.authId, () =>
+      callForm(createAscent, { dateTime: '2026-09-13', routeId: String(route.id), type: 'redpoint' }),
+    )
+
+    expect(result).toMatchObject({ issues: [{ message: JSON.stringify({ message: 'routes_notFound' }) }] })
+
+    const [logged] = await sql<{ count: number }[]>`
+      select count(*)::int as count from public.ascents where route_fk = ${route.id}`
+    expect(logged.count, 'and nothing should have been logged').toBe(0)
+  })
+
+  it('refuses a second delete of the same route', async () => {
+    const [route] = await sql<{ id: number }[]>`
+      insert into public.routes (name, block_fk, region_fk, created_by)
+      values ('__softdel_twice__', ${blockId}, ${regionId}, ${maintainer.userId}) returning id`
+    await sql`insert into public.ascents (route_fk, region_fk, created_by, date_time, type)
+      values (${route.id}, ${regionId}, ${maintainer.userId}, now(), 'redpoint')`
+
+    await asRequest(maintainer.authId, () => deleteRoute({ id: route.id }))
+    const status = await statusOf(() => asRequest(maintainer.authId, () => deleteRoute({ id: route.id })))
+
+    expect(status, 'a replayed delete must not run the cascade twice').toBe(404)
+  })
+
+  it('refuses a new favorite on a cleared route but still removes an existing one', async () => {
+    // The half that matters: a favorite whose entity died must stay removable, or the reader is
+    // stuck with a row they cannot clear.
+    const [route] = await sql<{ id: number }[]>`
+      insert into public.routes (name, block_fk, region_fk, created_by)
+      values ('__softdel_fav__', ${blockId}, ${regionId}, ${maintainer.userId}) returning id`
+
+    await asRequest(maintainer.authId, () => toggleFavorite({ entityId: route.id, entityType: 'route' }))
+    await sql`update public.routes set deleted_at = now() where id = ${route.id}`
+
+    await asRequest(maintainer.authId, () => toggleFavorite({ entityId: route.id, entityType: 'route' }))
+    const [gone] = await sql<{ count: number }[]>`
+      select count(*)::int as count from public.favorites where route_fk = ${route.id}`
+    expect(gone.count, 'removing a favorite must survive its entity being cleared').toBe(0)
+
+    const status = await statusOf(() =>
+      asRequest(maintainer.authId, () => toggleFavorite({ entityId: route.id, entityType: 'route' })),
+    )
+    expect(status, 'but adding one back must not').toBe(404)
+
+    const [back] = await sql<{ count: number }[]>`
+      select count(*)::int as count from public.favorites where route_fk = ${route.id}`
+    expect(back.count, 'and no favorite should have been re-inserted').toBe(0)
+  })
+})
+
+describe.skipIf(!reachable)('parking refuses as a pair, and says why', () => {
+  // All three halves agree, or a delete succeeds while its own Undo cannot.
+  it('refuses add, delete and restore on a cleared sector, each as a not-found', async () => {
+    const [geo] = await sql<{ id: number }[]>`
+      insert into public.geolocations (area_fk, region_fk, lat, long)
+      values (${sectorAreaId}, ${regionId}, 50.1, 11.1) returning id`
+
+    await sql`update public.areas set deleted_at = now() where id = ${sectorAreaId}`
+
+    try {
+      const added = await asRequest(maintainer.authId, () =>
+        callForm(addParking, { areaId: String(sectorAreaId), lat: '50.2', long: '11.2' }),
+      )
+      expect(added, 'add says gone, not forbidden').toMatchObject({
+        issues: [{ message: JSON.stringify({ message: 'areas_notFound' }) }],
+      })
+
+      expect(
+        await statusOf(() => asRequest(maintainer.authId, () => deleteParking({ id: geo.id }))),
+        'delete refuses too, or its Undo is unreachable',
+      ).toBe(404)
+
+      expect(
+        await statusOf(() =>
+          asRequest(maintainer.authId, () => restoreParking({ areaId: sectorAreaId, lat: 50.1, long: 11.1 })),
+        ),
+        'restore says gone, not forbidden',
+      ).toBe(404)
+    } finally {
+      await sql`update public.areas set deleted_at = null where id = ${sectorAreaId}`
+      await sql`delete from public.geolocations where id = ${geo.id}`
+    }
+  })
+
+  it('still deletes a parking on a live sector', async () => {
+    const [geo] = await sql<{ id: number }[]>`
+      insert into public.geolocations (area_fk, region_fk, lat, long)
+      values (${sectorAreaId}, ${regionId}, 50.3, 11.3) returning id`
+
+    await asRequest(maintainer.authId, () => deleteParking({ id: geo.id }))
+
+    const [left] = await sql<{ count: number }[]>`
+      select count(*)::int as count from public.geolocations where id = ${geo.id}`
+    expect(left.count, 'the live path must still work').toBe(0)
+  })
+})
+
+describe.skipIf(!reachable)('reorderBlocks', () => {
+  it('refuses a cleared sector', async () => {
+    await sql`update public.areas set deleted_at = now() where id = ${sectorAreaId}`
+
+    try {
+      const status = await statusOf(() =>
+        asRequest(maintainer.authId, () => reorderBlocks({ areaId: sectorAreaId, orderedIds: [blockId] })),
+      )
+      expect(status).toBe(404)
+    } finally {
+      await sql`update public.areas set deleted_at = null where id = ${sectorAreaId}`
+    }
+  })
+
+  it('still reorders a live sector', async () => {
+    await asRequest(maintainer.authId, () => reorderBlocks({ areaId: sectorAreaId, orderedIds: [blockId] }))
   })
 })

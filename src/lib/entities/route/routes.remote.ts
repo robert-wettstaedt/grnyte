@@ -179,7 +179,10 @@ export const updateRoute = authedForm(
   routeActionSchema,
   async ({ id, ...value }, { afterCommit, db, user, userRegions }, issue) => {
     const route = await requireRowForm(
-      () => (id == null ? Promise.resolve(undefined) : db.query.routes.findFirst({ where: eq(routes.id, id) })),
+      () =>
+        id == null
+          ? Promise.resolve(undefined)
+          : db.query.routes.findFirst({ where: and(eq(routes.id, id), isNull(routes.deletedAt)) }),
       (row) => canEditRoute(userRegions, row),
       formError('routes_notFound'),
     )
@@ -330,7 +333,7 @@ export const deleteRoute = authedCommand(
   z.object({ id: z.number() }),
   async ({ id }, { db, user, userRegions }): Promise<MutationResult<DeleteRouteSnapshot>> => {
     const route = await requireRow(
-      () => db.query.routes.findFirst({ where: eq(routes.id, id) }),
+      () => db.query.routes.findFirst({ where: and(eq(routes.id, id), isNull(routes.deletedAt)) }),
       (row) => canDeleteRoute(userRegions, user.id, row),
       formError('routes_notFound'),
     )

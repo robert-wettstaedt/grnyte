@@ -15,11 +15,15 @@ export const toggleFavorite = authedCommand(
   async ({ entityId, entityType }, { db, user, userRegions }) => {
     // regionFk is stamped from the entity, never the client: the favorites INSERT policy is
     // own-row only (no region predicate), so a submitted regionFk would go in unchecked.
+    const columns = { deletedAt: true, regionFk: true } as const
+    const notFound = formError(
+      entityType === 'route' ? 'routes_notFound' : entityType === 'block' ? 'blocks_notFound' : 'areas_notFound',
+    )
     const entity = await (entityType === 'route'
-      ? db.query.routes.findFirst({ columns: { regionFk: true }, where: eq(routes.id, entityId) })
+      ? db.query.routes.findFirst({ columns, where: eq(routes.id, entityId) })
       : entityType === 'block'
-        ? db.query.blocks.findFirst({ columns: { regionFk: true }, where: eq(blocks.id, entityId) })
-        : db.query.areas.findFirst({ columns: { regionFk: true }, where: eq(areas.id, entityId) }))
+        ? db.query.blocks.findFirst({ columns, where: eq(blocks.id, entityId) })
+        : db.query.areas.findFirst({ columns, where: eq(areas.id, entityId) }))
 
     // "No such row" and "not in a region you may read" are one and the same 404, deliberately. Only
     // RLS used to make the second half true: an entity in a foreign region came back
@@ -30,9 +34,7 @@ export const toggleFavorite = authedCommand(
     if (entity == null || !checkRegionPermission(userRegions, [REGION_PERMISSION_READ], entity.regionFk)) {
       error(
         404,
-        formError(
-          entityType === 'route' ? 'routes_notFound' : entityType === 'block' ? 'blocks_notFound' : 'areas_notFound',
-        ),
+        notFound,
       )
     }
 
@@ -42,6 +44,15 @@ export const toggleFavorite = authedCommand(
     const existing = await db.query.favorites.findFirst({
       where: and(eq(favorites.userFk, user.id), eq(objectColumn, entityId)),
     })
+
+    // The INSERT half only: removing a favorite whose entity has since died has to keep working.
+    // Not an existence oracle: only a caller past the region-READ check above can reach this 404.
+    if (existing == null && entity.deletedAt != null) {
+      error(
+        404,
+        notFound,
+      )
+    }
 
     if (existing == null) {
       // `onConflictDoNothing` because this reads before it writes: two devices tapping Save at the

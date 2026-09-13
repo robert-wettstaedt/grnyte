@@ -117,7 +117,8 @@ export const load = (async ({ locals, params }) => {
   }
 
   // Not the ascent's route: a delete never stamps ascents, so the logbook still renders this photo.
-  // The name still goes, because this is the one surface an anonymous visitor reaches.
+  // The whole route goes though, name and grade and title: this is the one surface anyone reaches.
+  // The ascent keeps its own grade, which is the climber's record rather than the removed route's.
   const liveRoute = <T extends { deletedAt: Date | null }>(route: null | T | undefined) =>
     route == null || route.deletedAt != null ? null : route
 

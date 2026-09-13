@@ -136,7 +136,10 @@ export const updateBlock = authedForm(
   blockActionSchema,
   async ({ id, ...value }, { afterCommit, db, user, userRegions }, issue) => {
     const block = await requireRowForm(
-      () => (id == null ? Promise.resolve(undefined) : db.query.blocks.findFirst({ where: eq(blocks.id, id) })),
+      () =>
+        id == null
+          ? Promise.resolve(undefined)
+          : db.query.blocks.findFirst({ where: and(eq(blocks.id, id), isNull(blocks.deletedAt)) }),
       (row) => canEditBlock(userRegions, row),
       formError('blocks_notFound'),
     )
@@ -253,7 +256,7 @@ export const setBlockLocation = authedCommand(
   z.object({ id: z.number(), lat: boundedDegrees(90), long: boundedDegrees(180) }),
   async (value, { db, user, userRegions }) => {
     const block = await requireRow(
-      () => db.query.blocks.findFirst({ where: eq(blocks.id, value.id) }),
+      () => db.query.blocks.findFirst({ where: and(eq(blocks.id, value.id), isNull(blocks.deletedAt)) }),
       (row) => canEditBlock(userRegions, row),
       formError('blocks_notFound'),
     )
@@ -298,7 +301,7 @@ export const estimateBlockLocationFromPhoto = authedCommand(
   }),
   async (value, { db, user, userRegions }) => {
     const block = await requireRow(
-      () => db.query.blocks.findFirst({ where: eq(blocks.id, value.id) }),
+      () => db.query.blocks.findFirst({ where: and(eq(blocks.id, value.id), isNull(blocks.deletedAt)) }),
       (row) => canEditBlock(userRegions, row),
       formError('blocks_notFound'),
     )
@@ -409,7 +412,7 @@ export const deleteBlock = authedCommand(
   z.object({ id: z.number() }),
   async ({ id }, { db, user, userRegions }): Promise<MutationResult<DeleteBlockSnapshot>> => {
     const block = await requireRow(
-      () => db.query.blocks.findFirst({ where: eq(blocks.id, id) }),
+      () => db.query.blocks.findFirst({ where: and(eq(blocks.id, id), isNull(blocks.deletedAt)) }),
       (row) => canDeleteBlock(userRegions, user.id, row),
       formError('blocks_notFound'),
     )
@@ -641,7 +644,7 @@ export const reorderBlocks = authedCommand(
   z.object({ areaId: z.number(), orderedIds: z.array(z.number()) }),
   async ({ areaId, orderedIds }, { db, userRegions }) => {
     await requireRow(
-      () => db.query.areas.findFirst({ where: eq(areas.id, areaId) }),
+      () => db.query.areas.findFirst({ where: and(eq(areas.id, areaId), isNull(areas.deletedAt)) }),
       (row) => canEditBlock(userRegions, row),
       formError('areas_notFound'),
     )

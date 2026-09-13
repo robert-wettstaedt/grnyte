@@ -45,7 +45,10 @@ export async function loadParentArea(
 /** Load an area for editing; `invalid` on a missing row, a null id, or an edit the caller may not make. */
 export function requireEditableArea(db: Db, userRegions: UserRegion[], id: number | undefined) {
   return requireRowForm(
-    () => (id == null ? Promise.resolve(undefined) : db.query.areas.findFirst({ where: eq(areas.id, id) })),
+    () =>
+      id == null
+        ? Promise.resolve(undefined)
+        : db.query.areas.findFirst({ where: and(eq(areas.id, id), isNull(areas.deletedAt)) }),
     (row) => canEditArea(userRegions, row),
     formError('areas_parentNotFound'),
   )

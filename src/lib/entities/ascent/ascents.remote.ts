@@ -40,7 +40,9 @@ export type AscentFormInput = z.input<typeof ascentActionSchema>
 /** Log an ascent of a route. Returns `{ id }` instead of redirecting so the form can
  *  finalize its background media uploads against the new ascent before navigating. */
 export const createAscent = authedForm(ascentActionSchema, async (value, { afterCommit, db, user, userRegions }) => {
-  const route = await db.query.routes.findFirst({ where: eq(routes.id, value.routeId) })
+  const route = await db.query.routes.findFirst({
+    where: and(eq(routes.id, value.routeId), isNull(routes.deletedAt)),
+  })
 
   if (route == null) {
     invalid(formError('routes_notFound'))

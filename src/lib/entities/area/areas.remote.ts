@@ -257,7 +257,7 @@ export const deleteArea = authedCommand(
   z.object({ id: z.number() }),
   async ({ id }, { db, user, userRegions }): Promise<MutationResult<DeleteAreaSnapshot>> => {
     const area = await requireRow(
-      () => db.query.areas.findFirst({ where: eq(areas.id, id) }),
+      () => db.query.areas.findFirst({ where: and(eq(areas.id, id), isNull(areas.deletedAt)) }),
       (row) => canDeleteArea(userRegions, user.id, row),
       formError('areas_notFound'),
     )
@@ -529,9 +529,12 @@ async function createParking(
 export const addParking = authedForm(
   z.object({ areaId: stringToInt, lat: coordinate(90), long: coordinate(180), path: z.optional(z.string()) }),
   async ({ areaId, lat, long, path }, { db, user, userRegions }) => {
-    const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
+    const area = await db.query.areas.findFirst({ where: and(eq(areas.id, areaId), isNull(areas.deletedAt)) })
 
-    if (area == null || !canAddParking(userRegions, area)) {
+    if (area == null) {
+      invalid(formError('areas_notFound'))
+    }
+    if (!canAddParking(userRegions, area)) {
       invalid(formError('form_noPermission'))
     }
 
@@ -567,6 +570,15 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
 
   if (!canDeleteParking(userRegions, parking)) {
     error(403, formError('form_noPermission'))
+  }
+
+  // Both halves of the pair refuse on a cleared area, or this succeeds and its Undo cannot.
+  const parentArea = await db.query.areas.findFirst({
+    columns: { deletedAt: true },
+    where: eq(areas.id, parking.areaFk),
+  })
+  if (parentArea == null || parentArea.deletedAt != null) {
+    error(404, formError('areas_notFound'))
   }
 
   await db.delete(geolocations).where(eq(geolocations.id, id))
@@ -622,9 +634,12 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
 export const restoreParking = authedCommand(
   z.object({ areaId: z.number(), lat: boundedDegrees(90), long: boundedDegrees(180), path: z.optional(z.string()) }),
   async ({ areaId, lat, long, path }, { db, userRegions }) => {
-    const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
+    const area = await db.query.areas.findFirst({ where: and(eq(areas.id, areaId), isNull(areas.deletedAt)) })
 
-    if (area == null || !canAddParking(userRegions, area)) {
+    if (area == null) {
+      error(404, formError('areas_notFound'))
+    }
+    if (!canAddParking(userRegions, area)) {
       error(403, formError('form_noPermission'))
     }
 
