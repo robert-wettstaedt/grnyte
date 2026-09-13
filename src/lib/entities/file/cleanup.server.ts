@@ -85,3 +85,41 @@ export async function removeFileStorage(targets: FileStorageTarget[]): Promise<v
     }
   }
 }
+
+/**
+ * Log the Bunny videos a DB diff would reclaim: everything past `before` with no `bunny_streams`
+ * row. Reporting only, and it never throws: a Bunny outage must not stop the deletes beside it.
+ *
+ * SAFE ONLY WHILE THE LIBRARY IS OURS ALONE. A diff calls every video it cannot account for an
+ * orphan, so a second tenant's would all qualify. It was shared with the demo instance once.
+ */
+export async function reportBunnyOrphans(db: PostgresJsDatabase<typeof schema>, before: Date): Promise<void> {
+  try {
+    const [{ guids, total }, known] = await Promise.all([
+      getVideoProvider().listVideos(before),
+      db.select({ id: bunnyStreams.id }).from(bunnyStreams),
+    ])
+
+    const attached = new Set(known.map((row) => row.id))
+    const orphans = guids.filter((guid) => !attached.has(guid))
+    if (orphans.length === 0) {
+      return
+    }
+
+    // Against the CANDIDATES, not the library: `guids` already excludes anything inside the
+    // cutoff, so dividing by the whole library lets a mostly-old library slip past the guard.
+    if (orphans.length > guids.length / 2) {
+      console.error('[cleanup] refusing an implausible orphan set', {
+        attached: attached.size,
+        candidates: guids.length,
+        orphans: orphans.length,
+        total,
+      })
+      return
+    }
+
+    console.log('[cleanup] videos a diff would remove', { guids: orphans, total })
+  } catch (thrown) {
+    console.error('[cleanup] orphan report failed', thrown)
+  }
+}

@@ -2,6 +2,7 @@ import { SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private'
 import { PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
 import { feedback, notifications } from '$lib/db/schema'
+import { reportBunnyOrphans } from '$lib/entities/file/cleanup.server'
 import { STAGING_BUCKET } from '$lib/entities/file/upload'
 import { isCronAuthorized } from '$lib/remote/cron.server'
 import { getVideoProvider } from '$lib/videos/provider.server'
@@ -62,10 +63,10 @@ const sweepStaging = async (before: Date): Promise<number> => {
 }
 
 /**
- * Delete Bunny videos created but never uploaded (still placeholder-titled) past
- * the cutoff. Title-based, NOT a DB diff: the Bunny library is shared with other
- * tenants whose videos have no `bunny_streams` row here, so a diff would delete
- * theirs. Mid-upload aborts (title already changed) are left as an accepted leak.
+ * Delete Bunny videos created but never uploaded (still placeholder-titled) past the cutoff.
+ *
+ * Title-based rather than a DB diff, for now. {@link reportBunnyOrphans} computes the diff
+ * alongside without acting on it.
  */
 const sweepBunny = async (before: Date): Promise<number> => {
   const provider = getVideoProvider()
@@ -135,6 +136,9 @@ export const POST: RequestHandler = async ({ request }) => {
     sweepBunny(new Date(now - BUNNY_MAX_AGE_MS)),
     sweepNotifications(new Date(now - NOTIFICATION_READ_MAX_AGE_MS), new Date(now - NOTIFICATION_UNREAD_MAX_AGE_MS)),
     sweepFeedback(new Date(now - FEEDBACK_MAX_AGE_MS)),
+    // Alongside the deletes, not ahead of them: it walks the whole Bunny library, and its own
+    // failure must never cost a retention delete this job promises.
+    reportBunnyOrphans(db, new Date(now - BUNNY_MAX_AGE_MS)),
   ])
   console.log(
     `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback`,

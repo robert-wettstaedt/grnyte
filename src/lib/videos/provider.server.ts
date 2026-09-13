@@ -21,6 +21,12 @@ export interface VideoProvider {
    * aborts are left (they moved past status 0).
    */
   listStaleUploads(before: Date): Promise<string[]>
+  /**
+   * Every video older than `before`, plus the library's total size. Facts only: deciding which of
+   * these is an orphan needs the database, which this module deliberately cannot reach. The total
+   * is there so the caller can refuse a sweep that would take an implausible share of the library.
+   */
+  listVideos(before: Date): Promise<{ guids: string[]; total: number }>
   /** Delete the hosted video. Idempotent: an already-gone video is not an error. */
   remove(videoId: string): Promise<void>
   /**

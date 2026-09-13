@@ -109,6 +109,33 @@ export const getBunnyVideoProvider = (): VideoProvider => ({
     return stale
   },
 
+  async listVideos(before): Promise<{ guids: string[]; total: number }> {
+    const perPage = 100
+    const guids: string[] = []
+    let total = 0
+    for (let page = 1; ; page++) {
+      const { items, totalItems } = await bunnyFetch<{
+        items?: { dateUploaded: string; guid: string }[]
+        totalItems: number
+      }>(`/videos?page=${page}&itemsPerPage=${perPage}`)
+      if (items == null || items.length === 0) {
+        break
+      }
+      total = totalItems
+      for (const item of items) {
+        // `dateUploaded` is the record's creation time (set at POST, not when bytes arrive), so it
+        // ages an abandoned upload from the moment the GUID was minted.
+        if (new Date(item.dateUploaded) < before) {
+          guids.push(item.guid)
+        }
+      }
+      if (page * perPage >= totalItems) {
+        break
+      }
+    }
+    return { guids, total }
+  },
+
   async remove(videoId): Promise<void> {
     // Not bunnyFetch: DELETE returns no useful body, and a 404 (already gone)
     // is success here, not the 502 bunnyFetch would raise.
