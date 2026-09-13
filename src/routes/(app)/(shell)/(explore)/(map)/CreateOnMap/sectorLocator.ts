@@ -44,14 +44,9 @@ export function findNearestSector(
 ): null | { distanceMeters: number; sectorId: number } {
   let best: null | { distanceMeters: number; sectorId: number } = null
 
-  for (const block of blocks) {
-    if (block.geolocation == null) continue
-    const sector = block.areas.find((area) => area.type === 'sector')
-    if (sector == null) continue
-
-    const distanceMeters = haversineMetres(block.geolocation, point)
+  for (const [sectorId, distanceMeters] of sectorDistances(blocks, point)) {
     if (distanceMeters <= maxMeters && (best == null || distanceMeters < best.distanceMeters)) {
-      best = { distanceMeters, sectorId: sector.id }
+      best = { distanceMeters, sectorId }
     }
   }
 

@@ -2,13 +2,12 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
+  import RouteList from '$lib/components/EntityRow/RouteList.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
-  import { gradeLabel } from '$lib/entities/grade/label'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { routeList } from '$lib/entities/route/resources.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
@@ -169,20 +168,11 @@
   {#snippet ready()}
     <QueryState resource={routes}>
       {#snippet ready()}
-        <nav class="flex flex-col gap-1.5">
-          {#each visible as route (route.id)}
-            <RouteRow
-              {route}
-              grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-              status={ascentStatus.get(route.id)}
-              href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
-            />
-          {/each}
-
+        <RouteList routes={visible} status={ascentStatus}>
           {#if visible.length < sorted.length}
             <div bind:this={sentinel} class="h-px"></div>
           {/if}
-        </nav>
+        </RouteList>
       {/snippet}
     </QueryState>
   {/snippet}

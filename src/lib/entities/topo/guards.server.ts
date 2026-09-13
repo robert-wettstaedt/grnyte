@@ -57,7 +57,7 @@ export async function requireEditableTopoWithFile(db: Db, userRegions: UserRegio
   return assertBlockLive(topo)
 }
 
-function assertBlockLive<T extends { block?: null | { deletedAt: Date | null }; blockFk: null | number; }>(topo: T): T {
+function assertBlockLive<T extends { block?: null | { deletedAt: Date | null }; blockFk: null | number }>(topo: T): T {
   // A null `blockFk` has nothing to check; a set one whose join came back empty is not a pass.
   if (topo.blockFk != null && (topo.block == null || topo.block.deletedAt != null)) {
     error(404, formError('blocks_notFound'))

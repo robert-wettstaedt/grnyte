@@ -5,7 +5,7 @@
  *
  * Skipped when DATABASE_URL is unreachable.
  */
-import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
+import { reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
 import { asRequest } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { reorderBlocks } from './blocks.remote'
@@ -21,18 +21,9 @@ let foreignBlockId = 0
 beforeAll(async () => {
   if (!reachable) return
 
-  const users = await seedUsers({ maintainer: 'maintainer@grnyte.rocks' })
-  maintainer = users.maintainer
-
-  const [region] = await sql<{ id: number }[]>`
-    insert into public.regions (name, created_by) values (${REGION}, ${maintainer.userId})
-    returning id`
-  regionId = region.id
-
-  await sql`
-    insert into public.region_members (region_fk, user_fk, auth_user_fk, role, is_active)
-    values (${regionId}, ${maintainer.userId}, ${maintainer.authId}, 'region_maintainer', true)
-    on conflict do nothing`
+  const seeded = await seedRegion(REGION)
+  maintainer = seeded.user
+  regionId = seeded.regionId
 
   const [area] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)

@@ -258,61 +258,58 @@ export const updateBlock = authedForm(
   },
 )
 
+/** Coordinates aimed at one live block, the shape both pin-only commands take. */
+const blockPinSchema = z.object({ id: z.number(), lat: boundedDegrees(90), long: boundedDegrees(180) })
+
+/** The live block a pin command names, once the caller is allowed to move it. */
+function requireEditableBlock(db: Context['db'], id: number, userRegions: Context['userRegions']) {
+  return requireRow(
+    () => db.query.blocks.findFirst({ where: and(eq(blocks.id, id), isNull(blocks.deletedAt)) }),
+    (row) => canEditBlock(userRegions, row),
+    formError('blocks_notFound'),
+  )
+}
+
 /** Move-on-the-map shortcut: set the block's pin straight from the picker, skipping the
  *  edit form. Upserts the geolocation (and links it on first set), then returns to the block. */
-export const setBlockLocation = authedCommand(
-  z.object({ id: z.number(), lat: boundedDegrees(90), long: boundedDegrees(180) }),
-  async (value, { db, user, userRegions }) => {
-    const block = await requireRow(
-      () => db.query.blocks.findFirst({ where: and(eq(blocks.id, value.id), isNull(blocks.deletedAt)) }),
-      (row) => canEditBlock(userRegions, row),
-      formError('blocks_notFound'),
-    )
+export const setBlockLocation = authedCommand(blockPinSchema, async (value, { db, user, userRegions }) => {
+  const block = await requireEditableBlock(db, value.id, userRegions)
 
-    const existing =
-      block.geolocationFk == null
-        ? null
-        : await db.query.geolocations.findFirst({ where: eq(geolocations.id, block.geolocationFk) })
+  const existing =
+    block.geolocationFk == null
+      ? null
+      : await db.query.geolocations.findFirst({ where: eq(geolocations.id, block.geolocationFk) })
 
-    if (existing == null) {
-      const [geolocation] = await db
-        .insert(geolocations)
-        .values({ blockFk: block.id, lat: value.lat, long: value.long, regionFk: block.regionFk })
-        .returning()
-      await db.update(blocks).set({ geolocationFk: geolocation.id }).where(eq(blocks.id, block.id))
-    } else {
-      await db.update(geolocations).set({ lat: value.lat, long: value.long }).where(eq(geolocations.id, existing.id))
-    }
+  if (existing == null) {
+    const [geolocation] = await db
+      .insert(geolocations)
+      .values({ blockFk: block.id, lat: value.lat, long: value.long, regionFk: block.regionFk })
+      .returning()
+    await db.update(blocks).set({ geolocationFk: geolocation.id }).where(eq(blocks.id, block.id))
+  } else {
+    await db.update(geolocations).set({ lat: value.lat, long: value.long }).where(eq(geolocations.id, existing.id))
+  }
 
-    // The pin dragged on the map keeps whatever `estimated` flag it had: this move confirms
-    // nothing, it only relocates. Clearing the flag is the edit form's job.
-    await createUpdateEvent(db, {
-      actorFk: user.id,
-      newEntity: { location: stringifyCoords(value, existing?.estimated) },
-      object: { id: block.id, type: 'block' },
-      oldEntity: { location: existing == null ? null : stringifyCoords(existing, existing.estimated) },
-      regionFk: block.regionFk,
-    })
+  // The pin dragged on the map keeps whatever `estimated` flag it had: this move confirms
+  // nothing, it only relocates. Clearing the flag is the edit form's job.
+  await createUpdateEvent(db, {
+    actorFk: user.id,
+    newEntity: { location: stringifyCoords(value, existing?.estimated) },
+    object: { id: block.id, type: 'block' },
+    oldEntity: { location: existing == null ? null : stringifyCoords(existing, existing.estimated) },
+    regionFk: block.regionFk,
+  })
 
-    return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
-  },
-)
+  return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
+})
 
 /** Backfill a rough pin from a topo photo's GPS EXIF when the block has none yet. Marked
  *  `estimated`, and a no-op once the block has any geolocation, so it never overrides a real
  *  pin and is safe to fire on every topo upload. */
 export const estimateBlockLocationFromPhoto = authedCommand(
-  z.object({
-    id: z.number(),
-    lat: boundedDegrees(90),
-    long: boundedDegrees(180),
-  }),
+  blockPinSchema,
   async (value, { db, user, userRegions }) => {
-    const block = await requireRow(
-      () => db.query.blocks.findFirst({ where: and(eq(blocks.id, value.id), isNull(blocks.deletedAt)) }),
-      (row) => canEditBlock(userRegions, row),
-      formError('blocks_notFound'),
-    )
+    const block = await requireEditableBlock(db, value.id, userRegions)
 
     if (block.geolocationFk != null) return
 

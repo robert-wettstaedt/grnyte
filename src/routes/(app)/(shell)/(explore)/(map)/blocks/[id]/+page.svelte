@@ -3,7 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
-  import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
+  import RouteList from '$lib/components/EntityRow/RouteList.svelte'
   import { trackView } from '$lib/components/EntitySearch/recent.svelte'
   import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -18,7 +18,6 @@
   import { createSaveState } from '$lib/entities/favorite/save.svelte'
   import { createLocationState } from '$lib/entities/geolocation/location.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
-  import { gradeLabel } from '$lib/entities/grade/label'
   import { selectTopoForRoute } from '$lib/entities/topo/mapper'
   import { orderRoutesByTopo } from '$lib/entities/topo/order'
   import { canEditTopo } from '$lib/entities/topo/permissions'
@@ -45,6 +44,14 @@
   const topos = blockTopoList(() => blockId)
   const routes = blockRouteList(() => blockId)
   const orderedRoutes = $derived(orderRoutesByTopo(routes.data, topos.data))
+  // The topo thumbnail is folded in here rather than per row: `RouteList` renders a route as it
+  // is given, and a route carries at most one topo line.
+  const routesWithTopos = $derived(
+    orderedRoutes.map((route) => {
+      const topo = selectTopoForRoute(topos.data, route.id)
+      return { ...route, topoImagePath: topo?.view.imagePath, topoPoints: topo?.line.points }
+    }),
+  )
 
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
@@ -134,17 +141,7 @@
           <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">
             {m.routes_routesCount({ count: orderedRoutes.length })}
           </h2>
-          <nav class="flex flex-col gap-1.5">
-            {#each orderedRoutes as route (route.id)}
-              {@const topo = selectTopoForRoute(topos.data, route.id)}
-              <RouteRow
-                route={{ ...route, topoImagePath: topo?.view.imagePath, topoPoints: topo?.line.points }}
-                grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-                status={ascentStatus.get(route.id)}
-                href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
-              />
-            {/each}
-          </nav>
+          <RouteList routes={routesWithTopos} status={ascentStatus} />
         </section>
       {:else if routes.status === 'ready'}
         <BlockEmpty block={detail} />

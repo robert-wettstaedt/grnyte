@@ -32,10 +32,7 @@ export const toggleFavorite = authedCommand(
     // stranger could walk the id space and learn exactly which routes, blocks and areas exist in
     // regions they cannot open. The favorite itself is own-row, so there is nothing else to say.
     if (entity == null || !checkRegionPermission(userRegions, [REGION_PERMISSION_READ], entity.regionFk)) {
-      error(
-        404,
-        notFound,
-      )
+      error(404, notFound)
     }
 
     const objectColumn =
@@ -48,10 +45,7 @@ export const toggleFavorite = authedCommand(
     // The INSERT half only: removing a favorite whose entity has since died has to keep working.
     // Not an existence oracle: only a caller past the region-READ check above can reach this 404.
     if (existing == null && entity.deletedAt != null) {
-      error(
-        404,
-        notFound,
-      )
+      error(404, notFound)
     }
 
     if (existing == null) {

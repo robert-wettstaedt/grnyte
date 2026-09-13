@@ -4,13 +4,13 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
-  import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import AscentFormFields from '$lib/entities/ascent/AscentFormFields.svelte'
   import { createAscent } from '$lib/entities/ascent/ascents.remote'
   import { canLogAscent } from '$lib/entities/ascent/permissions'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { finalizeMediaUploads, type MediaUpload } from '$lib/entities/file/upload-manager.svelte'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
+  import RouteWithBlock from '$lib/entities/route/RouteWithBlock.svelte'
   import Form from '$lib/forms/Form.svelte'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -56,31 +56,27 @@
   <title>{m.routes_logAscent()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState notFound={m.routes_notFound()} resource={route}>
-  {#snippet ready(detail)}
-    <QueryState notFound={m.blocks_notFound()} resource={block}>
-      {#snippet ready(blockData)}
-        {#if canLogAscent(global.userRegions, detail)}
-          <Form
-            form={createAscent}
-            onCancel={() => back(routeHref)}
-            {onSubmitted}
-            submitLabel={m.common_save()}
-            title={m.routes_logAscent()}
-          >
-            {#key detail.id}
-              <AscentFormFields block={blockData} form={createAscent} route={detail} bind:uploads />
-            {/key}
-          </Form>
-        {:else}
-          <ErrorState
-            type="generic"
-            title={m.form_noPermissionTitle()}
-            description={m.region_notMember()}
-            primaryAction={{ href: routeHref, label: m.routes_viewRoute() }}
-          />
-        {/if}
-      {/snippet}
-    </QueryState>
+<RouteWithBlock {block} {route}>
+  {#snippet ready(detail, blockData)}
+    {#if canLogAscent(global.userRegions, detail)}
+      <Form
+        form={createAscent}
+        onCancel={() => back(routeHref)}
+        {onSubmitted}
+        submitLabel={m.common_save()}
+        title={m.routes_logAscent()}
+      >
+        {#key detail.id}
+          <AscentFormFields block={blockData} form={createAscent} route={detail} bind:uploads />
+        {/key}
+      </Form>
+    {:else}
+      <ErrorState
+        type="generic"
+        title={m.form_noPermissionTitle()}
+        description={m.region_notMember()}
+        primaryAction={{ href: routeHref, label: m.routes_viewRoute() }}
+      />
+    {/if}
   {/snippet}
-</QueryState>
+</RouteWithBlock>

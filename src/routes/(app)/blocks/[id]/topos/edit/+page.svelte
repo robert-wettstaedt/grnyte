@@ -427,9 +427,9 @@
 </script>
 
 <svelte:head>
-  <title
-    >{block.isEmpty ? m.blocks_notFound() : `${m.topo_editTopos()} – ${block.data?.name ?? m.common_block()}`} – {PUBLIC_APPLICATION_NAME}</title
-  >
+  <title>
+    {block.isEmpty ? m.blocks_notFound() : `${m.topo_editTopos()} – ${block.data?.name ?? m.common_block()}`} – {PUBLIC_APPLICATION_NAME}
+  </title>
 </svelte:head>
 
 <!-- Guarded, not moved: `<svelte:window>` has to stay at the top level. -->

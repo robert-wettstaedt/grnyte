@@ -214,17 +214,8 @@
 
 <!-- `Row` rather than `AreaRow`, which would put a thumbnail on every one. `tabular-nums` is what
      makes the distances read as a ranking. -->
-{#snippet sectorRow(sector: AreaListItem)}
-  {@const metres = distances.get(sector.id)}
-  <Row
-    crumbs={sector.areas.map((ancestor) => ancestor.name)}
-    onclick={() => {
-      chosenSectorId = sector.id
-      pickerOpen = false
-    }}
-    title={sector.name}
-    variant="option"
-  >
+{#snippet optionRow(item: AreaListItem, metres: number | undefined, onclick: () => void)}
+  <Row crumbs={item.areas.map((ancestor) => ancestor.name)} {onclick} title={item.name} variant="option">
     {#snippet rightContent()}
       {#if metres != null}
         <span class="text-surface-500 shrink-0 text-[11px] font-semibold tabular-nums">{formatMetres(metres)}</span>
@@ -233,20 +224,15 @@
   </Row>
 {/snippet}
 
+{#snippet sectorRow(sector: AreaListItem)}
+  {@render optionRow(sector, distances.get(sector.id), () => {
+    chosenSectorId = sector.id
+    pickerOpen = false
+  })}
+{/snippet}
+
 {#snippet areaRow(area: AreaListItem)}
-  {@const metres = areaDistances.get(area.id)}
-  <Row
-    crumbs={area.areas.map((ancestor) => ancestor.name)}
-    onclick={() => chooseArea(area.id)}
-    title={area.name}
-    variant="option"
-  >
-    {#snippet rightContent()}
-      {#if metres != null}
-        <span class="text-surface-500 shrink-0 text-[11px] font-semibold tabular-nums">{formatMetres(metres)}</span>
-      {/if}
-    {/snippet}
-  </Row>
+  {@render optionRow(area, areaDistances.get(area.id), () => chooseArea(area.id))}
 {/snippet}
 
 <!-- Inert on purpose: nothing to press, it only says why the sector is missing. -->

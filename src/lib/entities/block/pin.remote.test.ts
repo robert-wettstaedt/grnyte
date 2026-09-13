@@ -5,7 +5,7 @@
  * one whose pin never loaded. The removal cases keep it honest: a guard that refused every location
  * change would pass every refusal test and break the feature.
  */
-import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
+import { reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
 import { asRequest, callForm } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { updateBlock } from './blocks.remote'
@@ -31,16 +31,9 @@ let blockId = 0
 beforeAll(async () => {
   if (!reachable) return
 
-  const users = await seedUsers({ maintainer: 'maintainer@grnyte.rocks' })
-  maintainer = users.maintainer
-
-  const [region] = await sql<{ id: number }[]>`
-    insert into public.regions (name, created_by) values (${REGION}, ${maintainer.userId}) returning id`
-  regionId = region.id
-
-  await sql`
-    insert into public.region_members (region_fk, user_fk, auth_user_fk, role, is_active)
-    values (${regionId}, ${maintainer.userId}, ${maintainer.authId}, 'region_maintainer', true)`
+  const seeded = await seedRegion(REGION)
+  maintainer = seeded.user
+  regionId = seeded.regionId
 
   const [sector] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)

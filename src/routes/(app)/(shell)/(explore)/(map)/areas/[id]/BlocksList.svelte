@@ -1,13 +1,12 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
+  import RouteList from '$lib/components/EntityRow/RouteList.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Image from '$lib/components/Image/Image.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { getGradeBand } from '$lib/entities/grade/color'
-  import { gradeLabel } from '$lib/entities/grade/label'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { userLocation } from '$lib/map/geolocation.svelte'
   import { formatDistance } from '$lib/map/map'
@@ -161,16 +160,7 @@
             <p class="text-surface-600-400 text-sm">{m.topo_none()}</p>
           {/if}
         {:else if blockRoutes.length > 0}
-          <nav class="flex flex-col gap-1.5">
-            {#each blockRoutes as route (route.id)}
-              <RouteRow
-                {route}
-                grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-                status={ascentStatus.get(route.id)}
-                href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
-              />
-            {/each}
-          </nav>
+          <RouteList routes={blockRoutes} status={ascentStatus} />
         {:else}
           <div class="flex items-center gap-2">
             {#each block.topoImages as image (image.id)}

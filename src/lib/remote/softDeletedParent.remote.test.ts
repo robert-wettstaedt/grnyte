@@ -8,7 +8,7 @@
 import { enrichMarkdown } from '$lib/components/Markdown/lib/enrich.server'
 import { REFERENCE_TOMBSTONE } from '$lib/components/Markdown/lib/remark-references'
 import { db } from '$lib/db/db.server'
-import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
+import { reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
 import { hasDeletedAncestor } from '$lib/entities/area/area.server'
 import { addParking, createArea, deleteParking, restoreArea, restoreParking } from '$lib/entities/area/areas.remote'
 import { createAscent } from '$lib/entities/ascent/ascents.remote'
@@ -31,16 +31,9 @@ let blockId: number
 beforeAll(async () => {
   if (!reachable) return
 
-  const users = await seedUsers({ maintainer: 'maintainer@grnyte.rocks' })
-  maintainer = users.maintainer
-
-  const [region] = await sql<{ id: number }[]>`
-    insert into public.regions (name, created_by) values (${REGION}, ${maintainer.userId}) returning id`
-  regionId = region.id
-
-  await sql`
-    insert into public.region_members (region_fk, user_fk, auth_user_fk, role, is_active)
-    values (${regionId}, ${maintainer.userId}, ${maintainer.authId}, 'region_admin', true)`
+  const seeded = await seedRegion(REGION, 'region_admin')
+  maintainer = seeded.user
+  regionId = seeded.regionId
 
   const [parent] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
@@ -251,7 +244,9 @@ describe.skipIf(!reachable)('a create refuses a cleared parent', () => {
 
     try {
       // The key, not merely a refusal: a row count alone passes on any rejected payload.
-      const result = await asRequest(maintainer.authId, () => callForm(createRoute, { blockId: String(blockId), name: '__softdel_created_route__' }))
+      const result = await asRequest(maintainer.authId, () =>
+        callForm(createRoute, { blockId: String(blockId), name: '__softdel_created_route__' }),
+      )
 
       expect(result).toMatchObject({ issues: [{ message: JSON.stringify({ message: 'blocks_notFound' }) }] })
 
@@ -267,7 +262,9 @@ describe.skipIf(!reachable)('a create refuses a cleared parent', () => {
     await sql`update public.areas set deleted_at = now() where id = ${sectorAreaId}`
 
     try {
-      const result = await asRequest(maintainer.authId, () => callForm(createBlock, { areaId: String(sectorAreaId), name: '__softdel_created_block__' }))
+      const result = await asRequest(maintainer.authId, () =>
+        callForm(createBlock, { areaId: String(sectorAreaId), name: '__softdel_created_block__' }),
+      )
 
       expect(result).toMatchObject({ issues: [{ message: JSON.stringify({ message: 'areas_parentNotFound' }) }] })
 
@@ -280,7 +277,9 @@ describe.skipIf(!reachable)('a create refuses a cleared parent', () => {
   })
 
   it('still adds a route to a live block', async () => {
-    await asRequest(maintainer.authId, () => callForm(createRoute, { blockId: String(blockId), name: '__softdel_ok_created__' }))
+    await asRequest(maintainer.authId, () =>
+      callForm(createRoute, { blockId: String(blockId), name: '__softdel_ok_created__' }),
+    )
 
     const [row] = await sql<{ count: number }[]>`
       select count(*)::int as count from public.routes where name = '__softdel_ok_created__'`

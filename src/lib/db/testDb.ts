@@ -60,6 +60,33 @@ export async function dropThrowawayUser(user: SeedUser): Promise<void> {
   await sql`delete from auth.users where id = ${user.authId}`
 }
 
+/**
+ * A region owned by one seed login, with that login already a member at `role`.
+ *
+ * Two dozen suites open with the same three inserts. Kept here so a schema change to
+ * `region_members` lands once, and so what a suite actually sets up stays readable as the rows
+ * it adds underneath.
+ *
+ * `name` only has to be unique across suites that run together; the usual `__<suite>_region__`
+ * is enough. Delete the region in `afterAll` as before: this does not register any cleanup.
+ */
+export async function seedRegion(
+  name: string,
+  role: 'region_admin' | 'region_maintainer' | 'region_user' = 'region_maintainer',
+  email = 'maintainer@grnyte.rocks',
+): Promise<{ regionId: number; user: SeedUser }> {
+  const { user } = await seedUsers({ user: email })
+
+  const [region] = await sql<{ id: number }[]>`
+    insert into public.regions (name, created_by) values (${name}, ${user.userId}) returning id`
+
+  await sql`
+    insert into public.region_members (region_fk, user_fk, auth_user_fk, role, is_active)
+    values (${region.id}, ${user.userId}, ${user.authId}, ${role}, true)`
+
+  return { regionId: region.id, user }
+}
+
 /** {@link resolveSeedUsers} on this module's pool, which is what every vitest suite wants. */
 export async function seedUsers<K extends string>(emails: Record<K, string>): Promise<Record<K, SeedUser>> {
   return resolveSeedUsers(sql, emails)

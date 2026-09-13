@@ -2,6 +2,7 @@ import { command, getRequestEvent, query } from '$app/server'
 import { APP_PERMISSION_ADMIN } from '$lib/auth'
 import { db } from '$lib/db/db.server'
 import { clientErrorLogs } from '$lib/db/schema'
+import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { error as httpError } from '@sveltejs/kit'
 import { desc, sql } from 'drizzle-orm'
@@ -49,7 +50,7 @@ export const listErrorLogs = query(async (): Promise<ErrorLogGroup[]> => {
   // The table has RLS on with no policies, so this reads through the privileged client and
   // this check is the only thing standing in front of it. Not defence in depth: the gate.
   if (!locals.userPermissions?.includes(APP_PERMISSION_ADMIN)) {
-    httpError(403, 'Forbidden')
+    httpError(403, formError('form_noPermission'))
   }
 
   const rows = await db

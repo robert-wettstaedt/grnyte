@@ -127,6 +127,12 @@ This project uses:
   - **Changing `manifest.id` in `vite.config.ts`.** It is pinned to `/` (1.0's `start_url`, frozen as an identifier) and must never move: an id a browser does not recognise is a different application, so every installed home-screen app is orphaned beside a new one. Because it is pinned, `start_url` itself is free to change.
   - **Deleting or reshaping a route.** Bookmarks, shared links, push targets and history live outside the database and cannot be migrated. Prefer id-based URLs (`/routes/<id>`); they cost nothing to keep forever, while a slug-based one dies with the column it resolved against.
 - Verify changes by driving the running app, not just typechecking.
+- Run `npm run lint:duplication` and `npm run lint:unused` BEFORE handing work back, not after. Both
+  are in CI, so a miss is caught either way, but by then the duplicate is written and the cheap
+  moment to reuse something instead has passed. jscpd fails only on clones absent from
+  `.jscpd-baseline.json` and marks them `[NEW]`; if a new one is deliberate, say so and run
+  `npm run lint:duplication:accept`, which rewrites the baseline. Note it is fingerprint-based, so
+  moving existing duplicated code also reads as new.
 - Browser floor: `vite.config.ts` pins `build.target`. Left unpinned it inherits Vite's
   `baseline-widely-available` default, which is Baseline Widely as of a date frozen per Vite major,
   so the floor drifts silently on an upgrade. Check a web feature against the pinned list, never
