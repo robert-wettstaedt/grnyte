@@ -8,7 +8,7 @@ import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, count, eq, gt, gte, isNull, sql } from 'drizzle-orm'
-import { refreshAreaType } from '../area/area.server'
+import { hasDeletedAncestor, refreshAreaType } from '../area/area.server'
 import { canAddBlock } from '../area/permissions'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { stringifyDeletionScale } from '../event/verbs'
@@ -42,7 +42,9 @@ export type BlockFormInput = z.input<typeof blockActionSchema>
 export const createBlock = authedForm(
   blockActionSchema,
   async (value, { afterCommit, db, user, userRegions }, issue) => {
-    const area = await db.query.areas.findFirst({ where: eq(areas.id, value.areaId) })
+    const area = await db.query.areas.findFirst({
+      where: and(eq(areas.id, value.areaId), isNull(areas.deletedAt)),
+    })
 
     if (area == null) {
       invalid(formError('areas_parentNotFound'))
@@ -577,6 +579,10 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
     if (!canAddBlock(userRegions, area)) {
       error(403, formError('form_noPermission'))
     }
+    // A hard restore is a create, and a create under a dead parent strands the row.
+    if (area.deletedAt != null) {
+      error(404, formError('areas_parentNotFound'))
+    }
 
     // The area row, not the snapshot's id: everything after the gate reads the row the gate read.
     const blockId = await hardRestoreBlock(db, snapshot, area, user.id)
@@ -607,6 +613,11 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
       data: { blockId: snapshot.blockId },
       redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(snapshot.blockId) }),
     }
+  }
+
+  // Refuse rather than strand it: restore the ancestor first, which brings this row with it.
+  if (await hasDeletedAncestor(db, block.areaFk)) {
+    error(404, formError('areas_parentNotFound'))
   }
 
   // The stored block, not the snapshot: `canDeleteBlock` above authorized THIS row.

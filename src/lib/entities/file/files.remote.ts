@@ -385,7 +385,18 @@ export const finalizeVideo = authedCommand(
 
     // Same gate as finalizeImage: pre-check so it fails with a real message instead of an
     // opaque RLS rollback after two inserts.
-    const regionFk = await resolveAttachRegion(db, user.id, userRegions, entityType, entityId)
+    //
+    // Bunny has the bytes already and `listStaleUploads` skips anything past status 0, so a refusal
+    // strands the asset forever. 404 only: a transient failure must not destroy a good upload.
+    let regionFk: number
+    try {
+      regionFk = await resolveAttachRegion(db, user.id, userRegions, entityType, entityId)
+    } catch (thrown) {
+      if ((thrown as { status?: number })?.status === 404) {
+        await getVideoProvider().remove(videoId)
+      }
+      throw thrown
+    }
 
     // files.bunnyStreamFk and bunnyStreams.fileFk are circular, and the
     // bunny_streams UPDATE policy can never pass a NULL -> value file_fk

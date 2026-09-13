@@ -38,10 +38,13 @@ export const load = (async ({ locals, params }) => {
     },
     where: eq(files.id, params.id),
     with: {
+      // Joined only to prove the parent is live, never rendered.
+      area: { columns: { deletedAt: true } },
       ascent: {
         columns: {
           createdBy: true,
           dateTime: true,
+          deletedAt: true,
           gradeFk: true,
           humidity: true,
           id: true,
@@ -52,7 +55,15 @@ export const load = (async ({ locals, params }) => {
         },
         with: {
           route: {
-            columns: { gradeFk: true, id: true, name: true, rating: true, userGradeFk: true, userRating: true },
+            columns: {
+              deletedAt: true,
+              gradeFk: true,
+              id: true,
+              name: true,
+              rating: true,
+              userGradeFk: true,
+              userRating: true,
+            },
           },
         },
       },
@@ -62,8 +73,19 @@ export const load = (async ({ locals, params }) => {
         // their own (anon visitors); see `gradingScale` below.
         with: { userSettings: { columns: { gradingScale: true } } },
       },
+      block: { columns: { deletedAt: true } },
       bunnyStream: { columns: { source: true } },
-      route: { columns: { gradeFk: true, id: true, name: true, rating: true, userGradeFk: true, userRating: true } },
+      route: {
+        columns: {
+          deletedAt: true,
+          gradeFk: true,
+          id: true,
+          name: true,
+          rating: true,
+          userGradeFk: true,
+          userRating: true,
+        },
+      },
     },
   })
 
@@ -82,7 +104,24 @@ export const load = (async ({ locals, params }) => {
     error(404)
   }
 
-  const routeRow = row.route ?? row.ascent?.route ?? null
+  // A soft-deleted parent takes its files with it; this URL is the last place they stay readable.
+  // One level only: the delete cascade stamps descendants and nothing reparents.
+  const parentDeleted =
+    row.area?.deletedAt != null ||
+    row.ascent?.deletedAt != null ||
+    row.block?.deletedAt != null ||
+    row.route?.deletedAt != null
+
+  if (parentDeleted) {
+    error(404)
+  }
+
+  // Not the ascent's route: a delete never stamps ascents, so the logbook still renders this photo.
+  // The name still goes, because this is the one surface an anonymous visitor reaches.
+  const liveRoute = <T extends { deletedAt: Date | null }>(route: null | T | undefined) =>
+    route == null || route.deletedAt != null ? null : route
+
+  const routeRow = row.route ?? liveRoute(row.ascent?.route) ?? null
   const ascentCreatedBy = row.ascent?.createdBy ?? undefined
 
   // Pre-resolve `!type:id!` reference tokens against the DB so <Markdown> renders the notes

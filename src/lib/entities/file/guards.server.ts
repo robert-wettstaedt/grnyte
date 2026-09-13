@@ -75,12 +75,22 @@ export async function resolveAttachRegion(
     return ascent.regionFk
   }
 
+  // Filtered like the ascent branch: bytes on a dead parent are reachable by nothing, swept by nothing.
   const columns = { regionFk: true } as const
   const entity = await (type === 'area'
-    ? db.query.areas.findFirst({ columns, where: (areas) => eq(areas.id, id) })
+    ? db.query.areas.findFirst({
+        columns,
+        where: (areas, { and, isNull }) => and(eq(areas.id, id), isNull(areas.deletedAt)),
+      })
     : type === 'block'
-      ? db.query.blocks.findFirst({ columns, where: (blocks) => eq(blocks.id, id) })
-      : db.query.routes.findFirst({ columns, where: (routes) => eq(routes.id, id) }))
+      ? db.query.blocks.findFirst({
+          columns,
+          where: (blocks, { and, isNull }) => and(eq(blocks.id, id), isNull(blocks.deletedAt)),
+        })
+      : db.query.routes.findFirst({
+          columns,
+          where: (routes, { and, isNull }) => and(eq(routes.id, id), isNull(routes.deletedAt)),
+        }))
   if (entity == null) {
     // Per entity: interpolating the raw enum would leave "block"/"area" untranslated.
     error(404, formError(type === 'area' ? 'areas_notFound' : type === 'block' ? 'blocks_notFound' : 'routes_notFound'))

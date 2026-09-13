@@ -97,6 +97,19 @@ describe.skipIf(!reachable)('resolveAttachRegion', () => {
     expect(region).toBe(regionId)
   })
 
+  it('refuses attaching to a soft-deleted entity, EDIT or not', async () => {
+    // The bytes would land on a row nothing reaches and no sweeper reclaims.
+    await sql`update public.areas set deleted_at = now() where id = ${areaId}`
+
+    try {
+      await expect(
+        resolveAttachRegion(db, users.stranger.userId, [userRegion(regionId, 'region.edit')], 'area', areaId),
+      ).rejects.toMatchObject({ status: 404 })
+    } finally {
+      await sql`update public.areas set deleted_at = null where id = ${areaId}`
+    }
+  })
+
   it('lets the ascent owner attach to their own ascent, without needing EDIT', async () => {
     const region = await resolveAttachRegion(
       db,

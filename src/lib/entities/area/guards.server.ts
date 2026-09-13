@@ -10,7 +10,7 @@ import { areas, type Area } from '$lib/db/schema'
 import type { UserRegion } from '$lib/entities/region/dto'
 import { formError } from '$lib/forms/schemas'
 import { requireRowForm } from '$lib/remote/require.server'
-import { eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { canEditArea } from './permissions'
 
@@ -32,7 +32,10 @@ export async function loadParentArea(
   if (parentFk == null) {
     return { parent: undefined, status: 'ok' }
   }
-  const parent = await db.query.areas.findFirst({ where: eq(areas.id, parentFk) })
+  // Soft-deleted reads as missing: both callers create under it, and a dead parent strands the row.
+  const parent = await db.query.areas.findFirst({
+    where: and(eq(areas.id, parentFk), isNull(areas.deletedAt)),
+  })
   if (parent == null) {
     return { parent: undefined, status: 'missing' }
   }

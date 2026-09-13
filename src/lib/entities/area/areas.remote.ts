@@ -20,7 +20,7 @@ import { and, count, eq, inArray, isNull, not } from 'drizzle-orm'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { stringifyDeletionScale } from '../event/verbs'
 import { notifyMentions } from '../notification/notification.server'
-import { refreshAreaType } from './area.server'
+import { hasDeletedAncestor, refreshAreaType } from './area.server'
 import { loadParentArea, requireEditableArea } from './guards.server'
 import { canAddArea, canAddParking, canDeleteArea, canDeleteParking } from './permissions'
 
@@ -485,6 +485,11 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
       data: { areaId: snapshot.areaId },
       redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(snapshot.areaId) }),
     }
+  }
+
+  // Refuse rather than strand it: restore the ancestor first, which brings this row with it.
+  if (area.parentFk != null && (await hasDeletedAncestor(db, area.parentFk))) {
+    error(404, formError('areas_parentNotFound'))
   }
 
   // The stored area, not the snapshot: `canDeleteArea` above authorized THIS row, so this is the

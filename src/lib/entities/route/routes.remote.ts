@@ -1,6 +1,5 @@
 import { resolve } from '$app/paths'
 import {
-  areas,
   ascents,
   blocks,
   files,
@@ -22,6 +21,7 @@ import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { areaAncestry, blockIsStranded } from '../area/area.server'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { notifyMentions } from '../notification/notification.server'
 import { regionTags } from '../region/tagVocabulary'
@@ -69,23 +69,6 @@ const allowedTags = (allowed: string[], submitted: string[]) => submitted.filter
 export type RouteFormInput = z.input<typeof routeActionSchema>
 type RouteFormValue = z.output<typeof routeActionSchema>
 
-/** The block's area chain from root to leaf, the denormalized `areaFks`/`areaIds` the
- *  route filters run on (`areaIds` is `^2$,^3$,^75$`-style tokens for exact ILIKE matches).
- *  ponytail: one query per ancestor, area trees are a handful of levels deep. */
-async function areaAncestry(db: Context['db'], areaId: number): Promise<number[]> {
-  const chain: number[] = []
-  let current: null | number = areaId
-  while (current != null && !chain.includes(current)) {
-    chain.unshift(current)
-    const area: undefined | { parentFk: null | number } = await db.query.areas.findFirst({
-      columns: { parentFk: true },
-      where: eq(areas.id, current),
-    })
-    current = area?.parentFk ?? null
-  }
-  return chain
-}
-
 /** A duplicate route name on the same block (blank names are fine, they render as
  *  `common_unnamed`), mirroring the block form's per-area check. */
 async function findDuplicateName(
@@ -115,7 +98,9 @@ const routeHref = (id: number) => resolve('/(app)/routes/[id]', { id: String(id)
 export const createRoute = authedForm(
   routeActionSchema,
   async (value, { afterCommit, db, user, userRegions }, issue) => {
-    const block = await db.query.blocks.findFirst({ where: eq(blocks.id, value.blockId) })
+    const block = await db.query.blocks.findFirst({
+      where: and(eq(blocks.id, value.blockId), isNull(blocks.deletedAt)),
+    })
 
     if (block == null) {
       invalid(formError('blocks_notFound'))
@@ -352,10 +337,11 @@ export const deleteRoute = authedCommand(
 
     // Ascents/files/topo lines FK-reference the route; with any of them present the route
     // is soft-deleted (and the hard delete never hits a FK constraint).
+    // Unfiltered: `ascents.route_fk` has no ON DELETE action, so a tombstoned ascent 23503s too.
     const [ascent, file, topoRoute] = await Promise.all([
       db.query.ascents.findFirst({
         columns: { id: true },
-        where: and(eq(ascents.routeFk, id), isNull(ascents.deletedAt)),
+        where: eq(ascents.routeFk, id),
       }),
       db.query.files.findFirst({ columns: { id: true }, where: eq(files.routeFk, id) }),
       db.query.topoRoutes.findFirst({ columns: { id: true }, where: eq(topoRoutes.routeFk, id) }),
@@ -496,6 +482,10 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
     if (!canAddRoute(userRegions, block)) {
       error(403, formError('form_noPermission'))
     }
+    // A hard restore is a create, and a create under a dead parent strands the row.
+    if (block.deletedAt != null) {
+      error(404, formError('blocks_notFound'))
+    }
 
     const areaFks = await areaAncestry(db, block.areaFk)
 
@@ -559,6 +549,16 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
 
   if (route == null || !canDeleteRoute(userRegions, user.id, route)) {
     error(403, formError('form_noPermission'))
+  }
+
+  // Nothing to undo, as in restoreArea and restoreBlock: a replayed Undo lands on a live route.
+  if (route.deletedAt == null) {
+    return { data: { routeId: route.id }, redirectTo: routeHref(route.id) }
+  }
+
+  // Refuse rather than strand it: restore the ancestor first, which brings this row with it.
+  if (await blockIsStranded(db, route.blockFk)) {
+    error(404, formError('blocks_notFound'))
   }
 
   await db.update(routes).set({ deletedAt: null }).where(eq(routes.id, route.id))

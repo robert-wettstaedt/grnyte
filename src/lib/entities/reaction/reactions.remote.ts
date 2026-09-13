@@ -242,6 +242,16 @@ export const restoreComment = authedCommand(
       formError('comments_notFound'),
     )
 
+    // A reply renders only through a live head, yet still counts toward `events.comment_count`.
+    if (comment.parentFk != null) {
+      const parentFk = comment.parentFk
+      await requireRow(
+        () => db.query.reactions.findFirst({ where: and(eq(reactions.id, parentFk), isNull(reactions.deletedAt)) }),
+        () => true,
+        formError('comments_notFound'),
+      )
+    }
+
     await db.update(reactions).set({ deletedAt: null }).where(eq(reactions.id, commentId))
 
     // And the answers the delete took with it. Without this, undo puts back a head whose thread is

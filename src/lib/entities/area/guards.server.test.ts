@@ -98,4 +98,16 @@ describe.skipIf(!reachable)('loadParentArea', () => {
     const { status } = await loadParentArea(db, 987654321, regionId)
     expect(status).toBe('missing')
   })
+
+  it('flags a soft-deleted parent as missing', async () => {
+    // Both callers create a row under it, so a cleared parent has to read as absent.
+    await sql`update public.areas set deleted_at = now() where id = ${areaId}`
+
+    try {
+      const { status } = await loadParentArea(db, areaId, regionId)
+      expect(status).toBe('missing')
+    } finally {
+      await sql`update public.areas set deleted_at = null where id = ${areaId}`
+    }
+  })
 })
