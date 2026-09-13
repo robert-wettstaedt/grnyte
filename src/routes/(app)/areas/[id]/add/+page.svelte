@@ -42,7 +42,7 @@
         form={createArea}
         onCancel={() => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) }))}
         submitLabel={m.common_add()}
-        title={m.areas_newArea()}
+        title={m.areas_newAreaIn({ name: area.name })}
       >
         <AreaFormFields {area} form={createArea} />
       </Form>

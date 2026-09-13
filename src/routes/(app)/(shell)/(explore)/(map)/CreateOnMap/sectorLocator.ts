@@ -8,6 +8,29 @@ export interface LocatableBlock {
   geolocation: Geolocation | undefined
 }
 
+/** Each ancestor's distance to its nearest sector, for ranking areas holding no blocks of their own.
+ *  Absent, not `Infinity`, when nothing beneath is located. Reaches two levels up (`listAreas`). */
+export function ancestorDistances(
+  sectorMetres: Map<number, number>,
+  areas: { areas: { id: number }[]; id: number }[],
+): Map<number, number> {
+  const byAncestor = new Map<number, number>()
+
+  for (const area of areas) {
+    const metres = sectorMetres.get(area.id)
+    if (metres == null) continue
+
+    for (const ancestor of area.areas) {
+      const best = byAncestor.get(ancestor.id)
+      if (best == null || metres < best) {
+        byAncestor.set(ancestor.id, metres)
+      }
+    }
+  }
+
+  return byAncestor
+}
+
 /**
  * The sector whose nearest geolocated block is closest to `point`, or null when none is
  * within `maxMeters`. Callers pre-filter `blocks` to the regions the user can edit.

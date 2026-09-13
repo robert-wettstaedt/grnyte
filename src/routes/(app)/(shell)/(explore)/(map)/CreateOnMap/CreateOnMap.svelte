@@ -6,14 +6,15 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { AreaListItem } from '$lib/entities/area/dto'
-  import { canAddBlock, canAddParking } from '$lib/entities/area/permissions'
+  import { canAddArea, canAddBlock, canAddParking } from '$lib/entities/area/permissions'
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
+  import { regionDisplayName } from '$lib/entities/region/mapper'
   import { nameCollator } from '$lib/i18n/collator'
   import { formatMetres } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { findNearestSector, sectorDistances } from './sectorLocator'
+  import { ancestorDistances, findNearestSector, sectorDistances } from './sectorLocator'
 
   // The create entry point on the /explore map: a FAB (editors only) opens the region's create
   // menu. An area is made straight away; a block or a parking spot enters placement mode, a fixed
@@ -39,7 +40,9 @@
 
   let optionsOpen = $state(false)
   let pickerOpen = $state(false)
+  let areaPickerOpen = $state(false)
   let search = $state('')
+  let areaSearch = $state('')
   /** Manual override from the sector picker; wins over the proximity match. */
   let chosenSectorId = $state<null | number>(null)
 
@@ -50,9 +53,10 @@
   // `geolocations.estimated` exists, and photo EXIF writes one on purpose.
   const showFab = $derived(visible && canCreate && placing == null)
 
-  // Names the parent the way the area-level menu does, so "area" here cannot be mistaken for a
-  // sub-area or a sector. Areas cannot be re-parented, which makes that mistake expensive.
-  const soleRegion = $derived(global.userRegions.length === 1 ? global.userRegions[0] : undefined)
+  // One row per region, each naming its destination: areas cannot be re-parented.
+  const addableRegions = $derived(
+    global.userRegions.filter((region) => canAddArea(global.userRegions, { regionFk: region.regionFk, type: 'area' })),
+  )
 
   // Only blocks the user could have placed themselves anchor the proximity match.
   const editableBlocks = $derived(
@@ -94,6 +98,42 @@
   )
   const unlocatedSectors = $derived(filteredSectors.filter((area) => !distances.has(area.id)))
 
+  // What can hold a sub-area; `canAddArea` refuses a sector.
+  const candidateAreas = $derived.by(() => {
+    const byName = nameCollator()
+    return areas.data
+      .filter((area) => canAddArea(global.userRegions, area))
+      .toSorted((a, b) => byName.compare(a.name, b.name))
+  })
+
+  const matchesAreaSearch = (name: string) => name.toLowerCase().includes(areaSearch.trim().toLowerCase())
+
+  const filteredAreas = $derived(
+    areaSearch.trim() === '' ? candidateAreas : candidateAreas.filter((area) => matchesAreaSearch(area.name)),
+  )
+
+  /** Frozen at open, lifted from the sectors beneath each area. */
+  let areaDistances = $state(new Map<number, number>())
+
+  const locatedAreas = $derived(
+    filteredAreas
+      .filter((area) => areaDistances.has(area.id))
+      .toSorted((a, b) => areaDistances.get(a.id)! - areaDistances.get(b.id)!),
+  )
+  const unlocatedAreas = $derived(filteredAreas.filter((area) => !areaDistances.has(area.id)))
+
+  // Only while searching: unprompted, every sector would bury the pressable rows.
+  const blockedSectors = $derived(
+    areaSearch.trim() === ''
+      ? []
+      : areas.data.filter(
+          (area) =>
+            area.type === 'sector' &&
+            matchesAreaSearch(area.name) &&
+            checkRegionPermission(global.userRegions, [REGION_PERMISSION_EDIT], area.regionFk),
+        ),
+  )
+
   const resolvedSector = $derived.by(() => {
     const id = chosenSectorId ?? nearest?.sectorId
     if (id == null) return null
@@ -123,6 +163,23 @@
       distances = center == null ? new Map() : sectorDistances(editableBlocks, { lat: center[0], long: center[1] })
     }
     pickerOpen = !pickerOpen
+  }
+
+  const openAreaPicker = () => {
+    optionsOpen = false
+    areaSearch = ''
+    // The same subject the sector picker measures from.
+    const point = pressed ?? center
+    areaDistances =
+      point == null
+        ? new Map()
+        : ancestorDistances(sectorDistances(editableBlocks, { lat: point[0], long: point[1] }), areas.data)
+    areaPickerOpen = true
+  }
+
+  const chooseArea = (id: number) => {
+    areaPickerOpen = false
+    goto(resolve('/(app)/areas/[id]/add', { id: String(id) }))
   }
 
   const startPlacing = (type: 'block' | 'parking') => {
@@ -176,6 +233,30 @@
   </Row>
 {/snippet}
 
+{#snippet areaRow(area: AreaListItem)}
+  {@const metres = areaDistances.get(area.id)}
+  <Row
+    crumbs={area.areas.map((ancestor) => ancestor.name)}
+    onclick={() => chooseArea(area.id)}
+    title={area.name}
+    variant="option"
+  >
+    {#snippet rightContent()}
+      {#if metres != null}
+        <span class="text-surface-500 shrink-0 text-[11px] font-semibold tabular-nums">{formatMetres(metres)}</span>
+      {/if}
+    {/snippet}
+  </Row>
+{/snippet}
+
+<!-- Inert on purpose: nothing to press, it only says why the sector is missing. -->
+{#snippet blockedSectorRow(sector: AreaListItem)}
+  <div class="flex flex-col px-3 py-2">
+    <span class="text-surface-600-400 truncate text-sm font-medium">{sector.name}</span>
+    <span class="text-surface-500 text-xs">{m.areas_holdsBlocks()}</span>
+  </div>
+{/snippet}
+
 {#if placing == null}
   <Modal
     bind:open={optionsOpen}
@@ -212,16 +293,27 @@
         {m.map_create_regionSection()}
       </h3>
 
-      <a
-        class="hover:bg-surface-200-800 flex items-center gap-3 rounded-lg px-3 py-3"
-        href={resolve('/(app)/areas/add')}
-        onclick={() => (optionsOpen = false)}
-      >
-        <Icon name="area" size={20} class="text-primary-500" />
-        <span class="font-medium">
-          {soleRegion == null ? m.areas_newTopLevelArea() : m.map_create_areaIn({ name: soleRegion.name })}
-        </span>
-      </a>
+      <!-- eslint-disable svelte/no-navigation-without-resolve -- resolve()'d above, plus a query string -->
+      {#each addableRegions as region (region.regionFk)}
+        <a
+          class="hover:bg-surface-200-800 flex items-center gap-3 rounded-lg px-3 py-3"
+          href={`${resolve('/(app)/areas/add')}?regionFk=${region.regionFk}`}
+          onclick={() => (optionsOpen = false)}
+        >
+          <Icon name="area" size={20} class="text-primary-500" />
+          <span class="font-medium">{m.areas_newAreaIn({ name: regionDisplayName(region) })}</span>
+        </a>
+      {/each}
+      <!-- eslint-enable svelte/no-navigation-without-resolve -->
+
+      <!-- Hidden when nothing can hold a sub-area: the row above is then the only move. -->
+      {#if candidateAreas.length > 0}
+        <button class="hover:bg-surface-200-800 flex items-center gap-3 rounded-lg px-3 py-3" onclick={openAreaPicker}>
+          <Icon name="area" size={20} class="text-primary-500" />
+          <span class="font-medium">{m.map_create_areaInsideArea()}</span>
+          <Icon name="chevron-right" size={16} class="text-surface-600-400 ml-auto" />
+        </button>
+      {/if}
 
       <h3 class="text-surface-500 px-1 pt-3 pb-1 text-xs font-bold tracking-wider uppercase">
         {m.map_create_mapSection()}
@@ -241,6 +333,50 @@
         <Icon name="parking" size={20} class="text-primary-500" />
         <span class="font-medium">{m.areas_addParkingLocation()}</span>
       </button>
+    </div>
+  </Modal>
+
+  <!-- Panel, not popover: the row that opens this is gone by then, so a popover would anchor to
+       an empty button Zag renders in its place. Triggerless is legal in panel mode only. -->
+  <Modal
+    backdrop
+    bind:open={areaPickerOpen}
+    contentClass="w-full max-w-sm max-h-[80dvh]"
+    panel
+    panelClass="fixed inset-0 z-60 flex items-center justify-center p-4"
+    title={m.map_create_chooseArea()}
+  >
+    <div class="flex flex-col gap-2 py-2">
+      <input
+        bind:value={areaSearch}
+        class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-2.5 text-base focus:ring-0 focus:outline-none"
+        placeholder={m.map_create_searchAreas()}
+        type="search"
+      />
+      <div class="flex max-h-64 flex-col overflow-y-auto">
+        {#each locatedAreas as area (area.id)}
+          {@render areaRow(area)}
+        {/each}
+
+        <!-- Only a heading when both groups are populated: on its own, the tail IS the list. -->
+        {#if locatedAreas.length > 0 && unlocatedAreas.length > 0}
+          <h3 class="text-surface-500 px-1 pt-3 pb-1 text-xs font-bold tracking-wider uppercase">
+            {m.map_create_withoutLocation()}
+          </h3>
+        {/if}
+
+        {#each unlocatedAreas as area (area.id)}
+          {@render areaRow(area)}
+        {/each}
+
+        {#each blockedSectors as sector (sector.id)}
+          {@render blockedSectorRow(sector)}
+        {/each}
+
+        {#if filteredAreas.length === 0 && blockedSectors.length === 0}
+          <span class="text-surface-600-400 px-3 py-2 text-sm">{m.map_create_noAreasFound()}</span>
+        {/if}
+      </div>
     </div>
   </Modal>
 {:else}
@@ -293,7 +429,7 @@
               <!-- Only a heading when both groups are populated: on its own, the tail IS the list. -->
               {#if locatedSectors.length > 0 && unlocatedSectors.length > 0}
                 <h3 class="text-surface-500 px-1 pt-3 pb-1 text-xs font-bold tracking-wider uppercase">
-                  {m.map_create_sectorsWithoutLocation()}
+                  {m.map_create_withoutLocation()}
                 </h3>
               {/if}
 

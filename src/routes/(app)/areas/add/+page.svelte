@@ -6,6 +6,7 @@
   import AreaFormFields from '$lib/entities/area/AreaFormFields.svelte'
   import { createArea } from '$lib/entities/area/areas.remote'
   import { canAddArea } from '$lib/entities/area/permissions'
+  import { regionDisplayName } from '$lib/entities/region/mapper'
   import Form from '$lib/forms/Form.svelte'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -53,11 +54,18 @@
     createArea.fields.parentFk.set('')
   })
 
+  // Names the region, not the level: "top-level" describes the data, not a place. The fallback is
+  // the cold arrival, with no region to name.
+  const title = $derived.by(() => {
+    const region = regions.find((candidate) => candidate.regionFk === preselected)
+    return region == null ? m.areas_newArea() : m.areas_newAreaIn({ name: regionDisplayName(region) })
+  })
+
   const goBack = () => back(resolve('/explore'))
 </script>
 
 <svelte:head>
-  <title>{m.areas_newArea()} – {PUBLIC_APPLICATION_NAME}</title>
+  <title>{title} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 {#if regions.length === 0}
@@ -65,7 +73,7 @@
        explore empty state's CTA if the region's roles change between render and click. -->
   <ErrorState type="generic" title={m.form_noPermissionTitle()} description={m.areas_noAddableRegion()} />
 {:else}
-  <Form form={createArea} onCancel={goBack} submitLabel={m.common_add()} title={m.areas_newTopLevelArea()}>
+  <Form form={createArea} onCancel={goBack} submitLabel={m.common_add()} {title}>
     <AreaFormFields form={createArea} />
   </Form>
 {/if}

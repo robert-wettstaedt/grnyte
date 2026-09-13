@@ -1,6 +1,6 @@
 import { toDisplayName } from '$lib/entities/displayName'
 import { describe, expect, it } from 'vitest'
-import { findNearestSector, sectorDistances, type LocatableBlock } from './sectorLocator'
+import { ancestorDistances, findNearestSector, sectorDistances, type LocatableBlock } from './sectorLocator'
 
 const sector = (id: number) => ({ areas: [], id, name: toDisplayName(`Sector ${id}`), type: 'sector' as const })
 const block = (sectorId: number, lat: number, long: number): LocatableBlock => ({
@@ -50,5 +50,47 @@ describe('sectorDistances', () => {
   it('omits a sector with no geolocated block rather than ranking it last', () => {
     const distances = sectorDistances([{ areas: [sector(3)], geolocation: undefined }], point)
     expect(distances.has(3)).toBe(false)
+  })
+})
+
+describe('ancestorDistances', () => {
+  // What the picker feeds it: an area list, each entry carrying its own ancestors.
+  const area = (id: number, ancestorIds: number[]) => ({
+    areas: ancestorIds.map((ancestorId) => ({ id: ancestorId })),
+    id,
+  })
+
+  it('gives an ancestor the distance of its nearest sector, not its first or its furthest', () => {
+    const distances = ancestorDistances(
+      new Map([
+        [10, 900],
+        [11, 200],
+        [12, 500],
+      ]),
+      [area(10, [1]), area(11, [1]), area(12, [1])],
+    )
+    expect(distances.get(1)).toBe(200)
+  })
+
+  it('omits an ancestor with no located sector beneath it rather than ranking it infinitely far', () => {
+    // Absent means unknown, and the picker files it under its own heading; Infinity would sort it last.
+    const distances = ancestorDistances(new Map([[10, 300]]), [area(10, [1]), area(20, [2])])
+    expect(distances.get(1)).toBe(300)
+    expect(distances.has(2)).toBe(false)
+  })
+
+  it('lifts onto every ancestor in the chain, not only the nearest one', () => {
+    const distances = ancestorDistances(new Map([[10, 300]]), [area(10, [1, 2])])
+    expect(distances.get(1)).toBe(300)
+    expect(distances.get(2)).toBe(300)
+  })
+
+  it('leaves the sectors themselves alone: it answers about ancestors only', () => {
+    const distances = ancestorDistances(new Map([[10, 300]]), [area(10, [1])])
+    expect(distances.has(10)).toBe(false)
+  })
+
+  it('ignores an area the sector map says nothing about', () => {
+    expect(ancestorDistances(new Map(), [area(10, [1])]).size).toBe(0)
   })
 })
