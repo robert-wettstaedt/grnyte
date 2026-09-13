@@ -196,3 +196,6 @@ emails
 # Agent scratch. AGENTS.md says these are never repo documentation: each is deleted when its feature
 # lands, so anything committed that referenced one would rot. Ignored rather than remembered.
 *-PLAN.md
+
+# Local TLS cert for `PREVIEW_HTTPS=1 npm run preview` behind a TLS proxy
+.certs/

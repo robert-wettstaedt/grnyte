@@ -52,6 +52,49 @@ The media viewer and topo are touch/gesture-heavy, so verifying them needs more 
 - **Don't network-throttle to isolate render/load timing** — Slow 3G stalls Zero's sync so the app never
   boots. Verify load-order logic structurally (DOM/state) instead.
 
+## Secure context (real phone, geolocation, push, PWA)
+
+`http://<lan-ip>:3000` is not a secure context, so geolocation, push, the service worker and PWA
+install are all unavailable and the failure looks like a bug in the feature. Reach the app through
+Tailscale Serve instead, which fronts a local port with a real cert on the tailnet. The host name
+and the current port mounts live in memory (`phone-testing-over-tailscale`), not in this file.
+
+Two origins, and which one you want is not a detail:
+
+- **Dev** (proxy :443 -> `http://127.0.0.1:3000`). Plain http target, no cert. `vite dev` skips
+  Kit's origin check entirely, so nothing else is needed. Use this for almost everything.
+- **Preview** (proxy :9173 -> `https+insecure://127.0.0.1:4173`, started as
+  `PREVIEW_HTTPS=1 npm run preview`). Use it only when you need the real production bundle: the
+  built service worker, PWA install, or anything that behaves differently unbundled.
+
+Traps, all of them verified the hard way:
+
+- **The preview build must serve TLS itself.** Kit reads the preview origin's protocol off
+  `preview.https` alone and ignores `X-Forwarded-Proto`, so behind a TLS proxy without
+  `PREVIEW_HTTPS=1` pages load fine while every remote function 403s with "Cross-site remote
+  requests are forbidden". `csrf.checkOrigin` and `csrf.trustedOrigins` do NOT reach that check.
+  A non-443 mount is fine: Kit takes the Host header verbatim, port included, and Serve preserves it.
+- **A TLS preview stops answering plain http**, so `ZERO_GET_QUERIES_URL` breaks and Zero reports
+  itself offline with `TransformFailed` / "Fetch from API server threw error". Point it at
+  `http://localhost:3000/...` (dev serves the same endpoint, and zero-cache calls it server-to-server
+  so it need not match the client you are driving).
+- **HMR does not survive the hop.** Zero's WebSocket does, so the tunnel is fine; the Vite HMR socket
+  will not open and there is no `[vite] connected.`. Reload by hand, and do not read a stale page as
+  a failed change.
+- **Service workers are per origin**, so dev registers `dev-sw.js` and preview `sw.js` independently.
+  Good news: dev's worker cannot poison a preview PWA install. It also means clearing one clears
+  nothing on the other.
+- **Cookies are not per port**, so a session from one origin signs you in on the other, and
+  `/auth/signin` will 303 you away when you expected the form.
+- **iOS push needs the PWA installed** to the home screen. Permission cannot be granted from a Safari
+  tab, no matter how correct the origin is.
+
+Confirm the context before blaming the feature:
+
+```js
+() => ({ secure: isSecureContext, geo: typeof navigator.geolocation, push: 'PushManager' in window })
+```
+
 ## Catalogue sweep (Storybook)
 
 Driving the app proves one path works. When a change affects **every state of one thing** — the

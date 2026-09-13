@@ -15,7 +15,7 @@
     "dev:zero": "npx zero-cache-dev",
     "build": "vite build",
     "prepare": "svelte-kit sync || echo ''",
-    "preview": "vite preview",
+    "preview": "PREVIEW_HTTPS=1 vite preview",
     "test": "vitest",
     "test:e2e": "playwright test",
     "coverage": "vitest run --coverage",

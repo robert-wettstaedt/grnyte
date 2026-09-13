@@ -222,7 +222,27 @@ export default defineConfig({
     }).map(unmaskBuildFailure),
     trackServiceWorkerEmit,
   ],
+  // Tailscale fronts the preview build with a real cert on a *.ts.net name, so a phone gets a
+  // secure context (geolocation, push, the service worker). Vite rejects an unknown Host header.
+  preview: {
+    allowedHosts: ['.ts.net'],
+    // Kit reads the preview origin's protocol off this flag alone and ignores X-Forwarded-Proto,
+    // so behind a TLS proxy every remote function 403s on the origin mismatch. The cert is only
+    // for the proxy hop (`tailscale serve https+insecure://`), which does not verify it.
+    // Regenerate: openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
+    //   -keyout .certs/preview.key -out .certs/preview.crt -subj /CN=localhost
+    https:
+      process.env.PREVIEW_HTTPS == null
+        ? undefined
+        : {
+            cert: readFileSync('.certs/preview.crt'),
+            key: readFileSync('.certs/preview.key'),
+          },
+  },
   server: {
+    // Same reason as preview: Vite rejects a Host header it does not know, and a phone reaches the
+    // dev server through a *.ts.net name. `vite dev` skips Kit's origin check, so no TLS is needed.
+    allowedHosts: ['.ts.net'],
     host: true,
     port: 3000,
   },
