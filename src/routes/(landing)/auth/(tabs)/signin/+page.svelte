@@ -1,7 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
-  import { PUBLIC_APPLICATION_NAME, PUBLIC_DEMO_MODE } from '$env/static/public'
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AuthField from '$lib/forms/AuthField.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -16,10 +16,7 @@
   // again. Validated server-side, see `signIn`.
   const next = $derived(page.url.searchParams.get('next'))
 
-  // Prefill demo credentials so the demo deploy logs in with one click.
-  if (PUBLIC_DEMO_MODE === 'true' || PUBLIC_DEMO_MODE === '1') {
-    signIn.fields.set({ email: 'demo@demo.com', password: 'demo' })
-  } else if (invited != null) {
+  if (invited != null) {
     signIn.fields.set({ email: invited })
   }
 </script>

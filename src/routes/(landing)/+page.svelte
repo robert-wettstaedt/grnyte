@@ -34,8 +34,8 @@
     { body: m.landing_featureLogbookBody(), icon: 'trending-up', title: m.landing_featureLogbookTitle() },
   ]
 
-  // "A look inside". `src`/`poster` are empty until the screencasts land (see DEMO-TEARDOWN-PLAN.md):
-  // drop `static/shot-*.mp4` and `static/shot-*.jpg` in and fill them here, nothing else changes.
+  // "A look inside". `src`/`poster` are empty until the screencasts land: drop
+  // `static/shot-*.mp4` and `static/shot-*.jpg` in and fill them here, nothing else changes.
   // Real shots MUST use the dummy fixture, never a live private region: that is the whole product.
   const shots: { caption: string; label: string; poster?: string; src?: string }[] = [
     { caption: m.landing_shotMapCaption(), label: m.landing_shotMapLabel() },

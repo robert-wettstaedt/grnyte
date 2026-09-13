@@ -6,7 +6,7 @@
 
 Privacy-first boulder area management platform with multi-tenant architecture.
 
-[Website](https://grnyte.rocks) | [Demo](https://demo.grnyte.rocks)
+[Website](https://grnyte.rocks)
 
 ## Architecture
 
