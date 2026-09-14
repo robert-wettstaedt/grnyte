@@ -1,6 +1,17 @@
 import adapterAuto from '@sveltejs/adapter-auto'
 import adapterNode from '@sveltejs/adapter-node'
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
+import { execSync } from 'node:child_process'
+
+const versionName = (() => {
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA
+  if (sha) return sha
+  try {
+    return execSync('git rev-parse HEAD').toString().trim()
+  } catch {
+    return process.env.npm_package_version ?? 'dev'
+  }
+})()
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -40,10 +51,12 @@ const config = {
     serviceWorker: {
       register: false,
     },
-    // Do not set `version.name` to anything non-deterministic (Date.now(), random). Kit re-imports
-    // this file with a cache-busting query for each build pass, so the client and server passes
-    // would get different values, and the `__sveltekit_<hash(version)>` global the client bootstrap
-    // reads would never match the one the server injects. Kit's own default is stable per process.
+    // Must stay deterministic (never Date.now() or random). Kit re-imports this file with a
+    // cache-busting query per build pass, so a varying value makes the client's
+    // `__sveltekit_<hash(version)>` global miss the one the server injected.
+    version: {
+      name: versionName,
+    },
   },
 
   preprocess: [vitePreprocess()],
