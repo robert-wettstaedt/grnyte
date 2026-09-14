@@ -345,3 +345,20 @@ test('edit ascent drops the previous notes, grade and rating', async () => {
   await expect(field(page, 'gradeFk')).toHaveValue('')
   await expect(page.getByText('Alpha ascent notes')).toHaveCount(0)
 })
+
+test('a refused submit leaves the notes editor showing what it still posts', async () => {
+  await visit(page, `/routes/${fixture.richRouteId}/ascents/add`)
+  const editor = page.locator('.ProseMirror').first()
+  await editor.click()
+  await editor.pressSequentially('Refused submit note')
+  await expect(field(page, 'notes')).toHaveValue('Refused submit note')
+
+  // No ascent type, so the submit is refused and the form stays where it is.
+  await page.getByRole('button', { exact: true, name: 'Save' }).click()
+  await expect(page.getByText('This field is required').first()).toBeVisible()
+
+  // The editor, not just the hidden input: the posted value survived the bug this pins, the
+  // document the reader looks at did not.
+  await expect(editor).toHaveText('Refused submit note')
+  await expect(field(page, 'notes')).toHaveValue('Refused submit note')
+})

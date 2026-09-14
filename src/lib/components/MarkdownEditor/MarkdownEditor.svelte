@@ -9,6 +9,7 @@
   import { Markdown } from '@tiptap/markdown'
   import StarterKit from '@tiptap/starter-kit'
   import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
+  import { untrack } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
   import type { HTMLAttributes } from 'svelte/elements'
   import { MediaQuery } from 'svelte/reactivity'
@@ -202,46 +203,49 @@
   })
 
   // --- Editor lifecycle -------------------------------------------------------
-  const mountEditor: Attachment<HTMLElement> = (node) => {
-    const editor = new Editor({
-      content: String(initialValue),
-      contentType: 'markdown',
-      element: node,
-      extensions: [
-        StarterKit.configure({
-          blockquote: false,
-          code: false,
-          codeBlock: false,
-          heading: false,
-          horizontalRule: false,
-          link: { openOnClick: false },
-          orderedList: false,
-          strike: false,
-          underline: false,
-        }),
-        Markdown,
-        referenceExtension,
-        ...(onsend == null
-          ? []
-          : [
-              submitOnEnter(
-                () => onsend(),
-                () => picker.open,
-              ),
-            ]),
-      ],
-      onTransaction: ({ editor }) => {
-        editorState = { editor }
-      },
-      onUpdate: ({ editor }) => {
-        lastSynced = editor.getMarkdown()
-        value = lastSynced
-      },
-    })
-    editorState = { editor }
+  // `untrack` because an attachment re-runs on any state read inside it, and a re-run rebuilds the
+  // editor from the stale `initialValue`: reading `onsend` emptied the box on every submit.
+  const mountEditor: Attachment<HTMLElement> = (node) =>
+    untrack(() => {
+      const editor = new Editor({
+        content: String(initialValue),
+        contentType: 'markdown',
+        element: node,
+        extensions: [
+          StarterKit.configure({
+            blockquote: false,
+            code: false,
+            codeBlock: false,
+            heading: false,
+            horizontalRule: false,
+            link: { openOnClick: false },
+            orderedList: false,
+            strike: false,
+            underline: false,
+          }),
+          Markdown,
+          referenceExtension,
+          ...(onsend == null
+            ? []
+            : [
+                submitOnEnter(
+                  () => onsend(),
+                  () => picker.open,
+                ),
+              ]),
+        ],
+        onTransaction: ({ editor }) => {
+          editorState = { editor }
+        },
+        onUpdate: ({ editor }) => {
+          lastSynced = editor.getMarkdown()
+          value = lastSynced
+        },
+      })
+      editorState = { editor }
 
-    return () => editor.destroy()
-  }
+      return () => editor.destroy()
+    })
 
   /**
    * Tell the surrounding remote form what the editor holds.
