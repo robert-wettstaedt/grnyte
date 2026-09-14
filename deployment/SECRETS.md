@@ -207,15 +207,21 @@ machine account's **Access tokens** tab.
 
 ## Known edges
 
-- A value containing `"`, `\`, `$` or a newline cannot be represented in a `.env` that both
-  `dotenv` (drizzle) and Vite read back identically, so `pull` refuses and names the key. Change the
-  value, or run that command under `bws run --`, which has no such limit.
+- A value containing `"`, `$` or a newline cannot be represented in a `.env` that both `dotenv`
+  (drizzle) and Vite read back identically, so `pull` skips the key, names it on stderr and writes
+  the rest. Change the value, or reach it with `bws secret get <id>` or `bws run --`.
 
-  `VPS_SSH_KEY` is exactly this: a PEM block is multiline, so `secrets:pull:prod` and
-  `secrets:pull:demo` now refuse and name it. That is correct rather than broken - a private key has
-  no business in a `.env` - but it means those two commands are gone as a way to inspect prod and
-  demo. `bws run -- <command>` and `bws secret get <id>` still work, and grnyte-dev is unaffected
-  because nothing local talks to the VPS.
+  The two characters fail in Vite, silently: it runs dotenv-expand, so `pa$$w0rd` loads as `pa$` and
+  `${HOME}` as your home directory, and a bare `"` closes the value early so `q"uote` loads as `q`.
+  Escaping does not rescue either - `\$` fixes Vite and breaks dotenv, and neither reader turns `\"`
+  back into a quote. A backslash is fine in both and is not refused. A newline is, but for the
+  line-based readers downstream (docker compose's `env_file`, the grep in `deploy-zero.yml`) rather
+  than for these two, which both handle it.
+
+  `VPS_SSH_KEY` is the newline case: a PEM block is multiline, so `secrets:pull:prod` and
+  `secrets:pull:demo` skip it. That is correct rather than broken - a private key has no business in
+  a `.env`, and nothing local reads this one. `deploy-zero.yml` takes it from Bitwarden by uuid
+  through `bitwarden/sm-action` and never sees a `.env`, so the skip costs the deploy nothing.
 
 - `bws secret create` and `bws secret edit` take the value as a command line argument, so it is
   visible in `ps` while the command runs. Fine on your laptop, not on a shared host. `-o none` keeps
