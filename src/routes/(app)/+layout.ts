@@ -15,6 +15,8 @@ export const load = (async ({ depends, fetch }) => {
   // login/logout (see initZero).
   depends('supabase:auth')
 
+  // Called per run and that is fine: `createBrowserClient` returns one cached client per document
+  // unless `isSingleton` says otherwise, so this cannot stack up auto-refresh timers.
   const supabase = createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
     global: { fetch },
   })

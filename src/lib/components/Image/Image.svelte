@@ -63,9 +63,9 @@
 
 <!--
   Back online → retry failed loads; remounting the <img> restarts the request.
-  `isOnline()` rather than `navigator.onLine` (see $lib/state/online.svelte): the raw flag reads
-  true on a fresh document load with the network already dead, which would label every offline
-  image a generic error instead of an offline one.
+  The browser's `online` event is the trigger, so a recovery only `isOnline()` can see (the probe or
+  Zero's hold cleared with no browser transition) is not retried until something else remounts.
+  `onerror` below uses `isOnline()`, which reads false in that case and labels the image offline.
 -->
 <svelte:window
   ononline={() => {

@@ -15,6 +15,7 @@
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
+  import { isOfflineFailure } from '$lib/forms/offlineFailure'
   import { m } from '$lib/paraglide/messages'
   import { isOnline } from '$lib/state/online.svelte'
   import { Steps } from '@skeletonlabs/skeleton-svelte'
@@ -82,11 +83,8 @@
   // A submit that throws while we have no connection is an offline failure: swap the form for the
   // offline state and rethrow anything else, so real server errors still surface as form issues.
   //
-  // `isOnline()` rather than `navigator.onLine`, which is the whole reason that module exists. The
-  // raw flag reads true on a fresh document load with the network already dead, so this branch was
-  // skipped, the error was rethrown, and `+error.svelte` replaced the entire page with "something
-  // went wrong on our end" while the status bar above it said "you're offline". Everything typed in
-  // was lost, which is the one outcome a form must never produce for a cause it can recognise.
+  // Missing this branch rethrows, `+error.svelte` replaces the page, and everything typed is lost,
+  // which is why `isOfflineFailure` reads the error before any flag.
   let offline = $state(false)
 
   // Back online → restore the form. Everything typed survives because the form is never unmounted:
@@ -136,8 +134,13 @@
     if (onBeforeSubmit != null && !(await onBeforeSubmit())) {
       return
     }
+    // Only the submit itself can be an offline failure: a `TypeError` from `onSubmitted` would show
+    // the tile over a cleared form and invite a duplicate of a send that already landed.
+    let posted = false
+
     try {
       const succeeded = await submit()
+      posted = true
       await tick()
       element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
       if (succeeded) {
@@ -156,7 +159,8 @@
         }
       }
     } catch (error) {
-      if (!isOnline()) {
+      // The error outranks the flag: `isOnline()` can be twenty seconds behind a dead radio.
+      if (!posted && isOfflineFailure(error, isOnline())) {
         offline = true
         return
       }

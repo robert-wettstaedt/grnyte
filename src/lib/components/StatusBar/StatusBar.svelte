@@ -133,8 +133,8 @@
 
   // The shared signal rather than a local `navigator.onLine` pair: that flag reads true on a fresh
   // document load with the network already dead, so the bar would say "reconnecting" to somebody
-  // with no signal at all while the screen behind it said "not downloaded". `isOnline()` folds
-  // Zero's own connection in, which is the same evidence `settled` below is built from.
+  // with no signal at all while the screen behind it said "not downloaded". `isOnline()` folds Zero's
+  // connection in alongside the browser flag and the reachability probe; `settled` reads Zero alone.
   const online = $derived(props.online ?? isOnline())
   const raw = $derived(props.connectionState?.name ?? getZ().connectionState.name)
   const announcement = $derived(props.announcement ?? ANNOUNCEMENT)

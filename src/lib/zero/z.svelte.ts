@@ -70,9 +70,8 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   // load with the network already dead, so without this every offline affordance in the app stays
   // switched off exactly when it is needed. See `$lib/state/online.svelte`.
   //
-  // The unsubscribe is kept and called on the next swap. Two live clients both writing that module's
-  // one connection flag is not a tidiness problem: it only reacts to *changes*, so two clients
-  // flapping out of step cancel each other's hold and it never fires.
+  // The unsubscribe is kept and called on the next swap, so only ever one client reports. That flag
+  // is written level-triggered, so two live clients flapping out of step would fight over it.
   connectionUnsubscribe?.()
   connectionUnsubscribe = z.connection.state.subscribe(reportConnectionState)
 

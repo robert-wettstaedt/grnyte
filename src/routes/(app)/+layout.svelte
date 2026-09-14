@@ -17,6 +17,8 @@
   import { setGlobalState } from '$lib/state/global.svelte'
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
   import { syncPushSubscription } from '$lib/state/push.svelte'
+  import { authRetryDelay, lastAuthAttemptAt, startAuthRecovery, stopAuthRecovery } from '$lib/zero/authRecovery'
+  import { getZ, initZero } from '$lib/zero/z.svelte'
   import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
 
   const { children, data } = $props()
@@ -90,6 +92,34 @@
     })
 
     return () => auth.subscription.unsubscribe()
+  })
+
+  // The safety net under that. The listener above waits on a Supabase event, which an installed iOS
+  // web app was measured never receiving; this reads Zero's connection state itself.
+  $effect(() => {
+    const supabase = data?.supabase
+    const connection = getZ().connectionState.name
+
+    const delay = supabase == null ? null : authRetryDelay(connection, lastAuthAttemptAt(), Date.now())
+
+    if (delay == null) {
+      return
+    }
+
+    startAuthRecovery(delay, {
+      onSession: initZero,
+      // `refreshSession`, not `getSession`: the stored token is the one just rejected. Caught
+      // because auth-js rethrows a network failure, which is retryable.
+      refresh: () =>
+        supabase.auth
+          .refreshSession()
+          .then((result) => result.data.session)
+          .catch(() => null),
+      // The live client, not `data.session`, which still holds the old user mid sign-out.
+      wants: (session) => getZ().userID === session.user.id,
+    })
+
+    return stopAuthRecovery
   })
 
   // The client-side twin of authGuard's region-less bounce. That hook only ever sees document

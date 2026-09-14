@@ -6,10 +6,10 @@ import { base } from '$app/paths'
  *
  * Two signals, because neither is sufficient on its own.
  *
- * `navigator.onLine` is only trusted when it is **false**: false negatives do not happen, false
- * positives happen constantly. A joined wifi with no route, a captive portal, and a bar of signal
- * with no usable data all read as online, and the last one is the normal state at a crag, which is
- * the whole case this app exists to serve. It is also true on a fresh document load with the network
+ * `navigator.onLine` is only trusted when it is **false**, and as a hint even then: false positives
+ * happen constantly, false negatives are rare rather than impossible. A joined wifi with no route, a
+ * captive portal, and a bar of signal with no usable data all read as online, and the last one is the
+ * normal state at a crag, which is the whole case this app exists to serve. It is also true on a fresh document load with the network
  * already dead: the flag only flips when the `offline` event fires, and a page that was not open to
  * hear it starts out believing it is connected. That is why a refresh behaves differently from
  * toggling the network on an open tab, and it is not something a listener can fix.
@@ -55,11 +55,26 @@ const UNREACHABLE_HOLD_MS = 10_000
  */
 const TERMINAL = ['closed', 'error', 'needs-auth']
 
-let currentConnectionState = 'connecting'
+/** How long one resume's events are treated as the same resume. They arrive together, not spread. */
+const RESUME_COALESCE_MS = 500
+
+/** Only runs while offline, where the network can come back with no event and no resume to notice. */
+const RETRY_BACKOFF_MS = [5_000, 10_000, 20_000, 30_000]
+
+// Undefined until Zero reports, which never happens on a route that builds no client. An initial
+// `'connecting'` read as "consistent with a dead network" and latched the flag false there.
+let currentConnectionState: string | undefined
 let online = $state(true)
 let reachable = $state(true)
 let reported: string | undefined
 let timer: null | ReturnType<typeof setTimeout> = null
+// The document resumed and nothing has re-confirmed the connection since, so `currentConnectionState`
+// may have been frozen mid-suspension and is not evidence about the network.
+let unconfirmed = false
+let probeGeneration = 0
+let lastResumeAt = 0
+let retryTimer: null | ReturnType<typeof setTimeout> = null
+let retryStep = 0
 
 if (browser) {
   online = navigator.onLine
@@ -77,15 +92,30 @@ if (browser) {
   // `reportConnectionState` acts only on a *change* of state name, so a client parked in
   // `disconnected` for a non-Hidden reason emits nothing further, and the hold that was skipped
   // while hidden would never be started again.
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible') {
+  // Three events because no single one fires everywhere: an installed iOS web app was measured not
+  // re-evaluating on resume with `visibilitychange` alone. Coalesced, so one resume costs one probe.
+  const onResume = () => {
+    // The clock, not a timer: a suspension freezes timers and would drop the resume after it.
+    if (document.visibilityState !== 'visible' || Date.now() - lastResumeAt < RESUME_COALESCE_MS) {
       return
     }
 
+    lastResumeAt = Date.now()
+
     reported = undefined
-    reportConnectionState({ name: currentConnectionState })
+    unconfirmed = true
+
+    // Skipped entirely when Zero has never reported: "no report yet" is not "unreachable".
+    if (currentConnectionState != null) {
+      applyConnectionState(currentConnectionState)
+    }
+
     void probeReachability()
-  })
+  }
+
+  document.addEventListener('visibilitychange', onResume)
+  addEventListener('pageshow', onResume)
+  addEventListener('focus', onResume)
   void probeReachability()
 }
 
@@ -151,8 +181,13 @@ export function isOnline(): boolean {
  */
 export function reportConnectionState(state: { name: string }): void {
   currentConnectionState = state.name
+  unconfirmed = false
+  applyConnectionState(state.name)
+}
 
-  const verdict = connectionVerdict(state.name)
+/** The half a replay runs too. `unconfirmed` is what stops a frozen state writing the flags true. */
+function applyConnectionState(name: string): void {
+  const verdict = connectionVerdict(name)
 
   // Level-triggered, deliberately: `probeReachability` can set the flag false at any moment, so a
   // connection that never changes name again still has to be able to clear it.
@@ -160,18 +195,19 @@ export function reportConnectionState(state: { name: string }): void {
   // `online` too: `navigator.onLine` is read once at load and only moved by transition events, so a
   // false reading at startup (routine for an iOS web app, whose network attaches after the web view)
   // would otherwise stick forever. A live socket outranks it.
-  if (verdict === 'reachable') {
+  if (verdict === 'reachable' && !unconfirmed) {
     reachable = true
     online = true
+    clearRetry()
   }
 
   // The hold below is edge-triggered. Zero re-emits the same state every five seconds, so acting on
   // each emission restarts the timer before it can ever fire.
-  if (state.name === reported) {
+  if (name === reported) {
     return
   }
 
-  reported = state.name
+  reported = name
 
   if (timer != null) {
     clearTimeout(timer)
@@ -194,8 +230,19 @@ export function reportConnectionState(state: { name: string }): void {
       return
     }
 
+    // No retry armed: a succeeding probe may not clear this, so only Zero reporting in ever will.
     reachable = false
   }, UNREACHABLE_HOLD_MS)
+}
+
+/** Stop asking. Called on any answer, including one that leaves `reachable` false for the sync. */
+function clearRetry(): void {
+  if (retryTimer != null) {
+    clearTimeout(retryTimer)
+    retryTimer = null
+  }
+
+  retryStep = 0
 }
 
 /**
@@ -206,10 +253,9 @@ export function reportConnectionState(state: { name: string }): void {
  * start renders its offline state immediately instead of spending Zero's ten-second hold pretending
  * to load.
  *
- * **Only ever sets `false`,** and that asymmetry is the point rather than caution. A response is not
- * evidence of a working connection: a captive portal answers this request with its own login page
- * and a cheerful 200, which is precisely the network this module exists to catch. Only Zero
- * reaching the sync server proves anything, so clearing the flag stays Zero's job.
+ * Goes to the app server, while `reachable` is about the sync server on another origin, so a 200
+ * here is no evidence about Zero. It cannot rescue a false `navigator.onLine` either: Fetch
+ * short-circuits a request whose client is offline, so the probe cannot succeed in that state.
  *
  * The query string is load-bearing. `_app/version.json` is in the precache manifest, so requesting
  * it plainly is answered by the service worker from Cache Storage with a cheerful 200 while the
@@ -222,15 +268,66 @@ export function reportConnectionState(state: { name: string }): void {
  * build artefact that does not exist yet, and that is fine.
  */
 async function probeReachability(): Promise<void> {
+  // Every foreground fires one, so a request that outlived its moment must not answer for this one.
+  const generation = ++probeGeneration
+
   try {
-    await fetch(`${base}/_app/version.json?reachability=${Date.now()}`, { cache: 'no-store' })
-    // A completed request proves the network, whatever `navigator.onLine` claimed at load.
-    online = true
+    await fetch(`${base}/_app/version.json?reachability=${Date.now()}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(UNREACHABLE_HOLD_MS),
+    })
+
+    if (generation !== probeGeneration) {
+      return
+    }
+
+    unconfirmed = false
+    // The network answered; if `reachable` stays false below, that is the sync and only Zero clears it.
+    clearRetry()
+
+    // The only undo for the denial below: a proven connection never re-reports, and a route with no
+    // client never reports at all. Any other state is a sync problem, which stays offline on purpose.
+    if (currentConnectionState == null || provenByConnection()) {
+      reachable = true
+    }
   } catch {
-    // A live Zero socket outranks one failed request. Without this a single blip latches the flag
-    // false, and nothing clears it while Zero sits in `connected`.
-    if (currentConnectionState !== 'connected') {
+    if (generation !== probeGeneration) {
+      return
+    }
+
+    scheduleRetry()
+
+    // Narrower than the acquittal above on purpose. Only a LIVE socket outranks a failed request,
+    // and only one heard from since the document woke: a frozen `connected` has not noticed it died.
+    if (currentConnectionState !== 'connected' || unconfirmed) {
       reachable = false
     }
   }
+}
+
+/** Reads `connectionVerdict`, not `'connected'`: `needs-auth` proves the network too. */
+function provenByConnection(): boolean {
+  return currentConnectionState != null && connectionVerdict(currentConnectionState) === 'reachable'
+}
+
+/** Re-ask while unproven. Visible tabs only; a hidden one is re-probed by the resume handler. */
+function scheduleRetry(): void {
+  if (retryTimer != null || document.visibilityState !== 'visible') {
+    return
+  }
+
+  retryTimer = setTimeout(
+    () => {
+      retryTimer = null
+
+      // Again here, not only at schedule time: a tab hidden AFTER being denied would keep probing.
+      if (document.visibilityState !== 'visible') {
+        return
+      }
+
+      retryStep += 1
+      void probeReachability()
+    },
+    RETRY_BACKOFF_MS[Math.min(retryStep, RETRY_BACKOFF_MS.length - 1)],
+  )
 }
