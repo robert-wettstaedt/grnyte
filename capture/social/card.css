@@ -1,0 +1,63 @@
+/* Source for the GitHub social preview. Capture at 1280x640 with deviceScaleFactor 1, see README.md. */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-weight: 500;
+  src: url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-weight: 700;
+  src: url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2') format('woff2');
+}
+
+:root {
+  --primary-500: oklch(0.55 0.18 313);
+  --primary-400: oklch(0.78 0.13 313);
+  --surface-950: oklch(0.165 0.008 305);
+  --surface-900: oklch(0.215 0.01 305);
+  --text: oklch(0.97 0.004 305);
+  --muted: oklch(0.72 0.012 305);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 1280px;
+  height: 640px;
+  overflow: hidden;
+  background: var(--surface-950);
+}
+
+.card {
+  width: 1280px;
+  height: 640px;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(900px 520px at 50% -18%, oklch(0.55 0.18 313 / 0.28), transparent 70%), var(--surface-950);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.name {
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.tagline {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--primary-400);
+}
+
+.desc {
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1.45;
+}
