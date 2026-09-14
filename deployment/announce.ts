@@ -37,6 +37,13 @@ interface Recipient {
 
 const isLocale = (value: null | string): value is EmailLocale => value === 'de' || value === 'en'
 
+// en-GB, not en: the day-first long form reads the same way round as the German one.
+const dateFormat: Record<EmailLocale, Intl.DateTimeFormat> = {
+  de: new Intl.DateTimeFormat('de-DE', { dateStyle: 'long', timeZone: 'UTC' }),
+  en: new Intl.DateTimeFormat('en-GB', { dateStyle: 'long', timeZone: 'UTC' }),
+}
+const formatDate = (iso: string, locale: EmailLocale) => dateFormat[locale].format(new Date(`${iso}T00:00:00Z`))
+
 /**
  * Localised copy for both mails.
  *
@@ -112,7 +119,7 @@ const COPY: Record<Kind, Record<EmailLocale, (date: string) => EmailContent>> = 
 const args = process.argv.slice(2)
 const kind = args[0] as Kind
 const send = args.includes('--send')
-const date = args[args.indexOf('--date') + 1]
+const date = args.includes('--date') ? args[args.indexOf('--date') + 1] : undefined
 const since = args.includes('--since') ? args[args.indexOf('--since') + 1] : undefined
 
 if (kind !== 'downtime' && kind !== 'release') {
@@ -121,8 +128,11 @@ if (kind !== 'downtime' && kind !== 'release') {
 if (since != null && !/^\d{4}-\d{2}-\d{2}$/.test(since)) {
   throw new Error('--since takes YYYY-MM-DD')
 }
-if (kind === 'downtime' && (!args.includes('--date') || date == null || date.startsWith('--'))) {
-  throw new Error('the downtime mail needs --date, which is printed verbatim in the subject and body')
+if (date != null && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  throw new Error('--date takes YYYY-MM-DD')
+}
+if (kind === 'downtime' && date == null) {
+  throw new Error('the downtime mail needs --date, which appears in the subject and body')
 }
 if (send && (RESEND_API_KEY === '' || RESEND_SENDER_EMAIL === '')) {
   throw new Error('RESEND_API_KEY and RESEND_SENDER_EMAIL must be set to --send')
@@ -220,7 +230,7 @@ console.log(
 )
 
 if (!send) {
-  const sample = COPY[kind].en(date ?? 'DATE')
+  const sample = COPY[kind].en(date == null ? 'DATE' : formatDate(date, 'en'))
   console.log(`\nsubject: ${sample.subject}\n`)
   console.log(renderEmailText({ ...sample, brand: BRAND, locale: 'en', origin: ORIGIN }))
   console.log('\nre-run with --send to deliver')
@@ -233,7 +243,7 @@ let sent = 0
 let failed = 0
 
 for (const recipient of recipients) {
-  const content = COPY[kind][recipient.locale](date ?? '')
+  const content = COPY[kind][recipient.locale](date == null ? '' : formatDate(date, recipient.locale))
   const input = { ...content, brand: BRAND, locale: recipient.locale, origin: ORIGIN }
 
   // Keyed on mail plus recipient, so a re-run after a partial failure only re-sends what did not
