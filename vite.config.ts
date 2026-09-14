@@ -184,25 +184,57 @@ export default defineConfig({
         name: APPLICATION_NAME,
         scope: '/',
         // Icons are injected from pwa-assets.config.ts via the `pwaAssets` option below.
+        /**
+         * The app in use, not the landing page. These are what an install dialog or a store
+         * listing shows, and the spec's own words are "the web app in a common usage scenario":
+         * a marketing page is the one thing a person cannot evaluate the app from. The 1.0
+         * landing screenshots were a legacy of having nothing else to point at.
+         *
+         * Order is the carousel order, so the topo viewer leads - it is the screen nothing else
+         * in this category has. Every `narrow` entry must share one aspect ratio, which is why
+         * they are all 1024x2226 (`capture/still.sh` enforces it).
+         *
+         * Shot with `capture/still.sh` off the simulator and, for the wide one, a 1638x1024
+         * browser. Reshooting means the fixture region has to exist: see capture/README.md.
+         */
         screenshots: [
           {
             form_factor: 'narrow',
-            label: 'The landing page',
-            sizes: '1024x2216',
-            src: '/screenshot-mobile.jpg',
-            type: 'image/jpg',
+            label: 'A block’s topo, with every route drawn on the photo and listed by grade',
+            sizes: '1024x2226',
+            src: '/screenshot-topo.jpg',
+            type: 'image/jpeg',
+          },
+          {
+            form_factor: 'narrow',
+            label: 'The map of a region, with each sector showing how many routes it holds',
+            sizes: '1024x2226',
+            src: '/screenshot-map.jpg',
+            type: 'image/jpeg',
+          },
+          {
+            form_factor: 'narrow',
+            label: 'A climber’s logbook: sends, hardest grade, a year of sessions and a grade pyramid',
+            sizes: '1024x2226',
+            src: '/screenshot-logbook.jpg',
+            type: 'image/jpeg',
           },
           {
             form_factor: 'wide',
-            label: 'The landing page',
+            label: 'The desktop map beside a block’s topo and route list',
             sizes: '1638x1024',
             src: '/screenshot-desktop.jpg',
-            type: 'image/jpg',
+            type: 'image/jpeg',
           },
         ],
         short_name: APPLICATION_NAME,
         start_url: '/explore',
-        theme_color: '#8E43B2',
+        // The app's own chrome, not the brand purple. iOS paints the status bar of an installed
+        // PWA with this, and `app.html` sets the matching `theme-color` meta per resolved theme
+        // (`COLORS.dark`), so a brand value here put a purple band above a near-black app -
+        // visible the moment a reinstall made iOS re-read the manifest. Light-theme installs get
+        // `#fcfaf7` from the meta tag; this is the value the manifest can only state once.
+        theme_color: '#19171b',
       },
       pwaAssets: {
         config: true,

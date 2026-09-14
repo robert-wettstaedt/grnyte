@@ -6,7 +6,7 @@
   import type { IconName } from '$lib/components/Icon/icons'
   import { m } from '$lib/paraglide/messages'
   import { onMount } from 'svelte'
-  import { MediaQuery } from 'svelte/reactivity'
+  import { MediaQuery, SvelteSet } from 'svelte/reactivity'
   import BoulderThree from './BoulderThree.svelte'
   import { legalLinks } from './legal/links'
 
@@ -34,13 +34,29 @@
     { body: m.landing_featureLogbookBody(), icon: 'trending-up', title: m.landing_featureLogbookTitle() },
   ]
 
-  // "A look inside". `src`/`poster` are empty until the screencasts land: drop
-  // `static/shot-*.mp4` and `static/shot-*.jpg` in and fill them here, nothing else changes.
-  // Real shots MUST use the dummy fixture, never a live private region: that is the whole product.
+  // "A look inside". Shot off the dummy fixture, never a live private region: that is the whole
+  // product. A shot needs BOTH `src` and `poster` or it renders wrong twice over - the poster is
+  // what a reduced-motion visitor sees, what shows while paused, and what iOS shows in Low Power
+  // Mode, where autoplay is blocked outright.
   const shots: { caption: string; label: string; poster?: string; src?: string }[] = [
-    { caption: m.landing_shotMapCaption(), label: m.landing_shotMapLabel() },
-    { caption: m.landing_shotTopoCaption(), label: m.landing_shotTopoLabel() },
-    { caption: m.landing_shotLogbookCaption(), label: m.landing_shotLogbookLabel() },
+    {
+      caption: m.landing_shotMapCaption(),
+      label: m.landing_shotMapLabel(),
+      poster: '/shot-map.jpg',
+      src: '/shot-map.mp4',
+    },
+    {
+      caption: m.landing_shotTopoCaption(),
+      label: m.landing_shotTopoLabel(),
+      poster: '/shot-topo.jpg',
+      src: '/shot-topo.mp4',
+    },
+    {
+      caption: m.landing_shotLogbookCaption(),
+      label: m.landing_shotLogbookLabel(),
+      poster: '/shot-logbook.jpg',
+      src: '/shot-logbook.mp4',
+    },
   ]
 
   // ===== scroll motion (GSAP): heavy + browser-only, loaded via dynamic import in onMount =====
@@ -66,6 +82,48 @@
   // convention, see MarkdownEditor) rather than a snapshot, so turning Reduce Motion on mid-visit
   // stops the screencasts instead of leaving them playing until a reload.
   const still = new MediaQuery('(prefers-reduced-motion: reduce)')
+
+  // ===== showcase playback =====
+  // Script-driven, never `autoplay`: WCAG 2.2.2 needs a pause control unconditionally, and
+  // `preload="none"` then costs nothing until a clip is asked to play. Every visible screen
+  // plays; hover-to-play hides the fact that they are clips, and touch has no hover.
+  let paused = $state(false)
+  const onScreen = new SvelteSet<number>()
+  const figures: HTMLElement[] = []
+  const videos: HTMLVideoElement[] = []
+
+  // A visitor on Data Saver did not ask for a megabyte of decoration.
+  const thrifty =
+    typeof navigator !== 'undefined' &&
+    (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true
+
+  const playing = $derived(shots.map((_, i) => !paused && !still.current && !thrifty && onScreen.has(i)))
+
+  $effect(() => {
+    playing.forEach((wanted, i) => {
+      const el = videos[i]
+      if (el == null) return
+      // A rejected play() is normal, not an error: Low Power Mode blocks it outright on iOS.
+      if (wanted) void el.play().catch(() => {})
+      else el.pause()
+    })
+  })
+
+  onMount(() => {
+    const seen = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const i = figures.indexOf(e.target as HTMLElement)
+          if (i < 0) continue
+          if (e.isIntersecting) onScreen.add(i)
+          else onScreen.delete(i)
+        }
+      },
+      { rootMargin: '200px' },
+    )
+    figures.forEach((el) => el && seen.observe(el))
+    return () => seen.disconnect()
+  })
 
   onMount(() => {
     // The entrance is decided once, so this one is a snapshot on purpose.
@@ -346,74 +404,73 @@
         <p class="text-surface-600-400 text-[14.5px] leading-relaxed text-pretty">{m.landing_peekPlatform()}</p>
       </div>
 
+      <!-- WCAG 2.2.2, sitting with the row it governs rather than under the paragraph above, so
+           it reads as a control for the screens and not as a second call to action. Hidden only
+           when nothing can move anyway: under Reduce Motion or Data Saver every shot is already
+           a still poster, and a pause control would have nothing to pause. -->
+      {#if !still.current && !thrifty}
+        <div class="mb-4 flex justify-center md:justify-end">
+          <button
+            type="button"
+            class="btn btn-sm preset-tonal-surface text-surface-600-400 gap-1.5"
+            aria-pressed={paused}
+            onclick={() => (paused = !paused)}
+          >
+            <Icon name={paused ? 'play' : 'pause'} size={13} />
+            {paused ? m.landing_peekPlay() : m.landing_peekPause()}
+          </button>
+        </div>
+      {/if}
+
       <!-- Mobile: horizontal scroll-snap row (swipe, neighbours peek). md+: centered staggered row. -->
       <div
         data-stagger
         class="-mx-5 flex snap-x snap-mandatory scrollbar-none items-end gap-[clamp(20px,4vw,44px)] overflow-x-auto px-5 pb-2 md:mx-0 md:flex-wrap md:justify-center md:overflow-visible md:px-0 md:pb-0"
       >
         {#each shots as s, i (s.label)}
+          <!-- One width on a phone, where this is a horizontal carousel and an odd-sized card
+               in the middle of it just reads as a mistake. The staggered composition - wider
+               and dropped - is a md+ idea, because only there are the three seen at once and
+               only there is the middle one actually the middle of anything. Capping the phone
+               width at 72vw also stops the 604px source being upscaled past ~1.3x on a 3x
+               screen, which the old 80vw did. -->
           <figure
-            class="flex shrink-0 snap-center flex-col items-center gap-4 transition hover:-translate-y-1.25 {i === 1
-              ? 'z-10 w-[min(256px,80vw)] md:mb-[clamp(0px,5vw,52px)]'
-              : 'w-[min(224px,72vw)]'}"
+            bind:this={figures[i]}
+            class="flex w-[min(224px,72vw)] shrink-0 snap-center flex-col items-center gap-4 transition hover:-translate-y-1.25 {i ===
+            1
+              ? 'z-10 md:mb-[clamp(0px,5vw,52px)] md:w-[min(256px,80vw)]'
+              : ''}"
           >
             <div
               class="border-surface-200-800 bg-surface-950 aspect-9/19.5 w-full rounded-4xl border p-2.25 shadow-[0_44px_80px_-36px_black,inset_0_0_0_1px_oklch(0.28_0.01_305)]"
             >
               <div class="lp-screen bg-surface-100-900 relative h-full w-full overflow-hidden rounded-[23px]">
-                {#if s.src != null && !still.current}
-                  <!-- muted, so a11y_media_has_caption does not apply -->
+                {#if s.src != null && !still.current && !thrifty}
+                  <!-- muted, so a11y_media_has_caption does not apply. aria-hidden because the
+                       figcaption below already names this clip; no `autoplay`, because the
+                       effect above owns playback. -->
                   <video
+                    bind:this={videos[i]}
                     src={s.src}
                     poster={s.poster}
                     preload="none"
-                    autoplay
                     muted
                     loop
                     playsinline
+                    disablepictureinpicture
+                    disableremoteplayback
+                    aria-hidden="true"
                     class="absolute inset-0 h-full w-full object-cover"
                   ></video>
                 {:else if s.poster != null}
+                  <!-- alt="": the figcaption below is the description. -->
                   <img
                     src={s.poster}
-                    alt={s.caption}
+                    alt=""
                     loading={i === 0 ? 'eager' : 'lazy'}
                     fetchpriority={i === 0 ? 'high' : 'auto'}
                     class="absolute inset-0 h-full w-full object-cover"
                   />
-                {:else}
-                  <!-- faux contour motif so the placeholder reads as 'app screen', not 'broken image' -->
-                  <svg
-                    viewBox="0 0 240 520"
-                    preserveAspectRatio="xMidYMid slice"
-                    class="absolute inset-0 h-full w-full opacity-50"
-                    aria-hidden="true"
-                  >
-                    <g fill="none" stroke-width="1.4" class="stroke-surface-200-800">
-                      <path d="M-20 150 C 60 120 120 180 260 140" />
-                      <path d="M-20 220 C 70 190 130 250 260 210" />
-                      <path d="M-20 360 C 60 330 120 390 260 350" />
-                      <path d="M-20 430 C 70 400 130 460 260 420" />
-                    </g>
-                  </svg>
-                  <!-- faux top bar -->
-                  <div class="bg-primary-500/15 absolute top-0 right-0 left-0 flex h-11.5 items-center gap-1.5 px-3.5">
-                    <span class="bg-primary-500 h-2.25 w-2.25 rounded-full"></span>
-                    <span class="bg-surface-400-600 h-1.75 w-13.5 rounded-full"></span>
-                  </div>
-                  <!-- faux content rows so the frame reads as a populated screen, not an empty one -->
-                  <div class="absolute top-16 right-0 left-0 flex flex-col gap-2.5 px-4" aria-hidden="true">
-                    <span class="bg-surface-300-700 h-2 w-2/3 rounded-full"></span>
-                    <span class="bg-surface-200-800 h-2 w-5/6 rounded-full"></span>
-                    <span class="bg-surface-200-800 h-2 w-3/4 rounded-full"></span>
-                    <span class="bg-surface-300-700 mt-3 h-2 w-1/2 rounded-full"></span>
-                    <span class="bg-surface-200-800 h-2 w-4/5 rounded-full"></span>
-                  </div>
-                  <div class="absolute right-0 bottom-4 left-0 flex justify-center">
-                    <span class="chip preset-tonal-surface font-mono text-[12px] font-semibold">
-                      {m.landing_peekPreviewSoon()}
-                    </span>
-                  </div>
                 {/if}
               </div>
             </div>
