@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import { PUBLIC_APPLICATION_NAME, PUBLIC_STATUS_URL, PUBLIC_TOPO_EMAIL } from '$env/static/public'
+  import { PUBLIC_APPLICATION_NAME, PUBLIC_ORIGIN, PUBLIC_STATUS_URL, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
@@ -203,6 +203,12 @@
 <svelte:head>
   <title>{PUBLIC_APPLICATION_NAME} · {m.landing_tagline()}</title>
   <meta name="description" content={m.landing_metaDescription()} />
+
+  <meta property="og:title" content="{PUBLIC_APPLICATION_NAME} · {m.landing_tagline()}" />
+  <meta property="og:description" content={m.landing_metaDescription()} />
+  <meta property="og:url" content={PUBLIC_ORIGIN} />
+  <meta name="twitter:title" content="{PUBLIC_APPLICATION_NAME} · {m.landing_tagline()}" />
+  <meta name="twitter:description" content={m.landing_metaDescription()} />
 </svelte:head>
 
 <!-- Section striping is automatic: `nth-of-type` counts only sibling <section>s, so the header

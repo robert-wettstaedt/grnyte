@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { PUBLIC_APPLICATION_NAME, PUBLIC_ORIGIN } from '$env/static/public'
+  import { m } from '$lib/paraglide/messages'
+  import { getLocale, locales } from '$lib/paraglide/runtime'
   import '../app.css'
   // Imported for its module side effect only: `beforeinstallprompt` fires once, early in the page
   // load, and the surfaces that promote installing are all several navigations away. Registering
@@ -12,6 +15,13 @@
   import { pwaInfo } from 'virtual:pwa-info'
 
   const { children } = $props()
+
+  // og:locale wants language_TERRITORY, which a bare paraglide locale is not.
+  const OG_LOCALES: Record<string, string> = { de: 'de_DE', en: 'en_US' }
+  const ogLocale = $derived(OG_LOCALES[getLocale()] ?? OG_LOCALES.en)
+  const alternateLocales = $derived(
+    locales.filter((locale) => locale !== getLocale()).map((locale) => OG_LOCALES[locale] ?? locale),
+  )
 
   /**
    * The stylesheet every rendered body of markdown is styled by, and the one observer that swaps
@@ -69,6 +79,22 @@
 
   <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted build-time PWA web manifest -->
   {@html webManifest}
+
+  <!-- Link-preview defaults for every public page. Per-page title, description and url live on the
+       page, because Svelte renders both copies rather than deduping a repeated meta. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content={PUBLIC_APPLICATION_NAME} />
+  <meta property="og:image" content="{PUBLIC_ORIGIN}/og.png" />
+  <meta property="og:image:width" content="1280" />
+  <meta property="og:image:height" content="640" />
+  <meta property="og:image:alt" content={m.landing_ogImageAlt()} />
+  <meta property="og:locale" content={ogLocale} />
+  {#each alternateLocales as locale (locale)}
+    <meta property="og:locale:alternate" content={locale} />
+  {/each}
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="{PUBLIC_ORIGIN}/og.png" />
+  <meta name="twitter:image:alt" content={m.landing_ogImageAlt()} />
 </svelte:head>
 
 {@render children()}
