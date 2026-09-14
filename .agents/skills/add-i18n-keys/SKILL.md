@@ -14,9 +14,9 @@ User-facing strings are Paraglide messages, accessed as `import { m } from '$lib
   A key present in only one locale is a bug.
 - **Naming:** `domain_camelCase` (e.g. `media_makePrivate`, `share_copyLink`, `common_close`). Group
   by domain prefix; place the key alphabetically within the file (keys are kept sorted).
-- **Reuse first:** grep existing keys before adding — `common_*` already covers close/delete/cancel/save/
+- **Reuse first:** grep existing keys before adding: `common_*` already covers close/delete/cancel/save/
   comingSoon/playVideo, etc. Don't add a near-duplicate.
-- **No em-dashes** in any copy (or anywhere) — use a period, comma, or parentheses. Standing style rule.
+- **No em-dashes** in any copy (or anywhere): use a period, comma, or parentheses. Standing style rule.
 - Keep aria-labels real keys too (accessibility), not literals.
 
 ## Steps
@@ -26,7 +26,7 @@ User-facing strings are Paraglide messages, accessed as `import { m } from '$lib
    real translation in each (write the German, or run `npm run machine-translate` to fill from the
    English source).
 3. Use it in the component as `m.the_key()`.
-4. `npm run check` — a missing/renamed key fails the build, which is the safety net.
+4. `npm run check`: a missing/renamed key fails the build, which is the safety net.
 
 ## Example
 

@@ -28,20 +28,20 @@ with no signal") both keep it, and so does every comment about somebody physical
 Never call the record a crag, and never translate the prose sense into German as `Sektor`.
 
 One entity, never a collection. Neither word may be stretched to mean the whole body of
-rock data — that is the **guidebook**, below. Two identifiers did exactly that, for two
+rock data, which is the **guidebook**, below. Two identifiers did exactly that, for two
 different sets, and were renamed: `notify_crag_edits` to `notify_guidebook_edits`, and
 `CRAG_OBJECT_TYPES` to `BURST_OBJECT_TYPES`.
 
 **guidebook**
 The corpus describing the rock: areas, blocks, routes, topos and photos. What a printed
 guidebook would contain, which is why the app calls itself "a private guidebook and
-logbook" — the guidebook is the rock, the logbook is your ascents. Not a synonym for
+logbook": the guidebook is the rock, the logbook is your ascents. Not a synonym for
 either `sector` (one area) or the offline `field` policy (which also carries your logbook
 and your regions' members).
 
 The word is deliberately English-only as a domain term: it names identifiers and concepts,
-not translations. German has no crisp one-word equivalent — "Guide" reads as a person and
-"Kletterführer" is a mouthful — so per-locale copy describes the thing instead of
+not translations. German has no crisp one-word equivalent ("Guide" reads as a person and
+"Kletterführer" is a mouthful), so per-locale copy describes the thing instead of
 translating the noun. Copy is not settled yet; do not derive UI wording from this entry.
 
 **block**
@@ -117,14 +117,12 @@ A vocabulary rather than a list because it is also the allowlist a route write i
 
 ## Events
 
-The layer replacing the activity feed's storage. It is being built module by module, so until it
-lands the terms under "Activity feed" below are still the ones the code uses; the ones marked
-_retiring_ are what it replaces.
+How the feed stores what happened. It replaced the `activities` audit log: nothing reads that
+table any more, and the vocabulary lives in `src/lib/entities/event/`.
 
-Note the one word that means two things during the transition. **`events.verb`** is an AS2
-verb, a stored value out of a closed set (`create`, `update`, `delete`, `add`, `remove`,
-`join`, `leave`, `invite`, `accept`). **Headline verb**, below, is a paraglide message key.
-They are unrelated, so say which one you mean until the module rename retires the ambiguity.
+One word means two things. **`events.verb`** is an AS2 verb, a stored value out of a closed set
+(`create`, `update`, `delete`, `add`, `remove`, `join`, `leave`, `invite`, `accept`).
+**Headline verb**, below, is a paraglide message key. They are unrelated, so say which you mean.
 
 **event**
 One thing that happened: an actor, a verb, and one object named by a real foreign key. One
@@ -135,10 +133,8 @@ stable id a person would recognise, which is why reactions, comments and notific
 point at it.
 
 **change**
-One changed column under an event: the column, and what it moved between. This is the
-`activities` table minus everything that was really about the action rather than the diff.
-Roughly 90% of today's activity rows carry no diff at all and become events with no change
-row under them.
+One changed column under an event: the column, and what it moved between. Most events carry
+no change row at all, because most of what a person does is not a diff.
 
 **field edit**
 An `update` event on an area, block, route or file: somebody changed a column on a place.
@@ -173,30 +169,22 @@ it, minus whoever is writing. Derived at fan-out, never stored. A reply notifies
 thread, not only the parent's author, but each person gets exactly one row and the most
 specific sentence they qualify for: answered, then named, then the plain thread line.
 
-## Activity feed
-
-**activity row** _(retiring)_
-One entry in the `activities` audit log. Identified by the triple
-`(entityType, type, columnName)`, which is what selects a verb, an icon and a diff
-renderer. `written.ts` lists every triple the mutation layer writes today.
-
 **actor** / **climber**
-The actor did the thing (`activities.userFk`). The climber is whose ascent it is
+The actor did the thing (`events.actorFk`). The climber is whose ascent it is
 (`ascents.createdBy`). A region maintainer may edit anyone's ascent, so a card has to say
 which of the two it means: "Jonas edited Mara's ascent", never "Jonas edited an ascent".
 
 **group**
-Activity rows folded into one card. Four kinds, first match wins: **session** (one
-climber's ascents in one sitting), **burst** (one editor's guidebook edits in one place, close
-in time), **entity** (anyone's edits to the same entity, close in time) and **single**.
-None of them is a stored entity, they exist only for the feed.
+Events folded into one card: one actor, one kind of doing, close in time. First match wins and
+the kinds are `EventGroupKind` in `grouping.ts`. None is a stored entity, they exist only for
+the feed.
 
-**headline verb** _(retiring as a bare "verb")_
+**headline verb**
 The message key a group's headline resolves to. Not `events.verb`, which is a stored AS2
-value; this is copy. Each key holds a _whole sentence_ with
-`{actor}` and `{name}` placeholders, never a verb fragment: German puts the participle
-after the object ("hat die Route Rampe hinzugefügt"), which a fixed markup order cannot
-express. `Message.svelte` splits the resolved sentence to render the placeholders.
+value; this is copy. Each key holds a _whole sentence_ with `{actor}` and `{name}`
+placeholders, never a verb fragment: German puts the participle after the object ("hat die
+Route Rampe hinzugefügt"), which a fixed markup order cannot express. `Message.svelte`
+splits the resolved sentence to render the placeholders.
 
 **card view**
 What a card says, computed before any markup: the headline key and its parts, the summary,
@@ -210,21 +198,15 @@ raw values, never resolved copy and never a formatted string), because the unit,
 the grading scale belong to whoever is reading.
 
 **change kind**
-Which of the ten shapes a change line takes (`pair`, `chips`, `tags`, `grade`, `rating`,
-`prose`, `location`, `topo`, `source`, `file`). Declared by the column's catalogue entry in
-`verbs.ts`, next to its label, so a column states how it renders where it states what it is
-called. A `pair` also declares the `format` its two chips read through.
+Which shape a change line takes. The set is `ChangeKind` in `change.ts`; a column declares its
+own in its catalogue entry in `verbs.ts`, next to its label, so a column states how it renders
+where it states what it is called. A `pair` also declares the `format` its two chips read through.
 
-**entity ref** _(retiring)_
-The polymorphic `(entityType, entityId)` pair an activity points at. `entityId` is `text`
-and the type varies, so Zero cannot join it to the entity it names. An event names its
-object with a real foreign key instead, one nullable column per type with a CHECK that
-exactly one is set.
+**entity ref**
+What a card row points at: an id plus an `EventObjectType` (`EventEntityRef` in `entity.ts`),
+derived from the event's real foreign keys, never a stored polymorphic pair.
 
-**hydration** _(retiring)_
-Resolving entity refs to the entities themselves, client-side, in a second pass: collect
-the ids per type off the synced activity rows, fetch them through the per-entity list
-resources, join in memory. A ref that resolves to nothing is a tombstone (deleted); a ref
-not yet in the map is a skeleton (still syncing). With real keys the entity arrives nested
-in the same query, so all three states collapse to one: the relation is there, or the row
-is soft-deleted and can still be named.
+**tombstone**
+A card row whose entity is gone, named off the newest line that named it. The only other row
+state is `entity`: there is no pending state, because an entity arrives nested with the row
+that names it.

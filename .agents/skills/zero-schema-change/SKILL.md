@@ -1,6 +1,6 @@
 ---
 name: zero-schema-change
-description: Run this app's schema migration pipeline after any change to src/lib/db/schema.ts — generate the Drizzle migration, hand-append data backfill SQL, regenerate the Zero schema, and migrate. Use when adding or altering a column/table, adding RLS policies, when the user says "add a column", "change the schema", "migrate", or "backfill", or immediately after editing schema.ts. Covers the drizzle-zero regeneration and the DB backfill gotchas.
+description: Run this app's schema migration pipeline after any change to src/lib/db/schema.ts: generate the Drizzle migration, hand-append data backfill SQL, regenerate the Zero schema, and migrate. Use when adding or altering a column/table, adding RLS policies, when the user says "add a column", "change the schema", "migrate", or "backfill", or immediately after editing schema.ts. Covers the drizzle-zero regeneration and the DB backfill gotchas.
 ---
 
 # Schema change → migrate pipeline
@@ -27,7 +27,7 @@ A schema change is a fixed sequence, not just a `schema.ts` edit.
 4. `npm run generate:zero` → regenerates `src/lib/zero/zero-schema.gen.ts`.
 5. `npm run migrate` → applies the SQL migrations, **then** runs `setup-table-permissions` and the
    data-backfill scripts in `src/lib/db/scripts/` (image derivatives, mentions, etc.), so its output
-   is noisy and includes image/data work — that's expected, not an error.
+   is noisy and includes image/data work; that's expected, not an error.
 6. `npm run check` until clean.
 
 `npm run generate` runs 2+4 together; `.env` `DATABASE_URL` (supabase pooler) is the target.
@@ -35,8 +35,8 @@ A schema change is a fixed sequence, not just a `schema.ts` edit.
 ## One migration per unshipped feature
 
 While the feature is still on its branch and not deployed, its schema is **one** migration file, not
-one per work session. If a later phase changes what an earlier phase added — adds a column then
-drops it, renames it, tightens a constraint — fold the change back into the original `NNNN_*.sql`
+one per work session. If a later phase changes what an earlier phase added (adds a column then
+drops it, renames it, tightens a constraint), fold the change back into the original `NNNN_*.sql`
 and delete the follow-up file, then regenerate the `drizzle/meta` snapshot so it matches. Nobody has
 run the first version, so there is no history to preserve; a column that is added in 0099 and
 removed in 0101 is noise for every future reader.
@@ -50,7 +50,7 @@ Check whether `generate:drizzle` actually wrote a file before assuming it did.
 
 ## A rename or drop is a data move
 
-`generate:drizzle` writes `ADD COLUMN` + `DROP COLUMN` for a rename and calls it done — the rows are
+`generate:drizzle` writes `ADD COLUMN` + `DROP COLUMN` for a rename and calls it done: the rows are
 your problem. Before dropping anything:
 
 - **Move the data first**, in the same migration, above the drop. Renaming three user-settings
@@ -65,15 +65,21 @@ your problem. Before dropping anything:
 ## Gotchas
 
 - **`generate:zero` warns "Column X uses a database default the Zero client will not be able to use"
-  for every defaulted column — benign.** The real consequence: a `NOT NULL DEFAULT` column becomes
+  for every defaulted column (benign).** The real consequence: a `NOT NULL DEFAULT` column becomes
   **`T | null` in the Zero row type**. Coerce it in the entity mapper (`row.createdAt ?? 0`), don't
   fight the generated type.
 - New region-scoped tables must be added to `regionTables` in `src/lib/zero/permissions.ts` (see the
   `scaffold-entity` skill). `tenancy.test.ts` sweeps that list, so a table left off it is both
   unprotected and untested.
-- The generated migration + `drizzle/meta/*` snapshot are part of the change — commit them.
+- The generated migration + `drizzle/meta/*` snapshot are part of the change; commit them.
 
 ## Verify
 
-Confirm the column/backfill landed with a DB query (local Postgres :5433; connection string in `.env`
-`ZERO_UPSTREAM_DB` — do **not** hard-code it here). Then use `grnyte-verify` to check the app reads it.
+Confirm the column/backfill landed with a DB query through the container, not the host port (:5433
+and :6543 intermittently wedge and hang):
+
+```
+docker exec -i supabase-db psql -U postgres -d postgres -c "select ..."
+```
+
+Then use `grnyte-verify` to check the app reads it.

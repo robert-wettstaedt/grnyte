@@ -1,6 +1,6 @@
 ---
 name: review-triage
-description: Review the current change for correctness, consistency and code smell, verify it in the real app, then present findings as a numbered action list to cherry-pick from (nothing auto-applied). Use when the user says "check correctness/consistency/code smell", "review and verify", "create an action list", or pairs /code-review with /grnyte-verify. The user then replies "fix #1-#3" or "fix all but #7". Also covers findings that arrive from elsewhere — a pasted review blob, a subagent's report, another session's output — with "check if any hold up".
+description: Review the current change for correctness, consistency and code smell, verify it in the real app, then present findings as a numbered action list to cherry-pick from (nothing auto-applied). Use when the user says "report findings as a prioritised action list", "do not fix anything yet", "order them into action items", "audit X for one issue class", "check correctness/consistency/code smell", "review and verify", or "create an action list". The user then replies "fix #1-#3" or "fix all but #7". Also covers findings that arrive from elsewhere (a pasted review blob, a subagent's report, another session's output) with "check if any hold up".
 ---
 
 # Review triage
@@ -33,7 +33,7 @@ Do NOT fix anything in this skill. Wait for the user to say which numbers.
 
 ## Output shape
 
-Always markdown in the chat, never a raw JSON blob and never "see the findings panel" — this
+Always markdown in the chat, never a raw JSON blob and never "see the findings panel": this
 project's chat surface does not render one.
 
 ```
@@ -48,20 +48,27 @@ On that reply, apply exactly those and nothing else.
 
 The other half of this loop: the review ran somewhere else (a worktree session, a subagent, a pasted
 JSON blob) and lands here as "here is a code review, check if any hold up". Same triage, different
-starting point — the findings are claims about code the reviewer could not run, so verify before
+starting point: the findings are claims about code the reviewer could not run, so verify before
 fixing.
 
 1. **Read the cited code first**, at the given `file:line`, plus its callers. Reviews from another
    session are often a few commits stale, or describe a branch that no longer exists.
 2. **Verdict per finding**, in a markdown list, most-severe first:
-   - _holds_ — what actually breaks, then the fix.
-   - _does not hold_ — one line on why (already guarded at X, the caller cannot reach that state,
+   - _holds_: what actually breaks, then the fix.
+   - _does not hold_: one line on why (already guarded at X, the caller cannot reach that state,
      fixed in commit Y, the reviewer misread Z). No edit.
-   - _holds partly_ — the bug is real but the proposed fix is wrong; say what you will do instead.
+   - _holds partly_: the bug is real but the proposed fix is wrong; say what you will do instead.
 3. **Apply only the holders.** A finding that reads plausible but is wrong costs more applied than
    skipped, so default to _does not hold_ when the code does not confirm it.
 4. If the user said "fix all that hold up, then commit as you see fit", that is the whole
-   instruction: fix, `npm run check`, commit. Don't come back for confirmation between the two.
+   instruction: fix, `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`, commit. Don't
+   come back for confirmation between the two. Not `npm run check`: it 500s a running dev server.
+
+## Relaying to another session
+
+When the findings are going to or coming from another SESSION rather than the user, the relay rules
+(announce your agent name, wait for every reviewer, freeze the tree, send findings in full, free the
+browser) live in AGENTS.md under "Worktrees and parallel agents". Do not restate them here.
 
 ## Notes
 
