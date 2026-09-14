@@ -2,7 +2,8 @@ version: '3.8'
 
 services:
   zero:
-    image: rocicorp/zero
+    # Must move in lockstep with `@rocicorp/zero` in package.json, server deployed first.
+    image: rocicorp/zero:1.9.0
     container_name: zero-server
     ports:
       - '4848:4848'

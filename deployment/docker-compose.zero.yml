@@ -1,6 +1,7 @@
 services:
   zero-prod:
-    image: rocicorp/zero
+    # Must move in lockstep with `@rocicorp/zero` in package.json, server deployed first.
+    image: rocicorp/zero:1.9.0
     container_name: zero-server-prod
     expose:
       - '4848'
@@ -37,7 +38,8 @@ services:
       - zero_network
 
   zero-demo:
-    image: rocicorp/zero
+    # Must move in lockstep with `@rocicorp/zero` in package.json, server deployed first.
+    image: rocicorp/zero:1.9.0
     container_name: zero-server-demo
     expose:
       - '4848'
