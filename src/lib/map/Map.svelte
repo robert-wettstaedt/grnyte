@@ -202,6 +202,10 @@
     return () => {
       for (const layer of dataLayers) {
         mapInstance.removeLayer(layer)
+        // Removing only detaches. Svelte's batching holds the previous value of every source it
+        // wrote, so without this the renderer, its canvas and the features outlive the map.
+        layer.getSource()?.clear()
+        layer.dispose()
       }
       areaLayer = undefined
       sectorLayer = undefined
@@ -248,7 +252,12 @@
 
     const layer = createDrawnPathLayer(line)
     mapInstance.addLayer(layer)
-    return () => mapInstance.removeLayer(layer)
+
+    // Rebuilt on every waypoint, so the same detach-is-not-dispose problem, more often.
+    return () => {
+      mapInstance.removeLayer(layer)
+      layer.dispose()
+    }
   })
 
   // `GeolocationPositionError.code`: 1 = permission denied, 2 = position unavailable, 3 = timeout.
