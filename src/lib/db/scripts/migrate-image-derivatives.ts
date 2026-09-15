@@ -11,9 +11,10 @@
  *   npx tsx src/lib/db/scripts/migrate-image-derivatives.ts --dry-run
  *
  * Idempotent: rows with stored dimensions whose derivatives all exist are
- * skipped. Unreadable images and failed uploads are warned and left for a
- * re-run: a missing derivative degrades to the Nextcloud-preview fallback at
- * serve time, it never breaks.
+ * skipped. A file that is merely GONE (404) is warned and left for a re-run: a missing derivative
+ * degrades to the Nextcloud-preview fallback at serve time, it never breaks. Any other storage
+ * error aborts, because skipping it leaves dimensions unwritten and migrate-topo-paths then
+ * converts nothing at all, silently.
  */
 import { eq } from 'drizzle-orm'
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -29,7 +30,7 @@ import {
   orientedDimensions,
 } from '../../images/derivatives'
 import * as schema from '../schema'
-import { connectNextcloud } from './nextcloud'
+import { connectNextcloud, listingCache, rethrowUnlessMissing } from './nextcloud'
 
 /** `/topos/138.jpg` → `/topos` (stored paths always have a leading slash). */
 const parentOf = (path: string): string => path.slice(0, path.lastIndexOf('/'))
@@ -39,25 +40,9 @@ const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
 const CONCURRENCY = 4
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
-  const { dav, userPath } = connectNextcloud()
+  const { dav, userPath } = await connectNextcloud()
 
-  // One PROPFIND per folder instead of one exists() round-trip per derivative.
-  // Promise-cached so concurrent workers don't list the same folder twice.
-  const listings = new Map<string, Promise<Set<string>>>()
-  const listingOf = (dir: string): Promise<Set<string>> => {
-    let listing = listings.get(dir)
-    if (listing == null) {
-      listing = dav
-        .getDirectoryContents(userPath(dir))
-        .then((entries) => new Set(entries.map((entry) => entry.basename)))
-        .catch((err: unknown) => {
-          console.warn(`Could not list "${dir}":`, err instanceof Error ? err.message : err)
-          return new Set<string>()
-        })
-      listings.set(dir, listing)
-    }
-    return listing
-  }
+  const listingOf = listingCache({ dav, userPath })
 
   const rows = await db
     .select({ height: schema.files.height, id: schema.files.id, path: schema.files.path, width: schema.files.width })
@@ -107,6 +92,9 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     try {
       buffer = Buffer.from((await dav.getFileContents(userPath(path))) as ArrayBuffer)
     } catch (err) {
+      // Swallowing a storage-wide failure here leaves dimensions unwritten, which in turn makes
+      // migrate-topo-paths convert nothing at all, silently.
+      rethrowUnlessMissing(err)
       console.warn(`Could not download "${path}":`, err instanceof Error ? err.message : err)
       skip('unreadable image', ids)
       return

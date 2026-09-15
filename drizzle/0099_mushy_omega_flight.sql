@@ -300,7 +300,11 @@ CREATE POLICY "region.delete can delete reactions" ON "reactions" AS PERMISSIVE 
 -- the two tables. Both this column and the working table are dropped at the end.
 ALTER TABLE "events" ADD COLUMN "_backfill_anchor" integer;--> statement-breakpoint
 
-CREATE TABLE "_backfill_islands" AS
+-- TEMP, not a plain table: Zero's publication is FOR TABLES IN SCHEMA public, so a working table
+-- there joins it on creation and feeds rows for an unknown table into the slot, which kills
+-- zero-cache on every start. Temp tables are never published. Every reference below is unqualified,
+-- so pg_temp resolves them.
+CREATE TEMP TABLE "_backfill_islands" AS
 WITH resolvable AS (
   -- Only rows whose object still exists, and the AS2 verb each one maps to. The clear cases are
   -- named; the rest fall through to create/update/delete, which is what they already meant. The

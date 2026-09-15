@@ -12,16 +12,22 @@
  * source. Can also be run on its own to preview:
  *   npx tsx src/lib/db/scripts/migrate-promote-originals.ts --dry-run
  *
+ * A `.orig` is only promoted when it is at least as large as the file it replaces. 1.0 data does
+ * not always keep that promise (measured on the demo set: 1 pair in 15 had a SMALLER orig), and
+ * the MOVE is one-way, so promoting blindly downgrades those images for good. Both files are read
+ * to compare, which is why this script downloads at all.
+ *
  * Idempotent: the MOVE consumes the `.orig` sibling, so a second run finds
  * nothing to do. Nextcloud's trashbin keeps the overwritten resized copy.
  */
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { pathToFileURL } from 'node:url'
 import Database from 'postgres'
+import sharp from 'sharp'
 import drizzleConfig from '../../../../drizzle.config'
 import { isDerivableImage } from '../../images/derivatives'
 import * as schema from '../schema'
-import { connectNextcloud } from './nextcloud'
+import { connectNextcloud, listingCache, rethrowUnlessMissing } from './nextcloud'
 
 /** Storage path of the pristine sibling, e.g. `/topos/138.jpg` → `/topos/138.orig.jpg`. */
 const origPathOf = (path: string): string => path.replace(/\.([^./]+)$/, '.orig.$1')
@@ -31,44 +37,84 @@ const parentOf = (path: string): string => path.slice(0, path.lastIndexOf('/'))
 
 const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
 
+/** Enough for the SOF marker of every image measured so far; 4KB sufficed for all of them. */
+const HEADER_BYTES = 64 * 1024
+
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
-  const { dav, userPath } = connectNextcloud()
+  const { dav, userPath } = await connectNextcloud()
 
-  // One PROPFIND per folder instead of one exists() round-trip per file.
-  const listings = new Map<string, Set<string>>()
-  const siblingsOf = async (filePath: string): Promise<Set<string>> => {
-    const dir = parentOf(filePath)
-    const cached = listings.get(dir)
-    if (cached != null) {
-      return cached
-    }
-
-    let names = new Set<string>()
-    try {
-      const entries = await dav.getDirectoryContents(userPath(dir))
-      names = new Set(entries.map((entry) => entry.basename))
-    } catch (err) {
-      console.warn(`Could not list "${dir}":`, err instanceof Error ? err.message : err)
-    }
-
-    listings.set(dir, names)
-    return names
-  }
+  const listingOf = listingCache({ dav, userPath })
+  const siblingsOf = (filePath: string): Promise<Set<string>> => listingOf(parentOf(filePath))
 
   const rows = await db.select({ path: schema.files.path }).from(schema.files)
   // Distinct paths: `files` contains duplicate rows for the same storage path,
   // and the orig can only be promoted once.
   const paths = [...new Set(rows.map((row) => row.path).filter(isDerivableImage))]
 
+  const readHead = (p: string): Promise<Buffer> =>
+    new Promise((resolve, reject) => {
+      const chunks: Buffer[] = []
+      const stream = dav.createReadStream(userPath(p), { range: { end: HEADER_BYTES - 1, start: 0 } })
+      stream.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)))
+      stream.on('end', () => resolve(Buffer.concat(chunks)))
+      stream.on('error', reject)
+    })
+
+  // Pixel count, which EXIF orientation cannot change: it only swaps the two factors. Null when
+  // the file is gone or unreadable, which the caller treats as "cannot judge".
+  const pixelsOf = async (p: string): Promise<null | number> => {
+    const dimsFrom = async (buffer: Buffer): Promise<null | number> => {
+      try {
+        const { height, width } = await sharp(buffer).metadata()
+        return width == null || height == null ? null : width * height
+      } catch {
+        return null
+      }
+    }
+
+    try {
+      // The header carries the dimensions, so a range request avoids pulling every full-size
+      // original twice over: migrate-image-derivatives downloads them all again straight after.
+      const fromHead = await dimsFrom(await readHead(p))
+      if (fromHead != null) {
+        return fromHead
+      }
+      // A header that will not parse (an unusually large EXIF or ICC block): pay for the whole file.
+      return await dimsFrom(Buffer.from((await dav.getFileContents(userPath(p))) as ArrayBuffer))
+    } catch (err) {
+      rethrowUnlessMissing(err)
+      return null
+    }
+  }
+
   let promoted = 0
   let withoutOrig = 0
   const failed: string[] = []
+  const downgrades: string[] = []
+  const unjudged: string[] = []
 
   for (const path of paths) {
     const orig = origPathOf(path)
     const siblings = await siblingsOf(path)
     if (!siblings.has(nameOf(orig))) {
       withoutOrig += 1
+      continue
+    }
+
+    // 1.0 data does not always keep the promise that `.orig` is the pristine full-resolution copy,
+    // and a MOVE is one-way: promoting a smaller one downgrades the image for good, silently.
+    const [origPixels, basePixels] = await Promise.all([pixelsOf(orig), pixelsOf(path)])
+    if (origPixels == null || basePixels == null) {
+      unjudged.push(path)
+      console.warn(`Skipping "${orig}": could not read dimensions of both files.`)
+      continue
+    }
+    if (origPixels < basePixels) {
+      downgrades.push(path)
+      console.warn(
+        `Skipping "${orig}": it is SMALLER than the file it would replace ` +
+          `(${origPixels.toLocaleString()} vs ${basePixels.toLocaleString()} pixels), so promoting it would downgrade the image.`,
+      )
       continue
     }
 
@@ -91,6 +137,12 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   console.log(
     `\n${dryRun ? 'DRY RUN: ' : ''}promoted ${promoted} of ${paths.length} image path(s); ${withoutOrig} had no .orig sibling.`,
   )
+  if (downgrades.length > 0) {
+    console.log(`Kept the existing file, .orig was smaller (${downgrades.length}): ${downgrades.join(', ')}`)
+  }
+  if (unjudged.length > 0) {
+    console.log(`Skipped, dimensions unreadable (${unjudged.length}): ${unjudged.join(', ')}`)
+  }
   if (failed.length > 0) {
     console.log(`Failed: ${failed.join(', ')}`)
   }

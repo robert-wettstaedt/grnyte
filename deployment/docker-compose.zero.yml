@@ -12,7 +12,7 @@ services:
     # you cannot turn.
     #
     # The two paths stay because they are half of a fact stated below: `/data` is the named volume
-    # and `/app/zero-schema.ts` is the bind mount. Split them into the vault and it could disagree
+    # and `/opt/app/zero-schema.ts` is the bind mount. Split them into the vault and it could disagree
     # with the mount, and the container would die on a missing file for a reason invisible from
     # either side alone. FORWARD_COOKIES stays because it is a correctness requirement rather than a
     # preference: zero-cache has to forward the browser cookie for the get-queries endpoint to
@@ -22,10 +22,14 @@ services:
     # come from the project through `.env.<env>`, so prod and demo can differ.
     environment:
       - ZERO_REPLICA_FILE=/data/sync-replica.db
-      - ZERO_SCHEMA_PATH=/app/zero-schema.ts
+      - ZERO_SCHEMA_PATH=/opt/app/zero-schema.ts
       - ZERO_GET_QUERIES_FORWARD_COOKIES=true
     volumes:
-      - ../src/lib/zero/zero-schema.ts:/app/zero-schema.ts:ro
+      # Under /opt/app, the image's WORKDIR, because the gen file imports `@rocicorp/zero` for
+      # real and only /opt/app/node_modules resolves it. Both files, because zero-schema.ts
+      # imports the gen one at RUNTIME. Either mistake is the same ERR_MODULE_NOT_FOUND at boot.
+      - ../src/lib/zero/zero-schema.ts:/opt/app/zero-schema.ts:ro
+      - ../src/lib/zero/zero-schema.gen.ts:/opt/app/zero-schema.gen.ts:ro
       - zero_data_prod:/data
     restart: unless-stopped
     healthcheck:
@@ -50,7 +54,7 @@ services:
     # you cannot turn.
     #
     # The two paths stay because they are half of a fact stated below: `/data` is the named volume
-    # and `/app/zero-schema.ts` is the bind mount. Split them into the vault and it could disagree
+    # and `/opt/app/zero-schema.ts` is the bind mount. Split them into the vault and it could disagree
     # with the mount, and the container would die on a missing file for a reason invisible from
     # either side alone. FORWARD_COOKIES stays because it is a correctness requirement rather than a
     # preference: zero-cache has to forward the browser cookie for the get-queries endpoint to
@@ -60,10 +64,11 @@ services:
     # come from the project through `.env.<env>`, so prod and demo can differ.
     environment:
       - ZERO_REPLICA_FILE=/data/sync-replica.db
-      - ZERO_SCHEMA_PATH=/app/zero-schema.ts
+      - ZERO_SCHEMA_PATH=/opt/app/zero-schema.ts
       - ZERO_GET_QUERIES_FORWARD_COOKIES=true
     volumes:
-      - ../src/lib/zero/zero-schema.ts:/app/zero-schema.ts:ro
+      - ../src/lib/zero/zero-schema.ts:/opt/app/zero-schema.ts:ro
+      - ../src/lib/zero/zero-schema.gen.ts:/opt/app/zero-schema.gen.ts:ro
       - zero_data_demo:/data
     restart: unless-stopped
     healthcheck:

@@ -33,6 +33,7 @@
     "format": "eslint --fix . && prettier --write .",
     "generate": "npm run generate:drizzle && npm run generate:zero && npx tsx src/lib/email/generate.ts",
     "migrate": "npx tsx src/lib/db/migrate.ts",
+    "migrate:step": "npx tsx src/lib/db/migrate-step.ts",
     "generate:drizzle": "drizzle-kit generate --config drizzle.config.ts",
     "generate:zero": "drizzle-zero generate --format --output src/lib/zero/zero-schema.gen.ts",
     "generate:paraglide": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy globalVariable cookie preferredLanguage baseLocale --silent",
