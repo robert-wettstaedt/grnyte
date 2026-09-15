@@ -40,10 +40,6 @@ const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
 const CONCURRENCY = 4
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
-  const { dav, userPath } = await connectNextcloud()
-
-  const listingOf = listingCache({ dav, userPath })
-
   const rows = await db
     .select({ height: schema.files.height, id: schema.files.id, path: schema.files.path, width: schema.files.width })
     .from(schema.files)
@@ -67,6 +63,15 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     }
   }
   const paths = [...byPath.keys()]
+
+  // Connect only once there is work: an empty `files` table (a from-scratch DB, CI) must not need
+  // reachable storage.
+  if (paths.length === 0) {
+    return
+  }
+
+  const { dav, userPath } = await connectNextcloud()
+  const listingOf = listingCache({ dav, userPath })
 
   let processed = 0
 

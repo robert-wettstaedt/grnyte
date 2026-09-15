@@ -41,15 +41,20 @@ const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
 const HEADER_BYTES = 64 * 1024
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
-  const { dav, userPath } = await connectNextcloud()
-
-  const listingOf = listingCache({ dav, userPath })
-  const siblingsOf = (filePath: string): Promise<Set<string>> => listingOf(parentOf(filePath))
-
   const rows = await db.select({ path: schema.files.path }).from(schema.files)
   // Distinct paths: `files` contains duplicate rows for the same storage path,
   // and the orig can only be promoted once.
   const paths = [...new Set(rows.map((row) => row.path).filter(isDerivableImage))]
+
+  // Connect only once there is work: an empty `files` table (a from-scratch DB, CI) must not need
+  // reachable storage.
+  if (paths.length === 0) {
+    return
+  }
+
+  const { dav, userPath } = await connectNextcloud()
+  const listingOf = listingCache({ dav, userPath })
+  const siblingsOf = (filePath: string): Promise<Set<string>> => listingOf(parentOf(filePath))
 
   const readHead = (p: string): Promise<Buffer> =>
     new Promise((resolve, reject) => {
