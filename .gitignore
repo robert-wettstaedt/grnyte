@@ -203,3 +203,6 @@ docs
 brand/capture/raw/
 brand/capture/variants/
 __pycache__/
+
+# memlab heap snapshots (hundreds of MB per run)
+.memlab/

@@ -153,6 +153,11 @@ export default defineConfig(
     rules: { 'no-restricted-imports': 'off' },
   },
   {
+    // memlab `require()`s its scenarios, and this package is `type: module`, so they are CommonJS.
+    files: ['memlab/**/*.cjs'],
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
     files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
     languageOptions: {
       parserOptions: {

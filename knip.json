@@ -5,7 +5,8 @@
     "src/sw.ts",
     "src/lib/db/scripts/*.ts",
     "src/lib/email/test-send.ts",
-    "deployment/announce.ts"
+    "deployment/announce.ts",
+    "memlab/*.cjs"
   ],
   "ignore": ["src/lib/zero/**/*.gen.ts", "brand/**"],
   "ignoreBinaries": ["openssl"],
