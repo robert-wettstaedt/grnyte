@@ -192,10 +192,10 @@ export default defineConfig({
          *
          * Order is the carousel order, so the topo viewer leads - it is the screen nothing else
          * in this category has. Every `narrow` entry must share one aspect ratio, which is why
-         * they are all 1024x2226 (`capture/still.sh` enforces it).
+         * they are all 1024x2226 (`brand/capture/still.sh` enforces it).
          *
-         * Shot with `capture/still.sh` off the simulator and, for the wide one, a 1638x1024
-         * browser. Reshooting means the fixture region has to exist: see capture/README.md.
+         * Shot with `brand/capture/still.sh` off the simulator and, for the wide one, a 1638x1024
+         * browser. Reshooting means the fixture region has to exist: see brand/capture/README.md.
          */
         screenshots: [
           {

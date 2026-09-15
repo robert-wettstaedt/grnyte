@@ -149,7 +149,7 @@ idb --companion $C ui pinch / multi-tap      # see `idb ui --help`
 `idb ui swipe` is a constant-velocity line that lifts at the end, so chained swipes read as N
 separate flicks, not one drag. For a held multi-point drag, drive idb's gRPC client directly: a
 touch move is just another DOWN at a new point, so `DOWN(p0)..DOWN(pn), UP` is one continuous
-gesture. `capture/rig.py` is a worked example while it exists.
+gesture. `brand/capture/rig.py` is a worked example while it exists.
 
 `simctl` keeps the lifecycle and capture half:
 

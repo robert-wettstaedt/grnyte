@@ -200,6 +200,6 @@ docs
 
 # Landing clip capture. The scripts are tracked; these are not: `raw/` is tens of megabytes of
 # simulator recordings, `variants/` the cut theme/locale set of which only one ever ships.
-capture/raw/
-capture/variants/
+brand/capture/raw/
+brand/capture/variants/
 __pycache__/

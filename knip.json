@@ -7,7 +7,7 @@
     "src/lib/email/test-send.ts",
     "deployment/announce.ts"
   ],
-  "ignore": ["src/lib/zero/**/*.gen.ts", "capture/**"],
+  "ignore": ["src/lib/zero/**/*.gen.ts", "brand/**"],
   "ignoreBinaries": ["openssl"],
   "ignoreUnresolved": ["vite-plugin-pwa/info", "vite-plugin-pwa/vanillajs", "vite-plugin-pwa/pwa-assets"],
   "ignoreExportsUsedInFile": true

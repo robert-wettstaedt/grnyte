@@ -1,6 +1,7 @@
 # Landing clip capture
 
-Scratch. Delete with `capture/` once the clips ship.
+The clips have shipped, but this rig is not scratch any more: `still.sh` is what `vite.config.ts`
+names as enforcing the 1024x2226 PWA screenshots, so reshooting any of them starts here.
 
 ## Once per machine
 
@@ -19,9 +20,9 @@ carry over.
 
 ```sh
 npm run preview                 # 4173, fronted by Tailscale on 9173. NOT 4178 - check the port
-./capture/shoot.sh map          # -> capture/raw/map.mp4 + .timeline.json + .rec.json
-./capture/cut.sh map 0.9 6.6    # -> static/shot-map.mp4 + shot-map.jpg
-./capture/variant.sh dark-en    # the whole set, into capture/variants/<name>/
+./brand/capture/shoot.sh map          # -> brand/capture/raw/map.mp4 + .timeline.json + .rec.json
+./brand/capture/cut.sh map 0.9 6.6    # -> static/shot-map.mp4 + shot-map.jpg
+./brand/capture/variant.sh dark-en    # the whole set, into brand/capture/variants/<name>/
 ```
 
 Every clip is a pair: `clips/<name>.setup.sh` navigates to the starting screen unrecorded, and
@@ -119,7 +120,7 @@ re-encoded CRF 30 video frame, and is chosen to be a calm FIRST frame - `shot-to
 block page, not the topo viewer the clip exists to show.
 
 ```bash
-./capture/still.sh topo        # drive the app to the state first; -> static/screenshot-topo.jpg
+./brand/capture/still.sh topo        # drive the app to the state first; -> static/screenshot-topo.jpg
 ```
 
 `still.sh` repaints the status bar exactly as `cut.sh` does and scales to 1024 wide, because
