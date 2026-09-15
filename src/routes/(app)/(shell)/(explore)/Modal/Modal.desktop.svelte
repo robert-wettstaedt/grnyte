@@ -1,0 +1,72 @@
+<script lang="ts">
+  import Icon from '$lib/components/Icon/Icon.svelte'
+  import { siblingScrollSurface } from '$lib/components/SiblingNav/siblingNav'
+  import { m } from '$lib/paraglide/messages'
+  import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
+  import NavFooter from './NavFooter.svelte'
+  import SheetHeading from './SheetHeading.svelte'
+  import { sheetState } from './sheetState.svelte'
+  import type { ModalProps } from './types'
+
+  let { children, onclose, open = $bindable() }: ModalProps = $props()
+
+  // Keep compatibility with callers that may still set this value.
+  $effect(() => {
+    if (sheetState.requestSnap != null) {
+      sheetState.requestSnap = null
+    }
+  })
+</script>
+
+<Dialog
+  {open}
+  onOpenChange={(event) => {
+    open = event.open
+    if (!open) {
+      onclose?.()
+    }
+  }}
+  modal={false}
+  preventScroll={false}
+>
+  <Portal>
+    <Dialog.Positioner class="fixed inset-0 left-27 z-50 flex items-start py-2">
+      <div class="relative flex h-full w-full max-w-sm lg:max-w-md">
+        <Dialog.Content
+          class="card bg-surface-50-950 border-surface-100-900 relative z-10 flex h-full w-full flex-col overflow-hidden border-2"
+        >
+          <header class="flex shrink-0 flex-col gap-2 px-4 py-2 shadow">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex min-w-0 flex-1 items-center gap-2">
+                <SheetHeading>
+                  {#snippet wrapper(column)}
+                    <Dialog.Title class="flex min-w-0 flex-col">
+                      {@render column()}
+                    </Dialog.Title>
+                  {/snippet}
+                </SheetHeading>
+              </div>
+
+              <Dialog.CloseTrigger
+                class="btn-icon preset-filled-surface-200-800 shrink-0"
+                aria-label={m.common_close()}
+              >
+                <Icon name="close" />
+              </Dialog.CloseTrigger>
+            </div>
+
+            {#if sheetState.toolbar}
+              {@render sheetState.toolbar()}
+            {/if}
+          </header>
+
+          <Dialog.Description class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4" {...siblingScrollSurface}>
+            {@render children?.()}
+          </Dialog.Description>
+
+          <NavFooter />
+        </Dialog.Content>
+      </div>
+    </Dialog.Positioner>
+  </Portal>
+</Dialog>

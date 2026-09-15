@@ -1,1 +1,0 @@
-CREATE TYPE "public"."app_role" AS ENUM('app_admin', 'region_user', 'region_maintainer', 'region_admin');

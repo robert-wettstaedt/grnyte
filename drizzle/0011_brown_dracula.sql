@@ -1,1 +1,0 @@
-ALTER TABLE "areas" ADD COLUMN "visibility" text;

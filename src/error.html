@@ -1,0 +1,202 @@
+<!doctype html>
+<!--
+  Kit's fallback page: errors thrown in `handle` or a `+server.js` handler, where no route has
+  resolved yet, so `+error.svelte` cannot run. Only `%sveltekit.status%` and
+  `%sveltekit.error.message%` substitute, and no `transformPageChunk`, so no paraglide: the copy
+  below is English, hand-copied from the `error_*` messages, and everything is inline.
+-->
+<html class="dark" data-status="%sveltekit.status%" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>%sveltekit.status% | grnyte</title>
+    <meta name="theme-color" content="#19171b" />
+
+    <style>
+      /* Mirrors src/app.html and the tokens in src/grnyte.css. */
+      html.dark {
+        --bg: oklch(0.21 0.008 305);
+        --fg: oklch(0.97 0.004 70);
+        --muted: oklch(0.71 0.01 58);
+        --accent: oklch(0.66 0.17 313);
+        /* Dark flips the primary button to dark-on-light, per --color-primary-contrast-500. */
+        --accent-fg: oklch(0.2 0.07 313);
+        color-scheme: dark;
+      }
+      html.light {
+        --bg: oklch(0.985 0.004 70);
+        --fg: oklch(0.25 0.012 320);
+        --muted: oklch(0.46 0.01 60);
+        --accent: oklch(0.55 0.18 313);
+        --accent-fg: oklch(0.97 0.012 313);
+        color-scheme: light;
+      }
+      html {
+        --error: oklch(0.6 0.22 24);
+      }
+      body {
+        background-color: var(--bg);
+        color: var(--fg);
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        margin: 0;
+        min-height: 100dvh;
+      }
+      .wrap {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 100dvh;
+        padding: 4rem 2rem;
+        text-align: center;
+      }
+      .tile {
+        align-items: center;
+        background-color: color-mix(in oklab, var(--error) 15%, transparent);
+        border-radius: 1.5rem;
+        color: var(--error);
+        display: flex;
+        height: 5rem;
+        justify-content: center;
+        width: 5rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        margin: 1.25rem 0 0;
+        text-wrap: balance;
+      }
+      p {
+        color: var(--muted);
+        margin: 0.75rem 0 0;
+        max-width: 20rem;
+        text-wrap: pretty;
+      }
+      .status {
+        color: var(--muted);
+        font-size: 0.8125rem;
+        margin-top: 2rem;
+        opacity: 0.7;
+      }
+      /* ErrorState.svelte's stack and presets, by hand: Tailwind cannot reach this file. */
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.625rem;
+        margin-top: 1.75rem;
+        max-width: 20rem;
+        width: 100%;
+      }
+      .btn {
+        border: 0;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        display: block;
+        font: inherit;
+        font-weight: 600;
+        padding: 0.625rem 1.25rem;
+        text-align: center;
+        text-decoration: none;
+      }
+      /* Status picks the copy and the buttons in CSS, so a reader with JS blocked still gets the
+         right page. `^="5"` is every 5xx; anything not 5xx and not 404 falls through to generic. */
+      [data-copy],
+      #reload {
+        display: none;
+      }
+      :root[data-status^='5'] [data-copy='server'],
+      :root[data-status='404'] [data-copy='notfound'],
+      :root:not([data-status^='5']):not([data-status='404']) [data-copy='generic'],
+      :root[data-status^='5'] #reload {
+        display: block;
+      }
+      /* Reload leads on a 5xx, which may well succeed; otherwise the link out is the only action. */
+      #reload,
+      :root:not([data-status^='5']) #home {
+        background-color: var(--accent);
+        color: var(--accent-fg);
+      }
+      :root[data-status^='5'] #home {
+        background-color: color-mix(in oklab, var(--fg) 10%, transparent);
+        color: var(--fg);
+      }
+      .btn:hover {
+        filter: brightness(1.08);
+      }
+      .btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .btn {
+          transition: filter 150ms;
+        }
+      }
+    </style>
+
+    <!-- Same bootstrap as src/app.html, so a reader who picked a theme keeps it here. -->
+    <script>
+      ;(() => {
+        const COLORS = { light: '#fcfaf7', dark: '#19171b' }
+        let mode = null
+        try {
+          mode = localStorage.getItem('mode')
+        } catch {
+          mode = null
+        }
+        const resolved =
+          mode === 'light' || mode === 'dark'
+            ? mode
+            : matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+        document.documentElement.classList.remove('light', 'dark')
+        document.documentElement.classList.add(resolved)
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', COLORS[resolved])
+      })()
+    </script>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="tile">
+        <svg
+          aria-hidden="true"
+          fill="none"
+          height="36"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="36"
+        >
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+          <path d="M12 9v4" />
+          <path d="M12 17h.01" />
+        </svg>
+      </div>
+
+      <h1 data-copy="server">Something went wrong on our end</h1>
+      <h1 data-copy="notfound">Not found</h1>
+      <h1 data-copy="generic">Something went wrong</h1>
+
+      <p data-copy="server">This one’s on us, not you. Give it a moment and try again.</p>
+      <p data-copy="notfound">It moved or is gone, or the link is out of date.</p>
+      <p data-copy="generic">Something unexpected happened. Try again.</p>
+
+      <div class="actions">
+        <button class="btn" id="reload" onclick="location.reload()" type="button">Reload</button>
+        <a class="btn" href="/" id="home">Home</a>
+      </div>
+
+      <p class="status">%sveltekit.status% &middot; %sveltekit.error.message%</p>
+    </div>
+  </body>
+</html>

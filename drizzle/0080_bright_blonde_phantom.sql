@@ -1,0 +1,2 @@
+CREATE POLICY "region.edit can update bunny_streams" ON "bunny_streams" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((SELECT authorize_in_region('region.edit', region_fk))) WITH CHECK ((SELECT authorize_in_region('region.edit', region_fk)));--> statement-breakpoint
+CREATE POLICY "region.edit can delete bunny_streams" ON "bunny_streams" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((SELECT authorize_in_region('region.edit', region_fk)));

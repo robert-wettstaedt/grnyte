@@ -1,0 +1,14 @@
+{
+  "format": ["typescript", "javascript", "svelte", "css"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/.svelte-kit/**",
+    "**/.claude/**",
+    "**/*.gen.ts",
+    "**/paraglide/**",
+    "**/*.stories.svelte"
+  ],
+  "minLines": 5,
+  "minTokens": 50,
+  "reporters": ["console"]
+}

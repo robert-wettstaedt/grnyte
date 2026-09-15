@@ -1,1 +1,0 @@
-ALTER TABLE "regions" ADD COLUMN "max_members" integer;

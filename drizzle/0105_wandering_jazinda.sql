@@ -1,0 +1,3 @@
+DROP INDEX "notifications_source_idx";--> statement-breakpoint
+CREATE UNIQUE INDEX "notifications_event_source_idx" ON "notifications" USING btree ("user_fk","source_type","actor_fk","event_fk") WHERE event_fk is not null;--> statement-breakpoint
+CREATE UNIQUE INDEX "notifications_source_idx" ON "notifications" USING btree ("user_fk","source_type","entity_type","entity_id","actor_fk") WHERE event_fk is null;

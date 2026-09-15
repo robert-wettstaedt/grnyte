@@ -1,34 +1,58 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
-      - "**" # This will trigger the workflow on push to any branch
+      - '**' # This will trigger the workflow on push to any branch
   pull_request:
     branches:
-      - "**"
+      - '**'
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
+    # Plain Postgres, not the full Supabase stack: our migrations only reference Supabase-managed
+    # objects (auth schema, the anon/authenticated roles, auth.uid/jwt, a storage bucket), which
+    # ci/shim.sql recreates in ~50 lines. See ci/shim.sql for the why.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
-      NEXTCLOUD_URL: foobar
+      NEXTCLOUD_URL: http://foobar
       PUBLIC_TOPO_EMAIL: foobar
+      PUBLIC_REPORT_EMAIL: foobar
+      PUBLIC_ORIGIN: https://ci.example.com
+      PUBLIC_STATUS_URL: https://status.ci.example.com
       RESEND_SENDER_EMAIL: foobar
       RESEND_API_KEY: foobar
       PUBLIC_APPLICATION_NAME: foobar
-      PUBLIC_DEMO_MODE: foobar
+      # Deliberately not a URL. The build prerenders /offline, and the auth hook bails out of
+      # building a Supabase client while prerendering; a valid value here would hide it if
+      # that guard ever goes away.
       PUBLIC_SUPABASE_URL: foobar
       PUBLIC_SUPABASE_ANON_KEY: foobar
-      DATABASE_URL: postgres://foobar
+      SUPABASE_SERVICE_ROLE_KEY: foobar
+      SUPABASE_JWT_SECRET: ci-dummy-jwt-secret-at-least-32-characters-long
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
       NEXTCLOUD_USER_NAME: foobar
       NEXTCLOUD_USER_PASSWORD: foobar
       BUNNY_STREAM_API_KEY: foobar
       PUBLIC_BUNNY_STREAM_LIBRARY_ID: foobar
       PUBLIC_BUNNY_STREAM_HOSTNAME: foobar
-      PRIVATE_VAPID_KEY: foobar
-      PUBLIC_VAPID_KEY: foobar
       CRON_API_KEY: foobar
       PUBLIC_ZERO_URL: foobar
 
@@ -39,13 +63,53 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "24"
+          node-version: '24'
 
       - name: Install dependencies
         run: npm install
+
+      # A valid P-256 pair, deliberately not *the* pair. `push.server.test.ts` gates on both
+      # variables being non-empty and hands them to `web-push`, which signs a VAPID JWT against a
+      # local HTTPS server the test stands up itself. Nothing at the other end is a real push service
+      # that would check the key against a subscription, so what is asserted is validity; the
+      # identity of the pair is never consulted.
+      #
+      # Generating one per run is what lets this workflow hold no secrets at all, which matters here
+      # more than anywhere: it runs on every push to every branch and on every pull request. The
+      # deployed pair lives in Bitwarden, where its identity does matter, because rotating it
+      # invalidates every existing subscription.
+      - name: Generate a throwaway VAPID pair
+        run: node -e "const k=require('web-push').generateVAPIDKeys();console.log('PUBLIC_VAPID_KEY='+k.publicKey);console.log('PRIVATE_VAPID_KEY='+k.privateKey)" >> "$GITHUB_ENV"
+
+      # Recreate the Supabase surface, then migrate + seed so the DB-backed suites run instead of
+      # self-skipping. The two Nextcloud backfills no-op on the empty `files` table without ever
+      # reaching storage, which the dummy NEXTCLOUD_* above could not satisfy. psql ships on the
+      # ubuntu runner.
+      - name: Prepare test database
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ci/shim.sql
+          npm run migrate
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ci/seed.sql
+
+      # Ahead of the tests, for two reasons. CI did not build at all until now, so a build that fails
+      # only reached anybody at deploy time. And `src/sw.size.test.ts` asserts a ceiling on the
+      # emitted `build/client/sw.js`, which it can only do where that file exists - without this it
+      # skipped itself on every clean checkout and the regression it exists to catch (a transitive
+      # import putting 300 KB of Zod into the service worker) would have shipped exactly as quietly
+      # as it did the first time. Every variable the build reads is in the `env` block above.
+      - name: Build
+        run: npm run build
 
       - name: Run tests
         run: npm test
 
       - name: Run checks
         run: npm run check
+
+      # Fails only on clones absent from `.jscpd-baseline.json`. `lint:duplication:accept` rewrites
+      # that baseline when a new one is deliberate.
+      - name: Check for duplication
+        run: npm run lint:duplication
+
+      - name: Check for unused files, exports and dependencies
+        run: npm run lint:unused

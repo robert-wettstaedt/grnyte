@@ -1,14 +1,71 @@
 <!doctype html>
-<html class="dark" data-theme="catppuccin" lang="en">
+<html class="dark" data-theme="grnyte" lang="%lang%" dir="%dir%">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, interactive-widget=resizes-content"
+    />
+
+    <!-- Default is dark; the bootstrap below overrides content to match the resolved theme. -->
+    <meta name="theme-color" content="#19171b" />
 
     <style>
+      /* color-scheme keeps native widgets (date pickers, scrollbars) on the app theme. */
       html.dark {
-        background-color: oklch(0.2429 0.03 283.92);
+        background-color: oklch(0.21 0.008 305);
+        color-scheme: dark;
+      }
+      html.light {
+        background-color: oklch(0.985 0.004 70);
+        color-scheme: light;
       }
     </style>
+
+    <!-- Single source of truth for theme application: sets the <html> class and the theme-color
+         meta (iOS status bar / Safari toolbar tint). Inline + blocking so it runs before first
+         paint (no flash); exposed as window.__applyTheme for ThemeSwitch to call on change.
+         Colors mirror the html.light/html.dark rules above and --body-background-color(-dark). -->
+    <script>
+      ;(() => {
+        const COLORS = { light: '#fcfaf7', dark: '#19171b' }
+        const SYSTEM_DARK = '(prefers-color-scheme: dark)'
+        const stored = () => {
+          try {
+            return localStorage.getItem('mode')
+          } catch {
+            return null
+          }
+        }
+        const apply = () => {
+          const mode = stored()
+          const resolved =
+            mode === 'light' || mode === 'dark' ? mode : matchMedia(SYSTEM_DARK).matches ? 'dark' : 'light'
+          const root = document.documentElement
+          root.classList.remove('light', 'dark')
+          root.classList.add(resolved)
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', COLORS[resolved])
+        }
+        window.__applyTheme = apply
+        apply()
+        matchMedia(SYSTEM_DARK).addEventListener('change', () => {
+          if ((stored() ?? 'system') === 'system') apply()
+        })
+      })()
+    </script>
+
+    <!-- Catches `beforeinstallprompt` before any module can. Chrome fires it as soon as it has read
+         the manifest, which on a server-rendered page is well before the client bundle evaluates,
+         and the event is not replayed for a listener that arrives late. preventDefault suppresses
+         the browser's own mini-infobar so our UI is the only ask. $lib/state/install.svelte reads
+         whatever is stashed here at startup and takes over from there. -->
+    <script>
+      window.__installPrompt = null
+      addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault()
+        window.__installPrompt = event
+      })
+    </script>
 
     %sveltekit.head%
   </head>

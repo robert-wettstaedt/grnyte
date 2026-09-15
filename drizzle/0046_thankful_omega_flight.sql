@@ -1,1 +1,0 @@
-CREATE TYPE "public"."app_permission" AS ENUM('region.read', 'region.edit', 'region.delete', 'region.admin', 'app.admin');

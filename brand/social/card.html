@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>grnyte social card B</title>
+    <link rel="stylesheet" href="card.css" />
+    <style>
+      .card {
+        display: grid;
+        grid-template-columns: 1fr 470px;
+        align-items: center;
+      }
+      .copy {
+        padding: 64px 0 64px 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .logo {
+        width: 64px;
+        height: 64px;
+      }
+      .name {
+        font-size: 58px;
+      }
+      .tagline {
+        font-size: 46px;
+        line-height: 1.1;
+      }
+      .desc {
+        font-size: 20px;
+        max-width: 470px;
+      }
+      .badge {
+        margin-top: 8px;
+        padding: 9px 18px;
+        border-radius: 999px;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: var(--primary-400);
+        background: oklch(0.55 0.18 313 / 0.16);
+        border: 1px solid oklch(0.55 0.18 313 / 0.36);
+      }
+      .stage {
+        position: relative;
+        height: 100%;
+      }
+      .shot {
+        position: absolute;
+        top: 72px;
+        left: 56px;
+        width: 330px;
+        transform: rotate(-6deg);
+        border-radius: 28px;
+        border: 2px solid oklch(1 0 0 / 0.16);
+        box-shadow: 0 40px 90px -20px oklch(0 0 0 / 0.8);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="copy">
+        <div class="brand">
+          <img class="logo" src="/static/logo.svg" alt="" />
+          <div class="name">grnyte</div>
+        </div>
+        <div class="tagline">
+          Private topos
+          <br />
+          for private crags
+        </div>
+        <div class="desc">A guidebook and logbook for bouldering, visible only to the people you invite.</div>
+        <div class="badge">Open source &middot; self-hostable</div>
+      </div>
+      <div class="stage">
+        <img class="shot" src="/static/shot-topo.jpg" alt="" />
+      </div>
+    </div>
+  </body>
+</html>

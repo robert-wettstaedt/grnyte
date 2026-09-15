@@ -1,0 +1,208 @@
+<script lang="ts">
+  import { resolve } from '$app/paths'
+  import { page } from '$app/state'
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import { trackView } from '$lib/components/EntitySearch/recent.svelte'
+  import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
+  import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
+  import Icon from '$lib/components/Icon/Icon.svelte'
+  import CollapsibleMarkdown from '$lib/components/Markdown/CollapsibleMarkdown.svelte'
+  import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
+  import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
+  import { areaTypeLabel } from '$lib/entities/area/mapper'
+  import { areaDetail, areaList } from '$lib/entities/area/resources.svelte'
+  import { blockList } from '$lib/entities/block/resources.svelte'
+  import { createSaveState } from '$lib/entities/favorite/save.svelte'
+  import { createLocationState } from '$lib/entities/geolocation/location.svelte'
+  import { countRoutesByGrade } from '$lib/entities/grade/counts'
+  import { regionCrumb } from '$lib/entities/region/mapper'
+  import { routeList } from '$lib/entities/route/resources.svelte'
+  import { sectorReferencePoint } from '$lib/map/map'
+  import { m } from '$lib/paraglide/messages.js'
+  import { getGlobalState } from '$lib/state/global.svelte'
+  import { sheetState } from '../../../Modal/sheetState.svelte'
+  import AreaActions from './AreaActions.svelte'
+  import AreaEmpty, { areaEmptyIsActionable } from './AreaEmpty.svelte'
+  import AreaList from './AreaList.svelte'
+  import BlocksList from './BlocksList.svelte'
+
+  const global = getGlobalState()
+
+  // Getters keep the resources live across navigation between areas (e.g. when
+  // tapping a sub-area). The underlying queries re-target as the param changes.
+  const area = areaDetail(() => Number(page.params.id))
+  const subAreas = areaList(() => ({ parentFk: Number(page.params.id) }))
+
+  // Siblings for prev/next nav: areas sharing this area's parent, ordered by name.
+  // Root areas (no parent) navigate the other roots via parentFk IS NULL. -1 while
+  // the area loads keeps the result empty (no all-areas scan).
+  const parentFk = $derived.by(() => {
+    const data = area.data
+    if (data == null) return -1
+    return data.areas.at(-1)?.id ?? null
+  })
+  const siblings = areaList(() => ({ parentFk }))
+
+  trackView('areas', () => area.data?.id)
+
+  const areaHref = (id: number) => resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(id) })
+
+  // Blocks beneath this sector, ordered by the query; routes (above) are grouped
+  // under them by the BlocksList.
+  const blocks = blockList(() => ({ areaId: Number(page.params.id) }))
+
+  // Every route beneath this area (the `areaId` filter matches descendants), so
+  // the histogram reflects the whole sub-tree rather than only directly attached
+  // routes.
+  const routes = routeList(() => ({ areaId: Number(page.params.id) }))
+
+  const countByGrade = $derived(countRoutesByGrade(routes.data))
+
+  // A sub-area has no location of its own, so it gets no destination.
+  const destination = $derived.by(() => {
+    const data = area.data
+    if (data == null || data.type === 'area') return undefined
+    const pins = blocks.data.map((block) => block.geolocation)
+    return sectorReferencePoint(data.parkingLocations.at(0), pins) ?? undefined
+  })
+
+  const location = createLocationState(() => destination)
+  const save = createSaveState(
+    () => global.user?.id,
+    () => 'area',
+    () => Number(page.params.id),
+  )
+
+  // An undetermined area has no content of its own, so the prompt to give it some is the answer
+  // to the tap and leads, above the action bar: on a phone the sheet only shows ~415px and the
+  // bar plus the description ate a third of it, leaving the choice below the fold.
+  const emptyLeads = $derived.by(() => {
+    const data = area.data
+    return data != null && data.type == null && areaEmptyIsActionable(global.userRegions, data)
+  })
+
+  const ungradedCount = $derived(routes.data.filter((route) => route.gradeFk == null).length)
+  const gradedCount = $derived(routes.data.length - ungradedCount)
+
+  let selected = $state<null | { count: number; label: string }>(null)
+
+  // Only worth naming the region when the user belongs to more than one. With a
+  // single region it's implied and would be noise in the breadcrumb.
+  const regionName = $derived.by(() => {
+    if (area.data == null) {
+      return null
+    }
+    return regionCrumb(global.userRegions, area.data.regionFk) ?? null
+  })
+
+  // The shared Modal renders its header from sheetState, so feed it the title
+  // (type · name) and a breadcrumb subtitle built from the region and ancestors.
+  $effect(() => {
+    const data = area.data
+    sheetState.title = title
+    sheetState.subtitle = data != null && (regionName != null || data.areas.length > 0) ? breadcrumb : null
+    sheetState.nav = toSheetNav(siblings.data, data?.id, areaHref)
+    return () => (sheetState.nav = null)
+  })
+</script>
+
+<svelte:head>
+  <title>{area.data?.name ?? m.areas_title()} – {PUBLIC_APPLICATION_NAME}</title>
+</svelte:head>
+
+<QueryState notFound={m.areas_notFound()} resource={area}>
+  {#snippet ready(detail)}
+    <div class="space-y-5">
+      {#if emptyLeads}
+        <AreaEmpty area={detail} />
+      {/if}
+
+      <AreaActions area={detail} blockCount={blocks.data.length} {destination} {location} {save} />
+
+      <CollapsibleMarkdown markdown={detail.description} />
+
+      {#if routes.data.length > 0}
+        <section class="space-y-2">
+          <div class="flex items-baseline justify-between">
+            <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.areas_grades()}</h2>
+            <span class="text-surface-600-400 text-xs tabular-nums">
+              {#if selected != null}
+                {selected.label} · {m.routes_routesCount({ count: selected.count })}
+              {:else}
+                {m.areas_gradedCount({ count: gradedCount })}
+              {/if}
+            </span>
+          </div>
+
+          <GradeHistogram
+            {countByGrade}
+            grades={global.grades}
+            gradingScale={global.gradingScale}
+            ungraded={ungradedCount}
+            onselect={(bar) => (selected = bar)}
+          />
+        </section>
+
+        <a
+          class="border-surface-300-700 bg-surface-200-800 hover:bg-surface-300-700 flex items-center gap-3 rounded-xl border p-3 transition-colors"
+          href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]/routes', { id: page.params.id! })}
+        >
+          <span
+            class="bg-primary-500/15 text-primary-500 flex size-11 flex-none items-center justify-center rounded-xl"
+          >
+            <Icon name="list" size={22} />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block font-semibold">{m.areas_allRoutesCount({ count: routes.data.length })}</span>
+            <span class="text-surface-600-400 block text-xs">{m.areas_allRoutesHint()}</span>
+          </span>
+          <Icon name="chevron-right" size={18} class="text-surface-500 flex-none" />
+        </a>
+      {/if}
+
+      {#if detail.type === 'sector'}
+        <BlocksList blocks={blocks.data} routes={routes.data} />
+      {:else if detail.type === 'area'}
+        <AreaList areas={subAreas.data} />
+      {:else if !emptyLeads}
+        <AreaEmpty area={detail} />
+      {/if}
+
+      <ReferencedBy type="areas" id={detail.id} />
+
+      <!-- `beside`: this page renders inside the explore panel, so on desktop the log opens as a
+           second panel next to it, the way this page's own MoreMenu does. -->
+      <EventMeta
+        beside
+        createdAt={detail.createdAt}
+        createdBy={detail.createdBy}
+        scopeId={String(detail.id)}
+        scopeType="area"
+      />
+    </div>
+  {/snippet}
+</QueryState>
+
+{#snippet breadcrumb()}
+  {#if area.data != null}
+    <Breadcrumb area={area.data} userRegions={global.userRegions} />
+  {/if}
+{/snippet}
+
+{#snippet title()}
+  {#if area.data != null}
+    <div class="flex items-center gap-2">
+      {area.data.name}
+
+      {#if area.data.type != null}
+        <span
+          class="bg-primary-500/20 text-primary-700-300 inline-flex h-5.25 items-center rounded-[7px] px-2 text-[11px] font-bold tracking-[0.02em]"
+        >
+          {areaTypeLabel(area.data.type)}
+        </span>
+      {/if}
+    </div>
+  {/if}
+{/snippet}

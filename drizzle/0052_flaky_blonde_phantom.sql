@@ -1,1 +1,0 @@
-ALTER POLICY "app.admin can fully access region_members" ON "region_members" TO authenticated USING ((SELECT authorize('app.admin'))) WITH CHECK ((SELECT authorize('app.admin')));

@@ -1,104 +1,82 @@
-<script lang="ts">
-  import { afterNavigate } from '$app/navigation'
-  import { getI18n } from '$lib/i18n'
-
-  interface Props {
-    url: URL
-  }
-
-  let { url }: Props = $props()
-
-  interface Crumb {
-    href: string
-    label: string
-  }
-
-  let breadcrumbRef: HTMLElement | null = $state(null)
-  let isOverflowing = $state(false)
-  let showOverflow = $state(false)
-  const { t } = getI18n()
-
-  let crumbs: Crumb[] = $derived.by(() => {
-    // Remove zero-length tokens.
-    const tokens = url.pathname.split('/').filter((token) => token !== '')
-
-    // Create { label, href } pairs for each token.
-    let tokenPath = ''
-    const crumbs = tokens
-      .map((token): Crumb => {
-        tokenPath += '/' + token
-        return {
-          label: token,
-          href: tokenPath,
-        }
-      })
-      .filter((crumb) => crumb.label !== '_')
-
-    // Add a way to get home too.
-    crumbs.unshift({ label: 'home', href: '/' })
-
-    return crumbs
-  })
-
-  const onToggleOverflow = () => {
-    showOverflow = !showOverflow
-
-    requestAnimationFrame(() => {
-      updateOverflow()
-    })
-  }
-
-  const updateOverflow = () => {
-    if (breadcrumbRef == null) {
-      isOverflowing = false
-      return
-    }
-
-    isOverflowing = breadcrumbRef.scrollWidth > breadcrumbRef.clientWidth
-    breadcrumbRef.scrollTo({ left: breadcrumbRef.scrollWidth + crumbs.length, behavior: 'auto' })
-  }
-
-  $effect(() => {
-    updateOverflow()
-  })
-
-  afterNavigate(() => {
-    showOverflow = false
-  })
+<script lang="ts" module>
+  // A 12px crumb is only a 16px tap target. The pseudo doubles it without moving the line, the way
+  // EventCard's disclosure does. 8px is the most it can take: on the desktop sheet the target's top
+  // edge lands exactly on Dialog.Content's clip edge, so anything more is clipped and cannot be hit.
+  export const CRUMB_LINK = 'anchor relative shrink-0 text-xs before:absolute before:inset-x-0 before:-inset-y-2'
 </script>
 
-<svelte:window onresize={updateOverflow} />
+<script lang="ts">
+  import { resolve } from '$app/paths'
+  import type { AreaDetail, AreaListItem } from '$lib/entities/area/dto'
+  import type { UserRegion } from '$lib/entities/region/dto'
+  import { regionCrumb } from '$lib/entities/region/mapper'
 
-{#if crumbs.length > 2}
-  <div class="relative mb-4 md:mb-8">
-    {#if isOverflowing && !showOverflow}
-      <span class="bg-surface-50-950 absolute top-0 left-0 pr-1">...</span>
+  interface Props {
+    /** The area whose location trail is shown. */
+    area: AreaDetail | AreaListItem
+    /** Append `area` itself as the final crumb (e.g. when it's the parent of a new child). */
+    includeSelf?: boolean
+    /** The signed-in user's memberships: names the region only when there's more than one. */
+    userRegions: UserRegion[]
+  }
+
+  let { area, includeSelf = false, userRegions }: Props = $props()
+
+  // Deep hierarchies make the breadcrumb unreadable, so keep only the two crumbs
+  // nearest the current area; anything above collapses to an ellipsis.
+  const maxAncestors = 2
+
+  // Only worth naming the region when the user belongs to more than one. With a
+  // single region it's implied and would be noise in the breadcrumb.
+  // `regionCrumb` and not a local copy: it already answers this exact question, including the
+  // "only worth saying across several regions" rule and the unsynced-region name.
+  const regionName = $derived('regionFk' in area ? (regionCrumb(userRegions, area.regionFk) ?? null) : null)
+
+  // When `includeSelf`, the area joins its own ancestors as the final crumb so the
+  // trail reads the whole path down to (and including) it.
+  const crumbs = $derived(includeSelf ? [...area.areas, { id: area.id, name: area.name }] : area.areas)
+  const visible = $derived(crumbs.slice(-maxAncestors))
+</script>
+
+{#if regionName != null || crumbs.length > 0}
+  <!-- Keep the trail on a single line and let it scroll instead of wrapping; the
+       scrollbar is hidden so it reads as a clean subtitle. -->
+  <!-- overflow-x makes this a scroll container in both axes, so it needs the crumbs' own 8px or
+       their targets are clipped above and scrollable below. -my-2 keeps the footprint at 16px. -->
+  <div class="breadcrumb -my-2 flex items-center gap-2 overflow-x-auto py-2 whitespace-nowrap">
+    {#if regionName != null}
+      <span class="text-surface-600-400 shrink-0 text-xs">{regionName}</span>
+
+      {#if visible.length > 0}
+        <span class="shrink-0 text-xs">·</span>
+      {/if}
     {/if}
 
-    <ol
-      bind:this={breadcrumbRef}
-      class="flex {showOverflow ? 'flex-wrap' : ''} mr-9 items-center gap-2 overflow-hidden whitespace-nowrap md:gap-4"
-    >
-      {#each crumbs as crumb, i}
-        <li>
-          <a class="anchor" href={crumb.href}>{crumb.label}</a>
-        </li>
-
-        {#if i < crumbs.length - 1}
-          <li class="opacity-50" aria-hidden="true">/</li>
-        {/if}
-      {/each}
-    </ol>
-
-    {#if isOverflowing || showOverflow}
-      <button
-        aria-label={showOverflow ? t('common.showLess') : t('common.showMore')}
-        title={showOverflow ? t('common.showLess') : t('common.showMore')}
-        class="btn-icon absolute -top-1 right-0"
-        onclick={onToggleOverflow}
-      >
-        <i class="fa-solid {showOverflow ? 'fa-caret-up' : 'fa-caret-down'}"></i>
-      </button>
+    {#if crumbs.length > visible.length}
+      <span class="text-surface-600-400 shrink-0 text-xs">…</span>
+      <span class="shrink-0 text-xs">·</span>
     {/if}
+
+    {#each visible as crumb, index (crumb.id)}
+      <a class={CRUMB_LINK} href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: crumb.id.toString() })}>
+        {crumb.name}
+      </a>
+
+      {#if index < visible.length - 1}
+        <span class="shrink-0 text-xs">·</span>
+      {/if}
+    {/each}
   </div>
 {/if}
+
+<style>
+  /* Hide the horizontal scrollbar so the overflowing breadcrumb still reads as a
+     plain subtitle line. */
+  .breadcrumb {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .breadcrumb::-webkit-scrollbar {
+    display: none;
+  }
+</style>

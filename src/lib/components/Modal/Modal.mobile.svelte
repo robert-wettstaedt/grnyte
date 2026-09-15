@@ -1,0 +1,277 @@
+<script lang="ts">
+  import Icon from '$lib/components/Icon/Icon.svelte'
+  import { m } from '$lib/paraglide/messages'
+  import { Portal } from '@skeletonlabs/skeleton-svelte'
+  import { BottomSheet } from 'svelte-bottom-sheet'
+  import type { MobileProps } from './types'
+
+  let {
+    backdrop = false,
+    children,
+    depth = 0,
+    fill = false,
+    footer,
+    headerLeft,
+    headerRight,
+    open = $bindable(),
+    snapPoints = [0.5],
+    subtitle,
+    title,
+  }: MobileProps = $props()
+
+  /**
+   * The scrim's z-index, its sheet one above, ten per level of `depth`.
+   *
+   * Inline rather than a class per tier, because the depth is not bounded: a sheet opens the
+   * activity log, which opens a comment thread, which opens the list of who reacted. The base
+   * clears the map's persistent area panel (z-50). Only sheets with a scrim are raised; without
+   * one there is nothing to cover and the library's own z-index is right.
+   */
+  const scrim = $derived(60 + depth * 10)
+
+  /** Whether the press that is about to become a click went down on the scrim itself. */
+  let pressedOnOverlay = $state(false)
+
+  /**
+   * The sheet's own open state, one frame behind `open`.
+   *
+   * `Modal.svelte` fetches this file lazily, so the first tap on a trigger lands while the chunk
+   * is still in flight: the component then mounts with `open` already true, and handing that
+   * straight to `BottomSheet` renders the sheet at its snap point with nothing to slide up from.
+   * Every open after that animates, because by then the component is mounted and closed. Staging
+   * the value gives the first one the same closed frame the rest get, whatever made the branch
+   * late, and costs the others a single frame.
+   */
+  let sheetOpen = $state(false)
+
+  /** Set once the sheet has actually been open, so the mount-time `false` is not read as a close. */
+  let opened = $state(false)
+
+  $effect(() => {
+    if (!open) {
+      sheetOpen = false
+      // Reset with the sheet, or the next open is cancelled by the effect below before its frame
+      // lands: `opened` would still be true while `sheetOpen` is briefly false again.
+      opened = false
+      return
+    }
+
+    if (sheetOpen) {
+      return
+    }
+
+    const frame = requestAnimationFrame(() => {
+      sheetOpen = true
+      opened = true
+    })
+
+    return () => cancelAnimationFrame(frame)
+  })
+
+  // The drag-to-dismiss gesture closes the sheet from inside the library, which writes `sheetOpen`
+  // and nothing else. Without this the effect above would see `open` still true and slide it right
+  // back up. The close button and the scrim write `open` directly and do not need it.
+  $effect(() => {
+    if (opened && !sheetOpen) {
+      open = false
+    }
+  })
+
+  // Keep the sheet (and the focused field) above the on-screen keyboard.
+  //
+  // svelte-bottom-sheet anchors the sheet to `bottom: 0` of the *layout* viewport
+  // and sizes it from `window.innerHeight`. On Android, the `interactive-widget=
+  // resizes-content` viewport hint shrinks the layout viewport when the keyboard
+  // opens, so the library reflows the sheet for free. iOS Safari ignores that hint
+  // and only shrinks the *visual* viewport, trapping the sheet behind the keyboard.
+  // So we measure the keyboard overlap ourselves and lift the sheet by it via the
+  // `--keyboard-inset` custom property (consumed by the `.keyboard-aware` rule).
+  $effect(() => {
+    const viewport = window.visualViewport
+    if (!open || viewport == null) {
+      return
+    }
+
+    const root = document.documentElement
+
+    const update = () => {
+      const overlap = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+      root.style.setProperty('--keyboard-inset', `${overlap}px`)
+    }
+
+    // Once a field is focused (and the keyboard has had time to settle), scroll it
+    // into the now-shortened sheet so it never hides behind the keyboard.
+    const reveal = (event: FocusEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('.bottom-sheet') == null) {
+        return
+      }
+      if (!target.matches('input, textarea, select, [contenteditable="true"]')) {
+        return
+      }
+      setTimeout(() => target.scrollIntoView({ block: 'center' }), 150)
+    }
+
+    update()
+    viewport.addEventListener('resize', update)
+    viewport.addEventListener('scroll', update)
+    document.addEventListener('focusin', reveal)
+
+    return () => {
+      viewport.removeEventListener('resize', update)
+      viewport.removeEventListener('scroll', update)
+      document.removeEventListener('focusin', reveal)
+      root.style.removeProperty('--keyboard-inset')
+    }
+  })
+</script>
+
+<!-- No trigger here: Modal.svelte renders it. This file is fetched lazily (it carries
+     svelte-bottom-sheet, which a desktop never shows), so a trigger in here would not
+     exist until its chunk landed and every control would visibly pop in. -->
+
+{#snippet content()}
+  <BottomSheet.Sheet
+    class="preset-filled-surface-50-950! keyboard-aware modal-sheet"
+    style={backdrop ? `z-index: ${scrim + 1}` : ''}
+  >
+    <div
+      class="preset-filled-surface-50-950 border-surface-100-900 flex shrink-0 items-center justify-between border-b-2 px-4 py-2"
+    >
+      {#if headerLeft}
+        {@render headerLeft()}
+      {/if}
+
+      <div class="flex flex-col">
+        {#if subtitle}
+          <span class="text-sm opacity-60">{subtitle}</span>
+        {/if}
+
+        <span class="text-lg">{title}</span>
+      </div>
+
+      {#if headerRight}
+        {@render headerRight()}
+      {:else}
+        <button
+          class="btn-icon preset-filled-surface-200-800 shrink-0"
+          aria-label={m.common_close()}
+          onclick={(event) => {
+            event.preventDefault()
+            open = false
+          }}
+        >
+          <Icon name="close" />
+        </button>
+      {/if}
+    </div>
+
+    <!-- `h-full` hands the scroll area's own height down: `.scroll-clip` is the one element in the
+         chain with a definite one (the sheet is sized from its snap point), so without it a child
+         asking for `h-full` has nothing to resolve against and keeps whatever height it shipped.
+         `block!` with it, because the library ships this as `inline-block`, and an inline box sits
+         on a text baseline: the descender space under it is six more pixels than the scroll area
+         has, which is a scrollbar for content that fits. -->
+    <BottomSheet.Content class="w-full px-4! pt-4! pb-4! {fill ? 'block! h-full' : ''}">
+      {@render children?.()}
+    </BottomSheet.Content>
+
+    {#if footer}
+      <!-- A plain flex item, outside the scroll area (see the style block), which is the only
+           arrangement where content cannot pass under it. Pinning it over the scrollport, by
+           `fixed` or by `sticky`, means the scroll area has to reserve its height by hand, and
+           any number chosen for that is wrong for the next caller who puts something taller in
+           the footer. The bottom padding clears the home indicator on a gesture-navigation
+           phone. -->
+      <div
+        class="bg-surface-50-950 border-surface-100-900 z-100 flex shrink-0 items-center justify-end gap-2 border-t-2 px-4 pt-4"
+        style:padding-bottom="calc(1rem + env(safe-area-inset-bottom))"
+      >
+        {@render footer()}
+      </div>
+    {/if}
+  </BottomSheet.Sheet>
+{/snippet}
+
+<Portal>
+  <BottomSheet settings={{ maxHeight: snapPoints[0], snapPoints }} bind:isSheetOpen={sheetOpen}>
+    {#if backdrop}
+      <!-- Scrim behind the sheet; tap to dismiss. stopPropagation keeps the tap from
+           reaching the map panel's document-click handler (which would collapse it). -->
+      <!-- Closes only when the press STARTED on the scrim.
+
+           A tap is two events with a layout in between, and on a phone that layout moves: the
+           on-screen keyboard opens or closes, a suggestion list under the finger unmounts, the
+           sheet re-snaps. The release then happens over the scrim even though the finger went
+           down on something inside the sheet, and a plain `onclick` here reads that as "tapped
+           outside" and dismisses the whole sheet. That is the shape of choosing an `@` mention
+           closing a comment thread. The library itself has no outside-click close at all; this
+           handler is the only one, so this is where the guard belongs. -->
+      <BottomSheet.Overlay
+        class="modal-overlay"
+        style="z-index: {scrim}"
+        onclick={(event) => {
+          event.stopPropagation()
+
+          if (pressedOnOverlay) {
+            open = false
+          }
+
+          pressedOnOverlay = false
+        }}
+        onpointerdown={(event) => {
+          pressedOnOverlay = event.target === event.currentTarget
+        }}
+      />
+    {/if}
+    {@render content()}
+  </BottomSheet>
+</Portal>
+
+<style>
+  /* A sheet can open above a modal dialog (e.g. the media viewer's Share sheet). That
+     parent sets `pointer-events: none` on <body> to inert the background, which this
+     portaled sheet would otherwise inherit, going dead to taps (every tap then falls
+     through to the dialog behind, whose own outside-click detection dismisses the
+     sheet). Re-assert it so the sheet is interactive wherever it is mounted. */
+  :global(.bottom-sheet),
+  :global(.bottom-sheet-overlay) {
+    pointer-events: auto;
+  }
+
+  /* Lift the fixed sheet above the keyboard by the measured overlap (set in JS). */
+  :global(.bottom-sheet.keyboard-aware) {
+    bottom: var(--keyboard-inset, 0px) !important;
+  }
+
+  /* Header / scroll area / footer as a column, so only the middle scrolls and the header and
+     footer keep their own space. svelte-bottom-sheet builds for exactly this (its `.scroll-clip`
+     already carries `flex-grow: 1`) but only sets `display: flex` for the left, right and top
+     positions, so a bottom sheet is left as a single scrolling block with its `.scroll-clip`
+     clipped rather than scrollable. That is what puts a long list under a pinned footer.
+
+     Keyed to `.modal-sheet` (this component's own marker) rather than to the library's
+     `.position-bottom`: the map's sheet is a bottom sheet too, and it wants the library's
+     single-scrolling-block layout. A global rule on the position class rewrites that one as
+     well, and it cannot opt out of the `overflow-y` half by any class of its own. */
+  :global(.bottom-sheet.modal-sheet) {
+    display: flex;
+    flex-direction: column;
+    /* `!important` because the library's own `overflow-y: auto` is `.bottom-sheet.svelte-<hash>`,
+       the same specificity as this, so without it the winner is whichever stylesheet the bundler
+       emitted last. `.scroll-clip` below is the one scrollport this sheet has. */
+    overflow-y: hidden !important;
+  }
+
+  :global(.bottom-sheet.modal-sheet .scroll-clip) {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  /* Blur what's behind the scrim so the sheet is the only thing in focus. The z-index that
+     decides what "behind" means is inline, off `scrim` above. */
+  :global(.bottom-sheet-overlay.modal-overlay) {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+</style>

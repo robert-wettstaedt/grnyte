@@ -1,16 +1,17 @@
-version: "3.8"
+version: '3.8'
 
 services:
   zero:
-    image: rocicorp/zero
+    # Must move in lockstep with `@rocicorp/zero` in package.json, server deployed first.
+    image: rocicorp/zero:1.9.0
     container_name: zero-server
     ports:
-      - "4848:4848"
+      - '4848:4848'
     environment:
       # Zero server configuration
       - ZERO_UPSTREAM_DB=${ZERO_UPSTREAM_DB}
       - ZERO_REPLICA_FILE=${ZERO_REPLICA_FILE:-/data/sync-replica.db}
-      - ZERO_SCHEMA_PATH=${ZERO_SCHEMA_PATH:-src/lib/db/zero/zero-schema.ts}
+      - ZERO_SCHEMA_PATH=${ZERO_SCHEMA_PATH:-src/lib/zero/zero-schema.ts}
       - ZERO_AUTH_SECRET=${ZERO_AUTH_SECRET}
       - ZERO_ADMIN_PASSWORD=${ZERO_ADMIN_PASSWORD}
       - ZERO_GET_QUERIES_URL=${ZERO_GET_QUERIES_URL:-http://localhost:3000/api/zero/get-queries}
@@ -21,15 +22,15 @@ services:
       - ZERO_UPSTREAM_CONNECTION_STRING=${ZERO_UPSTREAM_DB}
     extra_hosts:
       # Map localhost to host machine for database access
-      - "localhost:host-gateway"
+      - 'localhost:host-gateway'
     volumes:
       # Mount your local schema file into the container
-      - ./src/lib/db/zero:/app/src/lib/db/zero:ro
+      - ./src/lib/zero:/app/src/lib/zero:ro
       # Persist the replica database
       - zero_data:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4848/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:4848/health']
       interval: 30s
       timeout: 10s
       retries: 3

@@ -1,0 +1,76 @@
+---
+name: review-triage
+description: Review the current change for correctness, consistency and code smell, verify it in the real app, then present findings as a numbered action list to cherry-pick from (nothing auto-applied). Use when the user says "report findings as a prioritised action list", "do not fix anything yet", "order them into action items", "audit X for one issue class", "check correctness/consistency/code smell", "review and verify", or "create an action list". The user then replies "fix #1-#3" or "fix all but #7". Also covers findings that arrive from elsewhere (a pasted review blob, a subagent's report, another session's output) with "check if any hold up".
+---
+
+# Review triage
+
+The recurring loop: review the diff, verify it runs, hand back a numbered list the user picks from.
+Do NOT fix anything in this skill. Wait for the user to say which numbers.
+
+## Steps
+
+1. **Review**: run `/code-review` on the working-tree diff (default effort). Focus on correctness,
+   consistency with nearby code, and code smell. This is the bug/quality pass.
+   - The `/code-review` finders skew toward higher-severity correctness bugs, so low-severity
+     consistency nits get crowded out. After it returns, do your own **sibling-consistency pass**:
+     for functions/types the diff adds or touches side by side, check they share shape, parameter
+     types, naming, and return conventions. A param that is a `number` in one and a `Date` in its
+     sibling, or one helper that logs-and-continues while its twin throws, is a finding even when
+     each is locally defensible. Local consistency (matches its own call site) is not the same as
+     sibling consistency (matches its peer); this step checks the latter.
+2. **Verify**: run `/grnyte-verify` to drive the actual change in the running app. A finding that only
+   shows up when driven (broken flow, wrong permission gate, layout break) is worth more than a typecheck.
+   Skip only if the diff has no runtime surface (docs/comments/test-only).
+   - Drive every affected screen at BOTH viewport sizes: mobile iPhone SE (375x667) and desktop
+     Laptop with MDPI (1280x800). Resize the page (e.g. chrome-devtools `resize_page`) and take a
+     screenshot at each size. Visual/layout bugs count as findings: overflow, clipped or overlapping
+     elements, broken wrapping, touch targets hidden behind nav chrome, desktop-only or mobile-only
+     UI showing on the wrong size.
+3. **Merge into one list**: dedupe overlapping findings from the two passes. One numbered item each,
+   most-severe first. Per item give a one-line description, the `file:line`, and the fix as a phrase (not
+   applied). Separate confirmed bugs from style/opinion so the user can triage fast.
+
+## Output shape
+
+Always markdown in the chat, never a raw JSON blob and never "see the findings panel": this
+project's chat surface does not render one.
+
+```
+#1  <one line>  (src/lib/foo.ts:42)  fix: <phrase>
+#2  ...
+```
+
+Then stop and ask which to fix. The user replies e.g. "fix #1-#3", "fix all but #7", "fix all".
+On that reply, apply exactly those and nothing else.
+
+## Incoming findings
+
+The other half of this loop: the review ran somewhere else (a worktree session, a subagent, a pasted
+JSON blob) and lands here as "here is a code review, check if any hold up". Same triage, different
+starting point: the findings are claims about code the reviewer could not run, so verify before
+fixing.
+
+1. **Read the cited code first**, at the given `file:line`, plus its callers. Reviews from another
+   session are often a few commits stale, or describe a branch that no longer exists.
+2. **Verdict per finding**, in a markdown list, most-severe first:
+   - _holds_: what actually breaks, then the fix.
+   - _does not hold_: one line on why (already guarded at X, the caller cannot reach that state,
+     fixed in commit Y, the reviewer misread Z). No edit.
+   - _holds partly_: the bug is real but the proposed fix is wrong; say what you will do instead.
+3. **Apply only the holders.** A finding that reads plausible but is wrong costs more applied than
+   skipped, so default to _does not hold_ when the code does not confirm it.
+4. If the user said "fix all that hold up, then commit as you see fit", that is the whole
+   instruction: fix, `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`, commit. Don't
+   come back for confirmation between the two. Not `npm run check`: it 500s a running dev server.
+
+## Relaying to another session
+
+When the findings are going to or coming from another SESSION rather than the user, the relay rules
+(announce your agent name, wait for every reviewer, freeze the tree, send findings in full, free the
+browser) live in AGENTS.md under "Worktrees and parallel agents". Do not restate them here.
+
+## Notes
+
+- Don't pad the list. A short list of real findings beats a long one with filler, since filler just gets "ignore #4-#8".
+- If review and verify both come back clean, say so in one line instead of inventing items.

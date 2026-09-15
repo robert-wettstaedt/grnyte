@@ -1,0 +1,79 @@
+import type { MessageKey } from '$lib/i18n/message'
+import { isDatedMoment } from '$lib/i18n/relativeTime'
+import type { CardLine } from './line'
+
+/**
+ * The one line a detail page shows above its log: who last touched this record, and when.
+ *
+ * Pure, and separate from the component, because it is three-way and every branch is a claim
+ * that has to be true. Saying "updated" about a record nobody has edited, or naming an actor
+ * whose row has not synced yet, are both worse than saying less.
+ */
+
+export interface MetaLine {
+  /** Empty when the actor is not known, which is what picks a key that does not name one. */
+  actor: string
+  key: MessageKey
+  /** Epoch millis. The caller formats it against its own clock and locale. */
+  timestamp: number
+}
+
+/** What a detail page knows about its entity, apart from its log. */
+export interface MetaSource {
+  /** The entity's own creation stamp. Absent on rows written before the column existed. */
+  createdAt: Date | undefined
+  /**
+   * Username behind the entity's `createdBy`. Only ever read when the log is empty, and absent
+   * until `usersByIds` answers.
+   */
+  creatorName: string | undefined
+  /** The newest row in scope, or `undefined` when nothing has been logged about this entity. */
+  latest: CardLine | undefined
+  /**
+   * The clock. Injected rather than read here so this stays pure, and because the sentence has
+   * to know which form the time will take: `formatUploadedAt` switches to a date after a week,
+   * and a date needs the preposition a relative phrase does not.
+   */
+  now: number
+}
+
+/**
+ * Split out rather than eight literals inline, so the three axes (what happened, is the actor
+ * known, does the time read as a date) cannot pair up wrongly and a missing key is a compile
+ * error rather than a sentence with the wrong preposition in it.
+ */
+const KEYS = {
+  created: {
+    dated: { known: 'event_metaCreatedOn', unknown: 'event_metaCreatedOnUnknown' },
+    relative: { known: 'event_metaCreated', unknown: 'event_metaCreatedUnknown' },
+  },
+  updated: {
+    dated: { known: 'event_metaUpdatedOn', unknown: 'event_metaUpdatedOnUnknown' },
+    relative: { known: 'event_metaUpdated', unknown: 'event_metaUpdatedUnknown' },
+  },
+} as const satisfies Record<string, Record<string, Record<string, MessageKey>>>
+
+export function metaLine({ createdAt, creatorName, latest, now }: MetaSource): MetaLine | undefined {
+  if (latest != null) {
+    // A create is the record appearing, not a change to it; every other verb in scope is a change.
+    // The verb says so outright now, where the old shape had to read a column being absent.
+    const created = latest.verb === 'create'
+    return line(created, latest.actorName, latest.createdAt, now)
+  }
+
+  // Nothing logged at all: an entity imported before the log existed, so its own columns are all
+  // there is to read. Without a stamp there is no true line to write, so there is no line.
+  if (createdAt == null) {
+    return undefined
+  }
+
+  return line(true, creatorName, createdAt.getTime(), now)
+}
+
+const line = (created: boolean, actor: string | undefined, timestamp: number, now: number): MetaLine => ({
+  actor: actor ?? '',
+  key: KEYS[created ? 'created' : 'updated'][isDatedMoment(timestamp, now) ? 'dated' : 'relative'][
+    actor == null || actor === '' ? 'unknown' : 'known'
+  ],
+  timestamp,
+})

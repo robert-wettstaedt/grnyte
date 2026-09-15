@@ -1,0 +1,91 @@
+# Checks that only production can answer.
+#
+# `ci.yml` runs against a database that was created seconds ago, so it proves the code and nothing
+# about the environment: GoTrue's toggles, the Resend key, SITE_URL, and whether the deployed schema
+# still matches the code. Sign-up is where that hurts most, because somebody who cannot create an
+# account has no way to tell you.
+#
+# The canary creates ONE real account per run and deletes it again in teardown. Nothing else writes.
+name: Post-deploy
+
+# This repository is PUBLIC, so every line this workflow logs is world readable, and it handles
+# production credentials. Pinned rather than left to the repository default, which one settings
+# change flips for every workflow at once.
+permissions:
+  contents: read
+
+on:
+  schedule:
+    # Daily, off the hour: nothing here needs to race the rest of GitHub's cron traffic.
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+# One at a time, so two runs can never have an account in flight at once.
+concurrency: post-deploy
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Where the prod access token lives, and the only GitHub-stored secret this workflow touches.
+    # Name matched exactly, en dash included: a typo does not fail, it hands the action an empty
+    # token. The cost to know about: this environment has no protection rules today, and adding
+    # required reviewers would park a SCHEDULED canary until somebody noticed, which is the failure
+    # mode it exists to catch.
+    environment: 'Production – grnyte.rocks'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          cache: npm
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Only chromium, and only here: the app is never built in this job, because the thing under
+      # test is the deployment rather than this checkout.
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+
+      # Everything this job needs, and nothing else the grnyte-prod project holds. The list IS the
+      # privilege boundary, so it lives here rather than in a GitHub variable: `deploy-zero` runs
+      # under this same environment and needs a different set, and an allowlist nobody can review in
+      # a diff is not one.
+      #
+      # The action masks every value it retrieves (`::add-mask::`), which is why it replaces the
+      # bare CLI: `bws run` injects the whole project unmasked, and this log is public.
+      - name: Load the prod secrets from Bitwarden
+        uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
+        with:
+          access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+          secrets: |
+            a745eae4-8d02-4503-9499-b4b1008ee797 > PUBLIC_SUPABASE_URL
+            6803688b-5ff2-431f-9546-b4b1008ef3fc > PUBLIC_SUPABASE_ANON_KEY
+            a83f5fa3-aa14-41a8-af91-b4b1008fd57d > SUPABASE_SERVICE_ROLE_KEY
+            7822b897-399d-4e45-843b-b4b1008da86f > RESEND_API_KEY
+            0e0c4c10-656b-4d47-b0bb-b4b1008d9c93 > RESEND_SENDER_EMAIL
+            229dfd0e-2cc6-4727-b289-b4b1008db12f > PUBLIC_VAPID_KEY
+            bb418950-7d83-4fc8-bc16-b4b1008db9fc > PRIVATE_VAPID_KEY
+            fcf9057e-ae1d-4bf1-9e0e-b4b10092216b > E2E_PASSWORD
+            c65f412c-e3fc-460b-8657-b4b1009432ec > E2E_BASE_URL
+            76212966-0473-42e7-a5e0-b4b1008efda6 > DATABASE_URL
+
+      - name: Check deployed configuration
+        run: npm run check:prod
+
+      # Runs even when the check above failed, because the two answer different questions and a
+      # rotated Resend key says nothing about whether sign-up still works.
+      - name: Sign-up canary
+        if: ${{ !cancelled() }}
+        run: npm run test:e2e prod-signup
+
+      # No trace upload. An artifact is the one output masking cannot reach: the runner redacts log
+      # text and nothing else, so a Playwright trace taken against production would be published
+      # verbatim from a public repository. Playwright's own failure output still lands in the log,
+      # where it IS redacted, and that is what this job is read from.

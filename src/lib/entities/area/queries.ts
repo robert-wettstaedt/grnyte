@@ -1,0 +1,63 @@
+import * as z from '$lib/forms/zod'
+import { applyTextFilters } from '$lib/zero/filters'
+import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
+import { zql } from '$lib/zero/zero-schema.gen'
+import { defineQuery } from '@rocicorp/zero'
+
+export const areasQueryDefs = {
+  area: defineQuery(
+    z.object({
+      id: z.number(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
+      const r = relatedRegion(ctx)
+
+      return zql.areas
+        .where('id', args.id)
+        .where('deletedAt', 'IS', null)
+        .related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r)))
+        .related('author')
+        .related('files', r)
+        .related('parkingLocations', r)
+        .one()
+    }),
+  ),
+  listAreas: defineQuery(
+    z.object({
+      content: z.optional(z.string()),
+      id: z.optional(z.union([z.number(), z.array(z.number())])),
+      limit: z.optional(z.number()),
+      parentFk: z.optional(z.nullable(z.number())),
+      references: z.optional(z.string()),
+      /** `createdAt` sorts newest first (the search flyout's "recently added"); default is by name. */
+      sort: z.optional(z.enum(['createdAt', 'name'])),
+    }),
+    regionMemberCan(({ args, ctx }) => {
+      const r = relatedRegion(ctx)
+
+      const base = zql.areas.where('deletedAt', 'IS', null)
+
+      let q = (args.sort === 'createdAt' ? base.orderBy('createdAt', 'desc') : base.orderBy('name', 'asc'))
+        .related('parent', (q) => r(q).related('parent', r))
+        .related('parkingLocations', r)
+
+      if (args.id != null) {
+        q = Array.isArray(args.id) ? q.where('id', 'IN', args.id) : q.where('id', args.id)
+      }
+
+      // Explicit `null` filters to top-level areas (parentFk IS NULL); omitting it
+      // means no parent filter at all.
+      if (args.parentFk !== undefined) {
+        q = q.where('parentFk', 'IS', args.parentFk)
+      }
+
+      q = applyTextFilters(q, args)
+
+      if (args.limit != null) {
+        q = q.limit(args.limit)
+      }
+
+      return q
+    }),
+  ),
+}

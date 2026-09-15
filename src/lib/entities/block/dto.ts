@@ -1,0 +1,27 @@
+import type { AreaListItem } from '$lib/entities/area/dto'
+import type { DisplayName } from '$lib/entities/displayName'
+import type { Geolocation } from '$lib/entities/geolocation/dto'
+
+export type BlockDetail = BlockListItem & {
+  createdAt: Date | undefined
+  createdBy: number
+  /** Markdown, with entity references and user mentions. '' when unset, never null. */
+  description: string
+  geolocation: Geolocation | undefined
+  /** The stored name as typed: empty for auto-numbered blocks. `name` is the display
+   *  fallback ("Block 2"); editing must prefill from this so a blank block stays blank. */
+  rawName: string
+  /** One entry per topo image, in topo order: the `topos` row id (links to the
+   *  topo page), `files.path` plus the stored EXIF-oriented pixel size (missing
+   *  for files not yet backfilled). */
+  topoImages: { height?: number; id: number; path: string; width?: number }[]
+}
+
+export type BlockListItem = {
+  areas: AreaListItem[]
+  id: number
+  /** From `blockName`, so it is never blank: "Block 3" when the block has no name of its own. */
+  name: DisplayName
+  order: number
+  regionFk: number
+}

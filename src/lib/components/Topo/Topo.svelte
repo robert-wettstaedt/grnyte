@@ -1,0 +1,223 @@
+<script lang="ts">
+  import { gradeVar, type GradeBand } from '$lib/entities/grade/color'
+  import type { TopoPoint } from '$lib/entities/topo/dto'
+  import { buildLine } from '$lib/entities/topo/path'
+  import { m } from '$lib/paraglide/messages'
+  import type { ClassValue } from 'svelte/elements'
+  import { TopoImageBox } from './imageBox.svelte'
+  import { panzoom } from './panzoom'
+  import TopoImage from './TopoImage.svelte'
+  import TopoLine from './TopoLine.svelte'
+
+  interface LineInput {
+    /** Grade heat band, or `undefined` for an ungraded route (neutral line). */
+    band: GradeBand | undefined
+    /** Where this line USED to be: drawn dashed and faded, under the current ones. The feed
+     *  draws a redraw that way, so one photo carries both ends of the change. */
+    ghost?: boolean
+    id: number
+    /** Guidebook-style number badged at the base of the line. */
+    number?: number
+    points: TopoPoint[]
+    /** How the route finishes: drives the end marker. */
+    topType?: 'top' | 'topout'
+  }
+
+  interface Props {
+    alt: string
+    class?: ClassValue
+    /** Smooth Catmull-Rom curves (default) vs straight segments between points. */
+    curved?: boolean
+    /** Stored pixel height; see `width`. */
+    height?: number
+    /** Emphasise this line and dim the rest (they stay visible). Bindable so tap-focus syncs. */
+    highlightId?: number
+    /** `files.path` of the topo image. */
+    imagePath: string
+    /** Let the user tap a line to focus it (toggles `highlightId`). */
+    interactive?: boolean
+    /** Route lines to draw, each coloured by its grade band. */
+    lines: LineInput[]
+    /** Stored pixel width of the topo image (`files.width`), gives the box its
+     *  aspect ratio and the overlay its coordinate space before the photo loads. */
+    width?: number
+    /** Let the user pinch / wheel zoom and drag to pan, to inspect holds. */
+    zoomable?: boolean
+  }
+
+  let {
+    alt,
+    class: className,
+    curved = true,
+    height,
+    highlightId = $bindable(),
+    imagePath,
+    interactive = false,
+    lines,
+    width,
+    zoomable = false,
+  }: Props = $props()
+
+  const box = new TopoImageBox(() => ({ height, width }))
+
+  const rendered = $derived(
+    lines.map((line) => {
+      const { bracket, d, starts, top } = buildLine(line.points, curved, box.width, box.height)
+      return {
+        band: line.band,
+        bracket,
+        d,
+        ghost: line.ghost,
+        id: line.id,
+        number: line.number,
+        starts,
+        top,
+        topType: line.topType,
+      }
+    }),
+  )
+
+  // Ghosts first, then the rest, then the highlighted line last, so what a line is now
+  // always sits above what it was, and above the dimmed ones.
+  const ordered = $derived(
+    [...rendered].sort(
+      (a, b) => Number(!a.ghost) - Number(!b.ghost) || Number(a.id === highlightId) - Number(b.id === highlightId),
+    ),
+  )
+
+  // Start holds: dedupe across all lines and draw once. A shared hold records every
+  // line through it (for highlight dimming) and takes the band of the last line:
+  // the top-most line at that point, so the marker matches the line above it.
+  const holds = $derived.by(() => {
+    const seen: Record<string, { band: GradeBand | undefined; ids: number[]; key: string; x: number; y: number }> = {}
+    for (const line of rendered) {
+      // A ghost contributes no hold: a solid marker is the one thing on the overlay that
+      // cannot be read as "this used to be here".
+      if (line.ghost) {
+        continue
+      }
+      for (const start of line.starts) {
+        const key = `${Math.round(start.x)},${Math.round(start.y)}`
+        const entry = (seen[key] ??= { band: undefined, ids: [], key, x: start.x, y: start.y })
+        entry.ids.push(line.id)
+        entry.band = line.band
+      }
+    }
+    return Object.values(seen)
+  })
+
+  function toggle(id: number) {
+    highlightId = highlightId === id ? undefined : id
+  }
+
+  // A shared hold steps through its lines on each tap, then clears after the
+  // last, for a single-line hold that reduces to a plain toggle.
+  function cycleHold(ids: number[]) {
+    const index = highlightId == null ? -1 : ids.indexOf(highlightId)
+    highlightId = ids[index + 1]
+  }
+
+  // Button behaviour for an SVG overlay element: tap or Enter/Space runs the action.
+  const press = (action: () => void) => ({
+    onclick: (event: MouseEvent) => {
+      event.stopPropagation()
+      action()
+    },
+    onkeydown: (event: KeyboardEvent) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        action()
+      }
+    },
+    role: 'button' as const,
+    style: 'cursor: pointer',
+    tabindex: 0,
+  })
+</script>
+
+<div
+  class={['bg-surface-950 relative overflow-hidden rounded-xl', className]}
+  style:aspect-ratio={box.aspectRatio}
+  use:panzoom={{ aspect: box.aspect, enabled: zoomable }}
+>
+  <div class="absolute inset-0">
+    <TopoImage {alt} {box} path={imagePath} />
+
+    {#if box.ready}
+      <svg
+        class={['absolute inset-0 h-full w-full', !interactive && 'pointer-events-none']}
+        viewBox={box.viewBox}
+        fill="none"
+      >
+        {#each ordered as line (line.id)}
+          {@const dimmed = highlightId != null && line.id !== highlightId}
+          <!-- A ghost is never the hit target, for the same reason it contributes no start
+               hold: highlighting one would dim every real line to emphasise something that is
+               drawn at half opacity to say it is not there any more. -->
+          {@const pressable = interactive && !line.ghost}
+          <g opacity={line.ghost ? 0.5 : dimmed ? 0.33 : 1}>
+            {#if pressable}
+              <path
+                d={line.d}
+                stroke="transparent"
+                stroke-width="24"
+                vector-effect="non-scaling-stroke"
+                {...press(() => toggle(line.id))}
+                style="pointer-events: stroke; cursor: pointer"
+                aria-pressed={line.id === highlightId}
+                aria-label={m.topo_toggleLine()}
+              />
+            {/if}
+
+            <!-- Bracket + line + end marker + guidebook number, dimming with the group above. The
+                 number badge is tap-to-toggle when interactive (it sits below the line's hit-path). -->
+            <TopoLine
+              {line}
+              unit={box.unit}
+              boxHeight={box.height}
+              badgeAttrs={pressable
+                ? {
+                    class: 'select-none',
+                    ...press(() => toggle(line.id)),
+                    'aria-label': m.topo_toggleLine(),
+                    'aria-pressed': line.id === highlightId,
+                  }
+                : { class: 'select-none pointer-events-none' }}
+            />
+          </g>
+        {/each}
+
+        <!-- Start holds: drawn once on top. Dimmed with their lines when one is highlighted. -->
+        {#each holds as hold (hold.key)}
+          {@const dimmed = highlightId != null && !hold.ids.includes(highlightId)}
+          <g
+            class={[!interactive && 'pointer-events-none']}
+            opacity={dimmed ? 0.25 : 1}
+            {...interactive ? press(() => cycleHold(hold.ids)) : {}}
+            aria-pressed={interactive ? !dimmed && highlightId != null : undefined}
+            aria-label={interactive ? m.topo_toggleLine() : undefined}
+          >
+            <circle
+              cx={hold.x}
+              cy={hold.y}
+              r={box.unit}
+              fill="oklch(0 0 0 / 0.35)"
+              stroke="oklch(0 0 0 / 0.6)"
+              stroke-width="6"
+              vector-effect="non-scaling-stroke"
+            />
+            <circle
+              cx={hold.x}
+              cy={hold.y}
+              r={box.unit}
+              fill="none"
+              stroke={gradeVar(hold.band)}
+              stroke-width="3"
+              vector-effect="non-scaling-stroke"
+            />
+          </g>
+        {/each}
+      </svg>
+    {/if}
+  </div>
+</div>

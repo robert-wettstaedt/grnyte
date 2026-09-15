@@ -1,1 +1,0 @@
-ALTER TABLE "regions" ADD COLUMN "settings" jsonb;

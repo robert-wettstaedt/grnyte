@@ -1,0 +1,386 @@
+import * as schema from '$lib/db/schema'
+import type { Grade } from '$lib/entities/grade/dto'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { describe, expect, it, vi } from 'vitest'
+import { convertMarkdownToHtml } from './enrich.server'
+import { convertMarkdownToHtmlSync } from './index'
+import { enrichMarkdownWithReferences } from './remark-references'
+
+vi.mock('$lib/entities/grade/color', () => {
+  return {
+    getGradeColor: () => '#b91c1c',
+  }
+})
+
+const mockDb = {
+  select: vi.fn(() => ({
+    from: vi.fn(() => ({ where: vi.fn(() => [{ name: 'foo' }]) })),
+  })),
+} as unknown as PostgresJsDatabase<typeof schema>
+
+describe('Markdown Conversion', () => {
+  it('turns headings and paragraphs into their tags', async () => {
+    const markdown = '# Heading\n\nParagraph text'
+    const html = await convertMarkdownToHtml(markdown)
+    expect(html).toContain('<h1>Heading</h1>')
+    expect(html).toContain('<p>Paragraph text</p>')
+  })
+
+  it('renders emphasis and strong', async () => {
+    const markdown = '*italic* and **bold** text'
+    const html = await convertMarkdownToHtml(markdown)
+    expect(html).toContain('<em>italic</em>')
+    expect(html).toContain('<strong>bold</strong>')
+  })
+
+  it('renders an absolute link', async () => {
+    const markdown = '[Link text](https://example.com)'
+    const html = await convertMarkdownToHtml(markdown)
+    expect(html).toContain('<a href="https://example.com">Link text</a>')
+  })
+
+  it('keeps a relative link, which resolves against our own origin', async () => {
+    const html = await convertMarkdownToHtml('[Routes](/routes/12)')
+    expect(html).toContain('<a href="/routes/12">Routes</a>')
+  })
+
+  it('renders nothing for null input', async () => {
+    const html = await convertMarkdownToHtml(null)
+    expect(html).toBe('')
+  })
+
+  it('renders nothing for undefined input', async () => {
+    const html = await convertMarkdownToHtml(undefined)
+    expect(html).toBe('')
+  })
+
+  it('renders nothing for whitespace-only input', async () => {
+    const html = await convertMarkdownToHtml('   \n   \t   ')
+    expect(html).toBe('')
+  })
+
+  it('leaves a bare @username as plain text (remark-mentions retired)', async () => {
+    const markdown = '@username mentioned something'
+    const html = await convertMarkdownToHtml(markdown)
+    expect(html).not.toContain('href="/users/username"')
+    expect(html).toContain('@username')
+  })
+
+  it('leaves a users reference as raw text when there is no database to resolve it', async () => {
+    const markdown = '!users:123!'
+    const html = await convertMarkdownToHtml(markdown)
+    expect(html).toContain('!users:123!')
+  })
+
+  it('resolves a users reference to an @username link on the user s id', async () => {
+    const markdown = '!users:123!'
+    const html = await convertMarkdownToHtml(markdown, mockDb)
+    // Reads as a name, points at an id: `/users/[id]` parses its parameter with `Number()`, so
+    // the username this used to link to resolved to `NaN` and every mention was a link to a 404.
+    expect(html).toContain('<a href="/users/123"><strong>@foo</strong></a>')
+  })
+
+  it('leaves a routes reference as raw text when there is no database to resolve it', async () => {
+    const markdown = '!routes:123!'
+    const html = await convertMarkdownToHtml(markdown)
+    expect(html).toContain('!routes:123!')
+  })
+
+  it('resolves an areas reference to a link on its id', async () => {
+    const markdown = '!areas:123!'
+    const html = await convertMarkdownToHtml(markdown, mockDb)
+    expect(html).toContain('<a href="/areas/123"><strong>foo</strong></a>')
+  })
+
+  it('resolves a blocks reference to a link on its id', async () => {
+    const markdown = '!blocks:123!'
+    const html = await convertMarkdownToHtml(markdown, mockDb)
+    expect(html).toContain('<a href="/blocks/123"><strong>foo</strong></a>')
+  })
+
+  it('resolves a routes reference to a link on its id', async () => {
+    const markdown = '!routes:123!'
+    const html = await convertMarkdownToHtml(markdown, mockDb)
+    expect(html).toContain('<a href="/routes/123"><strong>foo</strong></a>')
+  })
+
+  it('renders a deleted reference as a "not found" tombstone', async () => {
+    const mockDb = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({ where: vi.fn(() => []) })),
+      })),
+    } as unknown as PostgresJsDatabase<typeof schema>
+
+    const markdown = '!routes:123!'
+    const html = await convertMarkdownToHtml(markdown, mockDb)
+    expect(html).toContain('<span class="reference-missing">Route not found</span>')
+    expect(html).not.toContain('/routes/123')
+  })
+
+  it('renders an unresolvable reference as an "unavailable offline" placeholder, not a tombstone', () => {
+    // The client half: offline the query never completes, so `markdownReferences` marks the id
+    // unavailable rather than deleted, and the token must not survive into the prose either way.
+    const enriched = enrichMarkdownWithReferences('see !blocks:1197! there', [
+      { id: 1197, missing: true, name: '', type: 'blocks', unavailable: true },
+    ])
+    const html = convertMarkdownToHtmlSync(enriched, [])
+    expect(html).toContain('<span class="reference-missing">Block unavailable offline</span>')
+    expect(html).not.toContain('!blocks:1197!')
+    expect(html).not.toContain('Block not found')
+  })
+
+  it('leaves a reference whose id is not a number as raw text', async () => {
+    const markdown = '!routes:foo!'
+    const html = await convertMarkdownToHtml(markdown, mockDb)
+    expect(html).toContain('!routes:foo!')
+  })
+
+  it('resolves a reference followed by a stray delimiter, keeping the delimiter', async () => {
+    const markdown = '!routes:123!!'
+    const html = await convertMarkdownToHtml(markdown, mockDb)
+    expect(html).toContain('<a href="/routes/123"><strong>foo</strong></a>!')
+  })
+
+  it('lets a database failure surface rather than swallowing it into empty copy', async () => {
+    const mockDb = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => {
+            throw new Error()
+          }),
+        })),
+      })),
+    } as unknown as PostgresJsDatabase<typeof schema>
+
+    const markdown = '!routes:123!!'
+    await expect(convertMarkdownToHtml(markdown, mockDb)).rejects.toThrowError()
+  })
+})
+
+describe('Markdown grade badges', () => {
+  it('renders an FB grade as a badge div with class and style', () => {
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('Test 7A+ ok', grades)
+
+    expect(html).toContain('<span class="badge font-semibold text-white" style="background: #b91c1c">7A+</span>')
+  })
+
+  it('renders a V grade as a badge div with class and style', () => {
+    const grades = [{ FB: '', id: 0, V: 'V5' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('Go V5 now', grades)
+
+    expect(html).toContain('<span class="badge font-semibold text-white" style="background: #b91c1c">V5</span>')
+  })
+
+  it('does not nest badges inside badges', () => {
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('Test 7A+ and 7A+ again', grades)
+
+    const badgeCount = (html.match(/<span class="badge\b/g) ?? []).length
+    expect(badgeCount).toBe(2)
+
+    // Specifically guard against the previously-seen pattern: a badge containing another badge.
+    expect(html).not.toMatch(/<span class="badge[^>]*>(?:(?!<\/span>).)*<span class="badge/)
+  })
+
+  it('escapes grade labels when generating badge nodes', () => {
+    const grades = [{ FB: '7A+<', id: 0, V: '' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('Try 7A+<', grades)
+
+    expect(html).toMatch(/7A\+(?:&lt;|&#x3C;)/)
+    expect(html).not.toContain('7A+<')
+  })
+
+  it('does not turn 7A- into 7A+ (no partial token matches)', () => {
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('Try 7A- please', grades)
+
+    expect(html).toContain('7A-')
+    expect(html).not.toContain('7A+</span>-')
+  })
+
+  it('matches grades case-insensitively', () => {
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('try 7a+ now', grades)
+
+    expect(html).toContain('>7A+</span>')
+  })
+
+  // The ladder's easy end is bare numbers, which are also ordinary words: stripping the scale off
+  // "FB 4+" would badge every "4+ Stunden" ever written.
+  it('does not strip the scale off a number-only grade', () => {
+    const grades = [{ FB: 'FB 4+', id: 0, V: 'V0+' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('Der Block ist 5 m hoch, Zustieg 4+ Stunden.', grades)
+
+    expect(html).not.toContain('badge')
+    expect(html).toContain('4+ Stunden')
+  })
+
+  it('still badges a number-only grade written with its scale', () => {
+    const grades = [{ FB: 'FB 4+', id: 0, V: 'V0+' }] as Grade[]
+
+    expect(convertMarkdownToHtmlSync('Warmup FB 4+ dann los', grades)).toContain('<span class="badge')
+    expect(convertMarkdownToHtmlSync('Warmup V0+ dann los', grades)).toContain('<span class="badge')
+  })
+
+  it('still strips the scale off a lettered grade', () => {
+    const grades = [{ FB: 'FB 7A+', id: 0, V: 'V7' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('Try 7A+ today', grades)
+
+    expect(html).toContain('<span class="badge')
+  })
+
+  it('matches when surrounded by punctuation', () => {
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('do (7A+), ok.', grades)
+
+    expect(html).toContain('<p>do (')
+    expect(html).toContain('<span class="badge')
+    expect(html).toMatch(/>7A\+<\/span>[),.!?]/)
+    expect(html).toContain('ok.</p>')
+  })
+
+  it('does not match inside words', () => {
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('x7A+ y', grades)
+
+    expect(html).toContain('x7A+ y')
+    expect(html).not.toContain('<span class="badge')
+  })
+
+  it('does not match with extra +/- characters after a token', () => {
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
+    const html1 = convertMarkdownToHtmlSync('weird 7A++ case', grades)
+    const html2 = convertMarkdownToHtmlSync('weird 7A+- case', grades)
+
+    expect(html1).toContain('7A++')
+    expect(html1).not.toContain('<span class="badge')
+
+    expect(html2).toContain('7A+-')
+    expect(html2).not.toContain('<span class="badge')
+  })
+
+  it('supports FB grades with spaces (matches the short token)', () => {
+    const grades = [{ FB: 'FB 7A+', id: 0, V: '' }] as Grade[]
+    const html = convertMarkdownToHtmlSync('try 7A+ and FB 7A+', grades)
+
+    // Both should render with the canonical label from the grade row.
+    const badges = html.match(/>FB 7A\+<\/span>/g) ?? []
+    expect(badges.length).toBe(2)
+  })
+})
+
+describe('Markdown users references (sync path)', () => {
+  it('renders an enriched users reference as an @username link on the user s id', () => {
+    const enriched = `!users:5:${btoa('alice')}!`
+    const html = convertMarkdownToHtmlSync(enriched, [])
+    expect(html).toContain('<a href="/users/5"><strong>@alice</strong></a>')
+  })
+
+  it('renders an enriched users reference as strong (no link) when enclosed', () => {
+    const enriched = `!users:5:${btoa('alice')}!`
+    const html = convertMarkdownToHtmlSync(enriched, [], 'strong')
+    expect(html).toContain('<strong>@alice</strong>')
+    expect(html).not.toContain('href')
+  })
+})
+
+/**
+ * Both pipelines, because the matrix used to run only against the async one, which has no
+ * production callers: every render goes through `convertMarkdownToHtmlSync` in `Markdown.svelte`.
+ */
+const pipelines = [
+  ['async', (markdown: string) => convertMarkdownToHtml(markdown)],
+  ['sync', (markdown: string) => Promise.resolve(convertMarkdownToHtmlSync(markdown, []))],
+] as const
+
+const UNSAFE = [
+  'javascript:alert(1)',
+  'JaVaScRiPt:alert(1)',
+  'data:text/html;base64,PHNjcmlwdD4=',
+  'vbscript:msgbox(1)',
+]
+
+describe.each(pipelines)('URL safety (%s pipeline)', (_label, render) => {
+  it.each(UNSAFE)('refuses the scheme in %s and leaves the words behind', async (url) => {
+    const html = await render(`[tap here](${url})`)
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
+  // A reference resolves through a `definition`, so a guard on `link` alone never sees the URL.
+  it.each(UNSAFE)('refuses the scheme in %s written as a reference link', async (url) => {
+    const html = await render(`[tap here][x]\n\n[x]: ${url}`)
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
+  it('refuses an unsafe collapsed reference link', async () => {
+    const html = await render('[tap here][]\n\n[tap here]: javascript:alert(1)')
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
+  it('refuses an unsafe shortcut reference link', async () => {
+    const html = await render('[tap here]\n\n[tap here]: javascript:alert(1)')
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
+  it('matches a reference to its definition case-insensitively, as the renderer does', async () => {
+    const html = await render('[tap here][ID]\n\n[id]: javascript:alert(1)')
+    expect(html).not.toContain('href')
+  })
+
+  it('emits no link for a scheme broken across a line, which is not a link to begin with', async () => {
+    const html = await render('[tap here](java\nscript:alert(1))')
+    expect(html).not.toContain('href')
+  })
+
+  it('refuses an unsafe image source, keeping its alt text', async () => {
+    const html = await render('![the crux](javascript:alert(1))')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('the crux')
+  })
+
+  it('refuses an unsafe image reference, keeping its alt text', async () => {
+    const html = await render('![the crux][y]\n\n[y]: javascript:alert(1)')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('the crux')
+  })
+
+  it('keeps a safe reference link', async () => {
+    const html = await render('[ok][w]\n\n[w]: https://example.com')
+    expect(html).toContain('<a href="https://example.com">ok</a>')
+  })
+
+  it('keeps a relative reference link, which resolves against our own origin', async () => {
+    const html = await render('[ok][r]\n\n[r]: /routes/12')
+    expect(html).toContain('<a href="/routes/12">ok</a>')
+  })
+
+  it('leaves a reference with no definition as the text that was written', async () => {
+    const html = await render('[nope][missing]')
+    expect(html).not.toContain('href')
+    expect(html).toContain('[nope][missing]')
+  })
+
+  // A repeated identifier resolves to the FIRST definition, so checking the last would inspect a
+  // URL the renderer never uses. Safe-then-unsafe is the ordering a guard keyed on `set` passes.
+  it('refuses a duplicated definition whose first spelling is unsafe', async () => {
+    const html = await render('[tap here][x]\n\n[x]: javascript:alert(1)\n[x]: https://example.com')
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
+  it('keeps a duplicated definition whose first spelling is safe', async () => {
+    const html = await render('[ok][x]\n\n[x]: https://example.com\n[x]: javascript:alert(1)')
+    expect(html).toContain('<a href="https://example.com">ok</a>')
+  })
+
+  it('refuses a duplicated image definition whose first spelling is unsafe', async () => {
+    const html = await render('![the crux][y]\n\n[y]: javascript:alert(1)\n[y]: https://example.com/a.jpg')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('the crux')
+  })
+})

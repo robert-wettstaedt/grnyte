@@ -1,1 +1,0 @@
-ALTER TYPE "public"."app_role" RENAME TO "legacy_app_role";

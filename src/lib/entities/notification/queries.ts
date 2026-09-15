@@ -1,0 +1,74 @@
+import { relatedRouteTree } from '$lib/entities/event/queries'
+import * as z from '$lib/forms/zod'
+import { authenticatedUserCan, relatedRegion } from '$lib/zero/permissions'
+import { zql } from '$lib/zero/zero-schema.gen'
+import { defineQuery } from '@rocicorp/zero'
+
+/** Sync window when a caller doesn't pick one: one screenful of inbox, newest first. */
+const DEFAULT_LIMIT = 50
+
+/** The send-queue source types, which nothing renders. Mirrors `OUT_OF_BAND` in the notifications
+ *  task by hand: a shared module would have to import cleanly into both a Zero query definition
+ *  and a task route, for two strings. See `notificationSourceType` in `schema.ts`. */
+const QUEUE_ONLY = ['invitation_received', 'membership_removed'] as const
+
+export const notificationsQueryDefs = {
+  /**
+   * The signed-in user's inbox, newest first.
+   *
+   * Own rows only, on top of the region gate every list carries: `notifications` sits in
+   * `regionTables`, so a row whose region the reader has since left syncs to nobody. RLS
+   * re-checks the same thing server-side (`auth.uid() = auth_user_fk`).
+   *
+   * The object arrives nested, the way an event's does: a notification names it in the same six
+   * typed columns, so the row it draws comes off the relation rather than out of a second pass
+   * that fetched every area, block, route and ascent the window mentioned and joined them in
+   * memory. That pass, and the skeleton state it needed, are gone.
+   */
+  listNotifications: defineQuery(
+    z.object({
+      limit: z.optional(z.number()),
+      /** The badge's query: what has not been opened yet. */
+      unreadOnly: z.optional(z.boolean()),
+    }),
+    // `authenticatedUserCan` rather than `regionMemberCan`, which is what every other own-rows
+    // query uses: this callback dereferences `ctx.authUserId`, and only that wrapper refuses a
+    // missing context instead of reading through it. The region filter is then applied by hand,
+    // exactly as `listUsers` does.
+    authenticatedUserCan(({ args, ctx }) => {
+      const r = relatedRegion(ctx)
+      const route = relatedRouteTree(ctx)
+
+      let q = zql.notifications
+        .where('authUserFk', ctx.authUserId)
+        // This exclusion, not the region gate, is what keeps the send-queue rows out of the inbox:
+        // an invitee who accepts, or a removed member invited back, passes that gate afterwards.
+        .where('sourceType', 'NOT IN', QUEUE_ONLY)
+        .orderBy('createdAt', 'desc')
+        .orderBy('id', 'desc')
+        .related('actor')
+        .related('area', (q) => r(q).related('parent', r))
+        // The ascent's route carries the row (grade, stars, tags, thumb), exactly as on a feed
+        // card: reading those off the ascent renders a real route with zeroed values.
+        .related('ascent', (q) => r(q).related('author').related('route', route))
+        .related('block', (q) =>
+          r(q)
+            .related('area', r)
+            .related('geolocation', r)
+            .related('topos', (q) => r(q).related('file', r)),
+        )
+        .related('route', route)
+        // `file` is deliberately not nested: nothing writes `file_fk` on a notification, because a
+        // reaction on an upload is about the thing the photos landed on.
+        .related('subject')
+
+      if (args.unreadOnly === true) {
+        q = q.where('readAt', 'IS', null)
+      }
+
+      // Always bounded: an inbox nobody opens grows without limit, and the badge only has to
+      // count far enough to say "more than you want to read".
+      return relatedRegion(ctx)(q.limit(args.limit ?? DEFAULT_LIMIT))
+    }),
+  ),
+}

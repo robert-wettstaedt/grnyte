@@ -1,0 +1,1 @@
+ALTER TABLE "geolocations" ADD COLUMN "estimated" boolean DEFAULT false NOT NULL;

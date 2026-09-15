@@ -1,26 +1,88 @@
+/* Space Grotesk, self-hosted. It used to come from fonts.googleapis.com in app.html, which sent
+   every visitor's IP to Google before a page rendered, including the legal pages, and made the
+   privacy notice's "no third-party trackers of any kind" untrue. Only the two weights
+   `--heading-font-family` uses are imported. */
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/700.css';
+
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 
 @import '@skeletonlabs/skeleton';
-@import '@skeletonlabs/skeleton/themes/catppuccin';
+@import './grnyte.css';
 
 @import '@skeletonlabs/skeleton-svelte';
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Padding for chrome that overlays a full-bleed stage, so controls clear a camera cutout while the
+   content behind them still bleeds. `max()`, not `calc()`: the inset replaces the base padding
+   rather than stacking on it. Each side is independent, so one utility serves a corner cluster and
+   a bottom bar alike. Measured on a Pixel 9: 0 everywhere until it matters, then 66px. */
+@utility p-safe-* {
+  padding-top: max(calc(var(--spacing) * --value(number)), env(safe-area-inset-top, 0px));
+  padding-right: max(calc(var(--spacing) * --value(number)), env(safe-area-inset-right, 0px));
+  padding-bottom: max(calc(var(--spacing) * --value(number)), env(safe-area-inset-bottom, 0px));
+  padding-left: max(calc(var(--spacing) * --value(number)), env(safe-area-inset-left, 0px));
+}
 
 html,
 body {
   @apply h-full;
 }
 
-.list-item-sign-out button {
-  width: 100%;
+/* Skeleton's placeholder colour (`--color-surface-700-300`) sits 1.4:1 from the body font colour,
+   so an empty required field reads as one somebody already filled in. `600-400` clears 4.5:1 on
+   every surface a field renders on, tightest a dark `surface-900` card at 5.95:1 (light
+   `surface-300` 4.66:1). Do not flatten to `surface-500`: it fails at 3.6:1 to 4.2:1.
+
+   Unlayered on purpose: Skeleton's rule is in `@layer base`, so an unlayered rule wins without
+   `!important`. A `<select>` prompt option is a selected option, not absent input, so it keeps the
+   body colour. */
+.input::placeholder,
+.textarea::placeholder,
+.ig-input::placeholder,
+.ig-textarea::placeholder {
+  color: var(--color-surface-600-400);
+}
+
+/* One brand focus ring for everything focusable. `box-shadow` rather than `outline` so the ring
+   follows each element's own radius: the app is built out of pills and `rounded-2xl` cards, and an
+   outline squares their corners off. The transparent outline underneath is not decoration, it is
+   what keeps a ring visible in forced-colors mode, where box-shadow is dropped.
+
+   `:where()` holds specificity at zero, so any component that states its own focus style still
+   wins. Unlayered for the same reason as the placeholder rule above.
+
+   Two-tone, because the ring colour tracks the primary and the loudest button on most screens is
+   also filled with the primary: a single violet ring around a violet button merges into it and
+   reads as the button growing. The inner 2px in the surface colour keeps a gap, so the ring stays a
+   ring on a primary button and on a plain one alike. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  box-shadow:
+    0 0 0 2px var(--color-surface-50-950),
+    0 0 0 4px var(--focus-ring);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.preset-glass-neutral {
+  background: color-mix(in oklab, var(--color-surface-50-950) 30%, transparent);
+  box-shadow: 0 0px 30px color-mix(in oklab, var(--color-surface-50-950) 30%, transparent) inset;
+  backdrop-filter: blur(16px);
 }
 
 .markdown-body {
-  background-color: transparent;
+  background-color: transparent !important;
   box-sizing: border-box;
+
+  /* Colour is the app's, not the stylesheet's: github-markdown-css ships light and dark builds
+     that differ only on this class, swapped at runtime via one `<link>`, and the light build's
+     #1f2328 is unreadable on a dark surface. The surrounding app chrome already states a colour
+     for its context, so inheriting is correct regardless of which build loaded. `!important`
+     because the runtime link lands after this bundle and states the same class. */
+  color: inherit !important;
   margin: 0 auto;
   min-width: 200px;
 
@@ -36,18 +98,32 @@ body {
     @apply anchor;
   }
 
+  /* github-markdown-css states its own 16px on `.markdown-body`, loaded at runtime after this
+     bundle, so a one-class utility like `text-sm` loses on order at equal specificity. Two classes
+     win regardless of order, the same trick `&.short` below relies on. */
+  &.text-sm {
+    @apply text-sm;
+  }
+
   &.short {
+    @apply text-gray-400;
+    @apply text-xs;
     @apply w-full;
 
-    &,
+    /* Single-line preview. Let the inline content (text, grade badges, resolved
+       reference names) wrap normally so the clamp can detect overflow, then
+       collapse it to one line and append an ellipsis. A plain
+       `text-overflow: ellipsis` is unreliable on the nested `markdown-body > p`,
+       so clamp the line box instead. */
     & > * {
       @apply list-none;
-      @apply overflow-hidden;
+      @apply m-0;
       @apply p-0;
-      @apply text-ellipsis;
-      @apply text-gray-400;
-      @apply text-xs;
-      @apply w-full;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+      line-clamp: 1;
+      overflow: hidden;
     }
 
     img {
@@ -64,16 +140,36 @@ body {
   }
 }
 
-select option:checked {
-  background-color: var(--color-primary-500);
+/* The OSM base layer, wherever `createBaseMap` drew it. Global rather than scoped to a component,
+   because both adapters over OpenLayers want these rules identically and keeping a copy in each
+   `<style>` block is how they came to drift. `osm-layer` is set in exactly one place now
+   (`$lib/map/base.svelte.ts`), so this selector is precisely as wide as that factory.
+
+   Quiet dark map: only the OSM raster tiles are inverted and desaturated in dark mode, so markers
+   and other custom layers keep their own colours.
+
+   The filter sits on the canvas rather than on the layer container, so the container's background
+   below is ours to choose per theme instead of being one colour inverted into the other. Painting
+   `#f2efe9` under the filter is what made an empty map black.
+
+   Do not weaken this selector. `ol.css` carries `.ol-viewport canvas { all: unset }`, which would
+   reset `filter` outright, and it wins on anything below two classes. This sits one class above it,
+   and that margin is the only thing holding: the two land in DIFFERENT stylesheets in the build, so
+   source order cannot help. Dropping `.dark` or moving these into a Tailwind `@layer` loses the dark
+   map silently. Unlayered on purpose, for the same reason as the rules at the top of this file. */
+.dark .osm-layer canvas {
+  filter: invert(1) hue-rotate(180deg) saturate(0.4) brightness(0.9) contrast(0.95);
 }
 
-[data-scope='app-bar'][data-part='headline'] {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+/* What a map with no tiles looks like: offline at a crag nobody has browsed, or the seconds before
+   the first tile arrives. The canvas is transparent there, so without this the page shows through
+   and the map reads as a broken screen rather than a map with no picture yet. Light mode gets OSM's
+   own land colour; dark mode gets a surface a clear step above the page, because the inverted land
+   colour is almost black and would keep the hole. */
+.osm-layer {
+  background-color: #f2efe9;
 }
 
-[data-scope='popover'][data-part='description'] {
-  margin: 0;
+.dark .osm-layer {
+  background-color: var(--color-surface-800);
 }
