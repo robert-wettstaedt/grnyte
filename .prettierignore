@@ -23,3 +23,6 @@ bun.lockb
 
 # Agent worktrees: whole checkouts of this repo, so every file in them shows up twice.
 /.claude/
+
+# Mutation testing output
+/reports/

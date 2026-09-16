@@ -286,8 +286,9 @@ export default defineConfig({
     env: { PUBLIC_ORIGIN: 'https://grnyte.rocks', PUBLIC_TOPO_EMAIL: 'info@grnyte.rocks', TZ: 'UTC' },
     // Vitest picks up `**/*.spec.ts` by default, which would otherwise try to run the Playwright
     // spec (`npm run test:e2e` owns that one). `.claude/` holds agent worktrees - whole checkouts
-    // of this repo, whose tests would run again against a stale copy of the source.
-    exclude: [...configDefaults.exclude, '**/.claude/**', 'e2e/**'],
+    // of this repo, whose tests would run again against a stale copy of the source, and
+    // `.stryker-tmp/` holds one such copy per mutation-testing worker.
+    exclude: [...configDefaults.exclude, '**/.claude/**', '**/.stryker-tmp/**', 'e2e/**'],
     // One run at a time per database: the DB-backed suites tear down by fixture name, so a second
     // concurrent run deletes the first one's rows mid-suite. See the file for why a file lock.
     globalSetup: ['./vitest-global-setup.ts'],
@@ -311,6 +312,7 @@ export default defineConfig({
           exclude: [
             ...configDefaults.exclude,
             '**/.claude/**',
+            '**/.stryker-tmp/**',
             'e2e/**',
             'src/**/*.remote.test.ts',
             'src/**/*.server.test.ts',

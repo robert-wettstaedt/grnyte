@@ -206,3 +206,8 @@ __pycache__/
 
 # memlab heap snapshots (hundreds of MB per run)
 .memlab/
+
+# Mutation testing sandboxes and reports
+.stryker-tmp
+/reports/
+.vite-stryker

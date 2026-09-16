@@ -6,7 +6,8 @@
     "src/lib/db/scripts/*.ts",
     "src/lib/email/test-send.ts",
     "deployment/announce.ts",
-    "memlab/*.cjs"
+    "memlab/*.cjs",
+    "stryker/vitest.config.ts"
   ],
   "ignore": ["src/lib/zero/**/*.gen.ts", "brand/**"],
   "ignoreBinaries": ["openssl"],
