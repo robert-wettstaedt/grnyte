@@ -2,7 +2,7 @@
 
 <p>
   <strong>Zuletzt aktualisiert:</strong>
-  3. September 2026
+  16. September 2026
 </p>
 
 <p>
@@ -269,6 +269,11 @@
         <td>Artikel 6 Abs. 1 lit. f DSGVO, berechtigtes Interesse</td>
       </tr>
       <tr>
+        <td>Sehen, ob eine Region noch genutzt wird und wie viel sie enthält, damit ich den Dienst betreiben kann</td>
+        <td>aus Inhalten, Mitgliedschaften und Aktivität einer Region ermittelte Zählwerte</td>
+        <td>Artikel 6 Abs. 1 lit. f DSGVO, berechtigtes Interesse</td>
+      </tr>
+      <tr>
         <td>Beantwortung einer Anfrage, die du nach den Artikeln 15 bis 21 stellst</td>
         <td>deine E-Mail-Adresse und der Inhalt deiner Nachricht</td>
         <td>Artikel 6 Abs. 1 lit. c DSGVO, rechtliche Verpflichtung</td>
@@ -278,12 +283,13 @@
 </div>
 
 <p>
-  Drei dieser Zwecke stützen sich auf ein berechtigtes Interesse, hier ist es für jeden einzeln. Beim Verfügbarhalten
+  Mehrere dieser Zwecke stützen sich auf ein berechtigtes Interesse, hier ist es für jeden einzeln. Beim Verfügbarhalten
   und Absichern des Dienstes liegt es darin, den Dienst erreichbar zu halten, Fehler zu finden und zu verhindern, dass
   jemand in eine Region gelangt, in die er nicht eingeladen wurde. Bei Meldungen und Beschwerden liegt es darin, später
   belegen zu können, was gemeldet wurde, was ich entschieden habe und warum. Beim Feedback liegt es darin, zu
-  reparieren, was du mir als kaputt meldest, und dir sagen zu können, was daraus geworden ist. Allen dreien kannst du
-  nach Artikel 21 DSGVO widersprechen.
+  reparieren, was du mir als kaputt meldest, und dir sagen zu können, was daraus geworden ist. Bei der Betriebsansicht
+  aus Abschnitt 10 liegt es darin, zu wissen, welche Regionen genutzt werden, damit ich den Dienst passend auslegen und
+  sehen kann, wo etwas nicht mehr funktioniert. Ihnen allen kannst du nach Artikel 21 DSGVO widersprechen.
 </p>
 
 <p>
@@ -342,8 +348,9 @@
 
 <p>
   Die übrigen Empfänger sind Menschen, keine Unternehmen: Die Mitglieder deiner Region sehen, was du dort schreibst.
-  Genau dafür gibt es das Produkt. Niemand außerhalb einer Region sieht ihre Inhalte, eine Region lässt sich nicht
-  veröffentlichen und nicht listen, und einen öffentlichen Modus gibt es nicht.
+  Genau dafür gibt es das Produkt. Niemand außerhalb einer Region sieht ihre Inhalte, kein anderes Mitgliedskonto kann
+  eine Region sehen oder auflisten, und einen öffentlichen Modus gibt es nicht. Ich bin die Ausnahme, und Abschnitt 10
+  sagt, was ich sehen kann.
 </p>
 
 <p>
@@ -444,6 +451,10 @@
     wöchentlich ändert, noch nützlich ist, und sie lassen dir lange genug, auf eine Antwort von mir zurückzukommen.
     Danach wird der Eintrag gelöscht und nicht anonymisiert, es verschwindet also beides: was du geschrieben hast und
     was ich geantwortet habe.
+  </li>
+  <li>
+    Regionsstatistiken: Es wird nichts aufbewahrt. Die Zahlen aus Abschnitt 10 werden beim Öffnen der Ansicht gezählt
+    und nie gespeichert, hier gibt es also keine Frist zu nennen.
   </li>
   <li>
     Serverprotokolle: Ich betreibe keine eigene Protokollverarbeitung. Die Anbieter für Hosting, Datenbank und E-Mail
@@ -568,6 +579,29 @@
   </li>
 </ul>
 
+<!-- Wird aus Abschnitt 4, Abschnitt 7 und Klausel 2 der Nutzungsbedingungen mit Nummer zitiert. Eine
+     Umnummerierung dieses Abschnitts bricht alle drei still, ohne Build- oder Typfehler. Beide Sprachfassungen
+     beider Seiten tragen diesen Hinweis. Umfang ist nur Zählwerte, dazu der Regionsname,
+     den das ADR als Ausnahme benennt. -->
+<p>
+  Eine Ansicht ist eine Ausnahme vom letzten Punkt, denn ich sehe sie mir regelmäßig an und nicht erst, wenn etwas
+  schiefgegangen ist. Um den Dienst zu betreiben, muss ich wissen, ob eine Region noch genutzt wird und wie viel sie
+  enthält. Dafür gibt es eine Betriebsansicht, die mir Zählwerte zeigt und sonst nichts: wie viel eine Region enthält,
+  wie sich ihre Mitglieder auf die Rollen verteilen, wie viele Routen auf welchem Grad liegen und wie viel dort in jedem
+  der letzten 12 Monate passiert ist.
+</p>
+
+<p>
+  Mehr als Zahlen sind es nicht. Diese Ansicht enthält keinen Sektor-, Block- oder Routennamen, keine Koordinate, kein
+  Foto, kein Video, keine Begehung und keinen Namen einer Person.
+</p>
+
+<p>
+  Eines überschreitet diese Linie doch, und das ist der Name der Region selbst. Ich sehe den Namen jeder Region auf dem
+  Dienst, und Leute benennen eine Region nach dem Ort, an dem sie klettern. Die Mitglieder einer Region sehen dieselben
+  Zahlen für ihre eigene Region und für keine andere.
+</p>
+
 <p>
   Was ich nicht versprechen kann, ist das, was ein Gericht oder eine Behörde von mir verlangen kann. Ich habe kein
   Zeugnisverweigerungsrecht: Ich bin weder Anwalt noch Arzt noch Journalist, hier gespeicherte Daten sind also nicht so
@@ -588,13 +622,14 @@
 
 <p>
   Artikel 22 DSGVO greift hier nicht. Über dich wird mit automatisierten Mitteln keine Entscheidung getroffen, die
-  rechtliche Wirkung entfaltet oder dich ähnlich erheblich beeinträchtigt. Die App berechnet aus deinem eigenen Logbuch
-  Auswertungen und zeigt sie dir, und nichts davon dient dazu, dich für eine Entscheidung zu bewerten.
+  rechtliche Wirkung entfaltet oder dich ähnlich erheblich beeinträchtigt. Die App berechnet Auswertungen, aus deinem
+  eigenen Logbuch und über eine Region hinweg, und aus keiner davon wird eine Entscheidung über dich getroffen.
 </p>
 
 <p>
-  Es gibt keine Bewertung von Mitgliedern, keine Rangliste von Personen und kein Werbeprofil. Die Aktivität zeigt, was
-  passiert ist, in der Reihenfolge, in der es passiert ist.
+  Es gibt keine Bewertung von Mitgliedern, keine Rangliste von Personen und kein Werbeprofil. Die Zahlen zu einer Region
+  sind Zählwerte ohne Namen daran: wie viele Leute aktiv waren, nie welche. Die Aktivität zeigt, was passiert ist, in
+  der Reihenfolge, in der es passiert ist.
 </p>
 
 <h2>12. Alter</h2>

@@ -2,7 +2,7 @@
 
 <p>
   <strong>Last updated:</strong>
-  3 September 2026
+  16 September 2026
 </p>
 
 <p>
@@ -249,6 +249,11 @@
         <td>Article 6(1)(f) GDPR, legitimate interest</td>
       </tr>
       <tr>
+        <td>Seeing whether a region is still in use and how much it holds, so I can run the service</td>
+        <td>Counts worked out from region content, membership and activity</td>
+        <td>Article 6(1)(f) GDPR, legitimate interest</td>
+      </tr>
+      <tr>
         <td>Answering a request you make under Articles 15 to 21</td>
         <td>Your email address and the content of your message</td>
         <td>Article 6(1)(c) GDPR, legal obligation</td>
@@ -258,11 +263,12 @@
 </div>
 
 <p>
-  Three of those purposes rest on legitimate interest, so here is the interest in each. For keeping the service
+  Several of those purposes rest on legitimate interest, so here is the interest in each. For keeping the service
   available and secure, it is keeping the service reachable, finding faults, and stopping somebody from reaching a
   region they were not invited to. For reports and complaints, it is being able to show later what was reported, what I
-  decided and why. For feedback, it is fixing what you tell me is broken and being able to tell you what came of it. You
-  can object to any of the three under Article 21 GDPR.
+  decided and why. For feedback, it is fixing what you tell me is broken and being able to tell you what came of it. For
+  the operations screen in section 10, it is knowing which regions are in use, so I can size the service and see where
+  something has stopped working. You can object to any of them under Article 21 GDPR.
 </p>
 
 <p>
@@ -316,8 +322,8 @@
 
 <p>
   The other recipients are people rather than companies: the members of your region see what you write there. That is
-  what the product is for. Nobody outside a region sees its content, a region cannot be published or listed, and there
-  is no public mode.
+  what the product is for. Nobody outside a region sees its content, no other member’s account can see a region or list
+  it, and there is no public mode. I am the exception, and section 10 says what I can see.
 </p>
 
 <p>
@@ -412,6 +418,10 @@
     here. Twelve months is how long a report about a fault stays useful on software that changes every week, and it
     leaves you long enough to come back to an answer I sent you. After that the record is deleted rather than
     anonymised, so what you wrote and what I replied both go.
+  </li>
+  <li>
+    region statistics: nothing is kept. The numbers in section 10 are counted when the screen is opened and never
+    stored, so there is no period to state here.
   </li>
   <li>
     server logs: I run no log pipeline of my own. The hosting, database and email providers hold their own logs under
@@ -528,6 +538,27 @@
   <li>I look at region content only where operating the service or answering a report requires it</li>
 </ul>
 
+<!-- Cited by number from section 4, section 7 and terms clause 2. Renumbering this section breaks
+     all three silently, with no build or type error. Both locales of both pages carry this note.
+     Scope is counts only, plus the region name. -->
+<p>
+  One screen is an exception to that last bullet, because I read it as a matter of routine and not because something has
+  gone wrong. To run the service I need to know whether a region is still in use and how much it holds, so there is an
+  operations screen that shows me counts and nothing else: how much a region holds, how its members split by role, how
+  many routes sit at each grade, and how much happened there in each of the last 12 months.
+</p>
+
+<p>
+  Numbers are the whole of it. That screen carries no sector, block or route name, no coordinate, no photograph, no
+  video, no ascent and nobody’s name.
+</p>
+
+<p>
+  One thing does cross that line, and it is the region’s own name. I see the name of every region on the service, and
+  people name a region after the place they climb in. The members of a region see the same numbers for their own region,
+  and they see no other.
+</p>
+
 <p>
   What I cannot promise is what a court or an authority can require of me. I hold no professional privilege: I am not a
   lawyer, a doctor or a journalist, so nothing stored here is protected from seizure the way their records are. Reaching
@@ -547,13 +578,14 @@
 
 <p>
   Article 22 GDPR does not come into play here. No decision with legal or similarly significant effect is taken about
-  you by automated means. The app does compute statistics from your own logbook and shows them to you, and it uses none
-  of that to evaluate you for any decision.
+  you by automated means. The app does work out statistics, both from your own logbook and across a region, and no
+  decision about you is taken from any of it.
 </p>
 
 <p>
-  There is no scoring of members, no ranking of people and no advertising profile. The activity feed shows what
-  happened, in the order it happened.
+  There is no scoring of members, no ranking of people and no advertising profile. The region figures are counts with no
+  name attached: how many people were active, never which ones. The activity feed shows what happened, in the order it
+  happened.
 </p>
 
 <h2>12. Age</h2>
