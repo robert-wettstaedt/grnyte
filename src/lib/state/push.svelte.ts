@@ -157,11 +157,9 @@ export async function syncPushSubscription(): Promise<void> {
   const live = await registration.pushManager.getSubscription()
   const known = storedEndpoint()
 
-  // Granted, registered once, and gone. Invisible from both ends: the row survives and its sends
-  // report success while the device stops being delivered to. Silent because the permission is
-  // already granted, so `subscribe()` returns without a prompt. Gated on `known`, so a browser
-  // that never subscribed here, or was switched off, is left alone.
-  const subscription = live ?? (known == null ? undefined : await subscribeCurrent(registration))
+  // Never the live subscription as found: it is bound to the key that created it, so taking it
+  // verbatim leaves a device undeliverable forever after a rotation. Both absent = left alone.
+  const subscription = live == null && known == null ? undefined : await subscribeCurrent(registration)
 
   if (subscription == null) {
     endpoint = undefined
