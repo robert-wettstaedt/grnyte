@@ -140,8 +140,9 @@ ambiguous` the first time a person triggers it. Has bitten
   mutated text first: a mutation that never applied looks exactly like one that was not caught.
   `npm run test:mutation -- --mutate <file>` does the same thing mechanically for every edit at
   once, which is worth it on a module you are about to trust; without arguments it runs the
-  configured scope, and `test:mutation:server` the DB-backed half (needs docker, one throwaway
-  Postgres per worker). The config and its runner live in `stryker/`, so a bare `npx stryker run` finds nothing.
+  configured scope, and `test:mutation:server -- <file>` the DB-backed half, which takes a target
+  rather than defaulting to one (needs docker, one throwaway Postgres per worker). Both configs and
+  the runner live in `stryker/`, so a bare `npx stryker run` finds nothing.
   Aim it at a module whose contract is written down, read every survivor, and expect a third of them
   to be equivalent mutants. The score is not the output, the survivor list is; never track it.
 - Answering clarification or grilling questions is not a go-ahead. After a planning round, write the

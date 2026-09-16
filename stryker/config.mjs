@@ -41,11 +41,10 @@ export default {
   ],
   incremental: true,
   // Deliberately narrow. Whole-repo mutation is tens of thousands of mutants against 124 test
-  // files; widen one directory at a time. On the client half `.server.ts` and `.remote.ts` are
-  // excluded because their tests live in the project that half drops, so every mutant would survive.
-  mutate: server
-    ? ['src/lib/entities/topo/topos.remote.ts']
-    : ['src/lib/entities/topo/**/*.ts', '!src/**/*.test.ts', '!src/**/*.server.ts', '!src/**/*.remote.ts'],
+  // files; widen one directory at a time. `.server.ts` and `.remote.ts` are excluded because their
+  // tests live in the project this half drops, so every mutant would survive. The server half never
+  // reads this: `stryker/server.sh` requires a target and passes `--mutate`.
+  mutate: ['src/lib/entities/topo/**/*.ts', '!src/**/*.test.ts', '!src/**/*.server.ts', '!src/**/*.remote.ts'],
   reporters: ['html', 'clear-text', 'progress'],
   testRunner: 'vitest',
   // A handler talks to the database on nearly every mutant, so the server half is slower than the
