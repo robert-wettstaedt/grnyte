@@ -50,9 +50,19 @@ beforeEach(async () => {
   await sql`delete from public.geolocations where region_fk = ${regionId}`
   await sql`delete from public.blocks where region_fk = ${regionId}`
 
+  // A decoy on a second block, inserted FIRST and nowhere near: the guard reads the pin by id, and
+  // with only one geolocation in the table a lookup that read any pin at all would pass unnoticed.
+  const [decoyBlock] = await sql<{ id: number }[]>`
+    insert into public.blocks (name, area_fk, "order", region_fk, created_by)
+    values ('__block_pin_decoy__', ${sectorId}, 1, ${regionId}, ${maintainer.userId}) returning id`
+  const [decoyPin] = await sql<{ id: number }[]>`
+    insert into public.geolocations (lat, long, estimated, block_fk, region_fk)
+    values (${-LAT}, ${-LONG}, true, ${decoyBlock.id}, ${regionId}) returning id`
+  await sql`update public.blocks set geolocation_fk = ${decoyPin.id} where id = ${decoyBlock.id}`
+
   const [block] = await sql<{ id: number }[]>`
     insert into public.blocks (name, area_fk, "order", region_fk, created_by)
-    values ('__block_pin_block__', ${sectorId}, 0, ${regionId}, ${maintainer.userId}) returning id`
+    values ('__block_pin_block__', ${sectorId}, 2, ${regionId}, ${maintainer.userId}) returning id`
   blockId = block.id
 
   const [pin] = await sql<{ id: number }[]>`

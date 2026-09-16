@@ -28,12 +28,14 @@ const ACTOR = 990_101
 
 let usable = false
 /**
- * The people this suite seeds with, captured ONCE.
+ * The people this suite seeds with: eight accounts of its own, created here and dropped in
+ * `afterAll`.
  *
- * Re-querying `users` per statement made this race the other database-backed suites, which insert
- * and delete their own fixtures in parallel on the same dev database: the set picked by a `limit`
- * changed between the seed and the assertion, and one test in the full run failed at random. A
- * flaky test is worse than no test, so the membership is fixed before anything asserts on it.
+ * Borrowing the first eight rows of `users` is what this did, and it cannot work. Only four
+ * accounts are seeded, so the other four came from whichever suite happened to be holding a
+ * throwaway user at import time, and `dropThrowawayUser` then deleted it out from under the
+ * `region_members` insert below: `violates foreign key constraint`, in a file that had touched
+ * nothing. Capturing the set once fixed the set changing, not the rows going away.
  */
 let people: { authUserFk: string; id: number }[] = []
 
@@ -41,7 +43,15 @@ if (db != null) {
   try {
     await db.execute(sql`select public.event_promotion_threshold(0)`)
     const rows = await db.execute(sql`
-      select id, auth_user_fk from public.users where auth_user_fk is not null order by id limit 8`)
+      with created_auth as (
+        insert into auth.users (id, email)
+        select gen_random_uuid(), '__promotion_' || g || '_' || gen_random_uuid() || '@grnyte.test'
+        from generate_series(1, 8) g
+        returning id
+      )
+      insert into public.users (auth_user_fk, username)
+      select id, '__promotion_' || id from created_auth
+      returning id, auth_user_fk`)
     people = rows.map((row) => ({
       authUserFk: (row as { auth_user_fk: string }).auth_user_fk,
       id: Number((row as { id: number }).id),
@@ -151,6 +161,9 @@ afterAll(async () => {
     await db.execute(sql`delete from public.events where id = ${ACTOR}`)
     await db.execute(sql`delete from public.region_members where region_fk = ${REGION}`)
     await db.execute(sql`delete from public.regions where id = ${REGION}`)
+    // After the rows that point at them, and `public.users` before `auth.users`.
+    await postgres!`delete from public.users where id = any(${people.map((person) => person.id)})`
+    await postgres!`delete from auth.users where id = any(${people.map((person) => person.authUserFk)})`
   }
   await postgres?.end()
 })

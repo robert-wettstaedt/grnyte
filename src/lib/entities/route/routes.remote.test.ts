@@ -14,6 +14,7 @@ import { updateRoute } from './routes.remote'
 const REGION = '__routes_remote_region__'
 const TAG = 'benchmark'
 const CLIMBER = 'Ada Erstbegeherin'
+const LINKED_CLIMBER = 'Bea Erstbegeherin'
 
 let maintainer: SeedUser
 let regionId = 0
@@ -21,6 +22,7 @@ let sectorId = 0
 let blockId = 0
 let routeId = 0
 let climberId = 0
+let linkedClimberId = 0
 
 beforeAll(async () => {
   if (!reachable) return
@@ -53,6 +55,13 @@ beforeAll(async () => {
   const [climber] = await sql<{ id: number }[]>`
     insert into public.first_ascensionists (region_fk, name) values (${regionId}, ${CLIMBER}) returning id`
   climberId = climber.id
+
+  // The same name, pointing at an account. Each side reads `user_fk` from a different place, so a
+  // fingerprint that dropped it would still be self-consistent and refuse every save of this route.
+  const [linked] = await sql<{ id: number }[]>`
+    insert into public.first_ascensionists (region_fk, name, user_fk)
+    values (${regionId}, ${LINKED_CLIMBER}, ${maintainer.userId}) returning id`
+  linkedClimberId = linked.id
 })
 
 /** Back to one tag and one first ascensionist before each case, so a refusal test cannot pass on
@@ -141,6 +150,23 @@ const storedClimbers = async () =>
 const currentFingerprint = async () => routeListsFingerprint(await storedTags(), [{ name: CLIMBER }])
 
 describe.skipIf(!reachable)('updateRoute staleness guard', () => {
+  it('counts a first ascensionist’s linked account, so a route that has one still saves', async () => {
+    await sql`
+      insert into public.routes_to_first_ascensionists (region_fk, first_ascensionist_fk, route_fk)
+      values (${regionId}, ${linkedClimberId}, ${routeId})`
+    const known = routeListsFingerprint(await storedTags(), [
+      { name: CLIMBER },
+      { name: LINKED_CLIMBER, userFk: maintainer.userId },
+    ])
+
+    await submit({
+      ...editWith(known, 'Linked Probe'),
+      firstAscensionists: [{ name: CLIMBER }, { name: LINKED_CLIMBER }],
+    })
+
+    expect(await storedName()).toBe('Linked Probe')
+  })
+
   it('accepts a submit whose fingerprint still describes the stored lists', async () => {
     await submit(editWith(await currentFingerprint(), 'Renamed Probe'))
 

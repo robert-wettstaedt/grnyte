@@ -90,8 +90,47 @@ describe('TopoEditor', () => {
     editor.dragPoint(pointId, 0.6, 0.6)
     editor.dragPoint(pointId, 0.7, 0.7) // same gesture: no extra snapshot
     editor.endStroke()
+    // Asserted before the undo as well, or the drag could write anything and this would still pass.
+    expect(editor.currentLine?.points[0]).toMatchObject({ x: 0.7, y: 0.7 })
     editor.undo()
     expect(editor.currentLine?.points[0]).toMatchObject({ x: 0.4, y: 0.8 })
+  })
+
+  it('drags a point where it was asked, over a distance shorter than the snap radius', () => {
+    // The dragged point is excluded from its own snap search. Without that it catches its old
+    // position and the drag does nothing.
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.5, 0.5)
+    const pointId = editor.currentLine!.points[0].id
+
+    editor.beginStroke()
+    editor.dragPoint(pointId, 0.505, 0.505)
+
+    expect(editor.currentLine!.points[0]).toMatchObject({ x: 0.505, y: 0.505 })
+  })
+
+  it('undoes and redoes more than one step, and can undo again after a redo', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.4, 0.8)
+    editor.pointType = 'middle'
+    editor.place(0.45, 0.5)
+    editor.place(0.46, 0.4)
+    expect(editor.currentLine?.points).toHaveLength(3)
+
+    editor.undo()
+    editor.undo()
+    expect(editor.currentLine?.points).toHaveLength(1)
+    expect(editor.canUndo).toBe(true)
+
+    editor.redo()
+    expect(editor.currentLine?.points).toHaveLength(2)
+    editor.undo()
+    expect(editor.currentLine?.points).toHaveLength(1)
+    expect(editor.canRedo).toBe(true)
   })
 
   it('clears dirt on markSaved and drops the doc once committed catches up', () => {
@@ -239,6 +278,87 @@ describe('TopoEditor', () => {
 
     editor.undo() // one step reverts the whole burst
     expect(editor.currentLine?.points[0]).toMatchObject({ x: 0.4, y: 0.8 })
+  })
+})
+
+/**
+ * The route-deletion purge. A line pointing at a route that no longer exists fails `saveTopoLines`
+ * on the foreign key, so it has to leave the working doc, both history stacks and the snapshot an
+ * in-flight gesture is holding.
+ */
+describe('TopoEditor route deletion', () => {
+  /** Two drawn lines on topo 1, route 7 second, with the editor left on route 42. */
+  function drawTwo() {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.4, 0.8)
+    editor.addLine(7)
+    editor.pointType = 'start'
+    editor.place(0.6, 0.8)
+    editor.selectRoute(42)
+    return editor
+  }
+
+  const pointOf = (editor: TopoEditor, routeFk: number) =>
+    editor.currentLines.find((l) => l.routeFk === routeFk)!.points[0]
+
+  it('drops the route from the working doc', () => {
+    const editor = drawTwo()
+
+    editor.removeRouteEverywhere(7)
+
+    expect(editor.currentLines.map((l) => l.routeFk)).not.toContain(7)
+  })
+
+  it('drops it from the undo stack, checked at every step back', () => {
+    const editor = drawTwo()
+
+    editor.removeRouteEverywhere(7)
+
+    // Every snapshot, not just the oldest: the route is only in the recent ones. Bounded, so a
+    // history bug fails the test instead of hanging the suite.
+    for (let step = 0; editor.canUndo && step < 10; step++) {
+      editor.undo()
+      expect(editor.currentLines.map((l) => l.routeFk)).not.toContain(7)
+    }
+    expect(editor.canUndo).toBe(false)
+  })
+
+  it('drops it from the redo stack', () => {
+    const editor = drawTwo()
+    editor.undo()
+
+    editor.removeRouteEverywhere(7)
+    editor.redo()
+
+    expect(editor.currentLines.map((l) => l.routeFk)).not.toContain(7)
+  })
+
+  it('drops it from an in-flight gesture, without losing that gesture’s undo step', () => {
+    const editor = drawTwo()
+    editor.pointType = 'middle'
+    editor.place(0.5, 0.5) // route 42 now has two points, which is what the gesture must revert to
+    const pointId = pointOf(editor, 42).id
+
+    editor.beginStroke()
+    editor.removeRouteEverywhere(7)
+    editor.dragPoint(pointId, 0.45, 0.85)
+    editor.endStroke()
+    editor.undo()
+
+    expect(editor.currentLines.map((l) => l.routeFk)).not.toContain(7)
+    expect(editor.currentLine?.points).toHaveLength(2)
+    expect(pointOf(editor, 42)).toMatchObject({ x: 0.4, y: 0.8 })
+  })
+
+  it('clears the selection when the selected route is the one deleted', () => {
+    const editor = drawTwo()
+    editor.selectRoute(7)
+
+    editor.removeRouteEverywhere(7)
+
+    expect(editor.selectedRouteFk).toBeUndefined()
   })
 })
 

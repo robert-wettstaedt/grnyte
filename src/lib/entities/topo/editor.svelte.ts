@@ -322,6 +322,11 @@ export class TopoEditor {
     for (const [id, stack] of this.#future) {
       this.#future.set(id, stack.map(strip))
     }
+    // The in-flight gesture's snapshot too: `#commitPending` pushes it onto the undo stack as it is,
+    // so a route deleted mid-gesture would come back on the next undo.
+    if (this.#pendingSnapshot != null) {
+      this.#pendingSnapshot = { ...this.#pendingSnapshot, lines: strip(this.#pendingSnapshot.lines) }
+    }
     if (this.selectedRouteFk === routeFk) this.selectedRouteFk = undefined
   }
 

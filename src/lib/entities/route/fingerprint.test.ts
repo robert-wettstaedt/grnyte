@@ -53,6 +53,33 @@ describe('routeListsFingerprint', () => {
     expect(routeListsFingerprint([], [climber('Ada', 1)])).not.toBe(routeListsFingerprint([], [climber('Ada', 2)]))
   })
 
+  it('ignores order for two climbers who share a name, where only the account separates them', () => {
+    const pair = [climber('Ada', 1), climber('Ada', 2)]
+
+    expect(routeListsFingerprint([], pair)).toBe(routeListsFingerprint([], [...pair].reverse()))
+  })
+
+  it('ignores order for a shared name where only one of the two has an account at all', () => {
+    // The common shape: most first ascensionists are names, not users.
+    const pair = [climber('Ada'), climber('Ada', 2)]
+
+    expect(routeListsFingerprint([], pair)).toBe(routeListsFingerprint([], [...pair].reverse()))
+  })
+
+  it('ignores order when the names and the accounts disagree about what it is', () => {
+    // Ada sorts first by name and second by account. Sorting by either alone is order-independent,
+    // so this says the fingerprint is stable, and the literal below says which order it settled on.
+    const pair = [climber('Ada', 9), climber('Bea', 2)]
+
+    expect(routeListsFingerprint([], pair)).toBe(routeListsFingerprint([], [...pair].reverse()))
+  })
+
+  it('freezes the order the comparator settled on, so a reordering cannot mint a new hash quietly', () => {
+    // Generated from this implementation, unlike the browser-observed literals below. Both sides
+    // build the list from different rows, so the comparator is the only thing making them agree.
+    expect(routeListsFingerprint([], [climber('Ada', 9), climber('Bea', 2)])).toBe('0.2-n44z7u')
+  })
+
   it('separates two climbers who share a name', () => {
     expect(routeListsFingerprint([], [climber('Ada', 1), climber('Ada', 2)])).not.toBe(
       routeListsFingerprint([], [climber('Ada', 1)]),

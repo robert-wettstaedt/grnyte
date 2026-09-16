@@ -20,6 +20,9 @@ let blockId = 0
 let topoId = 0
 let routeOne = 0
 let routeTwo = 0
+let routeGone = 0
+let routeBare = 0
+let routeBlank = 0
 
 beforeAll(async () => {
   if (!reachable) return
@@ -53,6 +56,21 @@ beforeAll(async () => {
     if (routeOne === 0) routeOne = route.id
     else routeTwo = route.id
   }
+
+  // Live, and the two this photo never drew: they carry the undrawable rows below.
+  for (const name of ['__topo_lines_bare__', '__topo_lines_blank__']) {
+    const [route] = await sql<{ id: number }[]>`
+      insert into public.routes (name, block_fk, region_fk, created_by)
+      values (${name}, ${blockId}, ${regionId}, ${maintainer.userId}) returning id`
+    if (routeBare === 0) routeBare = route.id
+    else routeBlank = route.id
+  }
+
+  // On the block but soft-deleted, so the editor never loads it and its line is invisible there.
+  const [gone] = await sql<{ id: number }[]>`
+    insert into public.routes (name, block_fk, region_fk, created_by, deleted_at)
+    values ('__topo_lines_gone__', ${blockId}, ${regionId}, ${maintainer.userId}, now()) returning id`
+  routeGone = gone.id
 })
 
 /** Back to two drawn lines before each case, so a refusal cannot pass on the previous one's state. */
@@ -119,6 +137,42 @@ describe.skipIf(!reachable)('saveTopoLines staleness guard', () => {
 
     expect(await save(known, [{ path: PATH_ONE, routeFk: routeOne }])).toBe('ok')
     expect(await drawnRoutes()).toEqual([routeOne])
+  })
+
+  it('does not count a soft-deleted route’s line, which the editor never loaded', async () => {
+    // Its row survives `deleteRoute` so a restore can bring the line back, and the editor cannot
+    // see it. Counting it would put a route in the server's basis that no client can ever name,
+    // and this photo would refuse every save from then on.
+    await sql`
+      insert into public.topo_routes (region_fk, topo_fk, route_fk, path, top_type)
+      values (${regionId}, ${topoId}, ${routeGone}, ${PATH_TWO}, 'top')`
+    const known = topoLinesFingerprint([routeOne, routeTwo])
+
+    expect(
+      await save(known, [
+        { path: PATH_ONE, routeFk: routeOne },
+        { path: PATH_TWO, routeFk: routeTwo },
+      ]),
+    ).toBe('ok')
+    // And the same liveness rule keeps the delete loop off it.
+    expect(await pathFor(routeGone)).toBe(PATH_TWO)
+  })
+
+  it('does not count or erase a row with nothing drawn on it', async () => {
+    // No path at all, and a path that is only whitespace. Neither draws anything, so the editor
+    // never shows either: counting one would refuse this photo forever, and hard-deleting one
+    // would pull it out from under `deleteRoute`.
+    await sql`
+      insert into public.topo_routes (region_fk, topo_fk, route_fk, path, top_type) values
+        (${regionId}, ${topoId}, ${routeBare}, ${null}, 'top'),
+        (${regionId}, ${topoId}, ${routeBlank}, ' ', 'top')`
+    const known = topoLinesFingerprint([routeOne, routeTwo])
+
+    expect(await save(known, [{ path: PATH_ONE, routeFk: routeOne }])).toBe('ok')
+    // Row by row rather than through `drawnRoutes`, whose SQL does not trim and so counts ' '.
+    expect(await pathFor(routeTwo)).toBeUndefined()
+    expect(await pathFor(routeBare)).toBeNull()
+    expect(await pathFor(routeBlank)).toBe(' ')
   })
 
   it('refuses a save that never saw a line another editor added, and deletes nothing', async () => {
