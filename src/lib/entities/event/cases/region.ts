@@ -141,7 +141,7 @@ export const REGION_CASES: EventCase[] = [
   },
 
   {
-    action: '/settings/regions/{id} -> the pending invitation row -> Revoke invitation',
+    action: '/regions/{id} -> the pending invitation row -> Revoke invitation',
     domain: 'region',
     events: [
       eventAgo(205, {
@@ -240,7 +240,7 @@ export const REGION_CASES: EventCase[] = [
   },
 
   {
-    action: "/settings/regions/{id} -> another member's row -> Role -> pick a different role",
+    action: "/regions/{id} -> another member's row -> Role -> pick a different role",
     domain: 'region',
     events: [
       eventAgo(160, {
@@ -307,7 +307,7 @@ export const REGION_CASES: EventCase[] = [
   },
 
   {
-    action: "/settings/regions/{id} -> a member's row -> below the rule -> Remove",
+    action: "/regions/{id} -> a member's row -> below the rule -> Remove",
     domain: 'region',
     events: [eventAgo(140, { actorFk: ME, entity: departed(5), objectId: 5, objectType: 'user', verb: 'remove' })],
     expected:
@@ -338,7 +338,7 @@ export const REGION_CASES: EventCase[] = [
   },
 
   {
-    action: '/settings/regions/{id} -> your own member row -> Leave region -> confirm',
+    action: '/regions/{id} -> your own member row -> Leave region -> confirm',
     domain: 'region',
     events: [eventAgo(120, { actorFk: 5, entity: departed(5), objectId: 5, objectType: 'user', verb: 'leave' })],
     expected:

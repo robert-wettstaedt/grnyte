@@ -61,7 +61,7 @@ async function hopTo(target: Page, areaId: number, blockId?: number) {
 async function hopToRegion(target: Page, regionId: number, row: string) {
   await target.getByRole('button', { name: 'Back' }).first().click()
   await expect(target).toHaveURL(/\/settings$/)
-  await clickTo(target, `/settings/regions/${regionId}`)
+  await clickTo(target, `/regions/${regionId}`)
   await target
     .getByRole('link', { name: new RegExp(row) })
     .first()
@@ -89,7 +89,7 @@ test.beforeAll(async ({ browser }) => {
   await expect(page.getByText('E2E Alpha')).toBeVisible({ timeout: 30_000 })
 
   // The second region syncs separately, so it needs a wait of its own.
-  await visit(page, `/settings/regions/${fixture.altRegionId}/map-layers`)
+  await visit(page, `/regions/${fixture.altRegionId}/map-layers`)
   await expect(field(page, 'mapLayers[0].name')).toHaveValue('E2E Relief', { timeout: 30_000 })
 })
 
@@ -170,11 +170,11 @@ test('edit route drops the previous grade, description and first ascensionists',
 })
 
 test('map layers reseeds its staleness key with the layers', async () => {
-  await visit(page, `/settings/regions/${fixture.altRegionId}/map-layers`)
+  await visit(page, `/regions/${fixture.altRegionId}/map-layers`)
   await markDocument(page)
   const before = await readForm(
     page,
-    new RegExp(`/settings/regions/${fixture.altRegionId}/map-layers`),
+    new RegExp(`/regions/${fixture.altRegionId}/map-layers`),
     'mapLayers[0].name',
     'E2E Relief',
   )
@@ -187,7 +187,7 @@ test('map layers reseeds its staleness key with the layers', async () => {
 
   const values = await readForm(
     page,
-    new RegExp(`/settings/regions/${fixture.regionId}/map-layers`),
+    new RegExp(`/regions/${fixture.regionId}/map-layers`),
     'id',
     String(fixture.regionId),
   )
@@ -199,7 +199,7 @@ test('map layers reseeds its staleness key with the layers', async () => {
 })
 
 test('region name reseeds between regions', async () => {
-  await visit(page, `/settings/regions/${fixture.altRegionId}/name`)
+  await visit(page, `/regions/${fixture.altRegionId}/name`)
   await markDocument(page)
   await expect(field(page, 'name')).toHaveValue(`${REGION}_alt`)
   await page.getByLabel(/Region name/).fill('LEAK PROBE REGION')
@@ -207,7 +207,7 @@ test('region name reseeds between regions', async () => {
   await page.getByRole('button', { name: 'Cancel' }).click()
   await hopToRegion(page, fixture.regionId, 'Region name')
 
-  const values = await readForm(page, new RegExp(`/settings/regions/${fixture.regionId}/name`), 'name', REGION)
+  const values = await readForm(page, new RegExp(`/regions/${fixture.regionId}/name`), 'name', REGION)
   expect(values.id).toBe(String(fixture.regionId))
 })
 

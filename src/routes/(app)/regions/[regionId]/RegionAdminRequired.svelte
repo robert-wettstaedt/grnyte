@@ -16,7 +16,7 @@
   title={m.form_noPermissionTitle()}
   description={m.form_noAdminPermission()}
   primaryAction={{
-    href: resolve('/(app)/settings/regions/[regionId]', { regionId: String(regionId) }),
+    href: resolve('/(app)/regions/[regionId]', { regionId: String(regionId) }),
     label: m.region_viewRegion(),
   }}
 />

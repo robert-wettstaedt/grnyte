@@ -8,6 +8,8 @@
   import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
+  import SettingLink from '$lib/components/Setting/SettingLink.svelte'
+  import SettingSection from '$lib/components/Setting/SettingSection.svelte'
   import { sendTestPush } from '$lib/entities/notification/notifications.remote'
   import type { UserInvitationItem } from '$lib/entities/region/dto'
   import { regionDisplayName } from '$lib/entities/region/mapper'
@@ -22,8 +24,6 @@
   import { disablePush, enablePush, pushEndpoint, pushState } from '$lib/state/push.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
   import { legalLinks } from '../../(landing)/legal/links'
-  import SettingLink from './SettingLink.svelte'
-  import SettingSection from './SettingSection.svelte'
   import SettingSelect from './SettingSelect.svelte'
   import SettingSwitch from './SettingSwitch.svelte'
   import ThemeSwitch from './ThemeSwitch.svelte'
@@ -370,7 +370,7 @@
     <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
       {#each global.userRegions as region (region.regionFk)}
         <SettingLink
-          href={resolve('/(app)/settings/regions/[regionId]', { regionId: String(region.regionFk) })}
+          href={resolve('/(app)/regions/[regionId]', { regionId: String(region.regionFk) })}
           label={regionDisplayName(region)}
           value={roleLabel(region.role)}
         />
@@ -399,6 +399,7 @@
     <SettingSection title={m.settings_admin()}>
       <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
         <SettingLink href={resolve('/settings/feedback/inbox')} label={m.feedback_inbox()} />
+        <SettingLink href={resolve('/(app)/regions')} label={m.region_statsAll()} />
         <SettingLink href={resolve('/settings/errors')} label={m.settings_errorLogs()} />
       </div>
     </SettingSection>

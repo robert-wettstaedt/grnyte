@@ -98,6 +98,19 @@ of content rather than the app, and answering it is a legal obligation with its 
 The two must never share a form, a table or a word. The public page is `/legal/report`; the
 in-app reporting flow is not built yet.
 
+**region stats**
+A region's own numbers: how much guidebook it holds (sectors, blocks, routes, and the grades those
+routes carry), how much logbook (ascents, photos, videos), who is in it, and when something last
+happened. A read, never a control: the region's other screens change things, this one only counts them.
+
+Unrelated to `ProfileStats`, which is one climber's own logbook and is what the **send** entry above
+means by `stats.sends`. Neither is derivable from the other: a region counts ascent rows and route
+grades, a profile counts a person's sends. Two sets, two questions, and the word "stats" alone never
+says which, so name the region one in full.
+
+Not a **guidebook** figure either. Half of what it counts is guidebook and half is logbook and
+people, so it sits above both rather than under one.
+
 ## Internal terms
 
 These name concepts in code and in prose here, never in UI copy. They are in this file so that one

@@ -1605,6 +1605,38 @@
   "region_seatsOneLeft": "{used} of {total} seats used, 1 left",
   "region_seatsUsed": "{used} of {total} seats used",
   "region_select": "Select a region",
+  "region_stats": "Stats",
+  "region_statsActivity": "Activity",
+  "region_statsActivityCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} activity",
+        "countPlural=other": "{count} activities"
+      }
+    }
+  ],
+  "region_statsActivityHint": "One bar per month. Several edits to the same thing within minutes count once.",
+  "region_statsAll": "All regions",
+  "region_statsAllTime": "All time",
+  "region_statsAscents": "Logged ascents",
+  "region_statsBlocks": "Blocks",
+  "region_statsContributors": "Contributors",
+  "region_statsGuidebook": "Guidebook",
+  "region_statsLastActivity": "Last activity",
+  "region_statsLastMonths": "Last 12 months",
+  "region_statsMedia": "Media",
+  "region_statsNoActivity": "Nothing has happened here yet.",
+  "region_statsNoCoordinates": "Blocks without coordinates",
+  "region_statsNoTopo": "Routes without a topo",
+  "region_statsPending": "Pending invitations",
+  "region_statsPhotos": "Photos",
+  "region_statsRoutes": "Routes",
+  "region_statsRoutesByGrade": "Routes by grade",
+  "region_statsSectors": "Sectors",
+  "region_statsUngraded": "Ungraded routes",
+  "region_statsVideos": "Videos",
   "region_tagAdd": "Add tag",
   "region_tagAdded": "Added “{name}”",
   "region_tagComma": "A tag can’t contain a comma",

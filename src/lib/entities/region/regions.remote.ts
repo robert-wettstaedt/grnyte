@@ -97,7 +97,7 @@ export const updateRegion = authedForm(regionActionSchema, async ({ id, name }, 
 
   // No event row: object columns have no 'region' member, and the feed renders content changes.
 
-  return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
+  return { redirectTo: resolve('/(app)/regions/[regionId]', { regionId: String(id) }) }
 })
 
 const regionMapLayersSchema = z.object({
@@ -150,7 +150,7 @@ export const updateRegionMapLayers = authedForm(regionMapLayersSchema, async ({ 
     invalid(formError('region_notFound'))
   }
 
-  return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
+  return { redirectTo: resolve('/(app)/regions/[regionId]', { regionId: String(id) }) }
 })
 
 /** How many routes carry each of a region's tags: one grouped read, not one per tag. Until it

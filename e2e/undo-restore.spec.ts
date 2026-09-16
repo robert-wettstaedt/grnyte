@@ -177,7 +177,7 @@ test('deleting a block cascades, and undo restores the area type it changed', as
 })
 
 test('a removed member comes back with their role', async () => {
-  await visit(page, `/settings/regions/${fixture.regionId}`)
+  await visit(page, `/regions/${fixture.regionId}`)
 
   const row = theRow(page, new RegExp(`\\b${SECOND_NAME}\\b`))
   await expect(row).toHaveCount(1)
@@ -198,7 +198,7 @@ test('a removed member comes back with their role', async () => {
 })
 
 test('a revoked invitation comes back pending, in place', async () => {
-  await visit(page, `/settings/regions/${fixture.regionId}`)
+  await visit(page, `/regions/${fixture.regionId}`)
 
   const row = theRow(page, /@grnyte\.test/)
   await expect(row).toHaveCount(1)

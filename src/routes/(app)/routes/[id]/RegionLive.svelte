@@ -86,7 +86,7 @@
 
       <a
         class="btn preset-filled-primary-500 mt-5 h-13 w-full rounded-2xl text-base font-bold shadow-[0_10px_24px_-10px_var(--color-primary-500)]"
-        href={resolve('/(app)/settings/regions/[regionId]', { regionId: String(regionFk) })}
+        href={resolve('/(app)/regions/[regionId]', { regionId: String(regionFk) })}
         onclick={dismiss}
       >
         <Icon name="users-round" size={20} />

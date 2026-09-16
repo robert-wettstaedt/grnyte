@@ -11,9 +11,9 @@ import type { UserRegion } from './dto'
  *
  * Membership is the only thing that grants this, deliberately: `app.admin` is not a
  * superuser here. It carries no region permission, `authorize_in_region` never consults
- * it, and Zero scopes every sync on `region_members`: so an app admin with no membership
- * cannot even load the screen. The `app.admin` policies on `regions` and `region_members`
- * stay, which makes app admins a database-level back office rather than an in-app one.
+ * it, and Zero scopes every sync on `region_members`, so no app admin syncs a region's
+ * content. The one in-app exception is the region stats page, which serves an app admin
+ * aggregate counts through the privileged handle: counts only, never content.
  */
 export function canEditRegion(userRegions: UserRegion[], regionFk: number): boolean {
   return checkRegionPermission(userRegions, [REGION_PERMISSION_ADMIN], regionFk)

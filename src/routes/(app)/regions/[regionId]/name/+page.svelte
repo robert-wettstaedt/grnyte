@@ -35,7 +35,7 @@
     },
   )
 
-  const goBack = () => back(resolve('/(app)/settings/regions/[regionId]', { regionId: String(regionId) }))
+  const goBack = () => back(resolve('/(app)/regions/[regionId]', { regionId: String(regionId) }))
 
   const onSubmitted = () => {
     toaster.create({ title: m.common_saved(), type: 'success' })

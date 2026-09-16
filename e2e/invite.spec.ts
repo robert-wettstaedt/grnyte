@@ -123,7 +123,7 @@ test('an invited address signs up from the link and joins the region', async ({ 
 
   // --- the admin invites --------------------------------------------------------------------
   await signIn(adminPage, ADMIN, PASSWORD)
-  await visit(adminPage, `/settings/regions/${regionId}`)
+  await visit(adminPage, `/regions/${regionId}`)
 
   await adminPage.getByLabel('Email address').fill(invitee)
   await adminPage.getByRole('button', { exact: true, name: 'Invite' }).click()
@@ -184,7 +184,7 @@ test('an invited address signs up from the link and joins the region', async ({ 
   await expect(page.getByText(REGION)).toBeVisible({ timeout: 20_000 })
 
   // --- and the admin sees them as a member, not as pending -----------------------------------
-  await visit(adminPage, `/settings/regions/${regionId}`)
+  await visit(adminPage, `/regions/${regionId}`)
   await expect(rowFor(adminPage, username)).toBeVisible({ timeout: 20_000 })
   // Checked only after the member row has landed, so an unrendered page cannot pass it vacuously.
   await expect(adminPage.getByText(invitee)).toHaveCount(0)

@@ -5,6 +5,7 @@
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import SettingSection from '$lib/components/Setting/SettingSection.svelte'
   import { canEditRegion } from '$lib/entities/region/permissions'
   import { addRegionTag, regionTagUsage, removeRegionTag, renameRegionTag } from '$lib/entities/region/regions.remote'
   import { MAX_TAGS, regionTags, tagNameSchema } from '$lib/entities/region/tagVocabulary'
@@ -13,7 +14,6 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
-  import SettingSection from '../../../SettingSection.svelte'
   import RegionAdminRequired from '../RegionAdminRequired.svelte'
   import TagRow from './TagRow.svelte'
 
@@ -55,7 +55,7 @@
 
   const canAdd = $derived(parsed.success && !tags.includes(trimmed) && !full)
 
-  const goBack = () => back(resolve('/(app)/settings/regions/[regionId]', { regionId: String(regionId) }))
+  const goBack = () => back(resolve('/(app)/regions/[regionId]', { regionId: String(regionId) }))
 
   const onAdd = async () => {
     if (!canAdd || adding) return

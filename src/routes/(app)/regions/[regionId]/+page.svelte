@@ -5,6 +5,8 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import SettingLink from '$lib/components/Setting/SettingLink.svelte'
+  import SettingSection from '$lib/components/Setting/SettingSection.svelte'
   import { MEMBERSHIP_UNDO_MS } from '$lib/entities/notification/push'
   import type { RegionInvitationItem, RegionMemberItem } from '$lib/entities/region/dto'
   import { regionDisplayName } from '$lib/entities/region/mapper'
@@ -34,8 +36,6 @@
   import { back } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
   import { notifyError, notifySend, toaster, withUndo } from '$lib/state/toast'
-  import SettingLink from '../../SettingLink.svelte'
-  import SettingSection from '../../SettingSection.svelte'
   import InvitationRow from './InvitationRow.svelte'
   import MemberRow from './MemberRow.svelte'
 
@@ -195,9 +195,7 @@
                    greyed-out field reads as "temporarily unavailable" instead of "not yours
                    to change". -->
             <SettingLink
-              href={isAdmin
-                ? resolve('/(app)/settings/regions/[regionId]/name', { regionId: String(regionId) })
-                : undefined}
+              href={isAdmin ? resolve('/(app)/regions/[regionId]/name', { regionId: String(regionId) }) : undefined}
               label={m.settings_regionName()}
               value={name ?? detail.name}
             />
@@ -213,11 +211,18 @@
               <SettingLink label={m.region_createdBy()} value={detail.createdBy} />
             {/if}
 
+            <!-- No count beside it: the seat counter above is live from Zero and a second,
+                 snapshot number would drift within one tap. -->
+            <SettingLink
+              href={resolve('/(app)/regions/[regionId]/stats', { regionId: String(regionId) })}
+              label={m.region_stats()}
+            />
+
             <!-- Admin-only rather than read-only like the name row above: a layer count is not
                    information a member can do anything with. -->
             {#if isAdmin}
               <SettingLink
-                href={resolve('/(app)/settings/regions/[regionId]/map-layers', { regionId: String(regionId) })}
+                href={resolve('/(app)/regions/[regionId]/map-layers', { regionId: String(regionId) })}
                 label={m.region_mapLayers()}
                 value={String(mapLayerCount)}
               />
@@ -225,7 +230,7 @@
               <!-- Admin-only like the row above, though applying a tag to a route only needs
                      edit: deciding what the community's vocabulary is, is an admin call. -->
               <SettingLink
-                href={resolve('/(app)/settings/regions/[regionId]/tags', { regionId: String(regionId) })}
+                href={resolve('/(app)/regions/[regionId]/tags', { regionId: String(regionId) })}
                 label={m.region_tags()}
                 value={String(tagCount)}
               />

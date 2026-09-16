@@ -17,11 +17,16 @@
 </script>
 
 {#snippet body()}
-  <span>{label}</span>
+  <!-- The label yields nothing: any shrink at all wraps it, so the muted value absorbs the whole
+       squeeze and wraps instead. The cap is what a `shrink-0` alone would cost, letting a name too
+       long for the row wrap inside 70% rather than overflow it. -->
+  <span class="max-w-[70%] shrink-0">{label}</span>
 
   <span class="flex min-w-0 items-center gap-2">
     {#if value != null}
-      <span class="text-surface-600-400 truncate text-sm">{value}</span>
+      <!-- `wrap-anywhere`, not `truncate`: the value is meant to wrap, but a string with no break
+           opportunity (a long unbroken region name) would otherwise spill past the card. -->
+      <span class="text-surface-600-400 text-right text-sm wrap-anywhere">{value}</span>
     {/if}
     {#if href != null}
       <Icon name="chevron-right" class="text-surface-400-600" />

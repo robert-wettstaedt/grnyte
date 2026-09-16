@@ -115,6 +115,8 @@ const NO_GATE: Record<string, string> = {
     "Acts only on the caller's own membership: the row is found by regionFk plus ctx.user.id plus isActive, so a hostile regionFk can only name a region the caller is already in.",
   'lib/entities/region/regions.remote.ts#listMyInvitations':
     "Takes no input and reads only the invitations addressed to the session's own email, an address the client cannot name.",
+  'lib/entities/region/stats.remote.ts#listAllRegions':
+    'Not region scoped: it lists every region for the operator, so there is no region to gate in. Gated on locals.userPermissions holding app.admin before it touches the privileged client, like listErrorLogs and listFeedback.',
   'lib/entities/user/users.remote.ts#updateUsername':
     "Writes only the username of the session user's own row, and the collision scope comes from the caller's own memberships rather than from the request.",
   'lib/entities/user/users.remote.ts#updateUserSettings':

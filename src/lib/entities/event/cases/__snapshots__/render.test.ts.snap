@@ -4388,7 +4388,7 @@ exports[`the case catalogue renders what it claims > REGION-01f: Resend an invit
 }
 `;
 
-exports[`the case catalogue renders what it claims > REGION-02a: /settings/regions/{id} -> the pending invitation row -> Revoke invitation 1`] = `
+exports[`the case catalogue renders what it claims > REGION-02a: /regions/{id} -> the pending invitation row -> Revoke invitation 1`] = `
 {
   "cards": [
     {
@@ -4512,7 +4512,7 @@ exports[`the case catalogue renders what it claims > REGION-03b: Reopen the acce
 }
 `;
 
-exports[`the case catalogue renders what it claims > REGION-04a: /settings/regions/{id} -> another member's row -> Role -> pick a different role 1`] = `
+exports[`the case catalogue renders what it claims > REGION-04a: /regions/{id} -> another member's row -> Role -> pick a different role 1`] = `
 {
   "cards": [
     {
@@ -4635,7 +4635,7 @@ exports[`the case catalogue renders what it claims > REGION-04d: Change the same
 }
 `;
 
-exports[`the case catalogue renders what it claims > REGION-05a: /settings/regions/{id} -> a member's row -> below the rule -> Remove 1`] = `
+exports[`the case catalogue renders what it claims > REGION-05a: /regions/{id} -> a member's row -> below the rule -> Remove 1`] = `
 {
   "cards": [
     {
@@ -4697,7 +4697,7 @@ exports[`the case catalogue renders what it claims > REGION-05c: Remove a member
 }
 `;
 
-exports[`the case catalogue renders what it claims > REGION-06a: /settings/regions/{id} -> your own member row -> Leave region -> confirm 1`] = `
+exports[`the case catalogue renders what it claims > REGION-06a: /regions/{id} -> your own member row -> Leave region -> confirm 1`] = `
 {
   "cards": [
     {

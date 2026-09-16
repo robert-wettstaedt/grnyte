@@ -1605,6 +1605,38 @@
   "region_seatsOneLeft": "{used} von {total} Plätzen belegt, 1 frei",
   "region_seatsUsed": "{used} von {total} Plätzen belegt",
   "region_select": "Region auswählen",
+  "region_stats": "Statistik",
+  "region_statsActivity": "Aktivität",
+  "region_statsActivityCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Aktivität",
+        "countPlural=other": "{count} Aktivitäten"
+      }
+    }
+  ],
+  "region_statsActivityHint": "Ein Balken pro Monat. Mehrere Änderungen am Gleichen innerhalb von Minuten zählen einmal.",
+  "region_statsAll": "Alle Regionen",
+  "region_statsAllTime": "Gesamt",
+  "region_statsAscents": "Notierte Begehungen",
+  "region_statsBlocks": "Blöcke",
+  "region_statsContributors": "Mitwirkende",
+  "region_statsGuidebook": "Fels",
+  "region_statsLastActivity": "Zuletzt aktiv",
+  "region_statsLastMonths": "Letzte 12 Monate",
+  "region_statsMedia": "Medien",
+  "region_statsNoActivity": "Hier ist noch nichts passiert.",
+  "region_statsNoCoordinates": "Blöcke ohne Koordinaten",
+  "region_statsNoTopo": "Routen ohne Topo",
+  "region_statsPending": "Offene Einladungen",
+  "region_statsPhotos": "Fotos",
+  "region_statsRoutes": "Routen",
+  "region_statsRoutesByGrade": "Routen nach Schwierigkeit",
+  "region_statsSectors": "Sektoren",
+  "region_statsUngraded": "Routen ohne Schwierigkeit",
+  "region_statsVideos": "Videos",
   "region_tagAdd": "Tag hinzufügen",
   "region_tagAdded": "„{name}“ hinzugefügt",
   "region_tagComma": "Ein Tag darf kein Komma enthalten",

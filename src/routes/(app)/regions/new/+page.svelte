@@ -57,9 +57,7 @@
       return
     }
 
-    location.href = welcome
-      ? resolve('/explore')
-      : resolve('/(app)/settings/regions/[regionId]', { regionId: String(regionId) })
+    location.href = welcome ? resolve('/explore') : resolve('/(app)/regions/[regionId]', { regionId: String(regionId) })
   }
 </script>
 
@@ -124,7 +122,7 @@
         {#each reachable as region (region.id)}
           <a
             class="border-surface-300-700 bg-surface-100-900 hover:bg-surface-200-800 flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors"
-            href={resolve('/(app)/settings/regions/[regionId]', { regionId: String(region.id) })}
+            href={resolve('/(app)/regions/[regionId]', { regionId: String(region.id) })}
           >
             <span class="min-w-0 flex-1 truncate font-semibold">{region.name}</span>
             <Icon name="chevron-right" size={18} class="text-surface-500 flex-none" />
