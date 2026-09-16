@@ -13,12 +13,14 @@
  */
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { asRequest, callForm } from '$lib/remote/testHarness'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createBlock, updateBlock } from './blocks.remote'
 import { blockPinFingerprint } from './fingerprint'
 
 const REGION = '__blocks_remote_region__'
 const BLOCK = '__blocks_remote_block__'
+/** The create test's own block, so it does not double as the fixture the edit tests read. */
+const CREATED = '__blocks_remote_created__'
 
 let maintainer: SeedUser
 let member: SeedUser
@@ -31,8 +33,26 @@ let blockId = 0
 let mention = ''
 let secondMention = ''
 
+/**
+ * By region NAME, not by the id this run holds: a run killed before `afterAll` leaves rows behind,
+ * and the fixture below resolves its block by name.
+ */
+async function removeFixtures() {
+  const inRegion = sql`(select id from public.regions where name = ${REGION})`
+  // Order is the FK graph: notifications and events point at the block and the region, blocks
+  // point at the area, and everything points at the region.
+  await sql`delete from public.notifications where region_fk in ${inRegion}`
+  await sql`delete from public.events where region_fk in ${inRegion}`
+  await sql`delete from public.blocks where region_fk in ${inRegion}`
+  await sql`delete from public.areas where region_fk in ${inRegion}`
+  await sql`delete from public.region_members where region_fk in ${inRegion}`
+  await sql`delete from public.regions where name = ${REGION}`
+}
+
 beforeAll(async () => {
   if (!reachable) return
+
+  await removeFixtures()
 
   const users = await seedUsers({
     maintainer: 'maintainer@grnyte.rocks',
@@ -69,19 +89,21 @@ beforeAll(async () => {
     values ('__blocks_remote_crag__', 'sector', ${regionId}, ${maintainer.userId})
     returning id`
   sectorId = sector.id
+
+  // The block the edit tests act on. Seeded through the handler rather than left behind by the
+  // create test, which made everything after it pass only in file order.
+  await submit(createBlock, { areaId: String(sectorId), description: '', name: BLOCK })
+  ;[{ id: blockId }] = await sql<{ id: number }[]>`
+    select id from public.blocks where name = ${BLOCK} and region_fk = ${regionId}`
+})
+
+/** Each test asserts over the whole region's mention rows, so each starts from none of them. */
+beforeEach(async () => {
+  if (reachable) await sql`delete from public.notifications where region_fk = ${regionId}`
 })
 
 afterAll(async () => {
-  if (reachable) {
-    // Order is the FK graph: notifications and events point at the block and the region, blocks
-    // point at the area, and everything points at the region.
-    await sql`delete from public.notifications where region_fk = ${regionId}`
-    await sql`delete from public.events where region_fk = ${regionId}`
-    await sql`delete from public.blocks where region_fk = ${regionId}`
-    await sql`delete from public.areas where region_fk = ${regionId}`
-    await sql`delete from public.region_members where region_fk = ${regionId}`
-    await sql`delete from public.regions where id = ${regionId}`
-  }
+  if (reachable) await removeFixtures()
   await sql.end()
 })
 
@@ -116,15 +138,14 @@ describe.skipIf(!reachable)('block descriptions', () => {
     await submit(createBlock, {
       areaId: String(sectorId),
       description: `Flat landing, out of the sun by three. Ask ${mention}.`,
-      name: BLOCK,
+      name: CREATED,
     })
 
     const [row] = await sql<{ description: null | string; id: number }[]>`
-      select id, description from public.blocks where name = ${BLOCK}`
-    blockId = row.id
+      select id, description from public.blocks where name = ${CREATED} and region_fk = ${regionId}`
 
     expect(row.description).toBe(`Flat landing, out of the sun by three. Ask ${mention}.`)
-    expect(await mentionRows()).toEqual([{ blockFk: blockId, userFk: member.userId }])
+    expect(await mentionRows()).toEqual([{ blockFk: row.id, userFk: member.userId }])
   })
 
   it('notifies only the mention a save ADDS, not the one the description already had', async () => {
@@ -132,7 +153,16 @@ describe.skipIf(!reachable)('block descriptions', () => {
     // row for the new person and none for the old: asserting an empty set instead would pass with
     // the whole `notifyMentions` call deleted, which is the opposite of what this is guarding.
     //
-    // The create's row is dropped first because the unique index would collapse a second write to
+    // The prior body is written here rather than inherited from the create test.
+    await submit(updateBlock, {
+      areaId: String(sectorId),
+      description: `Flat landing, out of the sun by three. Ask ${mention}.`,
+      id: String(blockId),
+      known: blockPinFingerprint(null),
+      name: BLOCK,
+    })
+
+    // That seeding save's row is dropped because the unique index would collapse a second write to
     // the same person anyway, and that would hide a missing `previousBody` rather than expose it.
     await sql`delete from public.notifications where region_fk = ${regionId}`
 

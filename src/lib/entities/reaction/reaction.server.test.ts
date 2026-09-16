@@ -35,6 +35,8 @@ type Who = (typeof WHO)[number]
 
 let users = {} as Record<Who, SeedUser>
 let regionId = 0
+let areaId = 0
+let blockId = 0
 let routeId = 0
 let eventId = 0
 
@@ -98,6 +100,9 @@ async function removeFixtures() {
   await sql`delete from public.notifications where region_fk in ${region}`
   await sql`delete from public.reactions where region_fk in ${region}`
   await sql`delete from public.events where region_fk in ${region}`
+  // Before blocks: a file points at one, so a leaked row here fails the block delete on an FK and
+  // takes down every later run's `beforeAll`, not just its own test.
+  await sql`delete from public.files where region_fk in ${region}`
   await sql`delete from public.routes where region_fk in ${region}`
   await sql`delete from public.blocks where region_fk in ${region}`
   await sql`delete from public.areas where region_fk in ${region}`
@@ -124,10 +129,10 @@ beforeAll(async () => {
       (${regionId}, 'region_user', true, ${users.second.authId}, ${users.second.userId}),
       (${regionId}, 'region_user', true, ${users.quiet.authId}, ${users.quiet.userId})`
 
-  const [{ id: areaId }] = await sql<{ id: number }[]>`
+  ;[{ id: areaId }] = await sql<{ id: number }[]>`
     insert into public.areas (name, created_by, region_fk, type)
     values ('Klein Ilsetal', ${users.author.userId}, ${regionId}, 'sector') returning id`
-  const [{ id: blockId }] = await sql<{ id: number }[]>`
+  ;[{ id: blockId }] = await sql<{ id: number }[]>`
     insert into public.blocks (name, created_by, region_fk, area_fk, "order")
     values ('Nordblock', ${users.author.userId}, ${regionId}, ${areaId}, 0) returning id`
   ;[{ id: routeId }] = await sql<{ id: number }[]>`
@@ -160,6 +165,33 @@ describe.skipIf(!reachable)('eventSubject', () => {
 
   it('has nothing to point at for an event with no object', async () => {
     expect(await eventSubject({ ...event(), routeFk: null })).toBeUndefined()
+  })
+
+  it('points an upload at what the photos landed on, not at the file', async () => {
+    // A file has no page of its own, so the row names its parent. The only branch that costs a
+    // query, and the only object type not in NOTIFIABLE.
+    const fileId = `__reaction_file__${blockId}`
+    await sql`
+      insert into public.files (id, path, block_fk, region_fk, created_by)
+      values (${fileId}, 'topos/x.webp', ${blockId}, ${regionId}, ${users.author.userId})
+      on conflict (id) do nothing`
+
+    expect(await eventSubject({ ...event(), fileFk: fileId, routeFk: null })).toEqual({
+      id: blockId,
+      type: 'block',
+    })
+  })
+
+  it('has nothing to point at when the uploaded file is already gone', async () => {
+    expect(await eventSubject({ ...event(), fileFk: '__reaction_missing__', routeFk: null })).toBeUndefined()
+  })
+
+  it.each([
+    ['area', () => ({ areaFk: areaId }), () => ({ id: areaId, type: 'area' })],
+    ['block', () => ({ blockFk: blockId }), () => ({ id: blockId, type: 'block' })],
+    ['user', () => ({ subjectFk: users.first.userId }), () => ({ id: users.first.userId, type: 'user' })],
+  ])('points an inbox row at a %s object', async (_type, fks, expected) => {
+    expect(await eventSubject({ ...event(), routeFk: null, ...fks() })).toEqual(expected())
   })
 })
 

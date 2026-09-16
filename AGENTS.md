@@ -145,6 +145,22 @@ ambiguous` the first time a person triggers it. Has bitten
   the runner live in `stryker/`, so a bare `npx stryker run` finds nothing.
   Aim it at a module whose contract is written down, read every survivor, and expect a third of them
   to be equivalent mutants. The score is not the output, the survivor list is; never track it.
+  Three things decide whether a target runs at all. A test has to import it DIRECTLY: the runner
+  drives `vitest related`, so a module reached only transitively instruments its mutants and then
+  hard-errors with `No tests were found`, executing none. The same rule makes `NoCoverage` a claim
+  about the related set, not about the suite: a function whose only caller is tested elsewhere
+  reports as uncovered here while `vitest run --coverage` shows it covered. Check one against the
+  other before writing tests to close it. `--mutate` REPLACES the config array,
+  negations included, so a directory glob must re-pass them
+  (`--mutate 'src/lib/foo/**/*.ts,!src/**/*.test.ts'`). And `*.svelte` is never matched, so logic
+  in a `<script module>` block is unreachable until it moves to a `.ts`.
+  Re-running an unchanged file replays stored results without executing anything, which reads as
+  "my new test didn't help": pass `--force`, not `--incremental false`, which commander parses as a
+  positional and rejects. Mutators are a fixed set, so a rationale resting on an edit Stryker cannot
+  make (reordering statements, swapping two arguments, widening a `toFixed`) is describing a mutant
+  that will never appear. A pure relabeling is equivalent by construction: if a function's result is
+  only ever compared against another result of the same function, every mutant that permutes its
+  labels survives and none of them is a gap.
 - Answering clarification or grilling questions is not a go-ahead. After a planning round, write the
   plan down and stop. Start on an explicit instruction ("start", "do #1-#3"), not on "ok" or "yes".
 - Before handing back, over the paths you touched and nothing else: `npx prettier --write`,

@@ -1,3 +1,6 @@
+import { db } from '$lib/db/db.server'
+import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
+import { userRegion } from '$lib/entities/region/fixture'
 // @vitest-environment node
 /**
  * Regression tests for two file-authorization holes that shipped above a deliberately-loose RLS:
@@ -13,9 +16,7 @@
  * `userId` are constructed: they are the caller identity the mutation trusts. Skipped when
  * DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
-import { db } from '$lib/db/db.server'
-import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { userRegion } from '$lib/entities/region/fixture'
+import { formError } from '$lib/forms/schemas'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { requireEditableFile, resolveAttachRegion } from './guards.server'
 
@@ -31,6 +32,8 @@ const EMAILS = {
 let users = {} as Record<keyof typeof EMAILS, SeedUser>
 let regionId = 0
 let areaId = 0
+let blockId = 0
+let routeId = 0
 let ascentId = 0
 const fileId = '__file_authz_file__'
 
@@ -56,10 +59,10 @@ beforeAll(async () => {
   ;[{ id: areaId }] = await sql<{ id: number }[]>`
     insert into public.areas (name, region_fk, created_by)
     values ('A', ${regionId}, ${owner}) returning id`
-  const [{ id: blockId }] = await sql<{ id: number }[]>`
+  ;[{ id: blockId }] = await sql<{ id: number }[]>`
     insert into public.blocks (name, region_fk, created_by, "order", area_fk)
     values ('B', ${regionId}, ${owner}, 0, ${areaId}) returning id`
-  const [{ id: routeId }] = await sql<{ id: number }[]>`
+  ;[{ id: routeId }] = await sql<{ id: number }[]>`
     insert into public.routes (name, region_fk, created_by, block_fk)
     values ('R', ${regionId}, ${owner}, ${blockId}) returning id`
   ;[{ id: ascentId }] = await sql<{ id: number }[]>`
@@ -97,6 +100,26 @@ describe.skipIf(!reachable)('resolveAttachRegion', () => {
     expect(region).toBe(regionId)
   })
 
+  // Only `area` was ever driven, so the block and route arms of the same ternary, and the per-entity
+  // not-found key each picks, ran in no test at all.
+  it.each([
+    ['block', () => blockId],
+    ['route', () => routeId],
+  ] as const)('resolves the region through the %s arm', async (type, id) => {
+    expect(await resolveAttachRegion(db, users.stranger.userId, [userRegion(regionId, 'region.edit')], type, id())) //
+      .toBe(regionId)
+  })
+
+  it.each([
+    ['area', 'areas_notFound'],
+    ['block', 'blocks_notFound'],
+    ['route', 'routes_notFound'],
+  ] as const)('404s a missing %s with its own key, not a neighbour s', async (type, key) => {
+    await expect(
+      resolveAttachRegion(db, users.stranger.userId, [userRegion(regionId, 'region.edit')], type, 0),
+    ).rejects.toMatchObject({ body: { message: formError(key) }, status: 404 })
+  })
+
   it('refuses attaching to a soft-deleted entity, EDIT or not', async () => {
     // The bytes would land on a row nothing reaches and no sweeper reclaims.
     await sql`update public.areas set deleted_at = now() where id = ${areaId}`
@@ -128,6 +151,42 @@ describe.skipIf(!reachable)('resolveAttachRegion', () => {
     await expect(
       resolveAttachRegion(db, users.stranger.userId, [userRegion(regionId, 'region.admin')], 'ascent', ascentId),
     ).rejects.toMatchObject({ status: 403 })
+  })
+})
+
+describe.skipIf(!reachable)('requireEditableFile on a file with no ascent behind it', () => {
+  // Every case below hangs off the ascent file, so `canEditFile`'s other branch, the one a topo or
+  // block photo takes, never ran through this gate.
+  const blockFileId = '__file_authz_block_file__'
+
+  beforeAll(async () => {
+    if (!reachable) return
+    await sql`
+      insert into public.files (id, region_fk, path, block_fk, created_by)
+      values (${blockFileId}, ${regionId}, '/topos/b.jpg', ${blockId}, ${users.owner.userId})
+      on conflict (id) do nothing`
+  })
+
+  it('lets an EDIT member edit it, with no ascent author to own it', async () => {
+    const file = await requireEditableFile(
+      db,
+      [userRegion(regionId, 'region.edit')],
+      users.stranger.userId,
+      blockFileId,
+    )
+    expect(file.id).toBe(blockFileId)
+  })
+
+  it('refuses a READ member, who may own ascent media but not this', async () => {
+    await expect(
+      requireEditableFile(db, [userRegion(regionId, 'region.read')], users.owner.userId, blockFileId),
+    ).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('404s a file that is not there', async () => {
+    await expect(
+      requireEditableFile(db, [userRegion(regionId, 'region.edit')], users.stranger.userId, '__file_authz_missing__'),
+    ).rejects.toMatchObject({ body: { message: formError('files_notFound') }, status: 404 })
   })
 })
 

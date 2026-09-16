@@ -10,6 +10,18 @@ function setup(committed: EditLine[] = []) {
   return { editor, store }
 }
 
+/** A line with a start and two middles: three undoable placements on one route. */
+function threePoints(lastY: number) {
+  const { editor } = setup()
+  editor.addLine(42)
+  editor.pointType = 'start'
+  editor.place(0.4, 0.8)
+  editor.pointType = 'middle'
+  editor.place(0.45, 0.5)
+  editor.place(0.46, lastY)
+  return editor
+}
+
 describe('TopoEditor', () => {
   it('draws a line and serializes it for save', () => {
     const { editor } = setup()
@@ -111,14 +123,21 @@ describe('TopoEditor', () => {
     expect(editor.currentLine!.points[0]).toMatchObject({ x: 0.505, y: 0.505 })
   })
 
-  it('undoes and redoes more than one step, and can undo again after a redo', () => {
+  it('ignores a middle insert aimed at a point on no line', () => {
+    // The guarded branch, which the happy-path test below never reaches: without it the neighbour
+    // lookup dereferences a line that was never found.
     const { editor } = setup()
     editor.addLine(42)
     editor.pointType = 'start'
-    editor.place(0.4, 0.8)
-    editor.pointType = 'middle'
-    editor.place(0.45, 0.5)
-    editor.place(0.46, 0.4)
+    editor.place(0.5, 0.5)
+
+    editor.insertMiddleAfter('not-a-point', 0.2, 0.2)
+
+    expect(editor.currentLine!.points).toHaveLength(1)
+  })
+
+  it('undoes and redoes more than one step, and can undo again after a redo', () => {
+    const editor = threePoints(0.4)
     expect(editor.currentLine?.points).toHaveLength(3)
 
     editor.undo()
@@ -476,5 +495,276 @@ describe('TopoEditor staleness basis', () => {
     editor.forget(1)
 
     expect(editor.basisFor(1)).toBeUndefined()
+  })
+})
+
+describe('TopoEditor history and whole-line edits', () => {
+  /** A line with one start point placed, so an edit exists to undo. */
+  function drawn() {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.4, 0.8)
+    return editor
+  }
+
+  it('reports what it can undo and redo as the stacks move', () => {
+    const { editor } = setup()
+    expect(editor.canUndo).toBe(false)
+    expect(editor.canRedo).toBe(false)
+
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.4, 0.8)
+    expect(editor.canUndo).toBe(true)
+    expect(editor.canRedo).toBe(false)
+
+    editor.undo()
+    expect(editor.canRedo).toBe(true)
+
+    editor.redo()
+    expect(editor.canRedo).toBe(false)
+    expect(editor.canUndo).toBe(true)
+  })
+
+  it('has nothing to undo or redo without a topo open', () => {
+    const { editor } = setup()
+    editor.topoId = undefined
+
+    expect(editor.canUndo).toBe(false)
+    expect(editor.canRedo).toBe(false)
+    // Both are no-ops rather than throws: the HUD buttons exist before a photo is chosen.
+    expect(() => {
+      editor.undo()
+      editor.redo()
+    }).not.toThrow()
+  })
+
+  it('leaves the document alone when the stack it would pop is empty', () => {
+    const editor = drawn()
+    const before = editor.savedLinesFor(1)
+
+    editor.redo() // nothing was undone, so nothing to redo
+    expect(editor.savedLinesFor(1)).toEqual(before)
+
+    // Counted rather than assumed: the stack is deeper than the placements, so undoing a fixed
+    // number of times never reaches the empty case the guard exists for.
+    let undone = 0
+    while (editor.canUndo) {
+      editor.undo()
+      undone++
+    }
+
+    editor.undo() // past is empty: this must add nothing to redo
+    let redone = 0
+    while (editor.canRedo) {
+      editor.redo()
+      redone++
+    }
+
+    expect(redone).toBe(undone)
+    expect(editor.savedLinesFor(1)).toEqual(before)
+  })
+
+  it('redoes the steps in the order they were undone, not in reverse', () => {
+    const editor = threePoints(0.3)
+    expect(editor.currentLine?.points).toHaveLength(3)
+
+    editor.undo()
+    editor.undo()
+    expect(editor.currentLine?.points).toHaveLength(1)
+
+    editor.redo()
+    expect(editor.currentLine?.points).toHaveLength(2)
+    editor.redo()
+    expect(editor.currentLine?.points).toHaveLength(3)
+    expect(editor.canRedo).toBe(false)
+  })
+
+  it('removes a line and clears the selection it was holding', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.4, 0.8)
+    editor.addLine(43)
+    editor.selectRoute(42)
+
+    editor.removeLine(42)
+
+    expect(editor.savedLinesFor(1).map((saved) => saved.routeFk)).not.toContain(42)
+    expect(editor.selectedRouteFk).toBeUndefined()
+  })
+
+  it('keeps a selection pointed at a different route when a line is removed', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.addLine(43)
+    editor.selectRoute(43)
+
+    editor.removeLine(42)
+
+    expect(editor.selectedRouteFk).toBe(43)
+  })
+
+  it('undoes a line removal, which is why it records a step', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.4, 0.8)
+
+    editor.removeLine(42)
+    expect(editor.currentLines).toHaveLength(0)
+
+    editor.undo()
+    expect(editor.currentLines.map((l) => l.routeFk)).toEqual([42])
+  })
+
+  it('sets the top type on the selected line and nothing else', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.4, 0.8)
+    editor.pointType = 'top'
+    editor.place(0.4, 0.2)
+    // The other line needs a point of its own: `savedLinesFor` drops an empty one, so without it
+    // "nothing else" is unassertable and setting the type on every line reads as a pass.
+    editor.addLine(43)
+    editor.pointType = 'start'
+    editor.place(0.7, 0.8)
+    editor.selectRoute(42)
+
+    editor.setTopType('topout')
+
+    const saved = editor.savedLinesFor(1)
+    expect(saved.find((line) => line.routeFk === 42)?.topType).toBe('topout')
+    expect(saved.find((line) => line.routeFk === 43)?.topType).toBe('top')
+  })
+
+  it('discards every topo at once, history included', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.4, 0.8)
+    editor.topoId = 2
+    editor.addLine(43)
+
+    editor.discardAll()
+
+    expect(editor.hasDoc(1)).toBe(false)
+    expect(editor.hasDoc(2)).toBe(false)
+    editor.topoId = 1
+    expect(editor.canUndo).toBe(false)
+    expect(editor.dirtyTopoIds).toEqual([])
+  })
+})
+
+describe('TopoEditor point placement and dragging', () => {
+  it('adds a line once per route, however often the route is armed', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.4, 0.8)
+
+    editor.addLine(42) // same route again: must not wipe the line by re-adding it
+
+    expect(editor.currentLines.filter((l) => l.routeFk === 42)).toHaveLength(1)
+    expect(editor.currentLine?.points).toHaveLength(1)
+  })
+
+  it('places nothing without a point type armed, or without a route selected', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+
+    editor.place(0.4, 0.8) // pointType never set
+    expect(editor.currentLine?.points ?? []).toHaveLength(0)
+
+    // Armed with no route selected. The point going nowhere shows nothing (the inner `find` misses
+    // either way); the undo step `#apply` records first is what the route half prevents.
+    const { editor: armed } = setup()
+    armed.pointType = 'start'
+    armed.place(0.4, 0.8)
+
+    expect(armed.currentLines.flatMap((line) => line.points)).toHaveLength(0)
+    expect(armed.canUndo).toBe(false)
+  })
+
+  it('keeps a middle below the top, so the path stays start-to-top', () => {
+    // `insertByType`'s invariant. A middle placed after the top must land before it, or the
+    // rendered path doubles back on itself.
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.5, 0.9)
+    editor.pointType = 'top'
+    editor.place(0.5, 0.1)
+    editor.pointType = 'middle'
+    editor.place(0.5, 0.5)
+
+    expect(editor.currentLine!.points.map((point) => point.type)).toEqual(['start', 'middle', 'top'])
+  })
+
+  it('drags a whole line on both axes and clamps it inside the photo', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.5, 0.5)
+    editor.pointType = 'top'
+    editor.place(0.6, 0.4)
+
+    editor.beginStroke()
+    editor.dragLine(42, 0.1, -0.2)
+
+    // Both axes asserted: a mutant dropping either one moves the line on the other and passes.
+    const [head, tail] = editor.currentLine!.points
+    expect(head.x).toBeCloseTo(0.6)
+    expect(head.y).toBeCloseTo(0.3)
+    expect(tail.x).toBeCloseTo(0.7)
+    expect(tail.y).toBeCloseTo(0.2)
+
+    // Past each edge in turn: both bounds clamp, on both axes.
+    editor.dragLine(42, 5, -5)
+    expect(editor.currentLine!.points).toMatchObject([
+      { x: 1, y: 0 },
+      { x: 1, y: 0 },
+    ])
+
+    editor.dragLine(42, -5, 5)
+    expect(editor.currentLine!.points).toMatchObject([
+      { x: 0, y: 1 },
+      { x: 0, y: 1 },
+    ])
+  })
+
+  // Pins the behaviour, not the early return: with a zero axis the distance is already Infinity or
+  // NaN, so deleting that guard changes no output.
+  it('offers no snap target when either axis of the tolerance is zero', () => {
+    const { editor } = setup()
+    editor.addLine(1)
+    editor.pointType = 'start'
+    editor.place(0.5, 0.5)
+
+    editor.snapTolerance = { x: 0, y: 0.02 }
+    expect(editor.snapTargetAt(0.502, 0.502)).toBeUndefined()
+
+    editor.snapTolerance = { x: 0.02, y: 0 }
+    expect(editor.snapTargetAt(0.502, 0.502)).toBeUndefined()
+
+    editor.snapTolerance = { x: 0.02, y: 0.02 }
+    expect(editor.snapTargetAt(0.502, 0.502)).toBeDefined()
+  })
+
+  it('clears the selection only when the deleted point was the selected one', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.4, 0.8)
+    editor.place(0.6, 0.8)
+    const [first, second] = editor.currentLine!.points
+
+    editor.selectPoint(second.id)
+    editor.deletePoint(first.id)
+
+    expect(editor.selectedPointId).toBe(second.id)
+    expect(editor.currentLine!.points).toHaveLength(1)
   })
 })

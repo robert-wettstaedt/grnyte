@@ -1,6 +1,6 @@
 import { m } from '$lib/paraglide/messages'
 import { describe, expect, it } from 'vitest'
-import { isAnnouncementActive, resolveStatus } from './StatusBar.svelte'
+import { isAnnouncementActive, resolveStatus } from './statusBar'
 
 const announcement = () => 'Hello'
 
@@ -81,6 +81,11 @@ describe('isAnnouncementActive', () => {
 
   it('expires at endsAt even if nobody ever dismissed it', () => {
     expect(isAnnouncementActive(notice, new Set(['other']), after)).toBe(false)
+  })
+
+  it('is over at the instant of endsAt, not a moment after', () => {
+    // The test above lands a day late, so it never says which side of `endsAt` the boundary is on.
+    expect(isAnnouncementActive(notice, new Set(), Date.parse(notice.endsAt))).toBe(false)
   })
 
   it('stays closed once its own id is dismissed', () => {

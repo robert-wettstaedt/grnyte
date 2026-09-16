@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deriveAccolade, type AccoladeAscent } from './accolade'
+import { deriveAccolade, parseAccolade, type AccoladeAscent } from './accolade'
 
 const DAY = 24 * 60 * 60 * 1000
 const day = (n: number) => Date.UTC(2026, 0, n)
@@ -15,10 +15,13 @@ const ascent = (partial: Partial<AccoladeAscent> = {}): AccoladeAscent => ({
 })
 
 describe('deriveAccolade', () => {
-  it('claims nothing for an attempt', () => {
-    const climb = ascent({ type: 'attempt' })
+  it('claims nothing for an attempt that would otherwise top the window', () => {
+    // The history is the test. A lone attempt earns nothing whether or not the guard is there, so
+    // asserting on one says nothing about it: this one would claim the ceiling without it.
+    const easier = ascent({ dateTime: day(20), gradeFk: 8, routeFk: 2 })
+    const failed = ascent({ dateTime: day(100), gradeFk: 30, routeFk: 4, type: 'attempt' })
 
-    expect(deriveAccolade(climb, { onRoute: [climb], window: [climb] })).toBeUndefined()
+    expect(deriveAccolade(failed, { onRoute: [easier, failed], window: [easier, failed] })).toBeUndefined()
   })
 
   it('claims the project when the send ended a run of attempts', () => {
@@ -231,10 +234,107 @@ describe('deriveAccolade', () => {
     expect(deriveAccolade(repeat, { window: [...truncated, repeat] })).toBeUndefined()
   })
 
+  it('claims nothing when the window holds one easier send and one harder', () => {
+    // The floor is every graded send in the pool, not any of them. A mixed year is the ordinary
+    // case, and reading it as "beat something" would put the banner on a middling climb.
+    const easier = ascent({ dateTime: day(20), gradeFk: 8, routeFk: 2 })
+    const harder = ascent({ dateTime: day(40), gradeFk: 20, routeFk: 3 })
+    const send = ascent({ dateTime: day(100), gradeFk: 14, routeFk: 4 })
+
+    expect(deriveAccolade(send, { window: [easier, harder, send] })).toBeUndefined()
+  })
+
+  it('counts a send from the same day as evidence, which a pg date cannot order', () => {
+    // `date_time` is a pg `date`, so an earlier send on the afternoon of the same day carries the
+    // SAME value. Excluding it would throw away the only evidence this climb beat anything.
+    const sameDay = ascent({ dateTime: day(100), gradeFk: 8, routeFk: 2 })
+    const send = ascent({ dateTime: day(100), gradeFk: 14, routeFk: 4 })
+
+    expect(deriveAccolade(send, { window: [sameDay, send] })).toEqual({ kind: 'ceiling' })
+  })
+
+  it('counts a send landing exactly on the window edge', () => {
+    const onEdge = ascent({ dateTime: day(100) - 365 * DAY, gradeFk: 8, routeFk: 2 })
+    const send = ascent({ dateTime: day(100), gradeFk: 14, routeFk: 4 })
+
+    expect(deriveAccolade(send, { window: [onEdge, send] })).toEqual({ kind: 'ceiling' })
+  })
+
+  it('ignores an undated attempt when measuring how long the project ran', () => {
+    // An undated row carries no start. Folding it in as one reads the epoch as the first session
+    // and reports a project fifty-six years long.
+    const undated = ascent({ dateTime: undefined, type: 'attempt' })
+    const tries = [day(1), day(8), day(30)].map((at) => ascent({ dateTime: at, type: 'attempt' }))
+    const send = ascent({ dateTime: day(40) })
+    const history = [undated, ...tries, send]
+
+    // `sessions` counts it, because `deriveProjects` groups undated rows as their own visit. Only
+    // the span is guarded here.
+    expect(deriveAccolade(send, { onRoute: history, window: history })).toEqual({
+      days: 39,
+      kind: 'project',
+      sessions: 5,
+    })
+  })
+
   it('claims nothing on an ungraded send with no project behind it', () => {
     const earlier = ascent({ dateTime: day(40), gradeFk: 9, routeFk: 2 })
     const send = ascent({ dateTime: day(100), gradeFk: undefined, routeFk: 4 })
 
     expect(deriveAccolade(send, { onRoute: [earlier, send], window: [earlier, send] })).toBeUndefined()
+  })
+})
+
+/**
+ * The read side of the column, which must never throw: it is written by one function and read by
+ * one card, but it is still text in a database that an older release or a hand edit can have
+ * written. Anything it cannot vouch for reads as "no claim" rather than taking the feed down.
+ */
+describe('parseAccolade', () => {
+  it('round-trips the two claims it writes', () => {
+    expect(parseAccolade(JSON.stringify({ kind: 'ceiling' }))).toEqual({ kind: 'ceiling' })
+    expect(parseAccolade(JSON.stringify({ days: 89, kind: 'project', sessions: 5 }))).toEqual({
+      days: 89,
+      kind: 'project',
+      sessions: 5,
+    })
+  })
+
+  it.each([
+    ['nothing stored', null],
+    ['an undefined column', undefined],
+    ['an empty string', ''],
+  ])('reads %s as no claim', (_label, stored) => {
+    expect(parseAccolade(stored)).toBeUndefined()
+  })
+
+  it.each([
+    ['a half-written value', '{"kind":"proj'],
+    ['text that is not JSON at all', 'ceiling'],
+  ])('reads %s as no claim rather than throwing', (_label, stored) => {
+    expect(() => parseAccolade(stored)).not.toThrow()
+    expect(parseAccolade(stored)).toBeUndefined()
+  })
+
+  it.each([
+    ['a JSON number', '3'],
+    ['a JSON null', 'null'],
+    ['a JSON string', '"ceiling"'],
+  ])('reads %s as no claim, having parsed but not to an object', (_label, stored) => {
+    expect(parseAccolade(stored)).toBeUndefined()
+  })
+
+  it('reads a kind it does not know as no claim', () => {
+    // An older shape, or one a later release writes and this one has not learned.
+    expect(parseAccolade(JSON.stringify({ kind: 'onsight' }))).toBeUndefined()
+  })
+
+  it.each([
+    ['no days', { kind: 'project', sessions: 5 }],
+    ['no sessions', { days: 89, kind: 'project' }],
+    ['days as a string', { days: '89', kind: 'project', sessions: 5 }],
+  ])('reads a project claim with %s as no claim', (_label, stored) => {
+    // Not a partial claim: the card renders `days` and `sessions`, so half of one is not a claim.
+    expect(parseAccolade(JSON.stringify(stored))).toBeUndefined()
   })
 })

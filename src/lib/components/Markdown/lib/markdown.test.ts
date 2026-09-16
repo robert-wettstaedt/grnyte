@@ -359,6 +359,14 @@ describe.each(pipelines)('URL safety (%s pipeline)', (_label, render) => {
     expect(html).toContain('<a href="/routes/12">ok</a>')
   })
 
+  // The other half of the allowlist. `http:`/`https:` are covered above; without these two,
+  // dropping either from `SAFE_PROTOCOLS` renders a real contact link as inert bold text and
+  // nothing fails.
+  it.each(['mailto:setter@example.com', 'tel:+4915112345678'])('keeps a %s link', async (url) => {
+    const html = await render(`[ask](${url})`)
+    expect(html).toContain(`<a href="${url}">ask</a>`)
+  })
+
   it('leaves a reference with no definition as the text that was written', async () => {
     const html = await render('[nope][missing]')
     expect(html).not.toContain('href')
