@@ -19,10 +19,11 @@ export default {
     '.agents',
     // Agent worktrees: whole checkouts of this repo.
     '.claude',
-    // The server half takes every variable from the script, so its sandbox needs no .env and no
-    // secret is copied into it. The client half needs one: `vite.config.ts` throws without
-    // `PUBLIC_APPLICATION_NAME`. `.stryker-tmp` is gitignored either way.
-    ...(server ? ['.env*'] : []),
+    // No secret is copied into `.stryker-tmp`, and a sandbox that denies reading `.env` (this
+    // repo's agent sandboxes do) can still run this. Both halves supply what the sandbox's
+    // `vite.config.ts` needs from the environment instead: it throws without
+    // `PUBLIC_APPLICATION_NAME`, and nothing under test reads a real value for any of the rest.
+    '.env*',
     '.mcp.json',
     '.memlab',
     '.vercel',

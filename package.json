@@ -19,7 +19,7 @@
     "test": "vitest",
     "test:e2e": "playwright test",
     "test:memory": "memlab run --scenario memlab/explore-map.cjs --work-dir .memlab",
-    "test:mutation": "stryker run stryker/config.mjs",
+    "test:mutation": "PUBLIC_APPLICATION_NAME=stryker stryker run stryker/config.mjs",
     "test:mutation:server": "stryker/server.sh",
     "coverage": "vitest run --coverage",
     "check": "npm run generate:paraglide && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
