@@ -116,7 +116,18 @@
   <li>your browser and operating system version</li>
   <li>error reports when something fails</li>
 </ul>
-<p>These sit with the hosting, database and email providers. I read them to find faults and to spot abuse.</p>
+<p>
+  The address, the request time and the browser version sit with the hosting, database and email providers. I read them
+  to find faults and to spot abuse.
+</p>
+<p>
+  Error reports are different: I keep them myself, rather than leaving them to a provider. When something in the app
+  fails, it saves what went wrong, the page you were on, and your browser version and language. If you were signed in,
+  it saves who you were too: a fault I cannot connect to anyone is usually one I cannot fix. It records failures on my
+  own side the same way, such as a mail that would not send or a notification that would not deliver, and where the
+  failure is about you it carries an internal reference to your account or your device. I delete them after 90 days
+  (section 7), and the reference to you goes as soon as your account does.
+</p>
 
 <h3>2.7 Data about you that somebody else wrote</h3>
 <p>Article 14 GDPR covers data I did not get from you, and {name} holds some:</p>
@@ -424,9 +435,14 @@
     stored, so there is no period to state here.
   </li>
   <li>
-    server logs: I run no log pipeline of my own. The hosting, database and email providers hold their own logs under
-    their own retention, and I read them to find faults and to spot abuse. Section 5 lists those providers; I do not set
-    their retention and will not publish a figure I do not control.
+    server logs: the hosting, database and email providers hold their own logs under their own retention, and I read
+    them to find faults and to spot abuse. Section 5 lists those providers; I do not set their retention and will not
+    publish a figure I do not control.
+  </li>
+  <li>
+    error reports: 90 days. These are the one kind of log I keep myself rather than leaving to a provider (section 2.6),
+    and I delete them once they pass that age. Where one names you, the reference to you goes as soon as I delete your
+    account, and the rest of the report ages out on its own.
   </li>
   <li>
     backups: a daily copy of the database, kept for 30 days on the Hetzner server in Falkenstein that section 5 names.

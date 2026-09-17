@@ -9,7 +9,7 @@ import { m } from '$lib/paraglide/messages'
  * `HttpError` shape, so a change to Kit's envelope lands in one file.
  */
 export function resolveErrorMessage(cause: unknown, fallback: () => string = m.error_generic_title): string {
-  const raw = (cause as null | { body?: { message?: string } })?.body?.message
+  const raw = serverMessage(cause)
   return raw == null ? fallback() : resolveIssueMessage(raw)
 }
 
@@ -33,4 +33,10 @@ export function resolveIssueMessage(message: string): string {
 
   // A key nothing compiled shows as itself: the server can emit a plain sentence too.
   return hasMessage(key) ? resolveMessage(key, params) : key
+}
+
+/** The key the server put on a rejection, or nothing when the failure was never authored: the one
+ *  thing that separates "the app said no" from "something broke". */
+export function serverMessage(cause: unknown): string | undefined {
+  return (cause as null | { body?: { message?: string } })?.body?.message ?? undefined
 }

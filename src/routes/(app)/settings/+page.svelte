@@ -17,6 +17,7 @@
   import { roleLabel } from '$lib/entities/rolePermission/mapper'
   import type { GradingScale, UnitSystem } from '$lib/entities/user/dto'
   import { updateUserSettings } from '$lib/entities/user/users.remote'
+  import { reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages'
   import { getLocale, setLocale, type Locale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -126,8 +127,6 @@
       } else {
         await disablePush()
       }
-    } catch (cause) {
-      notifyError(cause)
     } finally {
       switchingPush = false
     }
@@ -164,13 +163,13 @@
     // subscription left behind keeps delivering the signed-out person's digests, and the next
     // account to sign in here collides with a row it cannot see. Best effort: a failure here must
     // not be what stops somebody signing out.
-    await disablePush().catch(() => undefined)
+    await disablePush().catch(reportIfOnline)
 
     // signOut resolves with { error } rather than throwing; on failure the session survives, so
     // surface it instead of navigating to the landing page as if it worked.
     const { error } = await supabase.auth.signOut()
     if (error != null) {
-      notifyError()
+      notifyError(error)
       return
     }
 

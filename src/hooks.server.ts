@@ -3,7 +3,7 @@ import { clientErrorLogs } from '$lib/db/schema'
 import { authGuard, supabase } from '$lib/hooks/auth.server'
 import { handle as paraglide } from '$lib/hooks/paraglide.server'
 import { rateLimit } from '$lib/hooks/rate-limit.server'
-import { stringifyError } from '$lib/logging/stringify'
+import { MAX_ERROR_LENGTH, stringifyError } from '$lib/logging/stringify'
 import { type Handle, type HandleServerError } from '@sveltejs/kit'
 import { sequence } from '@sveltejs/kit/hooks'
 
@@ -21,7 +21,7 @@ export const handleError: HandleServerError = async ({ error, event, status }) =
       .insert(clientErrorLogs)
       .values({
         createdBy: event.locals.user?.id ?? null,
-        error: stringifyError(error).slice(0, 10_000),
+        error: stringifyError(error).slice(0, MAX_ERROR_LENGTH),
         pathname: event.url.pathname,
         source: 'server',
       })

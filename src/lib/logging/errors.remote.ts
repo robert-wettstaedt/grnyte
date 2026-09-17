@@ -6,6 +6,7 @@ import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { error as httpError } from '@sveltejs/kit'
 import { desc, sql } from 'drizzle-orm'
+import { MAX_ERROR_LENGTH } from './stringify'
 
 // Persists a client-side error. Deliberately not `authedCommand`: errors can happen
 // logged-out, and the table has RLS on with no insert policy, so we use the
@@ -13,7 +14,7 @@ import { desc, sql } from 'drizzle-orm'
 // ponytail: open endpoint with a capped payload; add rate-limiting if it gets abused.
 export const logClientError = command(
   z.object({
-    error: z.string().check(z.maxLength(10_000)),
+    error: z.string().check(z.maxLength(MAX_ERROR_LENGTH)),
     navigator: z.optional(z.json()),
     pathname: z.optional(z.string().check(z.maxLength(2048))),
   }),
@@ -60,7 +61,11 @@ export const listErrorLogs = query(async (): Promise<ErrorLogGroup[]> => {
       // A raw `sql` selection skips Drizzle's field mapping, so this arrives as whatever
       // postgres-js decoded it to (a string for timestamptz). `new Date` below takes either.
       lastSeen: sql<Date | string>`max(${clientErrorLogs.createdAt})`,
-      paths: sql<(null | string)[]>`array_agg(distinct ${clientErrorLogs.pathname})`,
+      // Filtered inside the aggregate: a server row has no pathname, and an all-null group comes
+      // back from postgres-js as the STRING "NULL", which no null check on this side catches.
+      paths: sql<
+        string[]
+      >`coalesce(array_agg(distinct ${clientErrorLogs.pathname}) filter (where ${clientErrorLogs.pathname} is not null), '{}')`,
       source: clientErrorLogs.source,
     })
     .from(clientErrorLogs)
@@ -73,7 +78,6 @@ export const listErrorLogs = query(async (): Promise<ErrorLogGroup[]> => {
     ...row,
     error: row.error ?? '',
     lastSeen: new Date(row.lastSeen).getTime(),
-    // array_agg keeps NULL pathnames as a null entry.
-    paths: row.paths.filter((path) => path != null),
+    paths: row.paths,
   }))
 })

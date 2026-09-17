@@ -11,7 +11,7 @@ import type { MutationResult } from '$lib/remote/mutation'
 import { error } from '@sveltejs/kit'
 import { and, eq, isNull, max, ne, sql } from 'drizzle-orm'
 import { DIGEST_TAG } from './push'
-import { sendPush } from './push.server'
+import { notePushFailure, sendPush } from './push.server'
 
 /**
  * Mark the caller's whole inbox read. Called once when `/notifications` mounts.
@@ -226,6 +226,10 @@ export const sendTestPush = command(
     })
 
     if (found.subscription == null) {
+      // The device believes it is subscribed and the server holds no row for it: the one failure
+      // here that no send is ever attempted for, so nothing else would record it. Named by user,
+      // since there is no subscription to name and the dedupe would otherwise collapse everyone's.
+      await notePushFailure(`test not sent: no subscription stored for user ${user.id}`, endpoint)
       return { data: { delivered: false } }
     }
 

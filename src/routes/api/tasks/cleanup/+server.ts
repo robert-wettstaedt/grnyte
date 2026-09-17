@@ -1,9 +1,11 @@
 import { SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private'
 import { PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
-import { feedback, notifications } from '$lib/db/schema'
+import { clientErrorLogs, feedback, notifications } from '$lib/db/schema'
 import { reportBunnyOrphans } from '$lib/entities/file/cleanup.server'
 import { STAGING_BUCKET } from '$lib/entities/file/upload'
+import { ERROR_LOG_MAX_AGE_DAYS, logServerFailure } from '$lib/logging/failure.server'
+import { stringifyError } from '$lib/logging/stringify'
 import { isCronAuthorized } from '$lib/remote/cron.server'
 import { getVideoProvider } from '$lib/videos/provider.server'
 import { createClient } from '@supabase/supabase-js'
@@ -24,6 +26,10 @@ const NOTIFICATION_UNREAD_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000
 /** Feedback. 12 months, mirrored in the privacy notice, section 7: change both together. */
 const FEEDBACK_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000
 
+/** Error logs, client and server alike. The figure is published, so it lives beside the writer
+ *  that owns them. Nothing pruned them before, so the table only ever grew. */
+const ERROR_LOG_MAX_AGE_MS = ERROR_LOG_MAX_AGE_DAYS * 24 * 60 * 60 * 1000
+
 /** Delete staging objects older than the cutoff. Service-role: the sweep spans every user's own-uid folder. */
 const sweepStaging = async (before: Date): Promise<number> => {
   const admin = createClient(PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -33,6 +39,7 @@ const sweepStaging = async (before: Date): Promise<number> => {
   const { data: folders, error } = await bucket.list()
   if (error != null || folders == null) {
     console.error('[cleanup] staging list failed', error)
+    await logServerFailure('cleanup', `staging list failed: ${stringifyError(error)}`)
     return 0
   }
   let removed = 0
@@ -43,6 +50,7 @@ const sweepStaging = async (before: Date): Promise<number> => {
     const { data: objects, error: listError } = await bucket.list(folder.name)
     if (listError != null || objects == null) {
       console.error('[cleanup] staging list failed for folder', folder.name, listError)
+      await logServerFailure('cleanup', `staging list failed for folder ${folder.name}: ${stringifyError(listError)}`)
       continue
     }
     const stale = objects
@@ -52,6 +60,11 @@ const sweepStaging = async (before: Date): Promise<number> => {
       const { error: removeError } = await bucket.remove(stale)
       if (removeError != null) {
         console.error('[cleanup] staging remove failed', stale, removeError)
+        // The count, not the paths: each one carries an auth uid and a file name.
+        await logServerFailure(
+          'cleanup',
+          `staging remove failed for ${stale.length} objects: ${stringifyError(removeError)}`,
+        )
         continue
       }
       // Audit trail: log exactly what was deleted so a wrong sweep is diagnosable.
@@ -83,6 +96,7 @@ const sweepBunny = async (before: Date): Promise<number> => {
       removed += 1
     } catch (error) {
       console.error('[cleanup] video remove failed', guid, error)
+      await logServerFailure('cleanup', `video remove failed for ${guid}: ${stringifyError(error)}`)
     }
   }
   return removed
@@ -126,22 +140,33 @@ const sweepFeedback = async (before: Date): Promise<number> => {
   return removed.length
 }
 
+/** Drop error logs past the cutoff. A fault nobody looked at in three months is not one anybody
+ *  is going to diagnose, and every row carries a pathname and a user agent. */
+const sweepErrorLogs = async (before: Date): Promise<number> => {
+  const removed = await db
+    .delete(clientErrorLogs)
+    .where(lt(clientErrorLogs.createdAt, before))
+    .returning({ id: clientErrorLogs.id })
+  return removed.length
+}
+
 export const POST: RequestHandler = async ({ request }) => {
   if (!isCronAuthorized(request)) {
     return new Response('Unauthorized', { status: 401 })
   }
   const now = Date.now()
-  const [staging, bunny, notificationRows, feedbackRows] = await Promise.all([
+  const [staging, bunny, notificationRows, feedbackRows, errorRows] = await Promise.all([
     sweepStaging(new Date(now - STAGING_MAX_AGE_MS)),
     sweepBunny(new Date(now - BUNNY_MAX_AGE_MS)),
     sweepNotifications(new Date(now - NOTIFICATION_READ_MAX_AGE_MS), new Date(now - NOTIFICATION_UNREAD_MAX_AGE_MS)),
     sweepFeedback(new Date(now - FEEDBACK_MAX_AGE_MS)),
+    sweepErrorLogs(new Date(now - ERROR_LOG_MAX_AGE_MS)),
     // Alongside the deletes, not ahead of them: it walks the whole Bunny library, and its own
     // failure must never cost a retention delete this job promises.
     reportBunnyOrphans(db, new Date(now - BUNNY_MAX_AGE_MS)),
   ])
   console.log(
-    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback`,
+    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback, ${errorRows} error logs`,
   )
-  return json({ bunny, feedback: feedbackRows, notifications: notificationRows, staging })
+  return json({ bunny, errorLogs: errorRows, feedback: feedbackRows, notifications: notificationRows, staging })
 }

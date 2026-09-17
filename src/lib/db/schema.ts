@@ -2201,7 +2201,7 @@ export const favoritesRelations = relations(favorites, ({ one }) => ({
 // is because the whole table is disposable the day a real error tracker shows up.
 export const clientErrorLogs = table('client_error_logs', {
   ...baseFields,
-  createdBy: integer('created_by').references((): AnyColumn => users.id),
+  createdBy: integer('created_by').references((): AnyColumn => users.id, { onDelete: 'set null' }),
   error: text(),
   navigator: jsonb().$type<z.infer<ReturnType<typeof z.json>>>(),
   pathname: text(),

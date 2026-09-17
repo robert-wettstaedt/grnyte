@@ -2,6 +2,8 @@ import * as schema from '$lib/db/schema'
 import { bunnyStreams, files, type File } from '$lib/db/schema'
 import { imageStoragePaths } from '$lib/images/derivatives'
 import { getImageProvider } from '$lib/images/provider.server'
+import { logServerFailure } from '$lib/logging/failure.server'
+import { stringifyError } from '$lib/logging/stringify'
 import { getVideoProvider } from '$lib/videos/provider.server'
 import { inArray } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -82,6 +84,7 @@ export async function removeFileStorage(targets: FileStorageTarget[]): Promise<v
   for (const result of results) {
     if (result.status === 'rejected') {
       console.error('[cleanup] failed to remove file storage', result.reason)
+      await logServerFailure('cleanup', `failed to remove file storage: ${stringifyError(result.reason)}`)
     }
   }
 }
@@ -115,11 +118,14 @@ export async function reportBunnyOrphans(db: PostgresJsDatabase<typeof schema>, 
         orphans: orphans.length,
         total,
       })
+      // Console only: the guard refusing is it working, not failing, and the condition persists,
+      // so a row per run would be the whole table.
       return
     }
 
     console.log('[cleanup] videos a diff would remove', { guids: orphans, total })
   } catch (thrown) {
     console.error('[cleanup] orphan report failed', thrown)
+    await logServerFailure('cleanup', `orphan report failed: ${stringifyError(thrown)}`)
   }
 }

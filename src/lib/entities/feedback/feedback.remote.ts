@@ -187,6 +187,7 @@ export const replyToFeedback = command(
       idempotencyKey: `feedback-reply-${id}`,
       locale,
       origin: url.origin,
+      template: 'feedback-reply',
       to: row.email,
     })
 

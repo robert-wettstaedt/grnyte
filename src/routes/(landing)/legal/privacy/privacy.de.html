@@ -122,8 +122,17 @@
   <li>Fehlerberichte, wenn etwas schiefgeht</li>
 </ul>
 <p>
-  Diese Protokolle liegen bei den Anbietern für Hosting, Datenbank und E-Mail. Ich lese sie, um Fehler zu finden und
-  Missbrauch zu erkennen.
+  Die Adresse, der Zeitpunkt der Anfrage und die Browserversion liegen bei den Anbietern für Hosting, Datenbank und
+  E-Mail. Ich lese sie, um Fehler zu finden und Missbrauch zu erkennen.
+</p>
+<p>
+  Fehlerberichte sind anders: Ich führe sie selbst, statt sie einem Anbieter zu überlassen. Wenn in der App etwas
+  schiefgeht, speichert sie, was schiefging, auf welcher Seite du warst und welche Browserversion und Sprache du nutzt.
+  Warst du angemeldet, speichert sie auch, wer du warst, denn einen Fehler, den ich niemandem zuordnen kann, kann ich
+  meist auch nicht beheben. Genauso halte ich Fehler auf meiner Seite fest, etwa eine E-Mail, die nicht hinausging, oder
+  eine Benachrichtigung, die nicht zugestellt werden konnte; betrifft der Fehler dich, steht ein interner Verweis auf
+  dein Konto oder dein Gerät darin. Nach 90 Tagen lösche ich sie (Abschnitt 7), und der Verweis auf dich verschwindet,
+  sobald ich dein Konto lösche.
 </p>
 
 <h3>2.7 Daten über dich, die jemand anderes geschrieben hat</h3>
@@ -457,10 +466,14 @@
     und nie gespeichert, hier gibt es also keine Frist zu nennen.
   </li>
   <li>
-    Serverprotokolle: Ich betreibe keine eigene Protokollverarbeitung. Die Anbieter für Hosting, Datenbank und E-Mail
-    führen ihre eigenen Protokolle nach ihren eigenen Fristen, und ich lese sie, um Fehler zu finden und Missbrauch zu
-    erkennen. Abschnitt 5 nennt diese Anbieter. Ich lege ihre Aufbewahrungsfristen nicht fest und nenne hier keine Zahl,
-    die ich nicht kontrolliere.
+    Serverprotokolle: Die Anbieter für Hosting, Datenbank und E-Mail führen ihre eigenen Protokolle nach ihren eigenen
+    Fristen, und ich lese sie, um Fehler zu finden und Missbrauch zu erkennen. Abschnitt 5 nennt diese Anbieter. Ich
+    lege ihre Aufbewahrungsfristen nicht fest und nenne hier keine Zahl, die ich nicht kontrolliere.
+  </li>
+  <li>
+    Fehlerberichte: 90 Tage. Sie sind die einzige Art von Protokoll, die ich selbst führe statt sie einem Anbieter zu
+    überlassen (Abschnitt 2.6), und nach Ablauf dieser Frist lösche ich sie. Nennt einer dich, verschwindet der Verweis
+    auf dich, sobald ich dein Konto lösche; der Rest des Berichts läuft von selbst ab.
   </li>
   <li>
     Sicherungen: eine tägliche Kopie der Datenbank, 30 Tage lang aufbewahrt auf dem Hetzner-Server in Falkenstein, den

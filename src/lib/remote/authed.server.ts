@@ -2,6 +2,8 @@ import { command, form, getRequestEvent, query } from '$app/server'
 import { createRlsClient, db } from '$lib/db/db.server'
 import type { UserRegion } from '$lib/entities/region/dto'
 import { formError } from '$lib/forms/schemas'
+import { logServerFailure } from '$lib/logging/failure.server'
+import { stringifyError } from '$lib/logging/stringify'
 import type { MutationResult } from '$lib/remote/mutation'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { error, redirect, type InvalidField, type RemoteForm, type RemoteFormInput } from '@sveltejs/kit'
@@ -136,8 +138,10 @@ async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
       await task()
     } catch (e) {
       // Logged, never rethrown: the transaction has committed, so a failed fan-out must not
-      // report a succeeded mutation as a failure.
+      // report a succeeded mutation as a failure. Recorded because of that: the caller was told
+      // the mutation succeeded, so nothing else carries this.
       console.error('[remote] afterCommit task failed', e)
+      await logServerFailure('remote', `afterCommit task failed: ${stringifyError(e)}`)
     }
   }
 

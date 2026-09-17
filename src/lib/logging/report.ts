@@ -1,7 +1,5 @@
-import { logClientError } from './errors.remote'
-import { stringifyError } from './stringify'
-
-const MAX_ERROR_LENGTH = 10_000
+import { isOnline } from '$lib/state/online.svelte'
+import { MAX_ERROR_LENGTH, stringifyError } from './stringify'
 
 /** Backstop for a loop whose message varies each turn, which no dedupe can collapse. */
 const MAX_REPORTS = 20
@@ -29,19 +27,45 @@ export function reportClientError(error: unknown): void {
     return
   }
 
+  // Marked BEFORE the await, so a loop firing the same error cannot queue a second send while the
+  // first import is still in flight. Undone below if the module never arrives.
   reported.add(payload)
 
   try {
-    logClientError({
-      error: payload,
-      navigator: {
-        language: navigator.language,
-        onLine: navigator.onLine,
-        userAgent: navigator.userAgent,
-      },
-      pathname: location.pathname,
-    }).catch(() => {})
+    // Imported here, not at the top: a static edge to a `.remote.ts` reaches `$app/server`, and
+    // `notifyError` puts this module in the graph of everything that toasts.
+    import('./errors.remote')
+      .catch((cause: unknown) => {
+        // The chunk itself failed (a 404 after a deploy), so nothing was sent and this stays
+        // retryable. A failing SEND is not undone: retrying that is what the storm cap exists for.
+        reported.delete(payload)
+        throw cause
+      })
+      .then(({ logClientError }) => {
+        return logClientError({
+          error: payload,
+          navigator: {
+            language: navigator.language,
+            onLine: navigator.onLine,
+            userAgent: navigator.userAgent,
+          },
+          pathname: location.pathname,
+        })
+      })
+      .catch(() => {})
   } catch {
     // reporting is best-effort; swallow everything
+  }
+}
+
+/**
+ * {@link reportClientError}, unless the app cannot reach anything.
+ *
+ * For a background call nobody is watching: offline it failed because the network said no, and a
+ * PWA opened at a crag would write one of those every load.
+ */
+export function reportIfOnline(error: unknown): void {
+  if (isOnline()) {
+    reportClientError(error)
   }
 }

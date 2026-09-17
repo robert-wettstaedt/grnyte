@@ -2,6 +2,7 @@ import type { EventEntityRef } from '$lib/entities/event/entity'
 import { markEventFeedSeen } from '$lib/entities/notification/notifications.remote'
 import { parseTopoChange } from '$lib/entities/topo/change'
 import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
+import { reportIfOnline } from '$lib/logging/report'
 import { getGlobalState } from '$lib/state/global.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
 import { SvelteSet } from 'svelte/reactivity'
@@ -110,7 +111,9 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
     // is a different list, and letting it move the global watermark would mark a region's whole
     // backlog read because somebody opened one sector's history.
     if (seen != null && isGlobal(filter())) {
-      void markEventFeedSeen({ seenAt: Math.round(seen.createdAt) }).catch(() => undefined)
+      // Recorded: a watermark that never moves is a digest repeating what has been read, and
+      // nothing else would show it.
+      void markEventFeedSeen({ seenAt: Math.round(seen.createdAt) }).catch(reportIfOnline)
     }
   }
 

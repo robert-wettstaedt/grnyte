@@ -24,6 +24,7 @@
   import { regionCrumb } from '$lib/entities/region/mapper'
   import { resolveMessage } from '$lib/i18n/message'
   import { calendarDay, formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
+  import { reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -111,10 +112,10 @@
   // Opening the inbox is the act of reading it, so the whole thing is stamped once, here, rather
   // than per row. `onMount` and not an `$effect` on the list: re-stamping whenever the list
   // changed would write again on every arrival while the reader is still on the page.
-  // Swallowed on failure: the badge staying up is the safe way round, and there is nothing
-  // useful to tell the reader about it.
+  // Not shown to the reader, who has nothing to do about it, but recorded: a badge that will not
+  // clear is otherwise a report with nothing behind it.
   onMount(() => {
-    void markNotificationsRead().catch(() => undefined)
+    void markNotificationsRead().catch(reportIfOnline)
   })
 </script>
 

@@ -11,7 +11,7 @@
   import { UNREAD_CAP } from '$lib/entities/notification/resources.svelte'
   import { REGIONLESS_PATHS } from '$lib/entities/region/dto'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
-  import { reportClientError } from '$lib/logging/report'
+  import { reportClientError, reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages.js'
   import { requestPersistentStorage } from '$lib/state/device.svelte'
   import { setGlobalState } from '$lib/state/global.svelte'
@@ -45,8 +45,9 @@
   // feed and the map would never mount it, and never have a dropped subscription repaired.
   //
   // Caught, unlike the call above: this one genuinely rejects (an aborted `subscribe()`, a remote
-  // call made offline) and `hooks.client.ts` turns unhandled rejections into error reports.
-  void syncPushSubscription().catch(() => undefined)
+  // call made offline). Recorded rather than dropped, because a rotation repair that throws here
+  // leaves push dead on this device with nothing else to show for it.
+  void syncPushSubscription().catch(reportIfOnline)
 
   // Feed the user's stored unit preference to the shared formatters (distance, temperature).
   // Re-runs when settings sync/change; null falls back to locale inference.

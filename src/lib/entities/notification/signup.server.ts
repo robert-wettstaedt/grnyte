@@ -30,6 +30,7 @@ export async function notifyAdminsOfSignup({ origin, userFk, username }: SignupA
         origin,
         preheader: m.email_signupAlertPreheader({}, at),
         subject: title,
+        template: 'signup-alert',
         title,
       }
     },

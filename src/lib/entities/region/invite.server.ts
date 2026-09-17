@@ -642,6 +642,7 @@ export async function sendInvitationEmail(
     idempotencyKey,
     locale,
     origin,
+    template: 'invite',
     to: email,
   })
 

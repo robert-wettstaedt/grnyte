@@ -4,6 +4,8 @@
  */
 import { sendEmail, type SendEmailInput } from '$lib/email/send.server'
 import { contactLocale, type MessageOptions } from '$lib/i18n/message'
+import { logServerFailure } from '$lib/logging/failure.server'
+import { stringifyError } from '$lib/logging/stringify'
 import type { Locale } from '$lib/paraglide/runtime'
 import { appAdminRecipients, type AdminRecipient } from './adminRecipients.server'
 import type { PushPayload } from './push'
@@ -47,10 +49,11 @@ export async function alertAppAdmins({ email, label, push }: AdminAlertInput): P
           return
         }
 
-        await sendEmail({ ...email(recipient), to: admin.email })
+        await sendEmail({ ...email(recipient), template: `admin-alert-${label}`, to: admin.email })
       }),
     )
   } catch (exception) {
     console.error(`[${label}] admin alert failed`, exception)
+    await logServerFailure('adminAlert', `${label} failed: ${stringifyError(exception)}`)
   }
 }

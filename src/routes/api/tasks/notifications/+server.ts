@@ -32,6 +32,8 @@ import {
 import { isPushConfigured, sendPushToUser, subscriptionsFor } from '$lib/entities/notification/push.server'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import { contactLocale, resolveMessage } from '$lib/i18n/message'
+import { logServerFailure } from '$lib/logging/failure.server'
+import { stringifyError } from '$lib/logging/stringify'
 import type { Locale } from '$lib/paraglide/runtime'
 import { isCronAuthorized } from '$lib/remote/cron.server'
 import { json } from '@sveltejs/kit'
@@ -100,6 +102,8 @@ async function guarded(id: number, task: () => Promise<boolean | void>): Promise
   try {
     return (await task()) === true
   } catch (error) {
+    // Console only: this runs every five minutes and a row that fails keeps failing, so recording
+    // it would be one entry per tick. The row is still in the inbox, which is the durable half.
     console.error(`[notifications] directed row ${id} failed`, error)
     return false
   }
@@ -460,6 +464,7 @@ async function sendDigests(nowMs: number): Promise<number> {
       return await sendDigest(subscriber)
     } catch (error) {
       console.error(`[notifications] digest failed for user ${subscriber.userFk}`, error)
+      await logServerFailure('notifications', `digest failed for user ${subscriber.userFk}: ${stringifyError(error)}`)
       return false
     }
   }
@@ -662,6 +667,7 @@ async function sendMembershipEmail(
     idempotencyKey: `notification-${row.id}-${row.createdAt.getTime()}`,
     locale,
     origin,
+    template: `notification-${row.sourceType}`,
     to: row.email,
   })
 }

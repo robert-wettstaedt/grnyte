@@ -20,9 +20,9 @@
  *   PUBLIC_TOPO_EMAIL=dev@grnyte.rocks PUBLIC_VAPID_KEY=... PRIVATE_VAPID_KEY=... npx vitest run push.server
  */
 import { db } from '$lib/db/db.server'
-import { pushSubscriptions } from '$lib/db/schema'
+import { clientErrorLogs, pushSubscriptions } from '$lib/db/schema'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
-import { eq } from 'drizzle-orm'
+import { and, desc, eq, gt, like } from 'drizzle-orm'
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:https'
@@ -96,6 +96,9 @@ beforeAll(async () => {
 afterAll(async () => {
   if (runnable) {
     await sql`delete from public.push_subscriptions where user_fk = ${user.userId}`
+    // Every 500 in here now records why it failed. Keyed on this run's own throwaway origin, so a
+    // parallel suite's rows survive and the shared dev database is left as it was found.
+    await sql`delete from public.client_error_logs where source = 'server' and error like ${'%' + origin + '%'}`
     await dropThrowawayUser(user)
     await new Promise<void>((resolve) => server.close(() => resolve()))
   }
@@ -172,6 +175,45 @@ describe.skipIf(!runnable)('sendPush', () => {
 
     const rows = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.id, subscription.id))
     expect(rows).toHaveLength(1)
+
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, subscription.id))
+  })
+
+  /**
+   * The rejection is the only account of why nothing arrived: the caller gets a bare `false`, and
+   * the cron that sends most of them has no console anybody reads.
+   */
+  it('records why a rejected send failed, naming the status and the push service', async () => {
+    status = 500
+    const subscription = await insert('/unexplained')
+    // Watermarked, because this suite's other 500s write rows too: matching the newest row would
+    // pass on one of theirs even if this send recorded nothing.
+    const [before] = await db
+      .select({ id: clientErrorLogs.id })
+      .from(clientErrorLogs)
+      .orderBy(desc(clientErrorLogs.id))
+      .limit(1)
+
+    expect(await sendPush(subscription, { tag: 'digest', title: 'x' })).toBe(false)
+
+    // Scoped to this run's throwaway origin as well as watermarked: a parallel server suite
+    // writes server rows to the same dev database.
+    const written = await db
+      .select()
+      .from(clientErrorLogs)
+      .where(
+        and(
+          eq(clientErrorLogs.source, 'server'),
+          gt(clientErrorLogs.id, before?.id ?? 0),
+          like(clientErrorLogs.error, `%${origin}%`),
+        ),
+      )
+
+    expect(written).toHaveLength(1)
+    expect(written[0].error).toContain('send rejected 500')
+    // The origin, never the endpoint: the full URL is a capability to push to that device.
+    expect(written[0].error).toContain(origin)
+    expect(written[0].error).not.toContain('/unexplained')
 
     await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, subscription.id))
   })

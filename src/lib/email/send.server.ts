@@ -1,5 +1,6 @@
 import { RESEND_API_KEY, RESEND_SENDER_EMAIL } from '$env/static/private'
 import { PUBLIC_ORIGIN, PUBLIC_TOPO_EMAIL } from '$env/static/public'
+import { logServerFailure } from '$lib/logging/failure.server'
 import { Resend } from 'resend'
 import { makeBrand } from './brand'
 import { renderEmailHtml, renderEmailText, type EmailInput } from './shell'
@@ -23,8 +24,16 @@ export interface SendEmailInput extends Omit<EmailInput, 'brand'> {
    * visible duplicate, an over-stable one drops mail and reports success.
    */
   idempotencyKey?: string
+  /**
+   * Which mail this is, for the failure log. Never the rendered subject: those carry a username,
+   * an inviter or a region name, and an error log is not where those belong.
+   */
+  template: string
   to: string | string[]
 }
+
+/** Whether the missing-key state has been recorded this process. */
+let notedUnconfigured = false
 
 /**
  * Sends one email, HTML plus plaintext, through Resend.
@@ -37,12 +46,17 @@ export interface SendEmailInput extends Omit<EmailInput, 'brand'> {
  * ponytail: no retry queue. Delivery is best effort. Add one when a dropped mail costs
  * something (an invite nobody can re-send), not before.
  */
-export async function sendEmail({ idempotencyKey, to, ...content }: SendEmailInput): Promise<boolean> {
+export async function sendEmail({ idempotencyKey, template, to, ...content }: SendEmailInput): Promise<boolean> {
   // `new Resend('')` throws synchronously, which inside this async function becomes a rejected
   // promise and fails the caller's mutation, exactly what the contract above rules out.
   // `.env.example` ships `RESEND_API_KEY=` empty, so this is the default-config path.
   if (!RESEND_API_KEY) {
     console.error('[email] RESEND_API_KEY is not set, dropping', content.subject)
+    // Once per process: unset, it drops every mail, and a row each would be the whole table.
+    if (!notedUnconfigured) {
+      notedUnconfigured = true
+      await logServerFailure('email', 'RESEND_API_KEY is not set, dropping every mail')
+    }
     return false
   }
 
@@ -66,5 +80,8 @@ export async function sendEmail({ idempotencyKey, to, ...content }: SendEmailInp
   // `error` is an unvalidated JSON.parse of the response body, so nothing here can assume
   // a shape. Log and move on.
   console.error('[email] send failed', { message: error.message, name: error.name, subject: content.subject })
+  // Name and template only. Not the recipient, not the rendered subject, and not `error.message`:
+  // that is an unvalidated parse of Resend's body, and its validation errors quote the address.
+  await logServerFailure('email', `send failed (${String(error.name)}) for ${template}`)
   return false
 }

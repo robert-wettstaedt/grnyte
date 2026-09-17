@@ -2,6 +2,8 @@ import { command } from '$app/server'
 import { ascents, ascentTypeEnum, files, routes, users } from '$lib/db/schema'
 import { blank, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
+import { logServerFailure } from '$lib/logging/failure.server'
+import { stringifyError } from '$lib/logging/stringify'
 import { authedForm, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow, requireRowForm } from '$lib/remote/require.server'
@@ -295,7 +297,10 @@ export const deleteAscent = command(
       regionFk,
       sourceType: 'ascent_deleted',
       userFks: [climberFk],
-    }).catch((exception) => console.error('[ascents] delete notification failed', exception))
+    }).catch(async (exception) => {
+      console.error('[ascents] delete notification failed', exception)
+      await logServerFailure('ascents', `delete notification failed: ${stringifyError(exception)}`)
+    })
 
     // Only now that everything that can still fail has: destroy the backing bytes.
     await removeFileStorage(storage)

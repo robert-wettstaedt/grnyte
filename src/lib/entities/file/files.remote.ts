@@ -7,6 +7,8 @@ import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
 import { getImageProvider } from '$lib/images/provider.server'
+import { logServerFailure } from '$lib/logging/failure.server'
+import { stringifyError } from '$lib/logging/stringify'
 import { authedCommand, authedRls, requireAuthed } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { getVideoProvider } from '$lib/videos/provider.server'
@@ -400,7 +402,10 @@ export const finalizeVideo = authedCommand(
         try {
           await getVideoProvider().remove(videoId)
         } catch (reclaimFailed) {
+          // The throw below is about the refusal, not this: an unreclaimed video is a paid asset
+          // nothing sweeps up, and this is its only trace.
           console.error('[finalizeVideo] reclaim failed', videoId, reclaimFailed)
+          await logServerFailure('finalizeVideo', `reclaim failed for ${videoId}: ${stringifyError(reclaimFailed)}`)
         }
       }
       throw thrown

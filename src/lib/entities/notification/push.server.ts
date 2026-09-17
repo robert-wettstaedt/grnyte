@@ -4,6 +4,8 @@ import { PUBLIC_TOPO_EMAIL } from '$env/static/public'
 import { db as baseDb } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { pushSubscriptions } from '$lib/db/schema'
+import { logServerFailure } from '$lib/logging/failure.server'
+import { stringifyError } from '$lib/logging/stringify'
 import { eq, inArray } from 'drizzle-orm'
 import webpush from 'web-push'
 import type { PushPayload } from './push'
@@ -18,10 +20,32 @@ import type { PushPayload } from './push'
 
 let configured = false
 
+/** Once per process: an unconfigured deployment fails every send, and the cron would write a row
+ *  per device per run. */
+let notedUnconfigured = false
+
 /** Whether push can be sent at all. `check:prod` asserts this for a deployed environment; the
  *  cron reports it rather than failing every run in a dev setup with no keys. */
 export function isPushConfigured(): boolean {
   return configure()
+}
+
+/**
+ * Record why a send failed, where an admin can read it afterwards.
+ *
+ * `delivered: false` names no cause, and the cron has no screen to print one to, so without this
+ * every silent branch here is indistinguishable from a device that simply showed nothing. Only the
+ * endpoint's ORIGIN is stored: the full URL is a capability, and the push service is the part worth
+ * knowing. Routine lifecycle (a moved or dead subscription) is not recorded, being expected.
+ *
+ * `deviceFk` is the subscription row, and it is what keeps two dead devices from reading as one:
+ * the recorder drops a message identical to one already stored today.
+ */
+export async function notePushFailure(reason: string, endpoint: string, deviceFk?: number): Promise<void> {
+  const service = URL.canParse(endpoint) ? new URL(endpoint).origin : 'unknown'
+  const device = deviceFk == null ? '' : ` device ${deviceFk}`
+
+  await logServerFailure('push', `${reason} (${service}${device})`)
 }
 
 /**
@@ -42,6 +66,10 @@ export async function sendPush(
   payload: PushPayload,
 ): Promise<boolean> {
   if (!configure()) {
+    if (!notedUnconfigured) {
+      notedUnconfigured = true
+      await notePushFailure('not sent: no VAPID pair configured', subscription.endpoint)
+    }
     return false
   }
 
@@ -58,6 +86,7 @@ export async function sendPush(
   } catch (exception) {
     if (!(exception instanceof webpush.WebPushError)) {
       console.error('[push] send failed', exception)
+      await notePushFailure(`send failed: ${stringifyError(exception)}`, subscription.endpoint, subscription.id)
       return false
     }
 
@@ -70,6 +99,11 @@ export async function sendPush(
       await baseDb.delete(pushSubscriptions).where(eq(pushSubscriptions.id, subscription.id))
     } else {
       console.error('[push] send rejected', exception.statusCode, exception.body)
+      await notePushFailure(
+        `send rejected ${exception.statusCode}: ${exception.body}`,
+        subscription.endpoint,
+        subscription.id,
+      )
     }
 
     return false

@@ -1,4 +1,5 @@
-import { resolveErrorMessage } from '$lib/forms/issue'
+import { resolveErrorMessage, serverMessage } from '$lib/forms/issue'
+import { reportIfOnline } from '$lib/logging/report'
 import { m } from '$lib/paraglide/messages'
 import { runCommand, type MutationResult } from '$lib/remote/mutation'
 import { createToaster } from '@skeletonlabs/skeleton-svelte'
@@ -30,6 +31,12 @@ export interface UndoToastData {
  * it needs more reading time than a confirmation the user was already waiting for.
  */
 export function notifyError(cause?: unknown): void {
+  // Only the ones nobody can explain afterwards. A server-authored message means the app said no
+  // on purpose, and offline it was the network, not a defect.
+  if (serverMessage(cause) == null) {
+    reportIfOnline(cause)
+  }
+
   toaster.create({ duration: 8000, title: resolveErrorMessage(cause), type: 'error' })
 }
 
