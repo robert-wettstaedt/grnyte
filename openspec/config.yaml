@@ -1,0 +1,56 @@
+schema: spec-driven
+
+# Shown to AI when creating artifacts. AGENTS.md and CONTEXT.md stay authoritative;
+# this only orients a proposal so it does not start from the wrong shape.
+context: |
+  grnyte: a private guidebook and logbook for bouldering. PWA, offline-capable reads.
+  Stack: SvelteKit + Svelte 5 runes, TypeScript, Skeleton UI, Paraglide i18n (en + de),
+  Zero (Rocicorp) for sync, Supabase Postgres with RLS, Drizzle ORM, OpenLayers maps.
+
+  Read first, do not restate here:
+  - AGENTS.md: working rules, commands, the verification sweep.
+  - CONTEXT.md: domain vocabulary. A sector is a typed area and "crag" is prose only,
+    a block is the entity and "boulder" is prose, send is the umbrella over
+    flash / redpoint / repeat. Never name a domain concept without checking it.
+
+  Architecture facts that decide whether a plan is workable:
+  - Hierarchy: region > area (nests via parentFk) > block > route > ascent. Every level
+    also carries regionFk directly, for RLS.
+  - Reads are Zero queries from entity modules in src/lib/entities/<name>/.
+  - Writes are SvelteKit remote functions (command / authedCommand), RLS-gated.
+    Never Zero mutators. A write against an existing row gates through
+    requireRow / requireRowForm, so the permission check reads stored data.
+  - Schema changes run the pipeline: edit schema.ts, generate:drizzle, append backfill
+    SQL, generate:zero, migrate. A column is never added in isolation.
+  - Any user-facing string needs a key in BOTH messages/en.json and messages/de.json.
+  - A deploy is not atomic on the client. Moving a .remote.ts file, renaming a remote
+    export, or reshaping a route breaks already-loaded tabs with no build error. Plan
+    those as migrations with a cost, not as tidying.
+  - Several agents share one checkout and one dev stack. Work stages named paths only,
+    never git add -A, and never migrates the shared dev DB from a worktree.
+
+  No em-dashes in any artifact, and none in the copy an artifact proposes.
+
+rules:
+  proposal:
+    - Include a Non-goals section.
+    - Name the entity modules, routes and tables the change touches.
+    - Flag anything that changes a URL, a remote function export or manifest.id as
+      client-breaking, and say what already-loaded tabs do across the deploy.
+  design:
+    - Name the existing component, entity module or helper each piece extends before
+      proposing a new one. Reuse and refactor beats a parallel copy.
+    - State which reads are Zero queries and which writes are remote functions.
+    - Call out every schema change and the backfill it needs.
+  tasks:
+    - Keep each task to one reviewable edit.
+    - Add an explicit i18n task whenever the change introduces user-facing copy.
+    - "End with the verification sweep from AGENTS.md over the touched paths:
+      prettier, eslint, the matching vitest project, typecheck, lint:duplication,
+      lint:unused, and driving the running app at 375x667 and 1280x800."
+
+operations:
+  apply:
+    guidance:
+      - Stage only the paths this change touched, by name.
+      - A new test counts once it has been seen red.
