@@ -17,6 +17,29 @@ project does) and has neither the public tables nor a `drizzle` schema yet.
 `pg_restore` has to be 17. The archive is format 1.16, and neither a 15 nor the `postgres:16` that
 `ci.yml` and the worktree recipe use gets past the header.
 
+## Restoring over a project that is not empty
+
+The order below assumes an empty target. A rollback is not that: it restores over a production
+project that is part migrated, so the schemas have to go first. This step has never been run.
+
+```bash
+psql "$TARGET" -c 'drop schema if exists public cascade' \
+               -c 'drop schema if exists drizzle cascade' \
+               -c 'create schema public'
+```
+
+`auth` and `storage` stay. Their DDL is not in the archive, step 2 restores rows into them, and
+dropping `auth` takes GoTrue's own tables with it. Their ROWS are another matter: step 2 inserts
+rather than replaces, so delete what the dump will bring back, children first.
+
+```bash
+psql "$TARGET" -c 'delete from auth.identities' -c 'delete from auth.users'
+```
+
+Then continue from step 1. Expect the timing to be dominated by what follows the restore rather
+than by `pg_restore` itself: the dump is small, and re-pointing Vercel, re-registering the cron
+jobs and letting zero-cache rebuild its replica are the parts that take real time. Unmeasured.
+
 ## The order
 
 Each step exists because the other order lost something. Run them as written.

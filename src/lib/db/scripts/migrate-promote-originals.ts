@@ -27,7 +27,7 @@ import sharp from 'sharp'
 import drizzleConfig from '../../../../drizzle.config'
 import { isDerivableImage } from '../../images/derivatives'
 import * as schema from '../schema'
-import { connectNextcloud, listingCache, rethrowUnlessMissing } from './nextcloud'
+import { connectNextcloud, inParallel, listingCache, rethrowUnlessMissing } from './nextcloud'
 
 /** Storage path of the pristine sibling, e.g. `/topos/138.jpg` → `/topos/138.orig.jpg`. */
 const origPathOf = (path: string): string => path.replace(/\.([^./]+)$/, '.orig.$1')
@@ -39,6 +39,10 @@ const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
 
 /** Enough for the SOF marker of every image measured so far; 4KB sufficed for all of them. */
 const HEADER_BYTES = 64 * 1024
+
+/** Two round trips per candidate (the compared header reads, then the MOVE) and barely any bytes,
+ *  so this is latency-bound: measured against prod, serial was ~9 minutes for 804 candidates. */
+const CONCURRENCY = 4
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
   const rows = await db.select({ path: schema.files.path }).from(schema.files)
@@ -98,12 +102,12 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   const downgrades: string[] = []
   const unjudged: string[] = []
 
-  for (const path of paths) {
+  const processPath = async (path: string) => {
     const orig = origPathOf(path)
     const siblings = await siblingsOf(path)
     if (!siblings.has(nameOf(orig))) {
       withoutOrig += 1
-      continue
+      return
     }
 
     // 1.0 data does not always keep the promise that `.orig` is the pristine full-resolution copy,
@@ -112,7 +116,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     if (origPixels == null || basePixels == null) {
       unjudged.push(path)
       console.warn(`Skipping "${orig}": could not read dimensions of both files.`)
-      continue
+      return
     }
     if (origPixels < basePixels) {
       downgrades.push(path)
@@ -120,7 +124,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
         `Skipping "${orig}": it is SMALLER than the file it would replace ` +
           `(${origPixels.toLocaleString()} vs ${basePixels.toLocaleString()} pixels), so promoting it would downgrade the image.`,
       )
-      continue
+      return
     }
 
     console.log(`${dryRun ? 'would promote' : 'promoting'} ${orig} → ${path}`)
@@ -133,11 +137,15 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
       } catch (err) {
         failed.push(path)
         console.warn(`Failed to promote "${orig}":`, err instanceof Error ? err.message : err)
-        continue
+        return
       }
     }
     promoted += 1
   }
+
+  // Each path owns its own `.orig`, so the work is independent; what is shared is the
+  // promise-cached folder listing, which is built for concurrent callers.
+  await inParallel(paths, CONCURRENCY, processPath)
 
   console.log(
     `\n${dryRun ? 'DRY RUN: ' : ''}promoted ${promoted} of ${paths.length} image path(s); ${withoutOrig} had no .orig sibling.`,

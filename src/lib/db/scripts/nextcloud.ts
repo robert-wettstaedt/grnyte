@@ -69,3 +69,26 @@ export const listingCache = ({ dav, userPath }: NextcloudDav): ((dir: string) =>
 export const rethrowUnlessMissing = (err: unknown): void => {
   if (!isMissing(err)) throw err
 }
+
+/**
+ * Run `worker` over `items`, `concurrency` at a time. These migrations are latency-bound rather
+ * than bandwidth-bound: a handful in flight hides the round trip without hammering Nextcloud.
+ *
+ * The cursor is read and incremented in ONE expression on purpose. Split across an await, two
+ * workers take the same item, which for a script that MOVEs files means doing it twice.
+ */
+export const inParallel = async <T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> => {
+  let cursor = 0
+
+  await Promise.all(
+    Array.from({ length: concurrency }, async () => {
+      while (cursor < items.length) {
+        await worker(items[cursor++])
+      }
+    }),
+  )
+}

@@ -17,6 +17,7 @@ import { configDefaults, defineConfig } from 'vitest/config'
 const NODE_ENVIRONMENT_TESTS = [
   'src/lib/components/Markdown/lib/remark-safe-urls.coverage.test.ts',
   'src/lib/db/regionPolicies.test.ts',
+  'src/lib/db/scripts/migrate-promote-originals.test.ts',
   'src/lib/entities/event/cases/coverage.test.ts',
   'src/lib/zero/tenancy.test.ts',
 ]
