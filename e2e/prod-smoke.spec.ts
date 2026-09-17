@@ -57,10 +57,17 @@ const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\
  */
 const IGNORED = [
   {
-    // `serviceWorkers: 'block'` in playwright.config.ts makes the worker script return 404.
-    // workbox-window then reads `registration.waiting` off undefined. The harness causes both.
-    pattern: /workbox-window|sw\.js|Failed to load resource/,
+    // `serviceWorkers: 'block'` in playwright.config.ts makes the worker script return 404, and
+    // workbox-window then reads `registration.waiting` off undefined.
+    pattern: /workbox-window/,
     why: 'the harness blocks service workers',
+  },
+  {
+    // A console line does not say WHICH resource failed, so it cannot be told apart from the
+    // moved-endpoint 404 this spec exists to catch. `failedRequests` watches responses instead,
+    // where the URL is knowable.
+    pattern: /Failed to load resource/,
+    why: 'unattributable from the text; covered by the response listener',
   },
   {
     // Skeleton's Toaster raises this on /explore, several times per load. It is older than this
@@ -80,12 +87,39 @@ const record = (page: Page, text: string) => {
   consoleErrors.push(`${page.url()}: ${text}`)
 }
 
+/** The service worker script, which the harness makes 404 on purpose. Everything else that fails
+ *  is the app, including the remote-function 404 a moved `.remote.ts` produces after a deploy. */
+const HARNESS_REQUEST = /\/(dev-)?sw\.js/
+
+/** A build artifact. A dev server does not emit it, so the reachability probe in `online.svelte.ts`
+ *  404s there. A deployed environment serves it, where a 404 means the deploy is broken. */
+const BUILD_ARTIFACT = /\/_app\/version\.json/
+
+/** Vite ships this to a dev server and to nothing else. */
+const DEV_SERVER = /\/@vite\//
+
+const failedRequests: { status: number; url: string }[] = []
+let devServer = false
+
 const collectErrors = (page: Page) => {
   page.on('console', (message: ConsoleMessage) => {
     if (message.type() === 'error') record(page, message.text())
   })
   page.on('pageerror', (error) => record(page, error.message))
+  page.on('response', (response) => {
+    if (DEV_SERVER.test(response.url())) devServer = true
+    if (response.status() >= 400 && !HARNESS_REQUEST.test(response.url())) {
+      failedRequests.push({ status: response.status(), url: response.url() })
+    }
+  })
 }
+
+/** Filtered at the end, not as they arrive: the probe can fail before anything identifies the
+ *  target as a dev server. */
+const realFailures = () =>
+  failedRequests
+    .filter(({ url }) => !(devServer && BUILD_ARTIFACT.test(url)))
+    .map(({ status, url }) => `${status} from ${url}`)
 
 /**
  * The newest route that the signed-in account can read. The query only reads, and it is what keeps
@@ -95,14 +129,14 @@ const collectErrors = (page: Page) => {
  * A region is a closed container. An unscoped pick lands on a route the account cannot see, and the
  * spec then fails for a reason that has nothing to do with the deploy.
  */
-async function newestReadableRoute(): Promise<undefined | { blockFk: number; id: number; name: null | string }> {
-  const [row] = await sql<{ blockFk: number; id: number; name: null | string }[]>`
+async function newestReadableRoute(): Promise<undefined | { blockFk: number; id: number; name: string }> {
+  const [row] = await sql<{ blockFk: number; id: number; name: string }[]>`
     select r.id, r.name, r.block_fk as "blockFk"
     from public.routes r
     join public.region_members rm on rm.region_fk = r.region_fk
     join public.users u on u.id = rm.user_fk
     join auth.users au on au.id = u.auth_user_fk
-    where r.deleted_at is null and rm.is_active and au.email = ${EMAIL}
+    where r.deleted_at is null and rm.is_active and au.email = ${EMAIL} and trim(r.name) <> ''
     order by r.id desc
     limit 1
   `
@@ -148,8 +182,8 @@ test('a deployed environment serves a signed-in reader', async ({ page }) => {
   await visit(page, `/routes/${route.id}`)
 
   // The title comes from the mapper of the entity, so the app reads the row here. It does not echo
-  // the URL. A guidebook name is not a pattern, so the match is literal.
-  await expect(page).toHaveTitle(new RegExp(escapeRegExp(route.name ?? String(route.id))))
+  // the URL. The query skips a blank name, which would make this pattern match any title at all.
+  await expect(page).toHaveTitle(new RegExp(escapeRegExp(route.name)))
 
   // The breadcrumb proves that the related rows synced, not only the route. A replica that
   // bootstrapped in part renders the route and loses its parents.
@@ -159,5 +193,6 @@ test('a deployed environment serves a signed-in reader', async ({ page }) => {
   await expect(page.getByText('Grade pyramid')).toBeVisible()
 
   // Last on purpose. A failure above names the problem better than "something logged an error".
-  expect(consoleErrors, `the app logged errors:\n${consoleErrors.join('\n')}`).toEqual([])
+  const problems = [...consoleErrors, ...realFailures()]
+  expect(problems, `the app logged errors:\n${problems.join('\n')}`).toEqual([])
 })

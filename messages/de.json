@@ -312,6 +312,18 @@
   "editor_placeholder": "Beschreibung hinzufügen…",
   "editor_redo": "Wiederholen",
   "editor_undo": "Rückgängig",
+  "email_errorAlertBody": [
+    {
+      "declarations": ["input count", "input excerpt", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Die App hat seit der letzten Meldung {count} neuen Fehler erfasst: {excerpt}",
+        "countPlural=other": "Die App hat seit der letzten Meldung {count} neue Fehler erfasst: {excerpt}"
+      }
+    }
+  ],
+  "email_errorAlertMeta": "NEUE FEHLER",
+  "email_errorAlertPreheader": "In grnyte ist etwas fehlgeschlagen und wurde erfasst.",
   "email_fallbackHint": "Button funktioniert nicht? Füge diesen Link in deinen Browser ein:",
   "email_feedbackAlertBody1": "{username} hat Feedback geschickt ({kind}).",
   "email_feedbackAlertBody2": "Zuletzt auf {pathname}.",
@@ -1519,6 +1531,16 @@
   "push_digestMore": "und {count} weitere Neuigkeiten",
   "push_dismiss": "Jetzt nicht",
   "push_enable": "Benachrichtigungen aktivieren",
+  "push_errorAlertTitle": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} neuer Fehler",
+        "countPlural=other": "{count} neue Fehler"
+      }
+    }
+  ],
   "push_feedbackTitle": "{username} hat Feedback geschickt",
   "push_installFirst": "Füge die App zuerst zum Home-Bildschirm hinzu. Benachrichtigungen funktionieren nur von dort.",
   "push_promptBody": "Werde benachrichtigt, wenn dich jemand erwähnt, deine Begehung bearbeitet oder in deiner Community viel los ist.",

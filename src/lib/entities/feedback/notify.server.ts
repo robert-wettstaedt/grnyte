@@ -33,7 +33,6 @@ export async function notifyAdminsOfFeedback({
 }: FeedbackAlertInput): Promise<void> {
   await alertAppAdmins({
     email: ({ admin, at, locale }) => ({
-      template: 'feedback-alert',
       ...feedbackAlertEmailContent({
         excerpt,
         kind: resolveMessage(FEEDBACK_KIND_KEYS[kind], undefined, at),

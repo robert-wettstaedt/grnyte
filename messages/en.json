@@ -312,6 +312,18 @@
   "editor_placeholder": "Add a description…",
   "editor_redo": "Redo",
   "editor_undo": "Undo",
+  "email_errorAlertBody": [
+    {
+      "declarations": ["input count", "input excerpt", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "The app recorded {count} new error since the last alert: {excerpt}",
+        "countPlural=other": "The app recorded {count} new errors since the last alert: {excerpt}"
+      }
+    }
+  ],
+  "email_errorAlertMeta": "NEW ERRORS",
+  "email_errorAlertPreheader": "Something in grnyte failed and was recorded.",
   "email_fallbackHint": "Button not working? Paste this into your browser:",
   "email_feedbackAlertBody1": "{username} sent feedback ({kind}).",
   "email_feedbackAlertBody2": "They were on {pathname}.",
@@ -1519,6 +1531,16 @@
   "push_digestMore": "and {count} more updates",
   "push_dismiss": "Not now",
   "push_enable": "Turn on notifications",
+  "push_errorAlertTitle": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} new error",
+        "countPlural=other": "{count} new errors"
+      }
+    }
+  ],
   "push_feedbackTitle": "{username} sent feedback",
   "push_installFirst": "Add the app to your home screen first. Notifications only work from there.",
   "push_promptBody": "Get notified when somebody mentions you, edits your ascent, or your community is busy.",

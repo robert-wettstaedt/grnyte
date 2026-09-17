@@ -12,8 +12,9 @@ import type { PushPayload } from './push'
 import { sendPushToUser, subscriptionsFor } from './push.server'
 
 export interface AdminAlertInput {
-  /** The mail for an admin the push did not reach. `to` is the helper's. */
-  email: (recipient: AdminAlertRecipient) => Omit<SendEmailInput, 'to'>
+  /** The mail for an admin the push did not reach. `to` and `template` are the helper's: it names
+   *  the failure log after {@link AdminAlertInput.label}, so a caller's own value never survives. */
+  email: (recipient: AdminAlertRecipient) => Omit<SendEmailInput, 'template' | 'to'>
   /** Tags the swallowed failure in the log, e.g. `signup`. */
   label: string
   push: (recipient: AdminAlertRecipient) => PushPayload

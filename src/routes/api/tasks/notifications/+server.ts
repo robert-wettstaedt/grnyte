@@ -19,6 +19,7 @@ import { eventParentRef } from '$lib/entities/event/mapper'
 import { notificationView } from '$lib/entities/notification/caption'
 import { digestCopy, type DigestEvent } from '$lib/entities/notification/digest.server'
 import type { NotificationSourceType } from '$lib/entities/notification/dto'
+import { alertOnNewErrors } from '$lib/entities/notification/errorAlert.server'
 import { readableRegions } from '$lib/entities/notification/notification.server'
 import {
   DIGEST_COMMIT_LAG_MS,
@@ -724,6 +725,8 @@ export const POST: RequestHandler = async ({ request, url }) => {
   // advance everybody's watermark past events nobody was told about.
   const digests = configured ? await sendDigests(nowMs) : 0
 
-  console.log(`[notifications] sent ${directed} directed, ${digests} digests`)
-  return json({ configured, digests, directed })
+  const errors = await alertOnNewErrors(url.origin)
+
+  console.log(`[notifications] sent ${directed} directed, ${digests} digests, ${errors} error alerts`)
+  return json({ configured, digests, directed, errors })
 }
