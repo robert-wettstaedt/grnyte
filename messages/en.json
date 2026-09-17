@@ -1794,6 +1794,7 @@
   "settings_languageHint": "Applies to emails and notifications too.",
   "settings_legal": "Legal",
   "settings_notifications": "Notifications",
+  "settings_notificationsDelivery": "Delivery",
   "settings_notificationsTypes": "Send me a push about",
   "settings_notifyAscents": "Ascents",
   "settings_notifyAscentsHint": "When somebody in your community logs a climb",

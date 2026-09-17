@@ -1794,6 +1794,7 @@
   "settings_languageHint": "Gilt auch für E-Mails und Benachrichtigungen.",
   "settings_legal": "Rechtliches",
   "settings_notifications": "Benachrichtigungen",
+  "settings_notificationsDelivery": "Zustellung",
   "settings_notificationsTypes": "Push senden bei",
   "settings_notifyAscents": "Begehungen",
   "settings_notifyAscentsHint": "Wenn jemand aus deiner Community eine Begehung einträgt",
