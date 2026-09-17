@@ -25,7 +25,8 @@ export interface ImageProvider {
   fetchOriginal(path: string, options?: OriginalOptions): Promise<ImagePayload>
   /** A small, cacheable, aspect-preserving thumbnail at (about) `width` px. Throws if unavailable. */
   fetchThumbnail(path: string, options: ThumbnailOptions): Promise<ImagePayload>
-  /** Delete the object at `path`. */
+  /** Delete the object at `path`. Idempotent: callers pass candidate paths, so an object that was
+   *  never there resolves rather than throwing, and only a real storage failure rejects. */
   remove(path: string): Promise<void>
   /** Write `data` at `path`, creating missing parent folders. Overwrites silently. */
   store(path: string, data: Buffer): Promise<void>

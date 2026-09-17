@@ -21,11 +21,11 @@ export const derivativePath = (path: string, size: DerivativeSize): string =>
 /**
  * Every stored object an image `path` could have produced, for unwinding it from
  * storage on delete: the served original, each webp derivative sibling, and the
- * pristine `.orig.*` sibling a HEIC upload keeps. `path` is always the `.jpg` we
- * serve so the orig's real extension isn't recoverable from it, but the sibling
- * only exists for HEIC (see finalizeImage), so it's one of exactly two
- * extensions. Both candidates are listed; the non-existent one 404s on a
- * best-effort remove (cheaper than a full-directory PROPFIND to find the real one).
+ * pristine `.orig.*` sibling a HEIC upload keeps. Nothing records that an upload
+ * was HEIC (`finalizeImage` rewrites the extension to `jpg` before storing the
+ * path, and `files` has no format column), so both candidates are listed and at
+ * most one exists. Every entry here is a candidate rather than a certainty: the
+ * provider's `remove` treats a 404 as done, which is what makes that safe.
  */
 export const imageStoragePaths = (path: string): string[] => {
   const base = path.replace(/\.[^./]+$/, '')

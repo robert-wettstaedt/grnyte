@@ -90,7 +90,15 @@ function create(): ImageProvider {
     },
 
     async remove(path: string): Promise<void> {
-      await dav().deleteFile(`${NEXTCLOUD_USER_NAME}${path}`)
+      try {
+        await dav().deleteFile(`${NEXTCLOUD_USER_NAME}${path}`)
+      } catch (deleteError) {
+        // 404 is the end state this asks for, not a failure: callers delete speculative siblings
+        // that may never have been written, and several `files` rows can share one stored path.
+        if (statusOf(deleteError) !== 404) {
+          throw deleteError
+        }
+      }
     },
 
     async store(path: string, data: Buffer): Promise<void> {

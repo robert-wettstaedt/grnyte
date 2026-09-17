@@ -2,9 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('$lib/db/db.server.ts', () => ({}))
 
-// The provider memoizes one WebDAV client, so all tests share this spy.
-const { getFileContents } = vi.hoisted(() => ({ getFileContents: vi.fn() }))
-vi.mock('webdav', () => ({ createClient: () => ({ getFileContents }) }))
+// The provider memoizes one WebDAV client, so all tests share these spies.
+const { deleteFile, getFileContents } = vi.hoisted(() => ({ deleteFile: vi.fn(), getFileContents: vi.fn() }))
+vi.mock('webdav', () => ({ createClient: () => ({ deleteFile, getFileContents }) }))
+
+/** A webdav client error, which carries the HTTP status the provider branches on. */
+const davError = (status: number) => Object.assign(new Error(`Invalid response: ${status}`), { status })
 
 import { getNextcloudImageProvider } from './nextcloud.provider.server'
 
@@ -65,5 +68,26 @@ describe('nextcloud image provider: fetchThumbnail', () => {
     )
 
     await expect(getNextcloudImageProvider().fetchThumbnail('/topos/nope.jpg', { width: 160 })).rejects.toThrow(/404/)
+  })
+})
+
+describe('nextcloud image provider: remove', () => {
+  afterEach(() => deleteFile.mockReset())
+
+  // `imageStoragePaths` returns candidates, not certainties: the `.orig.heic`/`.orig.heif` pair is a
+  // guess (nothing records that an upload was HEIC), derivatives may never have been generated, and
+  // several `files` rows can share one stored path so the second delete finds nothing. Rejecting
+  // here made `removeFileStorage` log every one of those as a failure.
+  it('treats a 404 as already removed', async () => {
+    deleteFile.mockRejectedValue(davError(404))
+
+    await expect(getNextcloudImageProvider().remove('/topos/138.orig.heic')).resolves.toBeUndefined()
+    expect(deleteFile).toHaveBeenCalledWith(expect.stringMatching(/\/topos\/138\.orig\.heic$/))
+  })
+
+  it('rethrows anything that is not a 404, so a broken store is still reported', async () => {
+    deleteFile.mockRejectedValue(davError(403))
+
+    await expect(getNextcloudImageProvider().remove('/topos/138.jpg')).rejects.toThrow(/403/)
   })
 })
