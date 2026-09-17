@@ -30,6 +30,10 @@ const PROMPT_DISMISSED_KEY = `${PUBLIC_APPLICATION_NAME}.pushPromptDismissed`
  */
 const ENDPOINT_KEY = `${PUBLIC_APPLICATION_NAME}.pushEndpoint`
 
+/** How long a push service gets to answer `subscribe`. Longer than a slow mobile registration,
+ *  short enough that nobody is left watching a switch that will never move. */
+const SUBSCRIBE_TIMEOUT_MS = 15_000
+
 /** Shared by every soft pre-prompt surface, so somebody sees the ask once in total rather than
  *  once per screen that offers it. */
 let dismissed = $state(false)
@@ -253,7 +257,12 @@ async function subscribeCurrent(registration: ServiceWorkerRegistration): Promis
   }
 
   // `userVisibleOnly` is required by Chrome, and honest: every push this app sends shows something.
-  return registration.pushManager.subscribe({ applicationServerKey, userVisibleOnly: true })
+  // Deadlined: an unreachable push service leaves `subscribe` pending rather than rejecting, and a
+  // promise that never settles throws nothing, so every caller's catch and the error log stay quiet.
+  return withDeadline(
+    registration.pushManager.subscribe({ applicationServerKey, userVisibleOnly: true }),
+    SUBSCRIBE_TIMEOUT_MS,
+  )
 }
 
 /**
@@ -271,4 +280,21 @@ function urlBase64ToUint8Array(base64: string): BufferSource {
     bytes[index] = raw.charCodeAt(index)
   }
   return bytes
+}
+
+/** Reject `promise` if it has not settled within `ms`. The Push API takes no `AbortSignal`, so the
+ *  browser may still finish subscribing afterwards; `syncPushSubscription` adopts it on the next load. */
+async function withDeadline<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Push service did not answer in time')), ms)
+      }),
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
 }

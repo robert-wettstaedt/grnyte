@@ -87,8 +87,10 @@
     // Persisted BEFORE setLocale, which reloads the page and would abort the request in flight.
     try {
       await updateUserSettings({ contactLocale: value })
-    } catch {
-      // The UI language is device local and must switch anyway; only the mail preference is lost.
+    } catch (cause) {
+      // Nothing to revert (the UI language is device local) and no toast worth raising (`setLocale`
+      // reloads past it), so reporting is the only thing that makes the lost mail preference visible.
+      reportIfOnline(cause)
     }
     setLocale(value)
   }

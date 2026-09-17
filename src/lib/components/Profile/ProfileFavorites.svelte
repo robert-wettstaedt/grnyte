@@ -15,6 +15,7 @@
   import { userAllFavoriteList } from '$lib/entities/favorite/resources.svelte'
   import { routesByIds } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { notifyError } from '$lib/state/toast'
   import { locationCrumb } from './crumbs'
   import ProfileRouteList from './ProfileRouteList.svelte'
   import SectionHeading from './SectionHeading.svelte'
@@ -54,11 +55,21 @@
 
   // Removing a favorite. Zero re-syncs the list, so the row drops out on its own once the write
   // lands.
+  // Caught rather than left to the window listener: nothing moves until the write syncs back, so a
+  // failure is indistinguishable from a row that simply has not arrived yet.
   const removeFavorite = async (entityType: 'area' | 'block' | 'route', entityId: number): Promise<void> => {
-    await toggleFavorite({ entityId, entityType })
+    try {
+      await toggleFavorite({ entityId, entityType })
+    } catch (cause) {
+      notifyError(cause)
+    }
   }
   const removeAllFavorites = async (): Promise<void> => {
-    await Promise.all(favorites.data.map((f) => toggleFavorite({ entityId: f.entityId, entityType: f.entityType })))
+    try {
+      await Promise.all(favorites.data.map((f) => toggleFavorite({ entityId: f.entityId, entityType: f.entityType })))
+    } catch (cause) {
+      notifyError(cause)
+    }
   }
 
   const FAV_LIMIT = 6

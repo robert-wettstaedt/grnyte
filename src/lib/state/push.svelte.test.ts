@@ -43,6 +43,8 @@ const ENDPOINT_KEY = 'grnyte.pushEndpoint'
 describe('syncPushSubscription', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Reset, not clear: a test that leaves an implementation behind decides the next one's outcome.
+    subscribe.mockReset()
     localStorage.clear()
     live = null
   })
@@ -73,6 +75,37 @@ describe('syncPushSubscription', () => {
     expect(subscribe).not.toHaveBeenCalled()
     expect(unsubscribeFromPush).not.toHaveBeenCalled()
     expect(subscribeToPush).toHaveBeenCalledWith(expect.objectContaining({ endpoint: 'https://push.example/same' }))
+  })
+
+  // An unreachable push service leaves `subscribe` pending instead of rejecting, so without a
+  // deadline the caller waits forever and nothing throws for the error log to record.
+  it('gives up on a subscribe that never answers', async () => {
+    live = subscription('https://push.example/old', 'old-vapid-key')
+    localStorage.setItem(ENDPOINT_KEY, 'https://push.example/old')
+    subscribe.mockReturnValue(new Promise(() => {}))
+
+    vi.useFakeTimers()
+
+    try {
+      let outcome: unknown = 'pending'
+      const done = syncPushSubscription().then(
+        () => (outcome = 'resolved'),
+        (cause: unknown) => (outcome = cause),
+      )
+
+      await vi.advanceTimersByTimeAsync(14_000)
+      expect(outcome).toBe('pending')
+
+      await vi.advanceTimersByTimeAsync(2_000)
+      await done
+
+      expect(outcome).toBeInstanceOf(Error)
+      expect((outcome as Error).message).toContain('did not answer in time')
+      // The device is left unregistered rather than recorded against a subscription it never got.
+      expect(subscribeToPush).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   // Switched off, or never on: the permission is granted but this device opted out, and a sync
