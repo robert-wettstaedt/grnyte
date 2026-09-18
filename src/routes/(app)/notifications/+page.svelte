@@ -9,22 +9,14 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import Avatar from '$lib/components/Avatar/Avatar.svelte'
-  import HydratedRow from '$lib/components/EntityRow/HydratedRow.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import MediaTile from '$lib/components/Media/MediaTile.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import type { CardRow } from '$lib/entities/event/cardView'
-  import type { EventEntityRef } from '$lib/entities/event/entity'
-  import { notificationView } from '$lib/entities/notification/caption'
-  import type { NotificationListItem } from '$lib/entities/notification/dto'
+  import NotificationRow from '$lib/entities/notification/NotificationRow.svelte'
   import { markNotificationsRead } from '$lib/entities/notification/notifications.remote'
   import { notificationList } from '$lib/entities/notification/resources.svelte'
-  import { regionCrumb } from '$lib/entities/region/mapper'
-  import { resolveMessage } from '$lib/i18n/message'
-  import { calendarDay, formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
+  import { calendarDay, formatDay } from '$lib/i18n/relativeTime'
   import { reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -50,9 +42,7 @@
    */
   const arrivedUnread = new SvelteSet<number>()
 
-  const views = $derived(
-    notifications.data.map((notification) => ({ notification, view: notificationView(notification) })),
-  )
+  const views = $derived(notifications.data.map((notification) => ({ notification })))
 
   // Same day dividers as the feed, decided the same way: a flat sequence with a flag on the first
   // row of each day, rather than nested per-day arrays.
@@ -72,51 +62,6 @@
         arrivedUnread.add(notification.id)
       }
     }
-  })
-
-  /**
-   * The notification's own object, in the shared row's vocabulary.
-   *
-   * The entity arrives nested with the row now, so there is no waiting and no third state: it is
-   * either here or it is gone. A row whose object was already deleted when the typed columns were
-   * backfilled has no ref at all and draws nothing (see `notificationView`).
-   */
-  /**
-   * Where this row happened, when it happened under a card.
-   *
-   * The event's own page, with the comment it was written about as the anchor: a reply, a comment
-   * and a mention inside one all point at a line in a conversation, and that page renders the
-   * thread in flow so there is something for `?comment=` to scroll to. A row about a description
-   * mention or a role change names no event and stays plain text.
-   */
-  const rowHref = (notification: NotificationListItem) => {
-    // The parent's page with the viewer open, not `/f/<id>`: that page is a share surface with no
-    // nav, so a reader who arrives from the inbox has no way back into the app. A route page reads
-    // `?media` for its own files and its ascents'; a block or area has no viewer and just opens.
-    if (notification.sourceType === 'video_ready') {
-      const href = notification.entity?.href
-      return href == null || notification.object == null ? undefined : `${href}?media=${notification.object.id}`
-    }
-
-    return notification.eventFk == null
-      ? undefined
-      : `${resolve('/(app)/events/[id]', { id: String(notification.eventFk) })}${
-          notification.reactionFk == null ? '' : `?comment=${notification.reactionFk}`
-        }`
-  }
-
-  const rowFor = (notification: NotificationListItem, ref: EventEntityRef): CardRow => ({
-    // Neither on an inbox row. The strip and the note are what a feed card says ABOUT an ascent it
-    // is reporting; a notification is one line telling you it happened, and the ascent's own
-    // screen is one tap away.
-    ascent: undefined,
-    entity: notification.entity,
-    // Unlike an event, a notification stores no fallback name for its subject, so a tombstone here
-    // can only say what kind of thing is missing.
-    name: undefined,
-    note: undefined,
-    ref,
-    state: notification.entity == null ? 'tombstone' : 'entity',
   })
 
   // Opening the inbox is the act of reading it, so the whole thing is stamped once, here, rather
@@ -145,73 +90,14 @@
     <QueryState resource={notifications}>
       {#snippet ready()}
         <div class="space-y-2">
-          {#each rows as { day, notification, startsDay, view } (notification.id)}
+          {#each rows as { day, notification, startsDay } (notification.id)}
             {#if startsDay}
               <h2 class="text-surface-600-400 px-1 pt-1 text-xs font-bold tracking-wide uppercase">
                 {formatDay(day, now(), getLocale())}
               </h2>
             {/if}
 
-            {@const crumb = regionCrumb(global.userRegions, notification.regionFk)}
-            <!-- The file the row is about, hung off the parent entity by `toEventEntity`. Absent
-                 once the video is deleted, which falls back to the avatar and a tombstone row. -->
-            {@const media = notification.sourceType === 'video_ready' ? notification.entity?.files?.[0] : undefined}
-
-            <article
-              class={[
-                'space-y-2 rounded-2xl border p-3',
-                arrivedUnread.has(notification.id)
-                  ? 'border-primary-500/40 bg-primary-500/5'
-                  : 'border-surface-200-800 bg-surface-100-900',
-              ]}
-            >
-              <!-- The feed's header, in the same order and the same sizes: who, what, when. Every
-                   sentence here starts with the actor, so the face that goes with the name belongs
-                   on the row as much as it does on a card. -->
-              <!-- The sentence is the link, not the whole card: the entity row underneath is
-                   already a link of its own, and an anchor cannot contain another. Tapping what a
-                   row SAYS opens where it happened; tapping the thing it names opens that thing. -->
-              <svelte:element
-                this={rowHref(notification) == null ? 'header' : 'a'}
-                href={rowHref(notification)}
-                class="flex items-center gap-2.5"
-              >
-                <!-- The video itself, where every other row shows who acted. `video_ready` is
-                     self-addressed, so that avatar is the reader's own face and identifies nothing;
-                     with two clips on one route the frame is the only thing that tells them apart.
-                     A minimum width keeps a portrait clip from rendering as a sliver. -->
-                {#if media != null}
-                  <MediaTile class="h-[34px] min-w-[34px]" compact file={media} />
-                {:else}
-                  <Avatar name={notification.actorName} size={34} solid loading={notification.actorName.length === 0} />
-                {/if}
-
-                <div class="min-w-0 flex-1">
-                  <p class="text-surface-950-50 text-sm/snug font-semibold">
-                    {resolveMessage(view.key, view.params)}
-                  </p>
-
-                  <!-- Which community this happened in, on the sub line the feed uses for the
-                       same job. Only for a row with nothing to hydrate: an entity row carries the
-                       region in its own crumbs. Silent for a single-region member through
-                       `regionCrumb`, who has nothing to disambiguate. -->
-                  {#if view.ref == null && crumb != null}
-                    <p class="text-surface-600-400 mt-0.5 text-xs">{crumb}</p>
-                  {/if}
-                </div>
-
-                <time
-                  class="text-surface-600-400 flex-none text-xs whitespace-nowrap"
-                  datetime={new Date(notification.createdAt).toISOString()}
-                >
-                  {formatUploadedAt(notification.createdAt, now(), getLocale())}
-                </time>
-              </svelte:element>
-
-              {#if view.ref != null}
-                <HydratedRow row={rowFor(notification, view.ref)} />
-              {/if}
-            </article>
+            <NotificationRow {notification} unread={arrivedUnread.has(notification.id)} />
           {/each}
         </div>
       {/snippet}
