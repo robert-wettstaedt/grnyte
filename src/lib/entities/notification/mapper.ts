@@ -31,7 +31,8 @@ export function toNotification(row: NotificationRow, userRegions: RegionMembersh
   }
 }
 
-/** `file` is never nested (see `queries.ts`), so the relation set is the other five. */
+/** All six. A `video_ready` row names a file, which has no page and no name of its own, so
+ *  `toEventEntity` answers with the parent it landed on and the media hung off it. */
 function entityOf(row: NotificationRow, userRegions: RegionMembership[]): EventEntity | undefined {
   return toEventEntity(
     {
@@ -41,7 +42,7 @@ function entityOf(row: NotificationRow, userRegions: RegionMembership[]): EventE
       // away. Spliced in empty because the shared builder reads the same shape a card does.
       ascent: row.ascent == null ? undefined : { ...row.ascent, files: [] },
       block: row.block,
-      file: undefined,
+      file: row.file,
       metadata: row.metadata,
       route: row.route,
       subject: row.subject,

@@ -12,10 +12,10 @@ there were no logs, no errors and no signal of any kind: the only way to learn a
 noticing a tile. With roughly 500 videos in the production library, that is the gap worth closing,
 and the tile is the symptom.
 
-Once a video's state is known, a second class of problem becomes fixable: today a person is told
-their friend sent a project, opens the app, finds the clip unwatchable, and has no way to learn when
-it arrives except by checking back for two hours. The same person uploading their own clip cannot
-tell when the shareable `/f/<id>` link will actually play.
+Once a video's state is known, a second problem becomes fixable: somebody who uploads a clip cannot
+tell when the shareable `/f/<id>` link will actually play, so they reopen the app to check. A reader
+waiting on somebody else's clip is left to check back, which this change makes honest rather than
+solves; see the Non-goals.
 
 ## What Changes
 
@@ -34,14 +34,15 @@ tell when the shareable `/f/<id>` link will actually play.
 - **A real preparing state** in the media tile and the viewer, replacing both the bare play icon and
   the false `image-off`, plus an honest unavailable state for a video that genuinely failed.
 - **A warning when sharing a pending video**, so a link sent to a friend is never silently dead.
+- **One client seam, `videoView`,** that every media surface reads instead of deriving readiness
+  itself. Five surfaces derived the same question five ways and one of them, the share sheet, never
+  accounted for a video this reader had already seen play, so it warned that a playable link would
+  not play. The spec now states effective readiness once, which makes that a conformance fix rather
+  than a preference.
 - **A global `prefers-reduced-motion` rule** in `app.css`. The preparing tile reuses the app's
   existing `animate-pulse` skeleton pattern, and none of its fourteen instances respects the
   preference today. Honouring it globally rather than special casing one new tile is a wider blast
   radius than the rest of this change, and deliberate.
-- **Notifications stop pointing at videos that cannot be watched.** A notification whose entire
-  content is a video is held until the video is ready, and a notification that was sent while a
-  video was still pending is followed up once when it arrives. In healthy conditions no follow up is
-  ever generated, because the video is ready before the first fan out runs.
 - **The uploader is told when their own video is ready**, if it took longer than a short threshold,
   so they can tell when the shareable link will actually play without reopening the app.
 - **A new environment variable** for the Bunny library read only key, which is the webhook signing
@@ -59,7 +60,7 @@ worse; it does not see the new column because its Zero schema predates it.
 
 - `media/video-readiness`: whether a hosted video can be played yet, how that state is learned from
   the host, how it is corrected when an event is lost, what the interface shows in each state, and
-  what the notification system does about a video that cannot yet be watched.
+  how the person who uploaded it learns that it is playable.
 
 ### Modified Capabilities
 
@@ -68,8 +69,8 @@ None. This is the project's first spec.
 ## Impact
 
 **Tables**: `bunny_streams` (new `readiness` column, plus the Zero schema regeneration and the
-backfill that follows from the pipeline in AGENTS.md). `notifications` gains one `source_type` value
-if the self notification ships.
+backfill that follows from the pipeline in AGENTS.md). `notifications` gains one `source_type` value,
+which needs no migration: that column is `text` with a TypeScript-only enum.
 
 **Entity modules**: `src/lib/entities/file/` (the `MediaFile` DTO and mapper carry readiness through
 to the components, and the readiness value tuple lives beside them).
@@ -85,10 +86,11 @@ means Finished while the video API's `3` means Transcoding. Both mappings belong
 so it must select the new one).
 
 **Components**: `src/lib/components/Media/MediaThumbnail.svelte`, `MediaStage.svelte`,
-`ShareSheet.svelte`.
+`MediaViewer.svelte`, `ShareSheet.svelte`, all reading `src/lib/videos/view.svelte.ts`, which
+replaces `components/Media/thumbnail.ts`.
 
-**i18n**: new `media_*` keys, and one `notifications_*` caption key if the self notification ships,
-in `messages/en.json` and `messages/de.json`.
+**i18n**: new `media_*` keys plus one `notifications_*` caption key, in `messages/en.json` and
+`messages/de.json`.
 
 **Deployment**: one hard ordering constraint. The webhook URL must be configured in the Bunny
 dashboard **last**, after the endpoint is live, because Bunny POSTs to a 404 and the documentation
@@ -113,6 +115,9 @@ until the cutover registers a cleanup schedule.
   is repaired by reconciliation from the authoritative source.
 - **Showing the uploader a frame of their own clip while it prepares.** Considered and dropped on the
   decode path, not on effort. See design.md, Open Questions, so it is not re-proposed blind.
+- **Telling other people when somebody else's video becomes ready.** Attempted and dropped during
+  implementation: the broadcast watermark is a monotonic timestamp, so an event held back is dropped
+  rather than deferred. design.md D12 records the four ways out and why each was rejected.
 - **Alerting anyone about a `failed` video.** Recording it is this change, and the uploader sees an
   honest tile. Deciding who else hears about it is not.
 - **A new notification preference.** The self notification rides the existing push subscription.

@@ -6,6 +6,7 @@ import {
   REGION_PERMISSION_READ,
 } from '$lib/auth'
 import { feedbackKind, feedbackStatus } from '$lib/entities/feedback/dto'
+import { videoReadiness } from '$lib/entities/file/dto'
 import { DEFAULT_MAX_MEMBERS } from '$lib/entities/region/dto'
 import type { RegionSettings } from '$lib/entities/region/settings'
 import type * as z from '$lib/forms/zod'
@@ -1160,6 +1161,9 @@ export const bunnyStreams = table(
     ...baseRegionFields,
 
     fileFk: text('file_fk').references((): AnyColumn => files.id, { onDelete: 'set null' }),
+    /** Our own three values, neither of Bunny's two status enums, which collide on `3`. Map at
+     *  the provider, never here. */
+    readiness: text('readiness', { enum: videoReadiness }).notNull().default('pending'),
     /** Where the clip was grabbed from (a YouTube/Instagram URL), credited on the route
      *  page. Only route uploads ask for it; null for own footage and ascent clips. */
     source: text('source'),
@@ -1929,6 +1933,7 @@ export const notificationSourceType: [
   'comment',
   'comment_reply',
   'comment_reaction',
+  'video_ready',
 ] = [
   'mention',
   'ascent_edited',
@@ -1941,6 +1946,7 @@ export const notificationSourceType: [
   'comment',
   'comment_reply',
   'comment_reaction',
+  'video_ready',
 ]
 
 /**
@@ -1962,7 +1968,7 @@ export const notifications = table(
     ...baseFields,
     ...baseRegionFields,
 
-    /** Who caused it. Never the recipient: self-authored events are filtered out at fan-out. */
+    /** Who caused it. Never the recipient, except `video_ready`, which fan-out exempts by name. */
     actorFk: integer('actor_fk')
       .notNull()
       .references((): AnyColumn => users.id),
@@ -1979,8 +1985,9 @@ export const notifications = table(
      * carries none, keeps its sentence and offers no entity row underneath it, which is
      * what the three source types that never had one already look like.
      *
-     * `file_fk` exists to keep the shape identical to `events`, and `objectOf` with it. Nothing
-     * writes it: a reaction on an upload notifies about the thing the photos landed on.
+     * `file_fk` exists to keep the shape identical to `events`, and `objectOf` with it. Only
+     * `video_ready` writes it: a reaction on an upload notifies about the thing the photos
+     * landed on, not about a file.
      */
     ...eventObjectFields,
     /**

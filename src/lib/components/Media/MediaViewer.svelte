@@ -20,11 +20,11 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
-  import { bunnyThumbnail } from '$lib/videos/bunny'
+  import { videoView } from '$lib/videos/view.svelte'
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
   import { onDestroy } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
-  import { MediaQuery } from 'svelte/reactivity'
+  import { MediaQuery, SvelteSet } from 'svelte/reactivity'
   import MediaStage from './MediaStage.svelte'
   import ShareSheet from './ShareSheet.svelte'
   import SourceSheet from './SourceSheet.svelte'
@@ -273,8 +273,16 @@
 
   // The peeking neighbour during a swipe, replaced by MediaStage's own progressive load once
   // it lands. 256 is the tile the grid already cached, so paging never waits on a fetch.
-  const previewSrc = (f: MediaFile) =>
-    f.bunnyStreamFk != null ? bunnyThumbnail(f.bunnyStreamFk) : imageSrc(f.path, 256)
+  // A video with no poster yet 404s the thumbnail, and the neighbour would draw a broken-image
+  // glyph, which is the damaged look readiness exists to stop.
+  /** File ids whose peek failed to load, so the slide blanks instead of drawing a broken glyph.
+   *  Keyed by id, not URL: two files can share a `path` and would blank each other. */
+  const failedPeeks = new SvelteSet<string>()
+
+  const previewSrc = (f: MediaFile) => {
+    const view = videoView(f)
+    return view == null ? imageSrc(f.path, 256) : view.kind === 'playable' ? view.poster : undefined
+  }
 
   const arrow = `${MEDIA_TOOL} absolute top-1/2 z-20 -translate-y-1/2`
   const slide = 'absolute inset-0 flex items-center justify-center'
@@ -283,7 +291,21 @@
 <svelte:window onkeydown={onKeydown} />
 
 {#snippet preview(f: MediaFile)}
-  <img src={previewSrc(f)} alt="" class="pointer-events-none max-h-full max-w-full object-contain select-none" />
+  {@const src = previewSrc(f)}
+  {#if src == null || failedPeeks.has(f.id)}
+    <!-- No poster, or one that would not load. A blank slide, never a broken-image glyph. A
+         playable video can still have no poster yet (status 4 precedes the derivatives), and
+         unlike the tile this peek has no ladder to fall through. It does not retry: the blank
+         stands until the viewer is reopened. -->
+    <div class="bg-surface-900 h-full w-full"></div>
+  {:else}
+    <img
+      {src}
+      alt=""
+      class="pointer-events-none max-h-full max-w-full object-contain select-none"
+      onerror={() => failedPeeks.add(f.id)}
+    />
+  {/if}
 {/snippet}
 
 <!-- closeOnInteractOutside is off: the fullscreen viewer dismisses via the close button,

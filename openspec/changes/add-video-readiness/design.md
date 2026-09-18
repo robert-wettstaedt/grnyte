@@ -29,7 +29,8 @@ See proposal.md for motivation. The constraints that shape the approach:
 - One source of truth for readiness, with recovery paths that cannot corrupt it.
 - No integer from either host enum escapes `bunny.provider.server.ts`.
 - Reuse the existing `bunnyStream` relation and `toMediaFile` rather than adding a parallel path.
-- No notification that points at something the recipient cannot watch.
+- No notification that points at something the recipient cannot watch, for the notification
+  this change adds.
 
 **Non-Goals:**
 
@@ -49,7 +50,7 @@ Not `pgEnum`. That is the older shape in this schema (`app_permission`, `app_rol
 `invitation_status`); the current precedent for a domain value set is the exported tuple, and putting
 it beside `MediaFile` means the DTO and the column cannot drift.
 
-*Alternative considered*: store the host's integer and interpret at read time. Rejected because it
+_Alternative considered_: store the host's integer and interpret at read time. Rejected because it
 puts the provider's vocabulary in the database, in the Zero schema and in every component, which is
 exactly what the `VideoProvider` seam exists to prevent, and because the collision in Context means
 the stored integer would not even be self describing.
@@ -71,7 +72,7 @@ The endpoint verifies the HMAC-SHA256 signature over the **raw** body (no JSON r
 against the library read only key, checks the version and algorithm headers, compares in constant
 time, and then applies the `Status` from the payload.
 
-*Alternative considered*: treat the webhook as a bare "something changed" ping and re-read the video
+_Alternative considered_: treat the webhook as a bare "something changed" ping and re-read the video
 from the API. That collapses the two enum mappings into one and makes D2's collision unreachable, at
 the cost of a network call per event in the critical path. Not chosen. D2 therefore has to carry the
 weight instead, which is why the column comment and the call site test are part of this change rather
@@ -98,20 +99,20 @@ never demotes, never declares failure, and never tells the server. Cadence is a 
 it **pauses while the document is hidden and while the app is offline**, resuming on visibility and
 on reconnect.
 
-*Why the pause*: without it, a tab left open polls the CDN for the entire ninety minute encode for a
+_Why the pause_: without it, a tab left open polls the CDN for the entire ninety minute encode for a
 video nobody is looking at, which is the case reconciliation already covers. This did not matter when
 the loop went terminal after seven minutes.
 
-*Why the offline gate*: the app is offline capable for reads, so the loop would otherwise keep firing
+_Why the offline gate_: the app is offline capable for reads, so the loop would otherwise keep firing
 with no network, and offline every failure is indistinguishable from "still encoding". `onlineHold`
 and `online.svelte` already carry that state.
 
-*Why the playlist and not the thumbnail*: the host's status `1` is "preview and format details
+_Why the playlist and not the thumbnail_: the host's status `1` is "preview and format details
 processing started", so a thumbnail can exist before playback does. Measured on 2026-09-17: a pending
 video 404s on `playlist.m3u8`, `thumbnail.jpg` and `preview.webp` alike, while a finished one serves
 all three. Only the playlist attests playability.
 
-*Why no write back*: it would need an authed endpoint, a permission story, and a rule for trusting a
+_Why no write back_: it would need an authed endpoint, a permission story, and a rule for trusting a
 client's claim about a fact it cannot prove. Reconciliation already repairs the record from the
 authoritative source. Keeping the override local also makes D4 trivially safe, because a local
 override cannot propagate.
@@ -175,41 +176,79 @@ Declared through `$env/static/private`, so it must be present at build time ever
 fails on a missing member. Dev and CI get a dummy value, which means signature verification simply
 always fails there. That is correct for environments that receive no real webhooks.
 
-*Alternative considered*: make it optional and have the route answer 503 when unset. Rejected because
+_Alternative considered_: make it optional and have the route answer 503 when unset. Rejected because
 it adds a branch that only ever executes where nobody is looking.
 
-### D12: Notifications wait for the video rather than pointing at an unwatchable one
-
-Two different mechanisms, so two different fixes.
-
-**Broadcast, other people's videos.** The watermark job walks `events` every five minutes. Where an
-event's entire content is video (a clip added to an existing ascent, or to a route), it is skipped
-while that media is `pending`, and the job's own five minute cadence is the retry. Where the event
-carries other news (a new ascent), it is delivered immediately, because the news is the send and
-holding it for two hours is worse than a preparing tile; a single follow up then goes to the same
-subscribers when the video arrives.
-
-The follow up is **self suppressing in healthy conditions**: a one minute encode is ready before the
-first fan out runs, so nothing pending is ever observed and no follow up is generated. It exists only
-in the degraded state, which is when it carries information. It fires once per event when the last of
-its pending media resolves, never once per file. On `failed` nothing is sent, which is only possible
-because `failed` is now recorded.
+### D12: Only the uploader is notified; the broadcast half was tried and rejected
 
 **Directed, your own video.** A new `video_ready` source type with `actorFk` set to the recipient
 themselves. This is not a lie about causation: the uploader did cause the video to exist, the host
 merely finished the work. It needs the fan out's self filter to exempt this one source type by name,
-not a general loosening, and `schema.ts`'s `actorFk` comment must be amended, since it currently
-states the invariant absolutely and would otherwise contradict the code.
+not a general loosening, and `schema.ts`'s `actorFk` comment is amended, since it stated the
+invariant absolutely and would otherwise contradict the code.
 
 `caption.ts`'s `KEYS` record is exhaustive by construction, so adding the source type breaks it at
-compile time until a `notifications_*` key exists. The caption names no actor, which `caption.ts`
-already supports through its `NO_ROW` set.
+compile time until a `notifications_*` key exists. That tripwire fired as predicted. The caption
+names no actor, which `caption.ts` already supports through its `NO_ROW` set.
 
 The threshold needs no new column: the handler that promotes to `ready` compares against
-`files.createdAt`, so "longer than five minutes" is a constant rather than a schema decision.
+`files.createdAt`, so "longer than five minutes" is a constant. It fires from `promoteReadiness`,
+the single choke point both the webhook and the sweep already share, because a promotion that
+forgets to notify is exactly the divergence that shared rule exists to prevent.
 
 No new preference. It is self caused, fires roughly never in the healthy case, and would arrive
-defaulted on; a toggle for that is settings page clutter.
+defaulted on.
+
+**Broadcast, other people's videos: dropped.** An earlier version of this decision had the watermark
+job skip an event whose content is all `pending` video, on the assumption that its own five minute
+cadence would retry it. That assumption is false and the implementation proved it. The watermark is a
+monotonic timestamp, `advanceWatermark` moves it "forward, never back", and
+`api/tasks/notifications/+server.ts` states why filtered rows still advance it: leaving them behind
+means re-reading a growing prefix every run, and one push announcing the whole backlog the moment a
+category is switched back on. So skipping an event does not defer it, it drops it permanently.
+Holding the watermark back would re-send everything after it as well.
+
+The follow up was equally unreachable from that query, which selects on `events.createdAt` above a
+floor. A video becoming ready creates no event and moves no timestamp.
+
+Four ways out were considered: write a feed entry when a video becomes ready (pollutes a feed meant
+to show what people did), keep a per person ledger of held back events (a second source of truth in
+the notification path), send a directed notification per subscriber (against the decision recorded in
+`schema.ts`, which keeps region activity broadcast precisely to avoid a row per recipient), or drop
+it. Dropped. Subscribers are still told about the ascent immediately and still see the preparing
+tile; they are curious rather than blocked, which is what makes this the cheapest thing to give up.
+Writing a feed entry is the cheapest way to add it later, and nothing here forecloses that.
+
+### D16: One client seam decides what a video may show
+
+`videoView(file)` in `src/lib/videos/view.svelte.ts` returns a discriminated
+`preparing | unavailable | playable | undefined`, and every media surface reads it instead of
+deriving readiness itself.
+
+The reason is a measured one, not symmetry with the server seam. Five surfaces derived the same
+question five ways (`MediaThumbnail`, `MediaStage`, `MediaViewer`, `ShareSheet`, the share page),
+and `ShareSheet` never ORed in the observed set, so a video the probe had already promoted still
+told the sharer it was being prepared. That survived six review rounds because, without the
+effective-readiness requirement the spec now carries, reading the record alone was a defensible
+reading. The seam makes it one place to get right rather than five.
+
+Consequences worth stating, because they are the parts a reviewer should push on:
+
+- **The observed-set override lives INSIDE the seam**, so no caller can forget it. That is the
+  defect class above, and the only structural fix for it.
+- **The seam owns which URLs exist and the order to try them; the element owns whether one loaded.**
+  So the derivative ladder moves in, while `videoFailed -> iframe` and every `onerror` stay in the
+  components. `components/Media/thumbnail.ts` and its test are absorbed.
+- **The viewer's peek gains a terminal `onerror`.** Reading an unsynced relation as playable (D5)
+  hands it a poster URL that 404s for a video that is in fact pending, and unlike the tile it has no
+  ladder to fall through. Without that handler this reintroduces the broken-image glyph the
+  "never presented as damaged" requirement exists to stop.
+- **Images stay out.** They resolve through `$lib/images/derivatives` and the `ImageProvider` seam;
+  one module for both would be two modules wearing one name.
+
+Lands the day before the cutover by explicit decision. It is behaviour-preserving except for
+`ShareSheet`, which the spec now makes a conformance fix rather than a change, and it is fully
+revertible because nothing is committed.
 
 ### D13: Presentation mechanics reuse what is already there
 
@@ -236,29 +275,27 @@ against a `<video>` with no source.
 `exists('files', (f) => f.where('bunnyStreamFk', 'IS NOT', null))`, which now includes videos that
 cannot yet be watched. Left as is, deliberately.
 
-*Alternative considered*: require `readiness = 'ready'` in those filters. Rejected because a route
+_Alternative considered_: require `readiness = 'ready'` in those filters. Rejected because a route
 would then appear in the filter, vanish, and reappear as its videos encode, and because the video
 genuinely does exist. A person filtering for beta and finding a preparing tile has been told the
 truth; one whose route silently leaves a filter has not.
 
-### D15: The notification work ships in this change, both halves
+### D15: The uploader notification ships in this change
 
-Decided. The broadcast half was always nearly free, and the directed half turned out cheaper than
-first priced because setting `actorFk` to the recipient removes the need for a system actor concept.
-It directly answers "when can I share the link", which is the second pain in the proposal.
+Decided during planning and narrowed during implementation: the directed half ships, the broadcast
+half does not (D12). Setting `actorFk` to the recipient removed the need for a system actor concept,
+which is what made it cheap enough to land here rather than after the cutover.
 
-Two consequences follow and neither is optional.
+Two consequences, both confirmed against the code rather than assumed.
 
-**One migration, not two.** Adding `video_ready` to `notificationSourceType` is a schema change in its
-own right. It rides the same generated migration as `bunny_streams.readiness`. Two migrations for one
-change is worse on its own terms, and with other worktrees generating numbers in parallel a second
-one is an avoidable collision.
+**No migration.** Adding `video_ready` to `notificationSourceType` was expected to need one. It does
+not: `notification_source_type` is `text(..., { enum })`, a TypeScript-only constraint with no
+Postgres enum and no check constraint, so `generate:drizzle` emitted only the `readiness` column.
 
 **Push has to be verified before it is relied on.** Live push delivery has never been confirmed in
 production. This change adds a new push kind to that mechanism, so "does push work at all in prod"
-becomes a deployment step rather than an assumption. If it turns out not to work, that is a finding
-about the push system rather than about readiness, and the inbox half of the notification still
-lands.
+is a deployment step rather than an assumption. If it does not work, that is a finding about the push
+system rather than about readiness, and the inbox half of the notification still lands.
 
 ## Risks / Trade-offs
 
@@ -315,6 +352,18 @@ rollback, or events accumulate against a 404 for nothing.
   rows**, which would let the hidden probe `<img>` and the 16:9 guess in `MediaThumbnail.svelte` be
   deleted. Explicitly out of scope here (see proposal Non-goals); deferrable without reopening
   anything in this change.
+- **Whether a video the host has genuinely lost should ever reach a terminal state.** Today it does
+  not: `readinessToWrite` writes nothing for `gone`, so the row stays `pending` and the tile says
+  "This can take a while" indefinitely. That is the one case where the app now tells somebody
+  something false forever, which is the thing this change exists to stop, and it is accepted
+  deliberately: the alternative made ONE transient 404 permanently mark a good video unwatchable,
+  with no in-app recovery. It is rare, because `finalizeVideo` inserts the row only after the upload
+  completes, so the sweep cannot create this state itself; it needs a deletion made directly at the
+  host. The honest fix is two consecutive `gone` answers, which needs a "last answered gone at"
+  marker the schema does not have. The trigger to build it is the RATIO, not the count: dead rows
+  accumulate in the pending pool permanently, and since the scan is a random sample of that pool,
+  correction latency for genuinely stale live rows degrades as the dead share grows, with a symptom
+  that reads as "the sweep is slow" rather than "the pool is full of corpses".
 - **Whether the uploader can be shown a frame of their own clip while it prepares.** Considered and
   dropped, recorded here so it is not re-proposed without the reason. Today the local blob is revoked
   seconds after upload (`MediaGrid.svelte:51-62`), so the only way to check you uploaded the right

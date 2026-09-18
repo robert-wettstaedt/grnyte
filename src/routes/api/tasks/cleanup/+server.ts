@@ -3,6 +3,7 @@ import { PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
 import { clientErrorLogs, feedback, notifications } from '$lib/db/schema'
 import { reportBunnyOrphans } from '$lib/entities/file/cleanup.server'
+import { reconcileReadiness } from '$lib/entities/file/readiness.server'
 import { STAGING_BUCKET } from '$lib/entities/file/upload'
 import { ERROR_LOG_MAX_AGE_DAYS, logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
@@ -155,18 +156,28 @@ export const POST: RequestHandler = async ({ request }) => {
     return new Response('Unauthorized', { status: 401 })
   }
   const now = Date.now()
-  const [staging, bunny, notificationRows, feedbackRows, errorRows] = await Promise.all([
+  // reportBunnyOrphans stays last and unbound: it resolves to nothing, so anything destructured
+  // after it silently takes its `void`.
+  const [staging, bunny, notificationRows, feedbackRows, errorRows, readinessRows] = await Promise.all([
     sweepStaging(new Date(now - STAGING_MAX_AGE_MS)),
     sweepBunny(new Date(now - BUNNY_MAX_AGE_MS)),
     sweepNotifications(new Date(now - NOTIFICATION_READ_MAX_AGE_MS), new Date(now - NOTIFICATION_UNREAD_MAX_AGE_MS)),
     sweepFeedback(new Date(now - FEEDBACK_MAX_AGE_MS)),
     sweepErrorLogs(new Date(now - ERROR_LOG_MAX_AGE_MS)),
+    reconcileReadiness(getVideoProvider()),
     // Alongside the deletes, not ahead of them: it walks the whole Bunny library, and its own
     // failure must never cost a retention delete this job promises.
     reportBunnyOrphans(db, new Date(now - BUNNY_MAX_AGE_MS)),
   ])
   console.log(
-    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback, ${errorRows} error logs`,
+    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback, ${errorRows} error logs, corrected ${readinessRows} video readiness`,
   )
-  return json({ bunny, errorLogs: errorRows, feedback: feedbackRows, notifications: notificationRows, staging })
+  return json({
+    bunny,
+    errorLogs: errorRows,
+    feedback: feedbackRows,
+    notifications: notificationRows,
+    readiness: readinessRows,
+    staging,
+  })
 }

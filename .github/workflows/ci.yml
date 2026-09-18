@@ -51,6 +51,7 @@ jobs:
       NEXTCLOUD_USER_NAME: foobar
       NEXTCLOUD_USER_PASSWORD: foobar
       BUNNY_STREAM_API_KEY: foobar
+      BUNNY_STREAM_READ_ONLY_KEY: foobar
       PUBLIC_BUNNY_STREAM_LIBRARY_ID: foobar
       PUBLIC_BUNNY_STREAM_HOSTNAME: foobar
       CRON_API_KEY: foobar

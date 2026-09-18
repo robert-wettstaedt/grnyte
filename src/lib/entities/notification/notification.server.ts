@@ -40,7 +40,8 @@ export interface NotificationRecipient {
 
 /** What a mutation hands over: who did what to which entity, and who might want to know. */
 export interface NotifyInput {
-  /** Who caused it. Dropped from the recipients, so nobody is told about their own edit. */
+  /** Who caused it. Dropped from the recipients so nobody is told about their own edit, unless the
+   *  source type is in {@link SELF_ADDRESSED_SOURCE_TYPES}. */
   actorFk: number
   /**
    * Which card, for the source types that are about one. Part of the idempotency key, so two
@@ -59,8 +60,13 @@ export interface NotifyInput {
   userFks: readonly number[]
 }
 
+/** Source types that are about your own action, where the self filter must not drop you. Named one
+ *  by one, so no other source type gains the power to notify its own actor. */
+const SELF_ADDRESSED_SOURCE_TYPES: ReadonlySet<NotificationSourceType> = new Set(['video_ready'])
+
 /**
- * Which of `userFks` may be told about something in `regionFk`, minus the actor.
+ * Which of `userFks` may be told about something in `regionFk`, minus the actor, except for a
+ * source type in {@link SELF_ADDRESSED_SOURCE_TYPES}.
  *
  * Mirrors the `events` SELECT policy exactly (`authorize_in_region('region.read', region_fk)`,
  * which resolves to an active `region_members` row whose role holds that permission), because
@@ -71,8 +77,10 @@ export async function notificationRecipients(
   regionFk: number,
   userFks: readonly number[],
   actorFk: number,
+  sourceType?: NotificationSourceType,
 ): Promise<NotificationRecipient[]> {
-  const candidates = [...new Set(userFks)].filter((userFk) => userFk !== actorFk)
+  const keepActor = sourceType != null && SELF_ADDRESSED_SOURCE_TYPES.has(sourceType)
+  const candidates = [...new Set(userFks)].filter((userFk) => keepActor || userFk !== actorFk)
 
   if (candidates.length === 0) {
     return []
@@ -105,7 +113,7 @@ export async function notificationRecipients(
  * every call site does. Upgrade = a queue the mutation enrolls in, if that ever bites.
  */
 export async function notify(input: NotifyInput): Promise<void> {
-  const recipients = await notificationRecipients(input.regionFk, input.userFks, input.actorFk)
+  const recipients = await notificationRecipients(input.regionFk, input.userFks, input.actorFk, input.sourceType)
 
   if (recipients.length === 0) {
     return

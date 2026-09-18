@@ -25,6 +25,7 @@
     height: 900,
     id,
     path: 'topo-sample.svg',
+    readiness: undefined,
     regionFk: 1,
     source: undefined,
     uploader: undefined,

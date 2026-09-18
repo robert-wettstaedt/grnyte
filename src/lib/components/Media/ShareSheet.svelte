@@ -17,7 +17,10 @@
   import { m } from '$lib/paraglide/messages'
   import { createCopyButton } from '$lib/state/clipboard.svelte'
   import { notifyError } from '$lib/state/toast'
+  import { videoView } from '$lib/videos/view.svelte'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
+  import { MediaQuery } from 'svelte/reactivity'
+  import { slide } from 'svelte/transition'
   import { MEDIA_TOOL } from './toolbar'
 
   interface Props {
@@ -41,6 +44,17 @@
   // off the synced row so the switch reflects the persisted state.
   const isPublic = $derived(file.visibility === 'public')
   const isVideo = $derived(file.bunnyStreamFk != null)
+  /** A link shared now opens on the preparing state, or on a dead page, so say which. The two need
+   *  separate wording, because a failed video is never going to be prepared. */
+  // Through the seam, so a video this reader has already watched stops being warned about. Reading
+  // `file.readiness` here was the bug: the record still says pending long after the tile plays.
+  // Suppressing it is only safe because MediaStage probes too, so a recipient whose record still
+  // says pending is rescued by their own viewer.
+  const view = $derived(videoView(file))
+  const pending = $derived(view?.kind === 'preparing')
+  const unavailable = $derived(view?.kind === 'unavailable')
+  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
+  const duration = $derived(still.current ? 0 : 150)
 
   const shareUrl = $derived(page.url.origin + resolve('/f/[id]', { id: file.id }))
   const shareData = $derived<ShareData>({ text: shareText, title: PUBLIC_APPLICATION_NAME, url: shareUrl })
@@ -116,6 +130,15 @@
       <div class="flex items-start gap-3">
         <Icon name={isPublic ? 'link' : 'lock'} size={20} class="mt-0.5 shrink-0" />
         <p class="text-surface-600-400 text-sm">{isPublic ? m.share_statusPublic() : m.share_statusPrivate()}</p>
+      </div>
+    {/if}
+
+    {#if pending || unavailable}
+      <div class="flex items-start gap-3" transition:slide={{ duration }}>
+        <Icon name={pending ? 'hourglass' : 'image-off'} size={20} class="mt-0.5 shrink-0 opacity-70" />
+        <p class="text-surface-600-400 text-sm">
+          {pending ? m.media_sharePending() : m.media_shareUnavailable()}
+        </p>
       </div>
     {/if}
 

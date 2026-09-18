@@ -1,4 +1,4 @@
-import type { MediaFile } from './dto'
+import type { MediaFile, VideoReadiness } from './dto'
 
 /** What a file hangs off. Route beats ascent beats block beats area, and at most one is ever set. */
 export type FileParent = { id: number; type: 'area' | 'ascent' | 'block' | 'route' }
@@ -8,7 +8,7 @@ interface FileRow {
   /** Present when the query `.related('author')`; cardinality-one → single row. */
   author?: null | { id: number; username: string }
   /** Present when the query `.related('bunnyStream')`; cardinality-one → single row. */
-  bunnyStream?: null | { source: null | string }
+  bunnyStream?: null | { readiness?: null | VideoReadiness; source: null | string }
   bunnyStreamFk: null | string
   /** Nullable in the Zero row (DB default), never null in practice; coerced below. */
   createdAt: null | number
@@ -53,6 +53,7 @@ export function toMediaFile(row: FileRow): MediaFile {
     height: row.height ?? undefined,
     id: row.id,
     path: row.path,
+    readiness: row.bunnyStream?.readiness ?? undefined,
     regionFk: row.regionFk,
     source: row.bunnyStream?.source ?? undefined,
     uploader: row.author ? { id: row.author.id, username: row.author.username } : undefined,

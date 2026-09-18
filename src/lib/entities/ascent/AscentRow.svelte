@@ -164,7 +164,7 @@
         <!-- Indented past the avatar column so it aligns with the text block; no avatar in logbook mode, so no indent. -->
         <span class="pointer-events-auto flex items-center gap-1.5 overflow-x-auto" class:ml-12.5={route == null}>
           {#each expanded ? ascent.files : ascent.files.slice(0, MAX_THUMBS) as file (file.id)}
-            <MediaThumbnail {file} class={expanded ? 'h-24' : 'h-10'} />
+            <MediaThumbnail {file} class={expanded ? 'h-24' : 'h-10'} compact={!expanded} />
           {/each}
           {#if !expanded && ascent.files.length > MAX_THUMBS}
             <button

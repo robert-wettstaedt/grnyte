@@ -53,6 +53,42 @@ export const relatedRouteTree = (ctx: Parameters<typeof relatedRegion>[0]) => {
   return routeTree as any
 }
 
+/**
+ * The file relation plus the parent trees a file BORROWS its row from.
+ *
+ * Exported for the same reason as {@link relatedRouteTree}: the inbox draws a `video_ready` row
+ * off exactly this shape, and `toEventEntity` reads the parent out of it. Two copies drifting
+ * would mean an upload card and the notification about it naming different places.
+ */
+export const relatedFileTree = (ctx: Parameters<typeof relatedRegion>[0]) => {
+  const r = relatedRegion(ctx)
+  const route = relatedRouteTree(ctx)
+
+  const fileTree = (q: typeof zql.files) =>
+    r(q)
+      .related('bunnyStream')
+      .related('author')
+      // The parent trees carry what the parent's own card carries, because an upload BORROWS
+      // its parent's entity: `author` is where "added a photo to Mara's ascent of Rampe" gets
+      // Mara, and a block's `geolocation` and `topos` are the pin and the thumb its row draws.
+      // Thinner here than at the top level, an upload card rendered a degraded version of the
+      // same entity it names.
+      .related('ascent', (q) => r(q).related('author').related('route', route))
+      .related('route', route)
+      .related('block', (q) =>
+        r(q)
+          .related('area', r)
+          .related('geolocation', r)
+          .related('topos', (q) => r(q).related('file', r)),
+      )
+      .related('area', (q) => r(q).related('parent', r))
+
+  // Same reason as `relatedRouteTree`: a callback shared by several attachment points cannot be
+  // typed against one of them.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
+  return fileTree as any
+}
+
 const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
   const r = relatedRegion(ctx)
 
@@ -80,7 +116,7 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
       )
       // `geolocation` and `topos` are the pin the create card draws as a map thumbnail and the
       // topo thumb every block row shows.
-      // Written out here and once more under `file` below, unlike the route tree: the block
+      // Written out here and once more in `relatedFileTree`, unlike the route tree: the block
       // relation is the only one the mapper reads WITHOUT a cast of its own, so sharing it
       // through the `any` above would take `topos` down to `any[]` and the entity's thumbnail
       // with it.
@@ -96,25 +132,7 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
       // The parent trees as well as the file itself, so an upload card can name what the photos
       // landed on and draw that entity's row beneath them: without these, "added 5 photos to
       // Rampe" has no source for "Rampe".
-      .related('file', (q) =>
-        r(q)
-          .related('bunnyStream')
-          .related('author')
-          // The parent trees carry what the parent's own card carries, because an upload BORROWS
-          // its parent's entity: `author` is where "added a photo to Mara's ascent of Rampe" gets
-          // Mara, and a block's `geolocation` and `topos` are the pin and the thumb its row draws.
-          // Thinner here than at the top level, an upload card rendered a degraded version of the
-          // same entity it names.
-          .related('ascent', (q) => r(q).related('author').related('route', route))
-          .related('route', route)
-          .related('block', (q) =>
-            r(q)
-              .related('area', r)
-              .related('geolocation', r)
-              .related('topos', (q) => r(q).related('file', r)),
-          )
-          .related('area', (q) => r(q).related('parent', r)),
-      )
+      .related('file', relatedFileTree(ctx))
       // The emoji half only. A comment body is up to 5000 characters, the window is 50 events and
       // `eventFeed` runs two queries over it, so syncing comments here would ship every
       // conversation in the region to every reader only to render a count. The count is

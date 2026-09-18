@@ -3,11 +3,12 @@
  * talks to the Bunny API. Videos are filed into one collection per user,
  * named by auth uid (the convention already present in the shared library).
  */
-import { BUNNY_STREAM_API_KEY } from '$env/static/private'
+import { BUNNY_STREAM_API_KEY, BUNNY_STREAM_READ_ONLY_KEY } from '$env/static/private'
 import { PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
+import type { HostAnswer, VideoReadiness } from '$lib/entities/file/dto'
 import { formError } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
-import { createHash, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import type { VideoProvider, VideoUploadAuth } from './provider.server'
 
 const API_BASE = `https://video.bunnycdn.com/library/${PUBLIC_BUNNY_STREAM_LIBRARY_ID}`
@@ -17,6 +18,29 @@ const API_BASE = `https://video.bunnycdn.com/library/${PUBLIC_BUNNY_STREAM_LIBRA
  *  never began uploading, so it is a safe-to-delete orphan even in a library
  *  shared with other tenants (a successful video of anyone's never keeps it). */
 const PREPARED_TITLE_PREFIX = 'prepared-'
+
+/** Bunny's webhook status enum. Absent keys say nothing about playability. `3` is Finished here and
+ *  Transcoding in {@link API_READINESS}. */
+const WEBHOOK_READINESS: Record<number, VideoReadiness> = {
+  0: 'pending', // Queued
+  1: 'pending', // Processing
+  2: 'pending', // Encoding
+  3: 'ready', // Finished
+  4: 'ready', // ResolutionFinished: playable already, later renditions still running
+  5: 'failed', // Failed
+}
+
+/** Bunny's video API status enum, which numbers the same fact differently. It collides with
+ *  {@link WEBHOOK_READINESS} on `3` and `4`. */
+const API_READINESS: Record<number, VideoReadiness> = {
+  0: 'pending', // Created
+  1: 'pending', // Uploaded
+  2: 'pending', // Processing
+  3: 'pending', // Transcoding
+  4: 'ready', // Finished
+  5: 'failed', // Error
+  6: 'failed', // UploadFailed
+}
 
 /** Presigned TUS auth: sha256 hex over libraryId + apiKey + expiration + videoId.
  *  `expiration` is a unix timestamp in SECONDS. Milliseconds silently 401. */
@@ -136,6 +160,33 @@ export const getBunnyVideoProvider = (): VideoProvider => ({
     return { guids, total }
   },
 
+  readinessFromApi(status): undefined | VideoReadiness {
+    return API_READINESS[status]
+  },
+
+  readinessFromWebhook(status): undefined | VideoReadiness {
+    return WEBHOOK_READINESS[status]
+  },
+
+  async readinessOf(videoId): Promise<HostAnswer | undefined> {
+    // The full key, although this only reads: Bunny refuses this endpoint with the read-only key.
+    const response = await fetch(`${API_BASE}/videos/${videoId}`, {
+      headers: { AccessKey: BUNNY_STREAM_API_KEY },
+    })
+    if (!response.ok) {
+      // Reported, not judged. A 404 soon after an upload can be host lag, and only the caller can
+      // read the upload age that tells the two apart.
+      if (response.status === 404) {
+        return 'gone'
+      }
+      // A plain Error, not Kit's `error()`: the only caller is the cron, and a stringified
+      // HttpError reads "thrown with keys: status, body".
+      throw new Error(`video status lookup failed with ${response.status} for ${videoId}`)
+    }
+    const { status } = (await response.json()) as { status?: number }
+    return typeof status === 'number' ? API_READINESS[status] : undefined
+  },
+
   async remove(videoId): Promise<void> {
     // Not bunnyFetch: DELETE returns no useful body, and a 404 (already gone)
     // is success here, not the 502 bunnyFetch would raise.
@@ -152,5 +203,24 @@ export const getBunnyVideoProvider = (): VideoProvider => ({
     const expected = Buffer.from(uploadToken(videoId, ownerId))
     const given = Buffer.from(token)
     return given.length === expected.length && timingSafeEqual(given, expected)
+  },
+
+  verifyWebhook(rawBody, headers): boolean {
+    if (
+      headers.get('X-BunnyStream-Signature-Version') !== 'v1' ||
+      headers.get('X-BunnyStream-Signature-Algorithm') !== 'hmac-sha256'
+    ) {
+      return false
+    }
+    const given = headers.get('X-BunnyStream-Signature')
+    // An unset secret denies, never allows. Kit resolves a missing private env member to undefined
+    // in dev, so this must not assume a string.
+    if (given == null || !BUNNY_STREAM_READ_ONLY_KEY) {
+      return false
+    }
+    const expected = createHmac('sha256', BUNNY_STREAM_READ_ONLY_KEY).update(rawBody, 'utf8').digest('hex')
+    const givenBuffer = Buffer.from(given.toLowerCase())
+    const expectedBuffer = Buffer.from(expected)
+    return givenBuffer.length === expectedBuffer.length && timingSafeEqual(givenBuffer, expectedBuffer)
   },
 })

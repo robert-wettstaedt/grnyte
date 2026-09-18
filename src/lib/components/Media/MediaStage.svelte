@@ -26,8 +26,8 @@
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { bunnyHls, bunnyIframe } from '$lib/videos/bunny'
   import { createHlsAttachment } from '$lib/videos/hls'
+  import { videoView, watchReadiness } from '$lib/videos/view.svelte'
   import type { Attachment } from 'svelte/attachments'
   import { MEDIA_TOOL } from './toolbar'
 
@@ -50,6 +50,20 @@
 
   const guid = $derived(file.bunnyStreamFk)
   const isVideo = $derived(guid != null)
+  // Ahead of the HLS attempt: a pending video has no playlist, so trying falls through to the
+  // host's own holding page and takes the caption with it.
+  const view = $derived(videoView(file))
+  const preparing = $derived(view?.kind === 'preparing')
+  const unavailable = $derived(view?.kind === 'unavailable')
+  // Primitives, not `view`: it is a fresh object every evaluation, and any probe anywhere
+  // re-evaluates it, so attaching on it restarts a playing video.
+  const hlsUrl = $derived(view?.kind === 'playable' ? view.hls : '')
+  const iframeUrl = $derived(view?.kind === 'playable' ? view.iframe : undefined)
+
+  // The viewer probes too, because a deep link opens it with no tile ever mounted to fill the
+  // shared set. Gated on visibility and connectivity, or a backgrounded tab polls the CDN forever.
+  watchReadiness(() => file)
+  const playable = $derived(view?.kind === 'playable')
 
   // Route context (name/grade/rating), shown by the share page; unset in the in-app viewer.
   // Already a display name: `file.route` is populated only by the share page's loader, which
@@ -155,10 +169,19 @@
   const host = $derived(sourceHost(file.source))
 </script>
 
-{#if isVideo && videoFailed}
+{#if preparing || unavailable}
+  <!-- Our own panel, not the host's holding page, which hides the footer context below. -->
+  <div class="absolute inset-0 grid place-items-center p-6" role="status">
+    <div class="flex max-w-xs flex-col items-center gap-3 text-center">
+      <Icon name={preparing ? 'hourglass' : 'image-off'} size={40} class="opacity-70" />
+      <p class="text-lg font-semibold">{preparing ? m.media_preparing() : m.media_unavailable()}</p>
+      <p class="text-sm opacity-80">{preparing ? m.media_preparingHint() : m.media_unavailableHint()}</p>
+    </div>
+  </div>
+{:else if isVideo && videoFailed}
   <iframe
     class="absolute inset-0 h-full w-full"
-    src={bunnyIframe(guid!)}
+    src={iframeUrl}
     title={m.common_playVideo()}
     allow="autoplay; fullscreen; picture-in-picture"
     allowfullscreen
@@ -177,10 +200,10 @@
     }}
     {@attach clickToTogglePlay}
   >
-    {#if isVideo}
+    {#if playable}
       <video
         bind:this={videoEl}
-        {@attach createHlsAttachment(bunnyHls(guid!), () => (videoFailed = true))}
+        {@attach createHlsAttachment(hlsUrl, () => (videoFailed = true))}
         class="h-full w-full object-contain"
         playsinline
         bind:muted
@@ -232,7 +255,7 @@
      Reels-style attribution slot: uploader + upload date now (source folded in for
      videos); ascent notes will extend it here later, collapsed then into a sheet.
      Hidden only over the raw iframe fallback, which renders its own chrome. -->
-{#if !(isVideo && videoFailed)}
+{#if !(playable && videoFailed)}
   <footer class="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 bg-linear-to-t from-black/70 to-transparent p-3">
     <div class="flex flex-col gap-1.5">
       {#if file.uploader}
@@ -359,7 +382,7 @@
       {/if}
     </div>
 
-    {#if isVideo}
+    {#if playable}
       <div class="flex items-center gap-3">
         <button
           type="button"

@@ -1,3 +1,4 @@
+import type { HostAnswer, VideoReadiness } from '$lib/entities/file/dto'
 import { getBunnyVideoProvider } from './bunny.provider.server'
 
 /**
@@ -27,6 +28,22 @@ export interface VideoProvider {
    * is there so the caller can refuse a sweep that would take an implausible share of the library.
    */
   listVideos(before: Date): Promise<{ guids: string[]; total: number }>
+  /**
+   * A video API status as readiness, or `undefined` when it says nothing about playability. Separate
+   * from {@link readinessFromWebhook}, where `3` means Finished rather than Transcoding.
+   */
+  readinessFromApi(status: number): undefined | VideoReadiness
+  /**
+   * A webhook status as readiness, or `undefined` for events that are not about playability. The two
+   * enums collide on `3` and `4`, so reading one with {@link readinessFromApi} is silently wrong.
+   */
+  readinessFromWebhook(status: number): undefined | VideoReadiness
+  /**
+   * What the host says about one video: a readiness, `gone` when it has no record, or `undefined`
+   * when the status says nothing about playability. `gone` rather than `failed`, because whether an
+   * absence is terminal depends on the upload age, which only the caller can read.
+   */
+  readinessOf(videoId: string): Promise<HostAnswer | undefined>
   /** Delete the hosted video. Idempotent: an already-gone video is not an error. */
   remove(videoId: string): Promise<void>
   /**
@@ -35,6 +52,11 @@ export interface VideoProvider {
    * user could attach a made-up or foreign video to their own ascent.
    */
   verifyUpload(videoId: string, ownerId: string, token: string): boolean
+  /**
+   * Whether this really came from the video host. Takes the raw body, because the signature covers
+   * the exact bytes sent.
+   */
+  verifyWebhook(rawBody: string, headers: Headers): boolean
 }
 
 /** Credentials the browser attaches to its direct (TUS) upload of one video. */

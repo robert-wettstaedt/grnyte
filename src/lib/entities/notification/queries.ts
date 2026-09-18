@@ -1,4 +1,4 @@
-import { relatedRouteTree } from '$lib/entities/event/queries'
+import { relatedFileTree, relatedRouteTree } from '$lib/entities/event/queries'
 import * as z from '$lib/forms/zod'
 import { authenticatedUserCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
@@ -58,8 +58,10 @@ export const notificationsQueryDefs = {
             .related('topos', (q) => r(q).related('file', r)),
         )
         .related('route', route)
-        // `file` is deliberately not nested: nothing writes `file_fk` on a notification, because a
-        // reaction on an upload is about the thing the photos landed on.
+        // `video_ready` is the only source type that writes `file_fk`, so these only materialise on
+        // those rows. The parent trees come too: a file has no page and no name, so its row IS the
+        // row of whatever it landed on, and `toEventEntity` reads that off these.
+        .related('file', relatedFileTree(ctx))
         .related('subject')
 
       if (args.unreadOnly === true) {

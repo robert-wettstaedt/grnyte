@@ -14,6 +14,8 @@ import {
 } from '$lib/db/schema'
 import { membershipRemovedEmailContent, roleChangedEmailContent } from '$lib/email/membership'
 import { sendEmail } from '$lib/email/send.server'
+import { blockName } from '$lib/entities/block/mapper'
+import { toDisplayName } from '$lib/entities/displayName'
 import { isAscentEvent, objectOf } from '$lib/entities/event/dto'
 import { eventParentRef } from '$lib/entities/event/mapper'
 import { notificationView } from '$lib/entities/notification/caption'
@@ -126,6 +128,14 @@ const OUT_OF_BAND = new Set<NotificationSourceType>(['invitation_received', 'mem
  */
 const MAILED = new Set<NotificationSourceType>(['membership_removed', 'role_changed'])
 
+/**
+ * A file's parent: what it is called before a locale is chosen, and the page it lives on.
+ *
+ * A block's fallback name needs its order, and an ascent has neither a name nor a page of its own,
+ * so it answers with its route's.
+ */
+type ParentName = ({ kind: 'block'; name: string; order: number } | { kind: 'plain'; name: string }) & { path: string }
+
 /** Move a person's push watermark forward, never back. A timestamp, matching `events.created_at`. */
 async function advanceWatermark(userFk: number, createdAt: Date): Promise<void> {
   await db
@@ -196,6 +206,64 @@ async function namesOf(userFks: readonly number[]): Promise<Map<number, string>>
   return new Map(rows.map((row) => [row.id, row.username]))
 }
 
+/** That name in one recipient's language. */
+function parentNameIn(parent: ParentName | undefined, locale: Locale): string | undefined {
+  if (parent == null) {
+    return undefined
+  }
+
+  return parent.kind === 'block' ? blockName(parent.name, parent.order, locale) : toDisplayName(parent.name, locale)
+}
+
+/**
+ * The parents of the files a batch of `video_ready` rows name.
+ *
+ * Its own query rather than five joins on the directed select: every other source type would carry
+ * the cost of relations only this one ever sets. Minted per recipient rather than here, because
+ * `blockName`'s fallback is localised and one file can be pushed to several people.
+ */
+async function parentNamesOf(fileFks: readonly string[]): Promise<Map<string, ParentName>> {
+  const ids = [...new Set(fileFks)]
+  if (ids.length === 0) {
+    return new Map()
+  }
+
+  const rows = await db.query.files.findMany({
+    columns: { areaFk: true, blockFk: true, id: true, routeFk: true },
+    where: (table, { inArray: within }) => within(table.id, ids),
+    with: {
+      area: { columns: { name: true } },
+      ascent: { columns: { id: true }, with: { route: { columns: { id: true, name: true } } } },
+      block: { columns: { name: true, order: true } },
+      route: { columns: { name: true } },
+    },
+  })
+
+  return new Map(
+    rows.flatMap((row): [string, ParentName][] => {
+      if (row.routeFk != null && row.route != null) {
+        return [[row.id, { kind: 'plain', name: row.route.name ?? '', path: `/routes/${row.routeFk}` }]]
+      }
+      if (row.ascent?.route != null) {
+        const route = row.ascent.route
+        return [[row.id, { kind: 'plain', name: route.name ?? '', path: `/routes/${route.id}` }]]
+      }
+      if (row.blockFk != null && row.block != null) {
+        return [
+          [
+            row.id,
+            { kind: 'block', name: row.block.name ?? '', order: row.block.order, path: `/blocks/${row.blockFk}` },
+          ],
+        ]
+      }
+      if (row.areaFk != null && row.area != null) {
+        return [[row.id, { kind: 'plain', name: row.area.name ?? '', path: `/areas/${row.areaFk}` }]]
+      }
+      return []
+    }),
+  )
+}
+
 /**
  * Where a directed push opens.
  *
@@ -209,6 +277,7 @@ async function namesOf(userFks: readonly number[]): Promise<Map<number, string>>
  */
 function pathnameFor(row: {
   eventFk: null | number
+  fileFk: null | string
   reactionFk: null | number
   sourceType: NotificationSourceType
 }): string {
@@ -218,6 +287,12 @@ function pathnameFor(row: {
 
   if (row.sourceType === 'membership_removed') {
     return '/'
+  }
+
+  // Only when the parent could not be resolved. `/f/<id>` renders any file, but it is a share
+  // surface with no nav, so a reader who lands there from a push cannot get back into the app.
+  if (row.fileFk != null) {
+    return `/f/${row.fileFk}`
   }
 
   if (row.eventFk == null) {
@@ -556,10 +631,15 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
 
     const subscriptions = await subscriptionsFor(readable.map((row) => row.userFk))
     const unread = await unreadCounts(ready.map((row) => row.userFk))
+    // Only the rows that name a file, so a batch without one runs no extra query.
+    const parents = await parentNamesOf(readable.flatMap((row) => (row.fileFk == null ? [] : [row.fileFk])))
 
     const results = await inBatches(readable, (row) =>
       guarded(row.id, () => {
         const locale = contactLocale(row.contactLocale)
+        // The parent's page with the viewer open, for the same reason the inbox row uses it: a
+        // push that opens the share page strands the reader outside the app.
+        const parent = row.fileFk == null ? undefined : parents.get(row.fileFk)
         const view = notificationView(
           {
             actorName: row.actorName,
@@ -568,6 +648,8 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
             // row is about. The push only needs it for the sentence, which never asks what type
             // it was.
             object: objectOf(row),
+            // A push has no entity row to name the place, so the title says it.
+            objectName: parentNameIn(parent, locale),
             regionName: row.regionName,
             sourceType: row.sourceType,
           },
@@ -579,7 +661,7 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
           // Straight to where it happened when the row knows: a comment, a reply, a mention
           // inside one and an emoji all name their card, and the card's page renders the thread
           // with the line anchored.
-          pathname: pathnameFor(row),
+          pathname: parent == null || row.fileFk == null ? pathnameFor(row) : `${parent.path}?media=${row.fileFk}`,
           tag: directedTag(row.id),
           title: resolveMessage(view.key, view.params, { locale }),
         })

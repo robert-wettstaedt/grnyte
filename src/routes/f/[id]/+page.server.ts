@@ -74,7 +74,9 @@ export const load = (async ({ locals, params }) => {
         with: { userSettings: { columns: { gradingScale: true } } },
       },
       block: { columns: { deletedAt: true } },
-      bunnyStream: { columns: { source: true } },
+      // `readiness` too: this selection is explicit, and omitting it renders every shared video as
+      // still being prepared.
+      bunnyStream: { columns: { readiness: true, source: true } },
       route: {
         columns: {
           deletedAt: true,

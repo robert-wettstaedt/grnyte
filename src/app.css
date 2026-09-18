@@ -173,3 +173,10 @@ body {
 .dark .osm-layer {
   background-color: var(--color-surface-800);
 }
+
+/* Global, so every `animate-pulse` site answers the preference the same way. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse {
+    animation: none;
+  }
+}

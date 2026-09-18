@@ -109,4 +109,30 @@ describe('notificationView', () => {
     const view = notificationView(notification({ regionName: 'Harz', sourceType: 'mention' }))
     expect(resolveMessage(view.key, view.params)).not.toContain('Harz')
   })
+
+  const video = (over: Partial<Subject> = {}) =>
+    notification({ object: { id: 'fil3', type: 'file' }, sourceType: 'video_ready', ...over })
+
+  // The inbox draws the file's parent under the sentence, so the row has to point at something.
+  it('points a ready video at its file, so the inbox has a row to draw', () => {
+    expect(notificationView(video()).ref).toEqual({ id: 'fil3', type: 'file' })
+  })
+
+  // Only the cron supplies a name, and only the push needs one: the inbox says it in the row.
+  it('names the place in the sentence when the cron supplied one', () => {
+    const view = notificationView(video({ objectName: 'Karma' }))
+    expect(resolveMessage(view.key, view.params)).toContain('Karma')
+  })
+
+  it('keeps the plain sentence for the inbox, which passes no name', () => {
+    const view = notificationView(video())
+    expect(view.key).toBe('notifications_videoReady')
+    expect(resolveMessage(view.key, view.params)).not.toContain('undefined')
+  })
+
+  // A file whose parent was gone at fan-out resolves to no name, which must read as the plain
+  // sentence rather than as "ready: " with nothing after the colon.
+  it('falls back to the plain sentence when the name resolves empty', () => {
+    expect(notificationView(video({ objectName: '' })).key).toBe('notifications_videoReady')
+  })
 })

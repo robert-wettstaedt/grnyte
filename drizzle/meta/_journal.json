@@ -393,6 +393,13 @@
       "when": 1789638411017,
       "tag": "0130_steep_wendigo",
       "breakpoints": true
+    },
+    {
+      "idx": 131,
+      "version": "7",
+      "when": 1789678098747,
+      "tag": "0131_hot_kingpin",
+      "breakpoints": true
     }
   ]
 }

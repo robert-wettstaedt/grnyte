@@ -12,7 +12,7 @@ import type { NotificationListItem, NotificationSourceType } from './dto'
  */
 export interface NotificationView {
   key: MessageKey
-  params: { actor: string; region?: string; role?: string }
+  params: { actor: string; name?: string; region?: string; role?: string }
   /**
    * What the row renders underneath the caption, for the shared hydration to resolve.
    *
@@ -53,6 +53,7 @@ const KEYS: Record<NotificationSourceType, MessageKey> = {
   mention: 'notifications_mention',
   reaction: 'notifications_reaction',
   role_changed: 'notifications_roleChanged',
+  video_ready: 'notifications_videoReady',
 }
 
 /**
@@ -60,6 +61,9 @@ const KEYS: Record<NotificationSourceType, MessageKey> = {
  * the fields the inbox needs and it does not (an id, a clock, a read stamp).
  */
 export type NotificationSubject = Pick<NotificationListItem, 'actorName' | 'metadata' | 'object' | 'sourceType'> & {
+  /** What the row is about, named. Only the push cron joins it: the inbox draws the entity row
+   *  instead, and a sentence repeating the name beside that row says it twice. */
+  objectName?: string
   /** The region's name, for the two sentences that say it. The cron joins it; the inbox never
    *  needs it, so it stays optional rather than becoming a field every caller has to fetch. */
   regionName?: string
@@ -74,12 +78,22 @@ export function notificationView(notification: NotificationSubject, options?: Me
   // the caller's own `resolveMessage(..., { locale })` around the sentence cannot reach inside it.
   const role = notification.sourceType === 'role_changed' ? roleLabelFor(notification.metadata, options) : undefined
 
+  // The inbox draws the entity row, so its sentence never needs the name; a push has no row and
+  // says it in the title. Only the cron passes `objectName`, so only the push picks the key.
+  const named = notification.sourceType === 'video_ready' && (notification.objectName ?? '').length > 0
+
   return {
-    key:
-      role == null && notification.sourceType === 'role_changed'
+    key: named
+      ? 'notifications_videoReadyNamed'
+      : role == null && notification.sourceType === 'role_changed'
         ? 'notifications_roleChangedPlain'
         : KEYS[notification.sourceType],
-    params: { actor: notification.actorName, region: notification.regionName, role },
+    params: {
+      actor: notification.actorName,
+      name: notification.objectName,
+      region: notification.regionName,
+      role,
+    },
     // A row whose object is gone has none to point at, which reads the same way as the three
     // source types that never had one: the sentence stands on its own and nothing is drawn under
     // it. The sentence itself never asked what type the object was.

@@ -22,7 +22,6 @@
   import { m } from '$lib/paraglide/messages'
   import { provideGlobalState, staticGlobalState } from '$lib/state/global.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
-  import { bunnyThumbnail } from '$lib/videos/bunny'
   import { untrack } from 'svelte'
 
   const { data } = $props()
@@ -49,10 +48,13 @@
 
   // Already a display name: the loader runs it through `toDisplayName`.
   const title = $derived(data.file.route == null ? m.files_sharedFile() : data.file.route.name)
+  // No image for a video, deliberately. The host's poster cannot serve as one: the pull zone has
+  // hotlink protection, so a request carrying no Referer (which is every unfurl crawler) gets 403,
+  // whether or not the poster exists. `ready` would not have been a safe test anyway, since webhook
+  // status 4 makes a video playable while its derivatives are still being generated. Serving the
+  // site default beats advertising a URL that answers 403 and gets cached that way.
   const ogImage = $derived(
-    data.file.bunnyStreamFk != null
-      ? bunnyThumbnail(data.file.bunnyStreamFk)
-      : `${page.url.origin}${imageSrc(data.file.path, 1024)}`,
+    data.file.bunnyStreamFk == null ? `${page.url.origin}${imageSrc(data.file.path, 1024)}` : undefined,
   )
 
   let shareOpen = $state(false)
@@ -90,7 +92,9 @@
   <meta name="description" content={title} />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={PUBLIC_APPLICATION_NAME} />
-  <meta property="og:image" content={ogImage} />
+  {#if ogImage != null}
+    <meta property="og:image" content={ogImage} />
+  {/if}
   <meta property="og:url" content={page.url.toString()} />
   <meta property="og:type" content="website" />
 </svelte:head>

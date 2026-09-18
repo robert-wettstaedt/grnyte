@@ -12,6 +12,7 @@
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import HydratedRow from '$lib/components/EntityRow/HydratedRow.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import MediaTile from '$lib/components/Media/MediaTile.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
@@ -88,12 +89,21 @@
    * thread in flow so there is something for `?comment=` to scroll to. A row about a description
    * mention or a role change names no event and stays plain text.
    */
-  const eventHref = (notification: NotificationListItem) =>
-    notification.eventFk == null
+  const rowHref = (notification: NotificationListItem) => {
+    // The parent's page with the viewer open, not `/f/<id>`: that page is a share surface with no
+    // nav, so a reader who arrives from the inbox has no way back into the app. A route page reads
+    // `?media` for its own files and its ascents'; a block or area has no viewer and just opens.
+    if (notification.sourceType === 'video_ready') {
+      const href = notification.entity?.href
+      return href == null || notification.object == null ? undefined : `${href}?media=${notification.object.id}`
+    }
+
+    return notification.eventFk == null
       ? undefined
       : `${resolve('/(app)/events/[id]', { id: String(notification.eventFk) })}${
           notification.reactionFk == null ? '' : `?comment=${notification.reactionFk}`
         }`
+  }
 
   const rowFor = (notification: NotificationListItem, ref: EventEntityRef): CardRow => ({
     // Neither on an inbox row. The strip and the note are what a feed card says ABOUT an ascent it
@@ -143,6 +153,9 @@
             {/if}
 
             {@const crumb = regionCrumb(global.userRegions, notification.regionFk)}
+            <!-- The file the row is about, hung off the parent entity by `toEventEntity`. Absent
+                 once the video is deleted, which falls back to the avatar and a tombstone row. -->
+            {@const media = notification.sourceType === 'video_ready' ? notification.entity?.files?.[0] : undefined}
 
             <article
               class={[
@@ -159,11 +172,19 @@
                    already a link of its own, and an anchor cannot contain another. Tapping what a
                    row SAYS opens where it happened; tapping the thing it names opens that thing. -->
               <svelte:element
-                this={eventHref(notification) == null ? 'header' : 'a'}
-                href={eventHref(notification)}
+                this={rowHref(notification) == null ? 'header' : 'a'}
+                href={rowHref(notification)}
                 class="flex items-center gap-2.5"
               >
-                <Avatar name={notification.actorName} size={34} solid loading={notification.actorName.length === 0} />
+                <!-- The video itself, where every other row shows who acted. `video_ready` is
+                     self-addressed, so that avatar is the reader's own face and identifies nothing;
+                     with two clips on one route the frame is the only thing that tells them apart.
+                     A minimum width keeps a portrait clip from rendering as a sliver. -->
+                {#if media != null}
+                  <MediaTile class="h-[34px] min-w-[34px]" compact file={media} />
+                {:else}
+                  <Avatar name={notification.actorName} size={34} solid loading={notification.actorName.length === 0} />
+                {/if}
 
                 <div class="min-w-0 flex-1">
                   <p class="text-surface-950-50 text-sm/snug font-semibold">

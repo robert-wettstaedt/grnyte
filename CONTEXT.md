@@ -116,6 +116,14 @@ people, so it sits above both rather than under one.
 These name concepts in code and in prose here, never in UI copy. They are in this file so that one
 word is used for each of them, not because a reader ever sees the word.
 
+**readiness**
+Whether a video can be played yet: `pending`, `ready` or `failed`, on `bunny_streams.readiness`.
+Three states where the host has eleven, because no climber distinguishes queued from encoding, and
+because `videos/provider.server.ts` is the seam that keeps the host's vocabulary out of the rest of
+the app. Monotonic: `ready` is a one-way door, and nothing may move a video back out of it, which is
+what lets a client observation correct a stale row without ever corrupting it. In UI copy the word is
+"Preparing", never "processing", which is the host's word for its own machinery.
+
 **slot**
 A block's position inside its area, stored as `blocks.order` and shown 1-based, so slot 2 renders
 as "Block 3" when a block has no name of its own. Per-area, so a list spanning several areas has no

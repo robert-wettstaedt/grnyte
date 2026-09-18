@@ -19,12 +19,15 @@ import { connect, resolveSeedUsers, type SeedUser } from './testAccounts'
 
 export const sql = connect()
 
-/** False when there is no local database, so `npm test` still passes without one. Every DB-backed
- *  suite guards on this with `describe.skipIf(!reachable)`. */
-export const reachable = await sql`select 1`.then(
-  () => true,
-  () => false,
-)
+/** False only when no `DATABASE_URL` is configured, so `npm test` still passes on a fresh clone.
+ *  Every DB-backed suite guards on this with `describe.skipIf(!reachable)`.
+ *
+ *  A configured database that REFUSES (a full connection pool, a stopped container) throws here
+ *  instead of skipping: a skip exits 0, so swallowing it reported a green suite that ran nothing. */
+export const reachable = process.env.DATABASE_URL != null && process.env.DATABASE_URL !== ''
+if (reachable) {
+  await sql`select 1`
+}
 
 export type { SeedUser } from './testAccounts'
 

@@ -2,7 +2,7 @@
 
 Whether a hosted video can be played yet, how the app learns that from the video host, how it
 recovers when the host's notification is lost, what a reader sees while a video is still being
-prepared, and what the notification system does about a video that cannot yet be watched.
+prepared, and how the person who uploaded it learns that it is playable.
 
 ## ADDED Requirements
 
@@ -21,6 +21,26 @@ Readiness SHALL be readable without contacting the video host.
 
 - **WHEN** a reader opens a screen listing videos
 - **THEN** each video's readiness is available from synced data without any request to the video host
+
+### Requirement: What a reader is shown reads against their effective readiness
+
+Effective readiness is the recorded readiness, or `ready` where this reader has since observed the
+video to be playable. Every requirement about what a reader is SHOWN SHALL be read against effective
+readiness and never against the record directly, and the observation SHALL NOT change the record.
+
+Stated once, here, because it is the distinction every presentation surface has to make and the one
+they are most likely to make differently: a surface reading the record alone is a defensible reading
+of any requirement that says "a `pending` video" without this.
+
+#### Scenario: A reader who has seen the video play
+
+- **WHEN** a reader has observed a `pending` video to be playable
+- **THEN** every surface shows it as playable to that reader, including the share surface
+
+#### Scenario: A reader who has not
+
+- **WHEN** no such observation has been made
+- **THEN** the surfaces show the recorded readiness
 
 ### Requirement: Readiness is monotonic
 
@@ -211,49 +231,6 @@ SHALL establish the true readiness of every existing video from the host.
 - **WHEN** readiness is introduced while some existing videos are genuinely still being prepared or
   have failed
 - **THEN** reconciliation against the host establishes their true readiness
-
-### Requirement: A notification whose only content is a video waits for the video
-
-When everything a notification would announce is one or more videos, the system SHALL NOT deliver it
-while those videos are `pending`, and SHALL deliver it once they are `ready`. If they become
-`failed`, it SHALL NOT be delivered at all.
-
-#### Scenario: A video added to an existing ascent
-
-- **WHEN** a video is added to an existing ascent and is still `pending`
-- **THEN** subscribers are not notified yet
-
-#### Scenario: The same video becomes ready
-
-- **WHEN** that video becomes `ready`
-- **THEN** subscribers are notified once
-
-#### Scenario: The same video fails
-
-- **WHEN** that video becomes `failed`
-- **THEN** subscribers are never notified about it
-
-### Requirement: A notification sent while a video was pending is followed up once
-
-When a notification carries news beyond its videos, such as a new ascent, the system SHALL deliver it
-immediately, and SHALL then tell the same subscribers once when the videos it referred to become
-playable. No follow up SHALL be produced when the videos were already `ready` at delivery.
-
-#### Scenario: A new ascent whose video is still pending
-
-- **WHEN** a new ascent is announced while its video is `pending`
-- **THEN** subscribers are notified about the ascent immediately, and notified once more when the
-  video becomes playable
-
-#### Scenario: A new ascent whose video is already ready
-
-- **WHEN** a new ascent is announced and its video is already `ready`
-- **THEN** subscribers are notified once and no follow up is produced
-
-#### Scenario: Several videos on one announcement
-
-- **WHEN** an announcement refers to several `pending` videos
-- **THEN** at most one follow up is produced, once the last of them resolves
 
 ### Requirement: The uploader is told when their own video is ready
 
