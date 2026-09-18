@@ -37,8 +37,10 @@ describe('verifyWebhook', () => {
 
   // The same JSON value in different bytes, which is why the route must hash the raw body.
   it('rejects a re-serialised body whose value is unchanged', () => {
-    const reserialised = JSON.stringify(JSON.parse(body.replace('{', '{ ')))
-    expect(provider.verifyWebhook(`${reserialised} `, headers())).toBe(false)
+    const reserialised = JSON.stringify(JSON.parse(body), null, 2)
+    expect(reserialised).not.toBe(body)
+    expect(JSON.parse(reserialised)).toEqual(JSON.parse(body))
+    expect(provider.verifyWebhook(reserialised, headers())).toBe(false)
   })
 
   it('rejects a signature made with a different key', () => {
