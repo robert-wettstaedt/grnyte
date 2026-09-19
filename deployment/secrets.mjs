@@ -123,7 +123,15 @@ function pushToVercel(project, target = 'production') {
     const sensitivity =
       target === 'development' ? [] : [secret.key.startsWith('PUBLIC_') ? '--no-sensitive' : '--sensitive']
 
-    run('vercel', ['env', 'add', secret.key, target, '--force', '--project', project, ...sensitivity], secret.value)
+    // Only preview prompts for a git branch, and it exits 0 having written nothing when stdin (the
+    // value) is already consumed. `--yes` takes the default, which is every preview branch.
+    const prompts = target === 'preview' ? ['--yes'] : []
+
+    run(
+      'vercel',
+      ['env', 'add', secret.key, target, '--force', '--project', project, ...prompts, ...sensitivity],
+      secret.value,
+    )
     console.error(`${project}/${target}: ${secret.key}`)
   }
 }
