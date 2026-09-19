@@ -3,8 +3,8 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * The browser half of the test suite: the things that are only correct if a real browser, a real
  * GoTrue and a real database agree. `invite.spec.ts` (local stack only, it reads a mail catcher),
- * `prod-signup.spec.ts` (any environment), `form-seeding.spec.ts` and `undo-restore.spec.ts`.
- * Branch coverage stays in vitest.
+ * `prod-signup.spec.ts` and `prod-smoke.spec.ts` (any environment), `form-seeding.spec.ts` and
+ * `undo-restore.spec.ts`. Branch coverage stays in vitest.
  *
  * The last two watch state that outlives a component, and each owns its database pool: Playwright
  * runs spec files in one worker process, so `testDb`'s exported `sql` is shared and a file that
@@ -15,8 +15,10 @@ import { defineConfig, devices } from '@playwright/test'
  * be the one under test. Specs assert their prerequisites up front rather than timing out.
  */
 
-/** Set it to point the suite at a deployed environment; only `prod-signup.spec.ts` is portable
- *  enough to run there, so pass it a filter: `npm run test:e2e prod-signup`. */
+/** Set it to point the suite at a deployed environment; only `prod-signup.spec.ts` and
+ *  `prod-smoke.spec.ts` are portable enough, so pass a filter: `npm run test:e2e prod-smoke`.
+ *  It has to be EXPORTED: `source .env` sets a shell variable node never sees, so the suite
+ *  silently falls back to localhost and starts a dev server against whatever `.env` points at. */
 const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
 export default defineConfig({
   expect: {
