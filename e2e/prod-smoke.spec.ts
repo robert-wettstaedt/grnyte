@@ -42,7 +42,9 @@ const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
 
 /** Its own credentials, not the seed logins. Against a deployed environment this signs in for
  *  real, so the account must be one that no person reads. */
-const EMAIL = process.env.E2E_SMOKE_EMAIL ?? 'admin@grnyte.rocks'
+// The prod smoke account, which belongs to nobody. Not a dev login: this spec only ever runs
+// against a deployed environment, so the default names the account that exists there.
+const EMAIL = process.env.E2E_SMOKE_EMAIL ?? 'test@grnyte.rocks'
 const PASSWORD = process.env.E2E_SMOKE_PASSWORD ?? process.env.E2E_PASSWORD ?? ''
 
 const sql = connect()
