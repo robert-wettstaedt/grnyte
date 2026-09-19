@@ -35,11 +35,11 @@ const confirmUrl = (type: string, next: Pathname) =>
 /** Where an unauthenticated recipient lands to pick a password. Exempt from the signed-in bounce. */
 const SET_PASSWORD: Pathname = '/auth/reset-password'
 
-// The link and OTP lifetime GoTrue is configured with (MAILER_OTP_EXP, 86400s by default).
-// It appears in the meta line, the preheader and the footnote of five templates, so it lives
-// here. Check the project's actual value before shipping and change it in one place if it differs.
-const EXPIRY = '24 HOURS'
-const expiresIn = 'The link works once and expires in 24 hours.'
+// The link and OTP lifetime GoTrue is configured with (MAILER_OTP_EXP). Prod is 900s, NOT the
+// 86400s default, so check the project's value rather than assuming: this copy is a promise.
+const EXPIRY = '15 MINUTES'
+const expiry = '15 minutes'
+const expiresIn = `The link works once and expires in ${expiry}.`
 
 /** The six authentication templates. All send a link except `reauthentication`, which has no token. */
 const auth = {
@@ -91,7 +91,7 @@ const auth = {
     // user row and the email identity inside the same transaction that sends this.
     footnote: `${expiresIn} If you weren’t expecting this, ignore this email. The invite expires and the seat goes unclaimed.`,
     meta: `INVITE · LINK EXPIRES IN ${EXPIRY}`,
-    preheader: 'Open the link to claim your seat. It works once and expires in 24 hours.',
+    preheader: `Open the link to claim your seat. It works once and expires in ${expiry}.`,
     subject: 'Somebody invited you to grnyte',
     title: 'Somebody saved you a seat',
   },
@@ -102,7 +102,7 @@ const auth = {
     footerReason: 'account',
     footnote: `${expiresIn} If you didn’t ask to sign in, ignore this email. Nothing happens.`,
     meta: `SIGN IN · LINK EXPIRES IN ${EXPIRY}`,
-    preheader: 'One link and you’re back in. It works once and expires in 24 hours.',
+    preheader: `One link and you’re back in. It works once and expires in ${expiry}.`,
     subject: 'Your sign-in link',
     title: 'Your sign-in link',
   },
@@ -132,7 +132,7 @@ const auth = {
     footerReason: 'account',
     footnote: `${expiresIn} If you didn’t ask for this, ignore this email. Your password stays as it is.`,
     meta: `PASSWORD RESET · LINK EXPIRES IN ${EXPIRY}`,
-    preheader: 'Open the link to set a new password. It works once and expires in 24 hours.',
+    preheader: `Open the link to set a new password. It works once and expires in ${expiry}.`,
     subject: 'Reset your password',
     title: 'Set a new password',
   },

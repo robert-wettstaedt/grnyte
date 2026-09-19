@@ -8,11 +8,8 @@ import { GOTRUE_TEMPLATES } from './templates'
  * Renders the GoTrue templates to `emails/gotrue/`. Run with `npm run generate`.
  *
  * Hosted Supabase has no config.toml, so these are pasted into the dashboard
- * (Authentication > Emails) or PATCHed via the Management API:
- *
- *   curl -X PATCH "https://api.supabase.com/v1/projects/$PROJECT_REF/config/auth" \
- *     -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
- *     -d '{"mailer_subjects_invite": "...", "mailer_templates_invite_content": "<html>..."}'
+ * (Authentication > Emails) or pushed with `push-templates.ts`, which also reads the config back:
+ * a template that fails to parse falls back to Supabase's default without saying so.
  *
  * Never hand-edit the output or the dashboard copy. Both drift silently, and nobody notices
  * for months because these emails are only ever seen by people who are not you.
