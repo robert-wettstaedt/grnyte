@@ -18,7 +18,16 @@
 import postgres from 'postgres'
 
 const DATABASE_URL = process.env.DATABASE_URL
-if (!DATABASE_URL) throw new Error('strip-region: DATABASE_URL is required')
+if (!DATABASE_URL) throw new Error('purge-region: DATABASE_URL is required')
+
+// Every knob here is an env var, so an argument is somebody reaching for `--dry-run` out of habit
+// from the `migrate-*` scripts, where it is what keeps a destructive run safe. Ignoring it silently
+// is safe by luck rather than by the flag, and luck is not a convention.
+if (process.argv.length > 2) {
+  throw new Error(
+    `purge-region: unexpected argument(s) ${process.argv.slice(2).join(' ')}. This script is a DRY RUN by default; set CONFIRM=true to commit.`,
+  )
+}
 
 const REGION_ID = Number(process.env.REGION_ID ?? 1)
 const CONFIRM = process.env.CONFIRM === 'true'

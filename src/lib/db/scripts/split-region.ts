@@ -43,7 +43,7 @@
  *
  * ## Two Postgres behaviours this leans on
  *
- * `session_replication_role = replica` is set for the transaction, as in `strip-region.ts`, because
+ * `session_replication_role = replica` is set for the transaction, as in `purge-region.ts`, because
  * region data has FK cycles (blocks<->geolocations, routes<->route_external_resources,
  * files<->bunny_streams) that no ordering of updates satisfies. It also disables ON DELETE CASCADE
  * and user triggers, which this relies on twice: the root areas' dependants are deleted explicitly
@@ -60,6 +60,14 @@ import postgres from 'postgres'
 const DATABASE_URL = process.env.DATABASE_URL
 if (!DATABASE_URL) throw new Error('split-region: DATABASE_URL is required')
 
+// See `purge-region.ts`: an argument here is a `--dry-run` reflex from the `migrate-*` scripts,
+// and silently ignoring it makes a destructive run safe by luck rather than by the flag.
+if (process.argv.length > 2) {
+  throw new Error(
+    `split-region: unexpected argument(s) ${process.argv.slice(2).join(' ')}. This script is a DRY RUN by default; set CONFIRM=true to commit.`,
+  )
+}
+
 const REGION_ID = Number(process.env.REGION_ID)
 if (!Number.isInteger(REGION_ID)) throw new Error('split-region: REGION_ID is required')
 
@@ -68,7 +76,7 @@ const ACCEPT_COMMENT_LOSS = process.env.ACCEPT_COMMENT_LOSS === 'true'
 
 /**
  * Every table with a `region_fk`, and why it is not simply discovered from the catalogue the way
- * `strip-region.ts` discovers its own list: a delete needs no knowledge beyond the column, while a
+ * `purge-region.ts` discovers its own list: a delete needs no knowledge beyond the column, while a
  * split needs each table's path back to the moved subtree. Asserted against `information_schema`
  * at startup, so adding a region-scoped table and forgetting this file aborts the run.
  */

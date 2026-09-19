@@ -69,7 +69,7 @@ const ALT_SETTINGS: RegionSettings = {
 }
 
 /** Drop both regions and everything scoped to them. Region data has FK cycles
- *  (blocks <-> geolocations), so this copies `strip-region.ts`: one transaction, FK enforcement
+ *  (blocks <-> geolocations), so this copies `purge-region.ts`: one transaction, FK enforcement
  *  off, every table with a `region_fk` discovered from the schema. */
 export async function removeFixture(sql: Sql, name: string): Promise<void> {
   const names = [name, altName(name)]
