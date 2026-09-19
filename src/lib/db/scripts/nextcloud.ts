@@ -35,6 +35,17 @@ export const connectNextcloud = async (): Promise<NextcloudDav> => {
   return { dav, userPath: (path) => `${NEXTCLOUD_USER_NAME}${path}` }
 }
 
+/** The first bytes of a file. An image header is a few KB and the files are megabytes, so a full
+ *  download is wasted bandwidth on every measurement. */
+export const readHead = (dav: WebDAVClient, path: string, bytes: number): Promise<Buffer> =>
+  new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    const stream = dav.createReadStream(path, { range: { end: bytes - 1, start: 0 } })
+    stream.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)))
+    stream.on('end', () => resolve(Buffer.concat(chunks)))
+    stream.on('error', reject)
+  })
+
 /** A 404 is the one WebDAV failure that means "this file is gone" rather than "storage is broken". */
 const isMissing = (err: unknown): boolean => {
   const status = (err as null | { status?: unknown })?.status

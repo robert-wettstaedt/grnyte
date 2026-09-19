@@ -57,6 +57,34 @@ const toSubPaths = (points: Point[]): Point[][] => {
  */
 const round5 = (n: number): number => Math.round(n * 100000) / 100000
 
+/** One token of a stored path: a point, or the `Z` that marks the preceding one as a top. */
+export type PathToken = 'Z' | { letter: 'L' | 'M'; x: number; y: number }
+
+const tokenRegex = /^([ML])(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/i
+
+/** The inverse of {@link serializePoints}. `null` means a token this format does not describe,
+ *  which callers must treat as unconvertible rather than as an empty path. */
+export const parsePathTokens = (path: string): null | PathToken[] => {
+  const trimmed = path.trim()
+  if (trimmed === '') {
+    return []
+  }
+
+  const tokens: PathToken[] = []
+  for (const token of trimmed.split(/\s+/)) {
+    if (token.toUpperCase() === 'Z') {
+      tokens.push('Z')
+      continue
+    }
+    const match = tokenRegex.exec(token)
+    if (match == null) {
+      return null
+    }
+    tokens.push({ letter: match[1].toUpperCase() as 'L' | 'M', x: Number(match[2]), y: Number(match[3]) })
+  }
+  return tokens
+}
+
 export const serializePoints = (points: TopoPoint[]): string =>
   toSubPaths(points)
     .map((sub) =>

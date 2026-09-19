@@ -24,10 +24,8 @@ import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { pathToFileURL } from 'node:url'
 import Database from 'postgres'
 import drizzleConfig from '../../../../drizzle.config'
-import { isNormalized } from '../../entities/topo/path'
+import { isNormalized, parsePathTokens } from '../../entities/topo/path'
 import * as schema from '../schema'
-
-const tokenRegex = /^([ML])(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/i
 
 /**
  * Rewrite one stored path from pixel space to 0–1 fractions of `width`×`height`,
@@ -41,22 +39,12 @@ export const normalizePath = (
   width: number,
   height: number,
 ): { next: null; reason: 'empty' | 'normalized' | 'out-of-bounds' | 'unparsable' } | { next: string } => {
-  const tokens = path.trim().split(/\s+/)
-  if (tokens.length === 0 || path.trim() === '') {
-    return { next: null, reason: 'empty' }
+  const parsed = parsePathTokens(path)
+  if (parsed == null) {
+    return { next: null, reason: 'unparsable' }
   }
-
-  const parsed: ('Z' | { letter: string; x: number; y: number })[] = []
-  for (const token of tokens) {
-    if (token.toUpperCase() === 'Z') {
-      parsed.push('Z')
-      continue
-    }
-    const match = tokenRegex.exec(token)
-    if (match == null) {
-      return { next: null, reason: 'unparsable' }
-    }
-    parsed.push({ letter: match[1].toUpperCase(), x: Number(match[2]), y: Number(match[3]) })
+  if (parsed.length === 0) {
+    return { next: null, reason: 'empty' }
   }
 
   const points = parsed.filter((token) => token !== 'Z')
@@ -94,18 +82,25 @@ export const normalizePath = (
 /** 5 decimals ≈ 0.05px error on a 4000px photo: plenty, and keeps paths short. */
 const round = (value: number): number => Number(value.toFixed(5))
 
-export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
-  const rows = await db
+/** Every stored path with the dimensions of the image it was drawn on. Shared with
+ *  `fix-topo-path-scale.ts`, which walks the same rows to undo a wrong denominator. */
+export const selectTopoPathRows = (db: PostgresJsDatabase<typeof schema>) =>
+  db
     .select({
+      filePath: schema.files.path,
       height: schema.files.height,
       id: schema.topoRoutes.id,
       path: schema.topoRoutes.path,
+      topoId: schema.topos.id,
       width: schema.files.width,
     })
     .from(schema.topoRoutes)
     .innerJoin(schema.topos, eq(schema.topoRoutes.topoFk, schema.topos.id))
     .innerJoin(schema.files, eq(schema.topos.fileFk, schema.files.id))
     .where(isNotNull(schema.topoRoutes.path))
+
+export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
+  const rows = await selectTopoPathRows(db)
 
   let converted = 0
   const skipped: Record<string, number[]> = {}

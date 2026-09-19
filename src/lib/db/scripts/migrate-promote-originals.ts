@@ -27,7 +27,7 @@ import sharp from 'sharp'
 import drizzleConfig from '../../../../drizzle.config'
 import { isDerivableImage } from '../../images/derivatives'
 import * as schema from '../schema'
-import { connectNextcloud, inParallel, listingCache, rethrowUnlessMissing } from './nextcloud'
+import { connectNextcloud, inParallel, listingCache, readHead as readHeadOf, rethrowUnlessMissing } from './nextcloud'
 
 /** Storage path of the pristine sibling, e.g. `/topos/138.jpg` → `/topos/138.orig.jpg`. */
 const origPathOf = (path: string): string => path.replace(/\.([^./]+)$/, '.orig.$1')
@@ -60,14 +60,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   const listingOf = listingCache({ dav, userPath })
   const siblingsOf = (filePath: string): Promise<Set<string>> => listingOf(parentOf(filePath))
 
-  const readHead = (p: string): Promise<Buffer> =>
-    new Promise((resolve, reject) => {
-      const chunks: Buffer[] = []
-      const stream = dav.createReadStream(userPath(p), { range: { end: HEADER_BYTES - 1, start: 0 } })
-      stream.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)))
-      stream.on('end', () => resolve(Buffer.concat(chunks)))
-      stream.on('error', reject)
-    })
+  const readHead = (p: string): Promise<Buffer> => readHeadOf(dav, userPath(p), HEADER_BYTES)
 
   // Pixel count, which EXIF orientation cannot change: it only swaps the two factors. Null when
   // the file is gone or unreadable, which the caller treats as "cannot judge".
