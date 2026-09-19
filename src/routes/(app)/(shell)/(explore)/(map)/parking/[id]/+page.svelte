@@ -1,0 +1,71 @@
+<script lang="ts">
+  import { page } from '$app/state'
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import Icon from '$lib/components/Icon/Icon.svelte'
+  import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import { createLocationState } from '$lib/entities/geolocation/location.svelte'
+  import { parkingDetail } from '$lib/entities/geolocation/resources.svelte'
+  import { m } from '$lib/paraglide/messages'
+  import { createCopyButton } from '$lib/state/clipboard.svelte'
+  import { getGlobalState } from '$lib/state/global.svelte'
+  import { sheetState } from '../../../Modal/sheetState.svelte'
+  import ParkingActions from './ParkingActions.svelte'
+
+  const global = getGlobalState()
+  const parking = parkingDetail(() => Number(page.params.id))
+
+  const location = createLocationState(() => {
+    const data = parking.data
+    return data == null ? undefined : { lat: data.lat, long: data.long }
+  })
+
+  const formatCoord = (lat: number, long: number): string =>
+    `${Math.abs(lat).toFixed(5)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(long).toFixed(5)}°${long >= 0 ? 'E' : 'W'}`
+
+  // Brief check-mark confirmation after copying the coordinate to the clipboard.
+  const clip = createCopyButton()
+
+  // The (map) layout draws the sheet header from sheetState: label it with the
+  // parking and, as a subtitle, the sector it belongs to.
+  $effect(() => {
+    sheetState.title = m.parking_title()
+    sheetState.subtitle = breadcrumb
+  })
+</script>
+
+<svelte:head>
+  <title>{m.parking_title()} – {PUBLIC_APPLICATION_NAME}</title>
+</svelte:head>
+
+<QueryState notFound={m.parking_notFound()} resource={parking}>
+  {#snippet ready(data)}
+    {@const coords = formatCoord(data.lat, data.long)}
+    <div class="space-y-5">
+      <ParkingActions {location} parking={data} />
+
+      <button
+        type="button"
+        class="border-surface-300-700 bg-surface-100-900 hover:bg-surface-200-800 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors"
+        onclick={() => clip.copy(coords)}
+        aria-label={m.parking_copyCoordinates()}
+      >
+        <span class="bg-primary-500/15 text-primary-500 flex size-10 flex-none items-center justify-center rounded-xl">
+          <Icon name="map-pin" size={20} />
+        </span>
+        <span class="min-w-0 flex-1 truncate font-mono text-sm font-semibold">{coords}</span>
+        <Icon
+          name={clip.copied ? 'check' : 'copy'}
+          size={18}
+          class={['flex-none', clip.copied ? 'text-primary-500' : 'text-surface-500']}
+        />
+      </button>
+    </div>
+  {/snippet}
+</QueryState>
+
+{#snippet breadcrumb()}
+  {#if parking.data?.area != null}
+    <Breadcrumb area={parking.data.area} userRegions={global.userRegions} />
+  {/if}
+{/snippet}

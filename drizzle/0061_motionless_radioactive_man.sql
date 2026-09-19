@@ -1,1 +1,0 @@
-CREATE INDEX "region_members_region_auth_user_idx" ON "region_members" USING btree ("region_fk","auth_user_fk");

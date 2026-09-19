@@ -1,1 +1,0 @@
-ALTER TABLE "client_error_logs" ADD COLUMN "pathname" text;

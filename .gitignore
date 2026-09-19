@@ -140,6 +140,7 @@ dist
 
 # SvelteKit build / generate output
 .svelte-kit
+build/
 
 ### Svelte ###
 # gitignore template for the SvelteKit, frontend web component framework
@@ -147,6 +148,10 @@ dist
 
 .svelte-kit/
 package
+
+### Storybook ###
+storybook-static
+*.storybook.log
 
 ### Vercel ###
 .vercel
@@ -173,3 +178,36 @@ package
 # End of https://www.toptal.com/developers/gitignore/api/node,svelte,visualstudiocode,vercel
 
 .backup
+
+# Un-ignore the Icon component dir: the global ~/.gitignore has a plain "Icon"
+# rule (intended for the macOS "Icon\r" file) that also matches this folder.
+!src/lib/components/Icon/
+
+dev-dist
+emails
+
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+docs
+
+# Local TLS cert for `PREVIEW_HTTPS=1 npm run preview` behind a TLS proxy
+.certs/
+
+# Landing clip capture. The scripts are tracked; these are not: `raw/` is tens of megabytes of
+# simulator recordings, `variants/` the cut theme/locale set of which only one ever ships.
+brand/capture/raw/
+brand/capture/variants/
+__pycache__/
+
+# memlab heap snapshots (hundreds of MB per run)
+.memlab/
+
+# Mutation testing sandboxes and reports
+.stryker-tmp
+/reports/
+.vite-stryker

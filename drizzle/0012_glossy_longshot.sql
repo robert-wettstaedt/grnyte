@@ -1,2 +1,0 @@
-CREATE POLICY "data.read can update blocks" ON "blocks" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((SELECT authorize('data.read'))) WITH CHECK ((SELECT authorize('data.read')));--> statement-breakpoint
-CREATE POLICY "data.read can create geolocations" ON "geolocations" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((SELECT authorize('data.read')));

@@ -1,53 +1,120 @@
 <script lang="ts">
-  import LoadingIndicator from '$lib/components/LoadingIndicator'
+  import Icon from '$lib/components/Icon/Icon.svelte'
+  import { imageSrc, type DerivativeSize } from '$lib/images/derivatives'
+  import { isOnline } from '$lib/state/online.svelte'
+  import type { Snippet } from 'svelte'
+  import type { ClassValue, HTMLImgAttributes } from 'svelte/elements'
 
-  interface Props {
-    path: string | undefined | null
-    size: number
+  interface Props extends Omit<HTMLImgAttributes, 'alt' | 'class' | 'onerror' | 'onload' | 'src'> {
+    /**
+     * Alternative text: also announced when the image fails to load. An empty
+     * string marks the image decorative; the failure placeholder is then
+     * hidden from screen readers too.
+     */
+    alt: string
+    /**
+     * Classes for the wrapper box. Give it a size or aspect ratio so the loading
+     * and error states have somewhere to render and to avoid layout shift.
+     */
+    class?: ClassValue
+    /** Replaces the default failure placeholder (both error and offline). */
+    error?: Snippet
+    /** How the photo fills the box (`object-fit`). A prop rather than an `imgClass`
+     *  override because two object-* utilities on one element resolve by stylesheet
+     *  order, not class order: cover silently won over a passed object-contain. */
+    fit?: 'contain' | 'cover'
+    /** Classes for the inner `<img>`. */
+    imgClass?: ClassValue
+    /** Bound to the loaded image's intrinsic pixel size (0 until it loads). */
+    naturalHeight?: number
+    /** Bound to the loaded image's intrinsic pixel size (0 until it loads). */
+    naturalWidth?: number
+    /** Path of the file as stored on the `files` record (leading slash optional). */
+    path: string
+    /**
+     * Request a resized, cacheable derivative instead of the full-res image, for list
+     * tiles and other small renders. Aspect-preserving. 256 for thumbnails, 1024 for
+     * anything filling a viewport; omit only where the untouched original is wanted.
+     */
+    previewWidth?: DerivativeSize
   }
 
-  const { path, size }: Props = $props()
+  let {
+    alt,
+    class: className,
+    error,
+    fit = 'cover',
+    imgClass,
+    naturalHeight = $bindable(),
+    naturalWidth = $bindable(),
+    path,
+    previewWidth,
+    ...rest
+  }: Props = $props()
 
-  let mediaHasError = $state(false)
+  type Status = 'error' | 'loaded' | 'loading' | 'offline'
 
-  let progressSize = $derived(size - size * 0.2)
-  let fontSize = $derived(size * 0.8)
-
-  const mediaAction = (el: HTMLElement) => {
-    const onError = () => (mediaHasError = true)
-
-    el.addEventListener('error', onError)
-
-    return {
-      destroy: () => {
-        el.removeEventListener('error', onError)
-      },
-    }
-  }
+  const src = $derived(imageSrc(path, previewWidth))
+  let status = $state<Status>('loading')
+  const failed = $derived(status === 'error' || status === 'offline')
+  // Remount key for the <img>: bumping it re-issues the request after a failure.
+  let retry = $state(0)
 </script>
 
-{#if path == null || mediaHasError}
-  <div
-    class="flex items-center justify-center text-white"
-    style="min-width: {size}px; width: {size}px; min-height: {size}px; height: {size}px; font-size: {fontSize}px"
-  >
-    <i class="fa-solid fa-image"></i>
-  </div>
-{:else}
-  <div class="relative flex h-full items-center justify-center">
-    <LoadingIndicator
-      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-      style="min-width: {progressSize}px; width: {progressSize}px; min-height: {progressSize}px; height: {progressSize}px;"
-      size="{progressSize}px"
-    />
+<!--
+  Back online → retry failed loads; remounting the <img> restarts the request.
+  The browser's `online` event is the trigger, so a recovery only `isOnline()` can see (the probe or
+  Zero's hold cleared with no browser transition) is not retried until something else remounts.
+  `onerror` below uses `isOnline()`, which reads false in that case and labels the image offline.
+-->
+<svelte:window
+  ononline={() => {
+    if (failed) {
+      retry++
+      status = 'loading'
+    }
+  }}
+/>
 
+<div class={['bg-surface-200-800 relative overflow-hidden', status === 'loading' && 'animate-pulse', className]}>
+  <!--
+    The image stays mounted in every state (except an explicit retry remount):
+    it loads behind the skeleton, and when `src` changes it keeps showing the
+    previous image until the new one resolves (or errors). No flash back to
+    the skeleton between images.
+  -->
+  {#key retry}
     <img
-      alt=""
-      class="relative z-0 object-cover"
       loading="lazy"
-      src="{path}?x={size}&y={size}&mimeFallback=true&a=0"
-      style="min-width: {size}px; width: {size}px; min-height: {size}px; height: {size}px;"
-      use:mediaAction
+      decoding="async"
+      {...rest}
+      {src}
+      {alt}
+      bind:naturalWidth
+      bind:naturalHeight
+      class={[
+        'h-full w-full transition-opacity duration-200',
+        fit === 'contain' ? 'object-contain' : 'object-cover',
+        status !== 'loaded' && 'opacity-0',
+        imgClass,
+      ]}
+      onload={() => (status = 'loaded')}
+      onerror={() => (status = isOnline() ? 'error' : 'offline')}
     />
-  </div>
-{/if}
+  {/key}
+
+  {#if failed}
+    {#if error}
+      {@render error()}
+    {:else}
+      <div
+        aria-hidden={alt ? undefined : true}
+        aria-label={alt || undefined}
+        class="text-surface-500 absolute inset-0 grid place-items-center"
+        role={alt ? 'img' : undefined}
+      >
+        <Icon name={status === 'offline' ? 'no-signal' : 'image-off'} size="50%" />
+      </div>
+    {/if}
+  {/if}
+</div>

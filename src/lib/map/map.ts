@@ -1,0 +1,94 @@
+import { browser } from '$app/environment'
+import { isImperialLocale } from '$lib/i18n/units.svelte'
+import { getLocale } from '$lib/paraglide/runtime'
+
+// iOS deep-links into Apple Maps; everywhere else Google Maps' universal URL
+// handles both the Android app and desktop browsers. (iPadOS reports as Mac, so
+// also sniff touch points.)
+const isIOS = () =>
+  browser &&
+  (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+
+export type Coords = { lat: number; long: number }
+export type MapsDestination = Coords | { query: string }
+
+/** Parse `?lat=…&long=…` (the quick-create map handoff) into coords, or null when absent/garbled. */
+export const coordsFromParams = (params: URLSearchParams): Coords | null => {
+  const lat = Number(params.get('lat') ?? NaN)
+  const long = Number(params.get('long') ?? NaN)
+  return Number.isFinite(lat) && Number.isFinite(long) ? { lat, long } : null
+}
+
+/** Where a sector is measured from: its parking, else the mean of its block pins.
+ *  One point for both readers: a maintainer sorts blocks by distance from it, a climber navigates to it. */
+export const sectorReferencePoint = (
+  parking: Coords | null | undefined,
+  blockPins: Iterable<Coords | null | undefined>,
+): Coords | null => {
+  if (parking != null) return { lat: parking.lat, long: parking.long }
+
+  let count = 0
+  let lat = 0
+  let long = 0
+  for (const pin of blockPins) {
+    if (pin == null) continue
+    lat += pin.lat
+    long += pin.long
+    count += 1
+  }
+  return count === 0 ? null : { lat: lat / count, long: long / count }
+}
+
+/** Platform-specific maps deep link: driving directions to coords, or a name search. */
+export const mapsUrl = (dest: MapsDestination): string => {
+  const apple = isIOS()
+  if ('query' in dest) {
+    return apple
+      ? `https://maps.apple.com/?q=${encodeURIComponent(dest.query)}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dest.query)}`
+  }
+  return apple
+    ? `https://maps.apple.com/?daddr=${dest.lat},${dest.long}&dirflg=d`
+    : `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.long}`
+}
+
+/** Great-circle distance in metres between two coordinates (haversine). */
+export const haversineMetres = (a: Coords, b: Coords): number => {
+  const R = 6_371_000
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const dLat = toRad(b.lat - a.lat)
+  const dLon = toRad(b.long - a.long)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(h))
+}
+
+/** Display value + Intl unit, switching to the smaller unit (metres/feet) up close.
+ *
+ *  Rounded to the nearest 10 at approach distances, where the extra digit is noise, but to
+ *  the metre below 100: the activity feed reports how far a pin moved, and a 4 m nudge
+ *  rounded to the nearest 10 reads as "0 m". */
+export const pickDistanceUnit = (metres: number, imperial: boolean): { unit: string; value: number } => {
+  if (imperial) {
+    const feet = metres / 0.3048
+    return metres < 1609.344
+      ? { unit: 'foot', value: feet < 300 ? Math.round(feet) : Math.round(feet / 10) * 10 }
+      : { unit: 'mile', value: metres / 1609.344 }
+  }
+  return metres < 1000
+    ? { unit: 'meter', value: metres < 100 ? Math.round(metres) : Math.round(metres / 10) * 10 }
+    : { unit: 'kilometer', value: metres / 1000 }
+}
+
+/** Localized "18 km" / "300 m" / "0.5 mi" for a raw metre value: unit system from the viewer's
+ *  region, number format from the app's locale (a German reader reads "1,5 km", not "1.5 km"). */
+export const formatMetres = (metres: number): string => {
+  const { unit, value } = pickDistanceUnit(metres, isImperialLocale())
+  return new Intl.NumberFormat(getLocale(), {
+    maximumFractionDigits: value < 10 ? 1 : 0,
+    style: 'unit',
+    unit,
+  }).format(value)
+}
+
+/** Localized distance between two coords. */
+export const formatDistance = (from: Coords, to: Coords): string => formatMetres(haversineMetres(from, to))

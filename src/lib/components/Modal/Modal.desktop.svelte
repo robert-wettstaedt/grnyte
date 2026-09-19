@@ -1,0 +1,141 @@
+<script lang="ts">
+  import Icon from '$lib/components/Icon/Icon.svelte'
+  import { m } from '$lib/paraglide/messages'
+  import { Dialog, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
+  import type { Props } from './types'
+
+  let {
+    backdrop = false,
+    children,
+    contentClass,
+    footer,
+    headerLeft,
+    headerRight,
+    open = $bindable(),
+    panel = false,
+    panelClass,
+    popoverProps,
+    subtitle,
+    title,
+    trigger,
+  }: Props = $props()
+
+  // Two `max-h-*` utilities on one element are the same specificity, so which one wins is the
+  // order Tailwind happened to emit them in, not the order they are listed here. Four callers
+  // already pass their own cap, so the default only applies when they did not.
+  // ponytail: a substring test, not a class parser. `max-h-` is unambiguous in a class list.
+  const cappedByCaller = $derived(contentClass?.includes('max-h-') ?? false)
+
+  // Only `true` opts the panel into modal behaviour. `'mobile'` asks for the sheet's scrim
+  // and nothing here, so the page behind a panel stays interactive.
+  const isModal = $derived(backdrop === true)
+</script>
+
+{#if panel}
+  <!-- Opt-in fixed panel: positioned via panelClass/contentClass instead of anchoring to the
+       trigger (e.g. under the search bar, or beside the routes sheet). Closes via the X, Escape,
+       or re-tapping the trigger. Modal.svelte renders the trigger, not this file, because this
+       component loads lazily and the trigger wouldn't exist until its chunk landed; the popover
+       branch below is the exception, since Zag hands that button its own props. -->
+
+  <!-- `backdrop` opts this panel into modal behaviour: a blurred scrim, tap-outside
+       to close and a focus trap. Without it the panel stays non-modal (e.g. the
+       search-bar panel, where the background must remain interactive). -->
+  <Dialog {open} onOpenChange={(event) => (open = event.open)} modal={isModal} closeOnInteractOutside={isModal}>
+    <Portal>
+      {#if isModal}
+        <Dialog.Backdrop class="bg-surface-50-950/50 fixed inset-0 z-40 backdrop-blur-sm" />
+      {/if}
+
+      <Dialog.Positioner class={panelClass}>
+        <Dialog.Content
+          class={['card bg-surface-50-950 border-surface-100-900 flex flex-col overflow-hidden border-2', contentClass]}
+        >
+          <header class="flex shrink-0 items-center justify-between gap-2 px-4 py-2 shadow">
+            {#if headerLeft}
+              {@render headerLeft()}
+            {/if}
+
+            <Dialog.Title class="flex min-w-0 flex-col">
+              {#if subtitle}
+                <span class="text-surface-600-400 text-xs">{subtitle}</span>
+              {/if}
+              <span class="text-lg">{title}</span>
+            </Dialog.Title>
+
+            {#if headerRight}
+              {@render headerRight()}
+            {:else}
+              <Dialog.CloseTrigger
+                class="btn-icon preset-filled-surface-200-800 shrink-0"
+                aria-label={m.common_close()}
+              >
+                <Icon name="close" />
+              </Dialog.CloseTrigger>
+            {/if}
+          </header>
+
+          <Dialog.Description class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-2 pb-4">
+            {@render children?.()}
+          </Dialog.Description>
+
+          {#if footer}
+            <div
+              class="bg-surface-50-950 border-surface-100-900 flex shrink-0 items-center justify-end gap-2 border-t-2 p-4"
+            >
+              {@render footer()}
+            </div>
+          {/if}
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Portal>
+  </Dialog>
+{:else}
+  <Popover {...popoverProps} {open} onOpenChange={(event) => (open = event.open)}>
+    <Popover.Trigger element={trigger}></Popover.Trigger>
+
+    <Portal>
+      <Popover.Positioner>
+        <!-- Zag mirrors the content's z-index onto the positioner, so this is what stacks the
+             whole popover. z-60 clears the map's area dialog (z-50) instead of hiding behind it. -->
+        <!-- Full border + drop shadow so the popover reads as a floating layer instead of
+             blending into the page (both share the same surface background). -->
+        <!-- Same column as the panel branch: a capped card whose middle scrolls so a long list
+             (a region's members, say) doesn't grow the popover off the screen. The cap is what
+             Zag measured between the trigger and the viewport edge. Unlike the panel, no
+             `overflow-hidden` here, or it would clip the arrow. -->
+        <Popover.Content
+          class={[
+            'card bg-surface-50-950 border-surface-200-800 z-60 flex flex-col border shadow-2xl',
+            !cappedByCaller && 'max-h-[min(70dvh,var(--available-height,70dvh))]',
+            contentClass ?? 'w-96',
+          ]}
+        >
+          <header class="flex shrink-0 flex-col px-4 py-2 shadow">
+            {#if subtitle}
+              <span class="text-sm opacity-60">{subtitle}</span>
+            {/if}
+
+            <span class="text-lg">{title}</span>
+          </header>
+
+          <Popover.Description class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-4">
+            {@render children?.()}
+          </Popover.Description>
+
+          {#if footer}
+            <div
+              class="bg-surface-50-950 border-surface-100-900 flex shrink-0 items-center justify-end gap-2 border-t-2 px-4 py-3"
+            >
+              {@render footer()}
+            </div>
+          {/if}
+
+          <Popover.Arrow class="[--arrow-background:var(--color-surface-50-950)] [--arrow-size:--spacing(2)]">
+            <Popover.ArrowTip />
+          </Popover.Arrow>
+        </Popover.Content>
+      </Popover.Positioner>
+    </Portal>
+  </Popover>
+{/if}

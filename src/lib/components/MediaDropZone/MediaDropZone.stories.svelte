@@ -1,0 +1,68 @@
+<script module lang="ts">
+  import { ImageUpload, VideoUpload, type MediaUploadStatus } from '$lib/entities/file/upload-manager.svelte'
+  import { defineMeta } from '@storybook/addon-svelte-csf'
+  import MediaDropZone from './MediaDropZone.svelte'
+
+  const { Story } = defineMeta({
+    component: MediaDropZone,
+    parameters: {
+      layout: 'centered',
+      width: 400,
+    },
+    tags: ['autodocs'],
+    title: 'Components/MediaDropZone',
+  })
+
+  // A real 1x1 png so the preview thumbnails render.
+  const png = Uint8Array.from(
+    atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='),
+    (char) => char.charCodeAt(0),
+  )
+
+  const fake = (name: string, status: MediaUploadStatus, patch: { error?: string; progress?: number } = {}) => {
+    const upload = new ImageUpload(new File([png], name, { type: 'image/png' }))
+    upload.status = status
+    upload.progress = patch.progress ?? 0
+    upload.error = patch.error
+    return upload
+  }
+
+  // Constructor only creates the preview object URL: start() is never called,
+  // so no Bunny traffic. The fake bytes aren't a decodable video, so the
+  // <video> thumbnail renders as a dark box, which is fine for eyeballing.
+  const fakeVideo = (name: string, status: MediaUploadStatus, patch: { error?: string; progress?: number } = {}) => {
+    const upload = new VideoUpload(new File([png], name, { type: 'video/mp4' }))
+    upload.status = status
+    upload.progress = patch.progress ?? 0
+    upload.error = patch.error
+    return upload
+  }
+
+  // Dropping a file here starts a real upload, which fails without a backend,
+  // handy for eyeballing the failed state; the full flow needs the app.
+  const states = [
+    fake('boulder-topo.jpg', 'uploading', { progress: 0.45 }),
+    fake('IMG_2041.heic', 'staged', { progress: 1 }),
+    fake('crux-beta.png', 'finalizing'),
+    fake('sunset-session.jpg', 'done'),
+    fake('flaky-connection.jpg', 'failed', { error: 'Network error: check your connection' }),
+  ]
+
+  const videoStates = [
+    fake('boulder-topo.jpg', 'staged', { progress: 1 }),
+    fakeVideo('send-attempt.mp4', 'uploading', { progress: 0.3 }),
+    fakeVideo('topout.mov', 'done'),
+  ]
+</script>
+
+<Story name="Empty" />
+
+<Story name="Upload states" args={{ uploads: states }} />
+
+<Story name="With videos" args={{ accept: ['image', 'video'], uploads: videoStates }} />
+
+<Story name="Videos only" args={{ accept: ['video'] }} />
+
+<Story name="Video with source" args={{ accept: ['image', 'video'], videoSource: true }} />
+
+<Story name="Disabled" args={{ disabled: true }} />

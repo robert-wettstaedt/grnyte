@@ -1,0 +1,228 @@
+/* eslint-disable svelte/prefer-svelte-reactivity -- these collections are rebuilt wholesale
+   inside $derived (the new reference is the reactivity) and never mutated afterwards.
+   Plain Map avoids per-key signal overhead; see exploreData.svelte.ts for the dev-mode cost. */
+import type { BlockDetail } from '$lib/entities/block/dto'
+import type { Geolocation } from '$lib/entities/geolocation/dto'
+import type { Coords } from './map'
+import type { BlocksMapProps, Bounds } from './types'
+
+const boundsOfCoords = (coords: Coords[]): Bounds | null => {
+  if (coords.length === 0) return null
+  const lats = coords.map((location) => location.lat)
+  const lngs = coords.map((location) => location.long)
+  return [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)]
+}
+
+/** The box around the blocks that carry a pin, null when none does. */
+export const blockBounds = (blocks: { geolocation: Coords | null | undefined }[]): Bounds | null =>
+  boundsOfCoords(blocks.map((block) => block.geolocation).filter((location) => location != null))
+
+export const withPadding = (bounds: Bounds, blockCount: number): Bounds => {
+  let [minLat, minLng, maxLat, maxLng] = bounds
+  const latSpan = maxLat - minLat
+  const lngSpan = maxLng - minLng
+
+  if (blockCount <= 1 || latSpan < 0.0005 || lngSpan < 0.0005) {
+    return [minLat - 0.0005, minLng - 0.0005, maxLat + 0.0005, maxLng + 0.0005]
+  }
+
+  const latPad = latSpan * 0.08
+  const lngPad = lngSpan * 0.08
+  minLat -= latPad
+  minLng -= lngPad
+  maxLat += latPad
+  maxLng += lngPad
+
+  return [minLat, minLng, maxLat, maxLng]
+}
+
+export function createMapData(props: BlocksMapProps) {
+  const geoBlocks = $derived(props.blocks.filter((block) => block.geolocation != null))
+  const routeCountByBlock = $derived(props.routeCountByBlock ?? new Map<number, number>())
+  const gradeCountByBlock = $derived(props.gradeCountByBlock ?? new Map<number, Map<number, number>>())
+
+  // Area tier: the outermost grouping, shown when zoomed out so the far view isn't
+  // cluttered with every sector. Group each block under its first (outermost) area ancestor.
+  const blocksByArea = $derived.by(() => {
+    const grouped = new Map<number, { area: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
+
+    for (const block of geoBlocks) {
+      // Falls back to the outermost ancestor whatever its type. A sector sitting at the root of a
+      // region has no 'area' above it, and without this its blocks were in no group at all below
+      // SECTOR_ZOOM, so they vanished when zoomed out. A root sector is its own outermost
+      // grouping; the two tiers then draw the same rect at different zooms, never together.
+      const area = block.areas.find((area) => area.type === 'area') ?? block.areas[0]
+      if (area == null) continue
+
+      const existing = grouped.get(area.id)
+      if (existing == null) {
+        grouped.set(area.id, { area, blocks: [block] })
+      } else {
+        existing.blocks.push(block)
+      }
+    }
+
+    return grouped
+  })
+
+  // Sector tier: the block-holding area, shown at mid zoom (between the area rects and the
+  // individual block markers).
+  const blocksBySector = $derived.by(() => {
+    const grouped = new Map<number, { blocks: BlockDetail[]; sector: BlockDetail['areas'][0] }>()
+
+    for (const block of geoBlocks) {
+      const sector = block.areas.find((area) => area.type === 'sector')
+      if (sector == null) continue
+
+      const existing = grouped.get(sector.id)
+      if (existing == null) {
+        grouped.set(sector.id, { blocks: [block], sector })
+      } else {
+        existing.blocks.push(block)
+      }
+    }
+
+    return grouped
+  })
+
+  const routeCountByArea = $derived.by(() => {
+    const counts = new Map<number, number>()
+    const rcMap = routeCountByBlock
+
+    for (const [areaId, group] of blocksByArea) {
+      let total = 0
+      for (const block of group.blocks) {
+        total += rcMap.get(block.id) ?? 0
+      }
+      counts.set(areaId, total)
+    }
+
+    return counts
+  })
+
+  const routeCountBySector = $derived.by(() => {
+    const counts = new Map<number, number>()
+    const rcMap = routeCountByBlock
+
+    for (const [sectorId, group] of blocksBySector) {
+      let total = 0
+      for (const block of group.blocks) {
+        total += rcMap.get(block.id) ?? 0
+      }
+      counts.set(sectorId, total)
+    }
+
+    return counts
+  })
+
+  // Per-grade route counts, merged from each member block, for the donut markers.
+  const mergeGradeCounts = (blocks: BlockDetail[]): Map<number, number> => {
+    const merged = new Map<number, number>()
+    for (const block of blocks) {
+      const byGrade = gradeCountByBlock.get(block.id)
+      if (byGrade == null) continue
+      for (const [gradeFk, count] of byGrade) {
+        merged.set(gradeFk, (merged.get(gradeFk) ?? 0) + count)
+      }
+    }
+    return merged
+  }
+
+  // The padded box a tier draws, so both zoom tiers frame their rects the same way.
+  const boundsOf = (blocks: BlockDetail[]): Bounds | null => {
+    const coords = blocks.map((block) => block.geolocation).filter((location) => location != null)
+    const bounds = boundsOfCoords(coords)
+    return bounds == null ? null : withPadding(bounds, coords.length)
+  }
+
+  const gradeCountByArea = $derived.by(() => {
+    const counts = new Map<number, Map<number, number>>()
+    for (const [areaId, group] of blocksByArea) {
+      counts.set(areaId, mergeGradeCounts(group.blocks))
+    }
+    return counts
+  })
+
+  const gradeCountBySector = $derived.by(() => {
+    const counts = new Map<number, Map<number, number>>()
+    for (const [sectorId, group] of blocksBySector) {
+      counts.set(sectorId, mergeGradeCounts(group.blocks))
+    }
+    return counts
+  })
+
+  const areaBoundingBoxes = $derived.by(() => {
+    const boxes = new Map<number, { area: BlockDetail['areas'][0]; bounds: Bounds }>()
+
+    for (const [areaId, group] of blocksByArea) {
+      const bounds = boundsOf(group.blocks)
+      if (bounds == null) continue
+
+      boxes.set(areaId, { area: group.area, bounds })
+    }
+
+    return boxes
+  })
+
+  const sectorBoundingBoxes = $derived.by(() => {
+    const boxes = new Map<number, { bounds: Bounds; sector: BlockDetail['areas'][0] }>()
+
+    for (const [sectorId, group] of blocksBySector) {
+      const bounds = boundsOf(group.blocks)
+      if (bounds == null) continue
+
+      boxes.set(sectorId, { bounds, sector: group.sector })
+    }
+
+    return boxes
+  })
+
+  const uniqueParkingLocations = $derived.by(() => {
+    const deduplicated = new Map<number, Geolocation>()
+    for (const parkingLocation of props.parkingLocations ?? []) {
+      deduplicated.set(parkingLocation.id, parkingLocation)
+    }
+    return [...deduplicated.values()]
+  })
+
+  const uniqueLineStrings = $derived([...new Set(props.lineStrings ?? [])])
+
+  return {
+    get areaBoundingBoxes() {
+      return areaBoundingBoxes
+    },
+    get blocksByArea() {
+      return blocksByArea
+    },
+    get blocksBySector() {
+      return blocksBySector
+    },
+    get geoBlocks() {
+      return geoBlocks
+    },
+    get gradeCountByArea() {
+      return gradeCountByArea
+    },
+    get gradeCountBySector() {
+      return gradeCountBySector
+    },
+    get routeCountByArea() {
+      return routeCountByArea
+    },
+    get routeCountByBlock() {
+      return routeCountByBlock
+    },
+    get routeCountBySector() {
+      return routeCountBySector
+    },
+    get sectorBoundingBoxes() {
+      return sectorBoundingBoxes
+    },
+    get uniqueLineStrings() {
+      return uniqueLineStrings
+    },
+    get uniqueParkingLocations() {
+      return uniqueParkingLocations
+    },
+  }
+}

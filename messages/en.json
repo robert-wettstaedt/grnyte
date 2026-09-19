@@ -1,0 +1,1977 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "areas_addArea": "Add area",
+  "areas_addParkingLocation": "Add parking",
+  "areas_addSubArea": "Add sub-area",
+  "areas_allRoutes": "All routes",
+  "areas_allRoutesCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "View all {count} route",
+        "countPlural=other": "View all {count} routes"
+      }
+    }
+  ],
+  "areas_allRoutesHint": "Browse, sort & filter",
+  "areas_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} area",
+        "countPlural=other": "{count} areas"
+      }
+    }
+  ],
+  "areas_createAreaError": "Could not create the area. Please try again.",
+  "areas_createdBy": "Created by {username}",
+  "areas_delete": "Delete area",
+  "areas_deleted": "Area deleted",
+  "areas_distanceAway": "{distance} away",
+  "areas_editArea": "Edit area",
+  "areas_empty_areaHint": "Split this up before adding routes.",
+  "areas_empty_blockHint": "Start logging routes right away.",
+  "areas_empty_title": "Start building {name}",
+  "areas_gradedCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} route graded",
+        "countPlural=other": "{count} routes graded"
+      }
+    }
+  ],
+  "areas_grades": "Grades",
+  "areas_holdsBlocks": "Holds blocks, not areas",
+  "areas_manage": "Manage",
+  "areas_nameExists": "An area named “{name}” already exists here",
+  "areas_nameHint": "You can rename it anytime",
+  "areas_namePlaceholder": "Area name",
+  "areas_nameQuestion": "What’s this area called?",
+  "areas_newArea": "New area",
+  "areas_newAreaIn": "New area in {name}",
+  "areas_noAddableRegion": "None of your regions take new areas from you. Ask an admin of the region for edit access.",
+  "areas_notASectorBody": "This area holds other areas. Open one of its sectors to add a block.",
+  "areas_notASectorTitle": "Blocks go in sectors",
+  "areas_notAnAreaBody": "This one is a sector, which holds blocks instead.",
+  "areas_notAnAreaTitle": "Sub-areas go in areas",
+  "areas_notFound": "Area not found",
+  "areas_parentNotFound": "The parent area no longer exists.",
+  "areas_parkingLocations": "Parking",
+  "areas_parkingNeedsSectorBody": "This area holds other areas. Open one of its sectors to set parking.",
+  "areas_parkingNeedsSectorTitle": "Parking goes on a sector",
+  "areas_regionRequired": "Choose a region",
+  "areas_title": "Areas",
+  "areas_typeArea": "Area",
+  "areas_typeSector": "Sector",
+  "areas_ungraded": "Ungraded",
+  "areas_ungradedCount": "+{count} ungraded",
+  "areas_viewArea": "View area",
+  "areas_youAreHere": "You’re here",
+  "ascents_community": "Community",
+  "ascents_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} ascent",
+        "countPlural=other": "{count} ascents"
+      }
+    }
+  ],
+  "ascents_delete": "Delete ascent",
+  "ascents_deleteConfirm": [
+    {
+      "declarations": ["input climber", "input name", "input owner"],
+      "selectors": ["owner"],
+      "match": {
+        "owner=self": "Deleting your ascent of “{name}” also removes your grade and rating opinions and every photo and video on it. This cannot be undone.",
+        "owner=*": "Deleting {climber}’s ascent of “{name}” also removes their grade and rating opinions and every photo and video on it. This cannot be undone."
+      }
+    }
+  ],
+  "ascents_deleted": "Ascent deleted",
+  "ascents_editAscent": "Edit ascent",
+  "ascents_empty": "No ascents yet.",
+  "ascents_filterAll": "All",
+  "ascents_form_conditionDown": "Lower {label}",
+  "ascents_form_conditionUp": "Raise {label}",
+  "ascents_form_conditionsHint": "Helps others pick their day, and puts your grade opinion in context.",
+  "ascents_form_conditionsLabel": "Conditions",
+  "ascents_form_dateLabel": "When",
+  "ascents_form_dateToday": "Today",
+  "ascents_form_dateYesterday": "Yesterday",
+  "ascents_form_gradeHint": "Your opinion, not the final word. The route’s grade settles on the average of everyone’s take.",
+  "ascents_form_gradeLabel": "Your grade",
+  "ascents_form_humidityLabel": "Humidity",
+  "ascents_form_insertNote": "Insert",
+  "ascents_form_mediaHint": "Uploads run in the background. Save whenever you’re ready.",
+  "ascents_form_notesHint": "Beta, session story, who you climbed with. @mention your partners.",
+  "ascents_form_notesLabel": "Notes",
+  "ascents_form_previousNotes": "Your previous notes",
+  "ascents_form_ratingLabel": "Your rating",
+  "ascents_form_temperatureLabel": "Temperature",
+  "ascents_form_typeAttempt": "Attempt",
+  "ascents_form_typeFlash": "Flash",
+  "ascents_form_typeLabel": "How did it go?",
+  "ascents_form_typeRedpoint": "Redpoint",
+  "ascents_form_typeRepeat": "Repeat",
+  "ascents_notFound": "Ascent not found",
+  "ascents_notYours": "Only the person who logged this ascent, or a region admin, can change it.",
+  "ascents_seeAll": "See all {count} ascents",
+  "ascents_statusFlashed": "Flashed",
+  "ascents_statusRedpointed": "Redpointed",
+  "ascents_statusRepeated": "Repeated",
+  "ascents_statusTried": "Tried",
+  "ascents_title": "Ascents",
+  "ascents_viewAscent": "View ascent",
+  "ascents_yourLogbook": "Your logbook",
+  "auth_accountCreated": "Account created",
+  "auth_accountCreatedBody": "Check your email to confirm, then sign in.",
+  "auth_backToSignIn": "Back to sign in",
+  "auth_brandHeadline": "Your areas, topos and sessions. Kept private.",
+  "auth_brandSubtext": "Pick up where your community left off. Your areas, topos and logbook stay visible only inside your region.",
+  "auth_confirmPassword": "Confirm password",
+  "auth_confirmPasswordPlaceholder": "Re-enter your password",
+  "auth_createAccount": "Create account",
+  "auth_email": "Email",
+  "auth_emailInvalid": "Enter a valid email address",
+  "auth_emailNotConfirmed": "Confirm your email address first, check your inbox for the link",
+  "auth_emailTaken": "That email address already belongs to an account",
+  "auth_forgot": "Forgot?",
+  "auth_forgotSubtitle": "Enter your email and we’ll send you a reset link.",
+  "auth_forgotTitle": "Reset your password",
+  "auth_goToSignIn": "Go to sign in",
+  "auth_haveAccount": "Already have an account?",
+  "auth_invalidCredentials": "Wrong email or password",
+  "auth_linkInvalid": "This link is invalid or has expired",
+  "auth_linkInvalidBody": "Request a new one and open it from the same device.",
+  "auth_newPassword": "New password",
+  "auth_noAccount": "Don’t have an account yet?",
+  "auth_notSignedIn": "Not signed in",
+  "auth_openSource": "Open source · made for climbers",
+  "auth_password": "Password",
+  "auth_passwordMismatch": "Passwords don’t match",
+  "auth_passwordPlaceholder": "Your password",
+  "auth_passwordPlaceholderNew": "At least 8 characters",
+  "auth_passwordSame": "Pick a password you’re not already using",
+  "auth_passwordUpdated": "Password updated",
+  "auth_passwordUpdatedBody": "Password changed. You can sign in now.",
+  "auth_passwordWeak": "That password is too weak, try a longer one",
+  "auth_rateLimited": "Too many attempts, wait a moment and try again",
+  "auth_resetLinkInvalid": "This reset link is invalid or has expired.",
+  "auth_resetLinkSent": "Check your email",
+  "auth_resetLinkSentBody": "We sent a password reset link to {email}.",
+  "auth_resetSubtitle": "Choose a new password for your account.",
+  "auth_resetTitle": "Set a new password",
+  "auth_savePassword": "Save password",
+  "auth_sendResetLink": "Send reset link",
+  "auth_signIn": "Sign in",
+  "auth_signInSubtitle": "Sign in to your areas, topos and session logs.",
+  "auth_signInTitle": "Welcome back",
+  "auth_signUp": "Sign up",
+  "auth_signUpFailed": "Sign up failed, please try again",
+  "auth_signUpSubtitle": "Join your community’s private guidebook, or start your own region.",
+  "auth_signUpTitle": "Create your account",
+  "auth_termsAgree": "By continuing you agree to {name}’s",
+  "auth_unexpectedError": "Something went wrong, please try again",
+  "auth_username": "Username",
+  "auth_usernameInvalid": "Use letters, numbers, dashes and underscores. Start with a letter or number",
+  "auth_usernamePlaceholder": "Your display name",
+  "auth_usernameTaken": "Username already taken",
+  "blocks_addBlock": "Add block",
+  "blocks_add_addWithoutLocation": "Add without location",
+  "blocks_add_chooseOnMap": "Choose on map",
+  "blocks_add_confirmBody": "Climbers won’t see this block on the map, and you can’t build a topo until you place it. You can add a location anytime.",
+  "blocks_add_confirmTitle": "Add without a location?",
+  "blocks_add_estimatedHint": "The map marks it with a “?”, so climbers know to search around.",
+  "blocks_add_estimatedLabel": "I’m not sure about the exact spot",
+  "blocks_add_locateError": "Couldn’t get your location",
+  "blocks_add_located": "Located",
+  "blocks_add_locating": "Locating…",
+  "blocks_add_locationBody": "Others can find it on the crag, and you can build a topo right here.",
+  "blocks_add_locationNote": "You can add this later, but a block on the map is easier to find and share.",
+  "blocks_add_locationSet": "Location set",
+  "blocks_add_locationTitle": "Pin this block on the map",
+  "blocks_add_nameHint": "Leave blank to number it by position (e.g. Block 2).",
+  "blocks_add_nameLabel": "Block name",
+  "blocks_add_namePlaceholder": "e.g. The Arch",
+  "blocks_add_pinNow": "Pin location now",
+  "blocks_add_removeLocation": "Remove location",
+  "blocks_add_setLocationTitle": "Set location",
+  "blocks_add_useCurrentLocation": "Use current location",
+  "blocks_delete": "Delete block",
+  "blocks_deleted": "Block deleted",
+  "blocks_editBlock": "Edit block",
+  "blocks_edit_confirmTitle": "Save without a location?",
+  "blocks_edit_saveWithoutLocation": "Save without location",
+  "blocks_empty_body": "A route is one climb on this block, with a name and a grade.",
+  "blocks_empty_cta": "Add the first route",
+  "blocks_empty_title": "{name} has no routes yet",
+  "blocks_estimatedLocation": "Approximate location",
+  "blocks_move": "Move on the map",
+  "blocks_nameExists": "A block named “{name}” already exists here",
+  "blocks_noLocation": "No location set",
+  "blocks_noRoutes": "No routes yet",
+  "blocks_notFound": "Block not found",
+  "blocks_order_drag": "Drag to reorder",
+  "blocks_order_hint": "Drag into the order you pass them",
+  "blocks_order_select": "Highlight on map",
+  "blocks_order_sortByDistance": "Sort by distance",
+  "blocks_order_title": "Reorder blocks",
+  "blocks_pinStale": "The location changed while this page was open. Reopen it and make the change again.",
+  "blocks_viewBlock": "View block",
+  "blocks_viewRoutes": "Routes",
+  "blocks_viewTopos": "Topos",
+  "comments_cancelReply": "Cancel reply",
+  "comments_delete": "Delete comment",
+  "comments_deleted": "Comment deleted",
+  "comments_empty": "No comments yet",
+  "comments_emptyBody": "Be the first to say something.",
+  "comments_failed": "That didn’t send. Try again.",
+  "comments_loadEarlier": "Show earlier comments",
+  "comments_notFound": "Comment not found",
+  "comments_placeholder": "Say something",
+  "comments_post": "Post",
+  "comments_reply": "Reply",
+  "comments_replyingTo": "Replying to {name}",
+  "comments_show": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} comment",
+        "countPlural=*": "{count} comments"
+      }
+    }
+  ],
+  "comments_title": "Comments",
+  "comments_tooLong": "That’s too long. Keep it under {max} characters.",
+  "common_add": "Add",
+  "common_adjust": "Adjust",
+  "common_any": "Any",
+  "common_apply": "Apply",
+  "common_area": "Area",
+  "common_areas": "Areas",
+  "common_ascent": "Ascent",
+  "common_back": "Back",
+  "common_block": "Block",
+  "common_blocks": "Blocks",
+  "common_cancel": "Cancel",
+  "common_clear": "Clear",
+  "common_close": "Close",
+  "common_comingSoon": "Coming soon.",
+  "common_delete": "Delete",
+  "common_details": "Details",
+  "common_directions": "Directions",
+  "common_directionsShort": "Maps",
+  "common_done": "Done",
+  "common_edit": "Edit",
+  "common_filter": "Filter",
+  "common_home": "Home",
+  "common_location": "Location",
+  "common_me": "Me",
+  "common_media": "Media",
+  "common_more": "More",
+  "common_next": "Next",
+  "common_ok": "OK",
+  "common_person": "Person",
+  "common_playVideo": "Play video",
+  "common_recommended": "Recommended",
+  "common_remove": "Remove",
+  "common_reset": "Reset",
+  "common_retry": "Retry",
+  "common_route": "Route",
+  "common_routes": "Routes",
+  "common_save": "Save",
+  "common_saved": "Saved",
+  "common_search": "Search areas, blocks, routes",
+  "common_showLess": "Show less",
+  "common_showMore": "Show more",
+  "common_syncing": "Loading…",
+  "common_undo": "Undo",
+  "common_unnamed": "Unnamed",
+  "editor_bold": "Bold",
+  "editor_bulletList": "Bullet list",
+  "editor_descriptionHint": "Add directions, conditions, access notes",
+  "editor_descriptionLabel": "Description",
+  "editor_groupAreas": "Areas",
+  "editor_groupBlocks": "Blocks",
+  "editor_groupPeople": "People",
+  "editor_groupRoutes": "Routes",
+  "editor_insertLink": "Insert",
+  "editor_italic": "Italic",
+  "editor_linkText": "Text",
+  "editor_linkTitle": "Add link",
+  "editor_linkUrl": "URL",
+  "editor_mention": "Mention",
+  "editor_noMatches": "No matches",
+  "editor_placeholder": "Add a description…",
+  "editor_redo": "Redo",
+  "editor_undo": "Undo",
+  "email_errorAlertBody": [
+    {
+      "declarations": ["input count", "input excerpt", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "The app recorded {count} new error since the last alert: {excerpt}",
+        "countPlural=other": "The app recorded {count} new errors since the last alert: {excerpt}"
+      }
+    }
+  ],
+  "email_errorAlertMeta": "NEW ERRORS",
+  "email_errorAlertPreheader": "Something in grnyte failed and was recorded.",
+  "email_fallbackHint": "Button not working? Paste this into your browser:",
+  "email_feedbackAlertBody1": "{username} sent feedback ({kind}).",
+  "email_feedbackAlertBody2": "They were on {pathname}.",
+  "email_feedbackAlertMeta": "FEEDBACK",
+  "email_feedbackAlertPreheader": "{username} sent feedback about the app.",
+  "email_feedbackAlertSubject": "Feedback from {username}",
+  "email_feedbackAlertTitle": "Feedback from {username}",
+  "email_feedbackReplyMeta": "FEEDBACK · REPLY",
+  "email_feedbackReplyPreheader": "There is an answer to the feedback you sent.",
+  "email_feedbackReplyQuoteLabel": "You wrote:",
+  "email_feedbackReplySubject": "Re: your feedback",
+  "email_feedbackReplyTitle": "About your feedback",
+  "email_footerReasonAccount": "You got this because a grnyte account uses this address.",
+  "email_footerReasonInvite": "You got this because somebody invited this address to a region on grnyte.",
+  "email_footerReasonSignup": "You got this because somebody signed up for grnyte with this address.",
+  "email_footerSecurity": "grnyte never asks for your password by email.",
+  "email_inviteAction": "Join {region}",
+  "email_inviteBody1": "{inviter} invited you to join {region} on grnyte.",
+  "email_inviteBody2": "grnyte is a private guidebook and logbook for bouldering. Open the link to join the region and see its areas, topos and routes. If you don’t have an account yet, you can create one on the way in.",
+  "email_inviteFootnote": "The link expires in 7 days and only works for this address. If you weren’t expecting this, ignore this email.",
+  "email_inviteMeta": "INVITE · LINK EXPIRES IN 7 DAYS",
+  "email_invitePreheader": "One link to join {region} on grnyte.",
+  "email_inviteSubject": "{inviter} invited you to {region}",
+  "email_inviteTitle": "Join {region}",
+  "email_membershipRemovedBody1": "You no longer have access to {region} on grnyte.",
+  "email_membershipRemovedBody2": "Its areas, topos and entries are no longer visible to you. Your account and everything you logged stay as they are.",
+  "email_membershipRemovedMeta": "MEMBERSHIP · ACCESS REMOVED",
+  "email_membershipRemovedPreheader": "You’re no longer in {region}.",
+  "email_membershipRemovedSubject": "You’re no longer in {region}",
+  "email_membershipRemovedTitle": "Your access ended",
+  "email_openApp": "Open grnyte",
+  "email_roleChangedBody1": "{actor} made you {role} in {region}.",
+  "email_roleChangedBody1Plain": "{actor} changed your role in {region}.",
+  "email_roleChangedBody2": "What you can do in the region changed with it.",
+  "email_roleChangedMeta": "MEMBERSHIP · ROLE CHANGED",
+  "email_roleChangedPreheader": "Your role in {region} changed.",
+  "email_roleChangedSubject": "Your role in {region} changed",
+  "email_roleChangedTitle": "Your role changed",
+  "email_signupAlertBody": "{username} created a grnyte account.",
+  "email_signupAlertMeta": "NEW ACCOUNT",
+  "email_signupAlertPreheader": "Somebody signed up for grnyte.",
+  "error_copyReference": "Copy reference",
+  "error_generic_body": "Something unexpected happened. Try again.",
+  "error_generic_title": "Something went wrong",
+  "error_notDownloaded_body": "This isn’t on your device yet. Connect once and it downloads for next time.",
+  "error_notDownloaded_title": "Not downloaded",
+  "error_notfound_body": "It moved or is gone, or the link is out of date.",
+  "error_notfound_title": "Not found",
+  "error_offline_body": "This needs a connection. Anything you’ve downloaded is still available.",
+  "error_offline_title": "You’re offline",
+  "error_reload": "Reload",
+  "error_server_body": "This one’s on us, not you. Give it a moment and try again.",
+  "error_server_title": "Something went wrong on our end",
+  "error_serviceUnavailable": "Service temporarily unavailable",
+  "error_storeCold_bodyFirstRun": "Connect once to download your guidebook. After that it stays available without a signal.",
+  "error_storeCold_bodyRestore": "The copy on this device is gone. Connect once to download it again.",
+  "error_storeCold_title": "Nothing downloaded yet",
+  "event_accoladeCeiling": "Hardest of its kind: {name} in twelve months",
+  "event_accoladeCommunity": "Community favorite",
+  "event_accoladeProject": [
+    {
+      "declarations": ["input days", "input name", "input sessions", "local daysPlural = days: plural"],
+      "selectors": ["days", "daysPlural"],
+      "match": {
+        "days=0,daysPlural=*": "Project {name} sent, {sessions} sessions",
+        "days=*,daysPlural=one": "Project {name} sent, {sessions} sessions over {days} day",
+        "days=*,daysPlural=other": "Project {name} sent, {sessions} sessions over {days} days"
+      }
+    }
+  ],
+  "event_areaCreated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You added the area {name}",
+        "person=*": "{actor} added the area {name}"
+      }
+    }
+  ],
+  "event_areaDeleted": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You deleted the area {name}",
+        "person=*": "{actor} deleted the area {name}"
+      }
+    }
+  ],
+  "event_areaDeletedFile": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
+      "match": {
+        "person=self,media=photo": "You removed a photo from {name}",
+        "person=self,media=video": "You removed a video from {name}",
+        "person=self,media=*": "You removed media from {name}",
+        "person=*,media=photo": "{actor} removed a photo from {name}",
+        "person=*,media=video": "{actor} removed a video from {name}",
+        "person=*,media=*": "{actor} removed media from {name}"
+      }
+    }
+  ],
+  "event_areaDeletedParkingLocation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You removed the parking for {name}",
+        "person=*": "{actor} removed the parking for {name}"
+      }
+    }
+  ],
+  "event_areaUpdated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the area {name}",
+        "person=*": "{actor} edited the area {name}"
+      }
+    }
+  ],
+  "event_areaUpdatedDescription": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the description of {name}",
+        "person=*": "{actor} edited the description of {name}"
+      }
+    }
+  ],
+  "event_areaUpdatedName": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You renamed {name}",
+        "person=*": "{actor} renamed {name}"
+      }
+    }
+  ],
+  "event_areaUpdatedParkingLocation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You set the parking for {name}",
+        "person=*": "{actor} set the parking for {name}"
+      }
+    }
+  ],
+  "event_ascentCreated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You logged an ascent of {name}",
+        "person=*": "{actor} logged an ascent of {name}"
+      }
+    }
+  ],
+  "event_ascentCreatedAttempt": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You attempted {name}",
+        "person=*": "{actor} attempted {name}"
+      }
+    }
+  ],
+  "event_ascentCreatedFlash": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You flashed {name}",
+        "person=*": "{actor} flashed {name}"
+      }
+    }
+  ],
+  "event_ascentCreatedRedpoint": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You redpointed {name}",
+        "person=*": "{actor} redpointed {name}"
+      }
+    }
+  ],
+  "event_ascentCreatedRepeat": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You repeated {name}",
+        "person=*": "{actor} repeated {name}"
+      }
+    }
+  ],
+  "event_ascentDeleted": [
+    {
+      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner"],
+      "match": {
+        "person=self,owner=self": "You removed your ascent of {name}",
+        "person=self,owner=none": "You removed an ascent of {name}",
+        "person=self,owner=*": "You removed {climber}’s ascent of {name}",
+        "person=*,owner=self": "{actor} removed their own ascent of {name}",
+        "person=*,owner=none": "{actor} removed an ascent of {name}",
+        "person=*,owner=*": "{actor} removed {climber}’s ascent of {name}"
+      }
+    }
+  ],
+  "event_ascentDeletedFile": [
+    {
+      "declarations": ["input actor", "input climber", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
+      "match": {
+        "person=self,owner=self,media=photo": "You removed a photo from your ascent of {name}",
+        "person=self,owner=self,media=video": "You removed a video from your ascent of {name}",
+        "person=self,owner=self,media=*": "You removed media from your ascent of {name}",
+        "person=self,owner=none,media=photo": "You removed a photo from an ascent of {name}",
+        "person=self,owner=none,media=video": "You removed a video from an ascent of {name}",
+        "person=self,owner=none,media=*": "You removed media from an ascent of {name}",
+        "person=self,owner=*,media=photo": "You removed a photo from {climber}’s ascent of {name}",
+        "person=self,owner=*,media=video": "You removed a video from {climber}’s ascent of {name}",
+        "person=self,owner=*,media=*": "You removed media from {climber}’s ascent of {name}",
+        "person=*,owner=self,media=photo": "{actor} removed a photo from their own ascent of {name}",
+        "person=*,owner=self,media=video": "{actor} removed a video from their own ascent of {name}",
+        "person=*,owner=self,media=*": "{actor} removed media from their own ascent of {name}",
+        "person=*,owner=none,media=photo": "{actor} removed a photo from an ascent of {name}",
+        "person=*,owner=none,media=video": "{actor} removed a video from an ascent of {name}",
+        "person=*,owner=none,media=*": "{actor} removed media from an ascent of {name}",
+        "person=*,owner=*,media=photo": "{actor} removed a photo from {climber}’s ascent of {name}",
+        "person=*,owner=*,media=video": "{actor} removed a video from {climber}’s ascent of {name}",
+        "person=*,owner=*,media=*": "{actor} removed media from {climber}’s ascent of {name}"
+      }
+    }
+  ],
+  "event_ascentOpinion": "Opinion",
+  "event_ascentUpdated": [
+    {
+      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner"],
+      "match": {
+        "person=self,owner=self": "You edited your ascent of {name}",
+        "person=self,owner=none": "You edited an ascent of {name}",
+        "person=self,owner=*": "You edited {climber}’s ascent of {name}",
+        "person=*,owner=self": "{actor} edited their own ascent of {name}",
+        "person=*,owner=none": "{actor} edited an ascent of {name}",
+        "person=*,owner=*": "{actor} edited {climber}’s ascent of {name}"
+      }
+    }
+  ],
+  "event_blockCreated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You added the block {name}",
+        "person=*": "{actor} added the block {name}"
+      }
+    }
+  ],
+  "event_blockDeleted": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You deleted the block {name}",
+        "person=*": "{actor} deleted the block {name}"
+      }
+    }
+  ],
+  "event_blockDeletedFile": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
+      "match": {
+        "person=self,media=photo": "You removed a photo from {name}",
+        "person=self,media=video": "You removed a video from {name}",
+        "person=self,media=*": "You removed media from {name}",
+        "person=*,media=photo": "{actor} removed a photo from {name}",
+        "person=*,media=video": "{actor} removed a video from {name}",
+        "person=*,media=*": "{actor} removed media from {name}"
+      }
+    }
+  ],
+  "event_blockDeletedLocation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You removed the location of {name}",
+        "person=*": "{actor} removed the location of {name}"
+      }
+    }
+  ],
+  "event_blockDeletedTopo": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You removed a topo photo from {name}",
+        "person=*": "{actor} removed a topo photo from {name}"
+      }
+    }
+  ],
+  "event_blockUpdated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the block {name}",
+        "person=*": "{actor} edited the block {name}"
+      }
+    }
+  ],
+  "event_blockUpdatedDescription": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the description of {name}",
+        "person=*": "{actor} edited the description of {name}"
+      }
+    }
+  ],
+  "event_blockUpdatedLocation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You updated the location of {name}",
+        "person=*": "{actor} updated the location of {name}"
+      }
+    }
+  ],
+  "event_blockUpdatedName": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You renamed {name}",
+        "person=*": "{actor} renamed {name}"
+      }
+    }
+  ],
+  "event_blockUpdatedTopo": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You updated the topo on {name}",
+        "person=*": "{actor} updated the topo on {name}"
+      }
+    }
+  ],
+  "event_changeFileRemoved": [
+    {
+      "declarations": ["input media"],
+      "selectors": ["media"],
+      "match": {
+        "media=photo": "Photo removed",
+        "media=video": "Video removed",
+        "media=*": "Media removed"
+      }
+    }
+  ],
+  "event_changeLocationApproximate": "Approximate",
+  "event_changeLocationConfirmed": "Approximate pin confirmed",
+  "event_changeLocationMoved": "Moved {distance}",
+  "event_changeLocationRemoved": "Location removed",
+  "event_changeLocationSet": "Pin added",
+  "event_changeLocationUpdated": "Location updated",
+  "event_changeTagAdded": "Added {tag}",
+  "event_changeTagRemoved": "Removed {tag}",
+  "event_changeTopoLineAdded": "Drew {route}",
+  "event_changeTopoLineRedrawn": "Redrew {route}",
+  "event_changeTopoLineRemoved": "Erased {route}",
+  "event_changeTopoLinesUpdated": "Lines updated",
+  "event_changeTopoPhotoAdded": "Photo added",
+  "event_changeTopoPhotoReplaced": "Photo replaced",
+  "event_changeTopoReordered": "Photos reordered",
+  "event_changeTopoUpdated": "Topo redrawn",
+  "event_compareCharacters": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Compare, {count} character",
+        "countPlural=other": "Compare, {count} characters"
+      }
+    }
+  ],
+  "event_fieldDateTime": "Date",
+  "event_fieldDescription": "Description",
+  "event_fieldFile": [
+    {
+      "declarations": ["input media"],
+      "selectors": ["media"],
+      "match": {
+        "media=photo": "Photo",
+        "media=video": "Video",
+        "media=*": "Media"
+      }
+    }
+  ],
+  "event_fieldFirstAscensionist": "First ascensionist",
+  "event_fieldFirstAscensionists": "First ascensionists",
+  "event_fieldFirstAscentYear": "First ascent year",
+  "event_fieldGrade": "Grade",
+  "event_fieldHumidity": "Humidity",
+  "event_fieldLocation": "Location",
+  "event_fieldName": "Name",
+  "event_fieldNotes": "Notes",
+  "event_fieldParkingLocation": "Parking",
+  "event_fieldRating": "Rating",
+  "event_fieldRole": "Role",
+  "event_fieldSource": "Source",
+  "event_fieldTags": "Tags",
+  "event_fieldTemperature": "Temperature",
+  "event_fieldTopo": "Topo",
+  "event_fieldType": "Type",
+  "event_fieldUsername": "Username",
+  "event_fileUpdatedSource": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You updated the video source on {name}",
+        "person=*": "{actor} updated the video source on {name}"
+      }
+    }
+  ],
+  "event_fileUploaded": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
+      "match": {
+        "person=self,owner=self,media=photo": "You added a photo to your ascent of {name}",
+        "person=self,owner=self,media=video": "You added a video to your ascent of {name}",
+        "person=self,owner=self,media=*": "You added media to your ascent of {name}",
+        "person=self,owner=*,media=photo": "You added a photo to {name}",
+        "person=self,owner=*,media=video": "You added a video to {name}",
+        "person=self,owner=*,media=*": "You added media to {name}",
+        "person=*,owner=self,media=photo": "{actor} added a photo to their ascent of {name}",
+        "person=*,owner=self,media=video": "{actor} added a video to their ascent of {name}",
+        "person=*,owner=self,media=*": "{actor} added media to their ascent of {name}",
+        "person=*,owner=*,media=photo": "{actor} added a photo to {name}",
+        "person=*,owner=*,media=video": "{actor} added a video to {name}",
+        "person=*,owner=*,media=*": "{actor} added media to {name}"
+      }
+    }
+  ],
+  "event_genericChange": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You made a change to {name}",
+        "person=*": "{actor} made a change to {name}"
+      }
+    }
+  ],
+  "event_groupEdits": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited {name}",
+        "person=*": "{actor} edited {name}"
+      }
+    }
+  ],
+  "event_groupFilesRemoved": [
+    {
+      "declarations": ["input actor", "input media", "input person"],
+      "selectors": ["person", "media"],
+      "match": {
+        "person=self,media=photo": "You removed photos",
+        "person=self,media=video": "You removed videos",
+        "person=self,media=*": "You removed media",
+        "person=*,media=photo": "{actor} removed photos",
+        "person=*,media=video": "{actor} removed videos",
+        "person=*,media=*": "{actor} removed media"
+      }
+    }
+  ],
+  "event_groupRemovals": [
+    {
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You deleted entries",
+        "person=*": "{actor} deleted entries"
+      }
+    }
+  ],
+  "event_groupSession": [
+    {
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You logged a session",
+        "person=*": "{actor} logged a session"
+      }
+    }
+  ],
+  "event_groupUploads": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
+      "match": {
+        "person=self,owner=self,media=photo": "You added photos to your ascent of {name}",
+        "person=self,owner=self,media=video": "You added videos to your ascent of {name}",
+        "person=self,owner=self,media=*": "You added media to your ascent of {name}",
+        "person=self,owner=*,media=photo": "You added photos to {name}",
+        "person=self,owner=*,media=video": "You added videos to {name}",
+        "person=self,owner=*,media=*": "You added media to {name}",
+        "person=*,owner=self,media=photo": "{actor} added photos to their ascent of {name}",
+        "person=*,owner=self,media=video": "{actor} added videos to their ascent of {name}",
+        "person=*,owner=self,media=*": "{actor} added media to their ascent of {name}",
+        "person=*,owner=*,media=photo": "{actor} added photos to {name}",
+        "person=*,owner=*,media=video": "{actor} added videos to {name}",
+        "person=*,owner=*,media=*": "{actor} added media to {name}"
+      }
+    }
+  ],
+  "event_hideChanges": "Hide changes",
+  "event_metaCreated": "Created {time} by {actor}",
+  "event_metaCreatedOn": "Created on {time} by {actor}",
+  "event_metaCreatedOnUnknown": "Created on {time}",
+  "event_metaCreatedUnknown": "Created {time}",
+  "event_metaNoChanges": "No changes recorded since.",
+  "event_metaUpdated": "Updated {time} by {actor}",
+  "event_metaUpdatedOn": "Updated on {time} by {actor}",
+  "event_metaUpdatedOnUnknown": "Updated on {time}",
+  "event_metaUpdatedUnknown": "Updated {time}",
+  "event_moreEntities": "{count} more",
+  "event_notFound": "This entry is gone",
+  "event_notFoundBody": "Somebody deleted it, or it belongs to a community you’re not in.",
+  "event_routeCreated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You added the route {name}",
+        "person=*": "{actor} added the route {name}"
+      }
+    }
+  ],
+  "event_routeDeleted": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You deleted the route {name}",
+        "person=*": "{actor} deleted the route {name}"
+      }
+    }
+  ],
+  "event_routeDeletedFile": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
+      "match": {
+        "person=self,media=photo": "You removed a photo from {name}",
+        "person=self,media=video": "You removed a video from {name}",
+        "person=self,media=*": "You removed media from {name}",
+        "person=*,media=photo": "{actor} removed a photo from {name}",
+        "person=*,media=video": "{actor} removed a video from {name}",
+        "person=*,media=*": "{actor} removed media from {name}"
+      }
+    }
+  ],
+  "event_routeUpdated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the route {name}",
+        "person=*": "{actor} edited the route {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedDescription": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the description of {name}",
+        "person=*": "{actor} edited the description of {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedFirstAscensionists": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the first ascensionists of {name}",
+        "person=*": "{actor} changed the first ascensionists of {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedFirstAscentYear": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the first ascent year of {name}",
+        "person=*": "{actor} changed the first ascent year of {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedGradeFk": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the grade of {name}",
+        "person=*": "{actor} changed the grade of {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedName": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You renamed {name}",
+        "person=*": "{actor} renamed {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedRating": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the rating of {name}",
+        "person=*": "{actor} changed the rating of {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedTags": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the tags of {name}",
+        "person=*": "{actor} changed the tags of {name}"
+      }
+    }
+  ],
+  "event_showChanges": "Show changes",
+  "event_summaryAreas": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} area",
+        "countPlural=other": "{count} areas"
+      }
+    }
+  ],
+  "event_summaryAscents": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} ascent",
+        "countPlural=other": "{count} ascents"
+      }
+    }
+  ],
+  "event_summaryBlocks": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} block",
+        "countPlural=other": "{count} blocks"
+      }
+    }
+  ],
+  "event_summaryClimbedOn": "Climbed on {date}",
+  "event_summaryEdits": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} edit",
+        "countPlural=other": "{count} edits"
+      }
+    }
+  ],
+  "event_summaryFiles": [
+    {
+      "declarations": ["input count", "input media", "local countPlural = count: plural"],
+      "selectors": ["media", "countPlural"],
+      "match": {
+        "media=photo,countPlural=one": "{count} photo",
+        "media=photo,countPlural=other": "{count} photos",
+        "media=video,countPlural=one": "{count} video",
+        "media=video,countPlural=other": "{count} videos",
+        "media=*,countPlural=one": "{count} file",
+        "media=*,countPlural=other": "{count} files"
+      }
+    }
+  ],
+  "event_summaryRemovals": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} deletion",
+        "countPlural=other": "{count} deletions"
+      }
+    }
+  ],
+  "event_summaryRoutes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} route",
+        "countPlural=other": "{count} routes"
+      }
+    }
+  ],
+  "event_userCreatedInvitation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You invited {name}",
+        "person=*": "{actor} invited {name}"
+      }
+    }
+  ],
+  "event_userDeletedInvitation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You revoked the invite for {name}",
+        "person=*": "{actor} revoked the invite for {name}"
+      }
+    }
+  ],
+  "event_userDeletedMembership": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You left the region",
+        "person=*": "{actor} left the region"
+      }
+    }
+  ],
+  "event_userDeletedRole": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You removed {name} from the region",
+        "person=*": "{actor} removed {name} from the region"
+      }
+    }
+  ],
+  "event_userUpdatedFirstAscensionist": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You linked yourself to the first ascensionist {name}",
+        "person=*": "{actor} linked themselves to the first ascensionist {name}"
+      }
+    }
+  ],
+  "event_userUpdatedInvitation": [
+    {
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You joined",
+        "person=*": "{actor} joined"
+      }
+    }
+  ],
+  "event_userUpdatedRole": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the role of {name}",
+        "person=*": "{actor} changed the role of {name}"
+      }
+    }
+  ],
+  "event_userUpdatedUsername": [
+    {
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed your name",
+        "person=*": "{actor} changed their name"
+      }
+    }
+  ],
+  "event_valueNotSet": "Not set",
+  "explore_noRegionBody": "Areas, topos and routes live inside a region. If somebody invited you, ask them for a fresh link.",
+  "explore_noRegionTitle": "You’re not in a region yet",
+  "explore_openArea": "Open {name}",
+  "explore_title": "Explore",
+  "export_pdf": "Export PDF",
+  "faq_metaDescription": "Common questions about {name}: who can see your region, what it costs, how to get your data out, and why there is no public side to it.",
+  "faq_overview": "All questions",
+  "faq_title": "FAQ",
+  "favorite_add": "Add favorite",
+  "favorite_addWithCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Add favorite. {count} favorite.",
+        "countPlural=other": "Add favorite. {count} favorites."
+      }
+    }
+  ],
+  "favorite_label": "Favorite",
+  "favorite_labelWithCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Favorite. {count} favorite.",
+        "countPlural=other": "Favorite. {count} favorites."
+      }
+    }
+  ],
+  "favorite_remove": "Remove favorite",
+  "favorite_removeWithCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Remove favorite. {count} favorite.",
+        "countPlural=other": "Remove favorite. {count} favorites."
+      }
+    }
+  ],
+  "feed_allRegions": "All regions",
+  "feed_empty": "No activity yet",
+  "feed_emptyBody": "Ascents and guidebook edits from your regions show up here.",
+  "feed_emptyFiltered": "No activity matches these filters",
+  "feed_everyone": "Everyone",
+  "feed_filterTitle": "Filter activity",
+  "feed_justMe": "Only me",
+  "feed_loadOlder": "Load older",
+  "feed_newActivity": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} new activity",
+        "countPlural=other": "{count} new activities"
+      }
+    }
+  ],
+  "feed_notFound": "Activity not found",
+  "feed_person": "Person",
+  "feed_region": "Region",
+  "feed_segmentAll": "All",
+  "feed_segmentAscents": "Ascents",
+  "feed_segmentUpdates": "Updates",
+  "feed_title": "Activity",
+  "feedback_alreadyAnswered": "Feedback already answered",
+  "feedback_body": "What happened",
+  "feedback_bodyHint": "Which screen you were on, what you did, and what you expected instead.",
+  "feedback_bodyPlaceholder": "I wanted to log an ascent and…",
+  "feedback_contextNote": "Your language, your browser and the last screen you had open are sent along.",
+  "feedback_inbox": "Feedback inbox",
+  "feedback_inboxHint": "Unanswered first, then newest. Replying sends an email and marks it answered.",
+  "feedback_kind": "Type",
+  "feedback_kindBug": "The app is not working",
+  "feedback_kindIdea": "An idea",
+  "feedback_kindOther": "Something else",
+  "feedback_kindRegression": "This worked in the old app",
+  "feedback_kindSelect": "Choose a type",
+  "feedback_notFound": "Feedback not found",
+  "feedback_reply": "Reply",
+  "feedback_replyNoMail": "Reply saved, but the email didn’t go out.",
+  "feedback_replyPlaceholder": "Answer in the language they wrote in.",
+  "feedback_replySend": "Send reply",
+  "feedback_replySent": "Reply sent",
+  "feedback_reportIllegal": "Report illegal content",
+  "feedback_send": "Send",
+  "feedback_sent": "Thanks, that reached me",
+  "feedback_statusAnswered": "Answered",
+  "feedback_statusOpen": "Unanswered",
+  "feedback_title": "Send feedback",
+  "files_notFound": "File not found",
+  "files_sharedFile": "Shared file",
+  "filter_ascent": "Ascents",
+  "filter_ascentDone": "Sent",
+  "filter_ascentProject": "Projects",
+  "filter_ascentTodo": "To do",
+  "filter_favorites": "Favorites",
+  "filter_favoritesOnly": "Favorites only",
+  "filter_filterAndSort": "Filter & sort",
+  "filter_firstAscensionists": "First ascensionists",
+  "filter_firstAscensionistsMore": "{count} more. Refine your search",
+  "filter_firstAscentByMe": "First ascent by me",
+  "filter_grade": "Grade",
+  "filter_hasBeta": "Has beta",
+  "filter_hasTopo": "Has topo",
+  "filter_media": "Media",
+  "filter_noResults": "No matches",
+  "filter_rating": "Rating",
+  "filter_ratingMin": "{count}+ stars",
+  "filter_searchFirstAscensionists": "Search first ascensionists",
+  "filter_selectedCount": "{count} selected",
+  "filter_tags": "Tags",
+  "form_charsMax": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Must be at most {count} character",
+        "countPlural=other": "Must be at most {count} characters"
+      }
+    }
+  ],
+  "form_charsMin": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Must be at least {count} character",
+        "countPlural=other": "Must be at least {count} characters"
+      }
+    }
+  ],
+  "form_noAdminPermission": "You can view this, but changing it needs admin access in this region. Ask a region admin.",
+  "form_noEditPermission": "You can view this, but changing it needs edit access in this region. Ask a region admin.",
+  "form_noPermission": "You don’t have permission to do this.",
+  "form_noPermissionTitle": "No permission",
+  "form_numInvalid": "Enter a valid number",
+  "form_required": "This field is required",
+  "form_urlInvalid": "Enter a valid web address",
+  "form_wmsUrlInvalid": "Enter the full request URL, including its LAYERS parameter",
+  "install_body": "Full screen, one tap from your home screen, and no browser bar in the way.",
+  "install_cta": "Install",
+  "install_dismiss": "Dismiss",
+  "install_manualAdd": "Choose “Add to Home Screen”",
+  "install_manualShare": "Tap the share button in the browser bar",
+  "install_manualTitle": "Add grnyte to your home screen",
+  "install_menuAdd": "Choose “Install app”",
+  "install_menuOpen": "Open your browser menu",
+  "install_offlineBody": "Install the app and the guidebook stays on your phone, ready at the crag with no signal.",
+  "install_title": "Install the app",
+  "invite_accept": "Join",
+  "invite_accepted": "You joined {region}.",
+  "invite_alreadyUsed": "Somebody already used this invitation.",
+  "invite_continue": "Continue to grnyte",
+  "invite_expired": "Ask {inviter} for a new link.",
+  "invite_full": "Ask {inviter} to free a seat, then open this link again.",
+  "invite_fullTitle": "{region} is full",
+  "invite_invalidTitle": "Invitation not valid",
+  "invite_invitedBy": "{inviter} invited you to join {region}.",
+  "invite_join": "Join {region}",
+  "invite_missing": "Invitation not found",
+  "invite_notFound": "Check the link from your invitation email, or ask the person who invited you for a new one.",
+  "invite_notNow": "Not now, this invitation stays in your settings",
+  "invite_signInCta": "Sign in to join",
+  "invite_signOutCta": "Sign out and switch account",
+  "invite_signUpCta": "Create an account",
+  "invite_title": "You’re invited",
+  "invite_wrongAccount": "This invitation is for {email}, but you’re signed in as {current}.",
+  "landing_ctaBody": "Free, no card, no trial. Invite the people who should be there and nobody else.",
+  "landing_ctaStar": "Star on GitHub",
+  "landing_ctaTitle": "Your first region takes about five minutes.",
+  "landing_featureGuidebookBody": "Areas, sectors, blocks and routes with grades, conditions and descriptions. Structured, not a list of names.",
+  "landing_featureGuidebookTitle": "A complete guidebook",
+  "landing_featureLogbookBody": "Sessions, sends, projects and first ascents. The history of the area is built out of them.",
+  "landing_featureLogbookTitle": "Logbook included",
+  "landing_featureMapsBody": "Every boulder and every parking spot on one map, so you don’t get lost searching for them.",
+  "landing_featureMapsTitle": "Maps and approach",
+  "landing_featureOfflineBody": "Install it like an app. No signal at the boulders is the normal case, not the edge case.",
+  "landing_featureOfflineTitle": "Works offline",
+  "landing_featurePrivateBody": "A region is invisible until you’re invited into it. No public map, no search result, no crawler.",
+  "landing_featurePrivateTitle": "Private by default",
+  "landing_featureTopoBody": "Draw the line straight onto the photo of the boulder. As many photos and as many lines as the boulder needs.",
+  "landing_featureTopoTitle": "Topos on the real rock",
+  "landing_featuresTitle": "Everything you expect from a bouldering app.",
+  "landing_footerCopyright": "© 2026 grnyte. No commercial intent.",
+  "landing_footerDesc": "An open-source guidebook and logbook for bouldering. Your region is visible only to the people you invite. Anyone can sign up and start one.",
+  "landing_footerHelp": "Help",
+  "landing_footerLegal": "Legal",
+  "landing_footerMadeWith": "Made with <3 for climbers",
+  "landing_footerStatus": "Service status",
+  "landing_getStarted": "Get started",
+  "landing_heroBadge": "Open source · self-hostable",
+  "landing_heroCaption": "Your boulders, your topos, your data",
+  "landing_heroSubtitle": "Full area and topo management plus a complete logbook, tailored to bouldering. Visible only to the people in your region.",
+  "landing_heroTrust": "Free · no commercial intent · made for climbers",
+  "landing_metaDescription": "An open-source guidebook and logbook for bouldering. Areas, topos, maps and ascents, visible only to the people you invite, enforced on the server.",
+  "landing_nameDefinitionEm": "Granite",
+  "landing_nameDefinitionRest": "with the vowels chipped off. A home for the lines that aren’t on any public map.",
+  "landing_nameEyebrow": "What’s in a name",
+  "landing_nameNoun": "noun",
+  "landing_navSource": "Source",
+  "landing_navToApp": "Open the app",
+  "landing_ogImageAlt": "The grnyte logo beside the tagline Private topos for private crags, next to a phone showing a topo.",
+  "landing_peekEyebrow": "A look inside",
+  "landing_peekPause": "Pause",
+  "landing_peekPlatform": "No app store. Open grnyte in your browser and add it to your home screen.",
+  "landing_peekPlay": "Play",
+  "landing_peekTitle": "Designed around your phone, right there at the boulders.",
+  "landing_shotLogbookCaption": "Your sends and sessions, and your community’s activity.",
+  "landing_shotLogbookLabel": "Logbook",
+  "landing_shotMapCaption": "Every sector and every boulder in your region.",
+  "landing_shotMapLabel": "Map",
+  "landing_shotTopoCaption": "Every line on the boulder, colored by grade.",
+  "landing_shotTopoLabel": "Topo",
+  "landing_stewardBody": "Clubs, alpine club sections and the groups that negotiate access. A bigger group needs more than a signup form.",
+  "landing_stewardCta": "Tell me what yours needs and we’ll work it out together.",
+  "landing_stewardCtaLabel": "Get in touch",
+  "landing_stewardEyebrow": "For clubs and access groups",
+  "landing_stewardTitle": "I’ll set your region up with you.",
+  "landing_tagline": "Private topos for private crags",
+  "landing_whyAccessBody": "Access holds as long as the place stays hard to find.",
+  "landing_whyAccessTitle": "A landowner’s patience",
+  "landing_whyClose": "grnyte is a guidebook and a logbook that never publishes. Areas, topos, maps and ascents, visible only to the people you invite.",
+  "landing_whyEyebrow": "Why grnyte",
+  "landing_whyFragileBody": "Traffic alone can close it, without anyone damaging anything.",
+  "landing_whyFragileTitle": "Fragile ground",
+  "landing_whyProjectBody": "Projects still being worked, and not ready for anyone else yet.",
+  "landing_whyProjectTitle": "Unfinished lines",
+  "landing_whyTitle": "If an area can’t go public, it still deserves an organized guidebook.",
+  "legal_disclaimer_metaDescription": "What the climbing information on {name} is, what it is not, and what nobody checks.",
+  "legal_disclaimer_title": "Disclaimer",
+  "legal_imprint_metaDescription": "Who runs {name}, the address for legal notices, and the contact points for users and authorities.",
+  "legal_imprint_title": "Imprint",
+  "legal_noCommercialIntent": "No commercial intent.",
+  "legal_privacy_metaDescription": "What {name} stores about you, who processes it, and the rights you can exercise.",
+  "legal_privacy_title": "Privacy Policy",
+  "legal_report_metaDescription": "How to report unlawful content on {name}, and how a landowner can raise an access or property objection.",
+  "legal_report_title": "Reporting Content",
+  "legal_terms_metaDescription": "The rules for using {name}: your content stays yours, the licence I need, and how liability works.",
+  "legal_terms_title": "Terms of Service",
+  "map_attribution": "Map data",
+  "map_create_areaInsideArea": "Inside an area",
+  "map_create_chooseArea": "Choose an area",
+  "map_create_chooseSector": "Choose a sector",
+  "map_create_mapSection": "Place on the map",
+  "map_create_noAreasFound": "No areas found",
+  "map_create_noSectorNearby": "No sector nearby",
+  "map_create_noSectorsFound": "No sectors found",
+  "map_create_regionSection": "Add to the region",
+  "map_create_searchAreas": "Search areas…",
+  "map_create_searchSectors": "Search sectors…",
+  "map_create_sector": "Sector",
+  "map_create_title": "Create",
+  "map_create_withoutLocation": "No location yet",
+  "map_layers": "Layers",
+  "map_loading": "Loading map…",
+  "map_locationBlocked": "Your browser is blocking location access. Allow it for this site in your browser settings, then try again.",
+  "map_locationTimeout": "Finding your location took too long. Try again, ideally outdoors with a clear view of the sky.",
+  "map_locationUnavailable": "Your location is unavailable. Check that location services are switched on, then try again.",
+  "map_markers": "Markers",
+  "map_showAttribution": "Show map data",
+  "map_showMyLocation": "Show my location",
+  "map_thumbnailLabel": "Map of the location",
+  "map_toggleLayers": "Toggle layers",
+  "map_zoomIn": "Zoom in",
+  "map_zoomOut": "Zoom out",
+  "media_delete": "Delete media",
+  "media_deleteConfirm": "This permanently deletes the file. This cannot be undone.",
+  "media_deleted": "Media deleted",
+  "media_editSource": "Edit source",
+  "media_loading": "Loading…",
+  "media_mute": "Mute",
+  "media_next": "Next",
+  "media_onlyAscentAuthor": "Only the person who logged the ascent can add media to it",
+  "media_openImage": "Open image",
+  "media_pause": "Pause",
+  "media_play": "Play",
+  "media_preparing": "Preparing",
+  "media_preparingHint": "This can take a while. The video will appear here on its own once it is ready.",
+  "media_previous": "Previous",
+  "media_seek": "Seek",
+  "media_sharePending": "This video is still being prepared. The link will not play yet.",
+  "media_shareUnavailable": "This video could not be prepared. The link will never play.",
+  "media_source": "Source",
+  "media_sourceVideoOnly": "Only videos have a source",
+  "media_unavailable": "Video unavailable",
+  "media_unavailableHint": "This video could not be prepared and cannot be played.",
+  "media_unknownVideo": "Unknown video",
+  "media_unmute": "Unmute",
+  "media_videoPreparing": "Video, being prepared",
+  "media_videoServiceFailed": "The video service rejected the request",
+  "media_videoUnavailable": "Video, unavailable",
+  "notifications_ascentDeleted": "{actor} deleted your ascent",
+  "notifications_ascentEdited": "{actor} edited your ascent",
+  "notifications_comment": "{actor} commented on your entry",
+  "notifications_commentReaction": "{actor} reacted to your comment",
+  "notifications_commentReply": "{actor} replied to you",
+  "notifications_empty": "Nothing for you yet",
+  "notifications_emptyAction": "Back to the feed",
+  "notifications_emptyBody": "Mentions, changes to your ascents and role updates land here.",
+  "notifications_invitationReceived": "{actor} invited you to {region}",
+  "notifications_inviteAccepted": "{actor} accepted your invitation",
+  "notifications_membershipRemoved": "You’re no longer in {region}",
+  "notifications_mention": "{actor} mentioned you",
+  "notifications_pushDeviceTaken": "Another account already uses this device for notifications",
+  "notifications_reaction": "{actor} reacted to your entry",
+  "notifications_roleChanged": "{actor} made you {role}",
+  "notifications_roleChangedPlain": "{actor} changed your role",
+  "notifications_title": "Notifications",
+  "notifications_unread": "{count} unread",
+  "notifications_videoReady": "Your video is ready",
+  "notifications_videoReadyNamed": "Your video is ready: {name}",
+  "onboarding_inviteBody": "An invitation only reaches the one address the sender typed. If your community invited another address, change yours to match.",
+  "onboarding_inviteCta": "Change your email address",
+  "onboarding_inviteSignedInAs": "Signed in as {email}",
+  "onboarding_inviteTitle": "Waiting for an invite?",
+  "onboarding_nameHint": "Name the whole place, not a single sector. Areas and sectors go inside it.",
+  "onboarding_namePlaceholder": "Frankenjura",
+  "onboarding_subtitle": "A region is the shared guidebook of one climbing community.",
+  "onboarding_title": "Start a region",
+  "optional": "optional",
+  "parking_approach": "Approach",
+  "parking_byCoordinates": "Coordinates",
+  "parking_clearPath": "Clear path",
+  "parking_coordinatesHint": "Decimal degrees. Paste a “lat, lng” pair straight from any maps app.",
+  "parking_copyCoordinates": "Copy coordinates",
+  "parking_delete": "Delete parking",
+  "parking_deleted": "Parking deleted",
+  "parking_latitude": "Latitude",
+  "parking_longitude": "Longitude",
+  "parking_mapHint": "Move the map to position the pin",
+  "parking_notFound": "Parking not found",
+  "parking_pathDrawHint": "Tap to trace the trail",
+  "parking_pathHint": "Optional. Trace the trail from the parking, or save without one.",
+  "parking_previewEmpty": "Enter valid coordinates to preview the spot",
+  "parking_selectOnMap": "Select on map",
+  "parking_stepPath": "Draw path",
+  "parking_stepPlace": "Place parking",
+  "parking_title": "Parking",
+  "parking_undoPoint": "Undo last point",
+  "profile_activity": "Activity",
+  "profile_activityHint": "Tap a day to see details",
+  "profile_allSends": "All sends",
+  "profile_climbsCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} climb",
+        "countPlural=other": "{count} climbs"
+      }
+    }
+  ],
+  "profile_completedProjects": "Completed projects",
+  "profile_contributions": "Contributions",
+  "profile_favorites": "Favorites",
+  "profile_firstAscentNudge": "Log your first ascent",
+  "profile_firstAscentNudgeBody": "Find the route you climbed and log it.",
+  "profile_firstAscents": "First ascents",
+  "profile_flashes": "Flashes",
+  "profile_gradePyramid": "Grade pyramid",
+  "profile_hardest": "Hardest",
+  "profile_noAscents": "No climbs logged yet",
+  "profile_noFavorites": "No favorites yet",
+  "profile_noFirstAscents": "No first ascents yet",
+  "profile_noProjects": "No projects",
+  "profile_openProjects": "Open projects",
+  "profile_recentSessions": "Recent sessions",
+  "profile_removeAll": "Remove all",
+  "profile_removeAllConfirm": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Remove your {count} favorite? This cannot be undone.",
+        "countPlural=other": "Remove all {count} favorites? This cannot be undone."
+      }
+    }
+  ],
+  "profile_sends": "Sends",
+  "profile_sessionsCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} session",
+        "countPlural=other": "{count} sessions"
+      }
+    }
+  ],
+  "profile_sortRecent": "Recent",
+  "profile_sortSessions": "Sessions",
+  "profile_title": "Profile",
+  "push_deniedBody": "Your browser is blocking notifications for this site. Turn them back on in your browser settings, then come back here.",
+  "push_deniedTitle": "Notifications are blocked",
+  "push_digestMore": "and {count} more updates",
+  "push_dismiss": "Not now",
+  "push_enable": "Turn on notifications",
+  "push_errorAlertTitle": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} new error",
+        "countPlural=other": "{count} new errors"
+      }
+    }
+  ],
+  "push_feedbackTitle": "{username} sent feedback",
+  "push_installFirst": "Add the app to your home screen first. Notifications only work from there.",
+  "push_promptBody": "Get notified when somebody mentions you, edits your ascent, or your community is busy.",
+  "push_promptTitle": "Stay in the loop",
+  "push_signupTitle": "{username} signed up",
+  "push_testBody": "Push is working on this device.",
+  "push_testTitle": "Test notification",
+  "push_unsupported": "This browser can’t receive notifications.",
+  "queryState_empty": "Nothing here yet.",
+  "queryState_error": "Something went wrong while loading this.",
+  "reactions_add": "Add a reaction",
+  "reactions_all": "All emoji",
+  "reactions_pick": "Pick a reaction",
+  "reactions_who": "Reacted with {emoji}",
+  "reference_areaNotFound": "Area not found",
+  "reference_areaUnavailable": "Area unavailable offline",
+  "reference_blockNotFound": "Block not found",
+  "reference_blockUnavailable": "Block unavailable offline",
+  "reference_referencedBy": "Referenced by",
+  "reference_routeNotFound": "Route not found",
+  "reference_routeUnavailable": "Route unavailable offline",
+  "reference_userNotFound": "User not found",
+  "reference_userUnavailable": "User unavailable offline",
+  "region_cannotChangeOwnRole": "You can’t change your own role",
+  "region_capBody": "That’s the limit for one account. Open one of them to rename or manage it.",
+  "region_capReached": "You can start at most {count} regions.",
+  "region_capTitle": "You already own {count} regions",
+  "region_createdAt": "Created",
+  "region_createdBy": "Created by",
+  "region_emptyBody": "Give it its first area, one named place to climb, like a patch of forest or a crag.",
+  "region_emptyCta": "Add the first area",
+  "region_emptyReadOnly": "Nobody has added an area to this region yet.",
+  "region_emptyTitle": "{name} is empty",
+  "region_emptyTitleAny": "No areas yet",
+  "region_invite": "Invite",
+  "region_inviteAlreadyMember": "That address is already a member of this region",
+  "region_inviteEmail": "Email address",
+  "region_inviteMember": "Invite someone",
+  "region_invitePending": "Pending",
+  "region_inviteResend": "Resend invitation",
+  "region_inviteResendWait": "Sent a moment ago. Wait before sending it again",
+  "region_inviteResent": "Invitation sent again to {email}",
+  "region_inviteRevoke": "Revoke invitation",
+  "region_inviteRevoked": "Invitation for {email} revoked",
+  "region_inviteSent": "Invitation sent to {email}",
+  "region_inviteSentAt": "Sent {time}",
+  "region_inviteSentNoMail": "Invitation saved, but the email didn’t go out. Try resending it.",
+  "region_invitedBy": "Invited by {name}",
+  "region_lastAdmin": "A region needs at least one admin",
+  "region_leave": "Leave region",
+  "region_leaveConfirm": "Leave {name}? You lose access to everything in it until somebody invites you back.",
+  "region_left": "You left {name}",
+  "region_leftUnnamed": "You left the region",
+  "region_live_body": "Your first route is up. Invite your community and their ascents will show up here.",
+  "region_live_dismiss": "Back to your route",
+  "region_live_invite": "Invite people",
+  "region_live_title": "{name} is live",
+  "region_mapLayerAdd": "Add layer",
+  "region_mapLayerAttributions": "Attributions",
+  "region_mapLayerAttributionsHint": "One credit per line, shown in the map’s attribution box.",
+  "region_mapLayerMinZoom": "Minimum zoom",
+  "region_mapLayerName": "Layer name",
+  "region_mapLayerOpacity": "Opacity",
+  "region_mapLayerRemove": "Remove layer",
+  "region_mapLayerUrl": "Request URL",
+  "region_mapLayerUrlHint": "Paste the full WMS request URL, with its query parameters.",
+  "region_mapLayers": "Map layers",
+  "region_mapLayersEmpty": "No map layers yet. Add one to draw it over the map for everyone in this region.",
+  "region_mapLayersStale": "The map layers changed while this page was open. Reopen it and make the change again.",
+  "region_mapLayersUnreadableBody": "This version of the app can’t read all of this region’s map layers, and saving here would remove the ones it can’t. Updating the app may help.",
+  "region_mapLayersUnreadableTitle": "Some of these map layers can’t be read",
+  "region_memberNotFound": "Member not found",
+  "region_memberRemoved": "{name} removed",
+  "region_members": "Members",
+  "region_new": "New region",
+  "region_notFound": "Region not found",
+  "region_notMember": "You are not a member of this region. Ask someone in it for an invitation.",
+  "region_nothingToRestore": "Nothing to restore",
+  "region_ownedCount": "You own {owned} of {total} regions.",
+  "region_removeMember": "Remove {name}",
+  "region_role": "Role",
+  "region_roleUpdated": "Role updated",
+  "region_seatsFull": "All {total} seats are in use",
+  "region_seatsOneLeft": "{used} of {total} seats used, 1 left",
+  "region_seatsUsed": "{used} of {total} seats used",
+  "region_select": "Select a region",
+  "region_stats": "Stats",
+  "region_statsActivity": "Activity",
+  "region_statsActivityCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} activity",
+        "countPlural=other": "{count} activities"
+      }
+    }
+  ],
+  "region_statsActivityHint": "One bar per month. Several edits to the same thing within minutes count once.",
+  "region_statsAll": "All regions",
+  "region_statsAllTime": "All time",
+  "region_statsAscents": "Logged ascents",
+  "region_statsBlocks": "Blocks",
+  "region_statsContributors": "Contributors",
+  "region_statsGuidebook": "Guidebook",
+  "region_statsLastActivity": "Last activity",
+  "region_statsLastMonths": "Last 12 months",
+  "region_statsMedia": "Media",
+  "region_statsNoActivity": "Nothing has happened here yet.",
+  "region_statsNoCoordinates": "Blocks without coordinates",
+  "region_statsNoTopo": "Routes without a topo",
+  "region_statsPending": "Pending invitations",
+  "region_statsPhotos": "Photos",
+  "region_statsRoutes": "Routes",
+  "region_statsRoutesByGrade": "Routes by grade",
+  "region_statsSectors": "Sectors",
+  "region_statsUngraded": "Ungraded routes",
+  "region_statsVideos": "Videos",
+  "region_tagAdd": "Add tag",
+  "region_tagAdded": "Added “{name}”",
+  "region_tagComma": "A tag can’t contain a comma",
+  "region_tagDuplicate": "Each tag can only appear once",
+  "region_tagGone": "That tag is no longer in this region’s list",
+  "region_tagName": "Tag name",
+  "region_tagRemove": "Remove tag",
+  "region_tagRemoveConfirm": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Remove “{name}”? It comes off {count} route, and that cannot be undone.",
+        "countPlural=other": "Remove “{name}”? It comes off {count} routes, and that cannot be undone."
+      }
+    }
+  ],
+  "region_tagRemoveUnused": "Remove “{name}”? No route carries it.",
+  "region_tagRemoved": "Removed “{name}”",
+  "region_tagRename": "Rename",
+  "region_tagRenameHint": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Stays on {count} route.",
+        "countPlural=other": "Stays on all {count} routes."
+      }
+    }
+  ],
+  "region_tagRenamed": "Renamed “{from}” to “{to}”",
+  "region_tags": "Tags",
+  "region_tagsCount": "{count} of {max}",
+  "region_tagsEmpty": "No tags yet. Add the ones your community uses to describe routes.",
+  "region_tagsHint": "Renaming a tag keeps it on every route that already carries it.",
+  "region_tagsTooMany": "At most {count} tags",
+  "region_tagsUnreadable": "This version of the app can’t read all of this region’s tags, so they can’t be changed here.",
+  "region_tagsUnreadableBody": "This version of the app can’t read all of this region’s tags, and saving here would replace the ones it can’t. Updating the app may help.",
+  "region_tagsUnreadableTitle": "These tags can’t be read",
+  "region_title": "Region",
+  "region_viewProfile": "View profile",
+  "region_viewRegion": "View region",
+  "roles_admin": "Admin",
+  "roles_maintainer": "Maintainer",
+  "roles_user": "User",
+  "routes_addRoute": "Add route",
+  "routes_delete": "Delete route",
+  "routes_deleteNote": "Removes its ascents and grade opinions too.",
+  "routes_deleted": "Route deleted",
+  "routes_editRoute": "Edit route",
+  "routes_form_descriptionHint": "Where does the line go, and how does it climb? A bit of history is welcome too.",
+  "routes_form_descriptionLabel": "Description",
+  "routes_form_faAddNew": "Add “{name}”",
+  "routes_form_faClimbersLabel": "First ascensionists",
+  "routes_form_faHint": "“Me” logs it under your profile. New names are fine and don’t need an account.",
+  "routes_form_faLabel": "First ascent",
+  "routes_form_faMeHint": "Adds you ({name})",
+  "routes_form_faNewBadge": "new",
+  "routes_form_faNewHint": "New climber, no account needed",
+  "routes_form_faPlaceholder": "“Me”, a friend, a legend…",
+  "routes_form_faPlaceholderMore": "Add another…",
+  "routes_form_faYearHint": "Roughly is fine.",
+  "routes_form_faYearLabel": "Year",
+  "routes_form_gradeEasier": "One grade easier",
+  "routes_form_gradeHarder": "One grade harder",
+  "routes_form_gradeHint": "A suggestion to get it started. Everyone who logs an ascent gives their opinion, and the grade settles on the average.",
+  "routes_form_gradeLabel": "Grade",
+  "routes_form_gradeNone": "No grade",
+  "routes_form_gradePick": "Add a grade",
+  "routes_form_mediaHint": "Everything uploads in the background. You can save meanwhile.",
+  "routes_form_mediaLabel": "Photos & videos",
+  "routes_form_nameHint": "Unknown? Leave it blank.",
+  "routes_form_nameLabel": "Route name",
+  "routes_form_namePlaceholder": "e.g. Karma",
+  "routes_form_optionalNote": "Everything here is optional. Add what you know, the community fills the gaps.",
+  "routes_form_rating0": "No rating",
+  "routes_form_rating0Hint": "Most routes have none. That’s fine.",
+  "routes_form_rating1": "Good",
+  "routes_form_rating1Hint": "Worth doing.",
+  "routes_form_rating2": "Very good",
+  "routes_form_rating2Hint": "Worth seeking out.",
+  "routes_form_rating3": "Classic",
+  "routes_form_rating3Hint": "One of the best around. Worth travelling for.",
+  "routes_form_ratingGuide1": "Quality of the rock and holds",
+  "routes_form_ratingGuide2": "Quality of the landing area",
+  "routes_form_ratingGuide3": "The climbing movement",
+  "routes_form_ratingGuide4": "Beauty of the surrounding area",
+  "routes_form_ratingGuide5": "Topout, or only a dropoff?",
+  "routes_form_ratingGuideIntro": "Rate the line, not your send. Weigh:",
+  "routes_form_ratingGuideTitle": "How to rate: stay objective",
+  "routes_form_ratingLabel": "Rating",
+  "routes_form_tagsHint": "Tap all that fit",
+  "routes_form_tagsLabel": "Tags",
+  "routes_form_tagsSelected": "{count} selected",
+  "routes_gradeOpinions": "Grade opinions",
+  "routes_gradeVotes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} vote",
+        "countPlural=other": "{count} votes"
+      }
+    }
+  ],
+  "routes_listsStale": "The tags or first ascensionists changed while this page was open. Reopen it and make the change again.",
+  "routes_logAscent": "Log ascent",
+  "routes_nameExists": "A route named “{name}” already exists on this block",
+  "routes_noOpinions": "No opinions yet",
+  "routes_notFound": "Route not found",
+  "routes_openTopo": "Open topo",
+  "routes_originalGrade": "Original grade",
+  "routes_routesCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} route",
+        "countPlural=other": "{count} routes"
+      }
+    }
+  ],
+  "routes_searchPlaceholder": "Search routes",
+  "routes_showDetails": "Details",
+  "routes_showOnMap": "Show on map",
+  "routes_viewRoute": "View route",
+  "search_hint": "Search areas, blocks, routes and people",
+  "search_newlyAdded": "Newly added",
+  "search_noResults": "No results for “{query}”",
+  "search_recent": "Recent searches",
+  "search_recentlyViewed": "Recently viewed",
+  "search_removeRecent": "Remove search",
+  "search_showAll": "Show all {count}",
+  "search_topResults": "Top results",
+  "settings_account": "Account",
+  "settings_admin": "Admin",
+  "settings_app": "App",
+  "settings_changeEmail": "Change email",
+  "settings_changePassword": "Change password",
+  "settings_changeRegionName": "Change region name",
+  "settings_changeUsername": "Change username",
+  "settings_currentPassword": "Current password",
+  "settings_emailChangeHint": "You’ll get a link at your current address and at the new one. Open both to complete the change.",
+  "settings_emailChangeSent": "Confirm the change",
+  "settings_emailChangeSentBody": "We sent a link to {email} and to your current address. Open both links to complete the change.",
+  "settings_emailNew": "New email",
+  "settings_errorLogs": "Error logs",
+  "settings_errorLogsHint": "Grouped by message, newest first. Client and server.",
+  "settings_feedback": "Feedback",
+  "settings_gradeScale": "Grade scale",
+  "settings_gradeScaleFB": "Font",
+  "settings_gradeScaleV": "V-scale",
+  "settings_invitations": "Invitations",
+  "settings_language": "Language",
+  "settings_languageHint": "Applies to emails and notifications too.",
+  "settings_legal": "Legal",
+  "settings_notifications": "Notifications",
+  "settings_notificationsDelivery": "Delivery",
+  "settings_notificationsTypes": "Send me a push about",
+  "settings_notifyAscents": "Ascents",
+  "settings_notifyAscentsHint": "When somebody in your community logs a climb",
+  "settings_notifyComments": "Comments",
+  "settings_notifyCommentsHint": "When somebody comments on an entry you wrote or joined",
+  "settings_notifyCommunity": "Community",
+  "settings_notifyCommunityHint": "When somebody joins or their role changes",
+  "settings_notifyDirected": "Aimed at you",
+  "settings_notifyDirectedHint": "Mentions, changes to your ascents, your role",
+  "settings_notifyGuidebookEdits": "Guidebook edits",
+  "settings_notifyGuidebookEditsHint": "New areas, blocks, routes, topos and photos",
+  "settings_notifyReactions": "Reactions",
+  "settings_notifyReactionsHint": "When somebody reacts to something you logged or edited",
+  "settings_notifyScope": "All devices",
+  "settings_passwordIncorrect": "Current password is incorrect",
+  "settings_push": "Push on this device",
+  "settings_pushTest": "Send a test notification",
+  "settings_pushTestFailed": "The test notification didn’t reach this device.",
+  "settings_pushTestSent": "Test notification sent.",
+  "settings_regionName": "Region name",
+  "settings_regions": "Regions",
+  "settings_signOut": "Sign out",
+  "settings_title": "Settings",
+  "settings_units": "Units",
+  "settings_unitsAuto": "Automatic",
+  "settings_unitsImperial": "Imperial",
+  "settings_unitsMetric": "Metric",
+  "settings_usernameTaken": "Someone in your regions already uses this name",
+  "settings_usernameUpdated": "Username updated",
+  "share_copyLink": "Copy link",
+  "share_linkCopied": "Link copied",
+  "share_publicLink": "Public link",
+  "share_share": "Share",
+  "share_sharePhoto": "Share photo",
+  "share_shareVideo": "Share video",
+  "share_statusPrivate": "Only people with access can see this.",
+  "share_statusPublic": "Anyone with the link can view this.",
+  "share_turnOn": "Turn on to share a link anyone can open.",
+  "sort_ascending": "Ascending",
+  "sort_descending": "Descending",
+  "sort_distance": "Distance",
+  "sort_name": "Name",
+  "sort_order": "Order",
+  "sort_sortBy": "Sort by",
+  "status_announcementV2": "Welcome to the new grnyte.",
+  "status_dismiss": "Dismiss",
+  "status_notSyncing": "Not getting updates.",
+  "status_offline": "You’re offline. Changes won’t save.",
+  "status_reconnecting": "Reconnecting. You might not see the latest changes.",
+  "status_reload": "Reload",
+  "status_updateReady": "A new version is ready.",
+  "sync_externalResources": "Sync external resources",
+  "tab_explore": "Explore",
+  "tab_feed": "Feed",
+  "tab_profile": "Profile",
+  "theme_dark": "Dark",
+  "theme_label": "Theme",
+  "theme_light": "Light",
+  "theme_system": "System",
+  "topo_addPhoto": "Add photo",
+  "topo_addRoute": "Add route",
+  "topo_addRouteToPhoto": "Add route to this photo",
+  "topo_addTopos": "Add topos",
+  "topo_alreadyTopo": "That image is already a topo",
+  "topo_alt": "Climbing topo",
+  "topo_createFailed": "Could not create the topo",
+  "topo_deletePhoto": "Delete photo",
+  "topo_deletePhotoConfirm": "Delete this photo and its lines?",
+  "topo_deletePhotoSub": "Remove this photo and its lines",
+  "topo_deletePoint": "Delete point",
+  "topo_deleteRoute": "Delete route everywhere",
+  "topo_discard": "Discard",
+  "topo_done": "Done",
+  "topo_dragToReorder": "Drag to reorder",
+  "topo_editLine": "Edit line",
+  "topo_editTopos": "Edit topos",
+  "topo_emptyState": "No photos yet. Add a photo of the block to start drawing route lines.",
+  "topo_exitFullscreen": "Exit fullscreen",
+  "topo_fullscreen": "Fullscreen",
+  "topo_hideLines": "Hide lines",
+  "topo_insertPoint": "Insert point",
+  "topo_leaveConfirm": "Leave without saving your changes?",
+  "topo_legacyReadOnly": "This topo was drawn in an older format. You can’t edit it yet.",
+  "topo_linesStale": "The lines on this photo changed while the editor was open. Reopen it and draw the change again.",
+  "topo_magnifier": "Magnifier",
+  "topo_middle": "Middle",
+  "topo_movePoint": "Select or move point",
+  "topo_newRoute": "New route",
+  "topo_newRouteSub": "Name and grade first",
+  "topo_next": "Next topo",
+  "topo_noRoutesDrawn": "No routes on this photo yet",
+  "topo_none": "No topo for this block yet.",
+  "topo_notFound": "Topo not found",
+  "topo_orCreateNew": "Or create new",
+  "topo_position": "Topo {position} / {total}",
+  "topo_previous": "Previous topo",
+  "topo_quickLine": "Unnamed line",
+  "topo_quickLineSub": "Draw now, name it later",
+  "topo_removeLine": "Remove line",
+  "topo_replacePhoto": "Replace photo",
+  "topo_replacePhotoSub": "Swap the photo, keep the lines",
+  "topo_resetZoom": "Reset zoom",
+  "topo_routeNotOnBlock": "That route is not on this block",
+  "topo_routes": "Routes",
+  "topo_routesCount": "Routes ({count})",
+  "topo_routesOnPhoto": "Routes on this photo",
+  "topo_searchRoutes": "Search routes",
+  "topo_selectLine": "Select or move route line",
+  "topo_selectRoutePrompt": "Select a route to draw its line",
+  "topo_showLines": "Show lines",
+  "topo_start": "Start",
+  "topo_toggleLine": "Toggle route line",
+  "topo_top": "Top",
+  "topo_topFinish": "Finish hold",
+  "topo_topout": "Top out",
+  "topo_unsaved": "Unsaved changes",
+  "topo_unsavedShort": "Unsaved",
+  "upload_addMediaTitle": "Add photos or videos",
+  "upload_addPhotos": "Upload photos",
+  "upload_addPhotosHint": "From your library, they upload in the background",
+  "upload_addVideo": "Upload a video",
+  "upload_addVideoConfirm": "Add video",
+  "upload_addVideoHint": "With its source (YouTube, Instagram, …)",
+  "upload_browse": "browse",
+  "upload_change": "Change",
+  "upload_chooseVideo": "Choose a video",
+  "upload_chooseVideoHint": "MP4, MOV or WebM from your library",
+  "upload_constraints": "JPG, PNG, WebP or HEIC, up to {size} each",
+  "upload_constraintsVideo": "MP4, MOV or WebM, up to {size} each",
+  "upload_dropPrompt": "Drag images here or",
+  "upload_dropPromptMedia": "Drag images or videos here or",
+  "upload_dropPromptVideo": "Drag videos here or",
+  "upload_failed": "Upload failed",
+  "upload_hdrWarning": "This clip is in HDR, so colors may look washed out after upload. Recording with 10-bit HDR off avoids it.",
+  "upload_invalidType": "Unsupported file type",
+  "upload_networkError": "Network error. Check your connection",
+  "upload_someFailed": "Some uploads failed",
+  "upload_sourceHint": "Leave empty for your own footage.",
+  "upload_sourceInvalid": "That doesn’t look like a link yet.",
+  "upload_sourceLabel": "Source",
+  "upload_sourcePlaceholder": "e.g. youtube.com/watch?v=…",
+  "upload_stagedMissing": "Uploaded file not found",
+  "upload_tooLarge": "File is too large (max. {size})",
+  "upload_tooMany": "Too many files (max. {count} at a time)",
+  "upload_unreadableImage": "Could not read that image",
+  "upload_videoSheetBody": "Grabbed it from YouTube or Instagram? Say where it’s from. The route page credits the source.",
+  "users_notFound": "User not found"
+}

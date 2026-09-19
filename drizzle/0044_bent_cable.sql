@@ -1,3 +1,0 @@
-ALTER TABLE "region_members" ALTER COLUMN "role" SET DATA TYPE "public"."app_role" USING "role"::text::"public"."app_role";--> statement-breakpoint
-ALTER TABLE "role_permissions" ALTER COLUMN "role" SET DATA TYPE "public"."app_role" USING "role"::text::"public"."app_role";--> statement-breakpoint
-ALTER TABLE "user_roles" ALTER COLUMN "role" SET DATA TYPE "public"."app_role" USING "role"::text::"public"."app_role";

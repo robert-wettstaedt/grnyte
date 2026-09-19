@@ -1,1 +1,0 @@
-ALTER TABLE "routes" ALTER COLUMN "area_ids" SET DATA TYPE text;
