@@ -23,6 +23,19 @@ describe('normalizePath', () => {
     expect(normalizePath('M300,915 L285,2400 Z', 800, 1000)).toMatchObject({ next: null, reason: 'out-of-bounds' })
   })
 
+  it('converts a topout drawn just above the top edge', () => {
+    // topo_route 1173: -53px on a 1024px photo is -0.0518, a real line whose topout sits off the
+    // frame. Refusing it leaves the row in pixels, which the renderer draws nowhere near the photo.
+    expect(normalizePath('M1754,660 L384,-53 Z', 1820, 1024)).toEqual({ next: 'M0.96374,0.64453 L0.21099,-0.05176 Z' })
+  })
+
+  it('still refuses an overshoot far past the top edge', () => {
+    expect(normalizePath('M1754,660 L384,-150 Z', 1820, 1024)).toMatchObject({
+      next: null,
+      reason: 'out-of-bounds',
+    })
+  })
+
   it('skips unparsable paths', () => {
     expect(normalizePath('M300,915 C285,770 100,100 50,50', 800, 1000)).toMatchObject({
       next: null,

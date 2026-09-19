@@ -89,8 +89,10 @@ export const serializePoints = (points: TopoPoint[]): string =>
   toSubPaths(points)
     .map((sub) =>
       sub
-        .map((point, index) => {
-          const segment = `${index === 0 ? 'M' : 'L'}${round5(point.x)},${round5(point.y)}`
+        .map((point) => {
+          // `M` means start hold, not first token: a line whose start is off the photo stores no
+          // `M` at all, and writing one would give it a hold it never had.
+          const segment = `${point.type === 'start' ? 'M' : 'L'}${round5(point.x)},${round5(point.y)}`
           return point.type === 'top' ? `${segment} Z` : segment
         })
         .join(' '),
@@ -132,7 +134,7 @@ const smoothPath = (points: Point[]): string => {
 }
 
 /** Average position of a set of points: the anchor the route line rises from. */
-const centroid = (points: Point[]): Point => ({
+export const centroid = (points: Point[]): Point => ({
   type: 'start',
   x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
   y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
@@ -156,13 +158,18 @@ export const topMarkerD = (
 }
 
 export interface BuiltLine {
+  /** Where the guidebook number hangs: under the lowest start hold, or under the lowest point of
+   *  the line when the photo does not show the start. Lowest, not first: the two coincide only
+   *  once a line's points are in climbed order, which a legacy row need not be. */
+  anchor: Point | undefined
   /** Bracket bar joining the start holds (empty for a single-hold start). */
   bracket: string
   /** The route line: one path rising from the centre of the start holds to the top. */
   d: string
-  /** One point per sub-path: each a starting handhold (deduped across lines by the caller). */
+  /** The line's start holds, deduped across lines by the caller. EMPTY when the photo does not show
+   *  the start: a boulder too big for one frame, a sit start in a cave. Not an error. */
   starts: Point[]
-  /** The top-out point, for the end marker. */
+  /** The top-out point, for the end marker. Undefined when the photo does not show the top. */
   top: Point | undefined
 }
 
@@ -184,10 +191,12 @@ export const buildLine = (points: TopoPoint[], curved: boolean, imgWidth = 1, im
   )
 
   if (subPaths.length === 0) {
-    return { bracket: '', d: '', starts: [], top: undefined }
+    return { anchor: undefined, bracket: '', d: '', starts: [], top: undefined }
   }
 
-  const starts = subPaths.map((sub) => sub[0])
+  // By TYPE, never by position. A sub-path opens at whatever point comes first, so reading the
+  // start off `sub[0]` gave a waypoint a start ring on every line whose start is off the photo.
+  const starts = subPaths.flat().filter((point) => point.type === 'start')
 
   // The trunk is the sub-path that tops out (or the longest); its points above the
   // start hold are the waypoints tracing the climbing line.
@@ -197,19 +206,32 @@ export const buildLine = (points: TopoPoint[], curved: boolean, imgWidth = 1, im
   }
   const trunk = subPaths[trunkIndex]
 
-  // One line from the centre of the start holds through the trunk's waypoints. A
-  // single-hold start has no centre to compute, so it rises straight from the hold.
-  const linePoints = starts.length > 1 ? [centroid(starts), ...trunk.slice(1)] : trunk
+  // One line from the centre of the start holds through the trunk's waypoints. A single hold is
+  // its own centre; no hold at all and the line simply begins at its first waypoint.
+  //
+  // Consecutive repeats are dropped: a point stored twice is a zero-length segment, and
+  // Catmull-Rom reads one as a direction of nothing, kinking the curve or bulging it past its own
+  // end. The points stay in the data, they just stop steering the line twice.
+  const linePoints = [
+    ...(starts.length > 0 ? [centroid(starts)] : []),
+    ...trunk.filter((point) => point.type !== 'start'),
+  ].filter((point, index, all) => index === 0 || point.x !== all[index - 1].x || point.y !== all[index - 1].y)
   const d = curved ? smoothPath(linePoints) : straightPath(linePoints)
 
   // Bracket bar across the holds, ordered by x so it never criss-crosses.
   const bracket = starts.length > 1 ? straightPath([...starts].sort((a, b) => a.x - b.x)) : ''
 
-  const allPoints = subPaths.flat()
   return {
+    // Under the lowest hold, or under the lowest point of the line when there is none.
+    anchor:
+      starts.length > 0
+        ? { type: 'start', x: centroid(starts).x, y: Math.max(...starts.map((point) => point.y)) }
+        : linePoints.reduce((lowest, point) => (point.y > lowest.y ? point : lowest), linePoints[0]),
     bracket,
     d,
     starts,
-    top: allPoints.length > 1 ? (trunk.find((point) => point.type === 'top') ?? trunk.at(-1)) : undefined,
+    // Only a point the path TYPED as a top. The old fallback to the last point put a topout arrow
+    // on whatever waypoint happened to end the line, on every line whose top is off the photo.
+    top: subPaths.flat().find((point) => point.type === 'top'),
   }
 }

@@ -61,20 +61,14 @@
   const box = new TopoImageBox(() => ({ height, width }))
 
   const rendered = $derived(
-    lines.map((line) => {
-      const { bracket, d, starts, top } = buildLine(line.points, curved, box.width, box.height)
-      return {
-        band: line.band,
-        bracket,
-        d,
-        ghost: line.ghost,
-        id: line.id,
-        number: line.number,
-        starts,
-        top,
-        topType: line.topType,
-      }
-    }),
+    lines.map((line) => ({
+      ...buildLine(line.points, curved, box.width, box.height),
+      band: line.band,
+      ghost: line.ghost,
+      id: line.id,
+      number: line.number,
+      topType: line.topType,
+    })),
   )
 
   // Ghosts first, then the rest, then the highlighted line last, so what a line is now

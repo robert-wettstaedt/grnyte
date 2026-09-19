@@ -61,7 +61,11 @@ export const normalizePath = (
 
   // A correctly-drawn line lies within its image; slight overshoot (a few px past
   // the edge) is fine, anything further means these aren't this image's pixels.
-  if (scaled.some((point) => point.x < -0.05 || point.x > 1.05 || point.y < -0.05 || point.y > 1.05)) {
+  // The negative tolerance is the wider one, as in `fix-topo-path-scale`: a topout is drawn ABOVE
+  // the rock, so it routinely sits just off the top edge. topo_route 1173 missed the old -0.05 by
+  // 0.002 and was left in pixels, which the renderer then drew at raw pixel coordinates on a
+  // 0-1 canvas, i.e. nowhere near the photo.
+  if (scaled.some((point) => point.x < -0.08 || point.x > 1.05 || point.y < -0.08 || point.y > 1.05)) {
     return { next: null, reason: 'out-of-bounds' }
   }
 
@@ -91,6 +95,7 @@ export const selectTopoPathRows = (db: PostgresJsDatabase<typeof schema>) =>
       height: schema.files.height,
       id: schema.topoRoutes.id,
       path: schema.topoRoutes.path,
+      routeId: schema.topoRoutes.routeFk,
       topoId: schema.topos.id,
       width: schema.files.width,
     })

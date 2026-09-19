@@ -48,8 +48,8 @@
   // Committed-style geometry (curve + bracket + end marker) for every line.
   const rendered = $derived(
     lines.map((line) => {
-      const { bracket, d, starts, top } = buildLine(line.points, true, box.width, box.height)
-      return { ...line, bracket, d, starts, top }
+      const { anchor, bracket, d, starts, top } = buildLine(line.points, true, box.width, box.height)
+      return { ...line, anchor, bracket, d, starts, top }
     }),
   )
   const selected = $derived(rendered.find((line) => line.selected))

@@ -7,13 +7,14 @@
 
   /** The drawn geometry of one route line (from `buildLine`) plus its grade/number. */
   interface Line {
+    /** Where the number badge hangs; undefined for an empty line. */
+    anchor: undefined | { x: number; y: number }
     band: GradeBand | undefined
     bracket: string
     d: string
     /** A line as it used to be, drawn dashed under the current one. */
     ghost?: boolean
     number?: number
-    starts: { x: number; y: number }[]
     top: undefined | { x: number; y: number }
     topType: 'top' | 'topout' | undefined
   }
@@ -65,10 +66,11 @@
   {@render stroke(topMarkerD(line.top, line.topType, unit), line.band)}
 {/if}
 
-<!-- Guidebook number: grade-coloured disc below the start holds. -->
-{#if line.number != null && line.starts.length > 0}
-  {@const cx = line.starts.reduce((sum, point) => sum + point.x, 0) / line.starts.length}
-  {@const cy = Math.min(Math.max(...line.starts.map((point) => point.y)) + unit * 3, boxHeight - unit * 1.6)}
+<!-- Guidebook number: grade-coloured disc below the start holds, or below the foot of the line
+     when the photo does not show the start. -->
+{#if line.number != null && line.anchor != null}
+  {@const cx = line.anchor.x}
+  {@const cy = Math.min(line.anchor.y + unit * 3, boxHeight - unit * 1.6)}
   <g {...badgeAttrs}>
     <circle
       {cx}

@@ -15,9 +15,10 @@
 
   // Lines in the 800×1000 pixel space of the placeholder image (.storybook/fixtures).
   // A trailing `Z` marks the last point as the top-out.
-  const line = (id: number, path: string, band: GradeBand | undefined, topType: 'top' | 'topout') => ({
+  const line = (id: number, path: string, band: GradeBand | undefined, topType: 'top' | 'topout', number?: number) => ({
     band,
     id,
+    number,
     points: convertPathToPoints(path),
     topType,
   })
@@ -45,6 +46,30 @@
       line(1, 'M360,905 L420,720 M470,905 L420,720 L380,340 Z', 2, 'top'),
       line(2, 'M470,905 L520,720 M600,905 L520,720 L560,340 Z', 4, 'topout'),
     ],
+  ]
+
+  // A photo need not show both ends of a line: the boulder can be taller than one frame, or the
+  // sit start can be in a cave. A path then stores no `M` (no start hold) or no `Z` (no top), and
+  // the renderer must draw neither a start ring nor a topout arrow for the end that is missing.
+  // Numbered so the badge is visible: it hangs under the start holds, or under the foot of the
+  // line when there are none.
+  const partial = [
+    line(1, 'M720,900 L760,620 L740,280 Z', 1, 'topout', 1),
+    line(2, 'L180,880 L220,600 L200,260 Z', 2, 'topout', 2),
+    line(3, 'M380,900 L420,640 L400,300', 3, 'topout', 3),
+    line(4, 'L560,880 L600,620 L580,280', 4, 'topout', 4),
+  ]
+
+  // Real rows store a point twice: topo_route 2163 repeats its top three times, 1827 its middle.
+  // A zero-length segment gives the spline a direction of nothing, so it kinks or bulges past its
+  // own end. 1 and 2 are the same line with and without a doubled waypoint and must draw
+  // identically; 3 repeats its top three times; 4 returns to an earlier hold, which is a real move
+  // and must still show as one.
+  const repeats = [
+    line(1, 'M150,910 L180,600 L160,240 Z', 1, 'topout', 1),
+    line(2, 'M330,910 L360,600 L360,600 L340,240 Z', 2, 'topout', 2),
+    line(3, 'M510,910 L540,600 L520,240 L520,240 L520,240 Z', 3, 'topout', 3),
+    line(4, 'M680,910 L710,700 L730,520 L710,700 L700,240 Z', 4, 'topout', 4),
   ]
 </script>
 
@@ -80,3 +105,12 @@
 
 <!-- Route mode: a single line. -->
 <Story name="Single route" args={{ lines: [overhang] }} {template} />
+
+<!-- Both ends optional. 1 shows start and top, 2 has no start hold, 3 has no top, 4 has neither.
+     Only 1 and 2 may draw a topout arrow; only 1 and 3 may draw a start ring. -->
+<Story name="Partial photo (no start or top)" args={{ lines: partial }} {template} />
+
+<!-- A point stored twice must not steer the line twice. 1 and 2 are the same line, 2 with a
+     doubled waypoint: they must be indistinguishable. 3 repeats its top three times, so the curve
+     must end ON the arrow, not bulge past it. 4 revisits an earlier hold, which is a real move. -->
+<Story name="Repeated points" args={{ lines: repeats }} {template} />
