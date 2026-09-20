@@ -90,6 +90,8 @@ interface EntitySearchOptions {
   limit?: number
   /** Only query while the picker is open: keeps it idle (and synced-down) otherwise. */
   open: () => boolean
+  /** Set when the caller opens with an empty box and means it; see {@link searchReady}. */
+  opensEmpty?: boolean
   /** Current query (the text typed after the `@` trigger, or into the search bar). */
   query: () => string
   /**
@@ -108,18 +110,24 @@ interface UserRow {
   username: string
 }
 /**
- * The query text, settled. Clearing applies at once so a reopened picker never registers the
- * previous term; typing waits, because only the value that is still there is worth a round trip.
+ * The query text, settled. Closing clears it, so a reopened picker never registers the previous
+ * term; typing waits, because only the value that is still there is worth a round trip.
+ *
+ * The getter reads nothing but `settled`. Deriving it from `query` would put `query` in the REQUEST's
+ * dependencies, and `createResource` rebuilds on a dependency changing rather than on the value
+ * changing, leaking the $effect.root each discarded `Query` opened.
  *
  * No leading edge: the queries register during render and this lands a tick later, so publishing
  * the first character early adds a term rather than replacing the empty one. Measured, not assumed.
  */
-export function debouncedQuery(query: () => string, ms: number): () => string {
+export function debouncedQuery(query: () => string, ms: number, open: () => boolean): () => string {
   let settled = $state(query())
 
   // Deliberately never reads `settled`, so writing it cannot re-trigger this effect.
   $effect(() => {
-    const next = query()
+    // Clearing on CLOSE rather than on reopen is what keeps the stale term from ever being read:
+    // reopening is a later gesture, so this has long since landed by then.
+    const next = open() ? query() : ''
 
     if (next === '') {
       settled = ''
@@ -218,12 +226,16 @@ export function entityMappers(regionCrumb?: (regionFk: number) => DisplayName | 
  * argument and each distinct value registers its own query. Queries are gated on `open`, so nothing runs
  * (and `users` never syncs over the network) until the caller opts in.
  */
-export function entitySearch({ limit, open, query, regionCrumb, regionFks }: EntitySearchOptions) {
+export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regionFks }: EntitySearchOptions) {
   const perGroup = limit ?? PER_GROUP_LIMIT
   const map = entityMappers(regionCrumb)
-  const settled = debouncedQuery(query, QUERY_DEBOUNCE_MS)
+  const settled = debouncedQuery(query, QUERY_DEBOUNCE_MS, open)
 
-  const ready = () => searchReady(open(), query(), settled())
+  // $derived, not a getter: `createResource` rebuilds when a dependency of `enabled` changes, and
+  // each rebuilt `Query` leaks the $effect.root its constructor opens. A $derived only invalidates
+  // its readers when the ANSWER changes, so both callers may read `query` here freely.
+  const isReady = $derived(searchReady(open(), query(), settled(), opensEmpty))
+  const ready = () => isReady
 
   const areas = createResource(
     () => queries.listAreas({ content: settled(), limit: perGroup }),
@@ -285,10 +297,11 @@ export function entitySearch({ limit, open, query, regionCrumb, regionFks }: Ent
 /**
  * Whether a search may register, as a function of its inputs and nothing else.
  *
- * The middle case is the whole point: a caller that opens on the first character (the search bar)
- * arrives before the debounce does, and registering then costs a query for the empty term. A caller
- * that opens with an empty box (the mention picker) means it, so that one still runs.
+ * A caller that opens ON the first character arrives before the debounce does, and registering then
+ * costs a query for the empty term. `opensEmpty` is the caller saying it opens with an empty box and
+ * means it: without it the answer flips to false on that first character, and a false `enabled`
+ * bypasses zero-svelte's view cache for a fresh empty one, which is what blanks a loaded list.
  */
-export function searchReady(open: boolean, query: string, settled: string): boolean {
-  return open && (query === '' || settled !== '')
+export function searchReady(open: boolean, query: string, settled: string, opensEmpty = false): boolean {
+  return open && (opensEmpty || query === '' || settled !== '')
 }

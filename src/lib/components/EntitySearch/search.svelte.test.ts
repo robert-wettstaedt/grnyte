@@ -62,7 +62,18 @@ describe('searchReady', () => {
     expect(searchReady(true, 'boul', 'b')).toBe(true)
   })
 
+  // The mention picker already has its empty-term list on screen, and a false `enabled` bypasses
+  // zero-svelte's view cache for a fresh empty one, so the flip is what blanks it.
+  it('keeps a caller that opens empty enabled across the debounce', () => {
+    expect(searchReady(true, 'b', '', true)).toBe(true)
+  })
+
+  it('still withholds a caller that opens on the first character', () => {
+    expect(searchReady(true, 'b', '', false)).toBe(false)
+  })
+
   it('never registers while closed', () => {
+    expect(searchReady(false, 'b', '', true)).toBe(false)
     expect(searchReady(false, '', '')).toBe(false)
     expect(searchReady(false, 'boulder', 'boulder')).toBe(false)
   })
@@ -76,15 +87,24 @@ describe('debouncedQuery', () => {
 
   const harness = (initial: string) => {
     let typed = $state(initial)
+    let isOpen = $state(true)
     let read: () => string = () => ''
 
     const stop = $effect.root(() => {
-      read = debouncedQuery(() => typed, 200)
+      read = debouncedQuery(
+        () => typed,
+        200,
+        () => isOpen,
+      )
     })
 
     flushSync()
 
     return {
+      setOpen: (next: boolean) => {
+        isOpen = next
+        flushSync()
+      },
       settled: () => read(),
       stop,
       type: (next: string) => {
@@ -132,6 +152,33 @@ describe('debouncedQuery', () => {
     expect(h.settled()).toBe('abc')
 
     h.type('')
+    expect(h.settled()).toBe('')
+    h.stop()
+  })
+
+  // A picker closes holding its term and reopens with an empty box, so clearing has to happen on
+  // the CLOSE. Left until the reopen it would be one render too late, and that render is the one
+  // that registers the queries.
+  it('clears on close, so a reopened picker cannot register the previous term', () => {
+    const h = harness('')
+    h.type('abc')
+    vi.advanceTimersByTime(200)
+    flushSync()
+    expect(h.settled()).toBe('abc')
+
+    h.setOpen(false)
+    expect(h.settled()).toBe('')
+    h.stop()
+  })
+
+  it('does not report a stale term once a cleared box is typed into again', () => {
+    const h = harness('')
+    h.type('abc')
+    vi.advanceTimersByTime(200)
+    flushSync()
+
+    h.type('')
+    h.type('z')
     expect(h.settled()).toBe('')
     h.stop()
   })

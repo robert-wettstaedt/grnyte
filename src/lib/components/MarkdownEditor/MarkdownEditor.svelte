@@ -119,9 +119,19 @@
 
   const search = entitySearch({
     open: () => picker.open,
+    // The `@` picker opens on an empty term and means it, so it must not go idle on the first
+    // character and blank the list it already has.
+    opensEmpty: true,
     query: () => picker.query,
     regionFks: () => (regionFk == null ? [] : [regionFk]),
   })
+
+  const setPicker = (props: SuggestionProps<EntityItem, EntityItem>) => {
+    picker.command = props.command
+    picker.index = 0
+    picker.open = true
+    picker.query = props.query
+  }
 
   const selectItem = (item: EntityCandidate) => {
     picker.command?.({ id: item.id, label: item.label, type: item.type })
@@ -188,11 +198,13 @@
         picker.open = false
       },
       onKeyDown: ({ event }) => onPickerKeyDown(event),
+      // Assign the FIELDS, never the object. Replacing it invalidates every read of `picker.open`
+      // even though it stays true, which rebuilds the search queries on each keystroke.
       onStart: (props: SuggestionProps<EntityItem, EntityItem>) => {
-        picker = { command: props.command, index: 0, open: true, query: props.query }
+        setPicker(props)
       },
       onUpdate: (props: SuggestionProps<EntityItem, EntityItem>) => {
-        picker = { command: props.command, index: 0, open: true, query: props.query }
+        setPicker(props)
       },
     }),
   }

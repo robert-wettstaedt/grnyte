@@ -317,17 +317,25 @@ function preloadForOffline(z: Z<Schema>): void {
 }
 
 /**
- * The options every Zero client in this app is built from. Shared so the
- * throwaway client `createColdZero` hands to the benchmark cannot drift from
- * the real one and quietly measure a different configuration.
+ * Detection is 2x this only for a ping cycle that STARTS after tightening. `sleepWithAbort` captures
+ * the value, so an idle sleep already in flight keeps its old deadline: ~4s at best, ~10s at worst.
  */
-/** Detection is 2x this, so a resume settles in ~4s rather than the ~10s Zero's default gives. */
 const RESUME_PING_TIMEOUT_MS = 2_000
 
-/** Long enough to cover detection plus a reconnect, short enough never to be the steady state. */
-const TIGHT_PING_WINDOW_MS = 30_000
+/**
+ * One ping cycle plus margin. Zero idles `pingTimeoutMs`, then uses the SAME value as the pong
+ * deadline, so a tight value left in place keeps cutting a live link whose round trip is slower.
+ */
+const TIGHT_PING_WINDOW_MS = RESUME_PING_TIMEOUT_MS * 2 + 1_000
+
+/**
+ * How long a resume stays open waiting for a drop. Deliberately NOT the ping window, which is far
+ * shorter: a disconnect can land after that closes, and nulling early loses the slow reconnect.
+ */
+const RESUME_LOG_WINDOW_MS = 30_000
 
 let restorePingTimer: null | ReturnType<typeof setTimeout> = null
+let resumeExpiryTimer: null | ReturnType<typeof setTimeout> = null
 let pingTimeoutBeforeTightening = 0
 
 /** The open resume: when it happened, and whether the connection has dropped since. Null once it
@@ -380,11 +388,28 @@ function tightenPing(z: Z<Schema>): void {
   restorePingTimer = setTimeout(() => {
     restorePingTimer = null
     client.pingTimeoutMs = pingTimeoutBeforeTightening
-    // Window closed with the connection never dropping, so this resume was a healthy one.
-    openResume = null
   }, TIGHT_PING_WINDOW_MS)
+
+  if (resumeExpiryTimer != null) {
+    clearTimeout(resumeExpiryTimer)
+  }
+
+  resumeExpiryTimer = setTimeout(() => {
+    resumeExpiryTimer = null
+
+    // Only a resume that never dropped was healthy. One that has is still waiting on the reconnect
+    // this log exists to time, however long that takes.
+    if (openResume?.droppedSince === false) {
+      openResume = null
+    }
+  }, RESUME_LOG_WINDOW_MS)
 }
 
+/**
+ * The options every Zero client in this app is built from. Shared so the
+ * throwaway client `createColdZero` hands to the benchmark cannot drift from
+ * the real one and quietly measure a different configuration.
+ */
 function zeroOptions(session: null | Session | undefined, storageKey?: string) {
   return {
     auth: session?.access_token,
