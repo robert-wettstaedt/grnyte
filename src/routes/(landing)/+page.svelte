@@ -92,8 +92,8 @@
   // plays; hover-to-play hides the fact that they are clips, and touch has no hover.
   let paused = $state(false)
   const onScreen = new SvelteSet<number>()
-  const figures: HTMLElement[] = []
-  const videos: HTMLVideoElement[] = []
+  const figures: HTMLElement[] = $state([])
+  const videos: HTMLVideoElement[] = $state([])
 
   // A visitor on Data Saver did not ask for a megabyte of decoration.
   const thrifty =

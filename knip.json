@@ -4,6 +4,7 @@
     "src/hooks.ts",
     "src/sw.ts",
     "src/lib/db/scripts/*.ts",
+    "src/lib/email/push-templates.ts",
     "src/lib/email/test-send.ts",
     "deployment/announce.ts",
     "memlab/*.cjs",
