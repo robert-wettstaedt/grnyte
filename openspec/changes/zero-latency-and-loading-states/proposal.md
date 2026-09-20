@@ -7,7 +7,7 @@ view records); that held only for one of the four, and is corrected here.
 | # | Problem | Measured | Cause |
 | --- | --- | --- | --- |
 | A | Reader opens the app after a push and waits for one new row | up to **10 s** | Zero takes 2 x `pingTimeoutMs` to notice a socket that died while the app was away |
-| B | Cold feed load | **3810 ms**, 86% of it server work | three unbounded queries hydrating, serialized across 2 sync workers |
+| B | Drawing the `/explore` map | **4607 ms**, `listBlocks({})` alone 2081 ms of server time | three unbounded queries hydrating, serialized across 2 sync workers |
 | C | Warm back-navigation to the feed | **1279 ms**, 72% of it NOT server work | per-registration round trips to client view records in another datacenter |
 | D | The interface states things it cannot know | n/a | no signal distinguishing "arriving" from "complete" |
 
@@ -16,10 +16,12 @@ its idle-then-pong cycle it reports `connected`, so `isOnline()` is true, the st
 and every resource still reports complete, because it was complete for the data it has. The app
 renders correct-looking stale content and has no evidence anything is wrong. D cannot fix A.
 
-**B is the largest single cost and was previously deferred.** `listBlocks({})` alone spends 2104 ms
-of server time on 5,966 rows, and three unbounded queries are 90% of all server work on a cold feed.
-`ZERO_NUM_SYNC_WORKERS` is 2 on a 2-core box and one client group is served by one worker, so that
-work serializes.
+**B is the largest single cost, and it is on `/explore`, not the feed.** An earlier reading put it on
+a cold feed at 3810 ms; that capture was reached by clicking and carried `/explore`'s queries with it.
+A feed reached directly is **503 ms**. Drawing the map is 4607 ms, of which `listBlocks({})` alone is
+2081 ms of server time. `ZERO_NUM_SYNC_WORKERS` is 2 on a 2-core box and one client group is served
+by one worker, so that work serializes. It compounds with the deferred leak below: the cost is paid
+once, but the queries then stay registered for the whole session.
 
 **C is real but the mildest.** `ZERO_CVR_DB` is unset, so client view records live in the upstream
 Supabase in Frankfurt while zero-cache runs in Nuremberg, and each registration pays a

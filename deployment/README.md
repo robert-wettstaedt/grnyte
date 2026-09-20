@@ -98,6 +98,27 @@ project and nothing else. The app's own secrets stay off this box.
 - `ZERO_AUTH_SECRET` - JWT verification secret, shared with Supabase
 - `ZERO_ADMIN_PASSWORD` - Zero admin password
 - `ZERO_GET_QUERIES_URL` - The app's get-queries endpoint for this environment
+- `ZERO_CVR_DB` - Client view records, pointing at the `cvr-prod` container on this box (prod only)
+
+### `ZERO_CVR_DB` is deliberately not backed up
+
+`backup-db.yml` covers the upstream database. It does NOT cover the `cvr_data_*` volumes, and that is
+on purpose rather than an oversight: **do not add them.**
+
+Client view records are derived state. They track which rows each client has already been sent, so
+losing them costs every client one re-sync and nothing else, which is the same path a client already
+takes after 48 hours away when zero-cache collects an inactive record. Backing them up would ship a
+recreatable, fast-growing table around nightly for no recovery benefit.
+
+They live here rather than in the upstream database because unset, `ZERO_CVR_DB` defaults to
+`upstream-db`, which put them in Frankfurt while this box is in Nuremberg, so every query
+registration paid a cross-datacenter round trip. Rolling back is reverting this one variable; the old
+records are still in the upstream schema until something prunes them.
+
+The container takes no password. It sits alone on `cvr_network`, which is `internal: true` and which
+nginx is not on, so the only thing that can route to it is the zero-cache that would hold its
+credentials anyway. A password would need a second secret, and the deploy's env writer passes only
+`ZERO_*` keys to the box, so that one would be fetched from the vault and silently dropped.
 
 The rest (`ZERO_REPLICA_FILE`, `ZERO_SCHEMA_PATH`, the connection caps) are paths and tuning, and
 live in `docker-compose.zero.yml` where you can read them. See [SECRETS.md](SECRETS.md) for how the

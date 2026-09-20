@@ -98,6 +98,7 @@ jobs:
               58b5ae86-d1fd-4f35-a2c4-b4b1008f77b3 > ZERO_AUTH_SECRET
               51211711-cad0-4fb0-8b1f-b4b1008ea602 > ZERO_ADMIN_PASSWORD
               400816f4-0057-445e-918e-b4b1008e2bb0 > ZERO_GET_QUERIES_URL
+              987da712-d3a3-4a2c-a2fb-b4cb014e9092 > ZERO_CVR_DB
               db33aff4-7994-4cfe-bc01-b4b1008ddc21 > ZERO_NUM_SYNC_WORKERS
               a6c1d4f6-a8b8-47bc-b3a0-b4b1008dd02d > ZERO_CVR_MAX_CONNS
               cc7bb4d8-6654-4b89-b306-b4b1008dd661 > ZERO_UPSTREAM_MAX_CONNS
@@ -261,7 +262,7 @@ jobs:
 
             # Clean up Docker resources
             docker network prune -f || true
-            docker rm -f zero-server-prod zero-server-demo nginx-main certbot-main || true
+            docker rm -f zero-server-prod zero-server-demo zero-cvr-prod nginx-main certbot-main || true
 
             # Start services
             echo "Starting Zero servers and nginx..."

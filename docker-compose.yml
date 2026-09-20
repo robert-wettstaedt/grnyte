@@ -1,6 +1,30 @@
 version: '3.8'
 
 services:
+  # Local counterpart of the prod `cvr-prod` service, so the relocation can be exercised here before
+  # production. Unset, `ZERO_CVR_DB` defaults to upstream-db, which is the shape prod has today, so
+  # leaving it out of `.env` keeps the old behavior and setting it exercises the new one.
+  cvr:
+    image: postgres:17-alpine
+    container_name: zero-cvr
+    ports:
+      # Published locally only, so the schema zero-cache creates can be inspected with psql.
+      - '5434:5432'
+    environment:
+      - POSTGRES_USER=zero
+      - POSTGRES_DB=cvr
+      # Matches prod, where the database sits on an internal network only zero-cache can route to.
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - cvr_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U zero -d cvr']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
   zero:
     # Must move in lockstep with `@rocicorp/zero` in package.json, server deployed first.
     image: rocicorp/zero:1.9.0
@@ -16,10 +40,15 @@ services:
       - ZERO_ADMIN_PASSWORD=${ZERO_ADMIN_PASSWORD}
       - ZERO_GET_QUERIES_URL=${ZERO_GET_QUERIES_URL:-http://localhost:3000/api/zero/get-queries}
       - ZERO_GET_QUERIES_FORWARD_COOKIES=${ZERO_GET_QUERIES_FORWARD_COOKIES}
+      - ZERO_CVR_DB=${ZERO_CVR_DB:-}
 
       # Additional Zero configuration
       - ZERO_PORT=4848
       - ZERO_UPSTREAM_CONNECTION_STRING=${ZERO_UPSTREAM_DB}
+    # Same cold-boot race the prod file gates: without this zero-cache can beat the database up.
+    depends_on:
+      cvr:
+        condition: service_healthy
     extra_hosts:
       # Map localhost to host machine for database access
       - 'localhost:host-gateway'
@@ -37,3 +66,4 @@ services:
 
 volumes:
   zero_data:
+  cvr_data:

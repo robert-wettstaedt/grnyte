@@ -24,27 +24,36 @@ Ships before any measurement, so the baseline has a clean floor.
 
 - [x] 2.1 Record the current `ZERO_NUM_SYNC_WORKERS` value from Bitwarden into the change notes, and
       verify it is written down before any deploy so the later numbers can be read against it
-- [ ] 2.2 Capture a cold feed-page baseline on production: time from navigation to the last query
-      reporting got, plus the full inspector table, and verify the capture is saved somewhere
-      durable rather than pasted into a terminal
-- [ ] 2.3 Capture the same on a warm back-navigation to the feed, and verify both captures are from
-      the same account and page so step 4 has a comparable pair
+- [x] 2.2 Capture a cold feed-page baseline on production by TYPING `/feed` into a fresh tab, never
+      by clicking into it, and verify the capture is saved durably and that
+      `blockTopos({blockId:[]})` and the fat `listNotifications({limit:100})` are absent. If either
+      is present, step 0 is not deployed and this is not the baseline
+- [x] 2.3 Capture the same after clicking to Explore and back, no reload, and verify both captures
+      are the same account and tab so step 4 has a comparable pair. Expect MORE queries than the
+      cold reading: `/explore`'s four unbounded queries join and never leave, which is the deferred
+      leak and not a mistake in the capture
 
 ## 3. Relocate the client view records
 
-- [ ] 3.1 Add a Postgres container with a named volume beside zero-cache in
+- [x] 3.1 Add a Postgres container with a named volume beside zero-cache in
       `deployment/docker-compose.zero.yml` and `docker-compose.yml`, and verify it starts and
       accepts a connection locally before any production change
-- [ ] 3.2 Create the `ZERO_CVR_DB` secret in Bitwarden and add its mapping to
-      `.github/workflows/deploy-zero.yml` for the production environment, and verify the workflow
-      resolves it by running the deploy against the non-production environment first
-- [ ] 3.3 Document the variable in `deployment/README.md`, including the explicit reason the
+- [x] 3.2 Create the `ZERO_CVR_DB` secret in Bitwarden and add its mapping to
+      `.github/workflows/deploy-zero.yml` for the production environment. Demo is being sunset and
+      its CVR container was dropped, so there is no non-production environment to rehearse the
+      deploy against. Verify the risk that rehearsal was aimed at instead: that zero-cache
+      bootstraps its own schema into an EMPTY database, by running it locally under a throwaway
+      `ZERO_APP_ID` against a fresh Postgres 17 container, so the cutover needs no manual
+      bootstrap step
+- [x] 3.3 Document the variable in `deployment/README.md`, including the explicit reason the
       database is not backed up, and verify the note names `backup-db.yml` so a future maintainer
       finds the rationale where they would look
 - [ ] 3.4 Deploy the cutover at low traffic, leaving the previous database untouched, and verify by
       loading the app that clients re-sync and reach a working state
-- [ ] 3.5 Re-measure the feed page cold and warm exactly as in task 2, and verify the pair is
-      recorded beside the baseline
+- [ ] 3.5 Re-measure the feed page cold and warm exactly as in task 2, THREE captures of each, and
+      verify the verdict is read off median `hydrateServer` per query rather than `hydrateTotal`.
+      `listBlocks({})` at roughly 2000 ms of server time is the number that has to move; if it does
+      not, the cutover did not help whatever the totals do
 
 ## 4. Recent query retention
 
@@ -58,8 +67,8 @@ result as "the lever did not help".
       deferred item has landed and the rest of this group is worth running
 - [ ] 4.2 Set `maxRecentQueries` to 20 in the Zero client options in `src/lib/zero/z.svelte.ts`, and
       verify the inspector shows queries surviving a back-navigation rather than re-registering
-- [ ] 4.3 Re-measure the feed page cold and warm, and verify the warm back-navigation improved and
-      the feed did not regress
+- [ ] 4.3 Re-measure the feed page cold and warm, three captures of each, and verify against median
+      `hydrateServer` as in 3.5 rather than against wall clock
 - [ ] 4.4 Record the gate outcome in the change notes: whether steps 3 and 4 moved the numbers, and
       therefore whether the deferred structural items are triggered, verified by the recorded
       measurements rather than impression. If 4.1 showed the precondition still holds, record that

@@ -5,12 +5,15 @@ all established by measurement rather than assumption:
 
 - **SUPERSEDED, kept because it explains an earlier decision**: "query execution is fast and the wait
   is queue time" (server 0.8 to 34.5 ms against `hydrateTotal` up to 3352 ms). That was measured on a
-  block and route page, whose queries are all small, and it does not generalize. On a cold feed,
-  server work is 86% of the wait. It remains true of the warm case, which is what the client view
-  record work below addresses.
-- Cold and warm are different problems. Cold is dominated by hydrating unbounded queries, 2938 ms of
-  it from three of them. Warm has ~356 ms of server work inside a 1279 ms wait, so roughly 920 ms is
-  registration and round-trip overhead.
+  block and route page, whose queries are all small, and it does not generalize: where unbounded
+  queries hydrate, server work dominates.
+- **The heavy page is `/explore`, not the feed.** A feed opened directly is 503 ms with ~321 ms of
+  server work. Drawing the map is 4607 ms, of which `listBlocks({})` alone is 2081 ms. An earlier
+  reading blamed a "cold feed" at 3810 ms; that capture had been clicked into from `/explore` and
+  carried its queries along, which is the leak below rather than anything the feed does. A reading is
+  only cold if the tab has been nowhere else.
+- Because nothing releases a query, `/explore`'s four unbounded queries stay registered for the rest
+  of the session. The 4.6 s is paid once; the registrations are not.
 - `ZERO_NUM_SYNC_WORKERS` is 2 on a 2-core box, and one client group is served by one worker, so a
   page's server-side hydration serializes. Any improvement measured after moving the client view
   records must be read against this rather than as "Zero got faster".
@@ -32,6 +35,28 @@ All reads discussed here are Zero queries reached through the entity modules in
 `src/lib/entities/<name>/resources.svelte.ts`. No write path changes in this change: mutations
 remain SvelteKit remote functions and the write-side compensation for sync lag is explicitly
 deferred. **There is no schema change, so no migration and no backfill.**
+
+### Judge the gate on `hydrateServer`, and do not attempt an A/B
+
+`hydrateTotal` carries the client's whole network path and is far too noisy to judge anything by. Two
+nominally identical cold captures of the same page on the same account read 503 ms and 882 ms, a 75%
+swing, which is larger than any effect this change expects to produce. Per-query `hydrateServer` over
+the same captures moves ~9% (`listEvents({limit:50})`, 145.5 to 132.7 ms) and ~12% (`listBlocks({})`,
+2104.8 to 2081.3 to 1868.6 ms). It is also the half that relocating the client view records should
+move, since those reads and writes happen server-side during hydration. So the gate reads median
+`hydrateServer` per query across three captures, and treats `hydrateTotal` as context.
+
+**A side-by-side deployment cannot substitute for this.** Two things rule it out, both worth writing
+down so the idea is not re-proposed:
+
+- There is one zero-cache, and `ZERO_CVR_DB` is its setting. Moving the records moves them for every
+  client at once, so prod-CVR and VPS-CVR cannot run at the same time and there is nothing to
+  interleave.
+- A preview origin cannot exercise a NEW named query at all. `ZERO_GET_QUERIES_URL` is a
+  zero-cache-side variable pointing at one environment's app, so a preview client's queries are
+  transformed by the PRODUCTION app. Observed: `countUnreadNotifications` on a preview reported
+  `server: null, total: null` while a legitimately empty query in the same capture reported real
+  metrics, and the notification badge reads zero regardless of the true count.
 
 ## Goals / Non-Goals
 
