@@ -8,6 +8,7 @@ import { ExpirationPlugin } from 'workbox-expiration'
 import { cleanupOutdatedCaches, matchPrecache, precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
 import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies'
+import { APP_HOME_PATH } from './lib/auth'
 import { isPushPayload, type PushPayload } from './lib/entities/notification/push'
 import { isDerivativeRequest } from './lib/images/derivatives'
 import { isStorableTile, OSM_TILE_HOST } from './lib/map/tiles'
@@ -393,13 +394,13 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then(async (windowClients) => {
       if (windowClients.at(0) == null) {
-        return self.clients.openWindow(data.pathname ?? '/')
+        return self.clients.openWindow(data.pathname ?? APP_HOME_PATH)
       } else {
         // Resolved against the open window rather than assigned to its `pathname`: what the push
         // carries is a whole path, and a comment's is `/events/12?comment=45`. Assigning that to
         // `pathname` percent-encodes the `?` into the route parameter, so the reader lands on an
         // event id no row has.
-        const url = new URL(data.pathname ?? '/', windowClients[0].url)
+        const url = new URL(data.pathname ?? APP_HOME_PATH, windowClients[0].url)
         await windowClients[0].focus()
         return windowClients[0].navigate(url)
       }

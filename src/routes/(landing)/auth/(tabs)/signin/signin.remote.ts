@@ -1,6 +1,5 @@
-import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
-import { isSameOriginPath } from '$lib/auth'
+import { signedInRedirectTarget } from '$lib/auth'
 import { authError, formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { invalid, redirect } from '@sveltejs/kit'
@@ -33,8 +32,7 @@ export const signIn = form(signInSchema, async ({ email, next, password }) => {
     invalid(authError(error))
   }
 
-  // Same-origin paths only, checked the way the browser will read the header. See
-  // {@link isSameOriginPath}: a naive regex can be waved through `/<tab>/evil.com`, which
-  // strips down to `//evil.com` before the browser parses it.
-  redirect(303, next != null && isSameOriginPath(next) ? next : resolve('/explore'))
+  // Shared with the hook's signed-in bounce: same question, and two copies drifted apart on the
+  // CRLF handling once already.
+  redirect(303, signedInRedirectTarget(next))
 })

@@ -1,12 +1,25 @@
+import type { Pathname } from '$app/types'
 import type { appRole } from '$lib/db/schema'
 import type { UserRegion } from '$lib/entities/region/dto'
 
 export const APP_PERMISSION_ADMIN = 'app.admin'
 
+/** Where "take me into the app" lands. In 1.0 that was `/`, which is now the landing page, so every
+ *  caller reads this rather than spelling it out and drifting. */
+export const APP_HOME_PATH = '/explore' satisfies Pathname
+
+/** The auth subtree's root. Here rather than in `auth.server.ts` because
+ *  {@link signedInRedirectTarget} has to recognise it too. */
+export const AUTH_PATH = '/auth' satisfies Pathname
+
 /** Only there to give the parser something to resolve a relative path against, see
  *  {@link isSameOriginPath}. Never reachable, so a bug that let one through would 404 rather
  *  than land somewhere real. */
 const REDIRECT_BASE = 'https://redirect.invalid'
+
+/** C0 plus DEL. A Location header carrying any of these throws, and the URL parser hides them. */
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARACTERS = /[\u0000-\u001F\u007F]/
 
 export const REGION_PERMISSION_DELETE = 'region.delete'
 export const REGION_PERMISSION_EDIT = 'region.edit'
@@ -69,4 +82,27 @@ export function checkRegionPermission(
  */
 export function isSameOriginPath(path: string): boolean {
   return path.startsWith('/') && URL.parse(path, REDIRECT_BASE)?.origin === REDIRECT_BASE
+}
+
+/** Where an already-signed-in visitor to an auth page lands. `next` carries the invitation mail's
+ *  destination; anything else falls back, including a target inside /auth, which would bounce
+ *  straight back here. */
+export function signedInRedirectTarget(next: null | string | undefined): string {
+  // Refused rather than normalised: the URL parser strips control characters, so a `next` carrying
+  // them would otherwise survive every check below as a garbage path and 404.
+  if (next == null || CONTROL_CHARACTERS.test(next) || !isSameOriginPath(next)) {
+    return APP_HOME_PATH
+  }
+
+  const url = URL.parse(next, REDIRECT_BASE)
+  // `startsWith`, loosely, because that is what the guard sending us here treats as the auth
+  // subtree. Refusing more than it does would be safe; refusing less would hand back a `next` it
+  // then swallows anyway.
+  if (url == null || url.pathname.startsWith(AUTH_PATH)) {
+    return APP_HOME_PATH
+  }
+
+  // Reassembled rather than the raw string, so the value handed to `redirect()` is one the parser
+  // produced.
+  return `${url.pathname}${url.search}${url.hash}`
 }

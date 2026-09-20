@@ -1,6 +1,7 @@
 import { building } from '$app/environment'
 import type { Pathname } from '$app/types'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
+import { AUTH_PATH, signedInRedirectTarget } from '$lib/auth'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
@@ -232,13 +233,14 @@ export const supabase: Handle = async ({ event, resolve }) => {
 }
 
 /**
- * The single paths this hook redirects to or matches exactly. Typed as {@link Pathname}, the union
- * SvelteKit generates from the route tree, so renaming or moving one of these routes fails the
- * build here instead of turning into a redirect loop at runtime. `resolve()` would do the same job,
- * but it collides with the `resolve` every `Handle` is handed, and nothing here prefixes `base`.
+ * The public root, matched exactly. Typed as {@link Pathname}, the union SvelteKit generates from
+ * the route tree, so renaming or moving the route fails the build here instead of turning into a
+ * redirect loop at runtime. `resolve()` would do the same job, but it collides with the `resolve`
+ * every `Handle` is handed, and nothing here prefixes `base`.
+ *
+ * Only the signed-out guard reads it: signed-in traffic goes to `APP_HOME_PATH`.
  */
 const HOME_PATH: Pathname = '/'
-const AUTH_PATH: Pathname = '/auth'
 
 /** Opened while already signed in, so the "authenticated users leave /auth" rule cannot have them:
  *  a settings-initiated email change confirms through /auth/confirm, and bouncing these would drop
@@ -315,13 +317,14 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     redirect(303, AUTH_PATH)
   }
 
-  // Redirect authenticated users away from auth pages, minus the emailed-link ones.
+  // Redirect authenticated users away from auth pages, minus the emailed-link ones. Not HOME_PATH:
+  // since 2.0 that is the landing page, so bouncing there returned them to the "Sign in" they pressed.
   if (
     event.locals.claims != null &&
     event.url.pathname.startsWith(AUTH_PATH) &&
     !EMAILED_LINK_PATHS.some((path) => event.url.pathname.startsWith(path))
   ) {
-    redirect(303, HOME_PATH)
+    redirect(303, signedInRedirectTarget(event.url.searchParams.get('next')))
   }
 
   // A signed-in user with no regions whose address has a live invitation goes straight to it.

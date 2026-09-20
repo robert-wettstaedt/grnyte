@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_ORIGIN, PUBLIC_STATUS_URL, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
+  import { APP_HOME_PATH } from '$lib/auth'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import { m } from '$lib/paraglide/messages'
+  import { isInstalled } from '$lib/state/device.svelte'
   import { onMount } from 'svelte'
   import { MediaQuery, SvelteSet } from 'svelte/reactivity'
   import BoulderThree from './BoulderThree.svelte'
@@ -107,6 +110,15 @@
       if (wanted) void el.play().catch(() => {})
       else el.pause()
     })
+  })
+
+  onMount(() => {
+    // An installed app opening '/' is 1.0's `start_url` still in the launcher, not a request for the
+    // marketing page. Read once: `isInstalled()` also flips on `appinstalled`, which fires in the
+    // browser TAB somebody installs from, and yanking that tab away would be wrong.
+    if (signedIn && isInstalled()) {
+      void goto(resolve(APP_HOME_PATH), { replaceState: true })
+    }
   })
 
   onMount(() => {
@@ -245,7 +257,7 @@
         </a>
         <!-- eslint-enable svelte/no-navigation-without-resolve -->
         <a
-          href={signedIn ? resolve('/explore') : resolve('/auth/signin')}
+          href={signedIn ? resolve(APP_HOME_PATH) : resolve('/auth/signup')}
           class="btn btn-sm preset-filled-primary-500 font-bold"
         >
           {signedIn ? m.landing_navToApp() : m.landing_getStarted()}
@@ -328,15 +340,26 @@
           {m.landing_heroSubtitle()}
         </p>
         <div data-fade style="--i: 3" class="mt-1.5 flex flex-wrap gap-3">
-          <a
-            href={resolve('/auth/signup')}
-            class="btn preset-filled-primary-500 h-12.5 px-6 font-semibold shadow-[0_10px_28px_-10px_var(--color-primary-500)]"
-          >
-            {m.landing_getStarted()}
-          </a>
-          <a href={resolve('/auth/signin')} class="btn preset-tonal h-12.5 px-6 font-semibold">
-            {m.auth_signIn()}
-          </a>
+          <!-- One button when signed in: the header's is easy to miss, and "Sign in" sends a member
+               to a page that redirects them straight back. -->
+          {#if signedIn}
+            <a
+              href={resolve(APP_HOME_PATH)}
+              class="btn preset-filled-primary-500 h-12.5 px-6 font-semibold shadow-[0_10px_28px_-10px_var(--color-primary-500)]"
+            >
+              {m.landing_navToApp()}
+            </a>
+          {:else}
+            <a
+              href={resolve('/auth/signup')}
+              class="btn preset-filled-primary-500 h-12.5 px-6 font-semibold shadow-[0_10px_28px_-10px_var(--color-primary-500)]"
+            >
+              {m.landing_getStarted()}
+            </a>
+            <a href={resolve('/auth/signin')} class="btn preset-tonal h-12.5 px-6 font-semibold">
+              {m.auth_signIn()}
+            </a>
+          {/if}
         </div>
         <div data-fade style="--i: 4" class="text-surface-500 flex items-center gap-2.5 text-[13px]">
           <Icon name="check" size={14} strokeWidth={2.2} />
@@ -541,55 +564,58 @@
   </section>
 
   <!-- ===== CTA band ===== -->
-  <section class="border-surface-200-800 border-t">
-    <div data-reveal class="mx-auto max-w-300 px-5 py-[clamp(56px,9vh,96px)]">
-      <div
-        class="preset-filled-primary-500 relative overflow-clip rounded-3xl px-[clamp(24px,5vw,64px)] py-[clamp(40px,6vw,72px)]"
-      >
-        <svg
-          viewBox="0 0 1200 400"
-          preserveAspectRatio="xMidYMid slice"
-          class="absolute inset-0 h-full w-full opacity-35"
-          aria-hidden="true"
+  <!-- Signed out only: the copy is an onboarding pitch, which reads as a mistake to a member. -->
+  {#if !signedIn}
+    <section class="border-surface-200-800 border-t">
+      <div data-reveal class="mx-auto max-w-300 px-5 py-[clamp(56px,9vh,96px)]">
+        <div
+          class="preset-filled-primary-500 relative overflow-clip rounded-3xl px-[clamp(24px,5vw,64px)] py-[clamp(40px,6vw,72px)]"
         >
-          <g fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M-50 320 C 250 250 450 360 750 290 C 1000 230 1150 310 1250 270" />
-            <path d="M-50 260 C 280 190 480 300 780 230 C 1030 170 1180 250 1250 210" />
-          </g>
-        </svg>
-        <div class="relative flex flex-wrap items-center justify-between gap-6">
-          <div class="flex max-w-140 flex-col gap-2.5">
-            <h2 class="text-primary-contrast-500 text-[clamp(24px,3.2vw,36px)] font-bold tracking-tight text-balance">
-              {m.landing_ctaTitle()}
-            </h2>
-            <p class="text-primary-contrast-500/85 text-[15.5px] leading-relaxed">
-              {m.landing_ctaBody()}
-            </p>
-          </div>
-          <div class="flex flex-wrap gap-3">
-            <a href={resolve('/auth/signup')} class="btn preset-filled-surface-50-950 h-12.5 px-6 font-semibold">
-              {m.landing_getStarted()}
-            </a>
-            <!-- eslint-disable svelte/no-navigation-without-resolve -- external repo URL -->
-            <a
-              href={github}
-              target="_blank"
-              rel="noopener"
-              class="btn text-primary-contrast-500 border-primary-contrast-500/40 hover:bg-primary-contrast-500/10 h-12.5 gap-2 border px-6 font-semibold"
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.69 1.25 3.35.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.18a10.9 10.9 0 0 1 5.74 0c2.19-1.49 3.15-1.18 3.15-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.83 1.18 3.09 0 4.42-2.7 5.39-5.27 5.67.41.36.78 1.06.78 2.14 0 1.54-.01 2.79-.01 3.17 0 .31.21.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"
-                />
-              </svg>
-              {m.landing_ctaStar()}
-            </a>
-            <!-- eslint-enable svelte/no-navigation-without-resolve -->
+          <svg
+            viewBox="0 0 1200 400"
+            preserveAspectRatio="xMidYMid slice"
+            class="absolute inset-0 h-full w-full opacity-35"
+            aria-hidden="true"
+          >
+            <g fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M-50 320 C 250 250 450 360 750 290 C 1000 230 1150 310 1250 270" />
+              <path d="M-50 260 C 280 190 480 300 780 230 C 1030 170 1180 250 1250 210" />
+            </g>
+          </svg>
+          <div class="relative flex flex-wrap items-center justify-between gap-6">
+            <div class="flex max-w-140 flex-col gap-2.5">
+              <h2 class="text-primary-contrast-500 text-[clamp(24px,3.2vw,36px)] font-bold tracking-tight text-balance">
+                {m.landing_ctaTitle()}
+              </h2>
+              <p class="text-primary-contrast-500/85 text-[15.5px] leading-relaxed">
+                {m.landing_ctaBody()}
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <a href={resolve('/auth/signup')} class="btn preset-filled-surface-50-950 h-12.5 px-6 font-semibold">
+                {m.landing_getStarted()}
+              </a>
+              <!-- eslint-disable svelte/no-navigation-without-resolve -- external repo URL -->
+              <a
+                href={github}
+                target="_blank"
+                rel="noopener"
+                class="btn text-primary-contrast-500 border-primary-contrast-500/40 hover:bg-primary-contrast-500/10 h-12.5 gap-2 border px-6 font-semibold"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                  <path
+                    d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.69 1.25 3.35.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.18a10.9 10.9 0 0 1 5.74 0c2.19-1.49 3.15-1.18 3.15-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.83 1.18 3.09 0 4.42-2.7 5.39-5.27 5.67.41.36.78 1.06.78 2.14 0 1.54-.01 2.79-.01 3.17 0 .31.21.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"
+                  />
+                </svg>
+                {m.landing_ctaStar()}
+              </a>
+              <!-- eslint-enable svelte/no-navigation-without-resolve -->
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+  {/if}
 
   <!-- ===== name explainer (brand flavor) ===== -->
   <section class="border-surface-200-800 border-t">
