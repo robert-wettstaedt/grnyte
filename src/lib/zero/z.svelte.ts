@@ -1,5 +1,6 @@
 import { dev } from '$app/environment'
 import { PUBLIC_ZERO_URL } from '$env/static/public'
+import { recordResume } from '$lib/logging/resumeLog'
 import { isFieldDevice } from '$lib/state/device.svelte'
 import { reportConnectionState, setPingTightenHandler } from '$lib/state/online.svelte'
 import { forgetSynced, markSynced, trackSyncFor } from '$lib/state/sync.svelte'
@@ -73,7 +74,10 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   // The unsubscribe is kept and called on the next swap, so only ever one client reports. That flag
   // is written level-triggered, so two live clients flapping out of step would fight over it.
   connectionUnsubscribe?.()
-  connectionUnsubscribe = z.connection.state.subscribe(reportConnectionState)
+  connectionUnsubscribe = z.connection.state.subscribe((state) => {
+    reportConnectionState(state)
+    noteConnectionForResume(state.name)
+  })
 
   // Zero takes 2x `pingTimeoutMs` to notice a socket that died while the app was backgrounded, which
   // on its default is ten seconds of rendering stale rows while reporting `connected`. Nothing in
@@ -326,6 +330,32 @@ const TIGHT_PING_WINDOW_MS = 30_000
 let restorePingTimer: null | ReturnType<typeof setTimeout> = null
 let pingTimeoutBeforeTightening = 0
 
+/** The open resume: when it happened, and whether the connection has dropped since. Null once it
+ *  has been recorded or the window closed without one, so a healthy resume records nothing. */
+let openResume: null | { droppedSince: boolean; startedAt: number } = null
+
+/**
+ * Record a resume only once the connection has actually come back from a drop.
+ *
+ * The drop is what makes it worth knowing about: a resume onto a live socket is the ordinary case
+ * and writes nothing, so the entry count is itself the answer to how often this happens.
+ */
+function noteConnectionForResume(name: string): void {
+  if (openResume == null) {
+    return
+  }
+
+  if (name !== 'connected') {
+    openResume.droppedSince = true
+    return
+  }
+
+  if (openResume.droppedSince) {
+    recordResume({ at: openResume.startedAt, elapsedMs: Date.now() - openResume.startedAt })
+    openResume = null
+  }
+}
+
 /**
  * Shorten Zero's ping cycle for one window after a resume, then put it back.
  *
@@ -345,10 +375,13 @@ function tightenPing(z: Z<Schema>): void {
   }
 
   client.pingTimeoutMs = RESUME_PING_TIMEOUT_MS
+  openResume = { droppedSince: false, startedAt: Date.now() }
 
   restorePingTimer = setTimeout(() => {
     restorePingTimer = null
     client.pingTimeoutMs = pingTimeoutBeforeTightening
+    // Window closed with the connection never dropping, so this resume was a healthy one.
+    openResume = null
   }, TIGHT_PING_WINDOW_MS)
 }
 

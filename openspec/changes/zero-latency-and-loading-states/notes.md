@@ -116,6 +116,26 @@ Two harness facts worth keeping:
   `connected` throughout while a live socket was being cut, because the state came from a stale
   instance. Tag sockets and read the wire instead. Same trap as the `?t=` HMR note in memory.
 
+## 11.6 Removal trip-wire
+
+The resume log is temporary instrumentation for the gate in 4.3. Once that is decided, delete:
+
+- `src/lib/logging/resumeLog.ts` and `src/lib/logging/resumeLog.test.ts`
+- the `resumes` state, `clearResumes`, the `$lib/logging/resumeLog` import and the
+  `settings_resumeLog*` section in `src/routes/(app)/settings/errors/+page.svelte`
+- the five `settings_resumeLog*` keys from BOTH `messages/en.json` and `messages/de.json`
+- `openResume`, `noteConnectionForResume` and the `recordResume` import in `src/lib/zero/z.svelte.ts`,
+  leaving `tightenPing` in place, which is the fix rather than the measurement
+
+Keys written by shipped builds outlive the code, so clearing `<app>.resumeLog` from a device is the
+reader's business and not worth a migration.
+
+Verified on the dev app 2026-09-20: a healthy resume records nothing; a resume onto a socket killed
+by swallowing its pings recorded exactly one entry at **8879 ms**, which matches the predicted ~9 s
+(2 s idle, 2 s pong deadline, 5 s reconnect backoff). The section reads correctly in German at both
+375x667 and 1280x800 with no horizontal overflow, the empty state renders real copy rather than a
+blank panel, and the clear button is absent when there is nothing to clear.
+
 ## 2.2 Cold feed baseline (post-step-0)
 
 NOT CAPTURED. Due after step 0 deploys.
