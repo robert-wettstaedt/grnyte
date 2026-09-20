@@ -1,25 +1,52 @@
 ## Why
 
-Zero query hydration takes 1 to 5 seconds on production, and the interface lies about it. Measured
-on a prod block and route page: 42 queries, server execution 0.8 to 34.5ms, client ingest 0 to 21ms,
-but `hydrateTotal` up to 3352ms, clustering in lockstep bands. The wait is queue time, not work.
+Production feels slow, and the interface is not honest about it. Measurement found **four distinct
+problems**, not one. An earlier draft of this proposal named a single cause (cross-region client
+view records); that held only for one of the four, and is corrected here.
 
-The cause is that `ZERO_CVR_DB` is unset, so Zero's client view records default to the upstream
-Supabase in Frankfurt while zero-cache runs in Nuremberg. Every query registration pays a
-cross-datacenter round trip, serialized per client group, against a 131 MB table whose indexes
-(66 MB) are larger than its heap (65 MB).
+| # | Problem | Measured | Cause |
+| --- | --- | --- | --- |
+| A | Reader opens the app after a push and waits for one new row | up to **10 s** | Zero takes 2 x `pingTimeoutMs` to notice a socket that died while the app was away |
+| B | Cold feed load | **3810 ms**, 86% of it server work | three unbounded queries hydrating, serialized across 2 sync workers |
+| C | Warm back-navigation to the feed | **1279 ms**, 72% of it NOT server work | per-registration round trips to client view records in another datacenter |
+| D | The interface states things it cannot know | n/a | no signal distinguishing "arriving" from "complete" |
 
-The latency predates v2 and is not new. What is new is that v2's loading states are less optimistic,
-so the wait became visible. Those states are also simply wrong in places: a route page renders "You
-are offline" to a reader who is merely waiting, roughly 26 surfaces derive counts and histograms
-from lists that are still arriving, and nothing anywhere reads the `isSyncing` signal the resource
-already exposes. Those two halves are independent, and the loading states must stay correct at a
-crag on a slow connection however fast production becomes.
+**A is the one a reader hits most often and nothing in this app can detect it.** While Zero waits out
+its idle-then-pong cycle it reports `connected`, so `isOnline()` is true, the status bar stays quiet
+and every resource still reports complete, because it was complete for the data it has. The app
+renders correct-looking stale content and has no evidence anything is wrong. D cannot fix A.
+
+**B is the largest single cost and was previously deferred.** `listBlocks({})` alone spends 2104 ms
+of server time on 5,966 rows, and three unbounded queries are 90% of all server work on a cold feed.
+`ZERO_NUM_SYNC_WORKERS` is 2 on a 2-core box and one client group is served by one worker, so that
+work serializes.
+
+**C is real but the mildest.** `ZERO_CVR_DB` is unset, so client view records live in the upstream
+Supabase in Frankfurt while zero-cache runs in Nuremberg, and each registration pays a
+cross-datacenter round trip against a 131 MB table whose indexes (66 MB) exceed its heap (65 MB).
+
+The latency predates v2. What is new is that v2's loading states are less optimistic, so the wait
+became visible. Those states are also wrong in places: a route page renders "You are offline" to a
+reader who is merely waiting, roughly 26 surfaces derive counts from lists that are still arriving,
+and nothing reads the `isSyncing` signal the resource already exposes. D is independent of A to C
+and must stay correct at a crag on a slow connection however fast production becomes.
 
 ## What Changes
 
-**Sync latency (infrastructure, no spec-level behavior change).** Sequenced, each step measured
-before the next, because attribution is the whole point:
+**Resume latency (A).** On returning to the foreground the app already learns within about a
+millisecond, via its existing reachability probe, that the network works. When that succeeds while
+Zero still reports `connected`, that pairing is positive evidence the socket is dead and Zero has
+not noticed. Tighten `pingTimeoutMs` for that window only and restore Zero's default once
+reconnected, so steady-state behavior on a weak connection is unchanged.
+
+**Diagnostics for A, on the device.** Everything measured so far is desktop Chrome against the dev
+stack, and A is the one problem no measurement can reach afterwards: while it happens the app
+reports `connected`, so there is no error, no status bar, no state change, and nothing to look at
+later. The app records, in `localStorage`, the resumes that turned out to need a reconnect, and
+`/settings/errors` grows a section reading that back. Device-local, so nothing is transmitted.
+
+**Sync latency (B and C, infrastructure, no spec-level behavior change).** Sequenced, each step
+measured before the next, because attribution is the whole point:
 
 - Remove wasted query registrations first: debounce the search box (it registers four queries per
   keystroke), gate `usersByIds` and `blockTopos` with `enabled` when their id list is empty, and add
@@ -32,7 +59,13 @@ before the next, because attribution is the whole point:
 - Set `maxRecentQueries` to 20, as its own measured step. It defaults to 0, which is why the CVR
   holds 1,509 active and 9,920 deleted desires with zero inactive.
 
-**Loading states (behavioral).**
+**Cold-load volume (B), diagnostic only.** `listBlocks({})`, `listAreas({})` and
+`listRoutesForMap({})` are registered on the FEED, not only on `/explore`, and nothing obvious
+explains why a feed needs 12,600 rows of map data. Establish why before deciding anything. If it is
+a surface staying mounted across the shell, scoping it is far smaller than moving the map off Zero
+and may recover most of the 2938 ms.
+
+**Loading states (D, behavioral).**
 
 - Add a latched `settled` signal to `QueryResource`, keyed on the query hash, forward only, never
   cleared. The strict transport fact stays a separate member under a name that discourages
@@ -66,7 +99,16 @@ unrelated.
   Per-region specifically is rejected on its own terms: it breaks the `/explore` query hash dedupe
   so the CVR grows for anyone opening the home screen, it is unshippable without a per-region sync
   stamp, and the largest region holds 4,550 of 6,433 routes so the axis cannot reach the target.
-- **Taking the explore map off Zero.** Deferred behind the measurement gate.
+- **Rearchitecting the explore map.** Moving the map off Zero stays out of scope. What is now IN
+  scope is only the diagnostic question above it: why those queries register on the feed at all.
+  Whether anything architectural follows is a later decision, made on that answer.
+- **Sending the resume diagnostics anywhere.** They stay on the device. Routing them into
+  `client_error_logs` is the obvious next idea and is rejected on three counts. The viewer groups by
+  error text and keeps the newest 100 groups, so unbucketed timings would each become their own
+  group and push real error groups out of the window, degrading the tool used to find actual bugs.
+  The admin alerter mails every unalerted row, so it would need its own exclusion. And it would be
+  the first behavioral telemetry in an app that has no opt-out mechanism, which is a product
+  decision and not an implementation detail. Revisit only if one device's data proves insufficient.
 - **Cursor paging for the feed.** The growing window was chosen deliberately and is rarely grown.
 - **A write-side optimistic primitive.** Zero has processed zero mutations ever, by design, so there
   is no acknowledgement to await and roughly 14 sites compensate in eight hand-rolled ways. That is
@@ -84,6 +126,14 @@ resource), and read-only sweeps across every module under `src/lib/entities/*/re
 **Core**: `src/lib/zero/resource.svelte.ts` (the `settled` member, the renamed strict member,
 `isEmpty`), `src/lib/components/QueryState/QueryState.svelte` and its `remoteResource.ts`, which
 implements the same interface and must gain the new member.
+
+**Connection**: `src/lib/zero/z.svelte.ts` (`zeroOptions`, and the client instance whose
+`pingTimeoutMs` is adjusted) and `src/lib/state/online.svelte.ts`, whose existing resume handler and
+reachability probe already produce the signal this needs.
+
+**Diagnostics**: a new device-local recorder beside the connection code, a "this device" section on
+`src/routes/(app)/settings/errors/+page.svelte`, and its copy in BOTH `messages/en.json` and
+`messages/de.json`. No table, no remote function, no migration: the data never leaves the browser.
 
 **Routes**: `src/routes/(app)/routes/[id]/+page.svelte` and
 `src/routes/(app)/routes/[id]/ascents/+page.svelte` (the two sites rendering an offline notice while

@@ -115,6 +115,32 @@ and the handler SHALL refuse a submission that does not match before performing 
 - **WHEN** a submission's description of what it loaded does not match what the server holds
 - **THEN** the handler refuses the submission before its first write
 
+### Requirement: A resumed session re-establishes its connection before trusting it
+
+On returning to the foreground, the application SHALL NOT go on presenting synced data as current on
+the strength of a connection state established before it was suspended. Where that connection is no
+longer alive, the application SHALL detect this and reconnect without first waiting out an idle
+interval.
+
+This exists because the failure it describes is invisible to every other requirement here: a
+connection that died while the application was away is still reported as healthy until the sync
+layer next probes it, so the data reads as complete, no absence is claimed, and nothing is arriving.
+Every requirement above is satisfied while the reader looks at superseded content.
+
+#### Scenario: Resuming with a connection that died while suspended
+
+- **WHEN** the application returns to the foreground and its connection no longer works, although
+  nothing has yet reported that
+- **THEN** the application establishes that for itself and reconnects
+- **AND** data written while it was away appears without the reader retrying, reloading or
+  navigating
+
+#### Scenario: Resuming with a connection that is still alive
+
+- **WHEN** the application returns to the foreground and its connection still works
+- **THEN** it keeps that connection
+- **AND** the reader sees no interruption
+
 ### Requirement: No unresolvable progress indication
 
 A surface SHALL NOT show a progress indication that cannot resolve. Where nothing can complete the
