@@ -1,4 +1,42 @@
 services:
+  # Client view records for prod, beside zero-cache instead of in the upstream Supabase.
+  #
+  # They are read and written on the critical path of every query registration, and unset they
+  # default to upstream-db, which puts them in Frankfurt while this box is in Nuremberg. Derived
+  # state, so there is no backup and losing the volume costs clients one re-sync: see
+  # `deployment/README.md` beside `ZERO_CVR_DB` before adding it to `backup-db.yml`.
+  #
+  # Prod only: demo is being torn down and is linked from nowhere, so it is not worth a second
+  # database. That leaves no rehearsal environment, so the empty-database case was proven locally
+  # instead: zero-cache creates its own CVR schema, with no manual bootstrap step. Rolling back is
+  # reverting `ZERO_CVR_DB` and redeploying, and the previous records are still in the upstream
+  # schema, so the blast radius of being wrong is a failed deploy rather than lost data.
+  #
+  # On `cvr_network` and nothing else, which nginx is not on and which is `internal: true`, so the
+  # only thing that can route to this database is the one container that would hold its credentials
+  # anyway. That is what makes trust auth right here rather than lazy, and it keeps the whole thing
+  # to the single `ZERO_CVR_DB` secret. A password would need a second one, and the deploy's env
+  # writer only passes `ZERO_*` keys through to the box, so it would be fetched and silently
+  # dropped.
+  cvr-prod:
+    image: postgres:17-alpine
+    container_name: zero-cvr-prod
+    environment:
+      - POSTGRES_USER=zero
+      - POSTGRES_DB=cvr
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - cvr_data_prod:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U zero -d cvr']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - cvr_network
+
   zero-prod:
     # Must move in lockstep with `@rocicorp/zero` in package.json, server deployed first.
     image: rocicorp/zero:1.9.0
@@ -32,6 +70,10 @@ services:
       - ../src/lib/zero/zero-schema.gen.ts:/opt/app/zero-schema.gen.ts:ro
       - zero_data_prod:/data
     restart: unless-stopped
+    # Without this zero-cache races the database on a cold boot of the whole stack and exits.
+    depends_on:
+      cvr-prod:
+        condition: service_healthy
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:4848']
       interval: 30s
@@ -40,6 +82,7 @@ services:
       start_period: 60s
     networks:
       - zero_network
+      - cvr_network
 
   zero-demo:
     # Must move in lockstep with `@rocicorp/zero` in package.json, server deployed first.
@@ -100,7 +143,13 @@ networks:
   zero_network:
     driver: bridge
     enable_ipv6: true
+  # `internal: true` is the half that makes trust auth on `cvr-prod` safe: no gateway, so nothing
+  # on this network can reach the internet or be reached from it. nginx is deliberately absent.
+  cvr_network:
+    driver: bridge
+    internal: true
 
 volumes:
   zero_data_prod:
   zero_data_demo:
+  cvr_data_prod:
