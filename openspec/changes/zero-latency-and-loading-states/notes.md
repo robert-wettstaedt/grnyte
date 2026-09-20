@@ -28,7 +28,55 @@ cause, and because it is the only pre-change prod capture that exists.
 - 84% of row-refs from four unbounded queries: `listRoutes({})` 213,176, `listBlocks({})` 98,708,
   `listRoutesForMap({})` 71,307, `listAreas({})` 12,240.
 
-## 2.0 PRE-step-0 feed reading (prod, 2026-09-20)
+## 2.0b CORRECTED pre-step-0 reading (prod, 2026-09-20)
+
+Supersedes the cold half of 2.0 below. Same account, still pre-step-0 (`blockTopos({blockId:[]})`
+and the fat `listNotifications({limit:100})` are both still present, which is the tell). The only
+difference in method: `/feed` was typed into a fresh tab rather than reached by clicking, so no
+earlier `/explore` visit could leak into it.
+
+| Reading | Queries | Slowest `hydrateTotal` |
+| --- | --- | --- |
+| 2.0 "cold", reached by clicking | 16 | **3810 ms** |
+| 2.0b cold, typed into a fresh tab | 12 | **503 ms** |
+
+**The feed was never slow.** 3810 ms was four leaked map queries riding along from a previous
+`/explore` visit in the same tab. A genuinely cold feed is 503 ms, with ~321 ms of server work spread
+across twelve queries, the largest being `listEvents({limit:50})` at 145 ms.
+
+Warm, after clicking to Explore and back, 16 queries, slowest **4607 ms**. Every query from the cold
+set kept its cold total exactly (503, 503, 502 and so on), so none of them re-hydrated. The entire
+warm cost is the four map queries hydrating for the first time:
+
+| Query | server ms | total ms |
+| --- | --- | --- |
+| `listBlocks({})` | **2081** | 4602 |
+| `listAreas({})` | 360 | 4599 |
+| `listRoutesForMap({})` | 358 | 4607 |
+| `listFirstAscensionists({})` | 13 | 4534 |
+| | **2812 total** | |
+
+### What this relocates
+
+- **Problem B is an `/explore` problem, not a feed problem.** Drawing the map costs ~4.6 s, of which
+  `listBlocks({})` alone is 2081 ms of server time. The feed is fine. The cold-load work in this
+  change was scoped against a slow feed that does not exist.
+- **It compounds with the leak.** Paying 4.6 s once would be one thing; those four queries then stay
+  registered for the rest of the session, which is what made the earlier "cold" feed look slow.
+- The line below claiming the map queries "are registered on the FEED" is wrong and is kept only so
+  the correction is legible. Group 10 established they are registered on `/explore` and never released.
+
+Unexplained, and it decides whether those queries really pin ~6k rows per client group: all four
+report `rows: 0` here, against 6,642 / 5,966 / 753 / 293 in the earlier reading. Most likely
+`hydrateTotal` is stamped when the server finishes while `rowCount` reflects what the client holds at
+sample time, so the rows were still arriving. Testable by re-sampling the same tab a minute later.
+
+## 2.0 PRE-step-0 feed reading (prod, 2026-09-20), COLD HALF SUPERSEDED BY 2.0b
+
+Its cold capture was reached by clicking rather than typed, so it carried `/explore`'s leaked queries
+and read 3810 ms for a feed that is actually 503 ms. Kept because the warm half and the CVR figures
+still stand, and because the mistake is instructive: a "cold" reading is only cold if the tab has
+been nowhere else.
 
 Not the gate's baseline: step 0 was not deployed. Two of its targets are visible in the table and
 confirm that, `blockTopos [{"blockId":[]}]` and the fat `listNotifications [{limit:100}]`.
@@ -177,13 +225,148 @@ by swallowing its pings recorded exactly one entry at **8879 ms**, which matches
 375x667 and 1280x800 with no horizontal overflow, the empty state renders real copy rather than a
 blank panel, and the clear button is absent when there is nothing to clear.
 
-## 2.2 Cold feed baseline (post-step-0)
+## 2.2 and 2.3 NOT THE BASELINE: captured on the PREVIEW origin (2026-09-20)
 
-NOT CAPTURED. Due after step 0 deploys.
+Recorded first as "prod, post-step-0". That was wrong. `grnyte.rocks` still runs pre-step-0, so a
+capture showing `blockTopos({blockId:[]})` gone and `countUnreadNotifications` present can only be
+the preview deployment on its own Vercel domain.
 
-## 2.3 Warm feed baseline (post-step-0)
+Why it cannot serve as the gate's before-reading:
 
-NOT CAPTURED. Due after step 0 deploys.
+- **Different origin, so a different IndexedDB replica and a different client group.** Cold means
+  something different there than on prod.
+- **`countUnreadNotifications` never transforms there** (`server: null, total: null`), because
+  zero-cache resolves named queries against the PRODUCTION app. So the capture is not "step 0
+  applied", it is "step 0 applied, minus the badge change, plus a query that fails".
+- Step 3 will be measured on whichever origin it is measured on, and a before and after have to come
+  from the same one.
+
+Kept because the per-query `hydrateServer` numbers in it are real and consistent with the others, and
+because the mislabelling is the kind of error that is only visible once written down.
+
+**Cold** (typed into a fresh tab): 11 queries, slowest `hydrateTotal` **882 ms**, server work
+**~284 ms**.
+
+**Warm** (clicked to Explore and back): 15 queries, slowest still **882 ms**. The four map queries
+appear with `total: 0` and full row counts (5,966 / 753 / 6,642 / 293), so they did NOT hydrate: the
+data was already in this origin's replica. They added four registrations and no time.
+
+### Step 0's effect is not measurable in this pair, and that is the finding
+
+| | Queries | Slowest total | Server work |
+| --- | --- | --- | --- |
+| pre-step-0 cold (2.0b) | 12 | **503 ms** | ~321 ms |
+| post-step-0 cold (2.2) | 11 | **882 ms** | ~284 ms |
+
+Step 0 did what it was meant to: one fewer registration, ~37 ms less server work. But wall clock moved
+379 ms the WRONG way on nominally identical captures. Since server work fell, that difference is all
+in the non-server component, which is run-to-run variance on production.
+
+**Single samples of `hydrateTotal` cannot resolve an effect this size**, and the fix is to stop
+measuring `hydrateTotal`. Across the same captures:
+
+| Metric | Readings | Spread |
+| --- | --- | --- |
+| slowest cold `hydrateTotal` | 503, 882 ms | **~75%** |
+| `listEvents({limit:50})` server | 145.5, 132.7 ms | ~9% |
+| `listBlocks({})` server | 2104.8, 2081.3, 1868.6 ms | ~12% |
+
+The noise lives in the client's network path, which `hydrateServer` excludes, and `hydrateServer` is
+also the half that relocating the client view records should move. Tasks 3.5 and 4.3 now read median
+`hydrateServer` per query over three captures. `listBlocks({})` at ~2000 ms is the number to watch.
+
+Do not try to A/B this against a preview deployment. One zero-cache means prod-CVR and VPS-CVR cannot
+run at once, and a preview origin cannot exercise a new named query at all: `ZERO_GET_QUERIES_URL`
+points zero-cache at ONE environment's app, so a preview client is transformed by the production app.
+Observed on a preview: `countUnreadNotifications` reported `server: null, total: null` while a
+legitimately empty query in the same capture reported real metrics, which also means the notification
+badge reads zero there whatever the true count.
+
+### What the warm capture settles
+
+The `rows: 0` anomaly from 2.0b is explained, and the two readings together give the rule. A query
+that is actively hydrating shows a `hydrateTotal` and no rows yet; one whose data is already local
+shows `total: 0` and full rows. So:
+
+**The 4607 ms map cost is a COLD-REPLICA cost, not a per-visit one.** Once those rows are in the
+origin's replica, visiting `/explore` is free. What persists is the ~13,654 rows pinned per client
+group, which is C's problem rather than a latency one.
+
+## 2.2 and 2.3 THE BASELINE (12 captures, 2026-09-20)
+
+Three cold and three warm on each of prod (pre-step-0) and the preview origin (post-step-0). Medians
+of `hydrateServer` in ms.
+
+### The gate number
+
+`listBlocks({})` server time, six samples across both deployments:
+
+```text
+1926, 1973, 2078, 2079, 2106, 2473     median 2078.8
+pre-step-0 median 2079.1  |  post-step-0 median 2078.4
+```
+
+**Step 3 has to move this.** It is stable to within ~4.5% across five of six samples (the 2473 is the
+lone outlier), it is identical across the two deployments, and step 0 does not touch it, which is
+exactly what a control should look like. An effect below roughly 10% will not be distinguishable;
+the hypothesis behind step 3 predicts far more than that, so a null result would be informative.
+
+### Step 0's effect, which `hydrateServer` CAN resolve
+
+| | pre-step-0 | post-step-0 |
+| --- | --- | --- |
+| queries on a cold feed | 12 | **11** |
+| notification query server | 10.8 ms (`listNotifications`) | **2.3 ms** (`countUnreadNotifications`) |
+
+A 79% drop on that query, cleanly resolved from three samples each. Small in absolute terms, about
+8.5 ms, but it is a real effect measured through the noise, which is the point: the metric works.
+
+### And `hydrateTotal` still does not
+
+| | median | range |
+| --- | --- | --- |
+| cold slowest, pre-step-0 | 447 ms | 437 to 545 |
+| cold slowest, post-step-0 | 831 ms | 610 to **1297** |
+
+The post-step-0 range alone spans 2.1x, and the medians move 86% in the WRONG direction for a change
+that provably removed work. Two different origins are part of that, but it is the same conclusion
+either way: do not judge anything by this number.
+
+### Which reading is the before for step 3
+
+Either, because `listBlocks({})` is 2079 on both. Hold the ORIGIN constant: measure step 3's after on
+the same deployment its before came from. Prod plus the pre-step-0 set is the cleaner pair, since it
+also holds step 0 constant-and-absent, so the only thing changing is the client view records.
+
+Other stable server medians worth comparing after the cutover: `listAreas({})` ~366 to 392 ms,
+`listRoutesForMap({})` ~277 to 329 ms, `listEvents({limit:50})` ~142 to 154 ms.
+
+## 3.2 zero-cache bootstraps an empty CVR database, verified locally
+
+The cutover's one real unknown, and the reason it mattered: demo is being torn down, so there is no
+rehearsal environment and prod would otherwise have been the first exercise.
+
+Run locally against the dev upstream with `ZERO_APP_ID=cvrprobe`, which gives the probe its own
+replication slot, publications and schemas so it cannot collide with the running dev zero-cache.
+`ZERO_CVR_DB` pointed at an empty `postgres:17-alpine` with `POSTGRES_HOST_AUTH_METHOD=trust`,
+matching the prod shape.
+
+Result: **no manual step is needed.** zero-cache created `cvrprobe_0/cvr` in the empty database with
+all seven tables (`clients`, `desires`, `instances`, `queries`, `rows`, `rowsVersion`,
+`versionHistory`), reported `zero-cache ready (6350 ms)`, began serving and began replicating.
+
+Also confirmed by the same run: trust auth over a container-to-container connection works, and the
+CVR genuinely lands in the separate database rather than upstream.
+
+Two things the probe needed that are easy to miss: `ZERO_ADMIN_PASSWORD` is required or it exits
+with `missing --admin-password: required in production mode` before touching any database, and
+`ZERO_AUTH_SECRET` now warns as deprecated.
+
+Cleanup done and verified: the probe's slot `cvrprobe_0_a`, publications `_cvrprobe_public_0` and
+`_cvrprobe_metadata_0`, and schemas `cvrprobe`, `cvrprobe_0`, `cvrprobe_0/cdc` were all dropped, and
+the dev upstream matches its pre-probe baseline (slots `cainophile_alv3nj5e` and `zero_0_b`, schemas
+`zero`, `zero_0`, `zero_0/cdc`, `zero_0/cvr`). A leaked replication slot retains WAL, so that check
+is not optional.
 
 ## How to capture 2.2 and 2.3
 
