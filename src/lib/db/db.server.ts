@@ -5,11 +5,17 @@ import { sql } from 'drizzle-orm'
 import { drizzle, PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import Database from 'postgres'
 
+// Sized for session mode (pooler host, port 5432), where a connection is held for the client's
+// life rather than per transaction: 10 per serverless instance does not fit in max_connections 60.
+// Transaction mode (6543) cannot be used: it runs no reset query, so a `search_path` left on a
+// server connection is inherited by the next client and every unqualified table name then 42P01s.
 const postgres = Database(DATABASE_URL, {
   debug: process.env.NODE_ENV === 'development',
-  max: 10,
+  // Seconds. Was `timeout: 30_000`, which postgres.js deprecated in favour of this and read as
+  // 30,000 SECONDS, so idle connections were effectively never released.
+  idle_timeout: 30,
+  max: 3,
   prepare: false,
-  timeout: 30_000,
 })
 
 export const db = drizzle(postgres, { schema })

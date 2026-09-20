@@ -38,10 +38,16 @@ export type Bounds = [number, number, number, number]
 
 export interface LayerEntry {
   icon: IconName
+  /** What the toggle acts on. Not the label: two regions may name one overlay differently, and two
+   *  distinct overlays may share a name. */
+  key: string
   label: string
-  name: string
   visible: boolean
 }
+
+/** The five marker layers toggle as one group. */
+export const MARKERS_LAYER_KEY = 'markers'
+export const OSM_LAYER_KEY = 'osm'
 
 /** The map-data subset produced by `createExploreMapData`, spread into `<Map>`. */
 export type MapData = Pick<

@@ -34,4 +34,24 @@ describe('stringifyError', () => {
     expect(typeof result).toBe('string')
     expect(() => result.slice(0, 10)).not.toThrow()
   })
+
+  // The prod log that prompted this: drizzle wraps every driver failure in a DrizzleQueryError
+  // whose message is only the SQL, so without the chain the actual failure is unrecoverable.
+  it('keeps the cause chain and a driver code', () => {
+    const driver = Object.assign(new Error('write CONNECTION_CLOSED db:5432'), { code: 'CONNECTION_CLOSED' })
+    const result = stringifyError(new Error('Failed query: select 1', { cause: driver }))
+
+    expect(result).toContain('Failed query')
+    expect(result).toContain('Caused by:')
+    expect(result).toContain('CONNECTION_CLOSED')
+    expect(result).toContain('code: CONNECTION_CLOSED')
+  })
+
+  it('stops on a cyclic cause chain', () => {
+    const a = new Error('a')
+    const b = new Error('b', { cause: a })
+    a.cause = b
+
+    expect(() => stringifyError(a)).not.toThrow()
+  })
 })

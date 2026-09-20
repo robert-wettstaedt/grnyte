@@ -15,6 +15,7 @@ import OlMap from 'ol/Map.js'
 import { fromLonLat } from 'ol/proj.js'
 import OSM from 'ol/source/OSM'
 import View from 'ol/View.js'
+import { OSM_LAYER_KEY } from './types'
 
 /** Middle of the app's western-European range, so an empty map opens somewhere plausible. */
 const DEFAULT_CENTER = [2.6117597, 48.4103865]
@@ -57,7 +58,7 @@ export function createBaseMap(node: HTMLElement, options: BaseMapOptions = {}): 
       new TileLayer({
         className: 'osm-layer',
         preload: 2,
-        properties: { layerName: 'OpenStreetMap' },
+        properties: { layerKey: OSM_LAYER_KEY, layerName: 'OpenStreetMap' },
         source: new OSM({ crossOrigin: 'anonymous' }),
       }),
       ...extraLayers,

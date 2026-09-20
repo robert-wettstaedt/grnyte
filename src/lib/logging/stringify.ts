@@ -2,10 +2,22 @@
  *  unbounded, so without it one runaway stack or HTML error page fills the table. */
 export const MAX_ERROR_LENGTH = 10_000
 
+/** Deep enough for drizzle's wrapper plus the driver error under it; bounded because a `cause`
+ *  chain can be cyclic. */
+const MAX_CAUSE_DEPTH = 4
+
 /** Flattens anything throwable into a loggable string, keeping the stack when there is one. */
-export function stringifyError(error: unknown): string {
+export function stringifyError(error: unknown, depth = 0): string {
   if (error instanceof Error) {
-    return [error.name, error.message, error.stack].filter(Boolean).join('\n')
+    // Without the cause a drizzle `DrizzleQueryError` logs only "Failed query: <sql>", and the
+    // driver error naming the actual failure (SQLSTATE, CONNECTION_CLOSED, CONNECT_TIMEOUT) is lost.
+    const code = 'code' in error && (typeof error.code === 'string' || typeof error.code === 'number') ? error.code : ''
+    const cause =
+      error.cause != null && depth < MAX_CAUSE_DEPTH ? `Caused by: ${stringifyError(error.cause, depth + 1)}` : ''
+
+    return [error.name, code === '' ? '' : `code: ${code}`, error.message, error.stack, cause]
+      .filter(Boolean)
+      .join('\n')
   }
 
   // Never serialised. A thrown object can carry a request body, an entity mid-edit or a route's

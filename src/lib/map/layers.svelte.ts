@@ -1,13 +1,16 @@
+import type { IconName } from '$lib/components/Icon/icons'
 import type { BlockDetail } from '$lib/entities/block/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 import { buildGradeDonutSvg } from '$lib/entities/grade/donut'
 import type { UserRegion } from '$lib/entities/region/dto'
+import { mapLayerKey, mergeMapLayers } from '$lib/entities/region/settings'
 import Feature, { type FeatureLike } from 'ol/Feature.js'
 import Polyline from 'ol/format/Polyline'
 import { LineString, Polygon } from 'ol/geom'
 import Point from 'ol/geom/Point.js'
 import { fromExtent } from 'ol/geom/Polygon'
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer.js'
+import type BaseLayer from 'ol/layer/Base.js'
 import type OlMap from 'ol/Map.js'
 import { fromLonLat } from 'ol/proj.js'
 import { Vector as VectorSource } from 'ol/source.js'
@@ -20,7 +23,15 @@ import Icon from 'ol/style/Icon'
 // `sideEffects` in its package.json, so no bundler may drop it, and importing one string from this
 // module would pull the whole library into StaticMap and so into every feed card.
 import { APPROACH_COLOR } from './tiles'
-import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, SECTOR_ZOOM, type Bounds } from './types'
+import {
+  BLOCK_LABEL_ZOOM,
+  BLOCK_ZOOM,
+  MARKERS_LAYER_KEY,
+  OSM_LAYER_KEY,
+  SECTOR_ZOOM,
+  type Bounds,
+  type LayerEntry,
+} from './types'
 
 // Read-only fallback for areas/sectors with no grade data, so we never allocate per feature.
 const EMPTY_GRADE_COUNTS: Map<number, number> = new Map<number, number>()
@@ -78,6 +89,34 @@ export function buildBlockFeatures(geoBlocks: BlockDetail[], routeCountByBlock: 
   }
 
   return features
+}
+
+/**
+ * The toggle rows for the layers sheet, one per distinct `layerKey`. The five marker layers share
+ * one key and so collapse into a single row; two overlays that merely share a NAME do not.
+ */
+export function buildLayerEntries(layers: BaseLayer[]): LayerEntry[] {
+  const entries: LayerEntry[] = []
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local dedupe, not reactive state
+  const seen = new Set<string>()
+
+  for (const layer of layers) {
+    const key = layer.get('layerKey') as string | undefined
+
+    if (key == null || seen.has(key)) {
+      continue
+    }
+
+    seen.add(key)
+    entries.push({
+      icon: layerIcon(key),
+      key,
+      label: layer.get('layerName') as string,
+      visible: layer.getVisible(),
+    })
+  }
+
+  return entries
 }
 
 // `id` is optional so the reorder map can pass a bare reference point (no navigation),
@@ -268,22 +307,20 @@ export function createSectorLayer(): VectorLayer {
 }
 
 export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
-  return userRegions.flatMap((region) =>
-    region.settings.mapLayers.map(
-      (regionLayer) =>
-        new TileLayer({
-          minZoom: regionLayer.minZoom ?? undefined,
-          opacity: regionLayer.opacity ?? undefined,
-          properties: { layerName: regionLayer.name },
-          // Deliberately NOT given `regionLayer.attributions`: OL renders them as HTML and a
-          // region admin writes them, so any caller asking a source what it is owed is an XSS.
-          // The credits sheet parses them through `./attribution` instead.
-          source: new TileWMS({
-            params: regionLayer.params ?? {},
-            url: regionLayer.url,
-          }),
+  return mergeMapLayers(userRegions.flatMap((region) => region.settings.mapLayers)).map(
+    (regionLayer) =>
+      new TileLayer({
+        minZoom: regionLayer.minZoom ?? undefined,
+        opacity: regionLayer.opacity ?? undefined,
+        properties: { layerKey: mapLayerKey(regionLayer), layerName: regionLayer.name },
+        // Deliberately NOT given `regionLayer.attributions`: OL renders them as HTML and a
+        // region admin writes them, so any caller asking a source what it is owed is an XSS.
+        // The credits sheet parses them through `./attribution` instead.
+        source: new TileWMS({
+          params: regionLayer.params ?? {},
+          url: regionLayer.url,
         }),
-    ),
+      }),
   )
 }
 
@@ -316,6 +353,12 @@ function createDonutMarkerStyles(
       }),
     }),
   ]
+}
+
+function layerIcon(key: string): IconName {
+  if (key === OSM_LAYER_KEY) return 'map'
+  if (key === MARKERS_LAYER_KEY) return 'map-pin'
+  return 'layers'
 }
 
 /** Parking marker: a filled blue square-parking badge (lucide geometry), built from an inline SVG. */

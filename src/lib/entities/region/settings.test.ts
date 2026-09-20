@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { mapLayerSchema, regionSettingsSchema, toLayerForm, wmsUrl, type MapLayer } from './settings'
+import {
+  mapLayerKey,
+  mapLayerSchema,
+  mergeMapLayers,
+  regionSettingsSchema,
+  toLayerForm,
+  wmsUrl,
+  type MapLayer,
+} from './settings'
 import { DEFAULT_TAGS } from './tagVocabulary'
 
 const FULL: MapLayer = {
@@ -105,5 +113,97 @@ describe('regionSettingsSchema', () => {
 
   it('keeps an emptied vocabulary empty, since only an absent key means the defaults', () => {
     expect(regionSettingsSchema.parse({ tags: [] }).tags).toEqual([])
+  })
+})
+
+/** The same overlay as `FULL`, as a second region stored it: same endpoint and parameters, every
+ *  other field deliberately different, so each merge rule is separately falsifiable. */
+const FULL_ELSEWHERE: MapLayer = {
+  attributions: ['Imagery: Region', 'Relief: Cantonal Office'],
+  minZoom: 8,
+  name: 'Topo map',
+  opacity: 0.8,
+  params: { FORMAT: 'image/png', LAYERS: 'topo' },
+  type: 'wms',
+  url: 'https://wms.example.com/service',
+}
+
+const OTHER_LAYER: MapLayer = { ...BARE, name: 'Relief', params: { LAYERS: 'relief' } }
+
+describe('mapLayerKey', () => {
+  it('ignores the order parameters happen to be stored in', () => {
+    expect(mapLayerKey({ ...FULL, params: { FORMAT: 'image/png', LAYERS: 'topo' } })).toBe(
+      // eslint-disable-next-line perfectionist/sort-objects -- the unsorted order is the test
+      mapLayerKey({ ...FULL, params: { LAYERS: 'topo', FORMAT: 'image/png' } }),
+    )
+  })
+
+  it('reads no parameters and none stored as the same layer', () => {
+    expect(mapLayerKey({ ...FULL, params: null })).toBe(mapLayerKey({ ...FULL, params: {} }))
+  })
+
+  it("separates one endpoint's layers, which is the common shape of a public wms server", () => {
+    expect(mapLayerKey(BARE)).not.toBe(mapLayerKey(OTHER_LAYER))
+  })
+})
+
+describe('mergeMapLayers', () => {
+  it('draws an overlay two regions both store exactly once', () => {
+    expect(mergeMapLayers([FULL, FULL_ELSEWHERE])).toHaveLength(1)
+  })
+
+  it('collapses a duplicate stored twice inside one region', () => {
+    expect(mergeMapLayers([BARE, { ...BARE, name: 'Copy' }])).toHaveLength(1)
+  })
+
+  it('keeps layers that differ only in the parameters selecting them', () => {
+    expect(mergeMapLayers([BARE, OTHER_LAYER]).map((layer) => layer.name)).toEqual(['Bare layer', 'Relief'])
+  })
+
+  it('names the merged layer after both regions when they disagree', () => {
+    expect(mergeMapLayers([FULL, FULL_ELSEWHERE])[0].name).toBe('Topographic / Topo map')
+  })
+
+  it('names it once when the two spellings differ only in case or spacing', () => {
+    const merged = mergeMapLayers([FULL, { ...FULL_ELSEWHERE, name: ' topographic ' }])
+
+    expect(merged).toHaveLength(1)
+    expect(merged[0].name).toBe('Topographic')
+  })
+
+  it('takes the lowest zoom floor, and none at all if either region set none', () => {
+    expect(mergeMapLayers([FULL, FULL_ELSEWHERE])[0].minZoom).toBe(8)
+    expect(mergeMapLayers([FULL, { ...FULL_ELSEWHERE, minZoom: null }])[0].minZoom).toBeNull()
+  })
+
+  it('takes the most opaque, and full opacity if either region set none', () => {
+    expect(mergeMapLayers([FULL, FULL_ELSEWHERE])[0].opacity).toBe(0.8)
+    expect(mergeMapLayers([FULL, { ...FULL_ELSEWHERE, opacity: null }])[0].opacity).toBeNull()
+  })
+
+  it('credits both regions, without repeating a credit they share', () => {
+    expect(mergeMapLayers([FULL, FULL_ELSEWHERE])[0].attributions).toEqual([
+      'Data: Survey Office',
+      'Imagery: Region',
+      'Relief: Cantonal Office',
+    ])
+  })
+
+  it('leaves a layer nobody credits uncredited', () => {
+    const merged = mergeMapLayers([BARE, { ...BARE, name: 'Copy' }])
+
+    expect(merged).toHaveLength(1)
+    expect(merged[0].attributions).toBeNull()
+  })
+
+  it('leaves a merged layer where the first region drew it, so its stacking is unchanged', () => {
+    expect(mergeMapLayers([OTHER_LAYER, FULL, FULL_ELSEWHERE]).map((layer) => layer.name)).toEqual([
+      'Relief',
+      'Topographic / Topo map',
+    ])
+  })
+
+  it('leaves a layer only one region has untouched', () => {
+    expect(mergeMapLayers([FULL])).toEqual([FULL])
   })
 })
