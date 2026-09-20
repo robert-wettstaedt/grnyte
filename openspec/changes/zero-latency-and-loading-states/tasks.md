@@ -48,13 +48,22 @@ Ships before any measurement, so the baseline has a clean floor.
 
 ## 4. Recent query retention
 
-- [ ] 4.1 Set `maxRecentQueries` to 20 in the Zero client options in `src/lib/zero/z.svelte.ts`, and
+PRECONDITION, established in group 10 and written up in design.md: nothing de-registers a query
+within a page's life, and `maxRecentQueries` only evicts queries that HAVE been released. Until the
+deferred resource-lifetime item lands, this group can only measure a no-op. Do not read a flat
+result as "the lever did not help".
+
+- [ ] 4.1 Confirm the precondition still holds before changing anything: walk three screens and
+      verify the inspector's query count only grows. If it now falls when a screen is left, the
+      deferred item has landed and the rest of this group is worth running
+- [ ] 4.2 Set `maxRecentQueries` to 20 in the Zero client options in `src/lib/zero/z.svelte.ts`, and
       verify the inspector shows queries surviving a back-navigation rather than re-registering
-- [ ] 4.2 Re-measure the feed page cold and warm, and verify the warm back-navigation improved and
+- [ ] 4.3 Re-measure the feed page cold and warm, and verify the warm back-navigation improved and
       the feed did not regress
-- [ ] 4.3 Record the gate outcome in the change notes: whether steps 3 and 4 moved the numbers, and
+- [ ] 4.4 Record the gate outcome in the change notes: whether steps 3 and 4 moved the numbers, and
       therefore whether the deferred structural items are triggered, verified by the recorded
-      measurements rather than impression
+      measurements rather than impression. If 4.1 showed the precondition still holds, record that
+      step 4 measured a no-op by construction rather than a lever that did not work
 
 ## 5. The readiness signal
 
@@ -144,15 +153,15 @@ change. See design.md, "Tighten the ping timeout on evidence, rather than global
 Diagnostic, and it runs BEFORE any decision about the map. Cheap to answer and it may remove most of
 the 2938 ms without an architectural change.
 
-- [ ] 10.1 Establish why `listBlocks({})`, `listAreas({})` and `listRoutesForMap({})` are registered
+- [x] 10.1 Establish why `listBlocks({})`, `listAreas({})` and `listRoutesForMap({})` are registered
       on `/feed` rather than only on `/explore`, and verify the answer by naming the component or
       layout that reads them there, with file and line
-- [ ] 10.2 Record in the change notes whether the fix is scoping (a surface staying mounted across
+- [x] 10.2 Record in the change notes whether the fix is scoping (a surface staying mounted across
       the shell) or architectural (the map genuinely needs Zero), and verify the recommendation
       against a measured feed capture rather than reasoning alone
-- [ ] 10.3 Only if 10.2 says scoping: stop those queries registering on surfaces that do not draw a
-      map, and verify with a prod or dev feed capture that the three queries are absent and the map
-      still renders
+- [x] 10.3 NOT APPLICABLE, and left here rather than deleted so the reason survives. Its precondition
+      was "only if 10.2 says scoping". It does not: the feed never registered those queries, so there
+      is nothing on it to scope. What 10.2 found instead is deferred, see design.md
 
 ## 11. Device-local resume diagnostics (problem A)
 
@@ -175,4 +184,4 @@ a gate decision, so it is written to be removed in one commit. Nothing leaves th
 - [x] 11.5 Add the section's copy to BOTH `messages/en.json` and `messages/de.json`, sorted and
       under one domain prefix, and verify no key exists in only one file
 - [x] 11.6 Record the removal trip-wire in the change notes: what to delete, and that it goes once
-      the gate in 4.3 is decided, verified by the note naming the files rather than describing them
+      the gate in 4.4 is decided, verified by the note naming the files rather than describing them

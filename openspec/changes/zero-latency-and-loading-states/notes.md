@@ -1,6 +1,6 @@
 # Measurements
 
-Working notes for this change. Tasks 2.2, 2.3, 3.5, 4.2, 4.3 and 6.1 all record here.
+Working notes for this change. Tasks 2.2, 2.3, 3.5, 4.3, 4.4 and 6.1 all record here.
 
 ## 2.1 Deployment values, recorded before any change
 
@@ -116,9 +116,50 @@ Two harness facts worth keeping:
   `connected` throughout while a live socket was being cut, because the state came from a stale
   instance. Tag sockets and read the wire instead. Same trap as the `?t=` HMR note in memory.
 
+## 10.1 and 10.2 The premise was wrong, and what is actually happening is bigger
+
+Task 10 assumed the map's unbounded queries are registered ON the feed. They are not. Measured in
+dev, signed in, using real in-app navigation:
+
+| Step | Queries | Unbounded map queries |
+| --- | --- | --- |
+| fresh `/feed` | 11 | **none** |
+| `/explore` | 15 | all four (correct, the map draws them) |
+| back on `/feed` | 15 | **all four still there** |
+
+They register on `/explore` and never leave. Held for at least a minute on the feed, so not a
+deferred cleanup that eventually fires. The `(map)` layout HAS unmounted by then: zero `.ol-viewport`,
+zero `canvas`, no search bar. The DOM is gone and the queries are not.
+
+**It is not specific to the map.** Walking feed to profile to feed to explore to feed to profile, the
+count went 15, 23, 23, 23, 23, 23: it grows to the union of everything the session has visited and
+never shrinks. Revisiting adds nothing because those queries were never released.
+
+**Mechanism.** `createResource` builds a zero-svelte `Query` inside a `$derived` and calls
+`view.ensureSubscribed()` on it. `ensureSubscribed` is just `#subscribe()`, and nothing is paired to
+it: `Query.destroy()` exists in zero-svelte and is never called from `src/lib/zero/resource.svelte.ts`
+on a resource's query. The only `.destroy()` calls in that directory are on the throwaway views in
+`waitForRow` and the dev bench. When the component unmounts, Svelte disposes the derived signal; the
+`Query` it produced keeps its subscription. Changing a resource's arguments has the same shape: the
+derived produces a new Query and abandons the old one, still subscribed.
+
+### Why this matters more than task 10 did
+
+- It explains the 42 queries on one prod page. That is a browsing session's union, not one page.
+- **It makes step 4 pointless as written.** `maxRecentQueries` governs eviction of queries that have
+  been de-registered, and nothing is ever de-registered within a page's life. Setting it to 20 would
+  change nothing. That is a design issue in the plan, not an implementation detail.
+- It is a candidate root cause for the rows pinned per client group (p50 20,391), which is B and C's
+  driver. A client group holds the union of every query every tab in it has ever run.
+- The CVR's 9,920 deleted against 1,509 active fits: de-registration happens on page close, not on
+  navigation.
+
+Not done: **10.3**, whose precondition is "only if 10.2 says scoping". It does not. Scoping the feed
+would fix nothing, because the feed never registered them.
+
 ## 11.6 Removal trip-wire
 
-The resume log is temporary instrumentation for the gate in 4.3. Once that is decided, delete:
+The resume log is temporary instrumentation for the gate in 4.4. Once that is decided, delete:
 
 - `src/lib/logging/resumeLog.ts` and `src/lib/logging/resumeLog.test.ts`
 - the `resumes` state, `clearResumes`, the `$lib/logging/resumeLog` import and the
