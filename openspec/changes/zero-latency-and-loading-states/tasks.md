@@ -1,3 +1,9 @@
+> **Execution order: 9 with 11, then 1, 10, 2, 3, 4, then 5 to 7 in parallel, 8 last.**
+>
+> Group numbers are the order these were written, not the order they run. They are kept as they are
+> so the completed boxes in groups 1 and 2 stay meaningful. The order above follows the migration
+> plan in design.md, which was revised once measurement separated four problems rather than one.
+
 ## 1. Remove wasted query registrations
 
 Ships before any measurement, so the baseline has a clean floor.
@@ -16,7 +22,7 @@ Ships before any measurement, so the baseline has a clean floor.
 
 ## 2. Baseline measurement
 
-- [ ] 2.1 Record the current `ZERO_NUM_SYNC_WORKERS` value from Bitwarden into the change notes, and
+- [x] 2.1 Record the current `ZERO_NUM_SYNC_WORKERS` value from Bitwarden into the change notes, and
       verify it is written down before any deploy so the later numbers can be read against it
 - [ ] 2.2 Capture a cold feed-page baseline on production: time from navigation to the last query
       reporting got, plus the full inspector table, and verify the capture is saved somewhere
@@ -112,3 +118,61 @@ Over the touched paths and nothing else, per AGENTS.md.
 - [ ] 8.5 Drive the running app at BOTH 375x667 and 1280x800 across a list surface, a detail page
       and an empty state on a throttled connection, and verify the three readiness conditions are
       visually distinguishable at both sizes
+
+## 9. Resume latency (problem A)
+
+Runs FIRST. Client-side only, no deploy coupling, and it targets the complaint that prompted this
+change. See design.md, "Tighten the ping timeout on evidence, rather than globally".
+
+- [x] 9.1 In `src/lib/state/online.svelte.ts`, expose the condition that means "the network answers
+      but Zero still believes it is connected", from the reachability probe already running on
+      resume, and verify with a unit test over the pure inputs rather than by driving a socket
+- [x] 9.2 Tighten `pingTimeoutMs` on the live client while that condition holds and restore Zero's
+      default once the connection is re-established, in `src/lib/zero/z.svelte.ts`, and verify by
+      typecheck that the property still exists on the client (an upgrade removing it must fail the
+      build, not silently no-op)
+- [x] 9.3 Prove the behavior end to end: with the app open, kill the socket without closing it
+      (DevTools offline toggle leaves the client believing it is connected), restore the network,
+      and verify new rows arrive in roughly `2 x` the tightened value rather than 10 seconds
+- [x] 9.4 Confirm the steady-state path is untouched: with no resume and no failed probe, verify the
+      client still reports Zero's default so behavior on a weak connection is unchanged
+- [ ] 9.5 File the behavior upstream at bugs.rocicorp.dev, since no existing issue covers it and
+      the option is undocumented, and record the issue link in the change notes
+
+## 10. Why the map queries register on the feed (problem B)
+
+Diagnostic, and it runs BEFORE any decision about the map. Cheap to answer and it may remove most of
+the 2938 ms without an architectural change.
+
+- [ ] 10.1 Establish why `listBlocks({})`, `listAreas({})` and `listRoutesForMap({})` are registered
+      on `/feed` rather than only on `/explore`, and verify the answer by naming the component or
+      layout that reads them there, with file and line
+- [ ] 10.2 Record in the change notes whether the fix is scoping (a surface staying mounted across
+      the shell) or architectural (the map genuinely needs Zero), and verify the recommendation
+      against a measured feed capture rather than reasoning alone
+- [ ] 10.3 Only if 10.2 says scoping: stop those queries registering on surfaces that do not draw a
+      map, and verify with a prod or dev feed capture that the three queries are absent and the map
+      still renders
+
+## 11. Device-local resume diagnostics (problem A)
+
+Runs with group 9, since it is how 9's fix is judged on real hardware. Temporary instrumentation for
+a gate decision, so it is written to be removed in one commit. Nothing leaves the device.
+
+- [ ] 11.1 Add a capped ring buffer in `localStorage` recording only resumes that needed a
+      reconnect, with the append and eviction as a pure function, and verify with a unit test that
+      the cap holds and the oldest entry is the one dropped
+- [ ] 11.2 Record an entry from the reconnect path added in group 9, so a resume that did NOT need
+      one writes nothing, and verify by driving the app that a healthy resume leaves the buffer
+      untouched while a killed socket adds exactly one entry
+- [ ] 11.3 Handle `localStorage` being unavailable or throwing (private windows, blocked site data)
+      so a diagnostic can never break the app, and verify with a unit test that a throwing store is
+      swallowed
+- [ ] 11.4 Add a "this device" section to `src/routes/(app)/settings/errors/+page.svelte` rendering
+      the buffer newest first with a clear action, and verify by driving the page at BOTH 375x667
+      and 1280x800 that it reads correctly and that an empty buffer renders an empty state rather
+      than a blank panel
+- [ ] 11.5 Add the section's copy to BOTH `messages/en.json` and `messages/de.json`, sorted and
+      under one domain prefix, and verify no key exists in only one file
+- [ ] 11.6 Record the removal trip-wire in the change notes: what to delete, and that it goes once
+      the gate in 4.3 is decided, verified by the note naming the files rather than describing them

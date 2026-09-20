@@ -538,3 +538,58 @@ describe('the foreground replay', () => {
     expect(online.isOnline()).toBe(false)
   })
 })
+
+// Zero needs 2x its ping timeout to notice a socket that died while the app was away, which is ten
+// seconds on the default. These pin when the app asks it to look sooner.
+describe('tightening the ping after a resume', () => {
+  it('asks when the network answered and Zero still reports connected', async () => {
+    const online = await load()
+    expect(online.shouldTightenPing({ connectionState: 'connected', networkAnswered: true, resumed: true })).toBe(true)
+  })
+
+  it('does not ask without a resume, which is the steady state', async () => {
+    const online = await load()
+    expect(online.shouldTightenPing({ connectionState: 'connected', networkAnswered: true, resumed: false })).toBe(
+      false,
+    )
+  })
+
+  // A short pong deadline is only safe because the network was just proven. Without that it is the
+  // globally-lower value the design rejected, and a crag is where it would be paid.
+  it('does not ask when the network did not answer', async () => {
+    const online = await load()
+    expect(online.shouldTightenPing({ connectionState: 'connected', networkAnswered: false, resumed: true })).toBe(
+      false,
+    )
+  })
+
+  // Zero only pings while connected. Anywhere else it is already retrying and this buys nothing.
+  it('does not ask in a state Zero does not ping in', async () => {
+    const online = await load()
+    for (const connectionState of ['connecting', 'disconnected', 'needs-auth', 'error', undefined]) {
+      expect(online.shouldTightenPing({ connectionState, networkAnswered: true, resumed: true })).toBe(false)
+    }
+  })
+
+  it('calls the registered handler when a resume probe succeeds while connected', async () => {
+    const online = await load({ probe: 'ok' })
+    const tighten = vi.fn()
+    online.setPingTightenHandler(tighten)
+    online.reportConnectionState({ name: 'connected' })
+
+    await foreground()
+
+    expect(tighten).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not call it when the resume probe fails', async () => {
+    const online = await load({ probe: 'fail' })
+    const tighten = vi.fn()
+    online.setPingTightenHandler(tighten)
+    online.reportConnectionState({ name: 'connected' })
+
+    await foreground()
+
+    expect(tighten).not.toHaveBeenCalled()
+  })
+})
