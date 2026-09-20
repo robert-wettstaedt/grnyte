@@ -768,3 +768,287 @@ describe('TopoEditor point placement and dragging', () => {
     expect(editor.currentLine!.points).toHaveLength(1)
   })
 })
+
+/** A line on topo 1 with the given points placed in order, as the editor would place them. */
+function lineOf(...points: [type: 'middle' | 'start' | 'top', x: number, y: number][]) {
+  const { editor, store } = setup()
+  editor.addLine(42)
+  for (const [type, x, y] of points) {
+    editor.pointType = type
+    editor.place(x, y)
+  }
+  return { editor, store }
+}
+
+const pathOn = (editor: TopoEditor) => editor.savedLinesFor(1)[0]?.path ?? ''
+
+/** Routes 42 and 43 sharing one hold at (0.3, 0.9): 43 was drawn onto 42's start by the snap. */
+function sharedHold() {
+  const { editor } = setup()
+  editor.addLine(42)
+  editor.pointType = 'start'
+  editor.place(0.3, 0.9)
+  editor.addLine(43)
+  editor.selectRoute(43)
+  editor.pointType = 'start'
+  editor.place(0.301, 0.901)
+  return { editor }
+}
+
+const pathsOn = (editor: TopoEditor) => editor.savedLinesFor(1).map((line) => line.path)
+
+describe('a point landed on its own neighbour', () => {
+  /**
+   * The snap exists to share a hold BETWEEN lines and nothing scoped it to other lines, so placing
+   * or dragging a point within its radius of the one beside it wrote two points at one coordinate.
+   * That is a zero-length segment, which gives the renderer's spline a direction of nothing. It is
+   * how topo_route 2163 came to store its top three times, drawn in v2 after the cutover.
+   */
+  const pathOf = (editor: TopoEditor) => editor.savedLinesFor(1)[0]?.path ?? ''
+
+  /** A start and two waypoints, with the last waypoint dragged to (x, y). */
+  const dragLastTo = (x: number, y: number) => {
+    const { editor } = lineOf(['start', 0.2, 0.9], ['middle', 0.5, 0.5], ['middle', 0.8, 0.3])
+    const points = editor.currentLines[0].points
+    editor.beginStroke()
+    editor.dragPoint(points[points.length - 1].id, x, y)
+    return editor
+  }
+
+  it('does not SNAP a dragged waypoint onto the one beside it', () => {
+    // Dropped just inside the snap radius of its own neighbour. Without the exclusion it would be
+    // pulled exactly onto it; with it, the point stays where the finger left it.
+    expect(pathOf(dragLastTo(0.501, 0.501))).toBe('M0.2,0.9 L0.5,0.5 L0.501,0.501')
+  })
+
+  it('drops a waypoint dragged EXACTLY onto its neighbour, at save', () => {
+    // Landing precisely on it is not a snap, so no exclusion can prevent it. The save-time backstop
+    // is what keeps a zero-length segment out of the stored path.
+    expect(pathOf(dragLastTo(0.5, 0.5))).toBe('M0.2,0.9 L0.5,0.5')
+  })
+
+  it('keeps the TOP when a waypoint is dragged onto it', () => {
+    // 2163's shape. The run must not silently demote the top to a waypoint.
+    const { editor } = lineOf(['start', 0.2, 0.9], ['middle', 0.5, 0.5], ['top', 0.6, 0.2])
+    const middle = editor.currentLines[0].points.find((point) => point.type === 'middle')!
+    editor.beginStroke()
+    editor.dragPoint(middle.id, 0.6, 0.2)
+    expect(pathOf(editor)).toBe('M0.2,0.9 L0.6,0.2 Z')
+  })
+
+  it('does not SNAP a dragged waypoint onto a NON-ADJACENT point of its own line', () => {
+    // The exclusion covers the whole line, not just the two neighbours: a line never puts two
+    // points on one hold, and a revisit is no more drawable than a collapse.
+    const { editor } = lineOf(['start', 0.2, 0.9], ['middle', 0.5, 0.5], ['middle', 0.8, 0.3])
+    const points = editor.currentLines[0].points
+    editor.beginStroke()
+    editor.dragPoint(points[points.length - 1].id, 0.201, 0.901)
+    expect(pathOf(editor)).toBe('M0.2,0.9 L0.5,0.5 L0.201,0.901')
+  })
+
+  it('still SNAPS a dragged point onto a hold of ANOTHER line', () => {
+    // The exclusion covers the dragged point's OWN line only, so other lines stay candidates.
+    // Released short of route 42's hold, so only a snap can close the gap.
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.3, 0.9)
+    editor.addLine(43)
+    editor.selectRoute(43)
+    editor.pointType = 'start'
+    editor.place(0.7, 0.7)
+    const own = editor.currentLine!.points[0]
+
+    editor.beginStroke()
+    editor.dragPoint(own.id, 0.301, 0.901)
+
+    expect(pathsOn(editor)).toEqual(['M0.3,0.9', 'M0.3,0.9'])
+  })
+
+  it('still shares a hold with a DIFFERENT line', () => {
+    // The behaviour the snap is for must survive the exclusion.
+    expect(pathsOn(sharedHold().editor)).toEqual(['M0.3,0.9', 'M0.3,0.9'])
+  })
+})
+
+describe('what the stage previews is what gets placed', () => {
+  /**
+   * The stage used to preview with a bare `snapTargetAt` and then commit those coordinates, so the
+   * point was already sitting on its neighbour by the time `place` applied its own exclusion. The
+   * exclusion looked right in a unit test and was a no-op through the UI. One intent now answers
+   * both the preview and the commit.
+   */
+  it('previews a select, not a place, over a point of the line being drawn', () => {
+    const { editor } = lineOf(['start', 0.5, 0.9], ['middle', 0.5, 0.5])
+    const middle = editor.currentLine!.points[1]
+    editor.pointType = 'middle'
+
+    expect(editor.placementIntentAt(0.501, 0.501)).toEqual({ kind: 'select', point: middle })
+  })
+
+  it('still previews a snap onto a hold of ANOTHER line', () => {
+    const { editor } = setup()
+    editor.addLine(42)
+    editor.pointType = 'start'
+    editor.place(0.3, 0.9)
+    editor.addLine(43)
+    editor.selectRoute(43)
+    editor.pointType = 'start'
+
+    expect(editor.placementIntentAt(0.301, 0.901)).toMatchObject({
+      kind: 'place',
+      snapped: { x: 0.3, y: 0.9 },
+      x: 0.3,
+      y: 0.9,
+    })
+  })
+
+  it('previews a plain place well clear of every line', () => {
+    const { editor } = lineOf(['start', 0.3, 0.9])
+    editor.pointType = 'middle'
+
+    expect(editor.placementIntentAt(0.7, 0.2)).toEqual({ kind: 'place', snapped: undefined, x: 0.7, y: 0.2 })
+  })
+
+  it('offers no preview when nothing is armed', () => {
+    const { editor } = lineOf(['start', 0.3, 0.9])
+    editor.pointType = undefined
+
+    expect(editor.placementIntentAt(0.301, 0.901)).toBeUndefined()
+  })
+})
+
+describe('pressing a point of the line being drawn', () => {
+  /**
+   * Armed, a press on a point of your own line means "select that one", not "put a second point on
+   * the same hold". Pressing a point of ANOTHER line still places, which is how two routes are
+   * recorded as sharing a hold.
+   */
+  it('selects the point instead of placing a second one on the hold', () => {
+    const { editor } = lineOf(['start', 0.5, 0.9], ['middle', 0.5, 0.5])
+    const middle = editor.currentLine!.points[1]
+
+    editor.pointType = 'middle'
+    editor.place(0.501, 0.501)
+
+    expect(pathOn(editor)).toBe('M0.5,0.9 L0.5,0.5')
+    expect(editor.selectedPointId).toBe(middle.id)
+  })
+
+  it('disarms, so the next press is not another placement', () => {
+    const { editor } = lineOf(['start', 0.5, 0.9], ['middle', 0.5, 0.5])
+
+    editor.pointType = 'middle'
+    editor.place(0.501, 0.501)
+
+    expect(editor.pointType).toBeUndefined()
+  })
+
+  it('selects the top rather than replacing it with a top of its own', () => {
+    // `insertByType` OVERWRITES an existing top, so without the select this pressed the top and
+    // silently rewrote it a fraction away.
+    const { editor } = lineOf(['start', 0.2, 0.9], ['middle', 0.5, 0.5], ['top', 0.6, 0.2])
+    const top = editor.currentLine!.points[2]
+
+    editor.pointType = 'top'
+    editor.place(0.605, 0.205)
+
+    expect(pathOn(editor)).toBe('M0.2,0.9 L0.5,0.5 L0.6,0.2 Z')
+    expect(editor.selectedPointId).toBe(top.id)
+  })
+
+  it('selects a point that is NOT where the new one would have been inserted', () => {
+    // A waypoint inserts before the top, so the start is nowhere near its insertion point. The old
+    // exclusion was keyed on the insertion index and let this one through as an exact duplicate.
+    const { editor } = lineOf(['start', 0.2, 0.9], ['middle', 0.5, 0.5], ['top', 0.6, 0.2])
+    const start = editor.currentLine!.points[0]
+
+    editor.pointType = 'middle'
+    editor.place(0.201, 0.901)
+
+    expect(pathOn(editor)).toBe('M0.2,0.9 L0.5,0.5 L0.6,0.2 Z')
+    expect(editor.selectedPointId).toBe(start.id)
+  })
+
+  it('still places on a hold of another line, clear of its own points', () => {
+    const { editor } = sharedHold()
+
+    expect(pathsOn(editor)).toEqual(['M0.3,0.9', 'M0.3,0.9'])
+    expect(editor.selectedPointId).toBeUndefined()
+  })
+
+  it('selects its own point on a hold ALREADY shared with another line', () => {
+    // Both lines have a point on the hold. Placing again would put a second point of MY line on it,
+    // and the sharing it would record already exists.
+    const { editor } = sharedHold()
+    const own = editor.currentLine!.points[0]
+
+    editor.pointType = 'middle'
+    editor.place(0.302, 0.902)
+
+    expect(pathsOn(editor)).toEqual(['M0.3,0.9', 'M0.3,0.9'])
+    expect(editor.selectedPointId).toBe(own.id)
+  })
+
+  it('places normally clear of the line, so the rule costs no reachable position', () => {
+    const { editor } = lineOf(['start', 0.2, 0.9], ['middle', 0.5, 0.5])
+
+    editor.pointType = 'middle'
+    editor.place(0.53, 0.53)
+
+    expect(pathOn(editor)).toBe('M0.2,0.9 L0.5,0.5 L0.53,0.53')
+  })
+
+  it('records no undo step for a press that only selected', () => {
+    const { editor } = lineOf(['start', 0.5, 0.9], ['middle', 0.5, 0.5])
+    const before = editor.canUndo
+
+    editor.pointType = 'middle'
+    editor.place(0.501, 0.501)
+    editor.undo()
+
+    expect(before).toBe(true)
+    expect(pathOn(editor)).toBe('M0.5,0.9')
+  })
+})
+
+describe('collapsing a run keeps the line usable', () => {
+  it('keeps the TOP when it is dragged onto the start hold', () => {
+    // "First non-middle" kept the START here and dropped the top, so the path lost its Z while
+    // topType still said topout.
+    const { editor } = lineOf(['start', 0.3, 0.9], ['top', 0.6, 0.2])
+    const top = editor.currentLines[0].points.find((point) => point.type === 'top')!
+    editor.beginStroke()
+    editor.dragPoint(top.id, 0.3, 0.9)
+    expect(editor.savedLinesFor(1)[0].path).toBe('L0.3,0.9 Z')
+  })
+})
+
+describe('after a save that collapsed a run', () => {
+  it('reports itself synced with what the server stored', () => {
+    // `markSaved` stamped the un-deduped doc while the server stored the deduped path, so
+    // `syncedWithCommitted` was false forever and the edit page never dropped its local doc.
+    const { editor, store } = lineOf(['start', 0.2, 0.9], ['middle', 0.5, 0.5], ['middle', 0.8, 0.3])
+    const points = editor.currentLines[0].points
+    editor.beginStroke()
+    editor.dragPoint(points[points.length - 1].id, 0.5, 0.5)
+
+    const saved = editor.savedLinesFor(1)
+    editor.markSaved(1)
+    // The Zero echo: committed is the DEDUPED shape, because that is what was sent.
+    store[1] = [
+      {
+        points: [
+          { id: 'a', type: 'start', x: 0.2, y: 0.9 },
+          { id: 'b', type: 'middle', x: 0.5, y: 0.5 },
+        ],
+        routeFk: 42,
+        topType: saved[0].topType,
+      },
+    ]
+    expect({ dirty: editor.isDirty(1), synced: editor.syncedWithCommitted(1) }).toEqual({
+      dirty: false,
+      synced: true,
+    })
+  })
+})

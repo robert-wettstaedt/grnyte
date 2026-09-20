@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { GradeBand } from '$lib/entities/grade/color'
   import type { TopoPoint } from '$lib/entities/topo/dto'
-  import type { TopoEditor } from '$lib/entities/topo/editor.svelte'
+  import type { PlacementIntent, TopoEditor } from '$lib/entities/topo/editor.svelte'
   import { buildLine } from '$lib/entities/topo/path'
   import { m } from '$lib/paraglide/messages'
   import type { ClassValue } from 'svelte/elements'
@@ -156,14 +156,29 @@
     editor.snapTolerance = snapToleranceFor(event.pointerType, k)
   }
 
-  // Placement (armed): press-drag-release. Already snapped, so the dot and lens show what commits.
-  let placing = $state<{ x: number; y: number }>()
+  // Placement (armed): press-drag-release. The raw finger position is what commits; the editor
+  // resolves it once, at release, so the preview cannot resolve it differently.
+  let placeAt = $state<{ x: number; y: number }>()
+
+  let placeIntent = $state<PlacementIntent>()
 
   let snapTarget = $state<TopoPoint>()
 
-  function resolveSnap(norm: { x: number; y: number }, excludeId?: string): { x: number; y: number } {
-    snapTarget = editor.snapTargetAt(norm.x, norm.y, excludeId == null ? [] : [excludeId])
-    return snapTarget ?? norm
+  // No provisional dot when release will select an existing point: drawing a point that will not
+  // exist is a lie. The ring already marks which point it is.
+  const placing = $derived(placeIntent?.kind === 'place' ? { x: placeIntent.x, y: placeIntent.y } : undefined)
+
+  /** Preview a placement through the editor, which owns what a release at this position means. */
+  function preview(clientX: number, clientY: number): boolean {
+    const norm = toNorm(clientX, clientY)
+    if (norm == null) return false
+    const intent = editor.placementIntentAt(norm.x, norm.y)
+    placeAt = norm
+    placeIntent = intent
+    snapTarget = intent?.kind === 'select' ? intent.point : intent?.snapped
+    // The lens centres on what the release does: the point being selected, or where a point lands.
+    showLens(clientX, clientY, intent?.kind === 'select' ? intent.point : intent)
+    return true
   }
 
   type Drag =
@@ -187,11 +202,8 @@
     // In arm mode a press starts placement, never a pan.
     event.stopPropagation()
     beginGesture(event)
-    const norm = toNorm(event.clientX, event.clientY)
-    if (norm == null) return
-    placing = resolveSnap(norm)
+    if (!preview(event.clientX, event.clientY)) return
     drag = { kind: 'place' }
-    showLens(event.clientX, event.clientY, placing)
     svgEl?.setPointerCapture?.(event.pointerId)
   }
 
@@ -236,9 +248,7 @@
   function onPointerMove(event: PointerEvent) {
     if (drag == null) return
     if (drag.kind === 'place') {
-      const norm = toNorm(event.clientX, event.clientY)
-      if (norm != null) placing = resolveSnap(norm)
-      showLens(event.clientX, event.clientY, placing)
+      preview(event.clientX, event.clientY)
     } else if (drag.kind === 'point') {
       if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > TAP_SLOP) drag.moved = true
       const norm = toNorm(event.clientX, event.clientY)
@@ -258,8 +268,11 @@
 
   function onPointerUp() {
     if (drag == null) return
-    if (drag.kind === 'place' && placing != null) {
-      editor.place(placing.x, placing.y)
+    if (drag.kind === 'place' && placeAt != null) {
+      // Keyed on what `place` DID, never on the preview: it resolves again at commit, and a line
+      // syncing in between flips the answer. Selecting disarms, so a missed swallow lets this
+      // gesture's own trailing click reach `onSurfaceClick` and deselect the whole line.
+      if (editor.place(placeAt.x, placeAt.y) === 'select') swallowNextClick = true
     } else if (drag.kind === 'point' && !drag.moved) {
       // A tap on a handle (no drag) selects it; delete lives in the card.
       editor.selectPoint(drag.pointId)
@@ -279,7 +292,8 @@
 
   function endGesture() {
     drag = undefined
-    placing = undefined
+    placeAt = undefined
+    placeIntent = undefined
     snapTarget = undefined
     lens = undefined
   }

@@ -10,6 +10,10 @@ export interface EditLine {
   topType: 'top' | 'topout'
 }
 
+/** What a release at a position would do while armed: place a point, or select one already there. */
+export type PlacementIntent =
+  { kind: 'place'; snapped: TopoPoint | undefined; x: number; y: number } | { kind: 'select'; point: TopoPoint }
+
 /** Which kind of point the next surface tap places (undefined = not placing). */
 export type PointType = 'middle' | 'start' | 'top'
 
@@ -39,7 +43,7 @@ const signature = (lines: EditLine[]): string =>
   [...lines]
     .filter((line) => line.points.length > 0)
     .sort((a, b) => a.routeFk - b.routeFk)
-    .map((line) => `${line.routeFk}:${line.topType}:${serializePoints(line.points)}`)
+    .map((line) => `${line.routeFk}:${line.topType}:${serializePoints(dropAdjacentRepeats(line.points))}`)
     .join('|')
 
 /**
@@ -187,7 +191,10 @@ export class TopoEditor {
   /** Move a point during a drag: no undo snapshot (call `beginStroke` at drag start).
    *  Returns the point it snapped onto, so the stage need not scan again to draw the ring. */
   dragPoint(pointId: string, x: number, y: number): TopoPoint | undefined {
-    const target = this.snapTargetAt(x, y, [pointId])
+    // Snapping shares a hold BETWEEN lines, so the dragged point's whole line is excluded: two
+    // points of one line never sit on the same hold, adjacent (a collapsed segment) or not.
+    const own = this.currentLines.find((l) => l.points.some((p) => p.id === pointId))
+    const target = this.snapTargetAt(x, y, own?.points.map((p) => p.id) ?? [pointId])
     const sx = target?.x ?? x
     const sy = target?.y ?? y
     this.#apply((lines) => {
@@ -278,14 +285,39 @@ export class TopoEditor {
 
   // --- selection ----------------------------------------------------------
 
-  /** Place a point of the armed kind on the current line at (x, y) in normalized 0-1 space. */
-  place(x: number, y: number): void {
-    if (this.pointType == null || this.selectedRouteFk == null) return
-    const [sx, sy] = this.#snap(x, y)
+  /** Place a point of the armed kind on the current line at (x, y) in normalized 0-1 space.
+   *  Returns what the press resolved to: the caller must not re-derive it, because this resolves
+   *  again at commit and a line syncing in mid-gesture can flip the answer under a stale preview. */
+  place(x: number, y: number): 'place' | 'select' | undefined {
+    const intent = this.placementIntentAt(x, y)
+    if (intent == null) return undefined
+    if (intent.kind === 'select') {
+      this.selectPoint(intent.point.id)
+      return 'select'
+    }
+    const type = this.pointType!
     this.#apply((lines) => {
       const line = lines.find((l) => l.routeFk === this.selectedRouteFk)
-      if (line != null) insertByType(line, { id: uid(), type: this.pointType!, x: sx, y: sy })
+      if (line != null) insertByType(line, { id: uid(), type, x: intent.x, y: intent.y })
     })
+    return 'place'
+  }
+
+  /**
+   * What a release at (x, y) would do while armed. Both the stage's preview and {@link place} read
+   * it, so what the finger is shown and what commits cannot disagree: previewing with its own rule
+   * and then committing those coordinates is how the snap exclusion came to be a no-op through the
+   * UI.
+   *
+   * A point of the current line under the finger selects rather than places: a line never puts two
+   * points on one hold. Other lines still place, which is how two routes share a hold.
+   */
+  placementIntentAt(x: number, y: number): PlacementIntent | undefined {
+    if (this.pointType == null || this.selectedRouteFk == null) return undefined
+    const own = nearestWithin(this.currentLine?.points ?? [], x, y, this.snapTolerance)
+    if (own != null) return { kind: 'select', point: own }
+    const snapped = this.snapTargetAt(x, y, this.currentLine?.points.map((point) => point.id) ?? [])
+    return { kind: 'place', snapped, x: snapped?.x ?? x, y: snapped?.y ?? y }
   }
 
   redo(): void {
@@ -334,16 +366,20 @@ export class TopoEditor {
   savedLinesFor(topoId: number): SavedLine[] {
     return this.lines(topoId)
       .filter((line) => line.points.length > 0)
-      .map((line) => ({ path: serializePoints(line.points), routeFk: line.routeFk, topType: line.topType }))
+      .map((line) => ({
+        path: serializePoints(dropAdjacentRepeats(line.points)),
+        routeFk: line.routeFk,
+        topType: line.topType,
+      }))
   }
+
+  // --- point editing ------------------------------------------------------
 
   /** Select a point handle (tap): its type and a delete action surface in the card. */
   selectPoint(pointId: string | undefined): void {
     this.selectedPointId = pointId
     this.pointType = undefined
   }
-
-  // --- point editing ------------------------------------------------------
 
   selectRoute(routeFk: number | undefined): void {
     this.selectedRouteFk = routeFk
@@ -358,25 +394,11 @@ export class TopoEditor {
     })
   }
 
-  /** The point a placement at (x, y) would snap onto. Public so the stage can preview the snap. */
   snapTargetAt(x: number, y: number, excludeIds: readonly string[] = []): TopoPoint | undefined {
-    const { x: toleranceX, y: toleranceY } = this.snapTolerance
-    if (!(toleranceX > 0) || !(toleranceY > 0)) return undefined
-
-    let best: TopoPoint | undefined
-    // Distance in tolerance units, so 1 is the catchment edge on both axes.
-    let bestDist = 1
-    for (const line of this.currentLines) {
-      for (const point of line.points) {
-        if (excludeIds.includes(point.id)) continue
-        const dist = Math.hypot((point.x - x) / toleranceX, (point.y - y) / toleranceY)
-        if (dist < bestDist) {
-          bestDist = dist
-          best = point
-        }
-      }
-    }
-    return best
+    const candidates = this.currentLines
+      .flatMap((line) => line.points)
+      .filter((point) => !excludeIds.includes(point.id))
+    return nearestWithin(candidates, x, y, this.snapTolerance)
   }
 
   /** True once the committed lines have caught up to what was saved: safe to drop the local doc. */
@@ -422,33 +444,87 @@ export class TopoEditor {
     }
   }
 
+  // --- save ---------------------------------------------------------------
+
   #pushUndo(topoId: number, snapshot: EditLine[] = cloneLines(this.lines(topoId))): void {
     this.#past.set(topoId, [...(this.#past.get(topoId) ?? []), snapshot])
     this.#future.set(topoId, [])
     this.#pendingSnapshot = undefined
   }
 
-  // --- save ---------------------------------------------------------------
-
-  /** Snap to the nearest point of any line within the tolerance (excluding the ids given). */
   #snap(x: number, y: number, excludeIds: readonly string[] = []): [number, number] {
     const target = this.snapTargetAt(x, y, excludeIds)
     return target == null ? [x, y] : [target.x, target.y]
   }
 }
 
+/**
+ * Drop a point that sits exactly on the one before it. A zero-length segment gives the renderer's
+ * spline a direction of nothing, and the editor's own snap can make one: it exists to SHARE a hold
+ * between lines and nothing scoped it to other lines. The snap exclusions above stop the paths we
+ * know about; this is the backstop for the ones we do not.
+ *
+ * A run keeps its most terminal point, top over start over waypoint, so collapsing one never costs
+ * the line its `Z`: keeping the FIRST non-waypoint dropped the top when a start came first, leaving
+ * a path with no top beside a `topType` that still said topout. A start lost that way is the lesser
+ * harm, since the line is degenerate either way once two of its points share a coordinate.
+ *
+ * Non-adjacent repeats are left alone: returning to a hold you already used is a real move.
+ */
+const TERMINAL_RANK: Record<TopoPoint['type'], number> = { middle: 0, start: 1, top: 2 }
+
+function dropAdjacentRepeats(points: TopoPoint[]): TopoPoint[] {
+  const kept: TopoPoint[] = []
+  for (const point of points) {
+    const previous = kept[kept.length - 1]
+    if (previous != null && previous.x === point.x && previous.y === point.y) {
+      if (TERMINAL_RANK[point.type] > TERMINAL_RANK[previous.type]) kept[kept.length - 1] = point
+      continue
+    }
+    kept.push(point)
+  }
+  return kept
+}
+
 /** Place a new point into a line keeping the invariant [starts…, middles…, top?] and the count caps. */
 function insertByType(line: EditLine, point: TopoPoint): void {
-  if (point.type === 'start') {
-    const starts = line.points.filter((p) => p.type === 'start').length
-    if (starts >= MAX_STARTS) return
-    line.points.splice(starts, 0, point)
-  } else if (point.type === 'top') {
-    const index = line.points.findIndex((p) => p.type === 'top')
-    if (index >= 0) line.points[index] = point
-    else line.points.push(point)
-  } else {
-    const topIndex = line.points.findIndex((p) => p.type === 'top')
-    line.points.splice(topIndex >= 0 ? topIndex : line.points.length, 0, point)
+  if (point.type === 'start' && line.points.filter((p) => p.type === 'start').length >= MAX_STARTS) {
+    return
   }
+  const at = insertionIndex(line, point.type)
+  if (point.type === 'top' && line.points.some((p) => p.type === 'top')) {
+    line.points[at] = point
+    return
+  }
+  line.points.splice(at, 0, point)
+}
+
+/** Where {@link insertByType} will put a point of this type. */
+function insertionIndex(line: EditLine, type: TopoPoint['type']): number {
+  if (type === 'start') {
+    return line.points.filter((p) => p.type === 'start').length
+  }
+  const topIndex = line.points.findIndex((p) => p.type === 'top')
+  return topIndex >= 0 ? topIndex : line.points.length
+}
+
+/** Nearest point inside the catchment. Distance is in tolerance units, so 1 is the edge on both
+ *  axes and the catchment is a circle on screen rather than an ellipse. */
+function nearestWithin(
+  points: readonly TopoPoint[],
+  x: number,
+  y: number,
+  tolerance: { x: number; y: number },
+): TopoPoint | undefined {
+  if (!(tolerance.x > 0) || !(tolerance.y > 0)) return undefined
+  let best: TopoPoint | undefined
+  let bestDist = 1
+  for (const point of points) {
+    const dist = Math.hypot((point.x - x) / tolerance.x, (point.y - y) / tolerance.y)
+    if (dist < bestDist) {
+      bestDist = dist
+      best = point
+    }
+  }
+  return best
 }
