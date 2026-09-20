@@ -159,20 +159,20 @@ the 2938 ms without an architectural change.
 Runs with group 9, since it is how 9's fix is judged on real hardware. Temporary instrumentation for
 a gate decision, so it is written to be removed in one commit. Nothing leaves the device.
 
-- [ ] 11.1 Add a capped ring buffer in `localStorage` recording only resumes that needed a
+- [x] 11.1 Add a capped ring buffer in `localStorage` recording only resumes that needed a
       reconnect, with the append and eviction as a pure function, and verify with a unit test that
       the cap holds and the oldest entry is the one dropped
-- [ ] 11.2 Record an entry from the reconnect path added in group 9, so a resume that did NOT need
+- [x] 11.2 Record an entry from the reconnect path added in group 9, so a resume that did NOT need
       one writes nothing, and verify by driving the app that a healthy resume leaves the buffer
       untouched while a killed socket adds exactly one entry
-- [ ] 11.3 Handle `localStorage` being unavailable or throwing (private windows, blocked site data)
+- [x] 11.3 Handle `localStorage` being unavailable or throwing (private windows, blocked site data)
       so a diagnostic can never break the app, and verify with a unit test that a throwing store is
       swallowed
-- [ ] 11.4 Add a "this device" section to `src/routes/(app)/settings/errors/+page.svelte` rendering
+- [x] 11.4 Add a "this device" section to `src/routes/(app)/settings/errors/+page.svelte` rendering
       the buffer newest first with a clear action, and verify by driving the page at BOTH 375x667
       and 1280x800 that it reads correctly and that an empty buffer renders an empty state rather
       than a blank panel
-- [ ] 11.5 Add the section's copy to BOTH `messages/en.json` and `messages/de.json`, sorted and
+- [x] 11.5 Add the section's copy to BOTH `messages/en.json` and `messages/de.json`, sorted and
       under one domain prefix, and verify no key exists in only one file
-- [ ] 11.6 Record the removal trip-wire in the change notes: what to delete, and that it goes once
+- [x] 11.6 Record the removal trip-wire in the change notes: what to delete, and that it goes once
       the gate in 4.3 is decided, verified by the note naming the files rather than describing them
