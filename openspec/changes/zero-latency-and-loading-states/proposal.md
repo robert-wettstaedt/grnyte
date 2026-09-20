@@ -109,6 +109,13 @@ unrelated.
   The admin alerter mails every unalerted row, so it would need its own exclusion. And it would be
   the first behavioral telemetry in an app that has no opt-out mechanism, which is a product
   decision and not an implementation detail. Revisit only if one device's data proves insufficient.
+- **Releasing queries when a component goes.** Nothing de-registers a query within a page's life, so
+  a session accumulates the union of every query it has run. Deferred rather than fixed: the same
+  root cause was investigated under `memlab/`, the fix was measured with a full 2x2 and reverted
+  (`9a0ba6f4`, `a68586b9`) because it costs about 6 MB per navigation. That trade was decided on
+  memory alone, before anything was known about what an unreleased query costs in registrations and
+  rows pinned. See design.md for the trigger to reopen it, and note it makes step 4 a no-op until it
+  lands.
 - **Cursor paging for the feed.** The growing window was chosen deliberately and is rarely grown.
 - **A write-side optimistic primitive.** Zero has processed zero mutations ever, by design, so there
   is no acknowledgement to await and roughly 14 sites compensate in eight hand-rolled ways. That is

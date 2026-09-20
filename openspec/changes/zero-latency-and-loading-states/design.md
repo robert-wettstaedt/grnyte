@@ -77,6 +77,40 @@ Rejected alternatives:
 - **Doing nothing and covering it with a loading state.** Impossible. Nothing in the app can detect
   the condition; see the last Context bullet.
 
+### Deferred: queries are never released within a page's life
+
+Measured in dev with real in-app navigation, not inferred. A fresh `/feed` registers 11 queries and
+none of the unbounded map ones. `/explore` adds four. Returning to `/feed` keeps all four, for over a
+minute, with the map's DOM entirely gone. Walking feed, profile, feed, explore, feed, profile the
+count goes 15, 23, 23, 23, 23, 23: it grows to the union of everywhere the session has been and never
+shrinks. Task 10 assumed these were registered BY the feed. They are not.
+
+Mechanism: `createResource` builds a zero-svelte `Query` inside a `$derived` and calls
+`view.ensureSubscribed()`. Nothing is paired to it. `Query.destroy()` exists and is never called on a
+resource's query, so the subscription outlives the component, and re-deriving on an argument change
+abandons the previous Query still subscribed.
+
+**Deferred rather than fixed, because it has already been tried.** `memlab/` settled the same root
+cause with a full 2x2 and reverted it in `9a0ba6f4` and `a68586b9`: closing the roots clears the
+detached cluster but costs about 6 MB per navigation, against a 3.6 MB one-time cluster. The reason
+it costs that is the same reason it would help here. The teardown drops the shared ViewWrapper's last
+subscriber, so the next visit re-materializes the whole query, which IS the de-registration this
+change wants. That trade was decided on memory before anything was known about what an unreleased
+query costs in registrations, rows pinned per client group, or server hydration. Reopening it needs
+that second axis measured, not a new idea about memory.
+
+Two consequences for the plan, both recorded rather than acted on:
+
+- **`maxRecentQueries` cannot do anything while nothing de-registers.** It evicts queries that have
+  been released. Step 4 is gated on this in tasks.md so a null result is not read as "the lever did
+  not help".
+- **C's roughly 920 ms of non-server time may be leaked registrations rather than distance to the
+  client view records.** That would weaken the case for step 3, which was argued before this was
+  known. Not asserted: it needs the numbers from step 3 to separate the two.
+
+Upstream defect either way: zero-svelte's `Query` constructor opens a detached `$effect.root` that
+captures the current component context, and closing it also dematerializes the view.
+
 ### Record resume diagnostics on the device, not on the server
 
 A resume that needed a reconnect is appended to a small capped ring in `localStorage`, and
