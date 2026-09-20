@@ -1,7 +1,7 @@
 import { dev } from '$app/environment'
 import { PUBLIC_ZERO_URL } from '$env/static/public'
 import { isFieldDevice } from '$lib/state/device.svelte'
-import { reportConnectionState } from '$lib/state/online.svelte'
+import { reportConnectionState, setPingTightenHandler } from '$lib/state/online.svelte'
 import { forgetSynced, markSynced, trackSyncFor } from '$lib/state/sync.svelte'
 import type { Session } from '@supabase/supabase-js'
 import { Z } from 'zero-svelte'
@@ -74,6 +74,12 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   // is written level-triggered, so two live clients flapping out of step would fight over it.
   connectionUnsubscribe?.()
   connectionUnsubscribe = z.connection.state.subscribe(reportConnectionState)
+
+  // Zero takes 2x `pingTimeoutMs` to notice a socket that died while the app was backgrounded, which
+  // on its default is ten seconds of rendering stale rows while reporting `connected`. Nothing in
+  // this app can see that state, so the only lever is making Zero look sooner, and only where a
+  // just-answered probe makes a short pong deadline safe. See `shouldTightenPing`.
+  setPingTightenHandler(() => tightenPing(z))
 
   if (session != null) {
     // Eagerly sync app-wide reference data and the signed-in user into the
@@ -311,6 +317,41 @@ function preloadForOffline(z: Z<Schema>): void {
  * throwaway client `createColdZero` hands to the benchmark cannot drift from
  * the real one and quietly measure a different configuration.
  */
+/** Detection is 2x this, so a resume settles in ~4s rather than the ~10s Zero's default gives. */
+const RESUME_PING_TIMEOUT_MS = 2_000
+
+/** Long enough to cover detection plus a reconnect, short enough never to be the steady state. */
+const TIGHT_PING_WINDOW_MS = 30_000
+
+let restorePingTimer: null | ReturnType<typeof setTimeout> = null
+let pingTimeoutBeforeTightening = 0
+
+/**
+ * Shorten Zero's ping cycle for one window after a resume, then put it back.
+ *
+ * Restores the value that was there rather than a literal, so Zero's default stays Zero's to choose.
+ * A window rather than waiting for a reconnect, because the healthy case never reconnects: the ping
+ * goes out early, the pong comes back, and nothing else happens.
+ */
+function tightenPing(z: Z<Schema>): void {
+  // `current` is deprecated, and is still the only route: zero-svelte forwards neither
+  // `pingTimeoutMs` nor `ttl` from the client it wraps. Typed, so losing either fails the build.
+  const client = z.current
+
+  if (restorePingTimer == null) {
+    pingTimeoutBeforeTightening = client.pingTimeoutMs
+  } else {
+    clearTimeout(restorePingTimer)
+  }
+
+  client.pingTimeoutMs = RESUME_PING_TIMEOUT_MS
+
+  restorePingTimer = setTimeout(() => {
+    restorePingTimer = null
+    client.pingTimeoutMs = pingTimeoutBeforeTightening
+  }, TIGHT_PING_WINDOW_MS)
+}
+
 function zeroOptions(session: null | Session | undefined, storageKey?: string) {
   return {
     auth: session?.access_token,

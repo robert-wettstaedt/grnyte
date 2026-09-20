@@ -73,6 +73,7 @@ let timer: null | ReturnType<typeof setTimeout> = null
 let unconfirmed = false
 let probeGeneration = 0
 let lastResumeAt = 0
+let tightenPingHandler: (() => void) | undefined
 let retryTimer: null | ReturnType<typeof setTimeout> = null
 let retryStep = 0
 
@@ -185,6 +186,33 @@ export function reportConnectionState(state: { name: string }): void {
   applyConnectionState(state.name)
 }
 
+/**
+ * Where `initZero` hands in the tightening. A call rather than an import, because this module is
+ * imported BY the Zero client wiring and the reverse would be a cycle.
+ */
+export function setPingTightenHandler(handler: (() => void) | undefined): void {
+  tightenPingHandler = handler
+}
+
+/**
+ * Whether Zero's ping cycle is worth tightening, as a function of its inputs and nothing else.
+ *
+ * NOT a claim that the socket is dead. A live socket and one that died while the app was away look
+ * identical from here, and that is the whole problem: Zero reports `connected` either way until its
+ * own ping cycle proves otherwise. This says something weaker and sufficient. The network answered,
+ * so a short pong deadline cannot be misread as a bad link, and `connected` is the one state Zero
+ * pings in at all, so tightening anywhere else does nothing.
+ *
+ * Tightening a live connection costs one early ping. Not tightening a dead one costs ten seconds.
+ */
+export function shouldTightenPing(input: {
+  connectionState: string | undefined
+  networkAnswered: boolean
+  resumed: boolean
+}): boolean {
+  return input.resumed && input.networkAnswered && input.connectionState === 'connected'
+}
+
 /** The half a replay runs too. `unconfirmed` is what stops a frozen state writing the flags true. */
 function applyConnectionState(name: string): void {
   const verdict = connectionVerdict(name)
@@ -281,6 +309,9 @@ async function probeReachability(): Promise<void> {
       return
     }
 
+    // Read before it is cleared: this probe answering is the only evidence that the document woke.
+    const resumed = unconfirmed
+
     unconfirmed = false
     // The network answered; if `reachable` stays false below, that is the sync and only Zero clears it.
     clearRetry()
@@ -289,6 +320,10 @@ async function probeReachability(): Promise<void> {
     // client never reports at all. Any other state is a sync problem, which stays offline on purpose.
     if (currentConnectionState == null || provenByConnection()) {
       reachable = true
+    }
+
+    if (shouldTightenPing({ connectionState: currentConnectionState, networkAnswered: true, resumed })) {
+      tightenPingHandler?.()
     }
   } catch {
     if (generation !== probeGeneration) {
