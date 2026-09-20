@@ -3,8 +3,8 @@
   import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import type { IconName } from '$lib/components/Icon/icons'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import { mergeMapLayers } from '$lib/entities/region/settings'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'
@@ -23,6 +23,7 @@
   import {
     buildAreaFeatures,
     buildBlockFeatures,
+    buildLayerEntries,
     buildParkingFeatures,
     buildPathFeatures,
     buildSectorFeatures,
@@ -34,7 +35,7 @@
     createSectorLayer,
     createWmsLayers,
   } from './layers.svelte'
-  import { BLOCK_LABEL_ZOOM, type BlocksMapProps, type LayerEntry } from './types'
+  import { BLOCK_LABEL_ZOOM, MARKERS_LAYER_KEY, type BlocksMapProps, type LayerEntry } from './types'
 
   const props: BlocksMapProps = $props()
 
@@ -155,10 +156,10 @@
     const parking = createParkingLayer()
     const path = createPathLayer()
 
-    const markersLabel = m.map_markers()
     const dataLayers = [area, sector, block, parking, path]
     for (const layer of dataLayers) {
-      layer.set('layerName', markersLabel)
+      layer.set('layerName', m.map_markers())
+      layer.set('layerKey', MARKERS_LAYER_KEY)
       // Apply the current toggle state without depending on it (toggling handles the
       // live layers directly).
       layer.setVisible(untrack(() => markersVisible))
@@ -179,25 +180,7 @@
     pathLayer = path
 
     // Toggle panel: the base layers (OSM + WMS) plus the single "Markers" group.
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local dedupe, not reactive state
-    const seenLayers = new Set<string>()
-    layerEntries = mapInstance
-      .getLayers()
-      .getArray()
-      .map((layer) => {
-        const layerName = layer.get('layerName') as string
-        return {
-          icon: getLayerIcon(layerName, markersLabel),
-          label: layerName,
-          name: layerName,
-          visible: layer.getVisible(),
-        }
-      })
-      .filter((entry) => {
-        if (entry.name == null || seenLayers.has(entry.name)) return false
-        seenLayers.add(entry.name)
-        return true
-      })
+    layerEntries = buildLayerEntries(mapInstance.getLayers().getArray())
 
     return () => {
       for (const layer of dataLayers) {
@@ -297,20 +280,20 @@
     if (zoom != null) view.animate({ duration: 200, zoom: zoom - 1 })
   }
 
-  const handleToggleLayer = (name: string) => {
+  const handleToggleLayer = (key: string) => {
     if (map == null) return
     const layers = map
       .getLayers()
       .getArray()
-      .filter((l) => l.get('layerName') === name)
+      .filter((l) => l.get('layerKey') === key)
     if (layers.length === 0) return
 
     const newVisible = !layers[0].getVisible()
     layers.forEach((layer) => layer.setVisible(newVisible))
-    if (name === m.map_markers()) {
+    if (key === MARKERS_LAYER_KEY) {
       markersVisible = newVisible
     }
-    layerEntries = layerEntries.map((entry) => (entry.name === name ? { ...entry, visible: newVisible } : entry))
+    layerEntries = layerEntries.map((entry) => (entry.key === key ? { ...entry, visible: newVisible } : entry))
   }
 
   // The fill alone is near-white in light mode and vanishes over a pale tile.
@@ -320,8 +303,8 @@
   // lands. Every layer the regions define, not only the drawn ones: over-crediting is the safe
   // direction for a licence. Parsed, never `{@html}`: these are region-admin input.
   const creditStrings = $derived(
-    global.userRegions
-      .flatMap((region) => region.settings.mapLayers.flatMap((layer) => layer.attributions ?? []))
+    mergeMapLayers(global.userRegions.flatMap((region) => region.settings.mapLayers))
+      .flatMap((layer) => layer.attributions ?? [])
       .filter((credit, index, all) => all.indexOf(credit) === index),
   )
 
@@ -330,17 +313,6 @@
   const regionCredits = $derived(
     !browser || !isAttributionOpen ? [] : creditStrings.map((credit) => ({ credit, parts: parseCredit(credit) })),
   )
-
-  const getLayerIcon = (layerName: string, markersLabel: string): IconName => {
-    const normalizedLayerName = layerName.trim().toLowerCase()
-    if (normalizedLayerName === 'osm' || normalizedLayerName === 'openstreetmap') {
-      return 'map'
-    }
-    if (layerName === markersLabel) {
-      return 'map-pin'
-    }
-    return 'layers'
-  }
 
   const mapAttachment: Attachment = (node) => {
     // Everything here is read untracked so the attachment has NO reactive dependencies and
@@ -577,13 +549,13 @@
         {/snippet}
 
         <div class="mt-4 flex flex-wrap justify-around gap-2">
-          {#each layerEntries as entry (entry.name)}
+          {#each layerEntries as entry (entry.key)}
             <button
               type="button"
               aria-label={entry.label}
               aria-pressed={entry.visible}
               class="flex w-25 flex-col items-center justify-center gap-1"
-              onclick={() => handleToggleLayer(entry.name)}
+              onclick={() => handleToggleLayer(entry.key)}
             >
               <div
                 class={[
@@ -597,11 +569,14 @@
                   class={['transition-colors', !entry.visible && 'text-surface-500/30']}
                 />
               </div>
+              <!-- A layer several regions name differently reads as "A / B", so the full text has
+                   to stay reachable where there is a pointer to hover with. -->
               <span
                 class={[
                   'w-25 truncate overflow-hidden text-xs text-ellipsis transition-colors',
                   entry.visible ? 'text-primary-500' : 'text-surface-500',
                 ]}
+                title={entry.label}
               >
                 {entry.label}
               </span>

@@ -56,6 +56,21 @@ export function emptyRegionSettings(): RegionSettings {
   return regionSettingsSchema.parse({})
 }
 
+/**
+ * What makes two stored overlays the same one: the endpoint plus the parameters that select the
+ * layer. One endpoint commonly serves several layers through `LAYERS`, so the URL alone would hide
+ * one of them.
+ *
+ * Deliberately not `fingerprint`: this is a grouping key, never stored and never posted, so it
+ * carries none of that function's forever-compatibility duty.
+ */
+export function mapLayerKey(layer: MapLayer): string {
+  // Plain comparison, not `localeCompare`, for the reason `fingerprint` gives.
+  const params = Object.entries(layer.params ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+
+  return JSON.stringify([layer.url, params])
+}
+
 /** A fingerprint of the layers a form loaded, so a save proves what it replaces. A count cannot:
  *  a delete plus an add leaves it unchanged. Order and content both matter. */
 export function mapLayersFingerprint(layers: MapLayer[]): string {
@@ -73,6 +88,31 @@ export function mapLayersFingerprint(layers: MapLayer[]): string {
   )
 
   return `${layers.length}-${fingerprint(canonical)}`
+}
+
+/**
+ * Layers from every region the user belongs to, with an overlay stored in more than one region
+ * collapsed into one. Drawing it twice means double the tile requests and a compounded opacity.
+ *
+ * Merged most-permissive, so nobody loses visibility they had in a region on its own. Order is
+ * each group's FIRST occurrence: a member of two regions then sees the earlier region's stacking
+ * unchanged.
+ */
+export function mergeMapLayers(layers: MapLayer[]): MapLayer[] {
+  const groups = new Map<string, MapLayer[]>()
+
+  for (const layer of layers) {
+    const key = mapLayerKey(layer)
+    const group = groups.get(key)
+
+    if (group == null) {
+      groups.set(key, [layer])
+    } else {
+      group.push(layer)
+    }
+  }
+
+  return [...groups.values()].map(mergeLayerGroup)
 }
 
 /**
@@ -235,5 +275,63 @@ export function toLayerForm(layer: MapLayer): z.input<typeof mapLayerSchema> {
     name: layer.name,
     opacity: layer.opacity == null ? '' : String(layer.opacity),
     url: formatWmsUrl(layer.params ?? {}, layer.url),
+  }
+}
+
+/** A credit only one of the duplicates carries still has to show: over-crediting is the safe
+ *  direction for a licence. */
+function mergedAttributions(group: MapLayer[]): null | string[] {
+  const credits = [...new Set(group.flatMap((layer) => layer.attributions ?? []))]
+
+  return credits.length === 0 ? null : credits
+}
+
+/** Absent reaches OpenLayers as `undefined`: no zoom floor, full opacity. So it is the most
+ *  permissive value and wins outright rather than sorting as a number. */
+function mergedBound(values: (null | number | undefined)[], pick: (...numbers: number[]) => number): null | number {
+  const set = values.filter((value) => value != null)
+
+  return set.length === values.length ? pick(...set) : null
+}
+
+/** Compared trimmed and case-insensitively, because admins type these by hand and a stray capital
+ *  would otherwise read as a second layer. The first region's spelling is the one kept. */
+function mergedName(group: MapLayer[]): string {
+  const names: string[] = []
+  const seen = new Set<string>()
+
+  for (const { name } of group) {
+    const normalized = name.trim().toLowerCase()
+
+    if (!seen.has(normalized)) {
+      seen.add(normalized)
+      names.push(name)
+    }
+  }
+
+  return names.join(' / ')
+}
+
+function mergeLayerGroup(group: MapLayer[]): MapLayer {
+  const [first] = group
+
+  if (group.length === 1) {
+    return first
+  }
+
+  return {
+    attributions: mergedAttributions(group),
+    minZoom: mergedBound(
+      group.map((layer) => layer.minZoom),
+      Math.min,
+    ),
+    name: mergedName(group),
+    opacity: mergedBound(
+      group.map((layer) => layer.opacity),
+      Math.max,
+    ),
+    params: first.params,
+    type: 'wms',
+    url: first.url,
   }
 }
