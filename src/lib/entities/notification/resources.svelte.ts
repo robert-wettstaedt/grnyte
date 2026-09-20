@@ -34,7 +34,16 @@ export function notificationList(
   )
 }
 
-/** The unread rows, capped. Feeds the bell, the tab dot and the OS badge from one query. */
+/**
+ * The unread count, capped. Feeds the bell, the tab dot and the OS badge from one query.
+ *
+ * Its own relation-free query: every consumer reads `.data.length` and nothing else, and the inbox
+ * query drags ten related trees (the whole route tree, block to topos to file) that a number cannot
+ * use. Those rows are charged to this client group whether or not anything renders them.
+ */
 export function unreadNotificationList() {
-  return notificationList(() => ({ limit: UNREAD_CAP + 1, unreadOnly: true }))
+  return createResource(
+    () => queries.countUnreadNotifications({ limit: UNREAD_CAP + 1 }),
+    (rows) => rows,
+  )
 }

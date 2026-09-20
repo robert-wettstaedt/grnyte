@@ -81,6 +81,10 @@ export function entityHref(item: EntityItem): string {
 const GROUP_ORDER: EntityType[] = ['users', 'areas', 'blocks', 'routes']
 const PER_GROUP_LIMIT = 6
 
+// The query text is a query ARGUMENT, so every distinct value is its own server registration and
+// its own CVR write. Undebounced, one typed word costs four registrations per character.
+const QUERY_DEBOUNCE_MS = 200
+
 interface EntitySearchOptions {
   /** Per-type row cap pushed into each query as a `limit`; defaults to {@link PER_GROUP_LIMIT}. */
   limit?: number
@@ -97,10 +101,36 @@ interface EntitySearchOptions {
   /** Regions to search users within; empty hides the People group. */
   regionFks: () => number[]
 }
+
 interface UserRow {
   id: number
   regionMemberships?: readonly { regionFk: number }[] | undefined
   username: string
+}
+/**
+ * The query text, settled. Clearing applies at once so a reopened picker never registers the
+ * previous term; typing waits, because only the value that is still there is worth a round trip.
+ *
+ * No leading edge: the queries register during render and this lands a tick later, so publishing
+ * the first character early adds a term rather than replacing the empty one. Measured, not assumed.
+ */
+export function debouncedQuery(query: () => string, ms: number): () => string {
+  let settled = $state(query())
+
+  // Deliberately never reads `settled`, so writing it cannot re-trigger this effect.
+  $effect(() => {
+    const next = query()
+
+    if (next === '') {
+      settled = ''
+      return
+    }
+
+    const timer = setTimeout(() => (settled = next), ms)
+    return () => clearTimeout(timer)
+  })
+
+  return () => settled
 }
 
 /**
@@ -182,37 +212,41 @@ export function entityMappers(regionCrumb?: (regionFk: number) => DisplayName | 
 
 /**
  * Reactive entity search. The search term and a per-type `limit` are pushed
- * **into** the Zero queries (`content` ILIKE + `limit`), so each keystroke
+ * **into** the Zero queries (`content` ILIKE + `limit`), so a search
  * materialises at most `PER_GROUP_LIMIT` rows per type rather than the whole
- * region, no client-side scan. Queries are gated on `open`, so nothing runs
+ * region, no client-side scan. The term is debounced first, because it is a query
+ * argument and each distinct value registers its own query. Queries are gated on `open`, so nothing runs
  * (and `users` never syncs over the network) until the caller opts in.
  */
 export function entitySearch({ limit, open, query, regionCrumb, regionFks }: EntitySearchOptions) {
   const perGroup = limit ?? PER_GROUP_LIMIT
   const map = entityMappers(regionCrumb)
+  const settled = debouncedQuery(query, QUERY_DEBOUNCE_MS)
+
+  const ready = () => searchReady(open(), query(), settled())
 
   const areas = createResource(
-    () => queries.listAreas({ content: query(), limit: perGroup }),
+    () => queries.listAreas({ content: settled(), limit: perGroup }),
     (rows): EntityCandidate[] => rows.map(map.areas),
-    { enabled: open },
+    { enabled: ready },
   )
 
   const blocks = createResource(
-    () => queries.listBlocks({ content: query(), limit: perGroup }),
+    () => queries.listBlocks({ content: settled(), limit: perGroup }),
     (rows): EntityCandidate[] => rows.map(map.blocks),
-    { enabled: open },
+    { enabled: ready },
   )
 
   const routes = createResource(
-    () => queries.listRoutes({ content: query(), pageSize: perGroup, sort: 'rating', sortOrder: 'desc' }),
+    () => queries.listRoutes({ content: settled(), pageSize: perGroup, sort: 'rating', sortOrder: 'desc' }),
     (rows): EntityCandidate[] => rows.map(map.routes),
-    { enabled: open },
+    { enabled: ready },
   )
 
   const users = createResource(
-    () => queries.listUsers({ content: query(), limit: perGroup, regionFks: regionFks() }),
+    () => queries.listUsers({ content: settled(), limit: perGroup, regionFks: regionFks() }),
     (rows): EntityCandidate[] => rows.map(map.users),
-    { enabled: () => open() && regionFks().length > 0 },
+    { enabled: () => ready() && regionFks().length > 0 },
   )
 
   const candidates = (): Record<EntityType, EntityCandidate[]> => ({
@@ -246,4 +280,15 @@ export function entitySearch({ limit, open, query, regionCrumb, regionFks }: Ent
       return candidates()[type].find((item) => item.id === numericId)?.label
     },
   }
+}
+
+/**
+ * Whether a search may register, as a function of its inputs and nothing else.
+ *
+ * The middle case is the whole point: a caller that opens on the first character (the search bar)
+ * arrives before the debounce does, and registering then costs a query for the empty term. A caller
+ * that opens with an empty box (the mention picker) means it, so that one still runs.
+ */
+export function searchReady(open: boolean, query: string, settled: string): boolean {
+  return open && (query === '' || settled !== '')
 }

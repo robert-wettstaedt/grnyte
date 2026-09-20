@@ -14,6 +14,28 @@ const QUEUE_ONLY = ['invitation_received', 'membership_removed'] as const
 
 export const notificationsQueryDefs = {
   /**
+   * The same unread rows with no related trees, because the badge only counts them.
+   *
+   * A separate definition rather than a flag on `listNotifications`, which is what `listRoutesForMap`
+   * did for the same reason: one query cannot return two row shapes without a union type at every
+   * call site. The inbox keeps the fat query.
+   */
+  countUnreadNotifications: defineQuery(
+    z.object({ limit: z.optional(z.number()) }),
+    authenticatedUserCan(({ args, ctx }) =>
+      relatedRegion(ctx)(
+        zql.notifications
+          .where('authUserFk', ctx.authUserId)
+          .where('sourceType', 'NOT IN', QUEUE_ONLY)
+          .where('readAt', 'IS', null)
+          .orderBy('createdAt', 'desc')
+          .orderBy('id', 'desc')
+          .limit(args.limit ?? DEFAULT_LIMIT),
+      ),
+    ),
+  ),
+
+  /**
    * The signed-in user's inbox, newest first.
    *
    * Own rows only, on top of the region gate every list carries: `notifications` sits in

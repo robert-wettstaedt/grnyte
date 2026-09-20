@@ -25,5 +25,6 @@ export function toposByBlockIds(blockIds: () => number[]) {
     // never mutated afterwards, so a SvelteMap would buy nothing.
     // eslint-disable-next-line svelte/prefer-svelte-reactivity
     (rows) => new Map(rows.flatMap(toTopoViews).map((view) => [view.id, view])),
+    { enabled: () => blockIds().length > 0 },
   )
 }
