@@ -213,6 +213,7 @@
               height={hit.view.imageHeight}
               alt={m.topo_alt()}
               highlightId={hit.line.id}
+              linesWithoutPhoto
               lines={hit.view.lines.map((line) => ({
                 band: getGradeBand(line.gradeFk),
                 id: line.id,

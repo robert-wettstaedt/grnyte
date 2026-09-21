@@ -1,9 +1,10 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import { imageSrc, type DerivativeSize } from '$lib/images/derivatives'
+  import { DERIVATIVE_SIZES, imageSrc, type DerivativeSize } from '$lib/images/derivatives'
   import { isOnline } from '$lib/state/online.svelte'
   import type { Snippet } from 'svelte'
   import type { ClassValue, HTMLImgAttributes } from 'svelte/elements'
+  import type { ImageFailure } from './failure'
 
   interface Props extends Omit<HTMLImgAttributes, 'alt' | 'class' | 'onerror' | 'onload' | 'src'> {
     /**
@@ -19,6 +20,8 @@
     class?: ClassValue
     /** Replaces the default failure placeholder (both error and offline). */
     error?: Snippet
+    /** Bound to why the placeholder is showing instead of the photo; undefined while it is not. */
+    failure?: ImageFailure
     /** How the photo fills the box (`object-fit`). A prop rather than an `imgClass`
      *  override because two object-* utilities on one element resolve by stylesheet
      *  order, not class order: cover silently won over a passed object-contain. */
@@ -43,6 +46,7 @@
     alt,
     class: className,
     error,
+    failure = $bindable<ImageFailure | undefined>(),
     fit = 'cover',
     imgClass,
     naturalHeight = $bindable(),
@@ -52,11 +56,38 @@
     ...rest
   }: Props = $props()
 
-  type Status = 'error' | 'loaded' | 'loading' | 'offline'
+  type Status = 'loaded' | 'loading' | ImageFailure
 
-  const src = $derived(imageSrc(path, previewWidth))
+  const SMALLEST = DERIVATIVE_SIZES[0]
+
+  // The path whose full-size request failed and is being retried at SMALLEST. Keyed on the path,
+  // not a flag, which would follow the reader to the next image as a permanent downgrade.
+  let steppedDown = $state<string | undefined>()
+  const src = $derived(imageSrc(path, steppedDown === path ? SMALLEST : previewWidth))
   let status = $state<Status>('loading')
-  const failed = $derived(status === 'error' || status === 'offline')
+
+  // One writer, so `failure` cannot drift from the status a new branch sets.
+  function setStatus(next: Status) {
+    status = next
+    failure = next === 'loaded' || next === 'loading' ? undefined : next
+  }
+
+  // A bound `failure` outlives this component (a `{#key path}` remount hands the next image the
+  // previous one's), and nothing else ever writes it before the first load settles.
+  setStatus('loading')
+
+  function onError() {
+    const online = isOnline()
+    // Offline, a list view has often cached the thumbnail of the photo the full size cannot reach,
+    // and a soft photograph beats a placeholder. Offline only: an online failure keeps the full size
+    // so the `online` retry can still fix it, rather than pinning the session to 256 in silence.
+    if (!online && previewWidth != null && previewWidth > SMALLEST && steppedDown !== path) {
+      steppedDown = path
+      return
+    }
+    setStatus(online ? 'error' : 'offline')
+  }
+
   // Remount key for the <img>: bumping it re-issues the request after a failure.
   let retry = $state(0)
 </script>
@@ -69,9 +100,10 @@
 -->
 <svelte:window
   ononline={() => {
-    if (failed) {
+    if (failure != null) {
       retry++
-      status = 'loading'
+      steppedDown = undefined
+      setStatus('loading')
     }
   }}
 />
@@ -98,12 +130,12 @@
         status !== 'loaded' && 'opacity-0',
         imgClass,
       ]}
-      onload={() => (status = 'loaded')}
-      onerror={() => (status = isOnline() ? 'error' : 'offline')}
+      onload={() => setStatus('loaded')}
+      onerror={onError}
     />
   {/key}
 
-  {#if failed}
+  {#if failure != null}
     {#if error}
       {@render error()}
     {:else}
@@ -113,7 +145,7 @@
         class="text-surface-500 absolute inset-0 grid place-items-center"
         role={alt ? 'img' : undefined}
       >
-        <Icon name={status === 'offline' ? 'no-signal' : 'image-off'} size="50%" />
+        <Icon name={failure === 'offline' ? 'no-signal' : 'image-off'} size="50%" />
       </div>
     {/if}
   {/if}

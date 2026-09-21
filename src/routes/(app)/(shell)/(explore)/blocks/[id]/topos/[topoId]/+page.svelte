@@ -166,6 +166,7 @@
       height={topo.imageHeight}
       alt={m.topo_alt()}
       interactive
+      linesWithoutPhoto
       zoomable
       bind:highlightId
       lines={topo.lines.map((line) => ({

@@ -33,6 +33,10 @@
 
   const allRoutes = [slab, overhang, arete, twoStarts, ungraded]
 
+  // Any path with no file behind it: the `/image` route 404s and the component takes its failure
+  // branch, which is what an uncached topo photo does offline.
+  const MISSING = 'does-not-exist.jpg'
+
   // Start-hold bracket cases, drawn side by side: one two-hand start, two routes
   // sharing BOTH holds then diverging, and two sharing ONE hold. Brackets group the
   // holds; overlapping brackets must stay legible.
@@ -79,6 +83,24 @@
   </div>
 {/snippet}
 
+<!-- The block page's strip: height-constrained, side by side, the narrowest place the lines are
+     drawn without a photo. Both the notice and the box edge have to survive it. -->
+{#snippet strip()}
+  <div style="display: flex; gap: 12px;">
+    {#each [allRoutes, partial] as lines (lines)}
+      <Topo
+        class="h-60 w-auto"
+        imagePath={MISSING}
+        alt="Sample topo"
+        {lines}
+        width={800}
+        height={1000}
+        linesWithoutPhoto
+      />
+    {/each}
+  </div>
+{/snippet}
+
 {#snippet startHolds()}
   <div style="display: flex; gap: 12px;">
     {#each startSets as lines (lines)}
@@ -114,3 +136,23 @@
      doubled waypoint: they must be indistinguishable. 3 repeats its top three times, so the curve
      must end ON the arrow, not bulge past it. 4 revisits an earlier hold, which is a real move. -->
 <Story name="Repeated points" args={{ lines: repeats }} {template} />
+
+<!-- The photo failed to load (offline, or gone). Stored dimensions still give the box a coordinate
+     space, so the lines are drawn on nothing: the order and direction of the routes are the floor of
+     what a reader offline at the block still gets, and the chrome moves to a corner to stay off
+     them. Opt-in, so a thumbnail draws nothing at all. -->
+<Story
+  name="Missing photo"
+  args={{ height: 1000, imagePath: MISSING, lines: allRoutes, linesWithoutPhoto: true, width: 800 }}
+  {template}
+/>
+
+<!-- The default every thumbnail surface keeps: no photo, no overlay. -->
+<Story
+  name="Missing photo (hidden)"
+  args={{ height: 1000, imagePath: MISSING, lines: allRoutes, width: 800 }}
+  {template}
+/>
+
+<!-- Two photoless topos side by side, as the block page draws them. -->
+<Story name="Missing photo (strip)" template={strip} />

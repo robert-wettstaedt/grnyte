@@ -8,6 +8,7 @@
   import { panzoom } from './panzoom'
   import TopoImage from './TopoImage.svelte'
   import TopoLine from './TopoLine.svelte'
+  import TopoPhotoMissing from './TopoPhotoMissing.svelte'
 
   interface LineInput {
     /** Grade heat band, or `undefined` for an ungraded route (neutral line). */
@@ -38,6 +39,9 @@
     interactive?: boolean
     /** Route lines to draw, each coloured by its grade band. */
     lines: LineInput[]
+    /** Draw the lines even when the photo does not load. Opt-in, because at thumbnail size lines
+     *  on an empty box are noise rather than guidance. */
+    linesWithoutPhoto?: boolean
     /** Stored pixel width of the topo image (`files.width`), gives the box its
      *  aspect ratio and the overlay its coordinate space before the photo loads. */
     width?: number
@@ -54,11 +58,16 @@
     imagePath,
     interactive = false,
     lines,
+    linesWithoutPhoto = false,
     width,
     zoomable = false,
   }: Props = $props()
 
   const box = new TopoImageBox(() => ({ height, width }))
+
+  // Lines without a photo are the offline floor: an approximate idea of where a route runs beats
+  // no guidance at the block. Zoom goes with the photo, since holds are what there is to zoom into.
+  const drawLines = $derived(box.ready && (!box.failed || linesWithoutPhoto))
 
   const rendered = $derived(
     lines.map((line) => ({
@@ -134,15 +143,25 @@
   })
 </script>
 
+{#snippet missingPhoto()}
+  <TopoPhotoMissing failure={box.failure} />
+{/snippet}
+
 <div
-  class={['bg-surface-950 relative overflow-hidden rounded-xl', className]}
+  class={[
+    'bg-surface-950 @container relative overflow-hidden rounded-xl',
+    // A photo is its own edge. Without one the box is a dark rectangle on a dark sheet, and a strip
+    // of them reads as one shape, so an empty frame draws its own.
+    box.failed && 'border-surface-700 border',
+    className,
+  ]}
   style:aspect-ratio={box.aspectRatio}
-  use:panzoom={{ aspect: box.aspect, enabled: zoomable }}
+  use:panzoom={{ aspect: box.aspect, enabled: zoomable && !box.failed }}
 >
   <div class="absolute inset-0">
-    <TopoImage {alt} {box} path={imagePath} />
+    <TopoImage {alt} {box} error={linesWithoutPhoto ? missingPhoto : undefined} path={imagePath} />
 
-    {#if box.ready}
+    {#if drawLines}
       <svg
         class={['absolute inset-0 h-full w-full', !interactive && 'pointer-events-none']}
         viewBox={box.viewBox}

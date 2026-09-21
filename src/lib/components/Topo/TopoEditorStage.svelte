@@ -10,6 +10,7 @@
   import TopoImage from './TopoImage.svelte'
   import TopoLens, { LENS_SIZE, LENS_ZOOM, type Lens } from './TopoLens.svelte'
   import TopoLine from './TopoLine.svelte'
+  import TopoPhotoMissing from './TopoPhotoMissing.svelte'
 
   interface RenderLine {
     band: GradeBand | undefined
@@ -311,6 +312,12 @@
         : 'var(--color-surface-50)'
 </script>
 
+<!-- The stage stays hard-gated with no photo: a point placed against a placeholder is a coordinate
+     chosen blind, and `saveTopoLines` replaces what it is given. Say why instead of a dead box. -->
+{#snippet missingPhoto()}
+  <TopoPhotoMissing failure={box.failure} />
+{/snippet}
+
 <svelte:window onpointercancel={onPointerCancel} onpointermove={onPointerMove} onpointerup={onPointerUp} />
 
 <div
@@ -328,9 +335,9 @@
   }}
 >
   <div class="absolute inset-0">
-    <TopoImage {alt} {box} path={imagePath} />
+    <TopoImage {alt} {box} error={missingPhoto} path={imagePath} />
 
-    {#if box.ready}
+    {#if box.overlayReady}
       <svg
         bind:this={svgEl}
         class="absolute inset-0 h-full w-full"

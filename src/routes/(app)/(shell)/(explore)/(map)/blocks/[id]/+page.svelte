@@ -119,6 +119,7 @@
                   points: line.points,
                   topType: line.topType,
                 }))}
+                linesWithoutPhoto
               />
             </a>
           {/each}

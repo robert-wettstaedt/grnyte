@@ -1921,6 +1921,8 @@
   "topo_none": "No topo for this block yet.",
   "topo_notFound": "Topo not found",
   "topo_orCreateNew": "Or create new",
+  "topo_photoMissing": "Photo unavailable",
+  "topo_photoOffline": "Photo not available offline",
   "topo_position": "Topo {position} / {total}",
   "topo_previous": "Previous topo",
   "topo_quickLine": "Unnamed line",
