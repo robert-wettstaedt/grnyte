@@ -112,9 +112,14 @@
   }
 
   // Button behaviour for an SVG overlay element: tap or Enter/Space runs the action.
+  // A tap leaves focus behind and Safari rings the path's whole bbox over the photo, so drop it
+  // again on a pointer click (`detail > 0`), never on a keyboard-synthesised one.
   const press = (action: () => void) => ({
     onclick: (event: MouseEvent) => {
       event.stopPropagation()
+      if (event.detail > 0 && event.currentTarget instanceof SVGElement) {
+        event.currentTarget.blur()
+      }
       action()
     },
     onkeydown: (event: KeyboardEvent) => {
@@ -152,6 +157,7 @@
           <g opacity={line.ghost ? 0.5 : dimmed ? 0.33 : 1}>
             {#if pressable}
               <path
+                class="svg-press"
                 d={line.d}
                 stroke="transparent"
                 stroke-width="24"
@@ -171,7 +177,7 @@
               boxHeight={box.height}
               badgeAttrs={pressable
                 ? {
-                    class: 'select-none',
+                    class: 'select-none svg-press',
                     ...press(() => toggle(line.id)),
                     'aria-label': m.topo_toggleLine(),
                     'aria-pressed': line.id === highlightId,
@@ -185,7 +191,7 @@
         {#each holds as hold (hold.key)}
           {@const dimmed = highlightId != null && !hold.ids.includes(highlightId)}
           <g
-            class={[!interactive && 'pointer-events-none']}
+            class={['svg-press', !interactive && 'pointer-events-none']}
             opacity={dimmed ? 0.25 : 1}
             {...interactive ? press(() => cycleHold(hold.ids)) : {}}
             aria-pressed={interactive ? !dimmed && highlightId != null : undefined}

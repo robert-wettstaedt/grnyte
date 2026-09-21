@@ -67,6 +67,19 @@ body {
   outline-offset: 2px;
 }
 
+/* SVG hit targets (topo lines, holds, badges): a tap focuses them and the UA rings the whole path
+   bbox, a box floating over the photo. Keep a ring for keyboard focus only, as an outline, because
+   the box-shadow ring above does not paint on SVG elements. */
+.svg-press:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.svg-press:focus-visible {
+  box-shadow: none;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .preset-glass-neutral {
   background: color-mix(in oklab, var(--color-surface-50-950) 30%, transparent);
   box-shadow: 0 0px 30px color-mix(in oklab, var(--color-surface-50-950) 30%, transparent) inset;

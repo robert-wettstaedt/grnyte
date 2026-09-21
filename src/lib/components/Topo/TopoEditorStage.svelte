@@ -351,6 +351,7 @@
             {#if line.d}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <path
+                class="svg-press"
                 data-no-pan
                 d={line.d}
                 stroke="transparent"
@@ -454,6 +455,7 @@
             <!-- Invisible grab area: ~44px on screen at any zoom, painted above the lines so a
                  near miss drags the point, not the route. -->
             <circle
+              class="svg-press"
               data-no-pan
               cx={point.x * box.width}
               cy={point.y * box.height}
@@ -479,6 +481,7 @@
         {#each inserts as spot (spot.afterId)}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <g
+            class="svg-press"
             data-no-pan
             style="cursor: copy"
             role="button"
