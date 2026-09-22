@@ -1,10 +1,17 @@
 import { resolve } from '$app/paths'
-import { getRequestEvent, query } from '$app/server'
+import { command, form, getRequestEvent, query } from '$app/server'
 import { regionInvitations, regionMembers, regions } from '$lib/db/schema'
 import { formError, nameSchema, stringToInt } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { getLocale } from '$lib/paraglide/runtime'
-import { authedCommand, authedForm, authedQuery, type Context } from '$lib/remote/authed.server'
+import {
+  authedCommand,
+  authedForm,
+  authedQuery,
+  authedRls,
+  requireAuthed,
+  type Context,
+} from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
@@ -61,9 +68,11 @@ const regionCreateSchema = z.object({ name: nameSchema })
 
 /** Found a region, with its creator as `region_admin`. The one write here open to a caller who
  *  administers nothing yet. */
-export const createRegion = authedForm(
+export const createRegion = form(
   regionCreateSchema,
-  async ({ name }, { user }): Promise<MutationResult<{ regionId: number }>> => {
+  async ({ name }): Promise<MutationResult<{ regionId: number }>> => {
+    const { user } = requireAuthed()
+
     // The friendly version of the cap. `createRegionForUser` re-checks it and enforces it.
     if ((await listOwnedRegions(user.id)).length >= MAX_OWNED_REGIONS) {
       invalid(formError('region_capReached', { count: MAX_OWNED_REGIONS }))
@@ -388,12 +397,12 @@ export const restoreRegionInvitation = authedCommand(
 
 /** Accept an invitation. The address comes from the verified token, not `ctx.user`, which is the
  *  `public.users` row and carries none. */
-export const acceptRegionInvitation = authedCommand(
+export const acceptRegionInvitation = command(
   z.object({ token: z.uuid() }),
   async ({ token }): Promise<MutationResult<{ regionFk: number; regionName: string }>> => {
-    const claims = getRequestEvent().locals.claims
+    const { claims } = requireAuthed()
 
-    if (claims?.email == null) {
+    if (claims.email == null) {
       error(401, formError('auth_notSignedIn'))
     }
 
@@ -410,19 +419,22 @@ export const listMyInvitations = query(async (): Promise<UserInvitationItem[]> =
 
 /** Accept an invitation from the in-app list, which knows the row id but never the token. RLS
  *  scopes the lookup to the caller, and `acceptInvitation` re-checks the address. */
-export const acceptMyInvitation = authedCommand(
+export const acceptMyInvitation = command(
   z.object({ invitationFk: z.number() }),
-  async ({ invitationFk }, { db }): Promise<MutationResult<{ regionFk: number; regionName: string }>> => {
+  async ({ invitationFk }): Promise<MutationResult<{ regionFk: number; regionName: string }>> => {
+    const { rls } = await authedRls()
     const claims = getRequestEvent().locals.claims
 
     if (claims?.email == null) {
       error(401, formError('auth_notSignedIn'))
     }
 
-    const invitation = await db.query.regionInvitations.findFirst({
-      columns: { token: true },
-      where: and(eq(regionInvitations.id, invitationFk), livePredicate()),
-    })
+    const invitation = await rls(async (db) =>
+      db.query.regionInvitations.findFirst({
+        columns: { token: true },
+        where: and(eq(regionInvitations.id, invitationFk), livePredicate()),
+      }),
+    )
 
     if (invitation == null) {
       error(404, formError('invite_notFound'))

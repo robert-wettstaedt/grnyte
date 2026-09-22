@@ -11,7 +11,7 @@ import { error, redirect, type InvalidField, type RemoteForm, type RemoteFormInp
 /** Injected into every wrapped handler. Add shared per-call deps here. */
 export interface Context {
   /** Defer work until after the transaction commits: a write on the privileged `db` handle needs a
-   *  second connection, and taking one while this handler holds one deadlocks the three-slot pool. */
+   *  second connection, and taking one while this handler holds one deadlocks the pool. */
   afterCommit: (task: () => Promise<void>) => void
   db: Tx
   user: NonNullable<App.Locals['user']>

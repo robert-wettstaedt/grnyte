@@ -17,7 +17,7 @@ import { collectRegionStats, collectRegionSummaries } from './stats.server'
  * it: this check is the gate, not defence in depth.
  *
  * `authedRls` rather than `authedQuery`: the latter holds a pool slot for the whole handler, and
- * the privileged branch then takes several more from the same three-slot pool. Either branch opens
+ * the privileged branch then takes several more from the same pool. Either branch opens
  * a transaction, and only for as long as its own reads take.
  */
 export const regionStats = query(z.object({ regionFk: z.number() }), async ({ regionFk }): Promise<RegionStats> => {

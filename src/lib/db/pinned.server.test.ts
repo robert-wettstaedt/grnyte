@@ -10,8 +10,8 @@
  */
 import { PINNED_SEARCH_PATH } from '$lib/db/db.server'
 import { sql } from 'drizzle-orm'
-import { describe, expect, it } from 'vitest'
-import { carriesPublic, classifySearchPath, pinnedTx, searchPathProbe } from './pinned.server'
+import { describe, expect, it, vi } from 'vitest'
+import { classifySearchPath, pinnedTx, searchPathProbe } from './pinned.server'
 import { reachable } from './testDb'
 
 const currentPath = sql`select current_setting('search_path') as sp`
@@ -71,32 +71,6 @@ describe.skipIf(!reachable)('searchPathProbe', () => {
 })
 
 /**
- * The detector's predicate. No database: it decides whether a connection gets reported, and a
- * substring test here is a detector that stays quiet through the incident it exists to catch.
- */
-describe('carriesPublic', () => {
-  it.each([
-    ['"$user", public, extensions', true],
-    ['public, extensions', true],
-    ['public', true],
-    ['"public", extensions', true],
-    ['  public  ,extensions', true],
-  ])('accepts %j', (value, expected) => {
-    expect(carriesPublic(value)).toBe(expected)
-  })
-
-  it.each([
-    ['', false],
-    ['pg_catalog, pg_temp', false],
-    // The case a substring test gets wrong: "public" appears, nothing in `public` resolves.
-    ['pg_catalog, public_backup', false],
-    ['my_public_schema', false],
-  ])('rejects %j', (value, expected) => {
-    expect(carriesPublic(value)).toBe(expected)
-  })
-})
-
-/**
  * What gets reported. `expected` is the untouched role default; anything else was left by another
  * client, and the still-working case is reported too because naming the poisoner is the point.
  */
@@ -119,5 +93,61 @@ describe('classifySearchPath', () => {
   it('reports a path that cannot resolve public as broken', () => {
     expect(classifySearchPath('')).toBe('broken')
     expect(classifySearchPath('pg_catalog, pg_temp')).toBe('broken')
+  })
+
+  // The cases a substring test gets wrong: "public" appears, nothing in `public` resolves. A
+  // detector that reads these as healthy stays quiet through the incident it exists to catch.
+  it('is element-wise, not a substring match', () => {
+    expect(classifySearchPath('pg_catalog, public_backup')).toBe('broken')
+    expect(classifySearchPath('my_public_schema')).toBe('broken')
+    // Quoted and padded entries still resolve.
+    expect(classifySearchPath('"public", extensions')).toBe('expected')
+    expect(classifySearchPath('  public  ,extensions')).toBe('expected')
+  })
+})
+
+/**
+ * The dedupe, which only matters during the incident it exists to document: a poisoned connection
+ * is drawn by every request that touches it, and a row each is one extra transaction per query.
+ *
+ * Fresh module per case, because the dedupe is module state that outlives a single call.
+ */
+describe('reportInheritedSearchPath', () => {
+  const load = async () => {
+    vi.resetModules()
+    const logged: string[] = []
+    vi.doMock('$lib/logging/failure.server', () => ({
+      logServerFailure: (_scope: string, reason: string) => {
+        logged.push(reason)
+        return Promise.resolve()
+      },
+    }))
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    const { reportInheritedSearchPath } = await import('./pinned.server')
+    return { logged, report: reportInheritedSearchPath }
+  }
+
+  it('writes one row per distinct value, not one per query', async () => {
+    const { logged, report } = await load()
+
+    report('pg_catalog, pg_temp')
+    report('pg_catalog, pg_temp')
+    report('pg_catalog, pg_temp')
+    expect(logged).toHaveLength(1)
+
+    // A different value is a different incident and has to be named.
+    report('public')
+    expect(logged).toHaveLength(2)
+  })
+
+  it('says nothing about a healthy connection or an absent reading', async () => {
+    const { logged, report } = await load()
+
+    report('"\\$user", public, extensions')
+    report('public, extensions')
+    report(undefined)
+
+    expect(logged).toEqual([])
   })
 })

@@ -80,8 +80,8 @@ import type { RequestHandler } from './$types'
  * One at a time was the shape both halves had: a subscriber's queries and its HTTPS send waiting
  * on the previous subscriber's, inside a job that has five minutes.
  *
- * A fixed width rather than a queue. It is no longer below the database pool, which is
- * `max: 3` since 228868da, and does not need to be: every query in here is its own short pinned
+ * A fixed width rather than a queue. It is no longer below the database pool (`max` in
+ * `db.server.ts`) and does not need to be: every query in here is its own short pinned
  * transaction, so the four items queue on the pool for a moment each instead of holding a
  * connection across an HTTPS send. Upgrade = one ranked query over all subscribers, if the
  * subscriber list ever outgrows the window.

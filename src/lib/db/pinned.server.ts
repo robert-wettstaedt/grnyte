@@ -8,18 +8,10 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 // `(tx) => tx.query.x.findMany(...)` would otherwise not typecheck without an extra `await`.
 type Body<T> = (tx: PostgresJsDatabase<typeof schema>) => PromiseLike<T>
 
-/**
- * Whether a connection arrived able to resolve unqualified names in `public`.
- *
- * Element-wise, never a substring test: `pg_catalog, public_backup` contains "public" and resolves
- * nothing.
- */
-export function carriesPublic(searchPath: string): boolean {
-  return schemaNames(searchPath).includes('public')
-}
-
 /** `broken` cannot resolve `public` and is the 42P01 outage. `unexpected` resolves but has lost
- *  `extensions`, so somebody narrowed it: reported too, because naming the poisoner is the point. */
+ *  `extensions`, so somebody narrowed it: reported too, because naming the poisoner is the point.
+ *  Element-wise, never a substring test: `pg_catalog, public_backup` contains "public" and
+ *  resolves nothing. */
 export function classifySearchPath(searchPath: string): 'broken' | 'expected' | 'unexpected' {
   const names = schemaNames(searchPath)
 
@@ -49,8 +41,8 @@ export function classifySearchPath(searchPath: string): 'broken' | 'expected' | 
  * Never call it from inside an RLS handler's transaction: that holds one connection and waits for
  * a second, so `max` such callers at once deadlock (measured, `repro-nested-deadlock.mts`: 9 pass
  * at `max: 10`, 10 hang). Defer with `Context.afterCommit`, or answer it with a definer as `0132`
- * does. The two accept handlers still nest one through `acceptInvitation`, so the ceiling is
- * lowered, not gone.
+ * does. A handler that wants the gate but no transaction takes `command` plus `authedRls`. Naming
+ * the current offenders here is what kept rotting, so this says the rule and not a census.
  */
 export async function pinnedTx<T>(body: Body<T>): Promise<T> {
   let before: string | undefined
@@ -106,8 +98,10 @@ let lastReported: string | undefined
  * neither this application, its dependencies, nor any function in the schema, and `pg_dump`
  * through the pooler was measured NOT to leak. Both sinks on purpose, because the console goes to
  * Vercel and is kept for days, while `client_error_logs` is ours and is kept for 90.
+ *
+ * Exported so a test can drive the dedupe without poisoning a shared connection.
  */
-function reportInheritedSearchPath(before: string | undefined): void {
+export function reportInheritedSearchPath(before: string | undefined): void {
   if (before == null) {
     return
   }
@@ -117,14 +111,13 @@ function reportInheritedSearchPath(before: string | undefined): void {
     return
   }
 
-  // One line per distinct value per instance. A poisoned connection is hit by every request that
-  // draws it, and a line each would bury the incident it is meant to document.
+  // One line and one row per distinct value per instance. A poisoned connection is drawn by every
+  // request that touches it: `logServerFailure` dedupes over 24h, but only after opening a
+  // transaction of its own, so outside this guard it costs one per query for the whole incident.
   if (before !== lastReported) {
     lastReported = before
     console.error(`[db] pooled connection arrived ${verdict} with search_path=${before}`)
+    // Not awaited: a report must never fail the query that found it.
+    void logServerFailure('db', `pooled connection arrived ${verdict} with search_path ${before}`)
   }
-
-  // Not awaited: it dedupes over 24h and swallows its own errors, and a report must never fail
-  // the query that found it.
-  void logServerFailure('db', `pooled connection arrived ${verdict} with search_path ${before}`)
 }

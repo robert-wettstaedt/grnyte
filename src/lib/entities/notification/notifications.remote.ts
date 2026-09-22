@@ -91,7 +91,7 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
   // Privileged, and BEFORE the insert on its own connection, which is why this is not an
   // authedCommand: deferring it to `afterCommit` would run it after the insert it exists to make
   // possible, and nesting it inside the handler's transaction would take a second connection out
-  // of the same three-slot pool.
+  // of the same pool.
   //
   // One transaction for both statements, so the ownership read below sees what this delete left
   // behind.

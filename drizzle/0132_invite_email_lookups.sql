@@ -34,24 +34,34 @@ AS $$
   declare
     account_id integer;
   begin
-    -- Gated: email -> account is account enumeration. A region admin already sees the members and
-    -- pending invitations of their own region, so this tells them nothing that screen does not.
     if not public.authorize_in_region('region.admin'::public.app_permission, region_id) then
       raise exception 'not authorized for region %', region_id using errcode = '42501';
     end if;
 
+    -- Scoped to an address this region has actually invited, not just gated on the region. The gate
+    -- alone is no limit at all: `createRegion` is open to any signed-in caller and makes them its
+    -- admin, so a global answer here is an account-enumeration oracle for one throwaway region.
+    -- Any status, because `revokeInvitation` stamps `expired` before it asks.
+    -- Self-revealing rather than impossible: probing an address still works, but it now mails that
+    -- person and leaves an invitation row, under the seat cap and the resend throttle.
     select u.id into account_id
     from public.users u
     join auth.users au on au.id = u.auth_user_fk
     where public.normalized_email(au.email) = public.normalized_email(lookup_email)
+      and exists (
+        select 1
+        from public.region_invitations ri
+        where ri.region_fk = region_id
+          and public.normalized_email(ri.email) = public.normalized_email(lookup_email)
+      )
     limit 1;
 
     return account_id;
   end;
 $$;--> statement-breakpoint
 
--- Gated like the others rather than left open: its only caller already holds the region, and
--- resting on the Data API being switched off would make a runtime setting the whole defence.
+-- Gated AND scoped rather than left open: resting on the Data API being switched off would make a
+-- runtime setting the whole defence.
 CREATE OR REPLACE FUNCTION public.contact_locale_for_email(region_id integer, lookup_email text)
 RETURNS text
 LANGUAGE plpgsql
@@ -66,10 +76,17 @@ AS $$
       raise exception 'not authorized for region %', region_id using errcode = '42501';
     end if;
 
+    -- Scoped like `account_for_email`, and for the same reason.
     select us.contact_locale into locale
     from public.user_settings us
     join auth.users au on au.id = us.auth_user_fk
     where public.normalized_email(au.email) = public.normalized_email(lookup_email)
+      and exists (
+        select 1
+        from public.region_invitations ri
+        where ri.region_fk = region_id
+          and public.normalized_email(ri.email) = public.normalized_email(lookup_email)
+      )
     limit 1;
 
     return locale;

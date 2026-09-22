@@ -621,6 +621,9 @@ describe.skipIf(!reachable)('resolveContactLocale', () => {
 
   it('prefers the recipient account’s stored language over the sender’s', async () => {
     await sql`update public.user_settings set contact_locale = 'de' where user_fk = ${users.invitee.userId}`
+    // The lookup answers only for an address this region has invited, and every real caller runs
+    // after `createInvitation`.
+    await invite()
 
     expect(await localeOf(EMAILS.invitee, 'en')).toBe('de')
   })
@@ -656,17 +659,37 @@ describe.skipIf(!reachable)('invite email lookups (SECURITY DEFINER)', () => {
   }
 
   it('answers an admin as app_writer, so the EXECUTE grant is real', async () => {
+    await invite()
+
     const answers = await asRole('admin', async (tx) => ({
       account: await tx.execute<{ v: null | number }>(
-        dsql`select public.account_for_email(${regionId}, ${EMAILS.member}) as v`,
+        dsql`select public.account_for_email(${regionId}, ${EMAILS.invitee}) as v`,
       ),
       member: await tx.execute<{ v: boolean }>(
         dsql`select public.is_active_member_by_email(${regionId}, ${EMAILS.member}) as v`,
       ),
     }))
 
-    expect(answers.account[0]?.v).toBe(users.member.userId)
+    expect(answers.account[0]?.v).toBe(users.invitee.userId)
     expect(answers.member[0]?.v).toBe(true)
+  })
+
+  it('answers only for an address this region has invited', async () => {
+    // The gate is no limit by itself: `createRegion` is open to any signed-in caller and makes
+    // them its admin, so an unscoped answer enumerates accounts one throwaway region at a time.
+    // Same caller and same address either side of `invite()`, so the account plainly exists and
+    // the null is the scope rather than absence.
+    const before = await asRole('admin', (tx) =>
+      tx.execute<{ v: null | number }>(dsql`select public.account_for_email(${regionId}, ${EMAILS.invitee}) as v`),
+    )
+    expect(before[0]?.v).toBeNull()
+
+    await invite()
+
+    const after = await asRole('admin', (tx) =>
+      tx.execute<{ v: null | number }>(dsql`select public.account_for_email(${regionId}, ${EMAILS.invitee}) as v`),
+    )
+    expect(after[0]?.v).toBe(users.invitee.userId)
   })
 
   it('refuses a caller who does not administer the region, rather than answering "no"', async () => {
@@ -709,12 +732,14 @@ describe.skipIf(!reachable)('invite email lookups (SECURITY DEFINER)', () => {
 
   it('normalizes an address the way `normalizeEmail` does, tabs included', async () => {
     // Postgres `trim()` strips spaces only, so a tab would survive it and stop matching.
-    const padded = `\t ${EMAILS.member.toUpperCase()} \n`
+    await invite()
+
+    const padded = `\t ${EMAILS.invitee.toUpperCase()} \n`
     const [row] = await asRole('admin', (tx) =>
       tx.execute<{ v: null | number }>(dsql`select public.account_for_email(${regionId}, ${padded}) as v`),
     )
 
-    expect(row?.v).toBe(users.member.userId)
+    expect(row?.v).toBe(users.invitee.userId)
   })
 })
 
