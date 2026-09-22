@@ -44,10 +44,12 @@ export function classifySearchPath(searchPath: string): 'broken' | 'expected' | 
  * `public` (`pgSchema('public')` throws by design), so this is the only fix open to the query
  * builder, and it puts the statements on one connection as a side effect.
  *
- * Prefer ONE wrap per request or job over one per statement: each is a transaction, and the pool
- * is `max: 10`. Calling it from inside an RLS handler's transaction takes a SECOND connection
- * while the first is held, so `max / 2` such handlers at once exhaust the pool; the invite flow
- * does exactly that and cannot avoid it, because `auth.users` is unreadable by the RLS role.
+ * Prefer ONE wrap per request or job over one per statement: each is a transaction.
+ *
+ * Never call it from inside an RLS handler's transaction: that holds one connection and waits for
+ * a second, so `max` such callers at once deadlock (measured, `repro-nested-deadlock.mts`: 9 pass
+ * at `max: 10`, 10 hang). Defer with `Context.afterCommit`, or answer it with a definer as `0132`
+ * does. `notifyOutOfBand` still does it, which is why the invite ceiling is lowered, not gone.
  */
 export async function pinnedTx<T>(body: Body<T>): Promise<T> {
   let before: string | undefined

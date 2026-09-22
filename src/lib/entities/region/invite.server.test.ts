@@ -18,6 +18,7 @@ import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { inviteEmailContent } from '$lib/email/invite'
 import type { SendEmailInput } from '$lib/email/send.server'
 import { statusOf } from '$lib/remote/testHarness'
+import { sql as dsql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UserRegion } from './dto'
 import { userRegion } from './fixture'
@@ -82,8 +83,42 @@ async function accept(token: string, who: Who = 'invitee') {
   return acceptInvitation({ authUserId: users[who].authId, email: EMAILS[who], token })
 }
 
+/**
+ * Runs `fn` on a handle carrying the admin's claims, the way `createDrizzle` sets them.
+ *
+ * The invite lookups go through `public.account_for_email` and friends, which gate on
+ * `authorize_in_region` and so read `auth.jwt()`. A bare handle carries no claims and is refused,
+ * which is the point of the gate; production always has them. The role stays superuser, so these
+ * tests still exercise the invite logic rather than RLS.
+ */
+function asAdmin<T>(fn: (tx: Parameters<typeof createInvitation>[0]) => Promise<T>): Promise<T> {
+  const claims = JSON.stringify({ email: EMAILS.admin, role: 'authenticated', sub: users.admin.authId })
+
+  return db.transaction(async (tx) => {
+    await tx.execute(dsql`select set_config('request.jwt.claims', ${claims}, true)`)
+    return fn(tx)
+  })
+}
+
+const revokeAs = (invitationFk: number, userRegions: UserRegion[] = adminOf()) =>
+  asAdmin((tx) => revokeInvitation(tx, invitationFk, userRegions))
+
+const restoreAs = (invitationFk: number, userRegions: UserRegion[] = adminOf()) =>
+  asAdmin((tx) => restoreInvitation(tx, invitationFk, userRegions))
+
+const resendAs = (args: Parameters<typeof resendInvitation>[1], mail: Parameters<typeof resendInvitation>[2]) =>
+  asAdmin((tx) => resendInvitation(tx, args, mail))
+
+/** Every resend here is the same admin resending the same invitation through the same mail
+ *  context; only the caller's regions and whether the event is attributed ever vary. */
+const resendById = (id: number, extra: { inviterFk?: number; userRegions?: UserRegion[] } = {}) =>
+  resendAs(
+    { invitationFk: id, inviter: 'ada', inviterFk: extra.inviterFk, userRegions: extra.userRegions ?? adminOf() },
+    MAIL,
+  )
+
 async function invite(email: string = EMAILS.invitee) {
-  return createInvitation(db, { email, invitedByFk: users.admin.userId, regionFk: regionId })
+  return asAdmin((tx) => createInvitation(tx, { email, invitedByFk: users.admin.userId, regionFk: regionId }))
 }
 
 async function removeFixtures() {
@@ -353,7 +388,7 @@ describe.skipIf(!reachable)('resolveInviteState', () => {
 
   it('presents a revoked invitation exactly like a timed-out one', async () => {
     const { id, token } = await invite()
-    await revokeInvitation(db, id, adminOf())
+    await revokeAs(id, adminOf())
 
     const revoked = await resolveInviteState(token, EMAILS.invitee)
 
@@ -400,25 +435,21 @@ describe.skipIf(!reachable)('revokeInvitation / restoreInvitation', () => {
   it('round-trips through expired and back, keeping the same token', async () => {
     const { id, token } = await invite()
 
-    await revokeInvitation(db, id, adminOf())
+    await revokeAs(id, adminOf())
     expect(await findLiveInvitationByEmail(EMAILS.invitee)).toBeUndefined()
     expect(await statusOf(() => accept(token))).toBe(410)
 
-    await restoreInvitation(db, id, adminOf())
+    await restoreAs(id, adminOf())
     // Same token, so the link already in the invitee's inbox starts working again.
     await expect(findLiveInvitationByEmail(EMAILS.invitee)).resolves.toMatchObject({ token })
   })
 
   it('takes back the invitee’s queued push, so a withdrawn invitation never buzzes', async () => {
     const { id } = await invite()
-    await resendInvitation(
-      db,
-      { invitationFk: id, inviter: 'ada', inviterFk: users.admin.userId, userRegions: adminOf() },
-      MAIL,
-    )
+    await resendById(id, { inviterFk: users.admin.userId })
     expect(await queued()).toHaveLength(1)
 
-    await revokeInvitation(db, id, adminOf())
+    await revokeAs(id, adminOf())
 
     // Otherwise the push goes out minutes later asking somebody to accept a token that is already
     // dead, and the tap lands on a settings screen with no invitation on it.
@@ -428,12 +459,12 @@ describe.skipIf(!reachable)('revokeInvitation / restoreInvitation', () => {
   it('refuses somebody who does not administer the region', async () => {
     const { id } = await invite()
 
-    expect(await statusOf(() => revokeInvitation(db, id, []))).toBe(403)
-    expect(await statusOf(() => restoreInvitation(db, id, adminOf(regionId + 1000)))).toBe(403)
+    expect(await statusOf(() => revokeAs(id, []))).toBe(403)
+    expect(await statusOf(() => restoreAs(id, adminOf(regionId + 1000)))).toBe(403)
   })
 
   it('refuses an invitation that is not there', async () => {
-    expect(await statusOf(() => revokeInvitation(db, -1, adminOf()))).toBe(404)
+    expect(await statusOf(() => revokeAs(-1, adminOf()))).toBe(404)
   })
 })
 
@@ -441,9 +472,10 @@ describe.skipIf(!reachable)('resendInvitation', () => {
   it('mails the accept link for the same token and records the send', async () => {
     const { id, token } = await invite()
 
-    await expect(
-      resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL),
-    ).resolves.toEqual({ email: EMAILS.invitee, sent: true })
+    await expect(resendById(id)).resolves.toEqual({
+      email: EMAILS.invitee,
+      sent: true,
+    })
 
     expect(mail.sent).toHaveLength(1)
     expect(mail.sent[0].to).toBe(EMAILS.invitee)
@@ -461,7 +493,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
     const { id } = await invite()
     await sql`update public.region_invitations set expires_at = now() + interval '1 hour' where id = ${id}`
 
-    await resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL)
+    await resendById(id)
 
     const [row] = await sql<{ expiresAt: Date }[]>`
       select expires_at as "expiresAt" from public.region_invitations where id = ${id}`
@@ -472,33 +504,27 @@ describe.skipIf(!reachable)('resendInvitation', () => {
     const { id } = await invite()
     mail.result = false
 
-    await expect(
-      resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL),
-    ).resolves.toMatchObject({ sent: false })
+    await expect(resendById(id)).resolves.toMatchObject({
+      sent: false,
+    })
 
     // The throttle is now armed, which is exactly the case a retry loop would exploit.
-    expect(
-      await statusOf(() => resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL)),
-    ).toBe(429)
+    expect(await statusOf(() => resendById(id))).toBe(429)
     expect(mail.sent).toHaveLength(1)
   })
 
   it('refuses a second send inside the throttle window, before sending anything', async () => {
     const { id } = await invite()
-    await resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL)
+    await resendById(id)
 
-    expect(
-      await statusOf(() => resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL)),
-    ).toBe(429)
+    expect(await statusOf(() => resendById(id))).toBe(429)
     expect(mail.sent).toHaveLength(1)
   })
 
   it('refuses somebody who does not administer the region, without mailing', async () => {
     const { id } = await invite()
 
-    expect(
-      await statusOf(() => resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: [] }, MAIL)),
-    ).toBe(403)
+    expect(await statusOf(() => resendById(id, { userRegions: [] }))).toBe(403)
     expect(mail.sent).toHaveLength(0)
   })
 
@@ -511,11 +537,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
   it('logs the invitation when the first send never did, under whoever resent it', async () => {
     const { id } = await invite()
 
-    await resendInvitation(
-      db,
-      { invitationFk: id, inviter: 'ada', inviterFk: users.member.userId, userRegions: adminOf() },
-      MAIL,
-    )
+    await resendById(id, { inviterFk: users.member.userId })
 
     // `createInvitation` logs nothing; the card is written by whichever send reaches somebody.
     // That is this one, so it is this person's card, not the original inviter's.
@@ -530,11 +552,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
               ${users.admin.userId}, now() - interval '7 days')`
     const [before] = await logged()
 
-    await resendInvitation(
-      db,
-      { invitationFk: id, inviter: 'ada', inviterFk: users.member.userId, userRegions: adminOf() },
-      MAIL,
-    )
+    await resendById(id, { inviterFk: users.member.userId })
 
     // A resend is not a new invitation. Writing one anyway collapsed onto this row and re-dated
     // it to now, floating a week-old card back to the top of the feed in somebody else's name.
@@ -545,7 +563,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
     await sql`update public.user_settings set contact_locale = 'de' where user_fk = ${users.invitee.userId}`
     const { id } = await invite()
 
-    await resendInvitation(db, { invitationFk: id, inviter: 'ada', userRegions: adminOf() }, MAIL)
+    await resendById(id)
 
     expect(mail.sent[0].locale).toBe('de')
     expect(mail.sent[0].subject).toContain('eingeladen')
@@ -554,11 +572,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
   it('buzzes an invitee who already has an account, beside the mail and not instead of it', async () => {
     const { id } = await invite()
 
-    await resendInvitation(
-      db,
-      { invitationFk: id, inviter: 'ada', inviterFk: users.admin.userId, userRegions: adminOf() },
-      MAIL,
-    )
+    await resendById(id, { inviterFk: users.admin.userId })
 
     expect(await queued()).toEqual([{ userFk: users.invitee.userId }])
     // The invitation mail is still the channel, and still the only one that carries the token.
@@ -570,7 +584,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
 
     for (const inviterFk of [users.admin.userId, users.member.userId]) {
       await sql`update public.region_invitations set last_sent_at = null where id = ${id}`
-      await resendInvitation(db, { invitationFk: id, inviter: 'ada', inviterFk, userRegions: adminOf() }, MAIL)
+      await resendById(id, { inviterFk })
     }
 
     // `actor_fk` is in the unique key, so a second admin's row does not collide with the first's.
@@ -581,11 +595,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
   it('queues nothing for an address with no account, which is most invitations', async () => {
     const { id } = await invite('nobody@example.test')
 
-    await resendInvitation(
-      db,
-      { invitationFk: id, inviter: 'ada', inviterFk: users.admin.userId, userRegions: adminOf() },
-      MAIL,
-    )
+    await resendById(id, { inviterFk: users.admin.userId })
 
     expect(await queued()).toEqual([])
     expect(mail.sent).toHaveLength(1)
@@ -606,17 +616,105 @@ describe('assertResendAllowed', () => {
 })
 
 describe.skipIf(!reachable)('resolveContactLocale', () => {
+  const localeOf = (email: string, ambient?: string) =>
+    asAdmin((tx) => resolveContactLocale(tx, regionId, email, ambient))
+
   it('prefers the recipient account’s stored language over the sender’s', async () => {
     await sql`update public.user_settings set contact_locale = 'de' where user_fk = ${users.invitee.userId}`
 
-    expect(await resolveContactLocale(EMAILS.invitee, 'en')).toBe('de')
+    expect(await localeOf(EMAILS.invitee, 'en')).toBe('de')
   })
 
   it('falls back to the sender’s locale, then to the base one', async () => {
     // No account on that address at all, which is the common case for an invitee.
-    expect(await resolveContactLocale('nobody@grnyte.rocks', 'de')).toBe('de')
-    expect(await resolveContactLocale('nobody@grnyte.rocks', undefined)).toBe('en')
-    expect(await resolveContactLocale('nobody@grnyte.rocks', 'kl')).toBe('en')
+    expect(await localeOf('nobody@grnyte.rocks', 'de')).toBe('de')
+    expect(await localeOf('nobody@grnyte.rocks', undefined)).toBe('en')
+    expect(await localeOf('nobody@grnyte.rocks', 'kl')).toBe('en')
+  })
+
+  it('skips the gated lookup entirely when there is no region to authorize against', async () => {
+    // `sendInvitationEmail` takes `regionFk` optionally, and without one there is nothing to check
+    // the caller against, so the ambient locale has to win rather than the call being refused.
+    expect(await asAdmin((tx) => resolveContactLocale(tx, undefined, EMAILS.invitee, 'en'))).toBe('en')
+  })
+})
+
+/**
+ * The definers at the point of use: as `app_writer`, which is the role production runs as and
+ * which reaches EXECUTE only by inheriting the `authenticated` grant, and against a caller the
+ * gate must refuse. Neither is reachable through the handlers, whose own JS check throws first.
+ */
+describe.skipIf(!reachable)('invite email lookups (SECURITY DEFINER)', () => {
+  const asRole = <T>(who: Who, run: (tx: Parameters<typeof createInvitation>[0]) => Promise<T>): Promise<T> => {
+    const claims = JSON.stringify({ email: EMAILS[who], role: 'authenticated', sub: users[who].authId })
+
+    return db.transaction(async (tx) => {
+      await tx.execute(dsql`select set_config('request.jwt.claims', ${claims}, true)`)
+      await tx.execute(dsql`set local role app_writer`)
+      return run(tx)
+    })
+  }
+
+  it('answers an admin as app_writer, so the EXECUTE grant is real', async () => {
+    const answers = await asRole('admin', async (tx) => ({
+      account: await tx.execute<{ v: null | number }>(
+        dsql`select public.account_for_email(${regionId}, ${EMAILS.member}) as v`,
+      ),
+      member: await tx.execute<{ v: boolean }>(
+        dsql`select public.is_active_member_by_email(${regionId}, ${EMAILS.member}) as v`,
+      ),
+    }))
+
+    expect(answers.account[0]?.v).toBe(users.member.userId)
+    expect(answers.member[0]?.v).toBe(true)
+  })
+
+  it('refuses a caller who does not administer the region, rather than answering "no"', async () => {
+    // Fail-closed: a gate that returned false here would be indistinguishable from "not a member",
+    // and `createInvitation` would skip the guard and write an invitation nobody can accept.
+    const thrown = await asRole('member', (tx) =>
+      tx.execute(dsql`select public.is_active_member_by_email(${regionId}, ${EMAILS.member}) as v`),
+    ).catch((error: unknown) => error)
+
+    // Drizzle wraps it, so the raise itself is on the cause. 42501 is the code the definer sets.
+    const cause = (thrown as { cause?: { code?: string; message?: string } }).cause
+    expect(cause?.code).toBe('42501')
+    expect(cause?.message).toMatch(/not authorized for region/)
+  })
+
+  it('refuses a maintainer, who holds region.edit but administers nothing', async () => {
+    // The gate is `region.admin`, matching `canEditRegion`. `region.edit` would also admit a
+    // maintainer, who reaches none of these paths but could then ask whether an address has an
+    // account.
+    //
+    // The demotion happens INSIDE the transaction the raise aborts, so it undoes itself and no
+    // other test can observe the fixture in a demoted state.
+    const claims = JSON.stringify({ email: EMAILS.member, role: 'authenticated', sub: users.member.authId })
+
+    const thrown = await db
+      .transaction(async (tx) => {
+        await tx.execute(
+          dsql`update public.region_members set role = 'region_maintainer'
+               where region_fk = ${regionId} and user_fk = ${users.member.userId}`,
+        )
+        await tx.execute(dsql`select set_config('request.jwt.claims', ${claims}, true)`)
+        await tx.execute(dsql`set local role app_writer`)
+
+        return tx.execute(dsql`select public.account_for_email(${regionId}, ${EMAILS.invitee}) as v`)
+      })
+      .catch((error: unknown) => error)
+
+    expect((thrown as { cause?: { code?: string } }).cause?.code).toBe('42501')
+  })
+
+  it('normalizes an address the way `normalizeEmail` does, tabs included', async () => {
+    // Postgres `trim()` strips spaces only, so a tab would survive it and stop matching.
+    const padded = `\t ${EMAILS.member.toUpperCase()} \n`
+    const [row] = await asRole('admin', (tx) =>
+      tx.execute<{ v: null | number }>(dsql`select public.account_for_email(${regionId}, ${padded}) as v`),
+    )
+
+    expect(row?.v).toBe(users.member.userId)
   })
 })
 

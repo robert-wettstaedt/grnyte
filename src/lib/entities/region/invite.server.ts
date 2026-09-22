@@ -18,7 +18,7 @@
  */
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
-import { events, regionInvitations, regionMembers, regions, users, userSettings } from '$lib/db/schema'
+import { events, regionInvitations, regionMembers, regions, users } from '$lib/db/schema'
 import { inviteEmailContent } from '$lib/email/invite'
 import { sendEmail } from '$lib/email/send.server'
 import type { EmailLocale } from '$lib/email/shell'
@@ -26,10 +26,8 @@ import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { baseLocale, isLocale } from '$lib/paraglide/runtime'
 import { error } from '@sveltejs/kit'
-import { and, count, eq, gt } from 'drizzle-orm'
-import { alias } from 'drizzle-orm/pg-core'
+import { and, count, eq, gt, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { authUsers } from 'drizzle-orm/supabase'
 import { insertEvent } from '../event/event.server'
 import { notify, notifyOutOfBand, retractOutOfBand } from '../notification/notification.server'
 import { acceptPath, type UserInvitationItem, type UserRegion } from './dto'
@@ -263,7 +261,7 @@ export async function createInvitation(
   }
 
   // Skipping this would leave a pending row that can never resolve into anything.
-  if (await isActiveMemberByEmail(regionFk, address)) {
+  if (await isActiveMemberByEmail(db, regionFk, address)) {
     error(409, formError('region_inviteAlreadyMember'))
   }
 
@@ -484,20 +482,25 @@ export async function resendInvitation(
  * against, and it is deliberate here: a wrong guess costs one paragraph in the wrong language,
  * and the accept page localizes itself from the invitee's own browser anyway.
  *
- * Over the base `db`: `user_settings` is readable only by its owner under RLS, and the sender is
- * never the recipient.
+ * Through the definer, on the caller's own handle: `user_settings` is readable only by its owner
+ * under RLS and the sender is never the recipient. `regionFk` is its permission gate, so without
+ * one there is nothing to authorize against and the ambient locale wins.
  */
-export async function resolveContactLocale(email: string, ambient?: string): Promise<EmailLocale> {
-  const [row] = await pinnedTx((tx) =>
-    tx
-      .select({ contactLocale: userSettings.contactLocale })
-      .from(userSettings)
-      .innerJoin(authUsers, eq(authUsers.id, userSettings.authUserFk))
-      .where(eq(authUsers.email, normalizeEmail(email)))
-      .limit(1),
+export async function resolveContactLocale(
+  db: Db,
+  regionFk: number | undefined,
+  email: string,
+  ambient?: string,
+): Promise<EmailLocale> {
+  if (regionFk == null) {
+    return asLocale(ambient) ?? baseLocale
+  }
+
+  const [row] = await db.execute<{ locale: null | string }>(
+    sql`select public.contact_locale_for_email(${regionFk}, ${email}) as locale`,
   )
 
-  return asLocale(row?.contactLocale) ?? asLocale(ambient) ?? baseLocale
+  return asLocale(row?.locale) ?? asLocale(ambient) ?? baseLocale
 }
 
 /**
@@ -591,7 +594,7 @@ export async function revokeInvitation(
 
   // And take back the push that has not gone out yet. A withdrawn invitation whose queue row
   // survives buzzes minutes later asking for an accept the token can no longer honour.
-  const invitee = await accountIdForEmail(invitation.email)
+  const invitee = await accountIdForEmail(db, invitation.regionFk, invitation.email)
 
   if (invitee != null) {
     await retractOutOfBand({
@@ -644,7 +647,7 @@ export async function sendInvitationEmail(
   },
   { ambientLocale, origin }: MailContext,
 ): Promise<boolean> {
-  const locale = await resolveContactLocale(email, ambientLocale)
+  const locale = await resolveContactLocale(db, regionFk, email, ambientLocale)
   const sentAt = new Date()
 
   const sent = await sendEmail({
@@ -661,7 +664,7 @@ export async function sendInvitationEmail(
   // no account. Queued whether or not it went out, because a failed send is when a second channel
   // is worth the most.
   if (actorFk != null && regionFk != null) {
-    const invitee = await accountIdForEmail(email)
+    const invitee = await accountIdForEmail(db, regionFk, email)
 
     if (invitee != null && invitee !== actorFk) {
       // Cleared first, because `actor_fk` is in the unique key: a resend by a different admin
@@ -680,44 +683,30 @@ export async function sendInvitationEmail(
 }
 
 /**
- * The app id of the account on this address, or `undefined` when nobody has one yet. Same join as
- * {@link resolveContactLocale}, over the base handle for the same reason: `auth.users` is where an
- * email lives and `authenticated` cannot read it.
+ * The app id of the account on this address, or `undefined` when nobody has one yet.
+ *
+ * `regionFk` is a permission gate, not a filter: the definer RAISES 42501 for a region the caller
+ * does not administer, so a denial reaches the caller instead of reading as "no account".
  */
-async function accountIdForEmail(email: string): Promise<number | undefined> {
-  // `auth.users` is named `users` too, so beside `public.users` it needs a name of its own or
-  // Postgres refuses the query as an ambiguous table reference.
-  const authUser = alias(authUsers, 'auth_user')
-
-  const [row] = await pinnedTx((tx) =>
-    tx
-      .select({ id: users.id })
-      .from(users)
-      .innerJoin(authUser, eq(authUser.id, users.authUserFk))
-      .where(eq(authUser.email, normalizeEmail(email)))
-      .limit(1),
+async function accountIdForEmail(db: Db, regionFk: number, email: string): Promise<number | undefined> {
+  const [row] = await db.execute<{ id: null | number }>(
+    sql`select public.account_for_email(${regionFk}, ${email}) as id`,
   )
 
-  return row?.id
+  return row?.id ?? undefined
 }
 
 function asLocale(value: null | string | undefined): EmailLocale | undefined {
   return value != null && isLocale(value) ? value : undefined
 }
 
-/** Whether the address belongs to an account that is already an active member of the region.
- *  Over the base `db`: `auth.users` is not readable by the `authenticated` role. */
-async function isActiveMemberByEmail(regionFk: number, email: string): Promise<boolean> {
-  const [member] = await pinnedTx((tx) =>
-    tx
-      .select({ id: regionMembers.id })
-      .from(regionMembers)
-      .innerJoin(authUsers, eq(authUsers.id, regionMembers.authUserFk))
-      .where(and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.isActive, true), eq(authUsers.email, email)))
-      .limit(1),
+/** Whether the address belongs to an account that is already an active member of the region. */
+async function isActiveMemberByEmail(db: Db, regionFk: number, email: string): Promise<boolean> {
+  const [row] = await db.execute<{ member: boolean }>(
+    sql`select public.is_active_member_by_email(${regionFk}, ${email}) as member`,
   )
 
-  return member != null
+  return row?.member === true
 }
 
 /**

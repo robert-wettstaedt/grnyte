@@ -10,10 +10,9 @@ import Database from 'postgres'
 // one for the length of a transaction, so these are cheap. Session mode is what made them
 // expensive, held one for the client's whole life, and `EMAXCONNSESSION`'d.
 //
-// `max` must exceed 2x the handlers that can run at once, because the nesting depth is 2: a
-// privileged read (`pinnedTx`) taken from inside an RLS handler's transaction needs a SECOND
-// connection while the first is still held. At 3 that ceiling was ONE concurrent invite, and three
-// at once would each hold one and wait forever for a fourth.
+// `max` must exceed the number of handlers that can nest a second checkout inside their own
+// transaction: each holds one and waits for another, so `max` of them deadlock. At 3 that ceiling
+// was three concurrent invites (`docs/pooler-incident/repro-nested-deadlock.mts`).
 const postgres = Database(DATABASE_URL, {
   debug: process.env.NODE_ENV === 'development',
   // Seconds. Was `timeout: 30_000`, which postgres.js deprecated in favour of this and read as
