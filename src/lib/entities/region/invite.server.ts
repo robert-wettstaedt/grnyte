@@ -35,6 +35,16 @@ import { canEditRegion } from './permissions'
 
 type Db = PostgresJsDatabase<typeof schema>
 
+/**
+ * How the caller schedules the out-of-band push.
+ *
+ * An RLS handler passes `Context.afterCommit`, because these writes run on the privileged handle
+ * and taking that connection while the handler still holds its own is what deadlocks the pool.
+ * Callers outside a handler (the tests) pass nothing and it runs inline, where there is no
+ * transaction to nest inside.
+ */
+type Defer = (task: () => Promise<void>) => void
+
 /** How long an invitation stays open. Also stated in the mail copy (`email_inviteMeta`). */
 export const INVITE_TTL_DAYS = 7
 
@@ -415,6 +425,7 @@ export async function resendInvitation(
     userRegions,
   }: { invitationFk: number; inviter: string; inviterFk?: number; userRegions: UserRegion[] },
   mail: MailContext,
+  defer?: Defer,
 ): Promise<{ email: string; sent: boolean }> {
   const invitation = await loadEditable(db, invitationFk, userRegions)
 
@@ -443,6 +454,7 @@ export async function resendInvitation(
       token: invitation.token,
     },
     mail,
+    defer,
   )
 
   // Logged only when the region has no record of this address being invited (the first send may
@@ -584,6 +596,7 @@ export async function revokeInvitation(
   db: Db,
   invitationFk: number,
   userRegions: UserRegion[],
+  defer?: Defer,
 ): Promise<{ email: string; regionFk: number }> {
   const invitation = await loadEditable(db, invitationFk, userRegions)
 
@@ -597,11 +610,14 @@ export async function revokeInvitation(
   const invitee = await accountIdForEmail(db, invitation.regionFk, invitation.email)
 
   if (invitee != null) {
-    await retractOutOfBand({
-      regionFk: invitation.regionFk,
-      sourceType: 'invitation_received',
-      userFk: invitee,
-    })
+    const retract = () =>
+      retractOutOfBand({ regionFk: invitation.regionFk, sourceType: 'invitation_received', userFk: invitee })
+
+    if (defer == null) {
+      await retract()
+    } else {
+      defer(retract)
+    }
   }
 
   return { email: invitation.email, regionFk: invitation.regionFk }
@@ -646,6 +662,7 @@ export async function sendInvitationEmail(
     token: string
   },
   { ambientLocale, origin }: MailContext,
+  defer?: Defer,
 ): Promise<boolean> {
   const locale = await resolveContactLocale(db, regionFk, email, ambientLocale)
   const sentAt = new Date()
@@ -670,8 +687,16 @@ export async function sendInvitationEmail(
       // Cleared first, because `actor_fk` is in the unique key: a resend by a different admin
       // misses the existing row's conflict target and inserts a second one, buzzing twice for one
       // invitation. Only pending rows go, so nothing already delivered is erased.
-      await retractOutOfBand({ regionFk, sourceType: 'invitation_received', userFk: invitee })
-      await notifyOutOfBand({ actorFk, regionFk, sourceType: 'invitation_received', userFk: invitee })
+      const queue = async () => {
+        await retractOutOfBand({ regionFk, sourceType: 'invitation_received', userFk: invitee })
+        await notifyOutOfBand({ actorFk, regionFk, sourceType: 'invitation_received', userFk: invitee })
+      }
+
+      if (defer == null) {
+        await queue()
+      } else {
+        defer(queue)
+      }
     }
   }
 

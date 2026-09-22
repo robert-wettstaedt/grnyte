@@ -49,7 +49,8 @@ export function classifySearchPath(searchPath: string): 'broken' | 'expected' | 
  * Never call it from inside an RLS handler's transaction: that holds one connection and waits for
  * a second, so `max` such callers at once deadlock (measured, `repro-nested-deadlock.mts`: 9 pass
  * at `max: 10`, 10 hang). Defer with `Context.afterCommit`, or answer it with a definer as `0132`
- * does. `notifyOutOfBand` still does it, which is why the invite ceiling is lowered, not gone.
+ * does. The two accept handlers still nest one through `acceptInvitation`, so the ceiling is
+ * lowered, not gone.
  */
 export async function pinnedTx<T>(body: Body<T>): Promise<T> {
   let before: string | undefined

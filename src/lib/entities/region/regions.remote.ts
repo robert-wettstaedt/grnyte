@@ -284,7 +284,7 @@ const mailContext = (): MailContext => ({ ambientLocale: getLocale(), origin: ge
 export const inviteRegionMember = authedForm(
   z.object({ email: z.email({ error: formError('auth_emailInvalid') }), regionFk: stringToInt }),
   async ({ email, regionFk }, ctx): Promise<MutationResult<{ email: string; sent: boolean }>> => {
-    const { db, user } = ctx
+    const { afterCommit, db, user } = ctx
     assertCanEdit(ctx, regionFk)
 
     const region = await db.query.regions.findFirst({ columns: { name: true }, where: eq(regions.id, regionFk) })
@@ -308,6 +308,7 @@ export const inviteRegionMember = authedForm(
         token: invitation.token,
       },
       mailContext(),
+      afterCommit,
     )
 
     // After the send, and only when it went out: logging ahead of it put "You invited ..." in the
@@ -332,11 +333,15 @@ export const inviteRegionMember = authedForm(
 /** Re-send an existing invitation with a refreshed expiry. Throttled to one send per minute. */
 export const resendRegionInvitation = authedCommand(
   z.object({ invitationFk: z.number() }),
-  async ({ invitationFk }, { db, user, userRegions }): Promise<MutationResult<{ email: string; sent: boolean }>> => ({
+  async (
+    { invitationFk },
+    { afterCommit, db, user, userRegions },
+  ): Promise<MutationResult<{ email: string; sent: boolean }>> => ({
     data: await resendInvitation(
       db,
       { invitationFk, inviter: user.username, inviterFk: user.id, userRegions },
       mailContext(),
+      afterCommit,
     ),
   }),
 )
@@ -348,8 +353,11 @@ export interface RevokedInvitationSnapshot {
 /** Withdraw an invitation. See {@link revokeInvitation} for why it is an update, not a delete. */
 export const revokeRegionInvitation = authedCommand(
   z.object({ invitationFk: z.number() }),
-  async ({ invitationFk }, { db, user, userRegions }): Promise<MutationResult<RevokedInvitationSnapshot>> => {
-    const { email, regionFk } = await revokeInvitation(db, invitationFk, userRegions)
+  async (
+    { invitationFk },
+    { afterCommit, db, user, userRegions },
+  ): Promise<MutationResult<RevokedInvitationSnapshot>> => {
+    const { email, regionFk } = await revokeInvitation(db, invitationFk, userRegions, afterCommit)
 
     // `subject_fk` holds the ACTOR and the address is in `metadata`. That pair is what tells this
     // apart from `removeRegionMember`, which writes the same verb: never read the verb alone.
