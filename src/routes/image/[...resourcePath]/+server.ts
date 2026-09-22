@@ -1,5 +1,5 @@
 import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth'
-import { db as adminDb } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { files } from '$lib/db/schema'
 import { DERIVATIVE_SIZES } from '$lib/images/derivatives'
 import { getImageProvider, type ImagePayload } from '$lib/images/provider.server'
@@ -33,10 +33,12 @@ export async function GET({ locals, params, request, url }) {
   // had. Paths repeat across rows (duplicate and orphan path rows from earlier upload flows) and
   // ANY row that grants access unlocks the bytes, which is why this reads every matching row
   // rather than the first one.
-  const rows = await adminDb.query.files.findMany({
-    columns: { regionFk: true, visibility: true },
-    where: eq(files.path, resourcePath),
-  })
+  const rows = await pinnedTx((tx) =>
+    tx.query.files.findMany({
+      columns: { regionFk: true, visibility: true },
+      where: eq(files.path, resourcePath),
+    }),
+  )
 
   // No `locals.claims` guard around this: an anonymous request carries an empty `userRegions`, so
   // it can only ever answer false. A second way of stating that is a second thing to keep true.

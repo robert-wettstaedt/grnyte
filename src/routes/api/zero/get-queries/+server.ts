@@ -1,5 +1,4 @@
 import { verifyAccessToken } from '$lib/auth/verify.server'
-import { db } from '$lib/db/db.server'
 import { getUserPermissions } from '$lib/hooks/auth.server'
 import { queries } from '$lib/zero/queries'
 import { schema } from '$lib/zero/zero-schema'
@@ -21,7 +20,7 @@ export async function POST({ request }) {
     error(verified.reason === 'expired' ? 502 : 401)
   }
 
-  const pageState = await getUserPermissions(db, verified.claims.sub)
+  const pageState = await getUserPermissions(verified.claims.sub)
 
   // The one place a region query's scope is decided. `regionMemberCan` leaves a query unfiltered
   // when the context carries no memberships (that is the client path, against an already-filtered

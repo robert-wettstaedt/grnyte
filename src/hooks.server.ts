@@ -1,4 +1,4 @@
-import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { clientErrorLogs } from '$lib/db/schema'
 import { authGuard, supabase } from '$lib/hooks/auth.server'
 import { handle as paraglide } from '$lib/hooks/paraglide.server'
@@ -17,14 +17,16 @@ export const handleError: HandleServerError = async ({ error, event, status }) =
 
   // Missing routes land here too, and are noise rather than incidents.
   if (status !== 404) {
-    await db
-      .insert(clientErrorLogs)
-      .values({
+    // Pinned: this is the handler that records a 42P01 from an inherited `search_path`, so it is
+    // the one write that must not be broken by the same poisoned connection.
+    await pinnedTx((tx) =>
+      tx.insert(clientErrorLogs).values({
         createdBy: event.locals.user?.id ?? null,
         error: stringifyError(error).slice(0, MAX_ERROR_LENGTH),
         pathname: event.url.pathname,
         source: 'server',
-      })
+      }),
+    )
       // best-effort: a failing log must not mask the error it is reporting
       .catch(() => {})
   }

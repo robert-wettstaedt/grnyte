@@ -1,4 +1,4 @@
-import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { bunnyStreams, files } from '$lib/db/schema'
 import { notify } from '$lib/entities/notification/notification.server'
 import { logServerFailure } from '$lib/logging/failure.server'
@@ -37,11 +37,13 @@ export async function promoteReadiness(guid: string, readiness: VideoReadiness):
     return false
   }
   const guard = readiness === 'ready' ? ne(bunnyStreams.readiness, 'ready') : eq(bunnyStreams.readiness, 'pending')
-  const moved = await db
-    .update(bunnyStreams)
-    .set({ readiness })
-    .where(and(eq(bunnyStreams.id, guid), guard))
-    .returning({ id: bunnyStreams.id })
+  const moved = await pinnedTx((tx) =>
+    tx
+      .update(bunnyStreams)
+      .set({ readiness })
+      .where(and(eq(bunnyStreams.id, guid), guard))
+      .returning({ id: bunnyStreams.id }),
+  )
   if (moved.length === 0) {
     return false
   }
@@ -64,14 +66,16 @@ export async function promoteReadiness(guid: string, readiness: VideoReadiness):
 export async function reconcileReadiness(provider: VideoProvider): Promise<number> {
   // Bounded: one serial host call per row, inside the same timeout as the retention deletes.
   // Unbounded, a webhook broken for a while would take the whole job down. The rest waits.
-  const stale = await db
-    .select({ id: bunnyStreams.id })
-    .from(bunnyStreams)
-    .where(eq(bunnyStreams.readiness, 'pending'))
-    // Randomised, because a row can stay `pending` across runs. At the head of a stable scan those
-    // rows burn the whole budget every run and starve newer ones out.
-    .orderBy(sql`random()`)
-    .limit(RECONCILE_LIMIT)
+  const stale = await pinnedTx((tx) =>
+    tx
+      .select({ id: bunnyStreams.id })
+      .from(bunnyStreams)
+      .where(eq(bunnyStreams.readiness, 'pending'))
+      // Randomised, because a row can stay `pending` across runs. At the head of a stable scan those
+      // rows burn the whole budget every run and starve newer ones out.
+      .orderBy(sql`random()`)
+      .limit(RECONCILE_LIMIT),
+  )
   let corrected = 0
   let failed = 0
   for (const { id } of stale) {
@@ -103,16 +107,18 @@ export async function reconcileReadiness(provider: VideoProvider): Promise<numbe
  */
 async function notifyUploader(guid: string): Promise<void> {
   try {
-    const [row] = await db
-      .select({
-        createdAt: files.createdAt,
-        createdBy: files.createdBy,
-        fileId: files.id,
-        regionFk: files.regionFk,
-      })
-      .from(bunnyStreams)
-      .innerJoin(files, eq(files.id, bunnyStreams.fileFk))
-      .where(eq(bunnyStreams.id, guid))
+    const [row] = await pinnedTx((tx) =>
+      tx
+        .select({
+          createdAt: files.createdAt,
+          createdBy: files.createdBy,
+          fileId: files.id,
+          regionFk: files.regionFk,
+        })
+        .from(bunnyStreams)
+        .innerJoin(files, eq(files.id, bunnyStreams.fileFk))
+        .where(eq(bunnyStreams.id, guid)),
+    )
     if (row?.createdBy == null || row.createdAt == null) {
       return
     }

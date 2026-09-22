@@ -1,6 +1,6 @@
 /** Tell whoever runs the app about error-log messages nobody has seen yet. Not a `notifications`
  *  row: those need a `region_fk` (see `feedback` in `schema.ts`), and Zero syncs them to clients. */
-import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { clientErrorLogs } from '$lib/db/schema'
 import { m } from '$lib/paraglide/messages'
 import { and, asc, isNull, lte, notLike } from 'drizzle-orm'
@@ -30,26 +30,34 @@ export async function alertOnNewErrors(origin: string): Promise<number> {
       notLike(clientErrorLogs.error, SELF_MAIL),
     )
 
-    const fresh = await db
-      .select({ error: clientErrorLogs.error, id: clientErrorLogs.id })
-      .from(clientErrorLogs)
-      .where(unseen)
-      .orderBy(asc(clientErrorLogs.id))
-      .limit(BATCH)
+    const fresh = await pinnedTx(async (tx) => {
+      const rows = await tx
+        .select({ error: clientErrorLogs.error, id: clientErrorLogs.id })
+        .from(clientErrorLogs)
+        .where(unseen)
+        .orderBy(asc(clientErrorLogs.id))
+        .limit(BATCH)
+
+      if (rows.length === 0) {
+        return rows
+      }
+
+      // Before the send, not after: `alertAppAdmins` swallows its own failures, so an unstamped row
+      // comes back every five minutes. By predicate, not by id list, which binds one parameter each
+      // and throws past 65535; `lte` bounds it to what this run actually read.
+      await tx
+        .update(clientErrorLogs)
+        .set({ alertedAt: new Date() })
+        .where(and(unseen, lte(clientErrorLogs.id, rows[rows.length - 1].id)))
+
+      return rows
+    })
 
     if (fresh.length === 0) {
       return 0
     }
 
     const messages = [...new Set(fresh.map((row) => row.error ?? ''))]
-
-    // Before the send, not after: `alertAppAdmins` swallows its own failures, so an unstamped row
-    // comes back every five minutes. By predicate, not by id list, which binds one parameter each
-    // and throws past 65535; `lte` bounds it to what this run actually read.
-    await db
-      .update(clientErrorLogs)
-      .set({ alertedAt: new Date() })
-      .where(and(unseen, lte(clientErrorLogs.id, fresh[fresh.length - 1].id)))
 
     const excerpt = messages
       .slice(0, NAMED)

@@ -1,5 +1,5 @@
 import { form, getRequestEvent } from '$app/server'
-import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { notifyAdminsOfSignup } from '$lib/entities/notification/signup.server'
 import { authError, formError, passwordSchema, passwordsMatch, usernameSchema } from '$lib/forms/schemas'
@@ -35,16 +35,23 @@ export const signUp = form(signUpSchema, async ({ email, password, username }) =
     invalid(formError('auth_signUpFailed'))
   }
 
-  // Create the app-level user + settings rows and link them. Uses the base (non-RLS)
-  // client because there is no authenticated session yet at sign-up.
-  const [createdUser] = await db.insert(schema.users).values({ authUserFk: data.user.id, username }).returning()
-  // `contactLocale` is seeded from the request locale: the best guess on the device the account
-  // was made on, and the only signal we have until they pick a language in settings.
-  const [createdSettings] = await db
-    .insert(schema.userSettings)
-    .values({ authUserFk: data.user.id, contactLocale: getLocale(), userFk: createdUser.id })
-    .returning()
-  await db.update(schema.users).set({ userSettingsFk: createdSettings.id }).where(eq(schema.users.id, createdUser.id))
+  // Create the app-level user + settings rows and link them. Uses the base (non-RLS) client
+  // because there is no authenticated session yet at sign-up. All three in one transaction: the
+  // GoTrue account already exists by now, so a half-written pair leaves an address that can
+  // neither sign in nor sign up again.
+  // Read out here: TypeScript drops the null narrowing above once it crosses into the callback.
+  const authUserFk = data.user.id
+  const createdUser = await pinnedTx(async (tx) => {
+    const [user] = await tx.insert(schema.users).values({ authUserFk, username }).returning()
+    // `contactLocale` is seeded from the request locale: the best guess on the device the account
+    // was made on, and the only signal we have until they pick a language in settings.
+    const [settings] = await tx
+      .insert(schema.userSettings)
+      .values({ authUserFk, contactLocale: getLocale(), userFk: user.id })
+      .returning()
+    await tx.update(schema.users).set({ userSettingsFk: settings.id }).where(eq(schema.users.id, user.id))
+    return user
+  })
 
   // Last, and after the rows it names exist. Never throws, so a push service or mail host that is
   // down cannot fail a sign-up that already succeeded.

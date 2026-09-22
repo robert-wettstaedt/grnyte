@@ -16,7 +16,7 @@
  * arrive as a {@link MailContext} instead, which is the whole reason this module stays importable
  * from a test while `regions.remote.ts` does not.
  */
-import { db as baseDb } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { events, regionInvitations, regionMembers, regions, users, userSettings } from '$lib/db/schema'
 import { inviteEmailContent } from '$lib/email/invite'
@@ -119,7 +119,7 @@ export async function acceptInvitation({ authUserId, email, token }: AcceptInvit
    *  fan-out runs on its own connection and must not announce a join that then rolls back. */
   let joined: undefined | { invitedByFk: number; regionFk: number; userFk: number }
 
-  const accepted = await baseDb.transaction(async (tx) => {
+  const accepted = await pinnedTx(async (tx) => {
     const invitation = await tx.query.regionInvitations.findFirst({
       where: eq(regionInvitations.token, token),
       with: { region: { columns: { maxMembers: true, name: true } } },
@@ -302,23 +302,27 @@ export function expiry(from = Date.now()): Date {
  * Over the base `db`: the hook runs before there is an RLS transaction to speak of.
  */
 export async function findLiveInvitationByEmail(email: string): Promise<undefined | { token: string }> {
-  return baseDb.query.regionInvitations.findFirst({
-    columns: { token: true },
-    where: and(eq(regionInvitations.email, normalizeEmail(email)), livePredicate()),
-  })
+  return pinnedTx((tx) =>
+    tx.query.regionInvitations.findFirst({
+      columns: { token: true },
+      where: and(eq(regionInvitations.email, normalizeEmail(email)), livePredicate()),
+    }),
+  )
 }
 
 /** Whether the region has room for one more member. The accept-side seat rule (live invitations
  *  do not count, the one being accepted is about to be consumed). */
 export async function hasFreeSeat(regionFk: number): Promise<boolean> {
-  const [region, [{ members }]] = await Promise.all([
-    baseDb.query.regions.findFirst({ columns: { maxMembers: true }, where: eq(regions.id, regionFk) }),
+  const [region, [{ members }]] = await pinnedTx((tx) =>
+    Promise.all([
+      tx.query.regions.findFirst({ columns: { maxMembers: true }, where: eq(regions.id, regionFk) }),
 
-    baseDb
-      .select({ members: count() })
-      .from(regionMembers)
-      .where(and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.isActive, true))),
-  ])
+      tx
+        .select({ members: count() })
+        .from(regionMembers)
+        .where(and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.isActive, true))),
+    ]),
+  )
 
   return region != null && members < region.maxMembers
 }
@@ -335,11 +339,13 @@ export async function hasFreeSeat(regionFk: number): Promise<boolean> {
  * the caller's RLS transaction. The `token` deliberately stays here, same as `listRegionInvitations`.
  */
 export async function listInvitationsForEmail(email: string): Promise<UserInvitationItem[]> {
-  const rows = await baseDb.query.regionInvitations.findMany({
-    columns: { id: true },
-    where: and(eq(regionInvitations.email, normalizeEmail(email)), livePredicate()),
-    with: { invitedBy: { columns: { username: true } }, region: { columns: { name: true } } },
-  })
+  const rows = await pinnedTx((tx) =>
+    tx.query.regionInvitations.findMany({
+      columns: { id: true },
+      where: and(eq(regionInvitations.email, normalizeEmail(email)), livePredicate()),
+      with: { invitedBy: { columns: { username: true } }, region: { columns: { name: true } } },
+    }),
+  )
 
   // A region that has since been deleted leaves its invitation behind (`region_fk` has no
   // cascade). There is nothing left to join, so it is not offered.
@@ -365,10 +371,12 @@ export async function loadInvitation(token: string): Promise<InvitationView | un
     return undefined
   }
 
-  const invitation = await baseDb.query.regionInvitations.findFirst({
-    where: eq(regionInvitations.token, token),
-    with: { invitedBy: { columns: { username: true } }, region: { columns: { name: true } } },
-  })
+  const invitation = await pinnedTx((tx) =>
+    tx.query.regionInvitations.findFirst({
+      where: eq(regionInvitations.token, token),
+      with: { invitedBy: { columns: { username: true } }, region: { columns: { name: true } } },
+    }),
+  )
 
   if (invitation == null) {
     return undefined
@@ -480,12 +488,14 @@ export async function resendInvitation(
  * never the recipient.
  */
 export async function resolveContactLocale(email: string, ambient?: string): Promise<EmailLocale> {
-  const [row] = await baseDb
-    .select({ contactLocale: userSettings.contactLocale })
-    .from(userSettings)
-    .innerJoin(authUsers, eq(authUsers.id, userSettings.authUserFk))
-    .where(eq(authUsers.email, normalizeEmail(email)))
-    .limit(1)
+  const [row] = await pinnedTx((tx) =>
+    tx
+      .select({ contactLocale: userSettings.contactLocale })
+      .from(userSettings)
+      .innerJoin(authUsers, eq(authUsers.id, userSettings.authUserFk))
+      .where(eq(authUsers.email, normalizeEmail(email)))
+      .limit(1),
+  )
 
   return asLocale(row?.contactLocale) ?? asLocale(ambient) ?? baseLocale
 }
@@ -679,12 +689,14 @@ async function accountIdForEmail(email: string): Promise<number | undefined> {
   // Postgres refuses the query as an ambiguous table reference.
   const authUser = alias(authUsers, 'auth_user')
 
-  const [row] = await baseDb
-    .select({ id: users.id })
-    .from(users)
-    .innerJoin(authUser, eq(authUser.id, users.authUserFk))
-    .where(eq(authUser.email, normalizeEmail(email)))
-    .limit(1)
+  const [row] = await pinnedTx((tx) =>
+    tx
+      .select({ id: users.id })
+      .from(users)
+      .innerJoin(authUser, eq(authUser.id, users.authUserFk))
+      .where(eq(authUser.email, normalizeEmail(email)))
+      .limit(1),
+  )
 
   return row?.id
 }
@@ -696,12 +708,14 @@ function asLocale(value: null | string | undefined): EmailLocale | undefined {
 /** Whether the address belongs to an account that is already an active member of the region.
  *  Over the base `db`: `auth.users` is not readable by the `authenticated` role. */
 async function isActiveMemberByEmail(regionFk: number, email: string): Promise<boolean> {
-  const [member] = await baseDb
-    .select({ id: regionMembers.id })
-    .from(regionMembers)
-    .innerJoin(authUsers, eq(authUsers.id, regionMembers.authUserFk))
-    .where(and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.isActive, true), eq(authUsers.email, email)))
-    .limit(1)
+  const [member] = await pinnedTx((tx) =>
+    tx
+      .select({ id: regionMembers.id })
+      .from(regionMembers)
+      .innerJoin(authUsers, eq(authUsers.id, regionMembers.authUserFk))
+      .where(and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.isActive, true), eq(authUsers.email, email)))
+      .limit(1),
+  )
 
   return member != null
 }

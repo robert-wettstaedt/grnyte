@@ -5,20 +5,29 @@ import { sql } from 'drizzle-orm'
 import { drizzle, PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import Database from 'postgres'
 
-// Sized for session mode (pooler host, port 5432), where a connection is held for the client's
-// life rather than per transaction: 10 per serverless instance does not fit in max_connections 60.
-// Transaction mode (6543) cannot be used: it runs no reset query, so a `search_path` left on a
-// server connection is inherited by the next client and every unqualified table name then 42P01s.
+// Transaction mode (pooler host, port 6543). Sizing is against Supavisor's `max_client_conn`, NOT
+// the server's `max_connections`: in transaction mode a client connection only borrows a server
+// one for the length of a transaction, so these are cheap. Session mode is what made them
+// expensive, held one for the client's whole life, and `EMAXCONNSESSION`'d.
+//
+// `max` must exceed 2x the handlers that can run at once, because the nesting depth is 2: a
+// privileged read (`pinnedTx`) taken from inside an RLS handler's transaction needs a SECOND
+// connection while the first is still held. At 3 that ceiling was ONE concurrent invite, and three
+// at once would each hold one and wait forever for a fourth.
 const postgres = Database(DATABASE_URL, {
   debug: process.env.NODE_ENV === 'development',
   // Seconds. Was `timeout: 30_000`, which postgres.js deprecated in favour of this and read as
   // 30,000 SECONDS, so idle connections were effectively never released.
   idle_timeout: 30,
-  max: 3,
+  max: 10,
   prepare: false,
 })
 
 export const db = drizzle(postgres, { schema })
+
+/** The healthy default minus the inert `"$user"` (nothing is named after the login role). Bare
+ *  `public` would drop the `extensions` schema the default path reaches today. */
+export const PINNED_SEARCH_PATH = 'public, extensions'
 
 export function createDrizzle<
   Database extends PostgresJsDatabase<typeof schema>,
@@ -46,10 +55,15 @@ export function createDrizzle<
         // every remote call to undo what the next statement undoes for free, and had to swallow its
         // own errors: on an aborted transaction it failed with 25P02 and hid the 42501 the caller
         // needed to see.
+        //
+        // `search_path` rides along as a fourth setting, free: the transaction pooler runs no
+        // reset query, so a value left by another client is inherited and every unqualified name
+        // in the RLS path then fails 42P01.
         await tx.execute(
           sql`select set_config('request.jwt.claims', ${JSON.stringify(token)}, true),
                      set_config('request.jwt.claim.sub', ${token.sub}, true),
-                     set_config('role', ${roleFor(token)}, true)`,
+                     set_config('role', ${roleFor(token)}, true),
+                     set_config('search_path', ${PINNED_SEARCH_PATH}, true)`,
         )
         return await transaction(tx)
       },

@@ -1,4 +1,4 @@
-import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import {
   areas,
   ascents,
@@ -80,8 +80,10 @@ import type { RequestHandler } from './$types'
  * One at a time was the shape both halves had: a subscriber's queries and its HTTPS send waiting
  * on the previous subscriber's, inside a job that has five minutes.
  *
- * ponytail: a fixed width rather than a queue, deliberately below the ten-slot database pool this
- * shares with the rest of the process. Upgrade = one ranked query over all subscribers, if the
+ * A fixed width rather than a queue. It is no longer below the database pool, which is
+ * `max: 3` since 228868da, and does not need to be: every query in here is its own short pinned
+ * transaction, so the four items queue on the pool for a moment each instead of holding a
+ * connection across an HTTPS send. Upgrade = one ranked query over all subscribers, if the
  * subscriber list ever outgrows the window.
  */
 async function inBatches<T, R>(items: readonly T[], task: (item: T) => Promise<R>): Promise<R[]> {
@@ -138,12 +140,14 @@ type ParentName = ({ kind: 'block'; name: string; order: number } | { kind: 'pla
 
 /** Move a person's push watermark forward, never back. A timestamp, matching `events.created_at`. */
 async function advanceWatermark(userFk: number, createdAt: Date): Promise<void> {
-  await db
-    .update(userSettings)
-    .set({
-      pushedUpToEventAt: sql`greatest(coalesce(${userSettings.pushedUpToEventAt}, to_timestamp(0)), ${createdAt.toISOString()}::timestamptz)`,
-    })
-    .where(eq(userSettings.userFk, userFk))
+  await pinnedTx((tx) =>
+    tx
+      .update(userSettings)
+      .set({
+        pushedUpToEventAt: sql`greatest(coalesce(${userSettings.pushedUpToEventAt}, to_timestamp(0)), ${createdAt.toISOString()}::timestamptz)`,
+      })
+      .where(eq(userSettings.userFk, userFk)),
+  )
 }
 
 /** Which switch governs an event: everything that is not an ascent or a person is a guidebook edit. */
@@ -198,10 +202,12 @@ async function namesOf(userFks: readonly number[]): Promise<Map<number, string>>
     return new Map()
   }
 
-  const rows = await db.query.users.findMany({
-    columns: { id: true, username: true },
-    where: (table, { inArray: within }) => within(table.id, ids),
-  })
+  const rows = await pinnedTx((tx) =>
+    tx.query.users.findMany({
+      columns: { id: true, username: true },
+      where: (table, { inArray: within }) => within(table.id, ids),
+    }),
+  )
 
   return new Map(rows.map((row) => [row.id, row.username]))
 }
@@ -228,16 +234,18 @@ async function parentNamesOf(fileFks: readonly string[]): Promise<Map<string, Pa
     return new Map()
   }
 
-  const rows = await db.query.files.findMany({
-    columns: { areaFk: true, blockFk: true, id: true, routeFk: true },
-    where: (table, { inArray: within }) => within(table.id, ids),
-    with: {
-      area: { columns: { name: true } },
-      ascent: { columns: { id: true }, with: { route: { columns: { id: true, name: true } } } },
-      block: { columns: { name: true, order: true } },
-      route: { columns: { name: true } },
-    },
-  })
+  const rows = await pinnedTx((tx) =>
+    tx.query.files.findMany({
+      columns: { areaFk: true, blockFk: true, id: true, routeFk: true },
+      where: (table, { inArray: within }) => within(table.id, ids),
+      with: {
+        area: { columns: { name: true } },
+        ascent: { columns: { id: true }, with: { route: { columns: { id: true, name: true } } } },
+        block: { columns: { name: true, order: true } },
+        route: { columns: { name: true } },
+      },
+    }),
+  )
 
   return new Map(
     rows.flatMap((row): [string, ParentName][] => {
@@ -339,22 +347,24 @@ function safeMark(scanned: readonly { createdAt: Date }[], truncated: boolean): 
 async function sendDigests(nowMs: number): Promise<number> {
   // Only people with a device to push to. Everything below is per-recipient, and this is what
   // keeps that work the length of the subscriber list rather than of the user table.
-  const subscribers = await db
-    .selectDistinct({
-      contactLocale: userSettings.contactLocale,
-      notifyAscents: userSettings.notifyAscents,
-      notifyCommunity: userSettings.notifyCommunity,
-      notifyGuidebookEdits: userSettings.notifyGuidebookEdits,
-      pushedUpTo: userSettings.pushedUpToEventAt,
-      seenUpTo: userSettings.seenUpToEventAt,
-      userFk: pushSubscriptions.userFk,
-    })
-    .from(pushSubscriptions)
-    // INNER, not LEFT. A subscriber with no `user_settings` row has no watermark to move, and an
-    // UPDATE against a row that does not exist affects nothing and reports success, which would
-    // make the same digest go out every five minutes, forever. `subscribeToPush` creates the row,
-    // so this only skips accounts whose settings went missing, and only until they touch settings.
-    .innerJoin(userSettings, eq(userSettings.userFk, pushSubscriptions.userFk))
+  const subscribers = await pinnedTx((tx) =>
+    tx
+      .selectDistinct({
+        contactLocale: userSettings.contactLocale,
+        notifyAscents: userSettings.notifyAscents,
+        notifyCommunity: userSettings.notifyCommunity,
+        notifyGuidebookEdits: userSettings.notifyGuidebookEdits,
+        pushedUpTo: userSettings.pushedUpToEventAt,
+        seenUpTo: userSettings.seenUpToEventAt,
+        userFk: pushSubscriptions.userFk,
+      })
+      .from(pushSubscriptions)
+      // INNER, not LEFT. A subscriber with no `user_settings` row has no watermark to move, and an
+      // UPDATE against a row that does not exist affects nothing and reports success, which would
+      // make the same digest go out every five minutes, forever. `subscribeToPush` creates the row,
+      // so this only skips accounts whose settings went missing, and only until they touch settings.
+      .innerJoin(userSettings, eq(userSettings.userFk, pushSubscriptions.userFk)),
+  )
 
   if (subscribers.length === 0) {
     return 0
@@ -369,7 +379,7 @@ async function sendDigests(nowMs: number): Promise<number> {
   // scan below had even started.
   const regionsByUser = await readableRegions(userFks)
   // The starting line for anybody who has never had a watermark, see below.
-  const [{ newestEventAt }] = await db.select({ newestEventAt: max(events.createdAt) }).from(events)
+  const [{ newestEventAt }] = await pinnedTx((tx) => tx.select({ newestEventAt: max(events.createdAt) }).from(events))
 
   const sendDigest = async (subscriber: (typeof subscribers)[number]): Promise<boolean> => {
     // Both marks null means never initialised, which is NOT the same as "caught up to nothing":
@@ -392,72 +402,74 @@ async function sendDigests(nowMs: number): Promise<number> {
       return false
     }
 
-    const rows = await db
-      .select({
-        actorFk: events.actorFk,
-        areaFk: events.areaFk,
-        // The eight fks the parent hop reads, handed to `eventParentRef` below rather than
-        // resolved in SQL. What a burst groups on has to be the hop the FEED reads, and a
-        // `coalesce` and a `case` kept in step with it by hand is a push that groups differently
-        // from the cards it summarises. Without a parent at all, every edit under one block is its
-        // own group, which inflates the "and 12 more" the digest reports.
-        areaParentFk: areas.parentFk,
-        // When it was climbed, which is not when it was logged. `groupEvents` ends a session card
-        // at the climb day, so a digest without this counts a card the feed never draws.
-        ascentClimbedAt: ascents.dateTime,
-        ascentFk: events.ascentFk,
-        ascentRouteFk: ascents.routeFk,
-        // The catalogue keys a logged ascent on its type, which is a column of the ascent rather
-        // than of the event. Without it every send in a digest reads as the generic sentence.
-        ascentType: ascents.type,
-        blockAreaFk: blocks.areaFk,
-        blockFk: events.blockFk,
-        // The first column an update moved, which is what the catalogue keys the sentence on: an
-        // update carries no verb of its own beyond "update", so without this a grade change reads
-        // as "edited the route" and a file or membership edit falls all the way through to the
-        // generic sentence.
-        changedColumn: sql<
-          null | string
-        >`(select c.column_name from public.changes c where c.event_fk = ${events.id} order by c.id limit 1)`,
-        createdAt: events.createdAt,
-        fileAreaFk: files.areaFk,
-        fileAscentFk: files.ascentFk,
-        fileBlockFk: files.blockFk,
-        fileFk: events.fileFk,
-        fileRouteFk: files.routeFk,
-        id: events.id,
-        metadata: events.metadata,
-        regionFk: events.regionFk,
-        routeBlockFk: routes.blockFk,
-        routeFk: events.routeFk,
-        subjectFk: events.subjectFk,
-        verb: events.verb,
-      })
-      .from(events)
-      // All on primary keys, and `events_one_object` allows at most one of them to match, so none
-      // of these can multiply a row.
-      .leftJoin(areas, eq(areas.id, events.areaFk))
-      .leftJoin(ascents, eq(ascents.id, events.ascentFk))
-      .leftJoin(blocks, eq(blocks.id, events.blockFk))
-      .leftJoin(files, eq(files.id, events.fileFk))
-      .leftJoin(routes, eq(routes.id, events.routeFk))
-      .where(
-        and(
-          gt(events.createdAt, floor),
-          // Stops short of the last half minute: a row is stamped when it is written and visible
-          // only when its transaction commits, so reading right up to now would let the mark step
-          // over something still in flight. See `DIGEST_COMMIT_LAG_MS`.
-          lte(events.createdAt, new Date(nowMs - DIGEST_COMMIT_LAG_MS)),
-          inArray(events.regionFk, regions),
-          // Nobody is told about their own edit.
-          ne(events.actorFk, subscriber.userFk),
-        ),
-      )
-      .orderBy(events.createdAt, events.id)
-      // Bounded, because this runs per subscriber every five minutes and `floor` can legitimately
-      // be far behind (a fresh account, or somebody who had every category switched off). The
-      // digest reports a count and one headline either way, so a longer tail buys nothing.
-      .limit(DIGEST_SCAN_LIMIT)
+    const rows = await pinnedTx((tx) =>
+      tx
+        .select({
+          actorFk: events.actorFk,
+          areaFk: events.areaFk,
+          // The eight fks the parent hop reads, handed to `eventParentRef` below rather than
+          // resolved in SQL. What a burst groups on has to be the hop the FEED reads, and a
+          // `coalesce` and a `case` kept in step with it by hand is a push that groups differently
+          // from the cards it summarises. Without a parent at all, every edit under one block is its
+          // own group, which inflates the "and 12 more" the digest reports.
+          areaParentFk: areas.parentFk,
+          // When it was climbed, which is not when it was logged. `groupEvents` ends a session card
+          // at the climb day, so a digest without this counts a card the feed never draws.
+          ascentClimbedAt: ascents.dateTime,
+          ascentFk: events.ascentFk,
+          ascentRouteFk: ascents.routeFk,
+          // The catalogue keys a logged ascent on its type, which is a column of the ascent rather
+          // than of the event. Without it every send in a digest reads as the generic sentence.
+          ascentType: ascents.type,
+          blockAreaFk: blocks.areaFk,
+          blockFk: events.blockFk,
+          // The first column an update moved, which is what the catalogue keys the sentence on: an
+          // update carries no verb of its own beyond "update", so without this a grade change reads
+          // as "edited the route" and a file or membership edit falls all the way through to the
+          // generic sentence.
+          changedColumn: sql<
+            null | string
+          >`(select c.column_name from public.changes c where c.event_fk = ${events.id} order by c.id limit 1)`,
+          createdAt: events.createdAt,
+          fileAreaFk: files.areaFk,
+          fileAscentFk: files.ascentFk,
+          fileBlockFk: files.blockFk,
+          fileFk: events.fileFk,
+          fileRouteFk: files.routeFk,
+          id: events.id,
+          metadata: events.metadata,
+          regionFk: events.regionFk,
+          routeBlockFk: routes.blockFk,
+          routeFk: events.routeFk,
+          subjectFk: events.subjectFk,
+          verb: events.verb,
+        })
+        .from(events)
+        // All on primary keys, and `events_one_object` allows at most one of them to match, so none
+        // of these can multiply a row.
+        .leftJoin(areas, eq(areas.id, events.areaFk))
+        .leftJoin(ascents, eq(ascents.id, events.ascentFk))
+        .leftJoin(blocks, eq(blocks.id, events.blockFk))
+        .leftJoin(files, eq(files.id, events.fileFk))
+        .leftJoin(routes, eq(routes.id, events.routeFk))
+        .where(
+          and(
+            gt(events.createdAt, floor),
+            // Stops short of the last half minute: a row is stamped when it is written and visible
+            // only when its transaction commits, so reading right up to now would let the mark step
+            // over something still in flight. See `DIGEST_COMMIT_LAG_MS`.
+            lte(events.createdAt, new Date(nowMs - DIGEST_COMMIT_LAG_MS)),
+            inArray(events.regionFk, regions),
+            // Nobody is told about their own edit.
+            ne(events.actorFk, subscriber.userFk),
+          ),
+        )
+        .orderBy(events.createdAt, events.id)
+        // Bounded, because this runs per subscriber every five minutes and `floor` can legitimately
+        // be far behind (a fresh account, or somebody who had every category switched off). The
+        // digest reports a count and one headline either way, so a longer tail buys nothing.
+        .limit(DIGEST_SCAN_LIMIT),
+    )
 
     if (rows.length === 0) {
       return false
@@ -561,41 +573,43 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
   // carries the name), so the actor side needs an alias of its own.
   const actor = alias(users, 'actor')
 
-  const due = await db
-    .select({
-      actorName: actor.username,
-      areaFk: notifications.areaFk,
-      ascentFk: notifications.ascentFk,
-      blockFk: notifications.blockFk,
-      contactLocale: userSettings.contactLocale,
-      createdAt: notifications.createdAt,
-      // Where the mail goes. `auth.users` is the only place an address lives.
-      email: authUsers.email,
-      // Both only so the push can open where it happened rather than on the inbox. See
-      // `pathnameFor`.
-      eventFk: notifications.eventFk,
-      fileFk: notifications.fileFk,
-      id: notifications.id,
-      metadata: notifications.metadata,
-      notifyComments: userSettings.notifyComments,
-      notifyDirected: userSettings.notifyDirected,
-      notifyReactions: userSettings.notifyReactions,
-      reactionFk: notifications.reactionFk,
-      regionFk: notifications.regionFk,
-      // The place, for the two sentences that say it: a push and a mail have no crumb to draw it
-      // from the way the inbox does.
-      regionName: regions.name,
-      routeFk: notifications.routeFk,
-      sourceType: notifications.sourceType,
-      subjectFk: notifications.subjectFk,
-      userFk: notifications.userFk,
-    })
-    .from(notifications)
-    .innerJoin(actor, eq(actor.id, notifications.actorFk))
-    .innerJoin(regions, eq(regions.id, notifications.regionFk))
-    .leftJoin(authUsers, eq(authUsers.id, notifications.authUserFk))
-    .leftJoin(userSettings, eq(userSettings.userFk, notifications.userFk))
-    .where(and(isNull(notifications.pushedAt), isNull(notifications.readAt)))
+  const due = await pinnedTx((tx) =>
+    tx
+      .select({
+        actorName: actor.username,
+        areaFk: notifications.areaFk,
+        ascentFk: notifications.ascentFk,
+        blockFk: notifications.blockFk,
+        contactLocale: userSettings.contactLocale,
+        createdAt: notifications.createdAt,
+        // Where the mail goes. `auth.users` is the only place an address lives.
+        email: authUsers.email,
+        // Both only so the push can open where it happened rather than on the inbox. See
+        // `pathnameFor`.
+        eventFk: notifications.eventFk,
+        fileFk: notifications.fileFk,
+        id: notifications.id,
+        metadata: notifications.metadata,
+        notifyComments: userSettings.notifyComments,
+        notifyDirected: userSettings.notifyDirected,
+        notifyReactions: userSettings.notifyReactions,
+        reactionFk: notifications.reactionFk,
+        regionFk: notifications.regionFk,
+        // The place, for the two sentences that say it: a push and a mail have no crumb to draw it
+        // from the way the inbox does.
+        regionName: regions.name,
+        routeFk: notifications.routeFk,
+        sourceType: notifications.sourceType,
+        subjectFk: notifications.subjectFk,
+        userFk: notifications.userFk,
+      })
+      .from(notifications)
+      .innerJoin(actor, eq(actor.id, notifications.actorFk))
+      .innerJoin(regions, eq(regions.id, notifications.regionFk))
+      .leftJoin(authUsers, eq(authUsers.id, notifications.authUserFk))
+      .leftJoin(userSettings, eq(userSettings.userFk, notifications.userFk))
+      .where(and(isNull(notifications.pushedAt), isNull(notifications.readAt))),
+  )
 
   const ready = due.filter((row) => isDirectedDue(row.createdAt.getTime(), nowMs))
   if (ready.length === 0) {
@@ -687,20 +701,24 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
   const delivered = dispatched.filter((row) => OUT_OF_BAND.has(row.sourceType)).map((row) => row.id)
 
   if (delivered.length > 0) {
-    await db.update(notifications).set({ readAt: new Date() }).where(inArray(notifications.id, delivered))
+    await pinnedTx((tx) =>
+      tx.update(notifications).set({ readAt: new Date() }).where(inArray(notifications.id, delivered)),
+    )
   }
 
   // Every row that was dispatched, not only the ones that went out: a device that is offline or a
   // person with no subscription must not build a queue that all fires at once later.
-  await db
-    .update(notifications)
-    .set({ pushedAt: new Date() })
-    .where(
-      inArray(
-        notifications.id,
-        dispatched.map((row) => row.id),
+  await pinnedTx((tx) =>
+    tx
+      .update(notifications)
+      .set({ pushedAt: new Date() })
+      .where(
+        inArray(
+          notifications.id,
+          dispatched.map((row) => row.id),
+        ),
       ),
-    )
+  )
 
   return sent
 }
@@ -763,21 +781,23 @@ async function unreadCounts(userFks: readonly number[]): Promise<Map<number, num
     return new Map()
   }
 
-  const rows = await db
-    .select({ total: count(), userFk: notifications.userFk })
-    .from(notifications)
-    .where(
-      and(
-        inArray(notifications.userFk, ids),
-        isNull(notifications.readAt),
-        // Never the queue-only pair. They are unread between being written and being sent, and
-        // counting them would put a number on the home-screen icon for a row the inbox cannot show
-        // and the reader can therefore never clear. The same exclusion is in the inbox query, so
-        // the badge the app draws and the badge the payload carries count the same rows.
-        notInArray(notifications.sourceType, [...OUT_OF_BAND]),
-      ),
-    )
-    .groupBy(notifications.userFk)
+  const rows = await pinnedTx((tx) =>
+    tx
+      .select({ total: count(), userFk: notifications.userFk })
+      .from(notifications)
+      .where(
+        and(
+          inArray(notifications.userFk, ids),
+          isNull(notifications.readAt),
+          // Never the queue-only pair. They are unread between being written and being sent, and
+          // counting them would put a number on the home-screen icon for a row the inbox cannot show
+          // and the reader can therefore never clear. The same exclusion is in the inbox query, so
+          // the badge the app draws and the badge the payload carries count the same rows.
+          notInArray(notifications.sourceType, [...OUT_OF_BAND]),
+        ),
+      )
+      .groupBy(notifications.userFk),
+  )
 
   return new Map(rows.map((row) => [row.userFk, row.total]))
 }

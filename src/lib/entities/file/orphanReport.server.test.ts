@@ -10,7 +10,6 @@
  *
  * Skipped when DATABASE_URL is unreachable, like every other DB-backed suite here.
  */
-import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -68,7 +67,7 @@ async function run(): Promise<string> {
   const logs: unknown[][] = []
   vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => void logs.push(args))
   vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => void logs.push(args))
-  await reportBunnyOrphans(db, new Date())
+  await reportBunnyOrphans(new Date())
   return JSON.stringify(logs)
 }
 

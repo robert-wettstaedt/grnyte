@@ -1,6 +1,6 @@
 import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth'
 import { enrichMarkdown } from '$lib/components/Markdown/lib/enrich.server'
-import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { files } from '$lib/db/schema'
 import { toDisplayName } from '$lib/entities/displayName'
 import type { MediaFile } from '$lib/entities/file/dto'
@@ -20,76 +20,78 @@ import type { PageServerLoad } from './$types'
 // MediaFile, the reference data for the fixture, and (signed-in only) the toolbar permissions.
 // A public file is shown to anyone; a private one only to members of its region.
 export const load = (async ({ locals, params }) => {
-  const row = await db.query.files.findFirst({
-    columns: {
-      areaFk: true,
-      ascentFk: true,
-      blockFk: true,
-      bunnyStreamFk: true,
-      createdAt: true,
-      height: true,
-      id: true,
-      path: true,
-      regionFk: true,
-      // The owning entity, so a delete can send the user back to it (see `parent` below).
-      routeFk: true,
-      visibility: true,
-      width: true,
-    },
-    where: eq(files.id, params.id),
-    with: {
-      // Joined only to prove the parent is live, never rendered.
-      area: { columns: { deletedAt: true } },
-      ascent: {
-        columns: {
-          createdBy: true,
-          dateTime: true,
-          deletedAt: true,
-          gradeFk: true,
-          humidity: true,
-          id: true,
-          notes: true,
-          rating: true,
-          temperature: true,
-          type: true,
-        },
-        with: {
-          route: {
-            columns: {
-              deletedAt: true,
-              gradeFk: true,
-              id: true,
-              name: true,
-              rating: true,
-              userGradeFk: true,
-              userRating: true,
+  const row = await pinnedTx((tx) =>
+    tx.query.files.findFirst({
+      columns: {
+        areaFk: true,
+        ascentFk: true,
+        blockFk: true,
+        bunnyStreamFk: true,
+        createdAt: true,
+        height: true,
+        id: true,
+        path: true,
+        regionFk: true,
+        // The owning entity, so a delete can send the user back to it (see `parent` below).
+        routeFk: true,
+        visibility: true,
+        width: true,
+      },
+      where: eq(files.id, params.id),
+      with: {
+        // Joined only to prove the parent is live, never rendered.
+        area: { columns: { deletedAt: true } },
+        ascent: {
+          columns: {
+            createdBy: true,
+            dateTime: true,
+            deletedAt: true,
+            gradeFk: true,
+            humidity: true,
+            id: true,
+            notes: true,
+            rating: true,
+            temperature: true,
+            type: true,
+          },
+          with: {
+            route: {
+              columns: {
+                deletedAt: true,
+                gradeFk: true,
+                id: true,
+                name: true,
+                rating: true,
+                userGradeFk: true,
+                userRating: true,
+              },
             },
           },
         },
-      },
-      author: {
-        columns: { id: true, username: true },
-        // For the reference-data fixture's grading scale when the viewer has no setting of
-        // their own (anon visitors); see `gradingScale` below.
-        with: { userSettings: { columns: { gradingScale: true } } },
-      },
-      block: { columns: { deletedAt: true } },
-      // `readiness` too: this selection is explicit, and omitting it renders every shared video as
-      // still being prepared.
-      bunnyStream: { columns: { readiness: true, source: true } },
-      route: {
-        columns: {
-          deletedAt: true,
-          gradeFk: true,
-          id: true,
-          name: true,
-          rating: true,
-          userGradeFk: true,
-          userRating: true,
+        author: {
+          columns: { id: true, username: true },
+          // For the reference-data fixture's grading scale when the viewer has no setting of
+          // their own (anon visitors); see `gradingScale` below.
+          with: { userSettings: { columns: { gradingScale: true } } },
+        },
+        block: { columns: { deletedAt: true } },
+        // `readiness` too: this selection is explicit, and omitting it renders every shared video as
+        // still being prepared.
+        bunnyStream: { columns: { readiness: true, source: true } },
+        route: {
+          columns: {
+            deletedAt: true,
+            gradeFk: true,
+            id: true,
+            name: true,
+            rating: true,
+            userGradeFk: true,
+            userRating: true,
+          },
         },
       },
-    },
-  })
+    }),
+  )
 
   if (row == null) {
     error(404)
@@ -130,7 +132,8 @@ export const load = (async ({ locals, params }) => {
   // Pre-resolve `!type:id!` reference tokens against the DB so <Markdown> renders the notes
   // without a Zero client (its Zero path only fires for the un-enriched token form). Scoped
   // to the file's region so a public share can't leak names of entities in other regions.
-  const notes = row.ascent == null ? '' : await enrichMarkdown(row.ascent.notes ?? '', db, row.regionFk)
+  const notes =
+    row.ascent == null ? '' : await pinnedTx((tx) => enrichMarkdown(row.ascent?.notes ?? '', tx, row.regionFk))
 
   const file: MediaFile = {
     ...toMediaFile({ ...row, createdAt: new Date(row.createdAt).getTime() }),
@@ -159,7 +162,7 @@ export const load = (async ({ locals, params }) => {
           },
   }
 
-  const grades = (await db.query.grades.findMany({ orderBy: (g, { asc }) => asc(g.id) })).map(toGrade)
+  const grades = (await pinnedTx((tx) => tx.query.grades.findMany({ orderBy: (g, { asc }) => asc(g.id) }))).map(toGrade)
   // The viewer's own scale wins; for an anon visitor (no setting) fall back to the file
   // creator's scale before the FB default, so the caption reads in the author's system.
   const gradingScale = locals.user?.userSettings?.gradingScale ?? row.author?.userSettings?.gradingScale ?? 'FB'

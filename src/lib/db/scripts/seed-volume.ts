@@ -52,23 +52,24 @@ const int = (lo: number, hi: number) => lo + Math.floor(rand() * (hi - lo + 1))
 const grade = () => Math.round(((rand() + rand()) / 2) * MAX_GRADE)
 
 const sql = postgres(DATABASE_URL, { prepare: false })
-// Bare table names below rely on public being on the search_path.
-await sql`set search_path to public`
 
 // Bulk insert in chunks (Postgres caps params at 65535); returns inserted ids.
-// `rel` is an unqualified table name (identifier helper can't take schema.table).
+// Schema-qualified as two identifiers around a literal dot: transaction-mode pooling gives
+// each statement whatever connection is free, so a session `search_path` cannot be relied on.
 const insertReturningIds = async (rel: string, rows: Record<string, unknown>[], cols: string[]) => {
   const ids: number[] = []
   for (let i = 0; i < rows.length; i += 1000) {
     const chunk = rows.slice(i, i + 1000)
-    const out = await sql<{ id: number }[]>`insert into ${sql(rel)} ${sql(chunk, ...cols)} returning id`
+    const out = await sql<
+      { id: number }[]
+    >`insert into ${sql('public')}.${sql(rel)} ${sql(chunk, ...cols)} returning id`
     ids.push(...out.map((r) => r.id))
   }
   return ids
 }
 const insert = async (rel: string, rows: Record<string, unknown>[], cols: string[]) => {
   for (let i = 0; i < rows.length; i += 1000) {
-    await sql`insert into ${sql(rel)} ${sql(rows.slice(i, i + 1000), ...cols)}`
+    await sql`insert into ${sql('public')}.${sql(rel)} ${sql(rows.slice(i, i + 1000), ...cols)}`
   }
 }
 

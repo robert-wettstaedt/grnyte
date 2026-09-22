@@ -1,4 +1,4 @@
-import { db as baseDb } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { regionMembers, regions } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
@@ -25,7 +25,7 @@ export async function createRegionForUser({
   name: string
   userId: number
 }): Promise<{ id: number }> {
-  return baseDb.transaction(async (tx) => {
+  return pinnedTx(async (tx) => {
     // Re-checked inside the transaction rather than trusting the handler's check: two tabs
     // submitting at once both pass that one and would leave the account over the cap.
     const [{ owned }] = await tx.select({ owned: count() }).from(regions).where(eq(regions.createdBy, userId))
@@ -53,9 +53,11 @@ export async function createRegionForUser({
  *  later left still counts against them: under RLS it would have vanished from the list and
  *  handed the seat back. */
 export function listOwnedRegions(userId: number): Promise<OwnedRegion[]> {
-  return baseDb
-    .select({ id: regions.id, name: regions.name })
-    .from(regions)
-    .where(eq(regions.createdBy, userId))
-    .orderBy(regions.id)
+  return pinnedTx((tx) =>
+    tx
+      .select({ id: regions.id, name: regions.name })
+      .from(regions)
+      .where(eq(regions.createdBy, userId))
+      .orderBy(regions.id),
+  )
 }

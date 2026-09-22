@@ -20,7 +20,6 @@
  *
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
-import { db } from '$lib/db/db.server'
 import { createThrowawayUser, dropThrowawayUser, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { getUserPermissions } from '$lib/hooks/auth.server'
 import { queries } from '$lib/zero/queries'
@@ -61,7 +60,7 @@ type AnyQueryDef = { fn: (options: any) => any }
  *  membership change between assertions is reflected. */
 async function ctxFor(who: typeof NOBODY | Who): Promise<QueryContext> {
   const authUserId = who === NOBODY ? NOBODY : users[who].authId
-  return { authUserId, pageState: await getUserPermissions(db, authUserId) }
+  return { authUserId, pageState: await getUserPermissions(authUserId) }
 }
 
 /**

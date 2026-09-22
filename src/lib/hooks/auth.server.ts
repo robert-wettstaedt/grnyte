@@ -3,7 +3,7 @@ import type { Pathname } from '$app/types'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { AUTH_PATH, signedInRedirectTarget } from '$lib/auth'
 import { verifyAccessToken } from '$lib/auth/verify.server'
-import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { acceptPath, REGION_CREATE_PATH, REGIONLESS_PATHS } from '$lib/entities/region/dto'
 import { findLiveInvitationByEmail } from '$lib/entities/region/invite.server'
@@ -12,12 +12,52 @@ import { createServerClient } from '@supabase/ssr'
 import { error, redirect, type Handle } from '@sveltejs/kit'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
-export async function getUserPermissions(
+/** Takes no handle: `pinnedTx` opens its own, and accepting one invited a caller to pass an RLS
+ *  `tx`, which would rewrite that transaction's `search_path` for everything after this call. */
+export async function getUserPermissions(authUserId: string): Promise<App.SafeSession> {
+  // Pinned, because the transaction pooler runs no reset query and an inherited `search_path`
+  // fails every unqualified name with 42P01. It also puts the three reads on one connection.
+  return pinnedTx((tx) => read(tx, authUserId))
+}
+
+/** The profile row plus the `user_settings` columns handlers branch on. Shared with `testHarness`,
+ *  so a test's session user is the shape a real request carries. */
+export function loadSessionUser(
   db: PostgresJsDatabase<typeof schema>,
   authUserId: string,
-): Promise<App.SafeSession> {
-  // Three independent reads on a pooled connection, and this runs on every request as well as
-  // every get-queries POST, so they go together rather than three round-trips deep.
+): Promise<App.SafeSession['user']> {
+  return db.query.users.findFirst({
+    where: (table, { eq }) => eq(table.authUserFk, authUserId),
+    with: {
+      userSettings: {
+        columns: {
+          gradingScale: true,
+          notifyAscents: true,
+          notifyCommunity: true,
+          notifyDirected: true,
+          notifyGuidebookEdits: true,
+          unitSystem: true,
+        },
+      },
+    },
+  })
+}
+
+/** A request with no usable identity. A function rather than a shared const: `userRegions` is
+ *  handed out to callers, and one accidental push on a shared array would leak across requests. */
+function anonymous(): App.SafeSession & { claims: undefined } {
+  return { claims: undefined, user: undefined, userPermissions: undefined, userRegions: [], userRole: undefined }
+}
+
+/** Could not reach GoTrue, rather than a dead session: auth-js keeps the refresh token in this case.
+ *  By name because the type guard lives in auth-js, a transitive dependency. */
+function isUnreachable(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'name' in error && error.name === 'AuthRetryableFetchError'
+}
+
+async function read(db: PostgresJsDatabase<typeof schema>, authUserId: string): Promise<App.SafeSession> {
+  // Three independent reads, and this runs on every request as well as every get-queries POST, so
+  // they go together rather than three round-trips deep.
   const [userRole, userRegions, permissions] = await Promise.all([
     db.query.userRoles.findFirst({
       where: (table, { eq }) => eq(table.authUserFk, authUserId),
@@ -77,41 +117,6 @@ export async function getUserPermissions(
   }
 }
 
-/** The profile row plus the `user_settings` columns handlers branch on. Shared with `testHarness`,
- *  so a test's session user is the shape a real request carries. */
-export function loadSessionUser(
-  db: PostgresJsDatabase<typeof schema>,
-  authUserId: string,
-): Promise<App.SafeSession['user']> {
-  return db.query.users.findFirst({
-    where: (table, { eq }) => eq(table.authUserFk, authUserId),
-    with: {
-      userSettings: {
-        columns: {
-          gradingScale: true,
-          notifyAscents: true,
-          notifyCommunity: true,
-          notifyDirected: true,
-          notifyGuidebookEdits: true,
-          unitSystem: true,
-        },
-      },
-    },
-  })
-}
-
-/** A request with no usable identity. A function rather than a shared const: `userRegions` is
- *  handed out to callers, and one accidental push on a shared array would leak across requests. */
-function anonymous(): App.SafeSession & { claims: undefined } {
-  return { claims: undefined, user: undefined, userPermissions: undefined, userRegions: [], userRole: undefined }
-}
-
-/** Could not reach GoTrue, rather than a dead session: auth-js keeps the refresh token in this case.
- *  By name because the type guard lives in auth-js, a transitive dependency. */
-function isUnreachable(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && 'name' in error && error.name === 'AuthRetryableFetchError'
-}
-
 export const supabase: Handle = async ({ event, resolve }) => {
   // Prerendering has no request behind it: no cookies, so no session to load and nothing on
   // `locals` a prerendered page could read. Building the client anyway made the whole build depend
@@ -123,12 +128,12 @@ export const supabase: Handle = async ({ event, resolve }) => {
   }
 
   async function getPageState(authUserId: string): Promise<App.SafeSession> {
-    const user = await loadSessionUser(db, authUserId)
-
-    return {
-      ...(await getUserPermissions(db, authUserId)),
-      user,
-    }
+    // One pinned transaction for both, not two: this runs on every SSR request, so the profile
+    // and the permission reads share a connection instead of drawing from the pool twice.
+    return pinnedTx(async (tx) => {
+      const [user, permissions] = await Promise.all([loadSessionUser(tx, authUserId), read(tx, authUserId)])
+      return { ...permissions, user }
+    })
   }
 
   // `setHeaders` throws on a repeat of the same key, and `setAll` can fire more than once.

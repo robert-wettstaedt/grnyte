@@ -1,6 +1,5 @@
 import { command, form, getRequestEvent, query } from '$app/server'
-import { APP_PERMISSION_ADMIN } from '$lib/auth'
-import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { feedback, users, userSettings } from '$lib/db/schema'
 import { feedbackReplyEmailContent } from '$lib/email/feedback'
 import { sendEmail } from '$lib/email/send.server'
@@ -8,6 +7,7 @@ import { blank, formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { contactLocale } from '$lib/i18n/message'
 import { requireAuthed } from '$lib/remote/authed.server'
+import { requireAppAdmin } from '$lib/remote/require.server'
 import { error as httpError } from '@sveltejs/kit'
 import { and, desc, eq } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
@@ -48,17 +48,19 @@ export const submitFeedback = form(feedbackSchema, async (value) => {
   const { request, url } = getRequestEvent()
   const { user } = requireAuthed()
 
-  const [created] = await db
-    .insert(feedback)
-    .values({
-      body: value.body,
-      createdBy: user.id,
-      kind: value.kind,
-      locale: blank(value.locale),
-      pathname: blank(value.pathname),
-      userAgent: request.headers.get('user-agent'),
-    })
-    .returning({ id: feedback.id })
+  const [created] = await pinnedTx((tx) =>
+    tx
+      .insert(feedback)
+      .values({
+        body: value.body,
+        createdBy: user.id,
+        kind: value.kind,
+        locale: blank(value.locale),
+        pathname: blank(value.pathname),
+        userAgent: request.headers.get('user-agent'),
+      })
+      .returning({ id: feedback.id }),
+  )
 
   // Last, after the row exists, and never throws: a dead push or mail host cannot fail a report
   // that is already recorded.
@@ -79,32 +81,31 @@ export const submitFeedback = form(feedbackSchema, async (value) => {
 export const listFeedback = query(async (): Promise<FeedbackItem[]> => {
   const { locals } = getRequestEvent()
 
-  // RLS is on with no policies, so this reads through the privileged client: this check is the gate.
-  if (!locals.userPermissions?.includes(APP_PERMISSION_ADMIN)) {
-    httpError(403, formError('form_noPermission'))
-  }
+  requireAppAdmin(locals.userPermissions)
 
-  const rows = await db
-    .select({
-      authorName: users.username,
-      body: feedback.body,
-      createdAt: feedback.createdAt,
-      id: feedback.id,
-      kind: feedback.kind,
-      locale: feedback.locale,
-      pathname: feedback.pathname,
-      repliedAt: feedback.repliedAt,
-      reply: feedback.reply,
-      status: feedback.status,
-      userAgent: feedback.userAgent,
-    })
-    .from(feedback)
-    .innerJoin(users, eq(users.id, feedback.createdBy))
-    // `'closed' < 'open'` lexicographically, so DESC puts unanswered rows on top, then newest.
-    .orderBy(desc(feedback.status), desc(feedback.createdAt))
-    // ponytail: newest 200, no paging. The sort above is what makes that safe: only closed rows
-    // fall off the cap. Add paging the day 200 open reports is a real week.
-    .limit(200)
+  const rows = await pinnedTx((tx) =>
+    tx
+      .select({
+        authorName: users.username,
+        body: feedback.body,
+        createdAt: feedback.createdAt,
+        id: feedback.id,
+        kind: feedback.kind,
+        locale: feedback.locale,
+        pathname: feedback.pathname,
+        repliedAt: feedback.repliedAt,
+        reply: feedback.reply,
+        status: feedback.status,
+        userAgent: feedback.userAgent,
+      })
+      .from(feedback)
+      .innerJoin(users, eq(users.id, feedback.createdBy))
+      // `'closed' < 'open'` lexicographically, so DESC puts unanswered rows on top, then newest.
+      .orderBy(desc(feedback.status), desc(feedback.createdAt))
+      // ponytail: newest 200, no paging. The sort above is what makes that safe: only closed rows
+      // fall off the cap. Add paging the day 200 open reports is a real week.
+      .limit(200),
+  )
 
   return rows.map((row) => ({
     ...row,
@@ -133,44 +134,45 @@ export const replyToFeedback = command(
   async ({ id, reply }) => {
     const { locals, url } = getRequestEvent()
 
-    // Same gate as `listFeedback`: RLS cannot express "app admin" without a region to hang it on.
-    if (!locals.userPermissions?.includes(APP_PERMISSION_ADMIN)) {
-      httpError(403, formError('form_noPermission'))
-    }
+    requireAppAdmin(locals.userPermissions)
 
     // Privileged handle: neither `auth.users` nor `user_settings` is readable by `authenticated`,
     // and the recipient is not the caller.
-    const [row] = await db
-      .select({
-        body: feedback.body,
-        email: authUser.email,
-        locale: userSettings.contactLocale,
-      })
-      .from(feedback)
-      .innerJoin(users, eq(users.id, feedback.createdBy))
-      .innerJoin(authUser, eq(authUser.id, users.authUserFk))
-      // LEFT: an author with no settings row is still answered, in the default language.
-      .leftJoin(userSettings, eq(userSettings.userFk, users.id))
-      .where(eq(feedback.id, id))
-      .limit(1)
+    const row = await pinnedTx(async (tx) => {
+      const [found] = await tx
+        .select({
+          body: feedback.body,
+          email: authUser.email,
+          locale: userSettings.contactLocale,
+        })
+        .from(feedback)
+        .innerJoin(users, eq(users.id, feedback.createdBy))
+        .innerJoin(authUser, eq(authUser.id, users.authUserFk))
+        // LEFT: an author with no settings row is still answered, in the default language.
+        .leftJoin(userSettings, eq(userSettings.userFk, users.id))
+        .where(eq(feedback.id, id))
+        .limit(1)
 
-    if (row == null) {
-      httpError(404, formError('feedback_notFound'))
-    }
+      if (found == null) {
+        httpError(404, formError('feedback_notFound'))
+      }
 
-    // The UPDATE is the gate, not a check before it: a separate read-then-check leaves a window
-    // where two admins both pass and the second overwrites the first.
-    // Stamped before the send, so a mail host that is down leaves an answered row rather than a
-    // reply written twice. `sendEmail` never throws and reports delivery as a boolean.
-    const [updated] = await db
-      .update(feedback)
-      .set({ repliedAt: new Date(), reply, status: 'closed' })
-      .where(and(eq(feedback.id, id), eq(feedback.status, 'open')))
-      .returning({ id: feedback.id })
+      // The UPDATE is the gate, not a check before it: a separate read-then-check leaves a window
+      // where two admins both pass and the second overwrites the first.
+      // Stamped before the send, so a mail host that is down leaves an answered row rather than a
+      // reply written twice. `sendEmail` never throws and reports delivery as a boolean.
+      const [updated] = await tx
+        .update(feedback)
+        .set({ repliedAt: new Date(), reply, status: 'closed' })
+        .where(and(eq(feedback.id, id), eq(feedback.status, 'open')))
+        .returning({ id: feedback.id })
 
-    if (updated == null) {
-      httpError(409, formError('feedback_alreadyAnswered'))
-    }
+      if (updated == null) {
+        httpError(409, formError('feedback_alreadyAnswered'))
+      }
+
+      return found
+    })
 
     // No address to answer: the row is still closed and the text stored, but do not let the inbox
     // report a delivery that was never attempted.

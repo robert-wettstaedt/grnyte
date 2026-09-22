@@ -38,7 +38,7 @@ export async function asRequest<T>(authUserId: string, fn: () => Promise<T> | T)
   // `getUserPermissions` deliberately returns `user: undefined`, so the row is loaded alongside it
   // the way the `supabase` handle does. Without it every handler 401s on `user == null`.
   const [permissions, user, [authUser]] = await Promise.all([
-    getUserPermissions(db, authUserId),
+    getUserPermissions(authUserId),
     loadSessionUser(db, authUserId),
     // The address, read live from auth.users for the same reason the permissions are: it is what
     // the invitation handlers and the password re-check gate on, and those were untestable while

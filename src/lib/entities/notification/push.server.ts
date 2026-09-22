@@ -1,7 +1,7 @@
 import { env as privateEnv } from '$env/dynamic/private'
 import { env as publicEnv } from '$env/dynamic/public'
 import { PUBLIC_TOPO_EMAIL } from '$env/static/public'
-import { db as baseDb } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { pushSubscriptions } from '$lib/db/schema'
 import { logServerFailure } from '$lib/logging/failure.server'
@@ -91,12 +91,14 @@ export async function sendPush(
     }
 
     if (exception.statusCode === 301) {
-      await baseDb
-        .update(pushSubscriptions)
-        .set({ endpoint: exception.endpoint })
-        .where(eq(pushSubscriptions.id, subscription.id))
+      await pinnedTx((tx) =>
+        tx
+          .update(pushSubscriptions)
+          .set({ endpoint: exception.endpoint })
+          .where(eq(pushSubscriptions.id, subscription.id)),
+      )
     } else if (exception.statusCode === 403 || exception.statusCode === 404 || exception.statusCode === 410) {
-      await baseDb.delete(pushSubscriptions).where(eq(pushSubscriptions.id, subscription.id))
+      await pinnedTx((tx) => tx.delete(pushSubscriptions).where(eq(pushSubscriptions.id, subscription.id)))
     } else {
       console.error('[push] send rejected', exception.statusCode, exception.body)
       await notePushFailure(
@@ -131,7 +133,9 @@ export function subscriptionsFor(userFks: readonly number[]): Promise<schema.Pus
     return Promise.resolve([])
   }
 
-  return baseDb.query.pushSubscriptions.findMany({ where: inArray(pushSubscriptions.userFk, [...userFks]) })
+  return pinnedTx((tx) =>
+    tx.query.pushSubscriptions.findMany({ where: inArray(pushSubscriptions.userFk, [...userFks]) }),
+  )
 }
 
 /**

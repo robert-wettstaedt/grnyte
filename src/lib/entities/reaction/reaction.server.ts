@@ -6,7 +6,7 @@
  * thing here worth testing.
  */
 import { getReferences } from '$lib/components/Markdown/lib/remark-references'
-import { db as baseDb } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import type * as schema from '$lib/db/schema'
 import { files, reactions } from '$lib/db/schema'
 import { objectOf } from '$lib/entities/event/dto'
@@ -39,11 +39,13 @@ const NOTIFIABLE = new Set<string>(['area', 'ascent', 'block', 'route', 'user'])
  * as the record of who reacted, and a cleared comment already takes them off the screen.
  */
 export async function dropComment(input: { actorFk: number; eventFk: number; reactionFk: number }): Promise<void> {
-  const replies = await baseDb
-    .update(reactions)
-    .set({ deletedAt: new Date() })
-    .where(and(eq(reactions.parentFk, input.reactionFk), eq(reactions.type, 'comment'), isNull(reactions.deletedAt)))
-    .returning({ id: reactions.id, userFk: reactions.userFk })
+  const replies = await pinnedTx((tx) =>
+    tx
+      .update(reactions)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(reactions.parentFk, input.reactionFk), eq(reactions.type, 'comment'), isNull(reactions.deletedAt)))
+      .returning({ id: reactions.id, userFk: reactions.userFk }),
+  )
 
   // The comment itself first, then each answer, each cleaned up against ITS OWN author: an inbox
   // row is keyed on who wrote the line, so a reply by somebody else re-points against what that
@@ -69,17 +71,19 @@ export async function dropCommentNotification(input: {
   // Everything this person still has standing on the card, newest first, with what each line
   // answers and who it names. One read for all three sentences: the thread row needs only the
   // newest, and a directed row needs the newest that would have written the SAME sentence.
-  const live = await baseDb.query.reactions.findMany({
-    columns: { body: true, id: true },
-    orderBy: (table, { desc }) => desc(table.id),
-    where: and(
-      eq(reactions.eventFk, input.eventFk),
-      eq(reactions.userFk, input.actorFk),
-      eq(reactions.type, 'comment'),
-      isNull(reactions.deletedAt),
-    ),
-    with: { parent: { columns: { userFk: true } } },
-  })
+  const live = await pinnedTx((tx) =>
+    tx.query.reactions.findMany({
+      columns: { body: true, id: true },
+      orderBy: (table, { desc }) => desc(table.id),
+      where: and(
+        eq(reactions.eventFk, input.eventFk),
+        eq(reactions.userFk, input.actorFk),
+        eq(reactions.type, 'comment'),
+        isNull(reactions.deletedAt),
+      ),
+      with: { parent: { columns: { userFk: true } } },
+    }),
+  )
 
   // Which line may stand in for the one that is gone, which is the only half of this the inbox
   // cannot answer for itself. The thread row is about the conversation, so any live line of this
@@ -118,16 +122,18 @@ export async function dropReactionNotification(input: {
   // back the inbox row about the 🔥 the same person still holds on the card.
   const target = input.commentFk == null ? isNull(reactions.parentFk) : eq(reactions.parentFk, input.commentFk)
 
-  const remaining = await baseDb.query.reactions.findFirst({
-    columns: { id: true },
-    where: and(
-      eq(reactions.eventFk, input.eventFk),
-      eq(reactions.userFk, input.actorFk),
-      eq(reactions.type, 'emoji'),
-      target,
-      isNull(reactions.deletedAt),
-    ),
-  })
+  const remaining = await pinnedTx((tx) =>
+    tx.query.reactions.findFirst({
+      columns: { id: true },
+      where: and(
+        eq(reactions.eventFk, input.eventFk),
+        eq(reactions.userFk, input.actorFk),
+        eq(reactions.type, 'emoji'),
+        target,
+        isNull(reactions.deletedAt),
+      ),
+    }),
+  )
 
   if (remaining != null) {
     return
@@ -161,10 +167,12 @@ export async function eventSubject(event: EventRow): Promise<EventObject | undef
   }
 
   if (object.type === 'file') {
-    const file = await baseDb.query.files.findFirst({
-      columns: { areaFk: true, ascentFk: true, blockFk: true, routeFk: true },
-      where: eq(files.id, String(object.id)),
-    })
+    const file = await pinnedTx((tx) =>
+      tx.query.files.findFirst({
+        columns: { areaFk: true, ascentFk: true, blockFk: true, routeFk: true },
+        where: eq(files.id, String(object.id)),
+      }),
+    )
 
     return file == null ? undefined : fileParent(file)
   }
@@ -216,10 +224,12 @@ export async function notifyComment(input: {
 
   await notifyMentions({ ...shared, body: input.body, exclude: answered })
 
-  const authors = await baseDb
-    .selectDistinct({ userFk: reactions.userFk })
-    .from(reactions)
-    .where(and(eq(reactions.eventFk, input.event.id), eq(reactions.type, 'comment'), isNull(reactions.deletedAt)))
+  const authors = await pinnedTx((tx) =>
+    tx
+      .selectDistinct({ userFk: reactions.userFk })
+      .from(reactions)
+      .where(and(eq(reactions.eventFk, input.event.id), eq(reactions.type, 'comment'), isNull(reactions.deletedAt))),
+  )
 
   const spoken = new Set([...answered, ...getReferences(input.body).users])
   const userFks = [input.event.actorFk, ...authors.map((row) => row.userFk)].filter((userFk) => !spoken.has(userFk))
@@ -277,14 +287,16 @@ export async function notifyReaction(input: {
  * notice.
  */
 export async function restoreReplies(input: { deletedAt: Date; reactionFk: number }): Promise<void> {
-  await baseDb
-    .update(reactions)
-    .set({ deletedAt: null })
-    .where(
-      and(
-        eq(reactions.parentFk, input.reactionFk),
-        eq(reactions.type, 'comment'),
-        gte(reactions.deletedAt, input.deletedAt),
+  await pinnedTx((tx) =>
+    tx
+      .update(reactions)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          eq(reactions.parentFk, input.reactionFk),
+          eq(reactions.type, 'comment'),
+          gte(reactions.deletedAt, input.deletedAt),
+        ),
       ),
-    )
+  )
 }

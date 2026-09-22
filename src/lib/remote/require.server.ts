@@ -1,5 +1,18 @@
+import { APP_PERMISSION_ADMIN } from '$lib/auth'
 import { formError, type FormMessage } from '$lib/forms/schemas'
 import { error, invalid } from '@sveltejs/kit'
+
+/**
+ * The app-admin gate, for the handful of handlers RLS cannot express: there is no region to hang a
+ * policy on, so they read through the privileged client and this check is the only thing in front
+ * of it. Not defence in depth, the gate. Takes the permissions rather than reading the request, so
+ * a caller that already resolved them (`authedRls`) does not resolve them twice.
+ */
+export function requireAppAdmin(userPermissions: App.Permission[] | undefined): void {
+  if (!userPermissions?.includes(APP_PERMISSION_ADMIN)) {
+    error(403, formError('form_noPermission'))
+  }
+}
 
 /**
  * Load an entity, then gate on it. The permission predicate is handed the FETCHED ROW, so the

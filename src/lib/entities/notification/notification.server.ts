@@ -11,7 +11,7 @@
  */
 import { REGION_PERMISSION_READ } from '$lib/auth'
 import { getReferences } from '$lib/components/Markdown/lib/remark-references'
-import { db as baseDb } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { notifications, regionMembers, rolePermissions, users } from '$lib/db/schema'
 import { objectColumns, type EventObject } from '$lib/entities/event/event.server'
 import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
@@ -86,18 +86,20 @@ export async function notificationRecipients(
     return []
   }
 
-  return baseDb
-    .selectDistinct({ authUserFk: regionMembers.authUserFk, userFk: regionMembers.userFk })
-    .from(regionMembers)
-    .innerJoin(rolePermissions, eq(rolePermissions.role, regionMembers.role))
-    .where(
-      and(
-        eq(regionMembers.regionFk, regionFk),
-        eq(regionMembers.isActive, true),
-        eq(rolePermissions.permission, REGION_PERMISSION_READ),
-        inArray(regionMembers.userFk, candidates),
+  return pinnedTx((tx) =>
+    tx
+      .selectDistinct({ authUserFk: regionMembers.authUserFk, userFk: regionMembers.userFk })
+      .from(regionMembers)
+      .innerJoin(rolePermissions, eq(rolePermissions.role, regionMembers.role))
+      .where(
+        and(
+          eq(regionMembers.regionFk, regionFk),
+          eq(regionMembers.isActive, true),
+          eq(rolePermissions.permission, REGION_PERMISSION_READ),
+          inArray(regionMembers.userFk, candidates),
+        ),
       ),
-    )
+  )
 }
 
 /**
@@ -119,49 +121,51 @@ export async function notify(input: NotifyInput): Promise<void> {
     return
   }
 
-  await baseDb
-    .insert(notifications)
-    .values(
-      recipients.map((recipient) => ({
-        actorFk: input.actorFk,
-        authUserFk: recipient.authUserFk,
-        eventFk: input.eventFk,
-        metadata: input.metadata,
-        reactionFk: input.reactionFk,
-        regionFk: input.regionFk,
-        sourceType: input.sourceType,
-        userFk: recipient.userFk,
-        ...objectColumns(input.object),
-      })),
-    )
-    // The unique index collapses the same event fired twice in a row, e.g. a double submit, or a
-    // maintainer who saves the same edit again a minute later. It is a backstop, not the thing that
-    // decides what is news: see {@link notifyMentions} for why a source type whose "again" is not a
-    // new event has to work that out for itself before it gets here.
-    //
-    // Collapsed only while the row is still UNREAD, which is the case that idempotency is about.
-    // The index carries no time, and a plain `do nothing` would therefore mute a genuinely new
-    // event for as long as the old row survives: up to 30 days after a read, 90 unread. Once it
-    // has been read the reader is done with it, so the same thing happening again is news: the row
-    // goes back to unread and undelivered, with a fresh timestamp for the push debounce to count.
-    .onConflictDoUpdate({
-      set: {
-        createdAt: new Date(),
-        metadata: sql`excluded.metadata`,
-        pushedAt: null,
-        // Pointed at the newer line, for the case this SET runs at all: `setWhere` below means a
-        // row the reader has NOT opened yet keeps pointing at the first comment, which is the one
-        // the notification was written about.
-        reactionFk: sql`excluded.reaction_fk`,
-        readAt: null,
-      },
-      setWhere: isNotNull(notifications.readAt),
-      // The whole key, in one target rather than the two partial ones this replaced: the card and
-      // the object are both in it, and the nulls compare equal (see `notifications_source_idx`),
-      // so a row that is about a card is separated by the card and a row that is not is separated
-      // by the object.
-      target: NOTIFICATION_CONFLICT_TARGET,
-    })
+  await pinnedTx((tx) =>
+    tx
+      .insert(notifications)
+      .values(
+        recipients.map((recipient) => ({
+          actorFk: input.actorFk,
+          authUserFk: recipient.authUserFk,
+          eventFk: input.eventFk,
+          metadata: input.metadata,
+          reactionFk: input.reactionFk,
+          regionFk: input.regionFk,
+          sourceType: input.sourceType,
+          userFk: recipient.userFk,
+          ...objectColumns(input.object),
+        })),
+      )
+      // The unique index collapses the same event fired twice in a row, e.g. a double submit, or a
+      // maintainer who saves the same edit again a minute later. It is a backstop, not the thing that
+      // decides what is news: see {@link notifyMentions} for why a source type whose "again" is not a
+      // new event has to work that out for itself before it gets here.
+      //
+      // Collapsed only while the row is still UNREAD, which is the case that idempotency is about.
+      // The index carries no time, and a plain `do nothing` would therefore mute a genuinely new
+      // event for as long as the old row survives: up to 30 days after a read, 90 unread. Once it
+      // has been read the reader is done with it, so the same thing happening again is news: the row
+      // goes back to unread and undelivered, with a fresh timestamp for the push debounce to count.
+      .onConflictDoUpdate({
+        set: {
+          createdAt: new Date(),
+          metadata: sql`excluded.metadata`,
+          pushedAt: null,
+          // Pointed at the newer line, for the case this SET runs at all: `setWhere` below means a
+          // row the reader has NOT opened yet keeps pointing at the first comment, which is the one
+          // the notification was written about.
+          reactionFk: sql`excluded.reaction_fk`,
+          readAt: null,
+        },
+        setWhere: isNotNull(notifications.readAt),
+        // The whole key, in one target rather than the two partial ones this replaced: the card and
+        // the object are both in it, and the nulls compare equal (see `notifications_source_idx`),
+        // so a row that is about a card is separated by the card and a row that is not is separated
+        // by the object.
+        target: NOTIFICATION_CONFLICT_TARGET,
+      }),
+  )
 }
 
 /**
@@ -230,37 +234,39 @@ export async function notifyOutOfBand(input: {
   /** The one person told. Not filtered against anything: the caller already knows who they are. */
   userFk: number
 }): Promise<void> {
-  // Not from `region_members`, which is the point: this recipient either recently lost that row or
-  // never had one. `users` is where the auth id lives for everybody else.
-  const recipient = await baseDb.query.users.findFirst({
-    columns: { authUserFk: true },
-    where: eq(users.id, input.userFk),
+  await pinnedTx(async (tx) => {
+    // Not from `region_members`, which is the point: this recipient either recently lost that row or
+    // never had one. `users` is where the auth id lives for everybody else.
+    const recipient = await tx.query.users.findFirst({
+      columns: { authUserFk: true },
+      where: eq(users.id, input.userFk),
+    })
+
+    if (recipient?.authUserFk == null) {
+      return
+    }
+
+    await tx
+      .insert(notifications)
+      .values({
+        actorFk: input.actorFk,
+        authUserFk: recipient.authUserFk,
+        regionFk: input.regionFk,
+        sourceType: input.sourceType,
+        // The recipient, in the object columns, exactly as a role change files it. Nothing renders
+        // these rows, but it keeps the shape uniform for anything reading one back.
+        subjectFk: input.userFk,
+        userFk: input.userFk,
+      })
+      // Same re-arm as {@link notify}: a second removal from the same region by the same admin is
+      // news only once the first has gone out. `region_fk` is in the key, so being removed from two
+      // regions is two rows rather than one that names the wrong place.
+      .onConflictDoUpdate({
+        set: { createdAt: new Date(), pushedAt: null, readAt: null },
+        setWhere: isNotNull(notifications.readAt),
+        target: NOTIFICATION_CONFLICT_TARGET,
+      })
   })
-
-  if (recipient?.authUserFk == null) {
-    return
-  }
-
-  await baseDb
-    .insert(notifications)
-    .values({
-      actorFk: input.actorFk,
-      authUserFk: recipient.authUserFk,
-      regionFk: input.regionFk,
-      sourceType: input.sourceType,
-      // The recipient, in the object columns, exactly as a role change files it. Nothing renders
-      // these rows, but it keeps the shape uniform for anything reading one back.
-      subjectFk: input.userFk,
-      userFk: input.userFk,
-    })
-    // Same re-arm as {@link notify}: a second removal from the same region by the same admin is
-    // news only once the first has gone out. `region_fk` is in the key, so being removed from two
-    // regions is two rows rather than one that names the wrong place.
-    .onConflictDoUpdate({
-      set: { createdAt: new Date(), pushedAt: null, readAt: null },
-      setWhere: isNotNull(notifications.readAt),
-      target: NOTIFICATION_CONFLICT_TARGET,
-    })
 }
 
 /**
@@ -281,17 +287,19 @@ export async function readableRegions(userFks: readonly number[]): Promise<Map<n
     return new Map()
   }
 
-  const rows = await baseDb
-    .selectDistinct({ regionFk: regionMembers.regionFk, userFk: regionMembers.userFk })
-    .from(regionMembers)
-    .innerJoin(rolePermissions, eq(rolePermissions.role, regionMembers.role))
-    .where(
-      and(
-        inArray(regionMembers.userFk, ids),
-        eq(regionMembers.isActive, true),
-        eq(rolePermissions.permission, REGION_PERMISSION_READ),
+  const rows = await pinnedTx((tx) =>
+    tx
+      .selectDistinct({ regionFk: regionMembers.regionFk, userFk: regionMembers.userFk })
+      .from(regionMembers)
+      .innerJoin(rolePermissions, eq(rolePermissions.role, regionMembers.role))
+      .where(
+        and(
+          inArray(regionMembers.userFk, ids),
+          eq(regionMembers.isActive, true),
+          eq(rolePermissions.permission, REGION_PERMISSION_READ),
+        ),
       ),
-    )
+  )
 
   const byUser = new Map<number, number[]>()
   for (const row of rows) {
@@ -324,35 +332,37 @@ export async function repointNotifications(input: {
   /** Which sentences this is about. A source type left out here is left alone. */
   sourceTypes: readonly NotificationSourceType[]
 }): Promise<void> {
-  const rows = await baseDb.query.notifications.findMany({
-    columns: { id: true, sourceType: true, userFk: true },
-    where: and(
-      eq(notifications.reactionFk, input.reactionFk),
-      inArray(notifications.sourceType, [...input.sourceTypes]),
-    ),
-  })
+  await pinnedTx(async (tx) => {
+    const rows = await tx.query.notifications.findMany({
+      columns: { id: true, sourceType: true, userFk: true },
+      where: and(
+        eq(notifications.reactionFk, input.reactionFk),
+        inArray(notifications.sourceType, [...input.sourceTypes]),
+      ),
+    })
 
-  /** Grouped by where they are going, so a thread of readers costs one statement per destination. */
-  const moves = new Map<number, number[]>()
-  const gone: number[] = []
+    /** Grouped by where they are going, so a thread of readers costs one statement per destination. */
+    const moves = new Map<number, number[]>()
+    const gone: number[] = []
 
-  for (const row of rows) {
-    const to = input.replacement(row)
+    for (const row of rows) {
+      const to = input.replacement(row)
 
-    if (to == null) {
-      gone.push(row.id)
-    } else {
-      moves.set(to, [...(moves.get(to) ?? []), row.id])
+      if (to == null) {
+        gone.push(row.id)
+      } else {
+        moves.set(to, [...(moves.get(to) ?? []), row.id])
+      }
     }
-  }
 
-  if (gone.length > 0) {
-    await baseDb.delete(notifications).where(inArray(notifications.id, gone))
-  }
+    if (gone.length > 0) {
+      await tx.delete(notifications).where(inArray(notifications.id, gone))
+    }
 
-  for (const [reactionFk, ids] of moves) {
-    await baseDb.update(notifications).set({ reactionFk }).where(inArray(notifications.id, ids))
-  }
+    for (const [reactionFk, ids] of moves) {
+      await tx.update(notifications).set({ reactionFk }).where(inArray(notifications.id, ids))
+    }
+  })
 }
 
 /**
@@ -371,16 +381,18 @@ export async function retractNotifications(input: {
   reactionFk?: number
   sourceType: NotificationSourceType
 }): Promise<void> {
-  await baseDb
-    .delete(notifications)
-    .where(
-      and(
-        eq(notifications.eventFk, input.eventFk),
-        eq(notifications.actorFk, input.actorFk),
-        eq(notifications.sourceType, input.sourceType),
-        input.reactionFk == null ? undefined : eq(notifications.reactionFk, input.reactionFk),
+  await pinnedTx((tx) =>
+    tx
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.eventFk, input.eventFk),
+          eq(notifications.actorFk, input.actorFk),
+          eq(notifications.sourceType, input.sourceType),
+          input.reactionFk == null ? undefined : eq(notifications.reactionFk, input.reactionFk),
+        ),
       ),
-    )
+  )
 }
 
 /**
@@ -395,14 +407,16 @@ export async function retractOutOfBand(input: {
   sourceType: NotificationSourceType
   userFk: number
 }): Promise<void> {
-  await baseDb
-    .delete(notifications)
-    .where(
-      and(
-        eq(notifications.userFk, input.userFk),
-        eq(notifications.regionFk, input.regionFk),
-        eq(notifications.sourceType, input.sourceType),
-        isNull(notifications.pushedAt),
+  await pinnedTx((tx) =>
+    tx
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.userFk, input.userFk),
+          eq(notifications.regionFk, input.regionFk),
+          eq(notifications.sourceType, input.sourceType),
+          isNull(notifications.pushedAt),
+        ),
       ),
-    )
+  )
 }

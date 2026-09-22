@@ -1,4 +1,3 @@
-import { db } from '$lib/db/db.server'
 /**
  * `toEvent` over real synced rows.
  *
@@ -10,32 +9,14 @@ import { db } from '$lib/db/db.server'
  * Skipped when DATABASE_URL is unreachable, so `npm test` still passes without a local stack.
  */
 import { reachable, sql } from '$lib/db/testDb'
-import { getUserPermissions } from '$lib/hooks/auth.server'
-import type { QueryContext } from '$lib/zero/permissions'
 import { queries } from '$lib/zero/queries'
-import { schema } from '$lib/zero/zero-schema'
-import { zeroPostgresJS } from '@rocicorp/zero/server/adapters/postgresjs'
 import { afterAll, describe, expect, it } from 'vitest'
 import { EVENT_OBJECT_COLUMNS } from './dto'
 import { eventRow } from './fixture'
 import { toEvent, type EventRow } from './mapper'
+import { eventQueryContext, zero } from './testContext'
 
-const zero = zeroPostgresJS(schema, sql as unknown as Parameters<typeof zeroPostgresJS>[1])
-
-let ctx: (Omit<QueryContext, 'authUserId'> & { authUserId: string }) | undefined
-
-if (reachable) {
-  const [row] = await sql<{ authId: string }[]>`
-    select u.auth_user_fk as "authId" from public.users u
-    join public.region_members rm on rm.user_fk = u.id and rm.is_active
-    join public.events e on e.region_fk = rm.region_fk
-    limit 1`
-
-  if (row != null) {
-    ctx = { authUserId: row.authId, pageState: await getUserPermissions(db, row.authId) }
-  }
-}
-
+const ctx = await eventQueryContext()
 const usable = reachable && ctx != null
 
 afterAll(async () => {

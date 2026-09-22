@@ -1,6 +1,6 @@
 import { SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private'
 import { PUBLIC_SUPABASE_URL } from '$env/static/public'
-import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { clientErrorLogs, feedback, notifications } from '$lib/db/schema'
 import { reportBunnyOrphans } from '$lib/entities/file/cleanup.server'
 import { reconcileReadiness } from '$lib/entities/file/readiness.server'
@@ -111,15 +111,17 @@ const sweepBunny = async (before: Date): Promise<number> => {
  * one is deleting something that was never delivered.
  */
 const sweepNotifications = async (readBefore: Date, unreadBefore: Date): Promise<number> => {
-  const removed = await db
-    .delete(notifications)
-    .where(
-      or(
-        and(isNotNull(notifications.readAt), lt(notifications.readAt, readBefore)),
-        and(isNull(notifications.readAt), lt(notifications.createdAt, unreadBefore)),
-      ),
-    )
-    .returning({ id: notifications.id })
+  const removed = await pinnedTx((tx) =>
+    tx
+      .delete(notifications)
+      .where(
+        or(
+          and(isNotNull(notifications.readAt), lt(notifications.readAt, readBefore)),
+          and(isNull(notifications.readAt), lt(notifications.createdAt, unreadBefore)),
+        ),
+      )
+      .returning({ id: notifications.id }),
+  )
   return removed.length
 }
 
@@ -129,25 +131,26 @@ const sweepNotifications = async (readBefore: Date, unreadBefore: Date): Promise
  * backups within 30 days (section 7).
  */
 const sweepFeedback = async (before: Date): Promise<number> => {
-  const removed = await db
-    .delete(feedback)
-    .where(
-      or(
-        and(isNotNull(feedback.repliedAt), lt(feedback.repliedAt, before)),
-        and(isNull(feedback.repliedAt), lt(feedback.createdAt, before)),
-      ),
-    )
-    .returning({ id: feedback.id })
+  const removed = await pinnedTx((tx) =>
+    tx
+      .delete(feedback)
+      .where(
+        or(
+          and(isNotNull(feedback.repliedAt), lt(feedback.repliedAt, before)),
+          and(isNull(feedback.repliedAt), lt(feedback.createdAt, before)),
+        ),
+      )
+      .returning({ id: feedback.id }),
+  )
   return removed.length
 }
 
 /** Drop error logs past the cutoff. A fault nobody looked at in three months is not one anybody
  *  is going to diagnose, and every row carries a pathname and a user agent. */
 const sweepErrorLogs = async (before: Date): Promise<number> => {
-  const removed = await db
-    .delete(clientErrorLogs)
-    .where(lt(clientErrorLogs.createdAt, before))
-    .returning({ id: clientErrorLogs.id })
+  const removed = await pinnedTx((tx) =>
+    tx.delete(clientErrorLogs).where(lt(clientErrorLogs.createdAt, before)).returning({ id: clientErrorLogs.id }),
+  )
   return removed.length
 }
 
@@ -167,7 +170,7 @@ export const POST: RequestHandler = async ({ request }) => {
     reconcileReadiness(getVideoProvider()),
     // Alongside the deletes, not ahead of them: it walks the whole Bunny library, and its own
     // failure must never cost a retention delete this job promises.
-    reportBunnyOrphans(db, new Date(now - BUNNY_MAX_AGE_MS)),
+    reportBunnyOrphans(new Date(now - BUNNY_MAX_AGE_MS)),
   ])
   console.log(
     `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback, ${errorRows} error logs, corrected ${readinessRows} video readiness`,

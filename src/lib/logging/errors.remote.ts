@@ -1,10 +1,8 @@
 import { command, getRequestEvent, query } from '$app/server'
-import { APP_PERMISSION_ADMIN } from '$lib/auth'
-import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { clientErrorLogs } from '$lib/db/schema'
-import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
-import { error as httpError } from '@sveltejs/kit'
+import { requireAppAdmin } from '$lib/remote/require.server'
 import { desc, sql } from 'drizzle-orm'
 import { MAX_ERROR_LENGTH } from './stringify'
 
@@ -21,12 +19,14 @@ export const logClientError = command(
   async ({ error, navigator, pathname }) => {
     const { locals } = getRequestEvent()
 
-    await db.insert(clientErrorLogs).values({
-      createdBy: locals.user?.id ?? null,
-      error,
-      navigator: navigator ?? null,
-      pathname: pathname ?? null,
-    })
+    await pinnedTx((tx) =>
+      tx.insert(clientErrorLogs).values({
+        createdBy: locals.user?.id ?? null,
+        error,
+        navigator: navigator ?? null,
+        pathname: pathname ?? null,
+      }),
+    )
   },
 )
 
@@ -48,31 +48,29 @@ export interface ErrorLogGroup {
 export const listErrorLogs = query(async (): Promise<ErrorLogGroup[]> => {
   const { locals } = getRequestEvent()
 
-  // The table has RLS on with no policies, so this reads through the privileged client and
-  // this check is the only thing standing in front of it. Not defence in depth: the gate.
-  if (!locals.userPermissions?.includes(APP_PERMISSION_ADMIN)) {
-    httpError(403, formError('form_noPermission'))
-  }
+  requireAppAdmin(locals.userPermissions)
 
-  const rows = await db
-    .select({
-      count: sql<number>`count(*)::int`,
-      error: clientErrorLogs.error,
-      // A raw `sql` selection skips Drizzle's field mapping, so this arrives as whatever
-      // postgres-js decoded it to (a string for timestamptz). `new Date` below takes either.
-      lastSeen: sql<Date | string>`max(${clientErrorLogs.createdAt})`,
-      // Filtered inside the aggregate: a server row has no pathname, and an all-null group comes
-      // back from postgres-js as the STRING "NULL", which no null check on this side catches.
-      paths: sql<
-        string[]
-      >`coalesce(array_agg(distinct ${clientErrorLogs.pathname}) filter (where ${clientErrorLogs.pathname} is not null), '{}')`,
-      source: clientErrorLogs.source,
-    })
-    .from(clientErrorLogs)
-    .groupBy(clientErrorLogs.error, clientErrorLogs.source)
-    .orderBy(desc(sql`max(${clientErrorLogs.createdAt})`))
-    // ponytail: newest 100 groups, no paging. Add paging when 100 distinct errors is a real day.
-    .limit(100)
+  const rows = await pinnedTx((tx) =>
+    tx
+      .select({
+        count: sql<number>`count(*)::int`,
+        error: clientErrorLogs.error,
+        // A raw `sql` selection skips Drizzle's field mapping, so this arrives as whatever
+        // postgres-js decoded it to (a string for timestamptz). `new Date` below takes either.
+        lastSeen: sql<Date | string>`max(${clientErrorLogs.createdAt})`,
+        // Filtered inside the aggregate: a server row has no pathname, and an all-null group comes
+        // back from postgres-js as the STRING "NULL", which no null check on this side catches.
+        paths: sql<
+          string[]
+        >`coalesce(array_agg(distinct ${clientErrorLogs.pathname}) filter (where ${clientErrorLogs.pathname} is not null), '{}')`,
+        source: clientErrorLogs.source,
+      })
+      .from(clientErrorLogs)
+      .groupBy(clientErrorLogs.error, clientErrorLogs.source)
+      .orderBy(desc(sql`max(${clientErrorLogs.createdAt})`))
+      // ponytail: newest 100 groups, no paging. Add paging when 100 distinct errors is a real day.
+      .limit(100),
+  )
 
   return rows.map((row) => ({
     ...row,

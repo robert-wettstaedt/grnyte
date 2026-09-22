@@ -8,35 +8,12 @@
  *
  * Skipped when DATABASE_URL is unreachable, so `npm test` still passes without a local stack.
  */
-import { db } from '$lib/db/db.server'
 import { reachable, sql } from '$lib/db/testDb'
-import { getUserPermissions } from '$lib/hooks/auth.server'
-import type { QueryContext } from '$lib/zero/permissions'
 import { queries } from '$lib/zero/queries'
-import { schema } from '$lib/zero/zero-schema'
-import { zeroPostgresJS } from '@rocicorp/zero/server/adapters/postgresjs'
 import { afterAll, describe, expect, it } from 'vitest'
+import { eventQueryContext, zero } from './testContext'
 
-// Same cast `tenancy.test.ts` uses: the postgres.js generic does not line up with what
-// Zero's adapter declares, and the mismatch is purely nominal.
-const zero = zeroPostgresJS(schema, sql as unknown as Parameters<typeof zeroPostgresJS>[1])
-
-// `authUserId` narrowed to a string: `regionMemberCan` refuses an anonymous context, and the
-// guard below means we never build one.
-let ctx: (Omit<QueryContext, 'authUserId'> & { authUserId: string }) | undefined
-
-if (reachable) {
-  // Whoever the seed made an admin: this only needs somebody who can read a region with events.
-  const [row] = await sql<{ authId: string }[]>`
-    select u.auth_user_fk as "authId" from public.users u
-    join public.region_members rm on rm.user_fk = u.id and rm.is_active
-    join public.events e on e.region_fk = rm.region_fk
-    limit 1`
-
-  if (row != null) {
-    ctx = { authUserId: row.authId, pageState: await getUserPermissions(db, row.authId) }
-  }
-}
+const ctx = await eventQueryContext()
 
 /**
  * A region `event.server.test.ts` does not touch, and the ONLY region these tests read.

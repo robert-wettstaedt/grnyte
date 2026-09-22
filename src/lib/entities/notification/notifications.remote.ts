@@ -1,5 +1,5 @@
 import { command } from '$app/server'
-import { db as baseDb } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { events, notifications, pushSubscriptions, userSettings } from '$lib/db/schema'
 import { writeUserSettings } from '$lib/entities/user/settings.server'
 import { formError } from '$lib/forms/schemas'
@@ -91,35 +91,40 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
   // Privileged, and BEFORE the insert on its own connection, which is why this is not an
   // authedCommand: deferring it to `afterCommit` would run it after the insert it exists to make
   // possible, and nesting it inside the handler's transaction would take a second connection out
-  // of the same ten-slot pool.
-  await baseDb
-    .delete(pushSubscriptions)
-    .where(
-      and(
-        eq(pushSubscriptions.endpoint, subscription.endpoint),
-        eq(pushSubscriptions.auth, subscription.auth),
-        eq(pushSubscriptions.p256dh, subscription.p256dh),
-        ne(pushSubscriptions.userFk, user.id),
-      ),
-    )
+  // of the same three-slot pool.
+  //
+  // One transaction for both statements, so the ownership read below sees what this delete left
+  // behind.
+  const endpointOwner = await pinnedTx(async (tx) => {
+    await tx
+      .delete(pushSubscriptions)
+      .where(
+        and(
+          eq(pushSubscriptions.endpoint, subscription.endpoint),
+          eq(pushSubscriptions.auth, subscription.auth),
+          eq(pushSubscriptions.p256dh, subscription.p256dh),
+          ne(pushSubscriptions.userFk, user.id),
+        ),
+      )
 
-  // The ownership check the upsert below does NOT do. `ON CONFLICT (endpoint) DO UPDATE` sets
-  // `user_fk` to the caller, and an endpoint is a string a request can state, so once the
-  // own-row rule lives here rather than in a policy a caller who names somebody else's endpoint
-  // takes their device over: that person silently stops receiving their own pushes, and their
-  // browser starts receiving payloads it cannot decrypt.
-  //
-  // AFTER the pre-delete, never before. The legitimate case is one browser signing in as somebody
-  // else, and until that delete runs the endpoint is still owned by the previous account, so a
-  // check ordered first would 403 exactly the re-subscribe the pre-delete exists to allow. What
-  // survives the delete is an endpoint whose keys the caller could not present, which is a caller
-  // naming a device rather than that device coming back.
-  //
-  // Privileged, because the row belongs to another account: read through `rls` it comes back null
-  // and this waves the takeover through, which is the same reason the pre-delete is privileged.
-  const endpointOwner = await baseDb.query.pushSubscriptions.findFirst({
-    columns: { userFk: true },
-    where: eq(pushSubscriptions.endpoint, subscription.endpoint),
+    // The ownership check the upsert below does NOT do. `ON CONFLICT (endpoint) DO UPDATE` sets
+    // `user_fk` to the caller, and an endpoint is a string a request can state, so once the
+    // own-row rule lives here rather than in a policy a caller who names somebody else's endpoint
+    // takes their device over: that person silently stops receiving their own pushes, and their
+    // browser starts receiving payloads it cannot decrypt.
+    //
+    // AFTER the pre-delete, never before. The legitimate case is one browser signing in as
+    // somebody else, and until that delete runs the endpoint is still owned by the previous
+    // account, so a check ordered first would 403 exactly the re-subscribe the pre-delete exists
+    // to allow. What survives the delete is an endpoint whose keys the caller could not present,
+    // which is a caller naming a device rather than that device coming back.
+    //
+    // Privileged, because the row belongs to another account: read through `rls` it comes back null
+    // and this waves the takeover through, which is the same reason the pre-delete is privileged.
+    return tx.query.pushSubscriptions.findFirst({
+      columns: { userFk: true },
+      where: eq(pushSubscriptions.endpoint, subscription.endpoint),
+    })
   })
 
   if (endpointOwner != null && endpointOwner.userFk !== user.id) {

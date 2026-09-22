@@ -1,6 +1,6 @@
-import { db } from '$lib/db/db.server'
+import { db, PINNED_SEARCH_PATH } from '$lib/db/db.server'
 import { clientErrorLogs } from '$lib/db/schema'
-import { and, eq, gt } from 'drizzle-orm'
+import { and, eq, gt, sql } from 'drizzle-orm'
 import { MAX_ERROR_LENGTH } from './stringify'
 
 /** How long an identical message counts as already recorded. A cron runs every five minutes and
@@ -25,23 +25,30 @@ export async function logServerFailure(scope: string, reason: string): Promise<v
   const error = `[${scope}] ${reason}`.slice(0, MAX_ERROR_LENGTH)
 
   try {
-    const [recent] = await db
-      .select({ id: clientErrorLogs.id })
-      .from(clientErrorLogs)
-      .where(
-        and(
-          eq(clientErrorLogs.error, error),
-          eq(clientErrorLogs.source, 'server'),
-          gt(clientErrorLogs.createdAt, new Date(Date.now() - DEDUPE_WINDOW_MS)),
-        ),
-      )
-      .limit(1)
+    // Pinned inline rather than through `pinnedTx`, which reports here and would recurse. The
+    // one record worth having is the one written while a connection is poisoned, so it must not
+    // be the write that the poisoning breaks.
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`select set_config('search_path', ${PINNED_SEARCH_PATH}, true)`)
 
-    if (recent != null) {
-      return
-    }
+      const [recent] = await tx
+        .select({ id: clientErrorLogs.id })
+        .from(clientErrorLogs)
+        .where(
+          and(
+            eq(clientErrorLogs.error, error),
+            eq(clientErrorLogs.source, 'server'),
+            gt(clientErrorLogs.createdAt, new Date(Date.now() - DEDUPE_WINDOW_MS)),
+          ),
+        )
+        .limit(1)
 
-    await db.insert(clientErrorLogs).values({ error, source: 'server' })
+      if (recent != null) {
+        return
+      }
+
+      await tx.insert(clientErrorLogs).values({ error, source: 'server' })
+    })
   } catch {
     // Best effort, like the client reporter: a failing log must not hide what it reports.
   }

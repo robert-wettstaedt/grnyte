@@ -5,10 +5,11 @@
  * No database. Both helpers take the load and the predicate as arguments, so the row a handler
  * would fetch is an ordinary return value here.
  */
+import { APP_PERMISSION_ADMIN, REGION_PERMISSION_READ } from '$lib/auth'
 import { formError } from '$lib/forms/schemas'
 import { isHttpError, isValidationError } from '@sveltejs/kit'
 import { describe, expect, it } from 'vitest'
-import { requireRow, requireRowForm } from './require.server'
+import { requireAppAdmin, requireRow, requireRowForm } from './require.server'
 
 interface Row {
   id: number
@@ -126,5 +127,31 @@ describe('requireRowForm', () => {
 
     expect(isValidationError(error)).toBe(true)
     expect(error).toMatchObject({ issues: [{ message: DENIED }] })
+  })
+})
+
+/**
+ * The app-admin gate. Behavioural, not structural: these handlers read through the privileged
+ * client with no policy underneath, so this check refusing is the only thing between a signed-in
+ * non-admin and every region's feedback, error log and stats.
+ */
+describe('requireAppAdmin', () => {
+  it('lets an app admin through', () => {
+    expect(() => requireAppAdmin([APP_PERMISSION_ADMIN])).not.toThrow()
+  })
+
+  it('403s a caller with no permissions at all', async () => {
+    const error = await thrown(async () => requireAppAdmin(undefined))
+
+    expect(isHttpError(error)).toBe(true)
+    expect(error).toMatchObject({ body: { message: DENIED }, status: 403 })
+  })
+
+  it('403s a caller holding some other permission', async () => {
+    // A region permission is not an app permission, however many of them the caller has.
+    const error = await thrown(async () => requireAppAdmin([REGION_PERMISSION_READ]))
+
+    expect(isHttpError(error)).toBe(true)
+    expect(error).toMatchObject({ body: { message: DENIED }, status: 403 })
   })
 })

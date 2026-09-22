@@ -1,3 +1,4 @@
+import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { bunnyStreams, files, type File } from '$lib/db/schema'
 import { imageStoragePaths } from '$lib/images/derivatives'
@@ -96,11 +97,13 @@ export async function removeFileStorage(targets: FileStorageTarget[]): Promise<v
  * SAFE ONLY WHILE THE LIBRARY IS OURS ALONE. A diff calls every video it cannot account for an
  * orphan, so a second tenant's would all qualify. It was shared with the demo instance once.
  */
-export async function reportBunnyOrphans(db: PostgresJsDatabase<typeof schema>, before: Date): Promise<void> {
+export async function reportBunnyOrphans(before: Date): Promise<void> {
   try {
+    // Pinned here rather than by the caller: this runs alongside a walk of the whole Bunny
+    // library, and a transaction opened around both would hold a pooled connection for its length.
     const [{ guids, total }, known] = await Promise.all([
       getVideoProvider().listVideos(before),
-      db.select({ id: bunnyStreams.id }).from(bunnyStreams),
+      pinnedTx((tx) => tx.select({ id: bunnyStreams.id }).from(bunnyStreams)),
     ])
 
     const attached = new Set(known.map((row) => row.id))

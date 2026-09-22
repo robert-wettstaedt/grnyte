@@ -1,4 +1,4 @@
-import { db as baseDb } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { areas, ascents, blocks, routes, users } from '$lib/db/schema'
 import { blockName } from '$lib/entities/block/mapper'
@@ -162,57 +162,59 @@ export async function entityNames(
   const routeIds = idsOf('route')
   const userIds = idsOf('user')
 
-  if (areaIds.length > 0) {
-    for (const row of await baseDb
-      .select({ id: areas.id, name: areas.name })
-      .from(areas)
-      .where(inArray(areas.id, areaIds))) {
-      names.set(`area:${row.id}`, toDisplayName(row.name, locale))
+  await pinnedTx(async (tx) => {
+    if (areaIds.length > 0) {
+      for (const row of await tx
+        .select({ id: areas.id, name: areas.name })
+        .from(areas)
+        .where(inArray(areas.id, areaIds))) {
+        names.set(`area:${row.id}`, toDisplayName(row.name, locale))
+      }
     }
-  }
 
-  if (blockIds.length > 0) {
-    for (const row of await baseDb
-      .select({ id: blocks.id, name: blocks.name, order: blocks.order })
-      .from(blocks)
-      .where(inArray(blocks.id, blockIds))) {
-      // The same fallback the app's block mapper applies, so a push about a nameless block
-      // reads "Block 3" like the screen it links to, not the generic `common_unnamed`.
-      names.set(`block:${row.id}`, blockName(row.name, row.order, locale))
+    if (blockIds.length > 0) {
+      for (const row of await tx
+        .select({ id: blocks.id, name: blocks.name, order: blocks.order })
+        .from(blocks)
+        .where(inArray(blocks.id, blockIds))) {
+        // The same fallback the app's block mapper applies, so a push about a nameless block
+        // reads "Block 3" like the screen it links to, not the generic `common_unnamed`.
+        names.set(`block:${row.id}`, blockName(row.name, row.order, locale))
+      }
     }
-  }
 
-  if (routeIds.length > 0) {
-    for (const row of await baseDb
-      .select({ id: routes.id, name: routes.name })
-      .from(routes)
-      .where(inArray(routes.id, routeIds))) {
-      names.set(`route:${row.id}`, toDisplayName(row.name, locale))
+    if (routeIds.length > 0) {
+      for (const row of await tx
+        .select({ id: routes.id, name: routes.name })
+        .from(routes)
+        .where(inArray(routes.id, routeIds))) {
+        names.set(`route:${row.id}`, toDisplayName(row.name, locale))
+      }
     }
-  }
 
-  if (userIds.length > 0) {
-    for (const row of await baseDb
-      .select({ id: users.id, name: users.username })
-      .from(users)
-      .where(inArray(users.id, userIds))) {
-      // A username, which the schema requires and the sign-up flow will not leave blank, so there
-      // is no fallback to reach for. Stated rather than assumed, because the map's type asks.
-      names.set(`user:${row.id}`, alreadyDisplayable(row.name))
+    if (userIds.length > 0) {
+      for (const row of await tx
+        .select({ id: users.id, name: users.username })
+        .from(users)
+        .where(inArray(users.id, userIds))) {
+        // A username, which the schema requires and the sign-up flow will not leave blank, so there
+        // is no fallback to reach for. Stated rather than assumed, because the map's type asks.
+        names.set(`user:${row.id}`, alreadyDisplayable(row.name))
+      }
     }
-  }
 
-  if (ascentIds.length > 0) {
-    for (const row of await baseDb
-      .select({ id: ascents.id, name: routes.name })
-      .from(ascents)
-      .innerJoin(routes, eq(routes.id, ascents.routeFk))
-      .where(inArray(ascents.id, ascentIds))) {
-      // Named by its route, so it inherits the route's fallback: a push about an ascent of a
-      // nameless route read blank here too, from the same joined column.
-      names.set(`ascent:${row.id}`, toDisplayName(row.name, locale))
+    if (ascentIds.length > 0) {
+      for (const row of await tx
+        .select({ id: ascents.id, name: routes.name })
+        .from(ascents)
+        .innerJoin(routes, eq(routes.id, ascents.routeFk))
+        .where(inArray(ascents.id, ascentIds))) {
+        // Named by its route, so it inherits the route's fallback: a push about an ascent of a
+        // nameless route read blank here too, from the same joined column.
+        names.set(`ascent:${row.id}`, toDisplayName(row.name, locale))
+      }
     }
-  }
+  })
 
   return names
 }

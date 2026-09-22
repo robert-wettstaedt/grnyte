@@ -1,4 +1,4 @@
-import { db as baseDb } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { userRoles, users, userSettings } from '$lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
@@ -22,14 +22,14 @@ export interface AdminRecipient {
  * Base handle because neither `auth.users` nor `user_settings` is readable by `authenticated`.
  */
 export async function appAdminRecipients(): Promise<AdminRecipient[]> {
-  return (
-    baseDb
+  return pinnedTx((tx) =>
+    tx
       .select({ email: authUser.email, locale: userSettings.contactLocale, userFk: users.id })
       .from(userRoles)
       .innerJoin(users, eq(users.authUserFk, userRoles.authUserFk))
       .innerJoin(authUser, eq(authUser.id, userRoles.authUserFk))
       // LEFT: an admin with no settings row still gets told, in the default language.
       .leftJoin(userSettings, eq(userSettings.userFk, users.id))
-      .where(eq(userRoles.role, 'app_admin'))
+      .where(eq(userRoles.role, 'app_admin')),
   )
 }
