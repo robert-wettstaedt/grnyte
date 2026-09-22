@@ -16,9 +16,8 @@ import { collectRegionStats, collectRegionSummaries } from './stats.server'
  * through the privileged handle, counts only and never content. That branch has no RLS underneath
  * it: this check is the gate, not defence in depth.
  *
- * `authedRls` rather than `authedQuery`: the latter holds a pool slot for the whole handler, and
- * the privileged branch then takes several more from the same pool. Either branch opens
- * a transaction, and only for as long as its own reads take.
+ * `authedRls` rather than `authedQuery`, which holds a pool slot for the whole handler while the
+ * privileged branch takes several more from the same pool.
  */
 export const regionStats = query(z.object({ regionFk: z.number() }), async ({ regionFk }): Promise<RegionStats> => {
   const { rls, userPermissions, userRegions } = await authedRls()
@@ -43,8 +42,8 @@ export const regionStats = query(z.object({ regionFk: z.number() }), async ({ re
 })
 
 /** Every region, for the app-admin list. No member fallback: a member reaches their own via Zero.
- *  On the privileged handle, like `listFeedback`, and pinned, so it holds one of three pool
- *  slots for a BEGIN, the probe, the read and a COMMIT. Keep the read the only thing in it. */
+ *  Pinned on the privileged handle, so it holds a pool slot for a BEGIN, the probe, the read and a
+ *  COMMIT. Keep the read the only thing inside it. */
 export const listAllRegions = query(async (): Promise<RegionSummary[]> => {
   const { userPermissions } = await authedRls()
 

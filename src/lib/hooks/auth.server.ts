@@ -12,11 +12,11 @@ import { createServerClient } from '@supabase/ssr'
 import { error, redirect, type Handle } from '@sveltejs/kit'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
-/** Takes no handle: `pinnedTx` opens its own, and accepting one invited a caller to pass an RLS
- *  `tx`, which would rewrite that transaction's `search_path` for everything after this call. */
+/** Takes no handle, because `pinnedTx` opens its own. A caller that passed an RLS `tx` would have
+ *  its `search_path` rewritten for everything after this call. */
 export async function getUserPermissions(authUserId: string): Promise<App.SafeSession> {
-  // Pinned, because the transaction pooler runs no reset query and an inherited `search_path`
-  // fails every unqualified name with 42P01. It also puts the three reads on one connection.
+  // Pinned, because an inherited `search_path` 42P01s every unqualified name. It also puts the
+  // three reads on one connection.
   return pinnedTx((tx) => read(tx, authUserId))
 }
 
@@ -56,8 +56,8 @@ function isUnreachable(error: unknown): boolean {
 }
 
 async function read(db: PostgresJsDatabase<typeof schema>, authUserId: string): Promise<App.SafeSession> {
-  // Three independent reads, and this runs on every request as well as every get-queries POST, so
-  // they go together rather than three round-trips deep.
+  // Three independent reads, together rather than three round trips deep, because this runs on
+  // every request and every get-queries POST.
   const [userRole, userRegions, permissions] = await Promise.all([
     db.query.userRoles.findFirst({
       where: (table, { eq }) => eq(table.authUserFk, authUserId),
@@ -128,8 +128,8 @@ export const supabase: Handle = async ({ event, resolve }) => {
   }
 
   async function getPageState(authUserId: string): Promise<App.SafeSession> {
-    // One pinned transaction for both, not two: this runs on every SSR request, so the profile
-    // and the permission reads share a connection instead of drawing from the pool twice.
+    // One pinned transaction for both, so the profile and the permission reads share a
+    // connection. This runs on every SSR request.
     return pinnedTx(async (tx) => {
       const [user, permissions] = await Promise.all([loadSessionUser(tx, authUserId), read(tx, authUserId)])
       return { ...permissions, user }

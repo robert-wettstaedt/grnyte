@@ -54,8 +54,8 @@ const grade = () => Math.round(((rand() + rand()) / 2) * MAX_GRADE)
 const sql = postgres(DATABASE_URL, { prepare: false })
 
 // Bulk insert in chunks (Postgres caps params at 65535); returns inserted ids.
-// Schema-qualified as two identifiers around a literal dot: transaction-mode pooling gives
-// each statement whatever connection is free, so a session `search_path` cannot be relied on.
+// Schema-qualified as two identifiers around a literal dot, because transaction-mode pooling
+// gives each statement whatever connection is free and no session `search_path` survives.
 const insertReturningIds = async (rel: string, rows: Record<string, unknown>[], cols: string[]) => {
   const ids: number[] = []
   for (let i = 0; i < rows.length; i += 1000) {

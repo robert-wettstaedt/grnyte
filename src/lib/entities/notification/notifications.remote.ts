@@ -93,8 +93,7 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
   // possible, and nesting it inside the handler's transaction would take a second connection out
   // of the same pool.
   //
-  // One transaction for both statements, so the ownership read below sees what this delete left
-  // behind.
+  // One transaction for both statements, so the ownership read below sees what the delete left.
   const endpointOwner = await pinnedTx(async (tx) => {
     await tx
       .delete(pushSubscriptions)
@@ -113,11 +112,9 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
     // takes their device over: that person silently stops receiving their own pushes, and their
     // browser starts receiving payloads it cannot decrypt.
     //
-    // AFTER the pre-delete, never before. The legitimate case is one browser signing in as
-    // somebody else, and until that delete runs the endpoint is still owned by the previous
-    // account, so a check ordered first would 403 exactly the re-subscribe the pre-delete exists
-    // to allow. What survives the delete is an endpoint whose keys the caller could not present,
-    // which is a caller naming a device rather than that device coming back.
+    // After the pre-delete, never before. One browser signing in as somebody else is legitimate,
+    // and until the delete runs the previous account still owns the endpoint, so a check ordered
+    // first would 403 the re-subscribe the pre-delete exists to allow.
     //
     // Privileged, because the row belongs to another account: read through `rls` it comes back null
     // and this waves the takeover through, which is the same reason the pre-delete is privileged.

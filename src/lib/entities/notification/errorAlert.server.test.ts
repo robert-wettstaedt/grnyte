@@ -17,16 +17,11 @@ const { alertOnNewErrors } = await import('./errorAlert.server')
 /** Unique per run, so a parallel suite's rows are never read or stamped by this one. */
 const scope = `alerttest-${crypto.randomUUID()}`
 
-/**
- * Ids this suite inserted.
- *
- * Not a prefix test: three tests deliberately insert `[adminAlert]` and `[email]` rows, because
- * those prefixes are what the production predicate excludes, so a `[${scope}]%` match cannot tell
- * this suite's rows from a stranger's.
- */
+/** Ids this suite inserted. Not a prefix test: three tests insert `[adminAlert]` and `[email]`
+ *  rows on purpose, so a `[${scope}]%` match cannot tell them from a stranger's. */
 const own = new Set<number>()
 
-/** Wraps a `.returning()`, so every insert here keeps its own object literal at the call site. */
+/** Wraps a `.returning()`, so every insert keeps its own object literal at the call site. */
 const record = <Row extends { id: number }>(rows: Row[]) => {
   rows.forEach((row) => own.add(row.id))
   return rows
@@ -49,7 +44,7 @@ const mine = () =>
 /** What the run passed to the alert, so a test can read the count without the send happening. */
 const alerted = () => alertAppAdmins.mock.calls.length
 
-/** `not in ()` is a syntax error, so an empty set has to drop the clause rather than render it. */
+/** `not in ()` is a syntax error, so an empty set drops the clause instead of rendering it. */
 const notOwn = () => (own.size === 0 ? undefined : not(inArray(clientErrorLogs.id, [...own])))
 
 /**
@@ -81,14 +76,12 @@ const parkStrangers = async () => {
 /**
  * Parks strangers as late as possible, runs, then proves nothing else landed in between.
  *
- * Parking in `beforeEach` left the whole body of a test open: `failure.server.test.ts`,
- * `readiness.server.test.ts` and `push.server.test.ts` write this same table and delete their rows
- * again, so one arriving before the SELECT joined the batch and every exact-count assertion read
- * one too many. Detected rather than merely narrowed, because a shrunken window still fails
- * eventually and reads as a real regression when it does. The contaminating row is stamped by the
- * attempt that tripped over it, so the retry cannot see it twice. A stray can also be a pg_cron
- * job in the local Supabase container, which posts to `/api/tasks/notifications` every 30 seconds
- * and so alerts and stamps rows, including this suite's seeds, whether or not anyone is looking.
+ * Three other suites write this same table, and the local pg_cron job posts to
+ * `/api/tasks/notifications` every 30 seconds, so a row arriving before the SELECT joins the batch
+ * and every exact-count assertion reads one too many. Parking in `beforeEach` left the whole body
+ * of a test open. Detected rather than narrowed, because a smaller window still fails eventually
+ * and reads as a real regression. The retry cannot see the same row twice, because the attempt
+ * that tripped over it stamped it.
  */
 const runAlert = async () => {
   await parkStrangers()
@@ -107,8 +100,8 @@ const runAlert = async () => {
     )
 
   if (strays.length > 0) {
-    // Restored by `afterAll`, which is right when this run stamped them and merely noisy when the
-    // alert job did: a duplicate alert beats an error that never alerts.
+    // Restored by `afterAll`. That is noisy when the alert job stamped them, but a duplicate
+    // alert beats an error that never alerts.
     parked.push(...strays.map((row) => row.id))
     throw new Error(`${strays.length} row(s) this suite does not own were stamped mid-run`)
   }
@@ -120,11 +113,11 @@ beforeEach(async () => {
   if (!reachable) return
   vi.clearAllMocks()
 
-  // By id, never by prefix: `[email]` and `[adminAlert]` are what `logServerFailure` writes, so a
+  // By id, never by prefix: `logServerFailure` writes `[email]` and `[adminAlert]` rows, so a
   // prefix delete destroys real diagnostics in the shared dev database.
   if (own.size > 0) {
     await db.delete(clientErrorLogs).where(inArray(clientErrorLogs.id, [...own]))
-    // Cleared too, or a retry leaves the failed attempt's rows in `own`, exempt from parking.
+    // Cleared too, or a retry leaves the failed attempt's rows in `own` and exempt from parking.
     own.clear()
   }
 

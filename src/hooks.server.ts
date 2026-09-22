@@ -17,8 +17,8 @@ export const handleError: HandleServerError = async ({ error, event, status }) =
 
   // Missing routes land here too, and are noise rather than incidents.
   if (status !== 404) {
-    // Pinned: this is the handler that records a 42P01 from an inherited `search_path`, so it is
-    // the one write that must not be broken by the same poisoned connection.
+    // Pinned, because this handler records a 42P01 from an inherited `search_path` and must not
+    // break on the same poisoned connection.
     await pinnedTx((tx) =>
       tx.insert(clientErrorLogs).values({
         createdBy: event.locals.user?.id ?? null,

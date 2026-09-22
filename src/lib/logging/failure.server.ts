@@ -25,9 +25,8 @@ export async function logServerFailure(scope: string, reason: string): Promise<v
   const error = `[${scope}] ${reason}`.slice(0, MAX_ERROR_LENGTH)
 
   try {
-    // Pinned inline rather than through `pinnedTx`, which reports here and would recurse. The
-    // one record worth having is the one written while a connection is poisoned, so it must not
-    // be the write that the poisoning breaks.
+    // Pinned inline, not through `pinnedTx`, which reports here and would recurse. This write
+    // happens while a connection is poisoned, so the poisoning must not break it.
     await db.transaction(async (tx) => {
       await tx.execute(sql`select set_config('search_path', ${PINNED_SEARCH_PATH}, true)`)
 

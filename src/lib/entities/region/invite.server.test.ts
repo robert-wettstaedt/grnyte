@@ -83,14 +83,9 @@ async function accept(token: string, who: Who = 'invitee') {
   return acceptInvitation({ authUserId: users[who].authId, email: EMAILS[who], token })
 }
 
-/**
- * Runs `fn` on a handle carrying the admin's claims, the way `createDrizzle` sets them.
- *
- * The invite lookups go through `public.account_for_email` and friends, which gate on
- * `authorize_in_region` and so read `auth.jwt()`. A bare handle carries no claims and is refused,
- * which is the point of the gate; production always has them. The role stays superuser, so these
- * tests still exercise the invite logic rather than RLS.
- */
+/** Runs `fn` on a handle carrying the admin's claims, the way `createDrizzle` sets them: the
+ *  invite lookups gate on `authorize_in_region`, which reads `auth.jwt()` and refuses a bare
+ *  handle. The role stays superuser, so these tests exercise the invite logic and not RLS. */
 function asAdmin<T>(fn: (tx: Parameters<typeof createInvitation>[0]) => Promise<T>): Promise<T> {
   const claims = JSON.stringify({ email: EMAILS.admin, role: 'authenticated', sub: users.admin.authId })
 
@@ -109,8 +104,8 @@ const restoreAs = (invitationFk: number, userRegions: UserRegion[] = adminOf()) 
 const resendAs = (args: Parameters<typeof resendInvitation>[1], mail: Parameters<typeof resendInvitation>[2]) =>
   asAdmin((tx) => resendInvitation(tx, args, mail))
 
-/** Every resend here is the same admin resending the same invitation through the same mail
- *  context; only the caller's regions and whether the event is attributed ever vary. */
+/** Every resend here is the same admin, the same invitation and the same mail context. Only the
+ *  caller's regions and the attribution of the event vary. */
 const resendById = (id: number, extra: { inviterFk?: number; userRegions?: UserRegion[] } = {}) =>
   resendAs(
     { invitationFk: id, inviter: 'ada', inviterFk: extra.inviterFk, userRegions: extra.userRegions ?? adminOf() },
@@ -621,8 +616,8 @@ describe.skipIf(!reachable)('resolveContactLocale', () => {
 
   it('prefers the recipient account’s stored language over the sender’s', async () => {
     await sql`update public.user_settings set contact_locale = 'de' where user_fk = ${users.invitee.userId}`
-    // The lookup answers only for an address this region has invited, and every real caller runs
-    // after `createInvitation`.
+    // The lookup answers only for an invited address, and every real caller runs after
+    // `createInvitation`.
     await invite()
 
     expect(await localeOf(EMAILS.invitee, 'en')).toBe('de')
@@ -636,17 +631,15 @@ describe.skipIf(!reachable)('resolveContactLocale', () => {
   })
 
   it('skips the gated lookup entirely when there is no region to authorize against', async () => {
-    // `sendInvitationEmail` takes `regionFk` optionally, and without one there is nothing to check
-    // the caller against, so the ambient locale has to win rather than the call being refused.
+    // `regionFk` is optional on `sendInvitationEmail`, and without one there is nothing to check
+    // the caller against, so the ambient locale wins instead of the call being refused.
     expect(await asAdmin((tx) => resolveContactLocale(tx, undefined, EMAILS.invitee, 'en'))).toBe('en')
   })
 })
 
-/**
- * The definers at the point of use: as `app_writer`, which is the role production runs as and
- * which reaches EXECUTE only by inheriting the `authenticated` grant, and against a caller the
- * gate must refuse. Neither is reachable through the handlers, whose own JS check throws first.
- */
+/** The definers at the point of use, as `app_writer`, which is the role production runs and which
+ *  reaches EXECUTE only by inheriting the `authenticated` grant. The handlers cannot reach these
+ *  cases, because their own JS check throws first. */
 describe.skipIf(!reachable)('invite email lookups (SECURITY DEFINER)', () => {
   const asRole = <T>(who: Who, run: (tx: Parameters<typeof createInvitation>[0]) => Promise<T>): Promise<T> => {
     const claims = JSON.stringify({ email: EMAILS[who], role: 'authenticated', sub: users[who].authId })
@@ -675,10 +668,8 @@ describe.skipIf(!reachable)('invite email lookups (SECURITY DEFINER)', () => {
   })
 
   it('answers only for an address this region has invited', async () => {
-    // The gate is no limit by itself: `createRegion` is open to any signed-in caller and makes
-    // them its admin, so an unscoped answer enumerates accounts one throwaway region at a time.
-    // Same caller and same address either side of `invite()`, so the account plainly exists and
-    // the null is the scope rather than absence.
+    // The gate is no limit by itself, because `createRegion` makes any signed-in caller an admin.
+    // Same caller and address either side of `invite()`, so the null is the scope, not absence.
     const before = await asRole('admin', (tx) =>
       tx.execute<{ v: null | number }>(dsql`select public.account_for_email(${regionId}, ${EMAILS.invitee}) as v`),
     )
@@ -693,13 +684,13 @@ describe.skipIf(!reachable)('invite email lookups (SECURITY DEFINER)', () => {
   })
 
   it('refuses a caller who does not administer the region, rather than answering "no"', async () => {
-    // Fail-closed: a gate that returned false here would be indistinguishable from "not a member",
-    // and `createInvitation` would skip the guard and write an invitation nobody can accept.
+    // Fail-closed: a false here reads as "not a member", so `createInvitation` would skip the
+    // guard and write an invitation nobody can accept.
     const thrown = await asRole('member', (tx) =>
       tx.execute(dsql`select public.is_active_member_by_email(${regionId}, ${EMAILS.member}) as v`),
     ).catch((error: unknown) => error)
 
-    // Drizzle wraps it, so the raise itself is on the cause. 42501 is the code the definer sets.
+    // Drizzle wraps it, so the raise is on the cause. 42501 is the code the definer sets.
     const cause = (thrown as { cause?: { code?: string; message?: string } }).cause
     expect(cause?.code).toBe('42501')
     expect(cause?.message).toMatch(/not authorized for region/)
@@ -707,11 +698,9 @@ describe.skipIf(!reachable)('invite email lookups (SECURITY DEFINER)', () => {
 
   it('refuses a maintainer, who holds region.edit but administers nothing', async () => {
     // The gate is `region.admin`, matching `canEditRegion`. `region.edit` would also admit a
-    // maintainer, who reaches none of these paths but could then ask whether an address has an
-    // account.
+    // maintainer, who could then ask whether an address has an account.
     //
-    // The demotion happens INSIDE the transaction the raise aborts, so it undoes itself and no
-    // other test can observe the fixture in a demoted state.
+    // The demotion runs inside the transaction the raise aborts, so it undoes itself.
     const claims = JSON.stringify({ email: EMAILS.member, role: 'authenticated', sub: users.member.authId })
 
     const thrown = await db
@@ -731,7 +720,7 @@ describe.skipIf(!reachable)('invite email lookups (SECURITY DEFINER)', () => {
   })
 
   it('normalizes an address the way `normalizeEmail` does, tabs included', async () => {
-    // Postgres `trim()` strips spaces only, so a tab would survive it and stop matching.
+    // Postgres `trim()` strips spaces only, so a tab survives it and stops matching.
     await invite()
 
     const padded = `\t ${EMAILS.invitee.toUpperCase()} \n`

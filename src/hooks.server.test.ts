@@ -4,9 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const values = vi.fn(() => Promise.resolve())
 const insert = vi.fn(() => ({ values }))
 
-// A pass-through double of the wrapper, so these assert WHAT is written, not that it is written
-// through a pinned transaction: dropping the wrapper would leave them green. The pin itself is
-// covered against a real database in `src/lib/db/pinned.server.test.ts`.
+// A pass-through double, so these assert what is written and not that a pinned transaction wrote
+// it. The pin itself is covered against a real database in `pinned.server.test.ts`.
 vi.mock('$lib/db/pinned.server', () => ({
   pinnedTx: async (body: (tx: { insert: typeof insert }) => PromiseLike<unknown>) => body({ insert }),
 }))

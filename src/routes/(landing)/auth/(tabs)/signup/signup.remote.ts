@@ -35,11 +35,10 @@ export const signUp = form(signUpSchema, async ({ email, password, username }) =
     invalid(formError('auth_signUpFailed'))
   }
 
-  // Create the app-level user + settings rows and link them. Uses the base (non-RLS) client
-  // because there is no authenticated session yet at sign-up. All three in one transaction: the
-  // GoTrue account already exists by now, so a half-written pair leaves an address that can
-  // neither sign in nor sign up again.
-  // Read out here: TypeScript drops the null narrowing above once it crosses into the callback.
+  // The base client, not RLS, because sign-up has no session yet. All three statements in one
+  // transaction: the GoTrue account exists by now, so a half-written pair leaves an address that
+  // can neither sign in nor sign up again.
+  // Read out here, because TypeScript drops the null narrowing inside the callback.
   const authUserFk = data.user.id
   const createdUser = await pinnedTx(async (tx) => {
     const [user] = await tx.insert(schema.users).values({ authUserFk, username }).returning()

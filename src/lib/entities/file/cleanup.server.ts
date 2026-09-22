@@ -99,8 +99,8 @@ export async function removeFileStorage(targets: FileStorageTarget[]): Promise<v
  */
 export async function reportBunnyOrphans(before: Date): Promise<void> {
   try {
-    // Pinned here rather than by the caller: this runs alongside a walk of the whole Bunny
-    // library, and a transaction opened around both would hold a pooled connection for its length.
+    // Pinned here, not by the caller: this runs beside a walk of the whole Bunny library, and a
+    // transaction around both would hold a pooled connection for that long.
     const [{ guids, total }, known] = await Promise.all([
       getVideoProvider().listVideos(before),
       pinnedTx((tx) => tx.select({ id: bunnyStreams.id }).from(bunnyStreams)),

@@ -35,14 +35,9 @@ import { canEditRegion } from './permissions'
 
 type Db = PostgresJsDatabase<typeof schema>
 
-/**
- * How the caller schedules the out-of-band push.
- *
- * An RLS handler passes `Context.afterCommit`, because these writes run on the privileged handle
- * and taking that connection while the handler still holds its own is what deadlocks the pool.
- * Callers outside a handler (the tests) pass nothing and it runs inline, where there is no
- * transaction to nest inside.
- */
+/** How the caller schedules the out-of-band push. An RLS handler passes `Context.afterCommit`,
+ *  because these writes take the privileged handle and taking it while the handler holds its own
+ *  deadlocks the pool. Callers outside a handler pass nothing and it runs inline. */
 type Defer = (task: () => Promise<void>) => void
 
 /** How long an invitation stays open. Also stated in the mail copy (`email_inviteMeta`). */
@@ -494,9 +489,8 @@ export async function resendInvitation(
  * against, and it is deliberate here: a wrong guess costs one paragraph in the wrong language,
  * and the accept page localizes itself from the invitee's own browser anyway.
  *
- * Through the definer, on the caller's own handle: `user_settings` is readable only by its owner
- * under RLS and the sender is never the recipient. `regionFk` is its permission gate, so without
- * one there is nothing to authorize against and the ambient locale wins.
+ * Through the definer, on the caller's own handle, because RLS lets only the owner read
+ * `user_settings`. `regionFk` is its permission gate, so without one the ambient locale wins.
  */
 export async function resolveContactLocale(
   db: Db,
@@ -707,12 +701,9 @@ export async function sendInvitationEmail(
   return sent
 }
 
-/**
- * The app id of the account on this address, or `undefined` when nobody has one yet.
- *
- * `regionFk` is a permission gate, not a filter: the definer RAISES 42501 for a region the caller
- * does not administer, so a denial reaches the caller instead of reading as "no account".
- */
+/** The app id of the account on this address, or `undefined` when nobody has one yet. `regionFk`
+ *  is a permission gate, not a filter: the definer raises 42501 for a region the caller does not
+ *  administer, so a denial never reads as "no account". */
 async function accountIdForEmail(db: Db, regionFk: number, email: string): Promise<number | undefined> {
   const [row] = await db.execute<{ id: null | number }>(
     sql`select public.account_for_email(${regionFk}, ${email}) as id`,

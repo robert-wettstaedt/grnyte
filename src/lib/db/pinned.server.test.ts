@@ -1,12 +1,8 @@
 // @vitest-environment node
 /**
- * `pinnedTx` is the whole defence against an inherited `search_path`, so these hold the two
- * properties that can break silently.
- *
- * Deliberately does NOT poison a connection. The local `DATABASE_URL` is the shared Supavisor
- * pooler, transaction mode runs no reset query, and a stray session-level `SET` there outlives
- * the process and fails every other suite until the container is restarted. The leak itself is
- * proven out of band (`docs/pooler-incident/`, against Postgres 17.6 behind supavisor 1.1.56).
+ * Deliberately does NOT poison a connection. The local `DATABASE_URL` is the shared pooler, and a
+ * session-level `SET` there outlives the process and fails every other suite until the container
+ * restarts. The leak itself is proven out of band, in `docs/pooler-incident/`.
  */
 import { PINNED_SEARCH_PATH } from '$lib/db/db.server'
 import { sql } from 'drizzle-orm'
@@ -16,7 +12,7 @@ import { reachable } from './testDb'
 
 const currentPath = sql`select current_setting('search_path') as sp`
 /** `to_regclass` resolves through `search_path`, so it answers null exactly where a real query
- *  would raise 42P01, without needing a table to exist for the test. */
+ *  raises 42P01. */
 const unqualified = sql`select to_regclass('files') as reg`
 
 describe.skipIf(!reachable)('pinnedTx', () => {
@@ -27,8 +23,7 @@ describe.skipIf(!reachable)('pinnedTx', () => {
   })
 
   it('propagates a failing body and does not swallow it in the report path', async () => {
-    // The report runs in a `finally`, because an inherited `search_path` is what makes bodies
-    // throw. A `finally` that returned or threw of its own would hide the real error.
+    // The report runs in a `finally`, and a `finally` that returns or throws hides the real error.
     const boom = new Error('boom')
 
     await expect(
@@ -61,7 +56,7 @@ describe.skipIf(!reachable)('searchPathProbe', () => {
 
       const rows = await tx.execute<{ before: string }>(searchPathProbe())
 
-      // The capture, which is what the poisoned-connection report is built on.
+      // The capture the report is built on.
       expect(rows[0]?.before).toBe('pg_catalog')
       // And the pin, applied by the same statement.
       const after = await tx.execute<{ sp: string }>(currentPath)
@@ -70,22 +65,20 @@ describe.skipIf(!reachable)('searchPathProbe', () => {
   })
 })
 
-/**
- * What gets reported. `expected` is the untouched role default; anything else was left by another
- * client, and the still-working case is reported too because naming the poisoner is the point.
- */
+/** What gets reported. `expected` is the untouched role default. Anything else came from another
+ *  client, including the case that still resolves, because naming the poisoner is the point. */
 describe('classifySearchPath', () => {
   it('stays quiet for an untouched connection', () => {
-    // The REAL stored value, backslash and all: Supabase stores the role default as `"\\$user"`,
-    // and matching it against a literal reported every healthy connection as poisoned.
+    // The real stored value, backslash and all. Supabase stores the role default as `"\\$user"`,
+    // and matching that against a literal reported every healthy connection as poisoned.
     expect(classifySearchPath('"\\$user", public, extensions')).toBe('expected')
     expect(classifySearchPath('"$user", public, extensions')).toBe('expected')
-    // What `pinnedTx` itself pins, which is transaction-local and so indistinguishable from healthy.
+    // What `pinnedTx` pins, which is transaction-local and so reads as healthy.
     expect(classifySearchPath('public, extensions')).toBe('expected')
   })
 
   it('reports a path that lost extensions', () => {
-    // What `seed-volume.ts` used to leave. Resolves `public`, so not an outage, but it is a leak.
+    // What `seed-volume.ts` used to leave. It resolves `public`, so it leaks without an outage.
     expect(classifySearchPath('public')).toBe('unexpected')
     expect(classifySearchPath('"$user", public')).toBe('unexpected')
   })
@@ -95,8 +88,7 @@ describe('classifySearchPath', () => {
     expect(classifySearchPath('pg_catalog, pg_temp')).toBe('broken')
   })
 
-  // The cases a substring test gets wrong: "public" appears, nothing in `public` resolves. A
-  // detector that reads these as healthy stays quiet through the incident it exists to catch.
+  // The cases a substring test gets wrong: "public" appears, nothing in `public` resolves.
   it('is element-wise, not a substring match', () => {
     expect(classifySearchPath('pg_catalog, public_backup')).toBe('broken')
     expect(classifySearchPath('my_public_schema')).toBe('broken')
@@ -106,12 +98,8 @@ describe('classifySearchPath', () => {
   })
 })
 
-/**
- * The dedupe, which only matters during the incident it exists to document: a poisoned connection
- * is drawn by every request that touches it, and a row each is one extra transaction per query.
- *
- * Fresh module per case, because the dedupe is module state that outlives a single call.
- */
+/** The dedupe. A poisoned connection is drawn by every request that touches it, and a row each is
+ *  one extra transaction per query. Fresh module per case, because the dedupe is module state. */
 describe('reportInheritedSearchPath', () => {
   const load = async () => {
     vi.resetModules()

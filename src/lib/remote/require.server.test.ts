@@ -130,11 +130,8 @@ describe('requireRowForm', () => {
   })
 })
 
-/**
- * The app-admin gate. Behavioural, not structural: these handlers read through the privileged
- * client with no policy underneath, so this check refusing is the only thing between a signed-in
- * non-admin and every region's feedback, error log and stats.
- */
+/** The app-admin gate. These handlers read through the privileged client with no policy under
+ *  them, so this check is all that stands between a signed-in non-admin and every region. */
 describe('requireAppAdmin', () => {
   it('lets an app admin through', () => {
     expect(() => requireAppAdmin([APP_PERMISSION_ADMIN])).not.toThrow()
@@ -148,7 +145,7 @@ describe('requireAppAdmin', () => {
   })
 
   it('403s a caller holding some other permission', async () => {
-    // A region permission is not an app permission, however many of them the caller has.
+    // A region permission is not an app permission, however many the caller holds.
     const error = await thrown(async () => requireAppAdmin([REGION_PERMISSION_READ]))
 
     expect(isHttpError(error)).toBe(true)
