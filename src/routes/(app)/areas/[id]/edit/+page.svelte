@@ -12,7 +12,6 @@
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
 
   const global = getGlobalState()
   const area = areaDetail(() => Number(page.params.id))
@@ -47,7 +46,7 @@
     {#if canEditArea(global.userRegions, data)}
       <Form
         form={updateArea}
-        onCancel={() => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }))}
+        cancelTo={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) })}
         submitLabel={m.common_save()}
         title={m.areas_editArea()}
       >

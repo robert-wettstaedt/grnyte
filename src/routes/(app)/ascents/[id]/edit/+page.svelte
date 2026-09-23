@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -15,7 +14,6 @@
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
 
   const global = getGlobalState()
   const ascent = ascentDetail(() => Number(page.params.id))
@@ -46,11 +44,6 @@
       })
     },
   )
-
-  const onSubmitted = async () => {
-    if (updateAscent.result?.data?.id == null) return
-    await goto(routeHref)
-  }
 </script>
 
 <svelte:head>
@@ -66,8 +59,7 @@
             {#if canEditAscent(global.userRegions, global.user?.id, detail)}
               <Form
                 form={updateAscent}
-                onCancel={() => back(routeHref)}
-                {onSubmitted}
+                cancelTo={routeHref}
                 submitLabel={m.common_save()}
                 title={m.ascents_editAscent()}
               >

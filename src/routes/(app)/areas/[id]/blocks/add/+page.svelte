@@ -13,7 +13,6 @@
   import { coordsFromParams } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
 
   const global = getGlobalState()
   const area = areaDetail(() => Number(page.params.id))
@@ -41,7 +40,7 @@
         area={data}
         form={createBlock}
         {initialLocation}
-        onCancel={() => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }))}
+        cancelTo={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) })}
         seedKey={data.id}
         submitLabel={m.common_add()}
         title={m.blocks_addBlock()}

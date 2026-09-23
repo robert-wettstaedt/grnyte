@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -15,7 +14,7 @@
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
+  import { exit } from '$lib/state/navigation.svelte'
 
   const global = getGlobalState()
   const route = routeDetail(() => Number(page.params.id))
@@ -48,7 +47,8 @@
     const id = createAscent.result?.data?.id
     if (id == null) return
     void finalizeMediaUploads(uploads, { id, type: 'ascent' })
-    await goto(routeHref)
+    // This page leaves on its own, for the reason the add-route page gives.
+    await exit(routeHref)
   }
 </script>
 
@@ -61,7 +61,7 @@
     {#if canLogAscent(global.userRegions, detail)}
       <Form
         form={createAscent}
-        onCancel={() => back(routeHref)}
+        cancelTo={routeHref}
         {onSubmitted}
         submitLabel={m.common_save()}
         title={m.routes_logAscent()}

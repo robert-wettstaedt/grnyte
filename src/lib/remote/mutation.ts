@@ -1,4 +1,4 @@
-import { goto } from '$app/navigation'
+import { exit } from '$lib/state/navigation.svelte'
 
 /**
  * The envelope every `authedCommand` / `authedForm` handler resolves to: one reusable
@@ -33,8 +33,9 @@ export async function runCommand<T>(
   await opts?.beforeRedirect?.(result?.data)
 
   if (result?.redirectTo != null) {
-    // eslint-disable-next-line svelte/no-navigation-without-resolve
-    await goto(result.redirectTo)
+    // `exit`, not a goto: a command that takes the reader off a screen (a delete, most often) must
+    // not leave that screen behind for the back button to return to.
+    await exit(result.redirectTo)
   }
 
   return result?.data

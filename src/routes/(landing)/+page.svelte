@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_ORIGIN, PUBLIC_STATUS_URL, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
@@ -8,6 +7,7 @@
   import type { IconName } from '$lib/components/Icon/icons'
   import { m } from '$lib/paraglide/messages'
   import { isInstalled } from '$lib/state/device.svelte'
+  import { replaceUrl } from '$lib/state/navigation.svelte'
   import { onMount } from 'svelte'
   import { MediaQuery, SvelteSet } from 'svelte/reactivity'
   import BoulderThree from './BoulderThree.svelte'
@@ -117,7 +117,7 @@
     // marketing page. Read once: `isInstalled()` also flips on `appinstalled`, which fires in the
     // browser TAB somebody installs from, and yanking that tab away would be wrong.
     if (signedIn && isInstalled()) {
-      void goto(resolve(APP_HOME_PATH), { replaceState: true })
+      void replaceUrl(resolve(APP_HOME_PATH))
     }
   })
 

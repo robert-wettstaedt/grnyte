@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -20,6 +19,7 @@
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { exit } from '$lib/state/navigation.svelte'
   import Panel from '../../../../Modal/Panel.svelte'
   import { sheetState } from '../../../../Modal/sheetState.svelte'
 
@@ -180,7 +180,8 @@
   {/if}
 </div>
 
-<Panel bind:open onclose={() => goto(blockHref)}>
+<!-- `exit`, not a goto: a dismissed sheet must not be somewhere the back button can return to. -->
+<Panel bind:open onclose={() => exit(blockHref)}>
   <QueryState notFound={m.topo_alt()} resource={topos}>
     {#snippet ready()}
       {#if topo == null}

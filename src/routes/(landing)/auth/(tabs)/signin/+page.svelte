@@ -5,6 +5,7 @@
   import AuthField from '$lib/forms/AuthField.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { replaceUrl } from '$lib/state/navigation.svelte'
   import { signIn } from './signin.remote'
 
   // The invited address, when the accept screen sent them here. The invitation is keyed on it, so
@@ -19,6 +20,27 @@
   if (invited != null) {
     signIn.fields.set({ email: invited })
   }
+
+  // `replaceUrl`, so a signed-in reader has no sign-in page behind them to walk back into.
+  //
+  // Driven by THIS submit and not by `signIn.result`, which is never cleared on navigation: it
+  // lives on the module-level singleton and Kit only resets it when a submit throws. An effect
+  // watching it re-fired on the next mount and bounced a signed-out reader straight off this page.
+  const submitAndLeave = async ({ submit }: { submit: () => Promise<boolean> }) => {
+    const succeeded = await submit()
+    if (!succeeded) return
+
+    const destination = signIn.result?.redirectTo
+
+    // Kit's own enhance clears the form after a success and supplying ours replaced it. That
+    // matters beyond tidiness here: the fields are on that same singleton, so the password would
+    // otherwise sit in memory for the rest of the session.
+    signIn.fields.set({})
+
+    if (destination != null) {
+      await replaceUrl(destination)
+    }
+  }
 </script>
 
 <svelte:head>
@@ -28,7 +50,7 @@
 <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_signInTitle()}</h1>
 <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">{m.auth_signInSubtitle()}</p>
 
-<form {...signIn} class="flex flex-col gap-4">
+<form {...signIn.enhance(submitAndLeave)} class="flex flex-col gap-4">
   <FormError form={signIn} />
 
   {#if next != null}

@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { ascentDetail } from '$lib/entities/ascent/resources.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { replaceUrl } from '$lib/state/navigation.svelte'
 
   const ascent = ascentDetail(() => Number(page.params.id))
 
@@ -16,8 +16,8 @@
     const data = ascent.data
     if (data == null) return
     const url = `${resolve('/(app)/routes/[id]/ascents', { id: String(data.routeFk) })}?ascent=${data.id}`
-    // eslint-disable-next-line svelte/no-navigation-without-resolve -- built from resolve() plus a query param.
-    void goto(url, { replaceState: true })
+
+    void replaceUrl(url)
   })
 </script>
 

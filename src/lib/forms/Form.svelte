@@ -12,12 +12,16 @@
 </script>
 
 <script lang="ts" generics="Input extends RemoteFormInput">
+  import { beforeNavigate } from '$app/navigation'
+  import { page } from '$app/state'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
   import { isOfflineFailure } from '$lib/forms/offlineFailure'
   import { m } from '$lib/paraglide/messages'
+  import { back, exit } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
+  import { createRedirectCapture } from '$lib/state/redirectCapture.svelte'
   import { Steps } from '@skeletonlabs/skeleton-svelte'
   import type { RemoteForm, RemoteFormInput } from '@sveltejs/kit'
   import { tick } from 'svelte'
@@ -28,6 +32,9 @@
   // to turn it into a multi-step wizard (stepper indicator + per-step body, with the
   // primary button advancing through steps before submitting on the last one).
   interface Props {
+    /** Where cancelling goes when nothing of the app is behind this screen: its parent, not a
+     *  general fallback. With a trail behind us, cancelling goes back instead. */
+    cancelTo: string
     children?: Snippet
     /** Fill the container with an edge-to-edge body (e.g. a map picker) instead of the
      *  default scrolling, padded field column. Fills as a flex item (not `h-full`), so it
@@ -39,9 +46,9 @@
     /** Run just before the form submits; return `false` to cancel it (e.g. to surface a
      *  confirmation first, then resubmit). Not called when advancing through wizard steps. */
     onBeforeSubmit?: () => boolean | Promise<boolean>
-    onCancel: () => void
-    /** Run after a successful submit (validation passed, handler returned). Use to act on
-     *  `form.result` when the handler returns data instead of redirecting server-side. */
+    /** Run after a successful submit, before leaving. Act on `form.result` here, and do any work
+     *  the destination depends on (finalizing uploads, waiting for a row to sync). Never navigate:
+     *  the handler's `redirectTo` is the destination and this component applies it. */
     onSubmitted?: () => Promise<void> | void
     /** Current step index (0-based), bindable so callers can read/seed it. */
     step?: number
@@ -55,12 +62,12 @@
   }
 
   let {
+    cancelTo,
     children,
     fill = false,
     form,
     nextLabel = m.common_next(),
     onBeforeSubmit,
-    onCancel,
     onSubmitted,
     step = $bindable(0),
     steps,
@@ -79,6 +86,16 @@
     await current?.onContinue?.()
     step += 1
   }
+
+  // A handler's `redirectTo` arrives as a 303 that Kit applies as a push, which would leave this
+  // finished form in the stack. The capture takes that destination so the exit below can retire the
+  // form instead. Goes with `authedForm`'s redirect; see the module.
+  const capture = createRedirectCapture(beforeNavigate, () => page.url.pathname, tick)
+
+  /** The destination a handler declared, when it returned the envelope instead of redirecting. */
+  const declaredDestination = (): string | undefined =>
+    // `form.result` is typed `unknown` here because not every caller's handler is an `authedForm`.
+    (form.result as undefined | { redirectTo?: string })?.redirectTo
 
   // A submit that throws while we have no connection is an offline failure: swap the form for the
   // offline state and rethrow anything else, so real server errors still surface as form issues.
@@ -139,9 +156,9 @@
     let posted = false
 
     try {
-      const succeeded = await submit()
+      const succeeded = await capture.around(submit)
       posted = true
-      await tick()
+
       element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
       if (succeeded) {
         // Supplying our own enhance callback replaced Kit's, which clears the form after a
@@ -156,6 +173,14 @@
           await onSubmitted?.()
         } finally {
           form.fields.set({})
+        }
+
+        // Last, so `onSubmitted` has finished whatever the destination depends on. Either shape
+        // works: the redirect the capture took, or a destination the handler returned outright.
+        const destination = capture.take() ?? declaredDestination()
+
+        if (destination != null) {
+          await exit(destination)
         }
       }
     } catch (error) {
@@ -175,7 +200,7 @@
        floating card header beside the full-width one on every other screen. -->
   <PageHeader
     backLabel={stepped && step > 0 ? steps![step - 1].label : m.common_cancel()}
-    onback={stepped && step > 0 ? () => (step -= 1) : onCancel}
+    onback={stepped && step > 0 ? () => (step -= 1) : () => back(cancelTo)}
     {title}
   >
     {#snippet action()}

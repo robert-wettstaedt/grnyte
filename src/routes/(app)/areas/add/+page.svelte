@@ -11,7 +11,6 @@
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
 
   // The top-level counterpart of `/areas/[id]/add`: an area with no parent, which is what a fresh
   // region needs before anything else can exist, and what a region covering two separate forests
@@ -60,8 +59,6 @@
     const region = regions.find((candidate) => candidate.regionFk === preselected)
     return region == null ? m.areas_newArea() : m.areas_newAreaIn({ name: regionDisplayName(region) })
   })
-
-  const goBack = () => back(resolve('/explore'))
 </script>
 
 <svelte:head>
@@ -73,7 +70,7 @@
        explore empty state's CTA if the region's roles change between render and click. -->
   <ErrorState type="generic" title={m.form_noPermissionTitle()} description={m.areas_noAddableRegion()} />
 {:else}
-  <Form form={createArea} onCancel={goBack} submitLabel={m.common_add()} {title}>
+  <Form form={createArea} cancelTo={resolve('/explore')} submitLabel={m.common_add()} {title}>
     <AreaFormFields form={createArea} />
   </Form>
 {/if}

@@ -2,7 +2,7 @@ import { form, getRequestEvent } from '$app/server'
 import { signedInRedirectTarget } from '$lib/auth'
 import { authError, formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
-import { invalid, redirect } from '@sveltejs/kit'
+import { invalid } from '@sveltejs/kit'
 
 const signInSchema = z.object({
   email: z
@@ -32,7 +32,9 @@ export const signIn = form(signInSchema, async ({ email, next, password }) => {
     invalid(authError(error))
   }
 
-  // Shared with the hook's signed-in bounce: same question, and two copies drifted apart on the
-  // CRLF handling once already.
-  redirect(303, signedInRedirectTarget(next))
+  // Returned rather than redirected: a 303 becomes a pushing `goto` in Kit's remote-form client,
+  // which leaves this sign-in page in history for a signed-in reader to walk back into. The page
+  // replaces the entry instead. `signedInRedirectTarget` is still shared with the hook's signed-in
+  // bounce: same question, and two copies drifted apart on the CRLF handling once already.
+  return { redirectTo: signedInRedirectTarget(next) }
 })

@@ -14,7 +14,6 @@
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
   import RegionAdminRequired from '../RegionAdminRequired.svelte'
 
@@ -55,11 +54,8 @@
     },
   )
 
-  const goBack = () => back(resolve('/(app)/regions/[regionId]', { regionId: String(regionId) }))
-
   const onSubmitted = () => {
     toaster.create({ title: m.common_saved(), type: 'success' })
-    goBack()
   }
 </script>
 
@@ -85,7 +81,7 @@
 {:else}
   <Form
     form={updateRegionMapLayers}
-    onCancel={goBack}
+    cancelTo={resolve('/(app)/regions/[regionId]', { regionId: String(regionId) })}
     {onSubmitted}
     submitLabel={m.common_save()}
     title={m.region_mapLayers()}

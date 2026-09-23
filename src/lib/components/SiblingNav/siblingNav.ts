@@ -1,4 +1,4 @@
-import { goto } from '$app/navigation'
+import { push } from '$lib/state/navigation.svelte'
 
 /** Prev/next navigation between sibling entities. Each caller renders it in its own
  *  layout (the sheet's mobile pill / desktop footer, a standalone page's own footer). */
@@ -24,8 +24,7 @@ export const siblingScrollSurface = { [SCROLL_SURFACE_ATTRIBUTE]: '' }
  * these surfaces scroll the window, so the marked containers are reset here instead.
  */
 export async function goToSibling(href: string) {
-  // eslint-disable-next-line svelte/no-navigation-without-resolve -- hrefs are pre-resolved by toSheetNav's caller.
-  await goto(href)
+  await push(href)
 
   for (const surface of document.querySelectorAll(`[${SCROLL_SURFACE_ATTRIBUTE}]`)) {
     surface.scrollTop = 0

@@ -133,6 +133,15 @@ export default defineConfig(
               message: "Import from '$lib/forms/zod', which registers the locale `zod/mini` omits.",
               name: 'zod/mini',
             },
+            {
+              // Every navigation is one of three things and the difference is the back button:
+              // `push` adds an entry, `replaceUrl` swaps it, `exit` retires a finished screen.
+              // A raw `goto` is a push by default, which is how a saved form stayed reachable by
+              // back. The doc comment that used to say this was ignored in four places.
+              importNames: ['goto'],
+              message: "Use `push`, `replaceUrl` or `exit` from '$lib/state/navigation.svelte'.",
+              name: '$app/navigation',
+            },
           ],
           patterns: [
             {
@@ -150,6 +159,11 @@ export default defineConfig(
   {
     // The one file allowed to reach `zod/mini`: it is what the rule above points everybody else at.
     files: ['src/lib/forms/zod.ts'],
+    rules: { 'no-restricted-imports': 'off' },
+  },
+  {
+    // The one file allowed to reach `goto`: it is what the rule above points everybody else at.
+    files: ['src/lib/state/navigation.svelte.ts'],
     rules: { 'no-restricted-imports': 'off' },
   },
   {

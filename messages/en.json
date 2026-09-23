@@ -1275,6 +1275,7 @@
       }
     }
   ],
+  "form_leaveConfirm": "Leave without saving your changes?",
   "form_noAdminPermission": "You can view this, but changing it needs admin access in this region. Ask a region admin.",
   "form_noEditPermission": "You can view this, but changing it needs edit access in this region. Ask a region admin.",
   "form_noPermission": "You don’t have permission to do this.",

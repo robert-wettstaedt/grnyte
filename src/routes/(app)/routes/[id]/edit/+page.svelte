@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -17,7 +16,6 @@
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
 
   const global = getGlobalState()
@@ -56,12 +54,6 @@
       })
     },
   )
-
-  const onSubmitted = async () => {
-    const id = updateRoute.result?.data?.id
-    if (id == null) return
-    await goto(resolve('/(app)/routes/[id]', { id: String(id) }))
-  }
 </script>
 
 <svelte:head>
@@ -93,8 +85,7 @@
     {:else}
       <Form
         form={updateRoute}
-        onCancel={() => back(resolve('/(app)/routes/[id]', { id: String(detail.id) }))}
-        {onSubmitted}
+        cancelTo={resolve('/(app)/routes/[id]', { id: String(detail.id) })}
         submitLabel={m.common_save()}
         title={m.routes_editRoute()}
       >

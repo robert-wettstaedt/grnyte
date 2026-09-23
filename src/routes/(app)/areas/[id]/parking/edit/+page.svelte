@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { beforeNavigate } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -16,7 +17,6 @@
   import type { MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
   import StepPath from './StepPath.svelte'
 
   const global = getGlobalState()
@@ -52,12 +52,32 @@
   // area opens on the last step with nothing placed and Save posts empty coordinates.
   let step = $state(0)
 
+  // The steps are local state, not history entries, so the platform's back gesture leaves the whole
+  // wizard where the header's control only steps back one. Confirm rather than discard silently.
+  const dirty = $derived(picked != null || pathPoints.length > 0)
+  let saved = false
+  const onSubmitted = () => {
+    saved = true
+  }
+
+  // Two ways a save leaves, and neither is the reader abandoning anything: the handler's redirect,
+  // raised from inside `submit()` while the form is still pending, and the exit `Form` issues after
+  // `onSubmitted`. A submit that FAILS clears `pending` without setting `saved`, so the guard
+  // re-arms on its own rather than staying disabled for the rest of the session.
+  beforeNavigate((navigation) => {
+    if (saved || addParking.pending > 0) return
+    if (dirty && !confirm(m.form_leaveConfirm())) {
+      navigation.cancel()
+    }
+  })
+
   // Otherwise the hidden `areaId` follows the reader, saving one area's parking at another's
   // coordinates.
   seedOnKeyChange(
     () => areaId,
     () => {
       addParking.fields.set({})
+      saved = false
       step = 0
       mode = 'map'
       latText = ''
@@ -87,8 +107,6 @@
     }
     return { extent: [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)] }
   })
-
-  const exit = () => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(areaId) }))
 </script>
 
 <svelte:head>
@@ -123,9 +141,10 @@
     {:else}
       <Form
         fill
+        {onSubmitted}
         bind:step
         form={addParking}
-        onCancel={exit}
+        cancelTo={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(areaId) })}
         submitLabel={m.common_save()}
         title={m.areas_addParkingLocation()}
         steps={[

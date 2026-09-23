@@ -104,7 +104,7 @@ describe('pathnameFor', () => {
     expect(pathnameFor({ ...row, eventFk: 12, reactionFk: 5 })).toBe('/events/12?comment=5')
   })
 
-  it('prefers the card over the bare file surface', () => {
+  it('prefers the bare file surface over the card', () => {
     expect(pathnameFor({ ...row, eventFk: 12, fileFk: 'abc' })).toBe('/f/abc')
   })
 

@@ -1275,6 +1275,7 @@
       }
     }
   ],
+  "form_leaveConfirm": "Ohne Speichern der Änderungen verlassen?",
   "form_noAdminPermission": "Du kannst das ansehen, aber zum Ändern brauchst du Adminrechte in dieser Region. Frag einen Admin der Region.",
   "form_noEditPermission": "Du kannst das ansehen, aber zum Ändern brauchst du Bearbeitungsrechte in dieser Region. Bitte einen Admin der Region darum.",
   "form_noPermission": "Du hast keine Berechtigung dafür.",

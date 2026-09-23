@@ -7,6 +7,7 @@
   import LocationPickerScreen from '$lib/map/LocationPickerScreen.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { back } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
   import type { RemoteForm } from '@sveltejs/kit'
   import BlockFormFields from './BlockFormFields.svelte'
@@ -26,6 +27,9 @@
   interface Props {
     /** The sector the block belongs to: drives the breadcrumb and the picker's framing. */
     area: AreaDetail
+    /** Where cancelling goes when nothing of the app is behind this screen. Forwarded to `Form`,
+     *  and used by the picker's own back control. */
+    cancelTo: string
     /** Editing an existing block: switches the no-location confirm to "Save …" wording. */
     editing?: boolean
     form: RemoteForm<BlockFormInput, unknown>
@@ -35,7 +39,6 @@
     initialLocation?: Coords | null
     /** Open straight on the map picker (the "Move on the map" shortcut) instead of the form. */
     initialStep?: 'form' | 'pin'
-    onCancel: () => void
     /** Move mode: when set, the picker's "Done" commits the pin directly through this callback
      *  (typically a save + navigate) instead of returning to the form to be submitted. */
     onLocationCommit?: (coords: Coords) => void
@@ -48,12 +51,12 @@
 
   const {
     area,
+    cancelTo,
     editing = false,
     form,
     initialEstimated = false,
     initialLocation = null,
     initialStep = 'form',
-    onCancel,
     onLocationCommit,
     seedKey,
     submitLabel,
@@ -141,7 +144,7 @@
     initial={committed}
     title={m.blocks_add_setLocationTitle()}
     backLabel={title}
-    onBack={() => (onLocationCommit != null ? onCancel() : (step = 'form'))}
+    onBack={() => (onLocationCommit != null ? back(cancelTo) : (step = 'form'))}
     onDone={(coords) => {
       // Move mode commits straight away; otherwise carry the pin back to the form to be saved.
       if (onLocationCommit != null) {
@@ -153,7 +156,7 @@
     }}
   />
 {:else}
-  <Form {form} onBeforeSubmit={beforeSubmit} {onCancel} {submitLabel} {title}>
+  <Form {cancelTo} {form} onBeforeSubmit={beforeSubmit} {submitLabel} {title}>
     <!-- Only rendered fields are submitted, so the staleness proof needs an input of its own. -->
     <input name="known" type="hidden" value={known} />
 

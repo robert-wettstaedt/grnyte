@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import EntityList from '$lib/components/EntitySearch/EntityList.svelte'
@@ -9,7 +8,7 @@
   import { regionCrumb } from '$lib/entities/region/mapper'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { replaceUrl } from '$lib/state/navigation.svelte'
+  import { push, replaceUrl } from '$lib/state/navigation.svelte'
   import { liveSearchQuery, setLiveSearchQuery } from '$lib/state/searchQuery.svelte'
   import { visualViewport } from '$lib/state/visualViewport.svelte'
   import type { Snippet } from 'svelte'
@@ -210,8 +209,8 @@
       remember(query)
     }
     open = false
-    // eslint-disable-next-line svelte/no-navigation-without-resolve -- entityHref() resolves the route id
-    void goto(entityHref(item))
+
+    void push(entityHref(item))
   }
 
   const selectRecent = (recent: string) => {

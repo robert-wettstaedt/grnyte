@@ -1,12 +1,12 @@
 <script lang="ts">
   import { browser } from '$app/environment'
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { mergeMapLayers } from '$lib/entities/region/settings'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { push } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
   import { boundingExtent } from 'ol/extent'
   import type Feature from 'ol/Feature.js'
@@ -347,13 +347,13 @@
         const parkingId = feature.get('parkingId')
         if (parkingId != null) {
           props.onfeatureopen?.()
-          goto(resolve('/(app)/(shell)/(explore)/(map)/parking/[id]', { id: parkingId.toString() }))
+          push(resolve('/(app)/(shell)/(explore)/(map)/parking/[id]', { id: parkingId.toString() }))
         } else if (blockId != null) {
           props.onfeatureopen?.()
-          goto(resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: blockId.toString() }))
+          push(resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: blockId.toString() }))
         } else if (areaId != null) {
           props.onfeatureopen?.()
-          goto(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: areaId.toString() }))
+          push(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: areaId.toString() }))
         }
       }
     })

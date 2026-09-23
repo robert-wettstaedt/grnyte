@@ -33,7 +33,12 @@
     </div>
   </div>
 {:else}
-  <Form form={updateEmail} onCancel={goBack} submitLabel={m.common_save()} title={m.settings_changeEmail()}>
+  <Form
+    form={updateEmail}
+    cancelTo={resolve('/settings')}
+    submitLabel={m.common_save()}
+    title={m.settings_changeEmail()}
+  >
     <AuthField
       field={updateEmail.fields.email}
       label={m.settings_emailNew()}

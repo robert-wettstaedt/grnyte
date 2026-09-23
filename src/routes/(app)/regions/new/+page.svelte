@@ -218,7 +218,13 @@
     </div>
   </div>
 {:else}
-  <Form form={createRegion} onCancel={goBack} {onSubmitted} submitLabel={m.common_add()} title={m.region_new()}>
+  <Form
+    form={createRegion}
+    cancelTo={resolve('/settings')}
+    {onSubmitted}
+    submitLabel={m.common_add()}
+    title={m.region_new()}
+  >
     {@render nameField()}
 
     <p class="text-surface-500 mt-3 text-xs">

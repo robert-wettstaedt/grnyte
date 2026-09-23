@@ -134,6 +134,9 @@ export default defineConfig({
     // map/Map.svelte, CreateOnMap.svelte and Markdown/lib/remark-grades.ts use it with no
     // fallback. Firefox 114 gets a TypeError, not a cosmetic degradation.
     //
+    // Raising this past safari26.2 and firefox147 makes the Navigation API available everywhere,
+    // at which point state/navigation.svelte.ts can drop its trail and read history entries directly.
+    //
     // Two things this does not cover. Pre-bundled node_modules deps are transformed at Vite's
     // hardcoded constant regardless, and SvelteKit builds src/sw.ts in a separate Vite build with
     // `configFile: false`, so this never reaches the service worker. Neither matters while the

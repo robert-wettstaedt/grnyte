@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { afterNavigate, beforeNavigate, goto, replaceState } from '$app/navigation'
+  import { afterNavigate, beforeNavigate, replaceState } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import type { RouteId } from '$app/types'
@@ -13,6 +13,7 @@
   import { BLOCK_LABEL_ZOOM, type MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { exit } from '$lib/state/navigation.svelte'
   import { liveSearchQuery } from '$lib/state/searchQuery.svelte'
   import { applyUpdateOnClick } from '$lib/state/updateReady.svelte'
   import { visualViewport } from '$lib/state/visualViewport.svelte'
@@ -238,7 +239,7 @@
 <!-- Close back to the explore URL we came from (its filters + committed `?q=`), so
      closing a detail doesn't drop the filters; the search text rides back via the
      persisted live query. -->
-<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- exploreReturn is a resolved same-app path we captured -->
-<Modal bind:open onclose={() => goto(exploreReturn)}>
+<!-- `exit`, not a goto: a dismissed sheet must not be somewhere the back button can return to. -->
+<Modal bind:open onclose={() => exit(exploreReturn)}>
   {@render children?.()}
 </Modal>

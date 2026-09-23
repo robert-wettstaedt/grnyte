@@ -93,8 +93,9 @@ async function findDuplicateName(
 
 const routeHref = (id: number) => resolve('/(app)/routes/[id]', { id: String(id) })
 
-/** Create a route under a block. Returns `{ id }` instead of redirecting so the form can
- *  finalize its background media uploads against the new route before navigating. */
+/** Create a route under a block. Returns `{ id }` and declares NO `redirectTo`: a redirect is a 303,
+ *  and the server rebuilds that response from the location alone, discarding this return value. The
+ *  form needs the id to finalize its uploads, so it leaves through `exit` itself. */
 export const createRoute = authedForm(
   routeActionSchema,
   async (value, { afterCommit, db, user, userRegions }, issue) => {
@@ -300,7 +301,7 @@ export const updateRoute = authedForm(
       }),
     )
 
-    return { data: { id: route.id } }
+    return { data: { id: route.id }, redirectTo: routeHref(route.id) }
   },
 )
 

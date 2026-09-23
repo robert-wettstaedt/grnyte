@@ -6,7 +6,6 @@
   import Form from '$lib/forms/Form.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
 
   const global = getGlobalState()
@@ -15,11 +14,8 @@
   // submit keeps what was typed instead of snapping back to the stored name.
   updateUsername.fields.set({ username: global.user?.username ?? '' })
 
-  const goBack = () => back(resolve('/settings'))
-
   const onSubmitted = () => {
     toaster.create({ title: m.settings_usernameUpdated(), type: 'success' })
-    goBack()
   }
 </script>
 
@@ -29,7 +25,7 @@
 
 <Form
   form={updateUsername}
-  onCancel={goBack}
+  cancelTo={resolve('/settings')}
   {onSubmitted}
   submitLabel={m.common_save()}
   title={m.settings_changeUsername()}

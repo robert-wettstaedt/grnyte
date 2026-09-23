@@ -15,7 +15,6 @@
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
   import { notifyError } from '$lib/state/toast'
 
@@ -109,7 +108,7 @@
               ? null
               : { lat: detail.geolocation.lat, long: detail.geolocation.long }}
             initialEstimated={detail.geolocation?.estimated ?? false}
-            onCancel={() => back(resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(detail.id) }))}
+            cancelTo={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(detail.id) })}
             onLocationCommit={initialStep === 'pin'
               ? // Not `withUndo`, so the failure has to be reported here.
                 (coords) =>

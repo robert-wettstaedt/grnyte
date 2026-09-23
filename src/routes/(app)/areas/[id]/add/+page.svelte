@@ -13,7 +13,6 @@
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
 
   const global = getGlobalState()
   const parent = areaDetail(() => Number(page.params.id))
@@ -40,7 +39,7 @@
     {#if canAddArea(global.userRegions, area)}
       <Form
         form={createArea}
-        onCancel={() => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) }))}
+        cancelTo={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) })}
         submitLabel={m.common_add()}
         title={m.areas_newAreaIn({ name: area.name })}
       >

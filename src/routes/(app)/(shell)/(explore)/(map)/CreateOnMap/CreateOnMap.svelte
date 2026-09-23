@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import Row from '$lib/components/EntityRow/Row.svelte'
@@ -14,6 +13,7 @@
   import { formatMetres } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { push } from '$lib/state/navigation.svelte'
   import { ancestorDistances, findNearestSector, sectorDistances } from './sectorLocator'
 
   // The create entry point on the /explore map: a FAB (editors only) opens the region's create
@@ -179,7 +179,7 @@
 
   const chooseArea = (id: number) => {
     areaPickerOpen = false
-    goto(resolve('/(app)/areas/[id]/add', { id: String(id) }))
+    push(resolve('/(app)/areas/[id]/add', { id: String(id) }))
   }
 
   const startPlacing = (type: 'block' | 'parking') => {
@@ -203,8 +203,8 @@
         ? resolve('/(app)/areas/[id]/parking/edit', { id: String(sector.id) })
         : resolve('/(app)/areas/[id]/blocks/add', { id: String(sector.id) })
     placing = null
-    // eslint-disable-next-line svelte/no-navigation-without-resolve -- path is pre-resolved above
-    goto(`${path}?lat=${center[0]}&long=${center[1]}`)
+
+    push(`${path}?lat=${center[0]}&long=${center[1]}`)
   }
 
   // Matches LocationPicker's "48.41038°N, 2.61175°E" readout.

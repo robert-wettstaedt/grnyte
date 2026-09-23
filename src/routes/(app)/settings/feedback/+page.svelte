@@ -9,7 +9,7 @@
   import { resolveMessage } from '$lib/i18n/message'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
-  import { back, lastAppRoute } from '$lib/state/navigation.svelte'
+  import { lastAppRoute } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
 
   // Reset, not merge: fields live on the module-level remote singleton, so the last report typed
@@ -21,11 +21,8 @@
     pathname: lastAppRoute(),
   })
 
-  const goBack = () => back(resolve('/settings'))
-
   const onSubmitted = () => {
     toaster.create({ title: m.feedback_sent(), type: 'success' })
-    goBack()
   }
 </script>
 
@@ -33,7 +30,13 @@
   <title>{m.feedback_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<Form form={submitFeedback} onCancel={goBack} {onSubmitted} submitLabel={m.feedback_send()} title={m.feedback_title()}>
+<Form
+  form={submitFeedback}
+  cancelTo={resolve('/settings')}
+  {onSubmitted}
+  submitLabel={m.feedback_send()}
+  title={m.feedback_title()}
+>
   <!-- Only rendered fields are submitted. -->
   <input type="hidden" {...submitFeedback.fields.locale.as('text')} />
   <input type="hidden" {...submitFeedback.fields.pathname.as('text')} />

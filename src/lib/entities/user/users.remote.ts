@@ -1,3 +1,4 @@
+import { resolve } from '$app/paths'
 import { regionMembers, users } from '$lib/db/schema'
 import { formError, usernameSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -22,8 +23,9 @@ import { writeUserSettings } from './settings.server'
 export const updateUsername = authedForm(
   z.object({ username: usernameSchema }),
   async ({ username }, { db, user, userRegions }, issue) => {
+    // Unchanged is still a successful submit, so it leaves for the same place a real rename does.
     if (username === user.username) {
-      return
+      return { redirectTo: resolve('/(app)/settings') }
     }
 
     const regionFks = userRegions.map((region) => region.regionFk)
@@ -63,6 +65,8 @@ export const updateUsername = authedForm(
         regionFk,
       })
     }
+
+    return { redirectTo: resolve('/(app)/settings') }
   },
 )
 

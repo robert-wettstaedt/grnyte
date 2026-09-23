@@ -1,3 +1,4 @@
+import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { authError, formError, passwordSchema, passwordsMatch } from '$lib/forms/schemas'
@@ -94,5 +95,6 @@ export const updatePassword = form(updatePasswordSchema, async ({ currentPasswor
     invalid(authError(updateError))
   }
 
-  return { success: true }
+  // A plain `form`, so this is read off the result rather than becoming a 303.
+  return { redirectTo: resolve('/(app)/settings'), success: true }
 })

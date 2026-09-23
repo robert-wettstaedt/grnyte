@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -19,6 +18,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale, setLocale, type Locale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { push } from '$lib/state/navigation.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { disablePush } from '$lib/state/push.svelte'
   import { notifyError } from '$lib/state/toast'
@@ -125,7 +125,7 @@
       return
     }
 
-    await goto(resolve('/'))
+    await push(resolve('/'))
   }
 </script>
 

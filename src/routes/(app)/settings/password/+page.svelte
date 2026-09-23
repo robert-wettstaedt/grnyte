@@ -4,7 +4,6 @@
   import AuthField from '$lib/forms/AuthField.svelte'
   import Form from '$lib/forms/Form.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { back } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
   import { updatePassword } from '../account.remote'
 
@@ -13,11 +12,8 @@
   // typed in, least of all after the change already went through.
   updatePassword.fields.set({ confirmPassword: '', currentPassword: '', password: '' })
 
-  const goBack = () => back(resolve('/settings'))
-
   const onSubmitted = () => {
     toaster.create({ title: m.auth_passwordUpdated(), type: 'success' })
-    goBack()
   }
 </script>
 
@@ -27,7 +23,7 @@
 
 <Form
   form={updatePassword}
-  onCancel={goBack}
+  cancelTo={resolve('/settings')}
   {onSubmitted}
   submitLabel={m.common_save()}
   title={m.settings_changePassword()}

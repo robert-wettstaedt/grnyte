@@ -6,7 +6,6 @@
   are the branding and the signed-in share/delete toolbar (as in MediaViewer).
 -->
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -21,6 +20,7 @@
   import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
   import { provideGlobalState, staticGlobalState } from '$lib/state/global.svelte'
+  import { exit } from '$lib/state/navigation.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
   import { untrack } from 'svelte'
 
@@ -80,7 +80,7 @@
     try {
       await deleteFile({ id: data.file.id })
       toaster.create({ title: m.media_deleted(), type: 'info' })
-      await goto(parentHref(data.controls?.parent))
+      await exit(parentHref(data.controls?.parent))
     } catch (cause) {
       notifyError(cause)
     }

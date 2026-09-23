@@ -1,15 +1,17 @@
 import { afterNavigate, goto, replaceState } from '$app/navigation'
 import { page } from '$app/state'
+import { createTrail } from './trail.svelte'
 
-// How many same-origin history entries deep we are since entering the app.
-// 0 means the current page is the app's entry point: there is no in-app
-// previous entry, so history.back() would leave the origin (another domain,
-// a search engine, etc.).
-let depth = $state(0)
+// One trail for the app, over the browser. `createTrail` holds the rules; this supplies the two
+// moves it can ask for, so a test can supply a recording fake instead.
+const trail = createTrail({
+  back: () => history.back(),
+  replace: (href, options) => replaceUrl(href, options),
+})
 
 // afterNavigate reports a replaceState goto as a plain 'goto' (SvelteKit exposes
-// no replace signal), which would count as a pushed entry and permanently inflate
-// `depth` (e.g. the media viewer paging siblings via replace). Navigations issued
+// no replace signal), which would otherwise record a pushed entry that never existed
+// (e.g. the media viewer paging siblings via replace). Navigations issued
 // through replaceUrl() raise this flag; the tracker consumes it instead of counting.
 let replacing = false
 
@@ -18,26 +20,31 @@ let replacing = false
 let lastAppPath = $state('')
 
 /**
- * Go back within the app, or navigate to `fallback` when the previous history
- * entry is on another origin (or there is none).
+ * Go back within the app, or navigate to `up` when nothing of the app is behind us: a shared link,
+ * a notification, or a cold start. `up` is that screen's parent, never a general fallback.
  */
-export function back(fallback: string) {
-  if (depth > 0) {
-    history.back()
-  } else {
-    void replaceUrl(fallback)
-  }
+export function back(up: string) {
+  trail.back(up)
 }
 
 /** True when there is a same-origin entry we can safely go back to. */
 export function canGoBack(): boolean {
-  return depth > 0
+  return trail.canGoBack()
 }
 
 /** Close the viewer: pop the `?media` entry, or replace it away on a deep link. */
 export function closeMedia() {
   const url = mediaUrl(null)
   back(url.pathname + url.search)
+}
+
+/**
+ * Leave a finished task for `destination`, retiring the screen it was performed on so back can
+ * never return to it. Pops when `destination` is what a back press would already reach, otherwise
+ * replaces the finished screen in place.
+ */
+export function exit(destination: string): Promise<void> {
+  return trail.exit(destination)
 }
 
 /** Last non-settings route, `''` when there has not been one. */
@@ -57,16 +64,26 @@ export function pageMedia(id: string) {
 }
 
 /**
- * `goto` with `replaceState: true` that the depth tracker ignores. Use this (not a
- * raw goto) for every replace navigation, or the back-button fallback logic drifts.
+ * Plain forward navigation onto a new entry. The only sanctioned `goto` wrapper, so the lint rule
+ * can ban every other import of it and the push/replace/exit choice stays explicit at the call site.
+ */
+export function push(href: string | URL, opts: Omit<object & Parameters<typeof goto>[1], 'replaceState'> = {}) {
+  // eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass resolved app paths
+  return goto(href, opts)
+}
+
+/**
+ * `goto` with `replaceState: true` that the trail records as a replace rather than a push. Use
+ * this (not a raw goto) for every replace navigation, or the back-button logic drifts.
  */
 export function replaceUrl(url: string | URL, opts: Omit<object & Parameters<typeof goto>[1], 'replaceState'> = {}) {
   replacing = true
   // eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass resolved/same-page URLs
-  return goto(url, { ...opts, replaceState: true }).catch((error) => {
-    // The navigation never completed, so afterNavigate won't consume the flag.
+  return goto(url, { ...opts, replaceState: true }).finally(() => {
+    // Also cleared here, not only by the tracker: a navigation that threw, or that a
+    // `beforeNavigate` cancelled, never reaches `afterNavigate`, and a latched flag would record
+    // the next real push as a replace.
     replacing = false
-    throw error
   })
 }
 
@@ -87,30 +104,25 @@ export function syncSearchParams(values: Record<string, number | string | undefi
   }
 }
 
-/** Register once from a top-level layout to track same-origin navigation depth. */
+/** Register once from a top-level layout to track same-origin navigation. */
 export function trackHistoryDepth() {
   afterNavigate((navigation) => {
-    const to = navigation.to?.url.pathname
-    if (to != null && !to.startsWith('/settings')) {
-      lastAppPath = to
+    const to = navigation.to?.url
+    if (to != null && !to.pathname.startsWith('/settings')) {
+      lastAppPath = to.pathname
     }
 
-    switch (navigation.type) {
-      case 'enter':
-        depth = 0
-        break
-      case 'popstate':
-        depth = Math.max(0, depth + navigation.delta)
-        break
-      default:
-        // link / goto / form: a new entry was pushed onto the stack, unless it
-        // was a replaceUrl() navigation, which swapped the current one in place.
-        if (replacing) {
-          replacing = false
-        } else {
-          depth += 1
-        }
-    }
+    // link / goto / form pushes a new entry, unless it was a replaceUrl()
+    // navigation, which swapped the current one in place.
+    const pushed = !replacing
+    replacing = false
+
+    trail.record({
+      delta: navigation.type === 'popstate' ? navigation.delta : undefined,
+      href: to == null ? '' : to.pathname + to.search,
+      type:
+        navigation.type === 'enter' || navigation.type === 'popstate' ? navigation.type : pushed ? 'push' : 'replace',
+    })
   })
 }
 

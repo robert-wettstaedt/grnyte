@@ -1,3 +1,4 @@
+import { resolve } from '$app/paths'
 import { command } from '$app/server'
 import { ascents, ascentTypeEnum, files, routes, users } from '$lib/db/schema'
 import { blank, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
@@ -92,6 +93,8 @@ export const createAscent = authedForm(ascentActionSchema, async (value, { after
     }),
   )
 
+  // No `redirectTo`, for the reason `createRoute` gives: a 303 discards this return value, and the
+  // form needs the id to finalize its uploads against the new ascent.
   return { data: { id: ascent.id } }
 })
 
@@ -180,7 +183,10 @@ export const updateAscent = authedForm(
       }),
     )
 
-    return { data: { id: ascent.id, routeFk: ascent.routeFk } }
+    return {
+      data: { id: ascent.id, routeFk: ascent.routeFk },
+      redirectTo: resolve('/(app)/routes/[id]', { id: String(ascent.routeFk) }),
+    }
   },
 )
 

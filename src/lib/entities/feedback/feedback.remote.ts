@@ -1,3 +1,4 @@
+import { resolve } from '$app/paths'
 import { command, form, getRequestEvent, query } from '$app/server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { feedback, users, userSettings } from '$lib/db/schema'
@@ -72,6 +73,9 @@ export const submitFeedback = form(feedbackSchema, async (value) => {
     pathname: value.pathname,
     username: user.username,
   })
+
+  // A plain `form`, so this is read off the result rather than becoming a 303.
+  return { redirectTo: resolve('/(app)/settings') }
 })
 
 /**
