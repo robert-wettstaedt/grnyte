@@ -1,15 +1,14 @@
-import { resolve } from '$app/paths'
 import type { IconName } from '$lib/components/Icon/icons'
 import { toAreaListItem, type AreaAncestor } from '$lib/entities/area/mapper'
 import { toBlockListItem } from '$lib/entities/block/mapper'
 import type { DisplayName } from '$lib/entities/displayName'
+import type { EntityKind } from '$lib/entities/href'
 import { toRouteListItem, type RouteListRow } from '$lib/entities/route/mapper'
 import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
 
-/** A lightweight entity reference: the shape the `@` picker suggests and inserts,
- *  and what {@link entityHref} resolves to an in-app route. */
+/** A lightweight entity reference: the shape the `@` picker suggests and inserts. */
 export interface EntityItem {
   id: number
   label: string
@@ -17,8 +16,10 @@ export interface EntityItem {
 }
 
 /** The searchable/linkable entity kinds. Markdown `!type:id!` references are one
- *  consumer of this union (see `remark-references`), not its owner. */
-export type EntityType = 'areas' | 'blocks' | 'routes' | 'users'
+ *  consumer of this union (see `remark-references`), not its owner.
+ *
+ *  Narrowed from {@link EntityKind} rather than spelled again, so the two cannot drift. */
+export type EntityType = Extract<EntityKind, 'areas' | 'blocks' | 'routes' | 'users'>
 
 /** Leading icon per entity type. Shared by the `@` picker list, the search-bar
  *  dropdown and the search-results page so their row visuals can't drift. */
@@ -58,21 +59,6 @@ export function entityGroupLabel(type: EntityType): string {
       return m.editor_groupRoutes()
     case 'users':
       return m.editor_groupPeople()
-  }
-}
-
-/** The in-app route an entity links to, resolved by type. Shared by the `@`
- *  picker, the search-bar dropdown and the `?q=` results page so they can't drift. */
-export function entityHref(item: EntityItem): string {
-  switch (item.type) {
-    case 'areas':
-      return resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(item.id) })
-    case 'blocks':
-      return resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(item.id) })
-    case 'routes':
-      return resolve('/(app)/routes/[id]', { id: String(item.id) })
-    case 'users':
-      return resolve('/(app)/users/[id]', { id: String(item.id) })
   }
 }
 

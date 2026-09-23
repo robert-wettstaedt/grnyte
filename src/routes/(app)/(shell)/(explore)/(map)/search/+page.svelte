@@ -6,18 +6,14 @@
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import type { AscentStatus } from '$lib/components/EntityRow/types'
   import UserRow from '$lib/components/EntityRow/UserRow.svelte'
-  import {
-    entityCrumbs,
-    entityGroupLabel,
-    entityHref,
-    type EntityType,
-  } from '$lib/components/EntitySearch/search.svelte'
+  import { entityCrumbs, entityGroupLabel, type EntityType } from '$lib/components/EntitySearch/search.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import type { DisplayName } from '$lib/entities/displayName'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { entityHref } from '$lib/entities/href'
   import { regionCrumb } from '$lib/entities/region/mapper'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { routeList } from '$lib/entities/route/resources.svelte'
@@ -86,7 +82,7 @@
     for (const area of areas.data) {
       out.push({
         crumbs: crumbsOf(area.regionFk, [area.areas.at(-1)?.name]),
-        href: entityHref({ id: area.id, label: area.name, type: 'areas' }),
+        href: entityHref('areas', area.id),
         id: area.id,
         name: area.name,
         rating: 0,
@@ -98,7 +94,7 @@
     for (const block of blocks.data) {
       out.push({
         crumbs: crumbsOf(block.regionFk, [block.areas.at(-1)?.name]),
-        href: entityHref({ id: block.id, label: block.name, type: 'blocks' }),
+        href: entityHref('blocks', block.id),
         id: block.id,
         name: block.name,
         rating: 0,
@@ -112,7 +108,7 @@
       out.push({
         crumbs: crumbsOf(route.regionFk, [route.areaName, route.blockName]),
         grade: gradeLabel(global.grades, global.gradingScale, route.gradeFk),
-        href: entityHref({ id: route.id, label: route.name, type: 'routes' }),
+        href: entityHref('routes', route.id),
         id: route.id,
         name: route.name,
         rating: route.rating,
@@ -130,7 +126,7 @@
         // A person has no geographic breadcrumb (region membership would read like a
         // location path, which is confusing), so the row is only the avatar + name.
         crumbs: [],
-        href: entityHref({ id: user.id, label: user.username, type: 'users' }),
+        href: entityHref('users', user.id),
         id: user.id,
         name: user.username,
         rating: 0,

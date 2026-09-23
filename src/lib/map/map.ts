@@ -92,3 +92,7 @@ export const formatMetres = (metres: number): string => {
 
 /** Localized distance between two coords. */
 export const formatDistance = (from: Coords, to: Coords): string => formatMetres(haversineMetres(from, to))
+
+/** The coordinate readout the design specifies: "49.00420°N, 13.10250°E". */
+export const formatCoord = (coord: [number, number]): string =>
+  `${Math.abs(coord[0]).toFixed(5)}°${coord[0] >= 0 ? 'N' : 'S'}, ${Math.abs(coord[1]).toFixed(5)}°${coord[1] >= 0 ? 'E' : 'W'}`

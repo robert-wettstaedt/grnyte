@@ -1,4 +1,3 @@
-import { entityHref } from '$lib/components/EntitySearch/search.svelte'
 import { parseAccolade } from '$lib/entities/ascent/accolade'
 import { blockName } from '$lib/entities/block/mapper'
 import { toDisplayName } from '$lib/entities/displayName'
@@ -6,6 +5,7 @@ import type { DisplayName } from '$lib/entities/displayName'
 import type { EventEntity } from '$lib/entities/event/entity'
 import { fileParent, toMediaFile } from '$lib/entities/file/mapper'
 import { toGeolocation } from '$lib/entities/geolocation/mapper'
+import { entityHref } from '$lib/entities/href'
 import type { ReactionListItem } from '$lib/entities/reaction/dto'
 import { toReaction } from '$lib/entities/reaction/mapper'
 import type { RegionMembership } from '$lib/entities/region/dto'
@@ -193,7 +193,7 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity |
     return {
       crumbs: crumbs(area.regionFk, [area.parent == null ? undefined : toDisplayName(area.parent.name)]),
       description: area.description ?? undefined,
-      href: entityHref({ id: area.id, label: area.name, type: 'areas' }),
+      href: entityHref('areas', area.id),
       // Through `toDisplayName`: areas can be nameless too, and this is a card's headline.
       name: toDisplayName(area.name),
       paths: (area.geoPaths ?? []).flatMap(decodeApproach),
@@ -210,7 +210,7 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity |
     return {
       crumbs: crumbs(block.regionFk, [block.area == null ? undefined : toDisplayName(block.area.name)]),
       description: block.description ?? undefined,
-      href: entityHref({ id: block.id, label: name, type: 'blocks' }),
+      href: entityHref('blocks', block.id),
       name,
       pin: block.geolocation == null ? undefined : toGeolocation(block.geolocation),
       row: 'block',
@@ -271,7 +271,7 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity |
       // member list no longer holds them, and the row would sit there pulsing.
       ...(row.verb === 'remove' || row.verb === 'leave'
         ? { row: 'none' as const }
-        : { href: entityHref({ id: subject.id, label: subject.username, type: 'users' }), row: 'user' as const }),
+        : { href: entityHref('users', subject.id), row: 'user' as const }),
       name: subject.username,
     }
   }
@@ -311,7 +311,7 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity |
 function parentEntityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity | undefined {
   const areaEntity = (area: { id: number; name: string }): EventEntity => ({
     crumbs: [],
-    href: entityHref({ id: area.id, label: area.name, type: 'areas' }),
+    href: entityHref('areas', area.id),
     name: toDisplayName(area.name),
     row: 'area',
   })
@@ -329,7 +329,7 @@ function parentEntityOf(row: EventRow, userRegions: RegionMembership[]): EventEn
     // `blockName`, not `block.name` (see the note above): an empty name would read as missing
     // rather than as "Block 3".
     const name = blockName(block.name, block.order)
-    return { crumbs: [], href: entityHref({ id: block.id, label: name, type: 'blocks' }), name, row: 'block' }
+    return { crumbs: [], href: entityHref('blocks', block.id), name, row: 'block' }
   }
 
   if (row.ascent?.route != null) {
@@ -364,7 +364,7 @@ function routeEntity(route: NonNullable<EventRow['route']>, userRegions: RegionM
     // Held by this comment and not by the type, uniquely here: `EventRow['route']` is `any`, so
     // `any` satisfies `DisplayName[]` and swapping this back to the raw row compiles clean.
     crumbs: [regionCrumb(userRegions, route.regionFk), item.areaName, item.blockName].filter((crumb) => crumb != null),
-    href: entityHref({ id: route.id, label: item.name, type: 'routes' }),
+    href: entityHref('routes', route.id),
     name: item.name,
     route: item,
     row: 'route',

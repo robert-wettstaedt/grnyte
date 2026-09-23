@@ -12,7 +12,7 @@
  * Skipped when DATABASE_URL is unreachable, like every other DB-backed suite here.
  */
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest, callForm } from '$lib/remote/testHarness'
+import { asRequest, callForm, redirectOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createBlock, updateBlock } from './blocks.remote'
 import { blockPinFingerprint } from './fingerprint'
@@ -130,6 +130,39 @@ const mentionRows = () =>
     select block_fk as "blockFk", user_fk as "userFk"
     from public.notifications
     where region_fk = ${regionId} and source_type = 'mention'`
+
+// `submit` above swallows the 303 that carries a handler's destination, so nothing else in this
+// suite would notice an id taken from the wrong column.
+describe.skipIf(!reachable)('where a save sends the reader', () => {
+  it('opens the block a create just made', async () => {
+    const name = '__blocks_remote_redirect_new__'
+    const location = await redirectOf(() =>
+      asRequest(maintainer.authId, () => callForm(createBlock, { areaId: String(sectorId), description: '', name })),
+    )
+    const [created] = await sql<{ id: number }[]>`
+      select id from public.blocks where name = ${name} and region_fk = ${regionId}`
+
+    expect(location).toBe(`/blocks/${created.id}`)
+  })
+
+  it('returns to the block a save just edited', async () => {
+    const location = await redirectOf(() =>
+      asRequest(maintainer.authId, () =>
+        callForm(updateBlock, {
+          areaId: String(sectorId),
+          description: '',
+          id: String(blockId),
+          // This block was created without a location; an omitted fingerprint is refused by design,
+          // and a refusal resolves rather than redirecting, which reads here as no destination.
+          known: blockPinFingerprint(null),
+          name: BLOCK,
+        }),
+      ),
+    )
+
+    expect(location).toBe(`/blocks/${blockId}`)
+  })
+})
 
 describe.skipIf(!reachable)('block descriptions', () => {
   it('stores the description a create submits, and tells the person it mentions', async () => {

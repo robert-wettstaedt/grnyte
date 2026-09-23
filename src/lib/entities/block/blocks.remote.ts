@@ -1,5 +1,5 @@
-import { resolve } from '$app/paths'
 import { areas, blocks, files, geolocations, routes, topos, type Area, type Block } from '$lib/db/schema'
+import { entityHref } from '$lib/entities/href'
 import { blank, boundedDegrees, formError, optionalCoordinate, stringToInt } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { stringifyCoords } from '$lib/map/coords'
@@ -127,7 +127,7 @@ export const createBlock = authedForm(
       }),
     )
 
-    return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
+    return { redirectTo: entityHref('blocks', block.id) }
   },
 )
 
@@ -254,7 +254,7 @@ export const updateBlock = authedForm(
       }),
     )
 
-    return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
+    return { redirectTo: entityHref('blocks', block.id) }
   },
 )
 
@@ -300,7 +300,7 @@ export const setBlockLocation = authedCommand(blockPinSchema, async (value, { db
     regionFk: block.regionFk,
   })
 
-  return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
+  return { redirectTo: entityHref('blocks', block.id) }
 })
 
 /** Backfill a rough pin from a topo photo's GPS EXIF when the block has none yet. Marked
@@ -469,7 +469,7 @@ export const deleteBlock = authedCommand(
     }
     await refreshAreaType(db, block.areaFk)
 
-    return { data, redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(block.areaFk) }) }
+    return { data, redirectTo: entityHref('areas', block.areaFk) }
   },
 )
 
@@ -603,7 +603,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
 
     return {
       data: { blockId },
-      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(blockId) }),
+      redirectTo: entityHref('blocks', blockId),
     }
   }
 
@@ -619,7 +619,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
   if (block.deletedAt == null) {
     return {
       data: { blockId: snapshot.blockId },
-      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(snapshot.blockId) }),
+      redirectTo: entityHref('blocks', snapshot.blockId),
     }
   }
 
@@ -638,7 +638,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
 
   return {
     data: { blockId: snapshot.blockId },
-    redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(snapshot.blockId) }),
+    redirectTo: entityHref('blocks', snapshot.blockId),
   }
 })
 
@@ -675,6 +675,6 @@ export const reorderBlocks = authedCommand(
       order += 1
     }
 
-    return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(areaId) }) }
+    return { redirectTo: entityHref('areas', areaId) }
   },
 )

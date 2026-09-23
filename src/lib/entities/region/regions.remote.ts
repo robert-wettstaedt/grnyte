@@ -1,6 +1,7 @@
 import { resolve } from '$app/paths'
 import { command, form, getRequestEvent, query } from '$app/server'
 import { regionInvitations, regionMembers, regions } from '$lib/db/schema'
+import { entityHref } from '$lib/entities/href'
 import { formError, nameSchema, stringToInt } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { getLocale } from '$lib/paraglide/runtime'
@@ -106,7 +107,7 @@ export const updateRegion = authedForm(regionActionSchema, async ({ id, name }, 
 
   // No event row: object columns have no 'region' member, and the feed renders content changes.
 
-  return { redirectTo: resolve('/(app)/regions/[regionId]', { regionId: String(id) }) }
+  return { redirectTo: entityHref('regions', id) }
 })
 
 const regionMapLayersSchema = z.object({
@@ -159,7 +160,7 @@ export const updateRegionMapLayers = authedForm(regionMapLayersSchema, async ({ 
     invalid(formError('region_notFound'))
   }
 
-  return { redirectTo: resolve('/(app)/regions/[regionId]', { regionId: String(id) }) }
+  return { redirectTo: entityHref('regions', id) }
 })
 
 /** How many routes carry each of a region's tags: one grouped read, not one per tag. Until it

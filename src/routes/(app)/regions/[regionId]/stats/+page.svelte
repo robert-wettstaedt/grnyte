@@ -8,6 +8,7 @@
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import SettingSection from '$lib/components/Setting/SettingSection.svelte'
   import StatTile from '$lib/components/StatTile/StatTile.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { regionStats } from '$lib/entities/region/stats.remote'
   import { assignableRoles } from '$lib/entities/rolePermission/dto'
   import { roleLabel } from '$lib/entities/rolePermission/mapper'
@@ -37,7 +38,7 @@
   // `userRegions` is the viewer's own membership, not region data, which is why this page may read it.
   const backHref = $derived(
     global.userRegions.some((region) => region.regionFk === regionId)
-      ? resolve('/(app)/regions/[regionId]', { regionId: String(regionId) })
+      ? entityHref('regions', regionId)
       : resolve('/settings'),
   )
 

@@ -12,7 +12,7 @@
  * Skipped when DATABASE_URL is unreachable, like every other DB-backed suite here.
  */
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest, callForm } from '$lib/remote/testHarness'
+import { asRequest, callForm, redirectOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { updateArea } from './areas.remote'
 
@@ -95,6 +95,23 @@ async function submit(data: Record<string, unknown>): Promise<void> {
 }
 
 describe.skipIf(!reachable)('updateArea', () => {
+  // Nothing else in the server suite reads a handler's destination: `submit` above swallows the 303
+  // that carries it. An id from the wrong column here sends a saving reader to another area.
+  it('sends the reader back to the area it just saved', async () => {
+    const location = await redirectOf(() =>
+      asRequest(maintainer.authId, () =>
+        callForm(updateArea, {
+          description: '',
+          id: String(areaId),
+          name: '__areas_remote_redirect__',
+          regionFk: String(homeRegionId),
+        }),
+      ),
+    )
+
+    expect(location).toBe(`/areas/${areaId}`)
+  })
+
   it('renames the area', async () => {
     // Strings, because `areaActionSchema` builds on `stringToInt`, a codec over `z.string()`:
     // this is the shape a real `<form>` submits.

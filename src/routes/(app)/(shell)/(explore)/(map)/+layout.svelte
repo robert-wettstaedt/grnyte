@@ -17,6 +17,7 @@
   import { liveSearchQuery } from '$lib/state/searchQuery.svelte'
   import { applyUpdateOnClick } from '$lib/state/updateReady.svelte'
   import { visualViewport } from '$lib/state/visualViewport.svelte'
+  import { untrack } from 'svelte'
   import { fade, fly } from 'svelte/transition'
   import Modal from '../Modal/Modal.svelte'
   import { sheetState } from '../Modal/sheetState.svelte'
@@ -56,10 +57,28 @@
       sheetState.headerLeft = null
       sheetState.toolbar = null
     }
+  })
 
-    if (mapViewState != null) {
-      replaceState('', $state.snapshot({ ...page.state, mapView: mapViewState }))
-    }
+  // Saved as the view changes, onto the entry that is current while it IS current.
+  //
+  // NOT from `beforeNavigate`, which is where this lived: that runs after the browser has already
+  // moved on a popstate, so the write landed on the entry being arrived at and stamped it with the
+  // departing entry's state, Kit's own history index included. Two entries sharing an index make
+  // Kit read a later back as delta 0, so it renders nothing while the URL moves.
+  //
+  // `untrack` around the read: merging `page.state` is what preserves keys this layout does not
+  // own, and tracking it would make the effect retrigger on its own write.
+  $effect(() => {
+    const view = mapViewState
+    if (view == null) return
+
+    untrack(() => {
+      const stored = page.state?.mapView
+      if (stored?.center[0] === view.center[0] && stored?.center[1] === view.center[1] && stored.zoom === view.zoom) {
+        return
+      }
+      replaceState('', $state.snapshot({ ...page.state, mapView: view }))
+    })
   })
 
   // The modal is open on detail routes (e.g. areas/[id]) and closed on the
@@ -67,8 +86,8 @@
   afterNavigate((navigation) => {
     open = navigation.to?.route.id !== EXPLORE_ROUTE
 
-    // On back/forward, restore the map view we saved into history state
-    // (see beforeNavigate). `focus` wins when a detail item is open.
+    // On back/forward, restore the map view saved into this entry's history state
+    // (see the effect above). `focus` wins when a detail item is open.
     if (navigation.type === 'popstate' && page.state?.mapView != null) {
       restoredFocus = {
         center: page.state.mapView.center,

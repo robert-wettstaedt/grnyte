@@ -97,7 +97,10 @@ describe.skipIf(!reachable)('reorderBlocks', () => {
   it('writes the submitted sequence and leaves the area contiguous', async () => {
     const ids = await seedBlocks()
 
-    await reorder([ids.D, ids.C, ids.B, ids.A])
+    const result = await reorder([ids.D, ids.C, ids.B, ids.A])
+
+    // The ordering screen is not a detail screen, so finishing has to name where it returns to.
+    expect(result?.redirectTo).toBe(`/areas/${areaId}`)
 
     expect(await storedNames()).toEqual(['D', 'C', 'B', 'A'])
     expect(await storedOrders()).toEqual([0, 1, 2, 3])

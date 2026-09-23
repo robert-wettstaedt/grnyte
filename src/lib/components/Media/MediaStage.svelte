@@ -6,7 +6,6 @@
 -->
 <script lang="ts">
   import { browser } from '$app/environment'
-  import { resolve } from '$app/paths'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
@@ -18,6 +17,7 @@
   import { sourceHost } from '$lib/entities/file/upload'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { entityHref } from '$lib/entities/href'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
@@ -71,12 +71,12 @@
   // Guarded on the relation rather than the string, the way `routeHref` below is, so this stays
   // "there is no route" and never becomes an inlined fallback for a nameless one.
   const routeName = $derived(file.route == null ? '' : file.route.name)
-  const routeHref = $derived(file.route == null ? '' : resolve('/(app)/routes/[id]', { id: String(file.route.id) }))
+  const routeHref = $derived(file.route == null ? '' : entityHref('routes', file.route.id))
 
   // Reel-style ascent context: a tappable collapsed line (type, date, first line of
   // the note) that expands into a sheet with the whole ascent.
   let infoOpen = $state(false)
-  const ascentHref = $derived(file.ascent == null ? '' : resolve('/(app)/ascents/[id]', { id: String(file.ascent.id) }))
+  const ascentHref = $derived(file.ascent == null ? '' : entityHref('ascents', file.ascent.id))
   const ascentNotes = $derived(file.ascent?.notes.trim() ?? '')
 
   // Caption timestamp: relative ("3 days ago") within a week, absolute date beyond it.
@@ -262,7 +262,7 @@
         <div class="flex items-center gap-2">
           <svelte:element
             this={signedIn ? 'a' : 'div'}
-            href={signedIn ? resolve('/(app)/users/[id]', { id: String(file.uploader.id) }) : undefined}
+            href={signedIn ? entityHref('users', file.uploader.id) : undefined}
             class={['flex items-center gap-2', signedIn && 'hover:opacity-80']}
           >
             <Avatar name={file.uploader.username} size={28} solid />

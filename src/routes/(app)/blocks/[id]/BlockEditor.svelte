@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
@@ -11,6 +10,7 @@
   import { setBlockLocation, updateBlock } from '$lib/entities/block/blocks.remote'
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
@@ -80,7 +80,7 @@
             title={m.form_noPermissionTitle()}
             description={m.form_noEditPermission()}
             primaryAction={{
-              href: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(detail.id) }),
+              href: entityHref('blocks', detail.id),
               label: m.blocks_viewBlock(),
             }}
           />
@@ -108,7 +108,7 @@
               ? null
               : { lat: detail.geolocation.lat, long: detail.geolocation.long }}
             initialEstimated={detail.geolocation?.estimated ?? false}
-            cancelTo={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(detail.id) })}
+            cancelTo={entityHref('blocks', detail.id)}
             onLocationCommit={initialStep === 'pin'
               ? // Not `withUndo`, so the failure has to be reported here.
                 (coords) =>

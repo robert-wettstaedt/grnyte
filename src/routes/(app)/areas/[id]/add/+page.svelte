@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
@@ -9,6 +8,7 @@
   import { createArea } from '$lib/entities/area/areas.remote'
   import { canAddArea } from '$lib/entities/area/permissions'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
+  import { entityHref } from '$lib/entities/href'
   import Form from '$lib/forms/Form.svelte'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -39,7 +39,7 @@
     {#if canAddArea(global.userRegions, area)}
       <Form
         form={createArea}
-        cancelTo={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) })}
+        cancelTo={entityHref('areas', area.id)}
         submitLabel={m.common_add()}
         title={m.areas_newAreaIn({ name: area.name })}
       >
@@ -51,7 +51,7 @@
         title={m.form_noPermissionTitle()}
         description={m.form_noEditPermission()}
         primaryAction={{
-          href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) }),
+          href: entityHref('areas', area.id),
           label: m.areas_viewArea(),
         }}
       />
@@ -62,7 +62,7 @@
         title={m.areas_notAnAreaTitle()}
         description={m.areas_notAnAreaBody()}
         primaryAction={{
-          href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) }),
+          href: entityHref('areas', area.id),
           label: m.areas_viewArea(),
         }}
       />

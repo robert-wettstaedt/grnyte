@@ -16,6 +16,7 @@
   import { userContributionCount } from '$lib/entities/event/events.remote'
   import { userFirstAscensionists } from '$lib/entities/firstAscensionist/resources.svelte'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { entityHref } from '$lib/entities/href'
   import { routeList, routesByIds } from '$lib/entities/route/resources.svelte'
   import { formatDay } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
@@ -201,7 +202,7 @@
     {ascent}
     crumbs={locationCrumb(ascent)}
     routeName={ascent.routeName}
-    route={{ href: resolve('/(app)/routes/[id]', { id: String(ascent.routeFk) }), name: ascent.routeName }}
+    route={{ href: entityHref('routes', ascent.routeFk), name: ascent.routeName }}
   />
 {/snippet}
 

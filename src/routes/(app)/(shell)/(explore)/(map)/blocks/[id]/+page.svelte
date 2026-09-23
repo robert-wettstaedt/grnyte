@@ -18,6 +18,7 @@
   import { createSaveState } from '$lib/entities/favorite/save.svelte'
   import { createLocationState } from '$lib/entities/geolocation/location.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
+  import { entityHref } from '$lib/entities/href'
   import { selectTopoForRoute } from '$lib/entities/topo/mapper'
   import { orderRoutesByTopo } from '$lib/entities/topo/order'
   import { canEditTopo } from '$lib/entities/topo/permissions'
@@ -71,7 +72,7 @@
   const areaId = $derived(block.data?.areas.at(-1)?.id ?? -1)
   const siblings = blockList(() => ({ areaId }))
 
-  const blockHref = (id: number) => resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(id) })
+  const blockHref = (id: number) => entityHref('blocks', id)
 
   const breadcrumbArea = $derived(block.data == null ? null : blockBreadcrumbArea(block.data))
 

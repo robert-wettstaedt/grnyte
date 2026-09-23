@@ -1,5 +1,6 @@
 import { resolve } from '$app/paths'
 import { areas, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
+import { entityHref } from '$lib/entities/href'
 import {
   blank,
   boundedDegrees,
@@ -122,7 +123,7 @@ export const createArea = authedForm(areaActionSchema, async (value, { afterComm
     }),
   )
 
-  return { redirectTo: resolve('/(app)/areas/[id]', { id: createdArea.id.toString() }) }
+  return { redirectTo: entityHref('areas', createdArea.id) }
 })
 
 export const updateArea = authedForm(
@@ -168,7 +169,7 @@ export const updateArea = authedForm(
       }),
     )
 
-    return { redirectTo: resolve('/(app)/areas/[id]', { id: area.id.toString() }) }
+    return { redirectTo: entityHref('areas', area.id) }
   },
 )
 
@@ -331,10 +332,7 @@ export const deleteArea = authedCommand(
     }
     if (area.parentFk != null) await refreshAreaType(db, area.parentFk)
 
-    const redirectTo =
-      area.parentFk == null
-        ? resolve('/explore')
-        : resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.parentFk) })
+    const redirectTo = area.parentFk == null ? resolve('/explore') : entityHref('areas', area.parentFk)
 
     return { data, redirectTo }
   },
@@ -471,7 +469,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
 
     return {
       data: { areaId: created.id },
-      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(created.id) }),
+      redirectTo: entityHref('areas', created.id),
     }
   }
 
@@ -488,7 +486,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
   if (area.deletedAt == null) {
     return {
       data: { areaId: snapshot.areaId },
-      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(snapshot.areaId) }),
+      redirectTo: entityHref('areas', snapshot.areaId),
     }
   }
 
@@ -508,7 +506,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
 
   return {
     data: { areaId: snapshot.areaId },
-    redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(snapshot.areaId) }),
+    redirectTo: entityHref('areas', snapshot.areaId),
   }
 })
 
@@ -558,7 +556,7 @@ export const addParking = authedForm(
       verb: 'add',
     })
 
-    return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: areaId.toString() }) }
+    return { redirectTo: entityHref('areas', areaId) }
   },
 )
 
@@ -631,7 +629,7 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
       long: parking.long,
       path: removedPath,
     },
-    redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(parking.areaFk) }),
+    redirectTo: entityHref('areas', parking.areaFk),
   }
 })
 

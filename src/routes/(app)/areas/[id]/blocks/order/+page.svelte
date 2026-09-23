@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
@@ -13,6 +12,7 @@
   import { blockName } from '$lib/entities/block/mapper'
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockList } from '$lib/entities/block/resources.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { haversineMetres, sectorReferencePoint, type Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
@@ -186,7 +186,7 @@
     }
   }
 
-  const cancel = () => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(areaId) }))
+  const cancel = () => back(entityHref('areas', areaId))
 </script>
 
 <svelte:head>
@@ -201,7 +201,7 @@
         title={m.form_noPermissionTitle()}
         description={m.form_noEditPermission()}
         primaryAction={{
-          href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(areaId) }),
+          href: entityHref('areas', areaId),
           label: m.areas_viewArea(),
         }}
       />

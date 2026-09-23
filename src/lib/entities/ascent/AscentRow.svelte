@@ -8,6 +8,7 @@
   import ConditionsPill from '$lib/entities/ascent/ConditionsPill.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { entityHref } from '$lib/entities/href'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { formatDay } from '$lib/i18n/relativeTime'
@@ -62,7 +63,7 @@
   // actions share its line and the whole line goes when neither has anything to show.
   const hasConditions = $derived(ascent.temperature != null || ascent.humidity != null)
   const editHref = $derived(resolve('/(app)/ascents/[id]/edit', { id: String(ascent.id) }))
-  const userHref = $derived(resolve('/(app)/users/[id]', { id: String(ascent.createdBy) }))
+  const userHref = $derived(entityHref('users', ascent.createdBy))
 
   // Deleting takes the attached media with it, so it confirms instead of offering
   // undo. No navigation needed: the removal syncs and the row drops out of the list.

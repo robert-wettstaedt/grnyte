@@ -3,8 +3,9 @@
   import { page } from '$app/state'
   import EntityList from '$lib/components/EntitySearch/EntityList.svelte'
   import { clearViewed, loadViewed, newEntities, recentlyViewed } from '$lib/components/EntitySearch/recent.svelte'
-  import { entityHref, entitySearch, type EntityCandidate } from '$lib/components/EntitySearch/search.svelte'
+  import { entitySearch, type EntityCandidate } from '$lib/components/EntitySearch/search.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { regionCrumb } from '$lib/entities/region/mapper'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -210,7 +211,7 @@
     }
     open = false
 
-    void push(entityHref(item))
+    void push(entityHref(item.type, item.id))
   }
 
   const selectRecent = (recent: string) => {

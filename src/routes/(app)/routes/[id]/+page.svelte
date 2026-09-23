@@ -27,6 +27,7 @@
   import { createLocationState } from '$lib/entities/geolocation/location.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { entityHref } from '$lib/entities/href'
   import { canEditRoute } from '$lib/entities/route/permissions'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
@@ -81,9 +82,7 @@
   const hit = $derived(selectTopoForRoute(topos.data, routeId))
 
   const blockHref = $derived(
-    route.data == null
-      ? resolve('/(app)/(shell)/(explore)/(map)/explore')
-      : resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(route.data.blockFk) }),
+    route.data == null ? resolve('/(app)/(shell)/(explore)/(map)/explore') : entityHref('blocks', route.data.blockFk),
   )
 
   // The viewer reads ?route= and opens with this route's line lit.
@@ -122,7 +121,7 @@
   // derived; `blockRouteList` rides the queries.block view already loaded for the hero.
   const siblingRoutes = blockRouteList(() => route.data?.blockFk ?? -1)
   const orderedSiblings = $derived(orderRoutesByTopo(siblingRoutes.data, topos.data))
-  const routeHref = (id: number) => resolve('/(app)/routes/[id]', { id: String(id) })
+  const routeHref = (id: number) => entityHref('routes', id)
   const nav = $derived(toSheetNav(orderedSiblings, routeId, routeHref))
 
   /** Whether the event log is up. It owns the screen while it is, like the media viewer. */

@@ -16,6 +16,8 @@
   import ShareSheet from '$lib/components/Media/ShareSheet.svelte'
   import { MEDIA_TOOL } from '$lib/components/Media/toolbar'
   import { deleteFile } from '$lib/entities/file/files.remote'
+  import type { FileParent } from '$lib/entities/file/mapper'
+  import { entityHref, type EntityKind } from '$lib/entities/href'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
@@ -61,19 +63,20 @@
 
   // Where to land after a delete: the file's owning entity (its share page is now a 404),
   // falling back home if there somehow is no parent.
-  const parentHref = (parent: NonNullable<typeof data.controls>['parent'] | undefined) => {
-    switch (parent?.type) {
-      case 'route':
-        return resolve('/(app)/routes/[id]', { id: String(parent.id) })
-      case 'ascent':
-        return resolve('/(app)/ascents/[id]', { id: String(parent.id) })
-      case 'block':
-        return resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(parent.id) })
-      case 'area':
-        return resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(parent.id) })
-      default:
-        return resolve('/')
-    }
+  // A file's parent names its type in the singular; `entityHref` keys on the plural route segment.
+  // Keyed on `FileParent['type']`, so a parent kind added to the mapper must answer here too.
+  const PARENT_KIND: Record<FileParent['type'], EntityKind> = {
+    area: 'areas',
+    ascent: 'ascents',
+    block: 'blocks',
+    route: 'routes',
+  }
+
+  const parentHref = (parent: FileParent | null | undefined) => {
+    // The lookup is total to TypeScript but not at runtime: `parent` comes from the SERVER load, so
+    // a newer deploy can name a kind this bundle has never heard of. Home, never `undefined`.
+    const kind = parent == null ? undefined : (PARENT_KIND[parent.type] as EntityKind | undefined)
+    return kind == null || parent == null ? resolve('/') : entityHref(kind, parent.id)
   }
 
   const onDelete = async () => {

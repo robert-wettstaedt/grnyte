@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { m } from '$lib/paraglide/messages'
 
   // Every admin-only region settings screen shows this, which is why it lives here and not in one of them.
@@ -16,7 +16,7 @@
   title={m.form_noPermissionTitle()}
   description={m.form_noAdminPermission()}
   primaryAction={{
-    href: resolve('/(app)/regions/[regionId]', { regionId: String(regionId) }),
+    href: entityHref('regions', regionId),
     label: m.region_viewRegion(),
   }}
 />

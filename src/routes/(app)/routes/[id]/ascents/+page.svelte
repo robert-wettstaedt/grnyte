@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import MediaLightbox from '$lib/components/Media/MediaLightbox.svelte'
@@ -13,6 +12,7 @@
   import { splitAscents } from '$lib/entities/ascent/list'
   import { routeAscentList } from '$lib/entities/ascent/resources.svelte'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { entityHref } from '$lib/entities/href'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -27,7 +27,7 @@
   const route = routeDetail(() => routeId)
   const ascents = routeAscentList(() => routeId)
 
-  const routeHref = $derived(resolve('/(app)/routes/[id]', { id: String(routeId) }))
+  const routeHref = $derived(entityHref('routes', routeId))
 
   // The route itself is preloaded and renders offline; everyone's ascents on it are not kept, and
   // the replica holds whatever fragment other preloads left behind. Every number on this screen is

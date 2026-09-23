@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { routeListsFingerprint } from '$lib/entities/route/fingerprint'
   import { canEditRoute } from '$lib/entities/route/permissions'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
@@ -68,7 +68,7 @@
         title={m.form_noPermissionTitle()}
         description={m.form_noEditPermission()}
         primaryAction={{
-          href: resolve('/(app)/routes/[id]', { id: String(detail.id) }),
+          href: entityHref('routes', detail.id),
           label: m.routes_viewRoute(),
         }}
       />
@@ -85,7 +85,7 @@
     {:else}
       <Form
         form={updateRoute}
-        cancelTo={resolve('/(app)/routes/[id]', { id: String(detail.id) })}
+        cancelTo={entityHref('routes', detail.id)}
         submitLabel={m.common_save()}
         title={m.routes_editRoute()}
       >

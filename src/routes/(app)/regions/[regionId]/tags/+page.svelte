@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import SettingSection from '$lib/components/Setting/SettingSection.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { canEditRegion } from '$lib/entities/region/permissions'
   import { addRegionTag, regionTagUsage, removeRegionTag, renameRegionTag } from '$lib/entities/region/regions.remote'
   import { MAX_TAGS, regionTags, tagNameSchema } from '$lib/entities/region/tagVocabulary'
@@ -55,7 +55,7 @@
 
   const canAdd = $derived(parsed.success && !tags.includes(trimmed) && !full)
 
-  const goBack = () => back(resolve('/(app)/regions/[regionId]', { regionId: String(regionId) }))
+  const goBack = () => back(entityHref('regions', regionId))
 
   const onAdd = async () => {
     if (!canAdd || adding) return

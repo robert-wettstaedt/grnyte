@@ -130,6 +130,23 @@ export function callForm<T>(form: unknown, data: Record<string, unknown>): Promi
 }
 
 /**
+ * Where `run` redirected to, or `undefined` when it resolved. `authedForm` turns a handler's
+ * `redirectTo` into a thrown `redirect(303, ...)`, so this is the only way a server test can see it.
+ */
+export async function redirectOf(run: () => Promise<unknown>): Promise<string | undefined> {
+  try {
+    await run()
+    return undefined
+  } catch (thrown) {
+    const { location, status } = (thrown ?? {}) as { location?: string; status?: number }
+    // Anything else is a real failure: swallowing it would make this read `undefined` for a
+    // handler that threw a 403 before it ever chose a destination.
+    if (status !== 303) throw thrown
+    return location
+  }
+}
+
+/**
  * The status `run` rejected with, or `undefined` when it resolved. Kit throws a plain `HttpError`,
  * not an `Error`, so `rejects.toThrow()` cannot read it, and the status is the real assertion.
  */

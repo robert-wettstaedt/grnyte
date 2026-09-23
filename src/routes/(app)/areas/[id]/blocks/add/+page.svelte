@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
@@ -9,6 +8,7 @@
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import BlockForm from '$lib/entities/block/BlockForm.svelte'
   import { createBlock } from '$lib/entities/block/blocks.remote'
+  import { entityHref } from '$lib/entities/href'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { coordsFromParams } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
@@ -40,7 +40,7 @@
         area={data}
         form={createBlock}
         {initialLocation}
-        cancelTo={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) })}
+        cancelTo={entityHref('areas', data.id)}
         seedKey={data.id}
         submitLabel={m.common_add()}
         title={m.blocks_addBlock()}
@@ -51,7 +51,7 @@
         title={m.form_noPermissionTitle()}
         description={m.form_noEditPermission()}
         primaryAction={{
-          href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),
+          href: entityHref('areas', data.id),
           label: m.areas_viewArea(),
         }}
       />
@@ -62,7 +62,7 @@
         title={m.areas_notASectorTitle()}
         description={m.areas_notASectorBody()}
         primaryAction={{
-          href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),
+          href: entityHref('areas', data.id),
           label: m.areas_viewArea(),
         }}
       />

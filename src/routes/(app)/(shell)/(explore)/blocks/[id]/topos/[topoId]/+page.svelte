@@ -14,6 +14,7 @@
   import { blockDetail, blockRouteList } from '$lib/entities/block/resources.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { entityHref } from '$lib/entities/href'
   import { orderRoutesByTopo } from '$lib/entities/topo/order'
   import { canEditTopo } from '$lib/entities/topo/permissions'
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
@@ -85,7 +86,7 @@
   const canEditTopos = $derived(block.data != null && canEditTopo(global.userRegions, block.data))
   const editHref = $derived(`${resolve('/(app)/blocks/[id]/topos/edit', { id: String(blockId) })}?topo=${topoId}`)
 
-  const blockHref = $derived(resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(blockId) }))
+  const blockHref = $derived(entityHref('blocks', blockId))
   const topoHref = (id: number) =>
     resolve('/(app)/(shell)/(explore)/blocks/[id]/topos/[topoId]', { id: String(blockId), topoId: String(id) })
 
@@ -204,7 +205,7 @@
                 number={routeNumber.get(route.id)}
                 status={ascentStatus.get(route.id)}
                 mapHref={blockHref}
-                detailsHref={resolve('/(app)/routes/[id]', { id: String(route.id) })}
+                detailsHref={entityHref('routes', route.id)}
                 onclick={() => toggleRoute(route.id)}
               />
             </div>

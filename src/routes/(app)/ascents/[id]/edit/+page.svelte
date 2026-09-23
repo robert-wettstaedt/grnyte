@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
@@ -9,6 +8,7 @@
   import { canEditAscent } from '$lib/entities/ascent/permissions'
   import { ascentDetail } from '$lib/entities/ascent/resources.svelte'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
@@ -23,7 +23,7 @@
 
   // Only read from the ready snippet, where the ascent is loaded (`-1` is the
   // established while-loading idiom).
-  const routeHref = $derived(resolve('/(app)/routes/[id]', { id: String(ascent.data?.routeFk ?? -1) }))
+  const routeHref = $derived(entityHref('routes', ascent.data?.routeFk ?? -1))
 
   // The custom inputs seed themselves from the `ascent` prop; this covers the field-driven ones
   // (notes).

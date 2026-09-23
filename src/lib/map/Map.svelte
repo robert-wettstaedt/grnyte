@@ -3,6 +3,7 @@
   import { resolve } from '$app/paths'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { mergeMapLayers } from '$lib/entities/region/settings'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -350,10 +351,10 @@
           push(resolve('/(app)/(shell)/(explore)/(map)/parking/[id]', { id: parkingId.toString() }))
         } else if (blockId != null) {
           props.onfeatureopen?.()
-          push(resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: blockId.toString() }))
+          push(entityHref('blocks', blockId))
         } else if (areaId != null) {
           props.onfeatureopen?.()
-          push(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: areaId.toString() }))
+          push(entityHref('areas', areaId))
         }
       }
     })

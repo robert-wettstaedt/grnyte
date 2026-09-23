@@ -151,6 +151,9 @@ describe.skipIf(!reachable)('softRestoreArea', () => {
     // The snapshot the Undo snackbar posts back, and there is no `deletedAt` on it: the restore
     // reads the timestamp off the stored row, so there is nothing here to point somewhere else.
     expect(deleted?.data).toEqual({ areaId: areaHome.areaId, mode: 'soft' })
+    // A delete cannot send the reader back to the screen it just deleted. This area has no parent,
+    // so the only thing above it is the explore list.
+    expect(deleted?.redirectTo).toBe('/explore')
 
     await shareDeletionTimestamp(areaHome, areaOther)
     await asRequest(actor.authId, () => restoreArea({ areaId: areaHome.areaId, mode: 'soft' }))
@@ -178,5 +181,15 @@ describe.skipIf(!reachable)('softRestoreBlock', () => {
     // alone, and the routes statement named no block at all, so it could revive these routes under
     // a block that stayed gone. Their areas were never deleted, hence false at those two levels.
     expect(await markers(blockOther)).toEqual({ area: false, block: true, route: true, sector: false })
+  })
+})
+
+// Placed last: it soft-deletes a sector and leaves it that way, which the suites above would read
+// as their own fixture moving.
+describe.skipIf(!reachable)('where a delete sends the reader', () => {
+  it('goes up to the parent area when the deleted area has one', async () => {
+    const deleted = await asRequest(actor.authId, () => deleteArea({ id: areaHome.sectorId }))
+
+    expect(deleted?.redirectTo).toBe(`/areas/${areaHome.areaId}`)
   })
 })

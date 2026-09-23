@@ -5,7 +5,7 @@
  * tells them apart. Assert on the database afterwards, never the thrown value.
  */
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest, callForm } from '$lib/remote/testHarness'
+import { asRequest, callForm, redirectOf } from '$lib/remote/testHarness'
 import { isValidationError } from '@sveltejs/kit'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { routeListsFingerprint } from './fingerprint'
@@ -148,6 +148,17 @@ const storedClimbers = async () =>
   ).map((row) => row.name)
 
 const currentFingerprint = async () => routeListsFingerprint(await storedTags(), [{ name: CLIMBER }])
+
+// `submit` above folds both a refusal and a success into a resolved call, so nothing else here
+// would see a destination built from the wrong column.
+describe.skipIf(!reachable)('where a save sends the reader', () => {
+  it('returns to the route it just saved, not to its block', async () => {
+    const data = editWith(await currentFingerprint(), 'Redirect Probe')
+    const location = await redirectOf(() => asRequest(maintainer.authId, () => callForm(updateRoute, data)))
+
+    expect(location).toBe(`/routes/${routeId}`)
+  })
+})
 
 describe.skipIf(!reachable)('updateRoute staleness guard', () => {
   it('counts a first ascensionist’s linked account, so a route that has one still saves', async () => {

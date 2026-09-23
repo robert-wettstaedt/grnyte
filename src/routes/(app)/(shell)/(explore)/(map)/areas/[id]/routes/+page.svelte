@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import RouteList from '$lib/components/EntityRow/RouteList.svelte'
@@ -8,6 +7,7 @@
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
+  import { entityHref } from '$lib/entities/href'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { routeList } from '$lib/entities/route/resources.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
@@ -141,7 +141,7 @@
 {#snippet headerLeft()}
   <button
     class="btn-icon preset-filled-surface-200-800"
-    onclick={() => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: page.params.id! }))}
+    onclick={() => back(entityHref('areas', Number(page.params.id)))}
     title={m.common_back()}
   >
     <Icon name="arrow-left" />

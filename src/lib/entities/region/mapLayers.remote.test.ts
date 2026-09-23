@@ -9,7 +9,7 @@
  * Skipped when DATABASE_URL is unreachable, like every other DB-backed suite here.
  */
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest, callForm } from '$lib/remote/testHarness'
+import { asRequest, callForm, redirectOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { updateRegionMapLayers } from './regions.remote'
 import { emptyRegionSettings, mapLayersFingerprint, toLayerForm, type MapLayer, type RegionSettings } from './settings'
@@ -96,6 +96,17 @@ async function submit(user: SeedUser, data: Record<string, unknown>): Promise<st
     throw error
   }
 }
+
+// `submit` above reports only WHETHER the save landed. Where it then sends the reader is its own
+// value, built from an id, and nothing else in this suite looks at it.
+describe.skipIf(!reachable)('where a save sends the reader', () => {
+  it('returns to the region whose layers it just saved', async () => {
+    const data = { id: String(regionId), known: mapLayersFingerprint([STORED]), mapLayers: [toLayerForm(SUBMITTED)] }
+    const location = await redirectOf(() => asRequest(admin.authId, () => callForm(updateRegionMapLayers, data)))
+
+    expect(location).toBe(`/regions/${regionId}`)
+  })
+})
 
 describe.skipIf(!reachable)('updateRegionMapLayers staleness guard', () => {
   it('accepts a save whose fingerprint still describes the stored layers', async () => {

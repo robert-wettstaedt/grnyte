@@ -1,6 +1,5 @@
 <script lang="ts">
   import { beforeNavigate } from '$app/navigation'
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
@@ -19,6 +18,7 @@
   import { ImageUpload } from '$lib/entities/file/upload-manager.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { entityHref } from '$lib/entities/href'
   import { canDeleteRoute } from '$lib/entities/route/permissions'
   import { deleteRoute, restoreRoute } from '$lib/entities/route/routes.remote'
   import { TopoEditor } from '$lib/entities/topo/editor.svelte'
@@ -54,7 +54,7 @@
   const routes = blockRouteList(() => blockId)
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
-  const blockHref = $derived(resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(blockId) }))
+  const blockHref = $derived(entityHref('blocks', blockId))
 
   // The batched dirty session. Committed lines come straight off the topo view, mapped to the
   // editor's EditLine shape; the controller clones them into a local working doc on first edit.
@@ -559,7 +559,7 @@
                     grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
                     number={routeNumber.get(route.id)}
                     status={ascentStatus.get(route.id)}
-                    detailsHref={resolve('/(app)/routes/[id]', { id: String(route.id) })}
+                    detailsHref={entityHref('routes', route.id)}
                     onclick={() => editRoute(route.id)}
                   />
                 {/each}

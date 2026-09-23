@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import { formatCoord } from '$lib/map/map'
   import Map from '$lib/map/Map.svelte'
   import type { Bounds, MapData, MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
@@ -12,6 +13,9 @@
     mapData: MapData
     // Form state lifted to the parent so it survives the step-toggle remount.
     mode?: 'coordinates' | 'map'
+    // Fires when the reader moves the pin or types a coordinate. `picked` cannot report that: it
+    // mirrors the map centre, so it is set from the moment the picker frames itself.
+    onedit?: () => void
     // Output: the location to save (map centre in map mode, the typed pair otherwise).
     picked?: null | { lat: number; long: number }
     // The parking committed when advancing to step 2; reframe back here on return.
@@ -24,6 +28,7 @@
     lngText = $bindable(''),
     mapData,
     mode = $bindable('map'),
+    onedit,
     picked = $bindable(null),
     placedCenter,
   }: Props = $props()
@@ -55,12 +60,45 @@
     picked = candidate
   })
 
-  // Live readout for the map picker, matching the design's "49.00420°N, 13.10250°E".
-  const formatCoord = (coord: [number, number]): string =>
-    `${Math.abs(coord[0]).toFixed(5)}°${coord[0] >= 0 ? 'N' : 'S'}, ${Math.abs(coord[1]).toFixed(5)}°${coord[1] >= 0 ? 'E' : 'W'}`
+  // A gesture that actually moves the pin, not `onviewchange`, which also fires for the framing move
+  // the picker makes on its own. Capture, because OpenLayers stops these before they bubble.
+  //
+  // A drag past DRAG_SLOP, never a bare `pointerdown`: the pin is the map centre, so a tap does not
+  // move it, and marking one would put the leave-confirm back in front of somebody who changed
+  // nothing. Wheel counts because OpenLayers zooms toward the pointer, which does shift the centre.
+  const DRAG_SLOP = 6
+
+  const markOnGesture = (element: HTMLElement) => {
+    let origin: null | { x: number; y: number } = null
+    const down = (event: PointerEvent) => (origin = { x: event.clientX, y: event.clientY })
+    const up = () => (origin = null)
+    const move = (event: PointerEvent) => {
+      if (origin == null) return
+      if (Math.abs(event.clientX - origin.x) < DRAG_SLOP && Math.abs(event.clientY - origin.y) < DRAG_SLOP) return
+      origin = null
+      onedit?.()
+    }
+    const wheel = () => onedit?.()
+
+    const options = { capture: true, passive: true } as const
+    element.addEventListener('pointerdown', down, options)
+    element.addEventListener('pointermove', move, options)
+    element.addEventListener('pointerup', up, options)
+    element.addEventListener('pointercancel', up, options)
+    element.addEventListener('wheel', wheel, options)
+
+    return () => {
+      element.removeEventListener('pointerdown', down, { capture: true })
+      element.removeEventListener('pointermove', move, { capture: true })
+      element.removeEventListener('pointerup', up, { capture: true })
+      element.removeEventListener('pointercancel', up, { capture: true })
+      element.removeEventListener('wheel', wheel, { capture: true })
+    }
+  }
 
   // Let people paste a "lat, lng" pair (as copied from any maps app) into the latitude field.
   const onLatInput = (event: Event & { currentTarget: HTMLInputElement }) => {
+    onedit?.()
     const value = event.currentTarget.value
     const pair = value.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/)
     if (pair) {
@@ -122,6 +160,7 @@
             bind:value={lngText}
             class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-3 font-mono text-base focus:ring-0 focus:outline-none"
             inputmode="decimal"
+            oninput={() => onedit?.()}
             placeholder="2.611811"
             type="text"
           />
@@ -161,7 +200,7 @@
     </div>
   {:else}
     <!-- The picked location is the map centre; a fixed pin marks it. -->
-    <div class="relative min-h-0 flex-1">
+    <div class="relative min-h-0 flex-1" {@attach markOnGesture}>
       <!-- Fill via absolute inset-0 (mirrors the /explore layout): the map's own height:100%
            can't resolve through the flex-grown parents, so give it a positioned box instead. -->
       <div class="absolute inset-0">

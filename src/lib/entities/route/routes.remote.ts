@@ -1,4 +1,3 @@
-import { resolve } from '$app/paths'
 import {
   ascents,
   blocks,
@@ -14,6 +13,7 @@ import {
   topoRoutes,
   type Route,
 } from '$lib/db/schema'
+import { entityHref } from '$lib/entities/href'
 import { blank, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
@@ -90,8 +90,6 @@ async function findDuplicateName(
       ),
   })
 }
-
-const routeHref = (id: number) => resolve('/(app)/routes/[id]', { id: String(id) })
 
 /** Create a route under a block. Returns `{ id }` and declares NO `redirectTo`: a redirect is a 303,
  *  and the server rebuilds that response from the location alone, discarding this return value. The
@@ -301,7 +299,7 @@ export const updateRoute = authedForm(
       }),
     )
 
-    return { data: { id: route.id }, redirectTo: routeHref(route.id) }
+    return { data: { id: route.id }, redirectTo: entityHref('routes', route.id) }
   },
 )
 
@@ -439,7 +437,7 @@ export const deleteRoute = authedCommand(
 
     return {
       data,
-      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(route.blockFk) }),
+      redirectTo: entityHref('blocks', route.blockFk),
     }
   },
 )
@@ -546,7 +544,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
     // Nothing to move onto the new id: only a route inside the grace window is hard-deleted, and
     // `events.route_fk on delete cascade` took its entire log with it. The route comes back with
     // no history because it never had any worth keeping.
-    return { data: { routeId: created.id }, redirectTo: routeHref(created.id) }
+    return { data: { routeId: created.id }, redirectTo: entityHref('routes', created.id) }
   }
 
   const route = await db.query.routes.findFirst({ where: eq(routes.id, snapshot.routeId) })
@@ -557,7 +555,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
 
   // Nothing to undo, as in restoreArea and restoreBlock: a replayed Undo lands on a live route.
   if (route.deletedAt == null) {
-    return { data: { routeId: route.id }, redirectTo: routeHref(route.id) }
+    return { data: { routeId: route.id }, redirectTo: entityHref('routes', route.id) }
   }
 
   // Refuse rather than strand it: restore the ancestor first, which brings this row with it.
@@ -570,5 +568,5 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
   // still point at this id and stay live, exactly as they were before the delete.
   await deleteEvent(db, { object: { id: route.id, type: 'route' }, verb: 'delete' })
 
-  return { data: { routeId: route.id }, redirectTo: routeHref(route.id) }
+  return { data: { routeId: route.id }, redirectTo: entityHref('routes', route.id) }
 })

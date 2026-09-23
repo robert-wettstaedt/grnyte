@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { haversineMetres, pickDistanceUnit, sectorReferencePoint } from './map'
+import { formatCoord, haversineMetres, pickDistanceUnit, sectorReferencePoint } from './map'
 
 describe('haversineMetres', () => {
   it('is zero for the same point', () => {
@@ -49,5 +49,21 @@ describe('pickDistanceUnit', () => {
   it('switches feet → miles at 1 mile', () => {
     expect(pickDistanceUnit(304.8, true)).toEqual({ unit: 'foot', value: 1000 }) // 1000 ft
     expect(pickDistanceUnit(1609.344, true)).toEqual({ unit: 'mile', value: 1 })
+  })
+})
+
+describe('formatCoord', () => {
+  it('reads out five decimals with the hemisphere, as the design specifies', () => {
+    expect(formatCoord([49.0042, 13.1025])).toBe('49.00420°N, 13.10250°E')
+  })
+
+  // The sign picks the letter, and the number is printed without it: a southern latitude read as
+  // "-49.00420°S" would be wrong twice over.
+  it('drops the sign it has already spent on the hemisphere', () => {
+    expect(formatCoord([-49.0042, -13.1025])).toBe('49.00420°S, 13.10250°W')
+  })
+
+  it('puts the equator and the prime meridian in the positive hemispheres', () => {
+    expect(formatCoord([0, 0])).toBe('0.00000°N, 0.00000°E')
   })
 })

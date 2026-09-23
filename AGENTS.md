@@ -85,6 +85,15 @@ This project uses:
   you added and cut them before you typecheck, not after being asked.
 - i18n: add keys to BOTH `messages/en.json` and `messages/de.json` (`domain_camelCase`, kept sorted). One prefix per domain: never split singular and plural (`areas_*`, not `area_*` alongside it). No em-dashes anywhere (UI copy, translations, code comments).
 - Icons: use `<Icon name="...">`; only `icons.ts` and `Icon.svelte` may import lucide.
+- An entity's detail URL comes from `entityHref(kind, id)` (`$lib/entities/href`) and nowhere else,
+  wherever that URL is a VALUE: a handler's `redirectTo`, a form's `cancelTo`, a `back()` / `exit()`
+  / `push()` argument, an href passed as a prop. The one exception is an href
+  `svelte/no-navigation-without-resolve` can actually verify, which keeps its literal `resolve()`:
+  that rule is syntactic, so it recognises a direct `resolve()` call on an `<a href>` or a variable
+  it can trace to one, and nothing else. Anywhere it cannot see (a `<svelte:element>`, a conditional)
+  the helper is fine and no disable comment is needed. That is why both spellings coexist; it is not
+  an oversight to tidy up. Leave `resolve()` alone for routes that take no parameter (`/settings`,
+  `/explore`, `/legal/*`), where a helper would be no shorter and would lose the lint guarantee.
 - Every OpenLayers instance comes from `createBaseMap` (`$lib/map/base.svelte.ts`): never
   `new OlMap` elsewhere, and never restyle `.osm-layer` in a component, those rules live in
   `app.css`. `StaticMap.svelte` is the deliberate exception, drawing raw `<img>` tiles.

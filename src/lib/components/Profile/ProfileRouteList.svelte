@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import ShowMoreList from '$lib/components/Profile/ShowMoreList.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import type { AscentType } from '$lib/entities/ascent/dto'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { entityHref } from '$lib/entities/href'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -60,9 +60,9 @@
     action={onRemove == null ? undefined : removeAction}
     active={activeId === route.id}
     crumbs={crumbFor?.(route)}
-    detailsHref={resolve('/(app)/routes/[id]', { id: String(route.id) })}
+    detailsHref={entityHref('routes', route.id)}
     grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-    mapHref={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(route.blockFk) })}
+    mapHref={entityHref('blocks', route.blockFk)}
     onclick={() => (activeId = activeId === route.id ? null : route.id)}
     status={status?.get(route.id)}
   />

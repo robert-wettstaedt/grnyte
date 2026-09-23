@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { canEditRegion } from '$lib/entities/region/permissions'
   import { updateRegionMapLayers } from '$lib/entities/region/regions.remote'
   import { mapLayersFingerprint, toLayerForm } from '$lib/entities/region/settings'
@@ -81,7 +81,7 @@
 {:else}
   <Form
     form={updateRegionMapLayers}
-    cancelTo={resolve('/(app)/regions/[regionId]', { regionId: String(regionId) })}
+    cancelTo={entityHref('regions', regionId)}
     {onSubmitted}
     submitLabel={m.common_save()}
     title={m.region_mapLayers()}

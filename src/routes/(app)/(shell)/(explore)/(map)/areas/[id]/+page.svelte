@@ -17,6 +17,7 @@
   import { createSaveState } from '$lib/entities/favorite/save.svelte'
   import { createLocationState } from '$lib/entities/geolocation/location.svelte'
   import { countRoutesByGrade } from '$lib/entities/grade/counts'
+  import { entityHref } from '$lib/entities/href'
   import { regionCrumb } from '$lib/entities/region/mapper'
   import { routeList } from '$lib/entities/route/resources.svelte'
   import { sectorReferencePoint } from '$lib/map/map'
@@ -47,7 +48,7 @@
 
   trackView('areas', () => area.data?.id)
 
-  const areaHref = (id: number) => resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(id) })
+  const areaHref = (id: number) => entityHref('areas', id)
 
   // Blocks beneath this sector, ordered by the query; routes (above) are grouped
   // under them by the BlocksList.

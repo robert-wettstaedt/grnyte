@@ -10,7 +10,7 @@
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { regionDisplayName } from '$lib/entities/region/mapper'
   import { nameCollator } from '$lib/i18n/collator'
-  import { formatMetres } from '$lib/map/map'
+  import { formatCoord, formatMetres } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { push } from '$lib/state/navigation.svelte'
@@ -206,10 +206,6 @@
 
     push(`${path}?lat=${center[0]}&long=${center[1]}`)
   }
-
-  // Matches LocationPicker's "48.41038°N, 2.61175°E" readout.
-  const formatCoord = (coord: [number, number]): string =>
-    `${Math.abs(coord[0]).toFixed(5)}°${coord[0] >= 0 ? 'N' : 'S'}, ${Math.abs(coord[1]).toFixed(5)}°${coord[1] >= 0 ? 'E' : 'W'}`
 </script>
 
 <!-- `Row` rather than `AreaRow`, which would put a thumbnail on every one. `tabular-nums` is what

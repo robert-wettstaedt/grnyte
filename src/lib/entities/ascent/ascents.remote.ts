@@ -1,6 +1,6 @@
-import { resolve } from '$app/paths'
 import { command } from '$app/server'
 import { ascents, ascentTypeEnum, files, routes, users } from '$lib/db/schema'
+import { entityHref } from '$lib/entities/href'
 import { blank, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { logServerFailure } from '$lib/logging/failure.server'
@@ -185,7 +185,7 @@ export const updateAscent = authedForm(
 
     return {
       data: { id: ascent.id, routeFk: ascent.routeFk },
-      redirectTo: resolve('/(app)/routes/[id]', { id: String(ascent.routeFk) }),
+      redirectTo: entityHref('routes', ascent.routeFk),
     }
   },
 )

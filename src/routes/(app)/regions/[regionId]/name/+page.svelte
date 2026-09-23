@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { entityHref } from '$lib/entities/href'
   import { canEditRegion } from '$lib/entities/region/permissions'
   import { updateRegion } from '$lib/entities/region/regions.remote'
   import AuthField from '$lib/forms/AuthField.svelte'
@@ -48,7 +48,7 @@
 {:else}
   <Form
     form={updateRegion}
-    cancelTo={resolve('/(app)/regions/[regionId]', { regionId: String(regionId) })}
+    cancelTo={entityHref('regions', regionId)}
     {onSubmitted}
     submitLabel={m.common_save()}
     title={m.settings_changeRegionName()}

@@ -3,6 +3,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { signOut } from '$lib/auth/session.remote'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { MAX_OWNED_REGIONS } from '$lib/entities/region/dto'
   import { createRegion } from '$lib/entities/region/regions.remote'
   import Form from '$lib/forms/Form.svelte'
@@ -57,7 +58,7 @@
       return
     }
 
-    location.href = welcome ? resolve('/explore') : resolve('/(app)/regions/[regionId]', { regionId: String(regionId) })
+    location.href = welcome ? resolve('/explore') : entityHref('regions', regionId)
   }
 </script>
 

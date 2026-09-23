@@ -1,6 +1,5 @@
 <script lang="ts">
   import { beforeNavigate } from '$app/navigation'
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
@@ -8,6 +7,7 @@
   import { addParking } from '$lib/entities/area/areas.remote'
   import { canAddParking } from '$lib/entities/area/permissions'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
+  import { entityHref } from '$lib/entities/href'
   import Form from '$lib/forms/Form.svelte'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { createAreaPickerMapData } from '$lib/map/exploreData.svelte'
@@ -38,6 +38,10 @@
   let latText = $state('')
   let lngText = $state('')
   let picked = $state<null | { lat: number; long: number }>(null)
+  // Whether the reader has actually moved the pin or typed a coordinate. NOT `picked != null`:
+  // `picked` mirrors the map centre, so it is set the moment the picker frames itself and every
+  // visit would have counted as an unsaved edit.
+  let touched = $state(false)
   // The parking committed when advancing to step 2, so StepPlace reframes there on return.
   // Deliberately the initial value only: the effect below re-seeds it when the area changes.
   // svelte-ignore state_referenced_locally
@@ -54,7 +58,7 @@
 
   // The steps are local state, not history entries, so the platform's back gesture leaves the whole
   // wizard where the header's control only steps back one. Confirm rather than discard silently.
-  const dirty = $derived(picked != null || pathPoints.length > 0)
+  const dirty = $derived(touched || pathPoints.length > 0)
   let saved = false
   const onSubmitted = () => {
     saved = true
@@ -83,6 +87,7 @@
       latText = ''
       lngText = ''
       picked = null
+      touched = false
       placedCenter = prefill == null ? null : [prefill.lat, prefill.long]
       pathPoints = []
     },
@@ -123,7 +128,7 @@
           title={m.areas_parkingNeedsSectorTitle()}
           description={m.areas_parkingNeedsSectorBody()}
           primaryAction={{
-            href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),
+            href: entityHref('areas', data.id),
             label: m.areas_viewArea(),
           }}
         />
@@ -133,7 +138,7 @@
           title={m.form_noPermissionTitle()}
           description={m.form_noEditPermission()}
           primaryAction={{
-            href: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }),
+            href: entityHref('areas', data.id),
             label: m.areas_viewArea(),
           }}
         />
@@ -144,7 +149,7 @@
         {onSubmitted}
         bind:step
         form={addParking}
-        cancelTo={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(areaId) })}
+        cancelTo={entityHref('areas', areaId)}
         submitLabel={m.common_save()}
         title={m.areas_addParkingLocation()}
         steps={[
@@ -171,6 +176,7 @@
     bind:latText
     bind:lngText
     bind:picked
+    onedit={() => (touched = true)}
   />
 {/snippet}
 

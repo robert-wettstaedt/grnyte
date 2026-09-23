@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
@@ -8,6 +7,7 @@
   import { canLogAscent } from '$lib/entities/ascent/permissions'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { finalizeMediaUploads, type MediaUpload } from '$lib/entities/file/upload-manager.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import RouteWithBlock from '$lib/entities/route/RouteWithBlock.svelte'
   import Form from '$lib/forms/Form.svelte'
@@ -38,7 +38,7 @@
     },
   )
 
-  const routeHref = $derived(resolve('/(app)/routes/[id]', { id: page.params.id ?? '' }))
+  const routeHref = $derived(entityHref('routes', Number(page.params.id)))
 
   // Record-first media: the ascent is created on submit; pending uploads then finalize
   // against it in the background while we return to the route page (which shows them

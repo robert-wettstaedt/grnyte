@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { finalizeMediaUploads, type MediaUpload } from '$lib/entities/file/upload-manager.svelte'
+  import { entityHref } from '$lib/entities/href'
   import { canAddRoute } from '$lib/entities/route/permissions'
   import { waitForRoute } from '$lib/entities/route/resources.svelte'
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
@@ -46,7 +46,7 @@
     await waitForRoute(id)
     // This page leaves on its own, because the handler cannot declare a destination without
     // discarding the id above. `exit`, so the finished form is retired rather than stacked.
-    await exit(resolve('/(app)/routes/[id]', { id: String(id) }))
+    await exit(entityHref('routes', id))
   }
 </script>
 
@@ -59,7 +59,7 @@
     {#if canAddRoute(global.userRegions, data)}
       <Form
         form={createRoute}
-        cancelTo={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(data.id) })}
+        cancelTo={entityHref('blocks', data.id)}
         {onSubmitted}
         submitLabel={m.common_add()}
         title={m.routes_addRoute()}
@@ -74,7 +74,7 @@
         title={m.form_noPermissionTitle()}
         description={m.form_noEditPermission()}
         primaryAction={{
-          href: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(data.id) }),
+          href: entityHref('blocks', data.id),
           label: m.blocks_viewBlock(),
         }}
       />
