@@ -1,4 +1,5 @@
-import { goToSibling, isNavKeyExempt } from '$lib/components/SiblingNav/siblingNav'
+import { isNavKeyExempt } from '$lib/components/SiblingNav/siblingNav'
+import { push } from '$lib/state/navigation.svelte'
 import { sheetState } from './sheetState.svelte'
 
 /**
@@ -22,10 +23,10 @@ export function sheetNavKeydown(options: { onback?: () => void } = {}) {
 
     if (key === 'j') {
       event.preventDefault()
-      void goToSibling(nav.prev.href)
+      void push(nav.prev.href)
     } else if (key === 'l') {
       event.preventDefault()
-      void goToSibling(nav.next.href)
+      void push(nav.next.href)
     }
   }
 }

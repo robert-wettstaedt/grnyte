@@ -1,8 +1,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import { siblingScrollSurface } from '$lib/components/SiblingNav/siblingNav'
   import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { resetOnNavigate } from '$lib/state/scroll'
   import { BottomSheet, type TypeOfBottomSheet } from 'svelte-bottom-sheet'
   import SheetHeading from './SheetHeading.svelte'
   import { sheetState } from './sheetState.svelte'
@@ -103,7 +103,7 @@
 
 {#snippet content()}
   <!-- The sheet element is the scroll container here: BottomSheet.Content clips instead. -->
-  <BottomSheet.Sheet class="preset-filled-surface-50-950! block!" {...siblingScrollSurface}>
+  <BottomSheet.Sheet class="preset-filled-surface-50-950! block!" {@attach resetOnNavigate}>
     <BottomSheet.Handle style="background: var(--color-surface-50-950)" />
 
     <div

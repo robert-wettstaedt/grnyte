@@ -94,6 +94,15 @@ This project uses:
   the helper is fine and no disable comment is needed. That is why both spellings coexist; it is not
   an oversight to tidy up. Leave `resolve()` alone for routes that take no parameter (`/settings`,
   `/explore`, `/legal/*`), where a helper would be no shorter and would lose the lint guarantee.
+- A layout that owns a scroll container takes it from `$lib/state/scroll`: `createScrollSurface()`
+  attached to its `<main>` and re-exported as `snapshot`, or `resetOnNavigate` for a surface with no
+  history entry of its own (the explore sheet and panel). Nothing scrolls the window here, so Kit's
+  own handling is inert and a hand-wired container keeps the previous screen's offset. A different
+  screen resets, the same screen does not, and the PATHNAME decides: `trail.exit` replaces to a
+  different screen on every form submit, and the media viewer pushes `?media=` onto the current one.
+  A navigation that only forwards to a canonical URL uses `redirectTo`, so the destination keeps the
+  position it sets for itself. A sheet resets rather than restores, because its snap point and its
+  scroll are one position and restoring half of it is worse than neither.
 - Every OpenLayers instance comes from `createBaseMap` (`$lib/map/base.svelte.ts`): never
   `new OlMap` elsewhere, and never restyle `.osm-layer` in a component, those rules live in
   `app.css`. `StaticMap.svelte` is the deliberate exception, drawing raw `<img>` tiles.

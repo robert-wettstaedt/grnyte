@@ -14,7 +14,7 @@
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import PageHeader, { PAGE_CHROME_WIDTH } from '$lib/components/PageHeader/PageHeader.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import { goToSibling, isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
+  import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import AscentRow from '$lib/entities/ascent/AscentRow.svelte'
@@ -37,7 +37,7 @@
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { back } from '$lib/state/navigation.svelte'
+  import { back, push } from '$lib/state/navigation.svelte'
   import { SvelteMap } from 'svelte/reactivity'
   import RegionLive from './RegionLive.svelte'
   import RouteActions from './RouteActions.svelte'
@@ -135,7 +135,7 @@
     if (page.url.searchParams.has('media') || logOpen) return
     const href = event.key === 'j' ? nav.prev.href : event.key === 'l' ? nav.next.href : null
     if (href == null) return
-    void goToSibling(href)
+    void push(href)
   }
 
   const logHref = $derived(resolve('/(app)/routes/[id]/ascents/add', { id: String(routeId) }))

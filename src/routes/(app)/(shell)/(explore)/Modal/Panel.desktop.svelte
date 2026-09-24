@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import { siblingScrollSurface } from '$lib/components/SiblingNav/siblingNav'
   import { m } from '$lib/paraglide/messages'
+  import { resetOnNavigate } from '$lib/state/scroll'
   import NavFooter from './NavFooter.svelte'
   import SheetHeading from './SheetHeading.svelte'
   import { sheetState } from './sheetState.svelte'
@@ -35,7 +35,7 @@
       {/if}
     </header>
 
-    <div class="min-h-0 flex-1 overflow-y-auto p-4" {...siblingScrollSurface}>
+    <div class="min-h-0 flex-1 overflow-y-auto p-4" {@attach resetOnNavigate}>
       {@render children?.()}
     </div>
 

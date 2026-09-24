@@ -3,10 +3,16 @@
   import TabBar from '$lib/components/AppNav/TabBar.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { createScrollSurface } from '$lib/state/scroll'
 
   const { children } = $props()
 
   const global = getGlobalState()
+
+  const scroll = createScrollSurface()
+
+  // Kit restores this on back. Nothing here scrolls the window, so its own handling never fires.
+  export const snapshot = scroll.snapshot
 </script>
 
 <!-- The app shell: primary destinations (map, feed, profile) framed by the nav
@@ -16,7 +22,7 @@
      content out from under it. Feed and profile centre a column in what is left;
      the map and its overlays are absolute/fixed, positioned against the padding
      box, so they stay full-bleed under the glass rail. -->
-<main class="relative min-w-0 flex-1 overflow-y-auto md:pl-20">
+<main class="relative min-w-0 flex-1 overflow-y-auto md:pl-20" {@attach scroll.attach}>
   <!-- The wait is owned here rather than by `(app)`, which shows a full-screen indicator for the
        chromeless routes instead. Nothing above this line needs synced data - the rail and the tab
        bar read only `unreadNotifications`, which starts at zero and moves - so the frame can paint

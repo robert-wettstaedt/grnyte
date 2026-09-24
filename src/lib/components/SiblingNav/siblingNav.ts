@@ -1,5 +1,3 @@
-import { push } from '$lib/state/navigation.svelte'
-
 /** Prev/next navigation between sibling entities. Each caller renders it in its own
  *  layout (the sheet's mobile pill / desktop footer, a standalone page's own footer). */
 export interface SheetNav {
@@ -12,23 +10,6 @@ export interface SheetNav {
 interface Sibling {
   id: number
   name: string
-}
-
-const SCROLL_SURFACE_ATTRIBUTE = 'data-sibling-scroll'
-
-/** Spread onto the scroll container of a surface that shows the nav (page, sheet, panel). */
-export const siblingScrollSurface = { [SCROLL_SURFACE_ATTRIBUTE]: '' }
-
-/**
- * Jump to a sibling and land at the top of it. SvelteKit only resets `window` scroll, and none of
- * these surfaces scroll the window, so the marked containers are reset here instead.
- */
-export async function goToSibling(href: string) {
-  await push(href)
-
-  for (const surface of document.querySelectorAll(`[${SCROLL_SURFACE_ATTRIBUTE}]`)) {
-    surface.scrollTop = 0
-  }
 }
 
 /** True when nav shortcuts should stay inert: a modifier is held or the user is

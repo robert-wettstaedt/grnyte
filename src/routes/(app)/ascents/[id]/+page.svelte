@@ -5,19 +5,18 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { ascentDetail } from '$lib/entities/ascent/resources.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { replaceUrl } from '$lib/state/navigation.svelte'
+  import { redirectTo } from '$lib/state/navigation.svelte'
 
   const ascent = ascentDetail(() => Number(page.params.id))
 
-  // Pure redirect: an ascent's canonical surface is its row in the route's ascent
-  // list, so this route only resolves routeFk and forwards; ?ascent= makes the list
-  // highlight and scroll to the row. replaceState keeps back from bouncing here.
+  // Pure redirect: an ascent lives as a row in the route's ascent list, so this route resolves
+  // routeFk and forwards. `redirectTo`, not `replaceUrl`, so the list keeps the row it scrolls to.
   $effect(() => {
     const data = ascent.data
     if (data == null) return
     const url = `${resolve('/(app)/routes/[id]/ascents', { id: String(data.routeFk) })}?ascent=${data.id}`
 
-    void replaceUrl(url)
+    void redirectTo(url)
   })
 </script>
 

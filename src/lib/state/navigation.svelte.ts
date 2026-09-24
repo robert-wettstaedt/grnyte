@@ -1,5 +1,6 @@
 import { afterNavigate, goto, replaceState } from '$app/navigation'
 import { page } from '$app/state'
+import { onNavigation } from './scroll'
 import { createTrail } from './trail.svelte'
 
 // One trail for the app, over the browser. `createTrail` holds the rules; this supplies the two
@@ -14,6 +15,17 @@ const trail = createTrail({
 // (e.g. the media viewer paging siblings via replace). Navigations issued
 // through replaceUrl() raise this flag; the tracker consumes it instead of counting.
 let replacing = false
+
+// Where a redirect is headed, so `afterNavigate` can tell it from a screen change.
+//
+// The DESTINATION, not a boolean: a resolver forwards from an `$effect` during its own mount, so a
+// boolean is consumed by that mount's navigation instead of by the redirect.
+//
+// Discarded after one further navigation, so a redirect that never arrives cannot go stale. One,
+// because the resolver's own mount is the navigation it has to survive. Do NOT clear it when the
+// `goto` settles: measured, that settles BEFORE the redirect's `afterNavigate`.
+let forwardingMisses = 0
+let forwardingTo: string | undefined
 
 // The route a feedback report is about: the form is reached through settings, so settings
 // pathnames are skipped.
@@ -73,6 +85,20 @@ export function push(href: string | URL, opts: Omit<object & Parameters<typeof g
 }
 
 /**
+ * Forward to the canonical URL for what the reader asked for, replacing this entry so back does not
+ * bounce through the resolver. The destination is exempt from the scroll reset.
+ *
+ * Only for a destination that POSITIONS ITSELF, such as the ascent deep link scrolling to its row.
+ * A screen with no position of its own would keep the previous screen's offset.
+ */
+export function redirectTo(url: string | URL, opts: Omit<object & Parameters<typeof goto>[1], 'replaceState'> = {}) {
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- read once here, nothing observes it
+  forwardingTo = new URL(url, location.href).pathname
+  forwardingMisses = 0
+  return replaceUrl(url, opts)
+}
+
+/**
  * `goto` with `replaceState: true` that the trail records as a replace rather than a push. Use
  * this (not a raw goto) for every replace navigation, or the back-button logic drifts.
  */
@@ -117,12 +143,25 @@ export function trackHistoryDepth() {
     const pushed = !replacing
     replacing = false
 
+    // Classified once and read twice, so the trail and the scroll rule cannot disagree.
+    const type =
+      navigation.type === 'enter' || navigation.type === 'popstate' ? navigation.type : pushed ? 'push' : 'replace'
+
     trail.record({
       delta: navigation.type === 'popstate' ? navigation.delta : undefined,
       href: to == null ? '' : to.pathname + to.search,
-      type:
-        navigation.type === 'enter' || navigation.type === 'popstate' ? navigation.type : pushed ? 'push' : 'replace',
+      type,
     })
+
+    // `from.url` is null on a document's first navigation. An unknown origin counts as a different
+    // screen, because two nullish pathnames would compare equal and suppress the reset.
+    const fromPathname = navigation.from?.url?.pathname
+    const forwarded = forwardingTo != null && forwardingTo === to?.pathname
+    if (forwarded || (forwardingTo != null && (forwardingMisses += 1) > 1)) {
+      forwardingTo = undefined
+    }
+
+    onNavigation(type, forwarded || (fromPathname != null && fromPathname === to?.pathname))
   })
 }
 

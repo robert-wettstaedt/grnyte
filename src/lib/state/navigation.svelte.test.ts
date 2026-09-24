@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { withSearchParams } from './navigation.svelte'
 
 const feed = (search = '') => new URL(`https://grnyte.rocks/feed${search}`)
+const at = (path: string) => new URL(`https://grnyte.rocks${path}`)
 
 describe('withSearchParams', () => {
   it('writes the values it is given', () => {
@@ -55,5 +56,165 @@ describe('withSearchParams', () => {
     const url = withSearchParams(feed('?ref=my%20link&debug'), { region: 2 })
 
     expect(url.search).toBe('?ref=my+link&debug=&region=2')
+  })
+})
+
+/**
+ * The classification `trackHistoryDepth` computes, asserted at the call site rather than on a
+ * helper: the point of the change is that the trail and the scroll rule read ONE answer, and a test
+ * of an extracted classifier would still pass if the call site stopped sharing it.
+ *
+ * `canGoBack()` stands in for what the trail recorded, since `trail` is module-internal: only a
+ * `push` adds an entry a back press could reach.
+ */
+describe('trackHistoryDepth', () => {
+  const load = async () => {
+    vi.resetModules()
+
+    // `from` and `from.url` are BOTH nullable in Kit's own types, and the real first navigation of
+    // a document supplies `from.url: null`. A fixture that always hands over a URL cannot see that.
+    let handler:
+      | ((navigation: { delta?: number; from?: null | { url: null | URL }; to: { url: URL }; type: string }) => void)
+      | undefined
+    const onNavigation = vi.fn()
+
+    vi.doMock('$app/navigation', () => ({
+      afterNavigate: (callback: typeof handler) => void (handler = callback),
+      goto: () => Promise.resolve(),
+      replaceState: () => undefined,
+    }))
+    vi.doMock('./scroll', () => ({ onNavigation }))
+
+    const navigation = await import('./navigation.svelte')
+    navigation.trackHistoryDepth()
+
+    return {
+      arrive: (type: string, { from = '/blocks/1' as null | string, to = '/feed' } = {}) =>
+        handler?.({ from: { url: from == null ? null : at(from) }, to: { url: at(to) }, type }),
+      arriveWithoutOrigin: (type: string, to = '/feed') => handler?.({ to: { url: at(to) }, type }),
+      navigation,
+      onNavigation,
+    }
+  }
+
+  afterEach(() => vi.doUnmock('$app/navigation'))
+
+  it('reports a link navigation as a push, to both readers', async () => {
+    const { arrive, navigation, onNavigation } = await load()
+
+    arrive('enter')
+    arrive('link')
+
+    expect(onNavigation).toHaveBeenLastCalledWith('push', false)
+    expect(navigation.canGoBack()).toBe(true)
+  })
+
+  it('reports a replaceUrl navigation as a replace, to both readers', async () => {
+    const { arrive, navigation, onNavigation } = await load()
+
+    arrive('enter')
+    void navigation.replaceUrl('/profile')
+    arrive('goto')
+
+    expect(onNavigation).toHaveBeenLastCalledWith('replace', false)
+    // A replace swapped the entry rather than adding one, so there is still nothing behind.
+    expect(navigation.canGoBack()).toBe(false)
+  })
+
+  it.each(['enter', 'popstate'])('passes %s through unchanged', async (type) => {
+    const { arrive, onNavigation } = await load()
+
+    arrive(type)
+
+    expect(onNavigation).toHaveBeenLastCalledWith(type, false)
+  })
+
+  // `openMedia` pushes `?media=` onto the CURRENT screen so back closes it. A rule reading the kind
+  // alone would reset the screen behind the viewer, which is what driving it caught.
+  it('marks a query-only push as staying on the same screen', async () => {
+    const { arrive, onNavigation } = await load()
+
+    arrive('enter')
+    arrive('link', { from: '/blocks/8660', to: '/blocks/8660' })
+
+    expect(onNavigation).toHaveBeenLastCalledWith('push', true)
+  })
+
+  // The crash this guards: `navigation.from.url` is null on a document's first navigation, and an
+  // unguarded `.pathname` threw inside `afterNavigate`, which left Kit's client router dead so every
+  // link fell back to a full page load.
+  it('survives a first navigation that has no origin url', async () => {
+    const { arrive, onNavigation } = await load()
+
+    expect(() => arrive('enter', { from: null })).not.toThrow()
+    expect(onNavigation).toHaveBeenLastCalledWith('enter', false)
+  })
+
+  it('survives a navigation with no `from` at all', async () => {
+    const { arriveWithoutOrigin, onNavigation } = await load()
+
+    expect(() => arriveWithoutOrigin('enter')).not.toThrow()
+    expect(onNavigation).toHaveBeenLastCalledWith('enter', false)
+  })
+
+  // An unknown origin must read as a DIFFERENT screen: two nullish pathnames compare equal, which
+  // would suppress the reset on the first push after a cold start.
+  it('treats a push with an unknown origin as a screen change', async () => {
+    const { arrive, onNavigation } = await load()
+
+    arrive('enter', { from: null })
+    arrive('link', { from: null })
+
+    expect(onNavigation).toHaveBeenLastCalledWith('push', false)
+  })
+
+  // A resolver forwards from an `$effect` during its own mount, so the redirect is registered BEFORE
+  // that mount's own navigation reaches `afterNavigate`. A boolean flag is consumed by the wrong one:
+  // driven, /ascents/68 arrived at the list classified `push` with no exemption, and the reset wiped
+  // the row the deep link existed to show.
+  it('exempts a redirect even when another navigation lands first', async () => {
+    const { arrive, navigation, onNavigation } = await load()
+
+    void navigation.redirectTo('/routes/108/ascents?ascent=68')
+
+    // The mount's own navigation settles in between and must not consume the redirect.
+    arrive('enter', { from: null, to: '/ascents/68' })
+    expect(onNavigation).toHaveBeenLastCalledWith('enter', false)
+
+    arrive('goto', { from: '/ascents/68', to: '/routes/108/ascents' })
+
+    // Asserted on the exemption alone, deliberately. The KIND arrives as `push` rather than
+    // `replace`, because `replacing` is a boolean consumed by that same intervening navigation, so
+    // the trail records a pushed entry for a replaceState. That is a pre-existing defect in the
+    // back-navigation bookkeeping, not this rule's, and pinning `push` here would enshrine it.
+    expect(onNavigation.mock.lastCall?.[1], 'the redirect is exempt from the reset').toBe(true)
+  })
+
+  // The exemption is spent once, so the next arrival at that screen is an ordinary screen change.
+  it('does not exempt a later navigation to the same screen', async () => {
+    const { arrive, navigation, onNavigation } = await load()
+
+    void navigation.redirectTo('/routes/108/ascents?ascent=68')
+    arrive('goto', { from: '/ascents/68', to: '/routes/108/ascents' })
+    arrive('link', { from: '/feed', to: '/routes/108/ascents' })
+
+    expect(onNavigation.mock.lastCall?.[1], 'the exemption was spent by the redirect').toBe(false)
+  })
+
+  // A redirect that never arrives must not outlive the next navigation. Clearing it when the `goto`
+  // settles looks equivalent and is not: measured, that settles BEFORE the redirect's own
+  // `afterNavigate`, so it would wipe the exemption just before it is read.
+  it('discards a redirect that never arrived once the reader lands elsewhere', async () => {
+    const { arrive, navigation, onNavigation } = await load()
+
+    void navigation.redirectTo('/routes/108/ascents?ascent=68')
+    // The resolver's own mount, which the record has to survive.
+    arrive('enter', { from: null, to: '/ascents/68' })
+    // The redirect never arrives; the reader goes somewhere else instead.
+    arrive('link', { from: '/ascents/68', to: '/feed' })
+    // Now the destination is reached by an ordinary push, which is a real screen change.
+    arrive('link', { from: '/feed', to: '/routes/108/ascents' })
+
+    expect(onNavigation.mock.lastCall?.[1], 'the stale exemption was discarded').toBe(false)
   })
 })
