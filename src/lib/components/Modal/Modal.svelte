@@ -11,6 +11,7 @@
 </script>
 
 <script lang="ts">
+  import { beforeNavigate } from '$app/navigation'
   import { MediaQuery } from 'svelte/reactivity'
   import { getModalDepth, setModalDepth } from './depth'
   import { type Props } from './types'
@@ -18,6 +19,16 @@
   let { open = $bindable(), panel = false, trigger, ...props }: Props = $props()
 
   const desktop = new MediaQuery(DESKTOP_QUERY)
+
+  // Close before the page unmounts: a nested dialog deactivating while the one it sits in is
+  // already gone throws out of focus-trap's unpause, which aborts the teardown and leaves the
+  // whole app `aria-hidden`. Pathname only, so the query mirroring the feed and the search bar
+  // do in an effect leaves an open sheet alone.
+  beforeNavigate((navigation) => {
+    if (navigation.to?.url.pathname !== navigation.from?.url.pathname) {
+      open = false
+    }
+  })
 
   // Where this sheet stacks, and one level up for whatever its body renders. Read from the sheet
   // this one was opened from rather than passed in: the same component opens at several depths

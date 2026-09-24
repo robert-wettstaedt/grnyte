@@ -91,9 +91,11 @@
     }
   })
 
+  // Close before delegating: `onAdd` selects the route, which unmounts the sheet this one is
+  // nested in, and a dialog torn down while a nested one deactivates throws out of focus-trap.
   function pick(routeId: number) {
-    onAdd(routeId)
     open = false
+    onAdd(routeId)
   }
 
   // Switching steps re-renders the sheet mid-click; svelte-bottom-sheet's document-level
@@ -122,8 +124,8 @@
 
     const id = createRoute.result?.data?.id
     if (id != null) {
-      onAdd(id)
       open = false
+      onAdd(id)
     }
   })
 </script>

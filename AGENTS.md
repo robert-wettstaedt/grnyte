@@ -111,6 +111,19 @@ This project uses:
   `EventCard.svelte` is the shortest example.
   A Tailwind `transition-*` class is no substitute: it cannot animate an element that does not exist
   yet, so it stays on hover, focus and state changes of things already mounted.
+- A nested `Modal` must not unmount the one it opened from in the same flush. Closing the inner
+  dialog unpauses the outer trap, and if that one's DOM went away in the same flush, zag throws out
+  of `getInitialFocusNode`, which aborts the rest of the teardown and leaves the whole app
+  `aria-hidden` until a reload. Nothing is visibly wrong, so only a screen reader sees it. Close,
+  `await tick()`, then set the state that unmounts (`topos/edit`'s `addRouteLine` is the worked
+  example). Navigation is the other way to unmount an outer sheet, and `Modal.svelte` handles that
+  for every caller by closing itself in `beforeNavigate`; that guard compares PATHNAMES, because a
+  page mirroring its own state into the query string (`/feed`) is a real Kit navigation and must
+  leave an open sheet alone. Both halves are desktop-only: the mobile branch is
+  `svelte-bottom-sheet` with no trap, so a pass at 375 proves nothing here, and jsdom cannot cover
+  it either because `tabbable` reads `getClientRects`, which is always empty there.
+  Only `panel` plus `backdrop={true}` traps (a popover defaults to `modal: false`), so a nesting is
+  only exposed when BOTH surfaces are that shape.
 - Reuse before building: grep for an existing component/function first. If one fits but is not reusable, refactor it to be reusable and composable rather than hand-rolling a copy. Promote shared pieces to `$lib`. Prefer passing an entity DTO over a long list of individual props.
 - Entity modules live in `src/lib/entities/<name>/`, mirroring `area/` as the template.
 - An entity's display name comes from its mapper and nowhere else, and that is a TYPE:

@@ -38,6 +38,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { notifyError, notifyUndo, toaster } from '$lib/state/toast'
+  import { tick } from 'svelte'
   import { fly } from 'svelte/transition'
   import { topoEditorKeydown } from './keydown'
   import TopoAddRouteModal from './TopoAddRouteModal.svelte'
@@ -209,10 +210,13 @@
     }
   }
 
-  function addRouteLine(routeId: number) {
+  // The selection unmounts this panel, so let it finish closing first: a dialog torn down while a
+  // nested one deactivates throws out of focus-trap's unpause, aborting its aria-hidden restore.
+  async function addRouteLine(routeId: number) {
+    routesOpen = false
+    await tick()
     editor.addLine(routeId)
     editor.pointType = 'start'
-    routesOpen = false
   }
 
   async function deleteSelectedRoute() {
