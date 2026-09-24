@@ -50,13 +50,13 @@
 
 ## 7. Deployment
 
-- [ ] 7.1 **Yours**: create the read only key in the Bunny dashboard. Verify it is the READ ONLY key and not the full access one, since it doubles as the webhook signing secret.
-- [ ] 7.2 **Yours**: store it in Bitwarden, push to Vercel for all three environments, and set a local value for dev. Verify by reading it back per environment rather than assuming the push succeeded.
-- [ ] 7.3 Migrate production. Verify `readiness` exists and that existing rows read `ready`.
-- [ ] 7.4 Deploy. Verify the endpoint answers before going further: an unsigned POST is rejected, not a 404.
-- [ ] 7.5 **Yours**: point the Bunny webhook at `/api/webhooks/bunny`. ONLY after 7.4 passes, because anything sent before the endpoint exists hits a 404 and is lost permanently with no retry. Verify by uploading one video and watching its readiness flip on its own, which is the acceptance test for the whole change.
-- [ ] 7.6 Trigger the one shot reconciliation sweep manually and read its corrected count, spot checking two or three known videos. It is the only reconciliation that runs until the cutover registers a cleanup schedule.
-- [ ] 7.7 Confirm push delivery works in production AT ALL before relying on it, since it has never been verified there and this change adds a new push kind to it. Verify by receiving one on a real device. If it does not work, that is a finding about the push system and the inbox half of the notification still lands.
+- [x] 7.1 **Yours**: create the read only key in the Bunny dashboard. Verify it is the READ ONLY key and not the full access one, since it doubles as the webhook signing secret.
+- [x] 7.2 **Yours**: store it in Bitwarden, push to Vercel for all three environments, and set a local value for dev. Verify by reading it back per environment rather than assuming the push succeeded.
+- [x] 7.3 Migrate production. Verify `readiness` exists and that existing rows read `ready`.
+- [x] 7.4 Deploy. Verify the endpoint answers before going further: an unsigned POST is rejected, not a 404.
+- [x] 7.5 **Yours**: point the Bunny webhook at `/api/webhooks/bunny`. ONLY after 7.4 passes, because anything sent before the endpoint exists hits a 404 and is lost permanently with no retry. Verify by uploading one video and watching its readiness flip on its own, which is the acceptance test for the whole change.
+- [x] 7.6 Trigger the one shot reconciliation sweep manually and read its corrected count, spot checking two or three known videos. It is the only reconciliation that runs until the cutover registers a cleanup schedule.
+- [x] 7.7 Confirm push delivery works in production AT ALL before relying on it, since it has never been verified there and this change adds a new push kind to it. Verify by receiving one on a real device. If it does not work, that is a finding about the push system and the inbox half of the notification still lands.
 - [x] 7.8 Hand off to the v2 cutover list: registering the `/api/tasks/cleanup` pg_cron row, and that reconciliation does not run until it exists. Note separately that the same job also switches on staging, notification, feedback and error log retention, which is a decision of its own. DONE: written into docs/CUTOVER.md, which also carries the rest of group 7.
 
 ## 8. Notifications
