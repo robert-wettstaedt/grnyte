@@ -105,3 +105,42 @@ test('back after closing a deep-linked block sheet does not reopen it', async ()
   await page.goBack()
   await expect(page).not.toHaveURL(new RegExp(`/blocks/${fixture.betaBlockId}$`))
 })
+
+/**
+ * A screen reached through a resolver has nothing of the app behind it, so back must go up to the
+ * parent rather than popping. `/ascents/[id]` resolves an ascent to its row in the route's ascent
+ * list and forwards there with a replace.
+ *
+ * The store has to be WARM first. The resolver forwards from an `$effect` gated on a Zero read, and
+ * only when that read is already local does the effect flush during hydration, ahead of the
+ * navigation's own `afterNavigate`. Arriving cold, the row syncs first, the effect runs later, and
+ * the safe path is taken. So a cold arrival cannot see this and passes either way.
+ *
+ * Its own page, not the shared one: the trail is per document, and a tab carrying earlier tests'
+ * entries cannot tell "went up to the parent" from "popped to whatever was behind".
+ */
+test('back from an ascent deep link goes up to the route', async () => {
+  // Warm the replica for this origin, so the resolver's read is local when the deep link mounts.
+  await visit(page, `/routes/${fixture.richRouteId}/ascents`)
+  await expect(page.locator(`#ascent-${fixture.richAscentId}`)).toBeVisible({ timeout: 30_000 })
+
+  const deepLinked = await context.newPage()
+
+  try {
+    await visit(deepLinked, `/ascents/${fixture.richAscentId}`)
+    await deepLinked.waitForURL(`**/routes/${fixture.richRouteId}/ascents**`)
+    // The deep-linked row itself, which also proves the resolver picked the right list.
+    await expect(deepLinked.locator(`#ascent-${fixture.richAscentId}`)).toBeVisible({ timeout: 30_000 })
+
+    const before = await entryCount(deepLinked)
+
+    await deepLinked.getByRole('button', { name: 'Back' }).first().click()
+    await deepLinked.waitForURL(`**/routes/${fixture.richRouteId}`)
+
+    // The count as well as the URL: going up REPLACES the resolved entry, while a pop would reach
+    // the route too on a tab that happened to have it behind, and only the count tells them apart.
+    expect(await entryCount(deepLinked)).toBe(before)
+  } finally {
+    await deepLinked.close()
+  }
+})

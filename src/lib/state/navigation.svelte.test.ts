@@ -114,7 +114,8 @@ describe('trackHistoryDepth', () => {
 
     arrive('enter')
     void navigation.replaceUrl('/profile')
-    arrive('goto')
+    // The arrival has to BE the one the replace was headed for; the record is matched by destination.
+    arrive('goto', { from: '/feed', to: '/profile' })
 
     expect(onNavigation).toHaveBeenLastCalledWith('replace', false)
     // A replace swapped the entry rather than adding one, so there is still nothing behind.
@@ -216,5 +217,43 @@ describe('trackHistoryDepth', () => {
     arrive('link', { from: '/feed', to: '/routes/108/ascents' })
 
     expect(onNavigation.mock.lastCall?.[1], 'the stale exemption was discarded').toBe(false)
+  })
+
+  /**
+   * The race that makes back dead on a resolver deep link. `replaceUrl` clears `replacing` when the
+   * `goto` settles, and that settlement can beat the navigation's own `afterNavigate`. Measured once
+   * in a real browser, but it is a race and usually resolves the safe way, so driving it is not
+   * reliable. Awaiting the settlement here makes the adverse order deterministic.
+   */
+  it('records a replace whose goto settled before the navigation arrived', async () => {
+    const { arrive, navigation, onNavigation } = await load()
+
+    arrive('enter', { from: null, to: '/ascents/68' })
+
+    const done = navigation.replaceUrl('/routes/108/ascents?ascent=68')
+    // The settlement wins the race, which is what clears the flag early.
+    await done
+
+    arrive('goto', { from: '/ascents/68', to: '/routes/108/ascents' })
+
+    // Recorded as a push, the trail gains an entry the browser does not have, `canGoBack()` turns
+    // true, and back calls `history.back()` on a stack with nothing behind it.
+    expect(onNavigation.mock.lastCall?.[0], 'the browser replaced, so the trail must say replace').toBe('replace')
+  })
+
+  // Only a `goto` can be the arrival a replace was waiting for. An enter or popstate landing on the
+  // same pathname must not spend the record, or the replace that follows is counted as a push. Found
+  // in review; it is the original bug's shape, moved from a boolean to a pathname match.
+  it('does not let an enter or popstate consume a pending replace', async () => {
+    const { arrive, navigation, onNavigation } = await load()
+
+    void navigation.replaceUrl('/routes/108/ascents?ascent=68')
+    // A resolver forwarding within its own pathname makes this the ordinary case, not a freak one.
+    arrive('enter', { from: null, to: '/routes/108/ascents' })
+    arrive('popstate', { from: '/feed', to: '/routes/108/ascents' })
+
+    arrive('goto', { from: '/feed', to: '/routes/108/ascents' })
+
+    expect(onNavigation.mock.lastCall?.[0], 'the replace still owns its arrival').toBe('replace')
   })
 })

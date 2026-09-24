@@ -10,22 +10,23 @@ const trail = createTrail({
   replace: (href, options) => replaceUrl(href, options),
 })
 
-// afterNavigate reports a replaceState goto as a plain 'goto' (SvelteKit exposes
-// no replace signal), which would otherwise record a pushed entry that never existed
-// (e.g. the media viewer paging siblings via replace). Navigations issued
-// through replaceUrl() raise this flag; the tracker consumes it instead of counting.
-let replacing = false
+// afterNavigate reports a replaceState goto as a plain 'goto', because SvelteKit exposes no replace
+// signal, so `replaceUrl` records where it is headed and the tracker matches that arrival.
+//
+// The DESTINATION, not a boolean. A boolean is claimed by whichever navigation arrives first, and
+// two of them legitimately arrive before the one that raised it: a resolver forwards from an
+// `$effect` during its own mount, and the `goto` can settle before its own `afterNavigate`.
+//
+// Each record is discarded after one further navigation, so one that never arrives cannot go stale.
+// One, because the resolver's own mount is the navigation it has to survive. The residual: a replace
+// that never lands (a `beforeNavigate` guard cancelled it, and Kit resolves rather than rejects
+// those) followed by a genuine push to that same pathname reads as a replace, costing the trail one
+// entry.
+const replaced = createNavigationRecord()
 
-// Where a redirect is headed, so `afterNavigate` can tell it from a screen change.
-//
-// The DESTINATION, not a boolean: a resolver forwards from an `$effect` during its own mount, so a
-// boolean is consumed by that mount's navigation instead of by the redirect.
-//
-// Discarded after one further navigation, so a redirect that never arrives cannot go stale. One,
-// because the resolver's own mount is the navigation it has to survive. Do NOT clear it when the
-// `goto` settles: measured, that settles BEFORE the redirect's `afterNavigate`.
-let forwardingMisses = 0
-let forwardingTo: string | undefined
+// The same shape for a different question: `replaced` decides push versus replace for the trail,
+// `forwarded` decides whether the scroll rule sees a screen change. A redirect is both.
+const forwarded = createNavigationRecord()
 
 // The route a feedback report is about: the form is reached through settings, so settings
 // pathnames are skipped.
@@ -92,9 +93,7 @@ export function push(href: string | URL, opts: Omit<object & Parameters<typeof g
  * A screen with no position of its own would keep the previous screen's offset.
  */
 export function redirectTo(url: string | URL, opts: Omit<object & Parameters<typeof goto>[1], 'replaceState'> = {}) {
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- read once here, nothing observes it
-  forwardingTo = new URL(url, location.href).pathname
-  forwardingMisses = 0
+  forwarded.expect(url)
   return replaceUrl(url, opts)
 }
 
@@ -103,14 +102,9 @@ export function redirectTo(url: string | URL, opts: Omit<object & Parameters<typ
  * this (not a raw goto) for every replace navigation, or the back-button logic drifts.
  */
 export function replaceUrl(url: string | URL, opts: Omit<object & Parameters<typeof goto>[1], 'replaceState'> = {}) {
-  replacing = true
+  replaced.expect(url)
   // eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass resolved/same-page URLs
-  return goto(url, { ...opts, replaceState: true }).finally(() => {
-    // Also cleared here, not only by the tracker: a navigation that threw, or that a
-    // `beforeNavigate` cancelled, never reaches `afterNavigate`, and a latched flag would record
-    // the next real push as a replace.
-    replacing = false
-  })
+  return goto(url, { ...opts, replaceState: true })
 }
 
 /**
@@ -130,7 +124,12 @@ export function syncSearchParams(values: Record<string, number | string | undefi
   }
 }
 
-/** Register once from a top-level layout to track same-origin navigation. */
+/**
+ * Register once from a top-level layout to track same-origin navigation.
+ *
+ * Guarded by unit tests that drive the adverse orderings by hand, because the real ones are races:
+ * a `goto` can settle before its own `afterNavigate`, and a resolver can forward during its mount.
+ */
 export function trackHistoryDepth() {
   afterNavigate((navigation) => {
     const to = navigation.to?.url
@@ -138,14 +137,19 @@ export function trackHistoryDepth() {
       lastAppPath = to.pathname
     }
 
-    // link / goto / form pushes a new entry, unless it was a replaceUrl()
-    // navigation, which swapped the current one in place.
-    const pushed = !replacing
-    replacing = false
+    // link / goto / form pushes a new entry, unless this is the arrival a replaceUrl() was waiting
+    // for, which swapped the current one in place.
+    //
+    // Only a `goto` can be that arrival, since `replaceUrl` produces nothing else, so nothing else
+    // may consume a record. An `enter` or `popstate` landing on the same pathname would otherwise
+    // spend it and leave the real replace counted as a push.
+    const couldBeTheReplace = navigation.type === 'goto'
+    const wasReplace = couldBeTheReplace && replaced.claims(to)
+    const wasForward = couldBeTheReplace && forwarded.claims(to)
 
     // Classified once and read twice, so the trail and the scroll rule cannot disagree.
     const type =
-      navigation.type === 'enter' || navigation.type === 'popstate' ? navigation.type : pushed ? 'push' : 'replace'
+      navigation.type === 'enter' || navigation.type === 'popstate' ? navigation.type : wasReplace ? 'replace' : 'push'
 
     trail.record({
       delta: navigation.type === 'popstate' ? navigation.delta : undefined,
@@ -156,12 +160,7 @@ export function trackHistoryDepth() {
     // `from.url` is null on a document's first navigation. An unknown origin counts as a different
     // screen, because two nullish pathnames would compare equal and suppress the reset.
     const fromPathname = navigation.from?.url?.pathname
-    const forwarded = forwardingTo != null && forwardingTo === to?.pathname
-    if (forwarded || (forwardingTo != null && (forwardingMisses += 1) > 1)) {
-      forwardingTo = undefined
-    }
-
-    onNavigation(type, forwarded || (fromPathname != null && fromPathname === to?.pathname))
+    onNavigation(type, wasForward || (fromPathname != null && fromPathname === to?.pathname))
   })
 }
 
@@ -194,6 +193,36 @@ export function withSearchParams(url: URL, values: Record<string, number | strin
   }
 
   return next
+}
+
+/**
+ * One expected navigation, matched by where it is going. Survives arrivals that are not it, and is
+ * dropped after one of those so a navigation that never lands cannot go stale.
+ */
+function createNavigationRecord() {
+  let pathname: string | undefined
+  let misses = 0
+
+  return {
+    /** True when `to` is the arrival this record was waiting for. Consumes it either way.
+     *  Pathname only: matching on the href would break `pageMedia`, which replaces its own query. */
+    claims(to: undefined | URL): boolean {
+      if (pathname == null) return false
+      if (pathname === to?.pathname) {
+        pathname = undefined
+        return true
+      }
+
+      misses += 1
+      if (misses > 1) pathname = undefined
+      return false
+    },
+
+    expect(url: string | URL) {
+      pathname = new URL(url, location.href).pathname
+      misses = 0
+    },
+  }
 }
 
 // The `?media=<file id>` param drives the fullscreen media viewer for a set of
