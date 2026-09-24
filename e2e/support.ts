@@ -159,8 +159,30 @@ export async function signIn(page: Page, email: string, password: string) {
  * `E2E_BASE_URL` without knowing it exists.
  */
 export async function visit(page: Page, path: string) {
+  await hideServiceWorkerApi(page)
   await page.goto(path)
   await page.waitForLoadState('networkidle')
+}
+
+/** Pages already told, since `addInitScript` appends and `visit` is called per navigation. */
+const hidden = new WeakSet<Page>()
+
+/**
+ * Say out loud what `serviceWorkers: 'block'` does not: the API stays in place and `register()`
+ * resolves with nothing, so workbox-window throws reading it and the app writes that TypeError to
+ * the TARGET environment's error log. Deleting the attribute puts this browser on the same path as
+ * a Firefox private window, which the app already handles.
+ *
+ * Behind `visit`, so a page that reaches the app another way keeps the API. Every spec's first
+ * load goes through here today, and a `test` fixture would not cover `browser.newPage()` anyway.
+ */
+async function hideServiceWorkerApi(page: Page) {
+  if (hidden.has(page)) return
+  hidden.add(page)
+
+  await page.addInitScript(() => {
+    delete (Navigator.prototype as { serviceWorker?: unknown }).serviceWorker
+  })
 }
 
 /** Loopback, whatever the port. Anything else is somebody's deployment. */

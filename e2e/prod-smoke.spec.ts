@@ -59,12 +59,6 @@ const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\
  */
 const IGNORED = [
   {
-    // `serviceWorkers: 'block'` in playwright.config.ts makes the worker script return 404, and
-    // workbox-window then reads `registration.waiting` off undefined.
-    pattern: /workbox-window/,
-    why: 'the harness blocks service workers',
-  },
-  {
     // A console line does not say WHICH resource failed, so it cannot be told apart from the
     // moved-endpoint 404 this spec exists to catch. `failedRequests` watches responses instead,
     // where the URL is knowable.
@@ -89,10 +83,6 @@ const record = (page: Page, text: string) => {
   consoleErrors.push(`${page.url()}: ${text}`)
 }
 
-/** The service worker script, which the harness makes 404 on purpose. Everything else that fails
- *  is the app, including the remote-function 404 a moved `.remote.ts` produces after a deploy. */
-const HARNESS_REQUEST = /\/(dev-)?sw\.js/
-
 /** A build artifact. A dev server does not emit it, so the reachability probe in `online.svelte.ts`
  *  404s there. A deployed environment serves it, where a 404 means the deploy is broken. */
 const BUILD_ARTIFACT = /\/_app\/version\.json/
@@ -100,6 +90,8 @@ const BUILD_ARTIFACT = /\/_app\/version\.json/
 /** Vite ships this to a dev server and to nothing else. */
 const DEV_SERVER = /\/@vite\//
 
+/** Nothing here fetches `sw.js`: `support.ts` hides the API from the harness, so the app never
+ *  tries to register. A 400 on it would be the app doing something new, not the harness. */
 const failedRequests: { status: number; url: string }[] = []
 let devServer = false
 
@@ -110,7 +102,7 @@ const collectErrors = (page: Page) => {
   page.on('pageerror', (error) => record(page, error.message))
   page.on('response', (response) => {
     if (DEV_SERVER.test(response.url())) devServer = true
-    if (response.status() >= 400 && !HARNESS_REQUEST.test(response.url())) {
+    if (response.status() >= 400) {
       failedRequests.push({ status: response.status(), url: response.url() })
     }
   })

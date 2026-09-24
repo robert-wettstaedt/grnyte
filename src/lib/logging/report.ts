@@ -12,16 +12,19 @@ const reported = new Set<string>()
  * `clientErrorLogs`. Never throws: a failing report must not cascade into the
  * same handlers (boundary / window listeners) that called it.
  *
+ * `scope` prefixes the message `[scope]`, the same shape `logServerFailure` writes, so a client
+ * row and a server one read alike on the errors page.
+ *
  * Each distinct error is sent once per page load, capped at {@link MAX_REPORTS}. Without that,
  * an error thrown out of a Svelte flush loops: `logClientError` bumps the `pending_count` that
  * Kit's command runtime keeps per command, that counter is `$state`, so the report schedules
  * another flush which throws again into the `window.error` listener in `hooks.client.ts`. It
  * spins with no network at all, and reached `rateLimit`'s 429 for the whole origin in a second.
  */
-export function reportClientError(error: unknown): void {
+export function reportClientError(error: unknown, scope?: string): void {
   console.error(error)
 
-  const payload = stringifyError(error).slice(0, MAX_ERROR_LENGTH)
+  const payload = `${scope == null ? '' : `[${scope}] `}${stringifyError(error)}`.slice(0, MAX_ERROR_LENGTH)
 
   if (reported.has(payload) || reported.size >= MAX_REPORTS) {
     return

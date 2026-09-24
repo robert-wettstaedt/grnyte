@@ -44,6 +44,15 @@ describe('reportClientError', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
+  // A `[scope]` row is only greppable if the label opens the message: with the error's own name or
+  // a stack frame in front of it, a prefix match never sees it.
+  it('opens the message with the scope it was given', async () => {
+    reportClientError(new TypeError(`blocked ${crypto.randomUUID()}`), 'sw')
+    await settle()
+
+    expect(logClientError.mock.calls[0][0].error.startsWith('[sw] ')).toBe(true)
+  })
+
   // Covers the dedupe itself, NOT the ordering it depends on: vitest resolves the mocked dynamic
   // import eagerly, so marking before or after the import is indistinguishable here. Measured, not
   // assumed: with the mark moved after the import this still reports 1. The ordering itself was

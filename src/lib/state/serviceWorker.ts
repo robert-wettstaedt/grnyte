@@ -120,7 +120,9 @@ export function registerServiceWorker(): void {
         },
         // A failed registration takes the offline shell, the image cache and push with it, and the
         // plugin swallows the rejection. Nothing else would say so.
-        onRegisterError: reportClientError,
+        // `[sw]` labels the row the way `logServerFailure` labels a server one. Nothing filters on
+        // it: a registration that fails on a real deploy still alerts.
+        onRegisterError: (error: unknown) => reportClientError(error, 'sw'),
       })
     })
 
