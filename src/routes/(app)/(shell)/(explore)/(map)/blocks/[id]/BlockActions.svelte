@@ -1,12 +1,9 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import ActionBar, { ACTION_CTA } from '$lib/components/ActionBar/ActionBar.svelte'
-  import DirectionsButton from '$lib/components/DirectionsButton/DirectionsButton.svelte'
+  import ActionBar, { ACTION_TOOL, ACTION_TOOL_LABEL } from '$lib/components/ActionBar/ActionBar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
-  import SaveButton from '$lib/components/SaveButton/SaveButton.svelte'
-  import ShareButton from '$lib/components/ShareButton/ShareButton.svelte'
   import { deleteBlock, restoreBlock } from '$lib/entities/block/blocks.remote'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { canDeleteBlock, canEditBlock } from '$lib/entities/block/permissions'
@@ -20,6 +17,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { withUndo } from '$lib/state/toast'
+  import EntityTools from '../../EntityTools.svelte'
 
   interface Props {
     block: BlockDetail
@@ -60,23 +58,18 @@
   <LocationMeta distance={location.distance} href={repairHref} isHere={location.isHere} {pin} />
 
   <ActionBar>
-    {#snippet cta()}
-      {#if canAddRouteHere && routeCount > 0}
-        <a
-          class={[ACTION_CTA, 'preset-tonal-primary']}
-          href={resolve('/(app)/blocks/[id]/routes/add', { id: String(block.id) })}
-        >
-          <Icon name="plus" size={18} />
-          <span class="truncate text-sm font-bold">{m.common_route()}</span>
-        </a>
-      {/if}
-    {/snippet}
+    <!-- A square, not the labelled `cta` slot: six actions only clear a 360px row as squares. -->
+    {#if canAddRouteHere && routeCount > 0}
+      <a
+        class={[ACTION_TOOL, 'preset-tonal-primary']}
+        href={resolve('/(app)/blocks/[id]/routes/add', { id: String(block.id) })}
+      >
+        <Icon name="plus" size={19} />
+        <span class={ACTION_TOOL_LABEL}>{m.common_route()}</span>
+      </a>
+    {/if}
 
-    <DirectionsButton {destination} />
-
-    <SaveButton count={save.count} ontoggle={save.toggle} pending={save.pending} saved={save.saved} />
-
-    <ShareButton text={block.name} />
+    <EntityTools {destination} {save} shareText={block.name} />
 
     {#if canEdit || canDelete || canAddRouteHere || canEditTopos}
       <MoreMenu title={block.name}>

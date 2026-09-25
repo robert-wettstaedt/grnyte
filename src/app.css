@@ -187,6 +187,13 @@ body {
   background-color: var(--color-surface-800);
 }
 
+/* The interactive map takes focus so the arrow keys can pan it, so it has to show that it has focus.
+   Inset, because an outline outside the viewport is clipped by the map's own overflow. */
+.ol-viewport:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: -2px;
+}
+
 /* Global, so every `animate-pulse` site answers the preference the same way. */
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse {

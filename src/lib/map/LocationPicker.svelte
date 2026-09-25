@@ -1,10 +1,12 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import { userLocation } from '$lib/map/geolocation.svelte'
   import { formatCoord } from '$lib/map/map'
   import Map from '$lib/map/Map.svelte'
   import type { Bounds, MapData, MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
+  import { untrack } from 'svelte'
 
   interface Props {
     areaExtent: Bounds | null
@@ -35,14 +37,68 @@
 
   // Set once the map settles/pans (onviewchange); until then fall back to the framing centre.
   let pannedCenter = $state<[number, number] | null>(null)
+  let pannedZoom = $state<null | number>(null)
 
   const focus = $derived<MapFocus | null>(areaExtent == null ? null : { extent: areaExtent })
   const center = $derived<[number, number] | null>(
     areaExtent == null ? null : [(areaExtent[0] + areaExtent[2]) / 2, (areaExtent[1] + areaExtent[3]) / 2],
   )
   const mapCenter = $derived<[number, number] | null>(pannedCenter ?? center)
-  // Returning to step 1 remounts the map; framing it on the placed parking keeps the placement.
-  const placeFocus = $derived<MapFocus | null>(placedCenter == null ? focus : { center: placedCenter, zoom: 15 })
+
+  // Every reader gesture that moves the pin. The parent uses it for the leave confirm, the device
+  // seed below to stop reframing a map somebody is aiming.
+  let touched = $state(false)
+  const edited = () => {
+    touched = true
+    onedit?.()
+  }
+
+  // With no area box and no placement there is nothing to frame, and the pin is the map centre, so
+  // the default view would read as an answer. A first block is usually where the reader stands.
+  const unframed = $derived(areaExtent == null && placedCenter == null)
+  // Only when permission is already granted. Opening a picker must not raise a prompt of its own.
+  let locationGranted = $state(false)
+  $effect(() => {
+    void navigator.permissions
+      ?.query({ name: 'geolocation' })
+      .then((status) => (locationGranted = status.state === 'granted'))
+      .catch(() => {})
+  })
+  // Latched, because the seed is a starting point and not a follow. Gated on the gesture flag,
+  // never on `pannedCenter`, which OpenLayers sets a frame after mount.
+  let deviceSeed = $state<[number, number] | null>(null)
+  // Dropped once latched. Only the first fix is used, so the watch has nothing left to do.
+  const device = userLocation(() => unframed && locationGranted && deviceSeed == null)
+
+  // `userLocation().current` ignores its own `enabled` gate, so a value held at init came from an
+  // earlier screen and would put the pin where the reader was. Only a later fix, a new object, counts.
+  const staleFix = device.current
+  $effect(() => {
+    const here = device.current
+    if (deviceSeed != null || touched || here == null || here === staleFix) return
+    deviceSeed = [here.lat, here.long]
+  })
+
+  // A snapshot taken when the map goes away, never the live view. Feeding the live centre back as
+  // `focus` makes the map its own input, and the lonLat round trip is not bit-exact.
+  let restoreView = $state<MapFocus | null>(null)
+  $effect(() => {
+    if (mode === 'map') return
+    restoreView = untrack(() =>
+      touched && pannedCenter != null ? { center: pannedCenter, zoom: pannedZoom ?? 15 } : null,
+    )
+  })
+
+  // Once the reader has aimed it, nothing below reframes: not the placement they are correcting,
+  // and not a late `areaExtent`. This map has no camera claim, so a changed `focus` would otherwise
+  // apply over them. Null while they hold it, so the snapshot above survives the remount.
+  const placeFocus = $derived<MapFocus | null>(
+    touched
+      ? restoreView
+      : placedCenter != null
+        ? { center: placedCenter, zoom: 15 }
+        : (focus ?? (deviceSeed == null ? null : { center: deviceSeed, zoom: 15 })),
+  )
 
   const candidate = $derived.by<null | { lat: number; long: number }>(() => {
     if (mode === 'map') {
@@ -60,45 +116,9 @@
     picked = candidate
   })
 
-  // A gesture that actually moves the pin, not `onviewchange`, which also fires for the framing move
-  // the picker makes on its own. Capture, because OpenLayers stops these before they bubble.
-  //
-  // A drag past DRAG_SLOP, never a bare `pointerdown`: the pin is the map centre, so a tap does not
-  // move it, and marking one would put the leave-confirm back in front of somebody who changed
-  // nothing. Wheel counts because OpenLayers zooms toward the pointer, which does shift the centre.
-  const DRAG_SLOP = 6
-
-  const markOnGesture = (element: HTMLElement) => {
-    let origin: null | { x: number; y: number } = null
-    const down = (event: PointerEvent) => (origin = { x: event.clientX, y: event.clientY })
-    const up = () => (origin = null)
-    const move = (event: PointerEvent) => {
-      if (origin == null) return
-      if (Math.abs(event.clientX - origin.x) < DRAG_SLOP && Math.abs(event.clientY - origin.y) < DRAG_SLOP) return
-      origin = null
-      onedit?.()
-    }
-    const wheel = () => onedit?.()
-
-    const options = { capture: true, passive: true } as const
-    element.addEventListener('pointerdown', down, options)
-    element.addEventListener('pointermove', move, options)
-    element.addEventListener('pointerup', up, options)
-    element.addEventListener('pointercancel', up, options)
-    element.addEventListener('wheel', wheel, options)
-
-    return () => {
-      element.removeEventListener('pointerdown', down, { capture: true })
-      element.removeEventListener('pointermove', move, { capture: true })
-      element.removeEventListener('pointerup', up, { capture: true })
-      element.removeEventListener('pointercancel', up, { capture: true })
-      element.removeEventListener('wheel', wheel, { capture: true })
-    }
-  }
-
   // Let people paste a "lat, lng" pair (as copied from any maps app) into the latitude field.
   const onLatInput = (event: Event & { currentTarget: HTMLInputElement }) => {
-    onedit?.()
+    edited()
     const value = event.currentTarget.value
     const pair = value.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/)
     if (pair) {
@@ -160,7 +180,7 @@
             bind:value={lngText}
             class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-3 font-mono text-base focus:ring-0 focus:outline-none"
             inputmode="decimal"
-            oninput={() => onedit?.()}
+            oninput={edited}
             placeholder="2.611811"
             type="text"
           />
@@ -200,7 +220,7 @@
     </div>
   {:else}
     <!-- The picked location is the map centre; a fixed pin marks it. -->
-    <div class="relative min-h-0 flex-1" {@attach markOnGesture}>
+    <div class="relative min-h-0 flex-1">
       <!-- Fill via absolute inset-0 (mirrors the /explore layout): the map's own height:100%
            can't resolve through the flex-grown parents, so give it a positioned box instead. -->
       <div class="absolute inset-0">
@@ -211,7 +231,11 @@
           routeCountByBlock={mapData.routeCountByBlock}
           gradeCountByBlock={mapData.gradeCountByBlock}
           focus={placeFocus}
-          onviewchange={(view) => (pannedCenter = view.center)}
+          onviewchange={(view) => {
+            pannedCenter = view.center
+            pannedZoom = view.zoom
+          }}
+          onreadermove={edited}
           pickMode
         />
       </div>

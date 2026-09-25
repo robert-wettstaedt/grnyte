@@ -3,11 +3,12 @@ import type OlMap from 'ol/Map.js'
 import Overlay from 'ol/Overlay.js'
 
 interface GeolocationCallbacks {
-  getHasFocus: () => boolean
-  getIsTracking: () => boolean
+  /** Every fix, in the view's projection. Whether it moves the camera is the camera's decision. */
+  onFix: (position: number[]) => void
+  /** Following ended for a reason only this module knows about, so the camera is released. */
+  onFollowEnded: () => void
   /** `GeolocationPositionError.code` while failing, `undefined` once a fix arrives. */
   setError: (code: number | undefined) => void
-  setIsTracking: (value: boolean) => void
 }
 
 export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallbacks): () => void {
@@ -64,21 +65,16 @@ export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallb
     applyHeading()
     callbacks.setError(undefined)
 
-    if (callbacks.getIsTracking()) {
-      mapInstance.getView().animate({ center: position, duration: 200 })
-    }
+    // The camera decides whether this fix moves the view, and by how much.
+    callbacks.onFix(position)
   })
 
   geolocation.on('error', (event) => {
     callbacks.setError(event.code)
-    callbacks.setIsTracking(false)
+    callbacks.onFollowEnded()
     // Required, not redundant: OL only re-arms watchPosition when TRACKING
     // changes value. Left true, the retry click's setTracking(true) is a silent no-op.
     geolocation.setTracking(false)
-  })
-
-  mapInstance.on('pointerdrag', () => {
-    callbacks.setIsTracking(false)
   })
 
   // The map can be rotated (pinch / alt+shift-drag), which moves north under the cone.
@@ -90,9 +86,8 @@ export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallb
     ?.query({ name: 'geolocation' })
     .then((status) => {
       if (status.state !== 'granted') return
+      // Shows the marker only. The reader did not ask for this, so it never claims the camera.
       geolocation.setTracking(true)
-      // Show the marker, but don't hijack the view when the map is focused on a target.
-      if (!callbacks.getHasFocus()) callbacks.setIsTracking(true)
     })
     .catch(() => {})
 

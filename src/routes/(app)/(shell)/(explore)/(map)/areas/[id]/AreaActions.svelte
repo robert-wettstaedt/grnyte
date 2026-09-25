@@ -1,12 +1,9 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import ActionBar, { ACTION_CTA } from '$lib/components/ActionBar/ActionBar.svelte'
-  import DirectionsButton from '$lib/components/DirectionsButton/DirectionsButton.svelte'
+  import ActionBar, { ACTION_TOOL, ACTION_TOOL_LABEL } from '$lib/components/ActionBar/ActionBar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
-  import SaveButton from '$lib/components/SaveButton/SaveButton.svelte'
-  import ShareButton from '$lib/components/ShareButton/ShareButton.svelte'
   import { deleteArea, restoreArea } from '$lib/entities/area/areas.remote'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { canAddArea, canAddBlock, canAddParking, canDeleteArea, canEditArea } from '$lib/entities/area/permissions'
@@ -18,6 +15,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { withUndo } from '$lib/state/toast'
+  import EntityTools from '../../EntityTools.svelte'
 
   interface Props {
     area: AreaDetail
@@ -44,7 +42,7 @@
 
   const parkingHref = $derived(resolve('/(app)/areas/[id]/parking/edit', { id: String(area.id) }))
 
-  // The level's main child takes the one labelled slot. A null-typed area is excluded: it is
+  // The level's main child leads the action row. A null-typed area is excluded: it is
   // always empty, so `AreaEmpty` already offers both adds.
   const create = $derived.by(() => {
     if (area.type === 'sector' && canAddBlockHere) {
@@ -76,20 +74,15 @@
   {/if}
 
   <ActionBar>
-    {#snippet cta()}
-      {#if create != null}
-        <a class={[ACTION_CTA, 'preset-tonal-primary']} href={create.href}>
-          <Icon name="plus" size={18} />
-          <span class="truncate text-sm font-bold">{create.label}</span>
-        </a>
-      {/if}
-    {/snippet}
+    <!-- A square, not the labelled `cta` slot: six actions only clear a 360px row as squares. -->
+    {#if create != null}
+      <a class={[ACTION_TOOL, 'preset-tonal-primary']} href={create.href}>
+        <Icon name="plus" size={19} />
+        <span class={ACTION_TOOL_LABEL}>{create.label}</span>
+      </a>
+    {/if}
 
-    <DirectionsButton {destination} />
-
-    <SaveButton count={save.count} ontoggle={save.toggle} pending={save.pending} saved={save.saved} />
-
-    <ShareButton text={area.name} />
+    <EntityTools {destination} {save} shareText={area.name} />
 
     {#if showAdd || canEdit || canDelete}
       <MoreMenu title={area.name}>

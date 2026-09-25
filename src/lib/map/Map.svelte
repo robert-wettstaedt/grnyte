@@ -9,16 +9,16 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { push } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
-  import { boundingExtent } from 'ol/extent'
   import type Feature from 'ol/Feature.js'
   import OlGeolocation from 'ol/Geolocation.js'
   import type VectorLayer from 'ol/layer/Vector.js'
   import type OlMap from 'ol/Map.js'
-  import { fromLonLat, toLonLat } from 'ol/proj.js'
+  import { toLonLat } from 'ol/proj.js'
   import { untrack } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
   import { parseCredit } from './attribution'
   import { createBaseMap } from './base.svelte'
+  import { createCamera } from './camera.svelte'
   import { createMapData } from './data.svelte'
   import { setupGeolocation } from './geolocation'
   import {
@@ -36,6 +36,7 @@
     createSectorLayer,
     createWmsLayers,
   } from './layers.svelte'
+  import { isMapPanKey } from './map'
   import { BLOCK_LABEL_ZOOM, MARKERS_LAYER_KEY, type BlocksMapProps, type LayerEntry } from './types'
 
   const props: BlocksMapProps = $props()
@@ -62,12 +63,13 @@
   // The base map owns the size latch: fitting before layout lands on a nonsense zoom.
   let baseMap = $state<ReturnType<typeof createBaseMap>>()
   const mapHasSize = $derived(baseMap?.hasSize === true)
-  let isTrackingGeolocation = $state(false)
   let geolocationErrorCode = $state<number>()
   let isLayersSheetOpen = $state(false)
   let isAttributionOpen = $state(false)
   let layerEntries = $state<LayerEntry[]>([])
-  let hasAutoFitted = $state(false)
+  // The camera module owns the view. This component only sends it events. See `camera.svelte.ts`.
+  const camera = createCamera(BLOCK_LABEL_ZOOM)
+  const isFollowingLocation = $derived(camera.isFollowingLocation)
   // Visibility of the "Markers" group, tracked separately so the toggle state is
   // re-applied if the layers are ever recreated (e.g. the map remounts).
   let markersVisible = $state(true)
@@ -79,61 +81,35 @@
 
   const global = getGlobalState()
 
+  // The default framing. Runs only while nothing owns the camera, and never on a picker, which
+  // drives its own view through `focus`.
   $effect(() => {
-    if (map == null || !mapHasSize || hasAutoFitted || props.focus != null) return
-    const blocks = data.geoBlocks
-    if (blocks.length === 0) return
-
-    hasAutoFitted = true
-    const coords = blocks.map((b) => fromLonLat([b.geolocation!.long, b.geolocation!.lat]))
-    const sorted = coords.toSorted((a, b) => Math.sqrt(a[0] ** 2 + a[1] ** 2) - Math.sqrt(b[0] ** 2 + b[1] ** 2))
-    const median = sorted[Math.floor(sorted.length / 2)]
-    const filtered = coords.filter((c) => Math.sqrt((c[0] - median[0]) ** 2 + (c[1] - median[1]) ** 2) < 200_000)
-
-    if (filtered.length > 0) {
-      map.getView().fit(boundingExtent(filtered), { maxZoom: 15 })
-    } else {
-      map.getView().setCenter(median)
-      map.getView().setZoom(13)
-    }
+    // Read before any early return. Svelte re-collects dependencies per run, so an early return
+    // would unsubscribe from ownership.
+    void camera.owner
+    // Never on a picking or preview surface. `focus != null` is not that test, because an area with
+    // no located block leaves the focus null while the region still has blocks to fit.
+    if (map == null || !mapHasSize || props.pickMode || props.static || props.focus != null) return
+    camera.fitContent(
+      map.getView(),
+      data.geoBlocks.map((b) => [b.geolocation!.lat, b.geolocation!.long]),
+    )
   })
 
-  // The last focus applied to the view, so equal-valued recomputations are skipped.
-  let lastFocusKey: string | undefined
+  // The claim arrives with the route, before the row it will frame. Claiming here, and not when
+  // `focus` becomes non-null, stops a late fix from taking a camera the reader aimed.
   $effect(() => {
+    camera.claim(props.cameraClaim)
+  })
+
+  $effect(() => {
+    // All three read before any early return, or the effect unsubscribes. Ownership is one of them,
+    // because a refused focus keeps no dedupe key and must be retried when ownership moves.
     const focus = props.focus
+    const claim = props.cameraClaim
+    void camera.owner
     if (map == null || focus == null) return
-
-    // The parent recomputes `focus` (a fresh object) on every map-data change; re-fitting
-    // the view each time would re-frame the map and undo any manual pan. Only move when the
-    // target changed.
-    const focusKey = JSON.stringify(focus)
-    if (focusKey === lastFocusKey) return
-    lastFocusKey = focusKey
-
-    if (focus.extent) {
-      // Fit to geographic extent [minLat, minLng, maxLat, maxLng]
-      const min = fromLonLat([focus.extent[1], focus.extent[0]])
-      const max = fromLonLat([focus.extent[3], focus.extent[2]])
-      map.getView().fit([min[0], min[1], max[0], max[1]], {
-        duration: 300,
-        maxZoom: focus.zoom ?? BLOCK_LABEL_ZOOM,
-        padding: focus.padding ?? [50, 50, 50, 50],
-      })
-    } else if (focus.center) {
-      const center = fromLonLat([focus.center[1], focus.center[0]])
-      const zoom = focus.zoom ?? BLOCK_LABEL_ZOOM
-
-      if (focus.padding) {
-        map.getView().fit([center[0], center[1], center[0], center[1]], {
-          duration: 300,
-          maxZoom: zoom,
-          padding: focus.padding,
-        })
-      } else {
-        map.getView().animate({ center, duration: 300, zoom })
-      }
-    }
+    camera.applyFocus(map.getView(), focus, claim)
   })
 
   // The data layers are created once and added to the map, then each is kept in sync
@@ -258,27 +234,15 @@
     const geolocation = map.get('geolocation') as OlGeolocation | undefined
     if (geolocation == null) return
     didRequestLocation = true
-    isTrackingGeolocation = true
+    // A press that recentres the view, so a picker's pin moves with it.
+    props.onreadermove?.()
     geolocation.setTracking(true)
-    // Recenter from the fix we already hold. A drag only turns the view-follow off, tracking
-    // stays on, so `setTracking(true)` is a no-op here and no `change` event fires. Without
-    // this, a stationary user's map stays where they dragged it while the button reads active.
-    const position = geolocation.getPosition()
-    if (position != null) map.getView().animate({ center: position, duration: 200 })
+    // Recentre from the fix in hand, since tracking is often already on and emits no `change`.
+    camera.locatePressed(map.getView(), geolocation.getPosition() ?? null)
   }
 
-  const handleZoomIn = () => {
-    if (map == null) return
-    const view = map.getView()
-    const zoom = view.getZoom()
-    if (zoom != null) view.animate({ duration: 200, zoom: zoom + 1 })
-  }
-
-  const handleZoomOut = () => {
-    if (map == null) return
-    const view = map.getView()
-    const zoom = view.getZoom()
-    if (zoom != null) view.animate({ duration: 200, zoom: zoom - 1 })
+  const handleZoom = (delta: number) => () => {
+    if (map != null) camera.zoomBy(map.getView(), delta)
   }
 
   const handleToggleLayer = (key: string) => {
@@ -327,6 +291,9 @@
     const base = createBaseMap(node as HTMLElement, {
       extraLayers: wmsLayers,
       interactive: !isStatic,
+      // A picker's pin is the map centre, so a 2px tap jitter would move the answer and mark the
+      // form edited for somebody who changed nothing.
+      moveTolerance: untrack(() => props.pickMode) === true ? 6 : undefined,
       // Seeded so a rebuilt map does not snap back to the world view.
       view: savedView,
     })
@@ -383,6 +350,9 @@
 
     let lastLabelState = false
     mapInstance.getView().on('change:resolution', () => {
+      // The camera decides. OpenLayers sets no interaction hint for wheel, keyboard or double-click
+      // zoom, so its own hint would miss three real gestures.
+      camera.resolutionChanged()
       const zoom = mapInstance.getView().getZoom() ?? 0
       const showLabels = zoom >= BLOCK_LABEL_ZOOM
       if (showLabels !== lastLabelState) {
@@ -451,9 +421,37 @@
     viewport.addEventListener('pointerup', cancelPress)
     viewport.addEventListener('pointercancel', cancelPress)
 
+    // Touching the map hands the camera over. A pinch counts, because fingers shift the centre.
+    const claimForReader = () => {
+      // Before the early return, because a caller tracking edits needs every gesture.
+      props.onreadermove?.()
+      camera.readerMoved()
+    }
+    mapInstance.on('pointerdrag', claimForReader)
+    // Wheel too. OpenLayers anchors it at the pointer, so it shifts the centre like a pinch.
+    viewport.addEventListener('wheel', claimForReader, { passive: true })
+    // Double-click zoom anchors at the pointer too, so it shifts the centre like the wheel.
+    viewport.addEventListener('dblclick', claimForReader)
+    // Focusable, or keyboard panning cannot happen: OpenLayers gates KeyboardPan on map focus.
+    // Not on a static map, which does not pan.
+    if (!isStatic) {
+      viewport.tabIndex = 0
+      // `application` so a screen reader passes the arrow keys through instead of using them for
+      // its own browse mode.
+      viewport.setAttribute('role', 'application')
+      viewport.setAttribute('aria-label', m.map_keyboardPannable())
+    }
+    // OL's KeyboardPan emits no `pointerdrag`, so the keys are read directly.
+    // Arrows only. `ReorderMap` retires its fit on any deliberate move, but here a zoom keeps
+    // following on purpose.
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isMapPanKey(event)) claimForReader()
+    }
+    viewport.addEventListener('keydown', onKeyDown)
+
     const cleanupGeolocation = setupGeolocation(mapInstance, {
-      getHasFocus: () => props.focus != null,
-      getIsTracking: () => isTrackingGeolocation,
+      onFix: (position) => camera.followFix(mapInstance.getView(), position),
+      onFollowEnded: () => camera.followEnded(),
       setError: (code) => {
         geolocationErrorCode = code
         const wasRequested = didRequestLocation
@@ -462,11 +460,14 @@
           toaster.create({ duration: 8000, title: locationErrorMessage(code), type: 'error' })
         }
       },
-      setIsTracking: (v) => (isTrackingGeolocation = v),
     })
 
     return () => {
       mapInstance.un('moveend', handleMoveEnd)
+      mapInstance.un('pointerdrag', claimForReader)
+      viewport.removeEventListener('keydown', onKeyDown)
+      viewport.removeEventListener('wheel', claimForReader)
+      viewport.removeEventListener('dblclick', claimForReader)
       viewport.removeEventListener('contextmenu', onContextMenu)
       viewport.removeEventListener('pointerdown', onPointerDown)
       viewport.removeEventListener('pointermove', onPointerMove)
@@ -486,14 +487,18 @@
 
   <!-- The credit is not a control and is not optional: OSM's licence wants it wherever its
        tiles are drawn, static previews included. Only the interactive controls are gated. -->
+  <!-- `controlsLift` rides the column above a sheet covering the map. A transition would lag a drag
+       the reader is still making, so the movement is driven by the sheet's own height instead. -->
   <div
     class={['absolute right-2 z-20 flex flex-col gap-1', props.static ? 'bottom-1' : 'bottom-20.5 mb-10 md:bottom-2']}
+    style:bottom={props.controlsLift == null ? undefined : `${props.controlsLift}px`}
+    style:margin-bottom={props.controlsLift == null ? undefined : '0'}
   >
     {#if !props.static}
       <button
         type="button"
         class={[CONTROL_CLASS, 'preset-filled-surface-100-900']}
-        onclick={handleZoomIn}
+        onclick={handleZoom(1)}
         aria-label={m.map_zoomIn()}
       >
         <Icon name="plus" size={16} />
@@ -502,7 +507,7 @@
       <button
         type="button"
         class={[CONTROL_CLASS, 'preset-filled-surface-100-900']}
-        onclick={handleZoomOut}
+        onclick={handleZoom(-1)}
         aria-label={m.map_zoomOut()}
       >
         <Icon name="minus" size={16} />
@@ -515,7 +520,7 @@
         aria-label={m.map_showMyLocation()}
         class={[
           CONTROL_CLASS,
-          isTrackingGeolocation
+          isFollowingLocation
             ? 'preset-filled-primary-500'
             : geolocationErrorCode != null
               ? 'preset-filled-error-500'

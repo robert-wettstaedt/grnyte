@@ -10,7 +10,7 @@
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
   import Map from '$lib/map/Map.svelte'
-  import { BLOCK_LABEL_ZOOM, type MapFocus } from '$lib/map/types'
+  import { BLOCK_LABEL_ZOOM, type MapCameraClaim, type MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { exit } from '$lib/state/navigation.svelte'
@@ -22,6 +22,7 @@
   import Modal from '../Modal/Modal.svelte'
   import { sheetState } from '../Modal/sheetState.svelte'
   import type { LayoutProps } from './$types'
+  import { cameraTarget } from './cameraTarget'
   import CreateOnMap from './CreateOnMap/CreateOnMap.svelte'
   import Filter from './Filter/Filter.svelte'
   import SearchBar from './SearchBar/SearchBar.svelte'
@@ -43,12 +44,14 @@
   let mapViewState = $state<null | { center: [number, number]; zoom: number }>(null)
   let restoredFocus = $state<MapFocus | null>(null)
 
-  // Quick-create (FAB / long-press): placement mode plus the transient focus that centres
-  // the map on a long-pressed point. Never cleared. Map dedupes equal focus values, so a
-  // stale entry can't re-frame the view once a detail `focus` or a new request replaces it.
+  // Quick-create (FAB or long-press): placement mode plus the focus that centres on the pressed
+  // point. Cleared on navigation, or a stale point outranks the remembered camera.
   let placing = $state<'block' | 'parking' | null>(null)
   let createFocus = $state<MapFocus | null>(null)
   let createOnMap = $state<ReturnType<typeof CreateOnMap>>()
+
+  // Bumped on every reader-owned framing, so two in a row are different claims.
+  let readerClaimSeq = $state(0)
 
   beforeNavigate((navigation) => {
     if (navigation.from?.route.id !== navigation.to?.route.id) {
@@ -93,9 +96,12 @@
         center: page.state.mapView.center,
         zoom: page.state.mapView.zoom,
       }
+      readerClaimSeq += 1
     } else {
       restoredFocus = null
     }
+    // Cleared, or a stale long-press point re-frames on a place the reader left.
+    createFocus = null
   })
 
   // Parsing the URL into typed filter values lives in ./Filter/filter, and
@@ -145,43 +151,74 @@
     }
   })
 
-  // Frame the open detail item on the map. Padding keeps it clear of the detail
-  // sheet: a wide left inset for the desktop side panel, a tall bottom inset for
-  // the mobile bottom sheet, so the marker lands in the visible area, not behind it.
-  const focus: MapFocus | null = $derived.by(() => {
-    const routeId = page.route.id ?? ''
-    const id = Number(page.params.id)
-    if (!Number.isFinite(id) || typeof window === 'undefined') return null
+  // What the open route wants of the camera. One triage in `cameraTarget`, so the framing and the
+  // claim cannot disagree about which entity is open. Padding keeps the marker clear of the sheet:
+  // a left inset for the desktop panel, a bottom inset for the mobile sheet.
+  const target = $derived.by(() => {
+    // Tracked, so a fresh claim re-samples how much of the map is covered.
+    const showOnMapRequest = sheetState.showOnMapRequest
+    if (typeof window === 'undefined') return null
 
-    const padding: [number, number, number, number] =
-      window.innerWidth >= 768 ? [60, 60, 60, 580] : [60, 60, Math.round(window.innerHeight * 0.75), 60]
+    // The height is sampled, never tracked. Tracked, every frame of a sheet drag would re-frame,
+    // and the camera would crawl under the reader's finger.
+    const padding = untrack<[number, number, number, number]>(() => {
+      if (window.innerWidth >= 768) return [60, 60, 60, 580]
+      // A pending snap wins, because a marker tap asks for 0.75 and the sheet arrives ~50ms later.
+      // Measured against the app frame, because the banner shrinks it without moving the sheet.
+      const frame = document.querySelector('[data-app-frame]')?.clientHeight ?? window.innerHeight
+      const pending = sheetState.requestSnap
+      const top = sheetState.sheetTop
+      const covered =
+        pending != null
+          ? Math.round(frame * pending)
+          : top == null
+            ? Math.round(frame * 0.75)
+            : Math.max(0, frame - top)
+      return [60, 60, covered, 60]
+    })
 
-    if (routeId.includes('parking/')) {
-      const parking = explore.parkingLocations.find((location) => location.id === id)
-      return parking == null ? null : { center: [parking.lat, parking.long], padding, zoom: 16 }
-    }
-
-    if (routeId.includes('blocks/')) {
-      const block = explore.blocks.find((candidate) => candidate.id === id)
-      return block?.geolocation == null
-        ? null
-        : { center: [block.geolocation.lat, block.geolocation.long], padding, zoom: 16 }
-    }
-
-    if (routeId.includes('areas/')) {
-      const geoBlocks = explore.blocks.filter(
-        (block) => block.geolocation != null && block.areas.some((area) => area.id === id),
-      )
-      if (geoBlocks.length === 0) return null
-      const lats = geoBlocks.map((block) => block.geolocation!.lat)
-      const lngs = geoBlocks.map((block) => block.geolocation!.long)
-      return { extent: [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)], padding }
-    }
-
-    return null
+    return cameraTarget({
+      blocks: explore.blocks,
+      id: Number(page.params.id),
+      padding,
+      parkingLocations: explore.parkingLocations,
+      routeId: page.route.id ?? '',
+      showOnMapRequest,
+    })
   })
 
+  const focus: MapFocus | null = $derived(target?.focus ?? null)
+
   const effectiveFocus: MapFocus | null = $derived(focus ?? createFocus ?? restoredFocus)
+
+  // Only this layout knows whether the open entity can be framed, so it tells the sheet.
+  $effect(() => {
+    sheetState.canShowOnMap = focus != null
+    // Cleared on teardown, because the flag outlives this layout.
+    return () => (sheetState.canShowOnMap = false)
+  })
+
+  // Claimed from the route, so the camera has an owner before the row that will frame it arrives.
+  const cameraClaim = $derived.by<MapCameraClaim | null>(() => {
+    // Always claims, even with nothing to frame. The content fit paints under it meanwhile.
+    if (target != null) return target.claim
+    // A remembered view and a quick-create framing are both the reader's own. The sequence keys
+    // them apart, or the second claim is deduped away.
+    return restoredFocus != null || createFocus != null ? { key: String(readerClaimSeq), kind: 'reader' } : null
+  })
+
+  // The controls ride above the sheet instead of hiding behind it. Tracked, unlike the padding
+  // above, because this one must follow the finger.
+  //
+  // Capped at the half open snap. Above that the sheet is the screen. Mobile only.
+  const controlsLift = $derived.by<null | number>(() => {
+    if (typeof window === 'undefined' || window.innerWidth >= 768) return null
+    const top = sheetState.sheetTop
+    if (top == null) return null
+    const frame = document.querySelector('[data-app-frame]')?.clientHeight ?? window.innerHeight
+    const covered = Math.max(0, frame - top)
+    return Math.round(Math.min(covered, frame * 0.5)) + 8
+  })
 
   // Highlight the open block's marker on the map.
   const selectedBlockId = $derived.by(() => {
@@ -202,6 +239,8 @@
     gradeCountByBlock={explore.gradeCountByBlock}
     {selectedBlockId}
     focus={effectiveFocus}
+    {cameraClaim}
+    {controlsLift}
     pickMode={placing != null}
     onviewchange={(view) => (mapViewState = view)}
     onfeatureopen={() => (sheetState.requestSnap = 0.75)}
@@ -216,7 +255,10 @@
   bind:placing
   center={mapViewState?.center ?? null}
   visible={!open}
-  onrequestcenter={(center) => (createFocus = { center, zoom: Math.max(mapViewState?.zoom ?? 0, BLOCK_LABEL_ZOOM) })}
+  onrequestcenter={(center) => {
+    createFocus = { center, zoom: Math.max(mapViewState?.zoom ?? 0, BLOCK_LABEL_ZOOM) }
+    readerClaimSeq += 1
+  }}
 />
 
 {#if (!open || page.route.id === SEARCH_ROUTE) && placing == null}

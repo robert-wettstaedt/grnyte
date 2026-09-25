@@ -96,3 +96,20 @@ export const formatDistance = (from: Coords, to: Coords): string => formatMetres
 /** The coordinate readout the design specifies: "49.00420°N, 13.10250°E". */
 export const formatCoord = (coord: [number, number]): string =>
   `${Math.abs(coord[0]).toFixed(5)}°${coord[0] >= 0 ? 'N' : 'S'}, ${Math.abs(coord[1]).toFixed(5)}°${coord[1] >= 0 ? 'E' : 'W'}`
+
+const PAN_KEYS = new Set(['ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp'])
+const ZOOM_KEYS = new Set(['+', '-'])
+
+/**
+ * Whether OpenLayers will act on a keydown, and so whether the reader took the camera. The two key
+ * classes carry two different conditions. KeyboardPan allows no modifier. KeyboardZoom allows Shift,
+ * because '+' is Shift+'=' on a US or UK layout.
+ *
+ * @param withZoom also count +/-, for a surface where a deliberate zoom retires its fit.
+ */
+export const isMapPanKey = (event: KeyboardEvent, withZoom = false): boolean => {
+  if (event.ctrlKey || event.metaKey) return false
+  if (withZoom && ZOOM_KEYS.has(event.key)) return true
+  if (event.altKey || event.shiftKey) return false
+  return PAN_KEYS.has(event.key)
+}

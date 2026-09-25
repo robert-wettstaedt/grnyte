@@ -4,6 +4,11 @@ import type { Geolocation } from '$lib/entities/geolocation/dto'
 
 export interface BlocksMapProps {
   blocks: BlockDetail[]
+  /** Claims the camera for the open route. Omitted by maps that `focus` alone drives. */
+  cameraClaim?: MapCameraClaim | null
+  /** Pixels to lift the control column, so it rides above a sheet that covers the map. The caller
+   *  owns the sheet, so it owns this number. Null keeps the resting position. */
+  controlsLift?: null | number
   /** Tap-to-add-waypoint mode (parking path drawing): a tap emits `onpathpoint` instead of navigating. */
   drawPath?: boolean
   focus?: MapFocus | null
@@ -18,6 +23,9 @@ export interface BlocksMapProps {
   onlongpress?: (point: [number, number]) => void
   /** Emits the tapped `[lat, lng]` while in `drawPath` mode. */
   onpathpoint?: (point: [number, number]) => void
+  /** Every deliberate reader move, including the locate press. A picker marks itself edited from
+   *  this instead of listing OpenLayers gestures. */
+  onreadermove?: () => void
   onviewchange?: (view: { center: [number, number]; zoom: number }) => void
   parkingLocations?: Geolocation[]
   /** Path to draw as a dashed line, as `[lat, lng]` points. */
@@ -48,6 +56,11 @@ export interface LayerEntry {
 /** The five marker layers toggle as one group. */
 export const MARKERS_LAYER_KEY = 'markers'
 export const OSM_LAYER_KEY = 'osm'
+
+/** Who owns the camera, taken from the route and not from synced data, so it is set before `focus`
+ *  can be computed. `key` identifies the claim, not the owner. Two reader claims are one owner, so
+ *  they need different keys or the second is deduped away. */
+export type MapCameraClaim = { key: string; kind: 'entity' | 'reader' }
 
 /** The map-data subset produced by `createExploreMapData`, spread into `<Map>`. */
 export type MapData = Pick<

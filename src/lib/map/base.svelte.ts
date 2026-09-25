@@ -34,6 +34,9 @@ export interface BaseMapOptions {
   extraLayers?: BaseLayer[]
   /** False strips pan and zoom entirely, for a thumbnail whose view is driven only by its props. */
   interactive?: boolean
+  /** Pixels a pointer can wander before OpenLayers calls it a drag. Raise it where a tap must not
+   *  nudge the view, such as a picker whose pin is the map centre. Default is 1. */
+  moveTolerance?: number
   /** Seeds the view, for a map being rebuilt. `center` is in the view's projection as
    *  `View#getCenter` returns it, NOT lon/lat like `DEFAULT_CENTER` above. */
   view?: { center: number[]; zoom: number }
@@ -41,7 +44,7 @@ export interface BaseMapOptions {
 
 /** Build the base map on `node`. */
 export function createBaseMap(node: HTMLElement, options: BaseMapOptions = {}): BaseMap {
-  const { extraLayers = [], interactive = true, view } = options
+  const { extraLayers = [], interactive = true, moveTolerance, view } = options
 
   let hasSize = $state(false)
 
@@ -63,6 +66,7 @@ export function createBaseMap(node: HTMLElement, options: BaseMapOptions = {}): 
       }),
       ...extraLayers,
     ],
+    moveTolerance,
     target: node,
     view: new View({
       center: view?.center ?? fromLonLat(DEFAULT_CENTER),

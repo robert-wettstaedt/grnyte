@@ -2,7 +2,7 @@
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { createBaseMap } from '$lib/map/base.svelte'
   import { buildParkingFeatures, buildPathFeatures, createParkingLayer, createPathLayer } from '$lib/map/layers.svelte'
-  import type { Coords } from '$lib/map/map'
+  import { isMapPanKey, type Coords } from '$lib/map/map'
   import MapCredit from '$lib/map/MapCredit.svelte'
   import { boundingExtent } from 'ol/extent'
   import type OlMap from 'ol/Map.js'
@@ -23,10 +23,6 @@
   }
 
   const { blocks, geoPaths, onselect, parking, selectedId }: Props = $props()
-
-  // What OL's KeyboardPan and KeyboardZoom act on, and so what counts as the reader taking over.
-
-  const PAN_KEYS = new Set(['+', '-', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp'])
 
   let map = $state<OlMap>()
   // Held so the fit effect can read `hasSize`: fitting before the element has a size lands on a
@@ -59,7 +55,8 @@
     // buttons inside it: arrowing between them bubbles up here and would retire the fit.
     const takeOverKey = (event: KeyboardEvent) => {
       if (event.target instanceof Element && event.target.closest('.reorder-pin') != null) return
-      if (PAN_KEYS.has(event.key)) userMoved = true
+      // Zoom keys count here: any deliberate move retires this map's fit.
+      if (isMapPanKey(event, true)) userMoved = true
     }
     const element = node as HTMLElement
     const viewport = instance.getViewport()

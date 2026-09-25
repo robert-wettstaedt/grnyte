@@ -12,6 +12,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { withUndo } from '$lib/state/toast'
+  import ShowOnMapButton from '../../ShowOnMapButton.svelte'
 
   /** Directions keeps the labelled slot here and nowhere else: it is all a parking pin is for. */
   interface Props {
@@ -36,6 +37,8 @@
     {#snippet cta()}
       <DirectionsButton {destination} variant="cta" />
     {/snippet}
+
+    <ShowOnMapButton />
 
     <ShareButton text={parking.area?.name ?? m.parking_title()} />
 

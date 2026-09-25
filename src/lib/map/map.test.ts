@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCoord, haversineMetres, pickDistanceUnit, sectorReferencePoint } from './map'
+import { formatCoord, haversineMetres, isMapPanKey, pickDistanceUnit, sectorReferencePoint } from './map'
 
 describe('haversineMetres', () => {
   it('is zero for the same point', () => {
@@ -65,5 +65,37 @@ describe('formatCoord', () => {
 
   it('puts the equator and the prime meridian in the positive hemispheres', () => {
     expect(formatCoord([0, 0])).toBe('0.00000°N, 0.00000°E')
+  })
+})
+
+describe('isMapPanKey', () => {
+  const key = (key: string, modifiers: Partial<KeyboardEvent> = {}) =>
+    ({ altKey: false, ctrlKey: false, key, metaKey: false, shiftKey: false, ...modifiers }) as KeyboardEvent
+
+  it('counts a plain arrow', () => {
+    expect(isMapPanKey(key('ArrowLeft'))).toBe(true)
+  })
+
+  it('ignores a modified arrow, because OpenLayers will not pan on one', () => {
+    expect(isMapPanKey(key('ArrowLeft', { metaKey: true }))).toBe(false)
+    expect(isMapPanKey(key('ArrowLeft', { shiftKey: true }))).toBe(false)
+    expect(isMapPanKey(key('ArrowLeft', { altKey: true }))).toBe(false)
+  })
+
+  it('ignores the zoom keys unless asked for them', () => {
+    expect(isMapPanKey(key('+'))).toBe(false)
+    expect(isMapPanKey(key('+'), true)).toBe(true)
+    expect(isMapPanKey(key('-'), true)).toBe(true)
+  })
+
+  // '+' is Shift+'=' on a US or UK layout, and KeyboardZoom allows Shift. Rejecting it lets the
+  // reader zoom without the surface noticing.
+  it('counts a shifted zoom key, which is how + is typed', () => {
+    expect(isMapPanKey(key('+', { shiftKey: true }), true)).toBe(true)
+  })
+
+  it('ignores a platform-modified zoom key, which is a browser zoom', () => {
+    expect(isMapPanKey(key('+', { metaKey: true }), true)).toBe(false)
+    expect(isMapPanKey(key('-', { ctrlKey: true }), true)).toBe(false)
   })
 })

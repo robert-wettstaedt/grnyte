@@ -115,7 +115,7 @@
         <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers resolve() the href -->
         <a class="btn btn-sm preset-tonal" href={mapHref}>
           <Icon name="map-pin" size={13} />
-          {m.routes_showOnMap()}
+          {m.map_showOnMap()}
         </a>
       {/if}
       {#if detailsHref}
