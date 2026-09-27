@@ -256,7 +256,7 @@
   center={mapViewState?.center ?? null}
   visible={!open}
   onrequestcenter={(center) => {
-    createFocus = { center, zoom: Math.max(mapViewState?.zoom ?? 0, BLOCK_LABEL_ZOOM) }
+    createFocus = { center, minZoom: BLOCK_LABEL_ZOOM }
     readerClaimSeq += 1
   }}
 />

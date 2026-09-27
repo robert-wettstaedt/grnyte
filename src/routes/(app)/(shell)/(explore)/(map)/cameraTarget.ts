@@ -1,5 +1,5 @@
 import type { Geolocation } from '$lib/entities/geolocation/dto'
-import type { MapCameraClaim, MapFocus } from '$lib/map/types'
+import { ENTITY_FOCUS_ZOOM, type MapCameraClaim, type MapFocus } from '$lib/map/types'
 
 /** The entities with a detail route under `(map)`, and so with a camera claim. */
 export type MapEntity = 'areas' | 'blocks' | 'parking'
@@ -46,14 +46,14 @@ export function entityOf(routeId: string): MapEntity | null {
 function framing(entity: MapEntity, { blocks, id, padding, parkingLocations }: TargetInput): MapFocus | null {
   if (entity === 'parking') {
     const parking = parkingLocations.find((location) => location.id === id)
-    return parking == null ? null : { center: [parking.lat, parking.long], padding, zoom: 16 }
+    return parking == null ? null : { center: [parking.lat, parking.long], minZoom: ENTITY_FOCUS_ZOOM, padding }
   }
 
   if (entity === 'blocks') {
     const block = blocks.find((candidate) => candidate.id === id)
     return block?.geolocation == null
       ? null
-      : { center: [block.geolocation.lat, block.geolocation.long], padding, zoom: 16 }
+      : { center: [block.geolocation.lat, block.geolocation.long], minZoom: ENTITY_FOCUS_ZOOM, padding }
   }
 
   // An area is framed by the blocks under it, anywhere in its subtree.

@@ -48,6 +48,11 @@ export type ViewPoint = number[]
 
 const project = ([lat, long]: LatLng): ViewPoint => fromLonLat([long, lat])
 
+/** The scale a point framing lands on. `minZoom` is a floor, so a reader already looking more closely
+ *  keeps their scale. Read from the view at the moment of the move, never from a snapshot. */
+const targetZoom = (view: CameraView, focus: MapFocus, fallback: number): number =>
+  focus.minZoom == null ? (focus.zoom ?? fallback) : Math.max(view.getZoom() ?? 0, focus.minZoom)
+
 /** Above this the fit stops zooming in, so a lone block does not land at street level. */
 const CONTENT_MAX_ZOOM = 15
 /** A point further than this from the median is an outlier, not part of the region. */
@@ -109,7 +114,7 @@ export function createCamera(fallbackZoom: number) {
     applyFocus(view: CameraView, focus: MapFocus, claim: MapCameraClaim | null | undefined): boolean {
       // Move only when the target changed, because the parent rebuilds `focus` on every data change.
       // Padding is excluded, because it tracks sheet coverage.
-      const key = JSON.stringify({ c: focus.center, e: focus.extent, z: focus.zoom })
+      const key = JSON.stringify({ c: focus.center, e: focus.extent, m: focus.minZoom, z: focus.zoom })
       if (key === lastFocusKey) return false
       // Without a claim, `focus` alone drives the view (pickers, static previews).
       if (claim != null && !canMove(current(), toOwnerClaim(claim))) return false
@@ -129,7 +134,7 @@ export function createCamera(fallbackZoom: number) {
         return true
       }
       if (focus.center != null) {
-        const zoom = focus.zoom ?? fallbackZoom
+        const zoom = targetZoom(view, focus, fallbackZoom)
         const [x, y] = project(focus.center)
         if (focus.padding != null) {
           view.fit([x, y, x, y], {
@@ -192,13 +197,13 @@ export function createCamera(fallbackZoom: number) {
     /** A fix from the device. Follows only while location owns the camera. Returns whether it moved. */
     followFix(view: CameraView, position: ViewPoint): boolean {
       if (!canMove(current(), { kind: 'location' })) return false
-      const floor = pendingZoomFloor ? fallbackZoom : undefined
+      const floored = pendingZoomFloor
       pendingZoomFloor = false
       const done = beginMove()
       view.animate(
-        floor == null
-          ? { center: position, duration: 200 }
-          : { center: position, duration: 200, zoom: Math.max(view.getZoom() ?? 0, floor) },
+        floored
+          ? { center: position, duration: 200, zoom: targetZoom(view, { minZoom: fallbackZoom }, fallbackZoom) }
+          : { center: position, duration: 200 },
         done,
       )
       return true
@@ -227,7 +232,10 @@ export function createCamera(fallbackZoom: number) {
       }
       // A floor, never a reduction. A reader already looking closely keeps their scale.
       const done = beginMove()
-      view.animate({ center: position, duration: 200, zoom: Math.max(view.getZoom() ?? 0, fallbackZoom) }, done)
+      view.animate(
+        { center: position, duration: 200, zoom: targetZoom(view, { minZoom: fallbackZoom }, fallbackZoom) },
+        done,
+      )
     },
 
     get owner() {
