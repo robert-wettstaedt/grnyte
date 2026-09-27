@@ -1,3 +1,4 @@
+import { ENTITY_FOCUS_ZOOM } from '$lib/map/types'
 import { describe, expect, it } from 'vitest'
 import { cameraTarget, entityOf, type TargetBlock, type TargetInput } from './cameraTarget'
 
@@ -71,7 +72,7 @@ describe('cameraTarget', () => {
 
   it('frames a block on its own pin', () => {
     const target = cameraTarget(input({ blocks: [block(79, [5], [48.1, 11.5])], id: 79, routeId: 'blocks/[id]' }))
-    expect(target?.focus).toEqual({ center: [48.1, 11.5], padding: PADDING, zoom: 16 })
+    expect(target?.focus).toEqual({ center: [48.1, 11.5], minZoom: ENTITY_FOCUS_ZOOM, padding: PADDING })
   })
 
   it('frames parking on its own pin', () => {
@@ -82,7 +83,7 @@ describe('cameraTarget', () => {
         routeId: 'parking/[id]',
       }),
     )
-    expect(target?.focus).toEqual({ center: [48.4, 2.6], padding: PADDING, zoom: 16 })
+    expect(target?.focus).toEqual({ center: [48.4, 2.6], minZoom: ENTITY_FOCUS_ZOOM, padding: PADDING })
   })
 
   it('frames an area on the blocks beneath it, wherever in its subtree they sit', () => {
@@ -93,6 +94,7 @@ describe('cameraTarget', () => {
         routeId: 'areas/[id]',
       }),
     )
+    // No `minZoom`: an area is framed on its blocks, and a floor would refuse to show them all.
     expect(target?.focus).toEqual({ extent: [48.1, 11.5, 48.3, 11.9], padding: PADDING })
   })
 

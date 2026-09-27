@@ -71,7 +71,11 @@ export type MapData = Pick<
 export interface MapFocus {
   center?: [number, number] // [lat, lng]
   extent?: Bounds
+  /** A floor for a point framing: at least this, keep a closer scale. Wins over `zoom`, and an
+   *  extent framing ignores it, because a floor there would refuse to show the extent. */
+  minZoom?: number
   padding?: [number, number, number, number] // [top, right, bottom, left] in pixels
+  /** Exactly this scale, whatever the reader is looking at. */
   zoom?: number
 }
 
@@ -80,3 +84,5 @@ export interface MapFocus {
 export const SECTOR_ZOOM = 11
 export const BLOCK_ZOOM = 14
 export const BLOCK_LABEL_ZOOM = 15
+/** The scale one entity's own marker is framed at, as a floor rather than a target. */
+export const ENTITY_FOCUS_ZOOM = 16

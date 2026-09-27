@@ -193,6 +193,22 @@ describe('the zoom floor', () => {
     expect(moves[0].options).toMatchObject({ zoom: 14 })
   })
 
+  // Pressing locate with a fix already in hand animates straight there, which is a different call
+  // from the one the tests above drive through `followFix`.
+  it('applies to a locate press that has a fix in hand', () => {
+    const camera = createCamera(14)
+    const { moves, view } = recorder(18)
+    camera.locatePressed(view, [123, 456])
+    expect(moves[0].options).toMatchObject({ center: [123, 456], zoom: 18 })
+  })
+
+  it('moves a locate press in when it has a fix in hand over a wide view', () => {
+    const camera = createCamera(14)
+    const { moves, view } = recorder(4)
+    camera.locatePressed(view, [123, 456])
+    expect(moves[0].options).toMatchObject({ center: [123, 456], zoom: 14 })
+  })
+
   it('is spent once, so a second fix does not zoom again', () => {
     const camera = createCamera(14)
     const { moves, view } = recorder(4)
@@ -258,6 +274,57 @@ describe('the zoom floor', () => {
     camera.locatePressed(view, [0, 0])
     camera.followFix(view, [1, 1])
     expect(moves[1].options).toMatchObject({ zoom: 14 })
+  })
+})
+
+describe('a framing that states a floor', () => {
+  it('moves in from a wider view', () => {
+    const camera = createCamera(14)
+    const { moves, view } = recorder(10)
+    camera.applyFocus(view, { center: MUNICH, minZoom: 16 }, null)
+    expect(moves[0].options).toMatchObject({ zoom: 16 })
+  })
+
+  // The reported defect: this used to pull a reader working at street level back out to 16.
+  it('keeps a scale the reader is already closer than', () => {
+    const camera = createCamera(14)
+    const { moves, view } = recorder(18)
+    camera.applyFocus(view, { center: MUNICH, minZoom: 16 }, null)
+    expect(moves[0].options).toMatchObject({ zoom: 18 })
+  })
+
+  // With padding the point is framed by a fit, so the floor has to reach `maxZoom` too.
+  it('keeps that scale when the detail surface covers part of the map', () => {
+    const camera = createCamera(14)
+    const { moves, view } = recorder(18)
+    camera.applyFocus(view, { center: MUNICH, minZoom: 16, padding: [60, 60, 400, 60] }, null)
+    expect(moves[0].kind).toBe('fit')
+    expect(moves[0].options).toMatchObject({ maxZoom: 18 })
+  })
+
+  it('is a different framing from the same point at another floor', () => {
+    const camera = createCamera(14)
+    const { moves, view } = recorder(10)
+    camera.applyFocus(view, { center: MUNICH, minZoom: 16 }, null)
+    camera.applyFocus(view, { center: MUNICH, minZoom: 18 }, null)
+    expect(moves).toHaveLength(2)
+  })
+
+  // The history restore. Its scale is one the reader established, so it is restored whole, including
+  // downwards.
+  it('is not what a framing carrying an exact scale does', () => {
+    const camera = createCamera(14)
+    const { moves, view } = recorder(18)
+    camera.applyFocus(view, { center: MUNICH, zoom: 12 }, null)
+    expect(moves[0].options).toMatchObject({ zoom: 12 })
+  })
+
+  // An area is framed on the extent of its blocks, and a floor there would refuse to show the area.
+  it('is ignored by an extent framing', () => {
+    const camera = createCamera(14)
+    const { moves, view } = recorder(18)
+    camera.applyFocus(view, { extent: [48.1, 11.5, 48.3, 11.7], minZoom: 16 }, null)
+    expect(moves[0].options).toMatchObject({ maxZoom: 14 })
   })
 })
 
