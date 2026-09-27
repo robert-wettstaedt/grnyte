@@ -37,7 +37,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { notifyError, notifyUndo, toaster } from '$lib/state/toast'
+  import { FAILURE_TOAST_MS, notifyError, notifyUndo, toaster } from '$lib/state/toast'
   import { tick } from 'svelte'
   import { fly } from 'svelte/transition'
   import { topoEditorKeydown } from './keydown'
@@ -263,7 +263,11 @@
       if (rejection == null) {
         accepted.push(file)
       } else {
-        toaster.create({ duration: 5000, title: `${file.name}: ${imageRejectionMessage(rejection)}`, type: 'error' })
+        toaster.create({
+          duration: FAILURE_TOAST_MS,
+          title: `${file.name}: ${imageRejectionMessage(rejection)}`,
+          type: 'error',
+        })
       }
     }
     if (accepted.length === 0) return

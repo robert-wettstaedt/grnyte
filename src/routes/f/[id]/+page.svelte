@@ -15,6 +15,7 @@
   import MediaStage from '$lib/components/Media/MediaStage.svelte'
   import ShareSheet from '$lib/components/Media/ShareSheet.svelte'
   import { MEDIA_TOOL } from '$lib/components/Media/toolbar'
+  import Toaster from '$lib/components/Toaster/Toaster.svelte'
   import { deleteFile } from '$lib/entities/file/files.remote'
   import type { FileParent } from '$lib/entities/file/mapper'
   import { entityHref, type EntityKind } from '$lib/entities/href'
@@ -142,3 +143,7 @@
     </div>
   {/if}
 </div>
+
+<!-- This route is outside the (app) layout, which is the only other place a toaster is mounted, so
+     without this the delete/share failures below raise toasts nothing can render. -->
+<Toaster />

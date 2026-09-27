@@ -8,7 +8,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { push } from '$lib/state/navigation.svelte'
-  import { toaster } from '$lib/state/toast'
+  import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast'
   import type Feature from 'ol/Feature.js'
   import OlGeolocation from 'ol/Geolocation.js'
   import type VectorLayer from 'ol/layer/Vector.js'
@@ -457,7 +457,7 @@
         const wasRequested = didRequestLocation
         didRequestLocation = false
         if (code != null && wasRequested) {
-          toaster.create({ duration: 8000, title: locationErrorMessage(code), type: 'error' })
+          toaster.create({ duration: FAILURE_TOAST_MS, title: locationErrorMessage(code), type: 'error' })
         }
       },
     })
