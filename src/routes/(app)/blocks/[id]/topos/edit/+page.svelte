@@ -12,6 +12,7 @@
   import TopoEditorStage from '$lib/components/Topo/TopoEditorStage.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { estimateBlockLocationFromPhoto } from '$lib/entities/block/blocks.remote'
+  import { usablePhotoCoordinates } from '$lib/entities/block/pin'
   import { blockDetail, blockRouteList } from '$lib/entities/block/resources.svelte'
   import { imageRejectionMessage } from '$lib/entities/file/rejection'
   import { imageRejection } from '$lib/entities/file/upload'
@@ -34,6 +35,7 @@
     replaceTopoImage,
     saveTopoLines,
   } from '$lib/entities/topo/topos.remote'
+  import { reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
@@ -322,28 +324,41 @@
     // exifr's package.json has no `exports` map, so this deep dist path is an internal file the
     // package makes no promise about, and only the version range holds it still. Pin exifr to an
     // exact version in package.json ("exifr": "7.1.3") so a patch bump cannot move or rename it.
-    // @ts-expect-error -- no declarations ship for the deep path; `gps` is the root build's own.
-    const exifr = (await import('exifr/dist/lite.esm.mjs')) as Pick<typeof import('exifr'), 'gps'>
+    // @ts-expect-error -- no declarations ship for the deep path; `parse` is the root build's own.
+    const exifr = (await import('exifr/dist/lite.esm.mjs')) as Pick<typeof import('exifr'), 'parse'>
 
     for (const file of files) {
-      let gps: Awaited<ReturnType<typeof exifr.gps>>
+      let gps: undefined | { latitude?: number; longitude?: number }
       try {
-        gps = await exifr.gps(file)
-      } catch {
+        // ifd0 rides along because exifr's types do not let it be disabled; only `gps` is read.
+        const parsed = await exifr.parse(file, {
+          exif: false,
+          gps: { pick: [1, 2, 3, 4] },
+          mergeOutput: false,
+        })
+        // `parse`, not the `gps` helper: that one collects range-read failures and then drops them,
+        // so a failed read arrives looking exactly like a photo that carries no location.
+        for (const error of parsed?.errors ?? []) reportIfOnline(error)
+        gps = parsed?.gps
+      } catch (cause) {
+        reportIfOnline(cause)
         continue
       }
-      if (gps?.latitude == null || gps?.longitude == null) continue
+      if (!usablePhotoCoordinates(gps)) continue
       try {
         await estimateBlockLocationFromPhoto({
           id: block.data.id,
           lat: gps.latitude,
           long: gps.longitude,
         })
-      } catch {
-        // ignore: the pin is a bonus, the photo already uploaded
+        return
+      } catch (cause) {
+        // The photo already uploaded, so keep scanning: a later one may still carry a location.
+        reportIfOnline(cause)
       }
-      return
     }
+
+    toaster.create({ title: m.blocks_photoNoLocation(), type: 'info' })
   }
 
   async function deleteCurrentTopo() {

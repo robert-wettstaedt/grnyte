@@ -222,6 +222,7 @@
   "blocks_order_select": "Auf Karte hervorheben",
   "blocks_order_sortByDistance": "Nach Entfernung sortieren",
   "blocks_order_title": "Blöcke neu ordnen",
+  "blocks_photoNoLocation": "Dieses Foto hat keinen Standort. Setze ihn stattdessen auf der Karte.",
   "blocks_pinStale": "Der Standort hat sich geändert, während diese Seite offen war. Öffne sie erneut und nimm die Änderung noch einmal vor.",
   "blocks_viewBlock": "Block ansehen",
   "blocks_viewRoutes": "Routen",
