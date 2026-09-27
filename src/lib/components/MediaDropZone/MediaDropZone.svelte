@@ -24,7 +24,7 @@
     type MediaUploadTarget,
   } from '$lib/entities/file/upload-manager.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { toaster } from '$lib/state/toast'
+  import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast'
   import { isHdrVideo } from '$lib/videos/hdr'
   import { FileUpload, useFileUpload } from '@skeletonlabs/skeleton-svelte'
   import { onDestroy } from 'svelte'
@@ -82,7 +82,7 @@
   // Inline under the field in a form; a toast in tile mode, which has no inline slot for them.
   const reportRejections = (list: string[]) => {
     if (tile) {
-      list.forEach((message) => toaster.create({ duration: 5000, title: message, type: 'error' }))
+      list.forEach((message) => toaster.create({ duration: FAILURE_TOAST_MS, title: message, type: 'error' }))
     } else {
       rejections = list
     }
@@ -99,7 +99,7 @@
       return
     }
     if (tile) {
-      toaster.create({ duration: 8000, title: message, type: 'warning' })
+      toaster.create({ duration: FAILURE_TOAST_MS, title: message, type: 'warning' })
     } else if (uploads.includes(upload) && !warnings.some((warning) => warning.upload === upload)) {
       warnings.push({ message, upload })
     }
