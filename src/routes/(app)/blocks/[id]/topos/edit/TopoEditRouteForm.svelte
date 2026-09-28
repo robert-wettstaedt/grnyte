@@ -3,7 +3,7 @@
   import { page } from '$app/state'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import type { RouteDetail } from '$lib/entities/route/dto'
-  import { routeListsFingerprint } from '$lib/entities/route/fingerprint'
+  import { routeEditSeed } from '$lib/entities/route/editSeed'
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
   import { updateRoute } from '$lib/entities/route/routes.remote'
   import FormError from '$lib/forms/FormError.svelte'
@@ -29,20 +29,11 @@
   seedOnKeyChange(
     () => route.id,
     () => {
-      // No DOM reset here, deliberately. `reset()` restores every input to its `defaultValue`,
-      // which blanks the rendered name; the `fields.set` below then writes the value the singleton
-      // ALREADY held from the previous open, so Svelte sees no change, never re-renders, and the
-      // form submits an empty name over a real one. Reopening the same route is the case that hits
-      // it. Kit's issues therefore survive a reopen, the documented limit of `seedOnKeyChange`, and
-      // the same trade `/routes/[id]/edit` makes.
-      updateRoute.fields.set({
-        blockId: String(route.blockFk),
-        description: route.description,
-        firstAscentYear: route.firstAscentYear == null ? '' : String(route.firstAscentYear),
-        id: String(route.id),
-        known: routeListsFingerprint(route.tags, route.firstAscents),
-        name: route.rawName,
-      })
+      // No DOM reset: it blanks the rendered name, and the `fields.set` below then writes the value
+      // the singleton already holds, so nothing re-renders and an empty name submits over a real
+      // one. Cost is that Kit's issues survive a reopen, and unlike `/routes/[id]/edit` this
+      // surface never reloads, so a stale guard error stays on screen until the next submit.
+      updateRoute.fields.set(routeEditSeed(route))
     },
   )
 
