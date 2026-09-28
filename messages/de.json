@@ -1906,6 +1906,7 @@
   "topo_done": "Fertig",
   "topo_dragToReorder": "Zum Umsortieren ziehen",
   "topo_editLine": "Linie bearbeiten",
+  "topo_editRoute": "Route bearbeiten",
   "topo_editTopos": "Topos bearbeiten",
   "topo_emptyState": "Noch keine Fotos. Füge ein Foto des Blocks hinzu, um Routenlinien zu zeichnen.",
   "topo_exitFullscreen": "Vollbild verlassen",

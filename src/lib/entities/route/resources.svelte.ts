@@ -25,10 +25,11 @@ export interface RouteListFilter {
   tags?: string[]
 }
 
-export function routeDetail(id: () => number) {
+export function routeDetail(id: () => number, opts?: { enabled?: () => boolean }) {
   return createResource(
     () => queries.listRoutes({ routeId: id() }),
     (rows) => (rows[0] == null ? undefined : toRouteDetail(rows[0])),
+    opts,
   )
 }
 

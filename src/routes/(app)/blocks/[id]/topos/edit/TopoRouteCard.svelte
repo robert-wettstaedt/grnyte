@@ -8,19 +8,26 @@
   import type { TopoEditor } from '$lib/entities/topo/editor.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { MediaQuery } from 'svelte/reactivity'
   import { fly, slide } from 'svelte/transition'
 
   interface Props {
     /** Whether the current user may delete the route entity (region permission). */
     canDelete: boolean
+    /** Whether the current user may edit the route entity. A different gate than `canDelete`. */
+    canEdit: boolean
     editor: TopoEditor
     onDeleteRoute: () => void
+    onEditRoute: () => void
     /** The currently selected route (the line being edited). */
     route: Pick<RouteListItem, 'gradeFk' | 'id' | 'name'>
   }
 
-  const { canDelete, editor, onDeleteRoute, route }: Props = $props()
+  const { canDelete, canEdit, editor, onDeleteRoute, onEditRoute, route }: Props = $props()
   const global = getGlobalState()
+
+  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
+  const duration = $derived(still.current ? 0 : 150)
 
   let cardMinimized = $state(false)
 
@@ -37,7 +44,10 @@
 </script>
 
 <!-- Selected-route editing card: overlays the photo strip and slides up like a sheet. -->
-<div class="p-safe-3 pointer-events-none absolute inset-x-0 bottom-0 z-40" transition:fly={{ duration: 220, y: 24 }}>
+<div
+  class="p-safe-3 pointer-events-none absolute inset-x-0 bottom-0 z-40"
+  transition:fly={{ duration: duration === 0 ? 0 : 220, y: 24 }}
+>
   <div class="preset-filled-surface-50-950 pointer-events-auto mx-auto w-full max-w-md rounded-2xl p-3 shadow-2xl">
     <div class="flex items-center gap-2">
       <div class="flex min-w-0 flex-1 items-center gap-2">
@@ -45,7 +55,7 @@
           grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
           band={getGradeBand(route.gradeFk)}
         />
-        <span class="truncate text-sm font-bold">{route.name || m.topo_quickLine()}</span>
+        <span class="truncate text-sm font-bold">{route.name}</span>
       </div>
       <KbdTooltip label={cardMinimized ? m.common_showMore() : m.common_showLess()}>
         {#snippet trigger(attributes)}
@@ -65,14 +75,16 @@
     </div>
 
     {#if !cardMinimized}
-      <div class="mt-3 space-y-3" transition:slide={{ duration: 200 }}>
+      <div class="mt-3 space-y-3" transition:slide={{ duration: duration === 0 ? 0 : 200 }}>
+        <!-- Every button that is not filled carries a border: the tonal preset is nearly
+             invisible on this card, so without one they read as bare text, not as pressable. -->
         <div class="flex gap-2">
           <button
             class={[
               'btn grow',
               editor.pointType === 'start' || selectedPoint?.type === 'start'
-                ? 'preset-filled-primary-500'
-                : 'preset-tonal-surface',
+                ? 'preset-filled-primary-500 border border-transparent'
+                : 'preset-tonal-surface border-surface-300-700 border',
             ]}
             disabled={startCount >= 2}
             onclick={() => togglePointType('start')}
@@ -85,8 +97,8 @@
             class={[
               'btn grow',
               editor.pointType === 'middle' || selectedPoint?.type === 'middle'
-                ? 'preset-filled-primary-500'
-                : 'preset-tonal-surface',
+                ? 'preset-filled-primary-500 border border-transparent'
+                : 'preset-tonal-surface border-surface-300-700 border',
             ]}
             onclick={() => togglePointType('middle')}
           >
@@ -98,8 +110,8 @@
             class={[
               'btn grow',
               editor.pointType === 'top' || selectedPoint?.type === 'top'
-                ? 'preset-filled-primary-500'
-                : 'preset-tonal-surface',
+                ? 'preset-filled-primary-500 border border-transparent'
+                : 'preset-tonal-surface border-surface-300-700 border',
             ]}
             disabled={hasTop}
             onclick={() => togglePointType('top')}
@@ -108,40 +120,85 @@
             <span class="text-xs font-bold tabular-nums opacity-70">{hasTop ? 1 : 0}</span>
           </button>
 
-          <button
-            class={['btn-icon preset-tonal-error', selectedPoint == null && 'invisible']}
-            aria-label={m.topo_deletePoint()}
-            onclick={() => selectedPoint != null && editor.deletePoint(selectedPoint.id)}
-          >
-            <Icon name="trash" size={16} />
-          </button>
+          <!-- Slid in on the x axis rather than held as an `invisible` slot: an empty gap reads as
+               a broken row, and an unanimated mount reads as a jump. `slide` animates the width, so
+               the three buttons above give way to it. An X, not a trash: this dismisses one
+               selected point, while the trash two rows down destroys the route record, and the two
+               are on screen together. -->
+          {#if selectedPoint != null}
+            <div transition:slide={{ axis: 'x', duration }}>
+              <KbdTooltip label={m.topo_deletePoint()}>
+                {#snippet trigger(attributes)}
+                  <button
+                    {...attributes}
+                    class="btn-icon preset-tonal-error"
+                    aria-label={m.topo_deletePoint()}
+                    onclick={() => editor.deletePoint(selectedPoint.id)}
+                  >
+                    <Icon name="close" size={16} />
+                  </button>
+                {/snippet}
+              </KbdTooltip>
+            </div>
+          {/if}
         </div>
 
-        <div class="preset-tonal-surface flex gap-1 rounded-lg p-1">
+        <div class="flex gap-2">
           <button
-            class={['btn flex-1', editor.currentLine?.topType === 'top' ? 'preset-filled-surface-950-50' : '']}
+            class={[
+              'btn grow',
+              editor.currentLine?.topType === 'top'
+                ? 'preset-filled-surface-950-50 border border-transparent'
+                : 'border-surface-300-700 border',
+            ]}
             onclick={() => editor.setTopType('top')}
           >
             {m.topo_topFinish()}
           </button>
           <button
-            class={['btn flex-1', editor.currentLine?.topType === 'topout' ? 'preset-filled-surface-950-50' : '']}
+            class={[
+              'btn grow',
+              editor.currentLine?.topType === 'topout'
+                ? 'preset-filled-surface-950-50 border border-transparent'
+                : 'border-surface-300-700 border',
+            ]}
             onclick={() => editor.setTopType('topout')}
           >
             {m.topo_topout()}
           </button>
         </div>
 
-        <button class="btn preset-tonal-error w-full" onclick={() => editor.removeLine(route.id)}>
-          {m.topo_removeLine()}
-        </button>
+        <!-- One row, not three: the card floats over the photo, and every row it grows is topo the
+             reader cannot see. Both line-scoped actions keep their labels; only deleting the route
+             entity goes icon-only, so the one bare trash in this row cannot be confused with the
+             point-scoped one above it. -->
+        <div class="flex gap-2">
+          {#if canEdit}
+            <button class="btn preset-tonal-surface border-surface-300-700 grow border" onclick={onEditRoute}>
+              <Icon name="edit" size={16} />
+              {m.topo_editRoute()}
+            </button>
+          {/if}
 
-        {#if canDelete}
-          <button class="btn preset-tonal-error w-full" onclick={onDeleteRoute}>
-            <Icon name="trash" size={16} />
-            {m.topo_deleteRoute()}
+          <button class="btn preset-tonal-error grow" onclick={() => editor.removeLine(route.id)}>
+            {m.topo_removeLine()}
           </button>
-        {/if}
+
+          {#if canDelete}
+            <KbdTooltip label={m.topo_deleteRoute()}>
+              {#snippet trigger(attributes)}
+                <button
+                  {...attributes}
+                  class="btn-icon preset-tonal-error"
+                  aria-label={m.topo_deleteRoute()}
+                  onclick={onDeleteRoute}
+                >
+                  <Icon name="trash" size={16} />
+                </button>
+              {/snippet}
+            </KbdTooltip>
+          {/if}
+        </div>
       </div>
     {/if}
   </div>
