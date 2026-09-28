@@ -32,11 +32,28 @@ function setup() {
     { id: 1, imageHeight: 200, imagePath: 'a', imageWidth: 100, lines: [] },
     { id: 2, imageHeight: 200, imagePath: 'b', imageWidth: 100, lines: [] },
   ]
+  const onEditRoute = vi.fn()
   const onSave = vi.fn()
   const onToggleFullscreen = vi.fn()
-  const handler = topoEditorKeydown({ editor, onSave, onToggleFullscreen, topos: () => topos })
+  let surfaceOpen = false
+  const handler = topoEditorKeydown({
+    editor,
+    onEditRoute,
+    onSave,
+    onToggleFullscreen,
+    surfaceOpen: () => surfaceOpen,
+    topos: () => topos,
+  })
   const xOf = (routeFk: number) => editor.currentLines.find((l) => l.routeFk === routeFk)!.points[0].x
-  return { editor, handler, onSave, onToggleFullscreen, xOf }
+  return {
+    editor,
+    handler,
+    onEditRoute,
+    onSave,
+    onToggleFullscreen,
+    openSurface: () => (surfaceOpen = true),
+    xOf,
+  }
 }
 
 describe('topoEditorKeydown', () => {
@@ -123,6 +140,33 @@ describe('topoEditorKeydown', () => {
     editor.selectRoute(10)
     handler(press('Escape'))
     expect(editor.selectedRouteFk).toBeUndefined()
+  })
+
+  it('E edits the selected route, and does nothing without a selection', () => {
+    const { editor, handler, onEditRoute } = setup()
+    handler(press('e'))
+    expect(onEditRoute).not.toHaveBeenCalled()
+
+    editor.selectRoute(10)
+    handler(press('e'))
+    expect(onEditRoute).toHaveBeenCalledTimes(1)
+  })
+
+  it('stays inert while a route form is open, Escape included', () => {
+    const { editor, handler, onEditRoute, onToggleFullscreen, openSurface } = setup()
+    editor.selectRoute(10)
+    openSurface()
+
+    handler(press('Escape'))
+    expect(editor.selectedRouteFk).toBe(10)
+    handler(press('2')) // photo 2 exists: unchanged only because the handler is inert
+    expect(editor.topoId).toBe(1)
+    handler(press('j'))
+    expect(editor.selectedRouteFk).toBe(10)
+    handler(press('e'))
+    expect(onEditRoute).not.toHaveBeenCalled()
+    handler(press('f'))
+    expect(onToggleFullscreen).not.toHaveBeenCalled()
   })
 
   it('stays inert while typing in a field', () => {

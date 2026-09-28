@@ -20,8 +20,8 @@
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { entityHref } from '$lib/entities/href'
-  import { canDeleteRoute } from '$lib/entities/route/permissions'
-  import { deleteRoute, restoreRoute } from '$lib/entities/route/routes.remote'
+  import { canDeleteRoute, canEditRoute } from '$lib/entities/route/permissions'
+  import { deleteRoute, restoreRoute, updateRoute } from '$lib/entities/route/routes.remote'
   import { TopoEditor } from '$lib/entities/topo/editor.svelte'
   import { selectTopoForRoute } from '$lib/entities/topo/mapper'
   import { anchorX } from '$lib/entities/topo/order'
@@ -45,6 +45,7 @@
   import { topoEditorKeydown } from './keydown'
   import TopoAddRouteModal from './TopoAddRouteModal.svelte'
   import TopoEditorHud from './TopoEditorHud.svelte'
+  import TopoEditRouteModal from './TopoEditRouteModal.svelte'
   import TopoPhotoStrip from './TopoPhotoStrip.svelte'
   import TopoRouteCard from './TopoRouteCard.svelte'
 
@@ -192,8 +193,10 @@
   const canDeleteSelectedRoute = $derived(
     selectedRoute != null && canDeleteRoute(global.userRegions, global.user?.id, selectedRoute),
   )
+  const canEditSelectedRoute = $derived(selectedRoute != null && canEditRoute(global.userRegions, selectedRoute))
 
   let routesOpen = $state(false)
+  let routeFormOpen = $state(false)
   let linesHidden = $state(false)
   let zoom = $state(1)
   let viewAtRest = $state(true)
@@ -433,6 +436,18 @@
 
   // Guards every way out (back button, browser back, breadcrumbs), not only `leave`.
   beforeNavigate((navigation) => {
+    // `updateRoute`'s 303 reaches every beforeNavigate handler, and this one runs before the edit
+    // form's capture cancels it. Asking "leave without saving?" for a navigation that never happens
+    // is the exact question this feature exists to stop asking, so skip that one destination while
+    // its save is in flight. Matched on the URL, not just `pending`, so a real navigation raced
+    // against a save still prompts.
+    if (
+      updateRoute.pending > 0 &&
+      selectedRoute != null &&
+      navigation.to?.url.pathname === entityHref('routes', selectedRoute.id)
+    ) {
+      return
+    }
     // Nothing to lose behind the permission screen.
     if (editorLive && editor.dirty && !confirm(m.topo_leaveConfirm())) {
       navigation.cancel()
@@ -441,10 +456,14 @@
 
   const onKeydown = topoEditorKeydown({
     editor,
+    onEditRoute: () => {
+      if (canEditSelectedRoute) routeFormOpen = true
+    },
     onSave: () => {
       if (editor.dirty && !saving) save()
     },
     onToggleFullscreen: toggleFullscreen,
+    surfaceOpen: () => routeFormOpen || routesOpen,
     topos: () => topos.data,
   })
 </script>
@@ -455,8 +474,10 @@
   </title>
 </svelte:head>
 
-<!-- Guarded, not moved: `<svelte:window>` has to stay at the top level. -->
-<svelte:window onkeydown={editorLive ? onKeydown : undefined} />
+<!-- Guarded, not moved: `<svelte:window>` has to stay at the top level. Capture phase, so an Escape
+     that closes a dialog is seen while `formOpen` is still true: zag closes from a document
+     listener, which in the bubble phase would already have run and left this one deselecting. -->
+<svelte:window onkeydowncapture={editorLive ? onKeydown : undefined} />
 <svelte:document onfullscreenchange={() => (isFullscreen = document.fullscreenElement != null)} />
 
 {#if blockOffline}
@@ -534,12 +555,18 @@
     onSave={save}
   />
 
+  {#if block.data != null}
+    <TopoEditRouteModal bind:open={routeFormOpen} block={block.data} routeId={selectedRoute?.id} />
+  {/if}
+
   {#if currentTopo != null && currentTopoEditable && selectedRoute != null}
     <TopoRouteCard
       {editor}
       route={selectedRoute}
       canDelete={canDeleteSelectedRoute}
+      canEdit={canEditSelectedRoute}
       onDeleteRoute={deleteSelectedRoute}
+      onEditRoute={() => (routeFormOpen = true)}
     />
   {:else}
     <div

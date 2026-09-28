@@ -5,9 +5,14 @@ import { anchorX } from '$lib/entities/topo/order'
 
 interface Options {
   editor: TopoEditor
+  /** Open the route form for the selected route. */
+  onEditRoute?: () => void
   /** Persist the dirty session. The caller guards on dirty/saving. */
   onSave: () => void
   onToggleFullscreen: () => void
+  /** Whether a sheet or form is open over the editor. Every shortcut is wrong while one is, and
+   *  `isTypingInField` misses it whenever focus sits on a button rather than an input. */
+  surfaceOpen?: () => boolean
   /** The photos as displayed, for 1..9 selection and the current photo's pixel dims. */
   topos: () => TopoView[]
 }
@@ -15,10 +20,11 @@ interface Options {
 /**
  * Window-keydown handler for the topo editor. Returns a listener for `<svelte:window onkeydown>`,
  * mirroring the sheet's `sheetNavKeydown`. Inert while typing in a field. Shortcuts:
- * Cmd/Ctrl+Z redo/undo, Cmd/Ctrl+S save, Esc deselect, J/L prev/next line, F fullscreen,
- * 1..9 jump to that photo, and the arrows nudge the selected point (preferred) or line by 10px.
+ * Cmd/Ctrl+Z redo/undo, Cmd/Ctrl+S save, Esc deselect, J/L prev/next line, E edit the selected
+ * route, F fullscreen, 1..9 jump to that photo, and the arrows nudge the selected point
+ * (preferred) or line by 10px.
  */
-export function topoEditorKeydown({ editor, onSave, onToggleFullscreen, topos }: Options) {
+export function topoEditorKeydown({ editor, onEditRoute, onSave, onToggleFullscreen, surfaceOpen, topos }: Options) {
   // J/L cycle the drawn lines on the current photo, ordered left-to-right and wrapping. With nothing
   // selected, L grabs the first and J the last.
   function selectSibling(delta: -1 | 1) {
@@ -46,6 +52,9 @@ export function topoEditorKeydown({ editor, onSave, onToggleFullscreen, topos }:
   }
 
   return (event: KeyboardEvent) => {
+    // An open surface owns the whole keyboard, Esc included: the dialog closes itself, and acting
+    // here would unmount the card or sheet it was opened from, mid-teardown.
+    if (surfaceOpen?.() === true) return
     // Typing in a field (route name, search): leave native text editing alone.
     if (isTypingInField(event)) return
 
@@ -76,6 +85,13 @@ export function topoEditorKeydown({ editor, onSave, onToggleFullscreen, topos }:
     if (key === 'j' || key === 'l') {
       event.preventDefault()
       selectSibling(key === 'l' ? 1 : -1)
+      return
+    }
+    // E edits the selected route. Nothing to edit without a selection.
+    if (key === 'e') {
+      if (editor.selectedRouteFk == null) return
+      event.preventDefault()
+      onEditRoute?.()
       return
     }
     if (key === 'f') {

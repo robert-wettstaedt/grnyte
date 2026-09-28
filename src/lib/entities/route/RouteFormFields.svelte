@@ -22,30 +22,50 @@
   // instead of per-field badges, hence `required` on each wrapper); the custom inputs are
   // self-sufficient (they render their own hidden inputs). Mirrors BlockFormFields.
   interface Props {
+    /** Off in the topo editor, which owns its own photo upload: two pickers on one surface
+     *  would mean a photo of the rock and a photo of the climb look like the same thing. */
+    allowMedia?: boolean
     /** The block the route lives on. */
     block: BlockDetail
+    /** The four fields below are not Kit form fields, so they die with this component rather than
+     *  surviving on the remote singleton. A caller that unmounts it mid-edit (the topo editor's
+     *  two-step sheet) binds them to keep them; everyone else leaves them alone. `undefined` means
+     *  "not seeded yet", so an unbound caller behaves exactly as before. */
+    firstAscents?: FaClimber[]
     form: RemoteForm<RouteFormInput, unknown>
+    gradeFk?: number
+    rating?: number
     /** When editing: the route, to seed the non-text fields once on mount. */
     route?: RouteDetail
+    tags?: string[]
     /** Media picked in the form, uploading in the background while the user types.
      *  The page finalizes them against the route once it exists. */
     uploads?: MediaUpload[]
   }
 
-  let { block, form, route, uploads = $bindable([]) }: Props = $props()
+  let {
+    allowMedia = true,
+    block,
+    firstAscents = $bindable(),
+    form,
+    gradeFk = $bindable(),
+    rating = $bindable(),
+    route,
+    tags = $bindable(),
+    uploads = $bindable([]),
+  }: Props = $props()
 
   const global = getGlobalState()
 
-  // Seeded once from the route on mount, deliberately: reading live data on every
-  // change would clobber the user's edits (same rule as the pages' prefill effects).
+  // Seeded once at init, deliberately: reading live data on every change would clobber the user's
+  // edits (same rule as the pages' prefill effects). An already-set value is a caller holding these
+  // across a remount, so it wins over the route.
   // svelte-ignore state_referenced_locally
-  let gradeFk = $state(route?.rawGradeFk)
-  // svelte-ignore state_referenced_locally
-  let rating = $state(route?.rawRating ?? 0)
-  // svelte-ignore state_referenced_locally
-  let tags = $state([...(route?.tags ?? [])])
-  // svelte-ignore state_referenced_locally
-  let firstAscents = $state<FaClimber[]>(route?.firstAscents.map((fa) => ({ ...fa })) ?? [])
+  const seed = route
+  if (gradeFk === undefined) gradeFk = seed?.rawGradeFk
+  if (rating === undefined) rating = seed?.rawRating ?? 0
+  if (tags === undefined) tags = [...(seed?.tags ?? [])]
+  if (firstAscents === undefined) firstAscents = seed?.firstAscents.map((fa) => ({ ...fa })) ?? []
 
   // The Breadcrumb wants an area-shaped object; the block's `areas` is already the
   // full containment chain, and the block itself joins as the final label below.
@@ -219,7 +239,7 @@
 </div>
 
 <!-- Add only: an existing route takes new media on its detail page, where the media lives. -->
-{#if route == null}
+{#if route == null && allowMedia}
   <div class="space-y-2.5">
     <span class="text-surface-700-300 text-sm font-semibold">{m.routes_form_mediaLabel()}</span>
     <MediaDropZone accept={['image', 'video']} videoSource bind:uploads />

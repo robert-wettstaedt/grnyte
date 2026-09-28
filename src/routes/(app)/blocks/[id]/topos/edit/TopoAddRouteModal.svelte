@@ -3,14 +3,12 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
-  import GradePicker from '$lib/entities/grade/GradePicker.svelte'
+  import type { FaClimber } from '$lib/entities/firstAscensionist/FirstAscentField.svelte'
   import { gradeLabel } from '$lib/entities/grade/label'
-  import { regionTags } from '$lib/entities/region/tagVocabulary'
   import type { RouteListItem } from '$lib/entities/route/dto'
+  import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
   import { createRoute } from '$lib/entities/route/routes.remote'
-  import RouteTagsInput from '$lib/entities/route/RouteTagsInput.svelte'
   import FormError from '$lib/forms/FormError.svelte'
-  import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { tick } from 'svelte'
@@ -39,8 +37,14 @@
   let open = $state(false)
   let query = $state('')
   let newRouteOpen = $state(false)
+
+  // Held here, not in RouteFormFields: stepping Back unmounts it, and these four are not Kit form
+  // fields, so they would not survive on the singleton the way name and description do. Losing
+  // only some of them on the way back is a half-reset that creates a gradeless route.
+  let firstAscents = $state<FaClimber[]>()
   let gradeFk = $state<number>()
-  let tags = $state<string[]>([])
+  let rating = $state<number>()
+  let tags = $state<string[]>()
 
   const filtered = $derived(
     query.trim() === ''
@@ -53,8 +57,10 @@
   function openSheet() {
     query = ''
     newRouteOpen = false
+    firstAscents = undefined
     gradeFk = undefined
-    tags = []
+    rating = undefined
+    tags = undefined
     resetForOpen = false
     open = true
   }
@@ -66,8 +72,8 @@
    * Clear the form once per open. A real reset event, because `fields.set({})` blanks values but
    * not Kit's issues, and the fields live on a singleton that outlives this component.
    *
-   * Per OPEN, not per mount: step 2 remounts its form, and clearing the name there while
-   * `gradeFk` and `tags` survived is a half-reset.
+   * Per OPEN, not per mount: step 1 and step 2 each mount their own form, and clearing on every
+   * mount would blank what was typed on the way between them.
    */
   const clearForOpen = (node: HTMLFormElement) => {
     if (resetForOpen) {
@@ -213,38 +219,20 @@
   <!-- `in:` only on both steps: an out-fade would keep the outgoing step in the layout while the
        incoming one is already there, which shifts the sheet mid-swap. -->
   {#if newRouteOpen}
-    <!-- Step 2: the full new-route form fills the sheet. -->
+    <!-- Step 2: the full new-route form fills the sheet. Same fields as everywhere else, minus the
+         media picker: this screen already owns a photo upload of its own. -->
     <form {...submit} {@attach resetOnMount} id="topo-new-route-form" class="space-y-4" in:fade={{ duration }}>
-      <input type="hidden" name="blockId" value={block.id} />
-
       <FormError form={createRoute} />
 
-      <RemoteFormInputWrapper
-        class="space-y-2.5"
-        field={createRoute.fields.name}
-        id="topo-route-name"
-        label={m.routes_form_nameLabel()}
-        required
-      >
-        {#snippet children(props)}
-          <input
-            {...createRoute.fields.name.as('text')}
-            {...props}
-            class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-3.5 text-base font-semibold tracking-tight focus:ring-0 focus:outline-none"
-            placeholder={m.routes_form_namePlaceholder()}
-          />
-        {/snippet}
-      </RemoteFormInputWrapper>
-
-      <div class="space-y-2.5">
-        <span class="text-surface-700-300 block text-sm font-semibold">{m.routes_form_gradeLabel()}</span>
-        <GradePicker grades={global.grades} gradingScale={global.gradingScale} name="gradeFk" bind:value={gradeFk} />
-      </div>
-
-      <div class="space-y-2.5">
-        <span class="text-surface-700-300 block text-sm font-semibold">{m.routes_form_tagsLabel()}</span>
-        <RouteTagsInput tags={regionTags(global.userRegions, block.regionFk)} name="tags" bind:value={tags} />
-      </div>
+      <RouteFormFields
+        allowMedia={false}
+        {block}
+        bind:firstAscents
+        form={createRoute}
+        bind:gradeFk
+        bind:rating
+        bind:tags
+      />
     </form>
   {:else}
     <!-- Step 1: pick an existing route to draw on this photo. -->
