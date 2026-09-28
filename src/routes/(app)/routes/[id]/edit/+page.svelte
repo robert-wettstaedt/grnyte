@@ -23,24 +23,15 @@
   // The block the route lives on frames the form (breadcrumb, region, hidden blockId).
   const block = blockDetail(() => route.data?.blockFk ?? -1)
 
-  /**
-   * Whether this route's RELATED rows are here, not just its own row. The explore map syncs bare
-   * routes, so the form can open with `tags` and `firstAscents` still in flight, and `updateRoute`
-   * replaces rather than patches. Latched in an effect, not a `$derived`, which would recompute to
-   * false whenever the socket parks and tear the form down mid-edit.
-   */
-  let hydratedId = $state<number | undefined>()
-  $effect(() => {
-    const id = route.data?.id
-    if (id == null || !route.isComplete || hydratedId === id) return
-    hydratedId = id
-  })
+  // `settled`, not the raw row: the explore map syncs bare routes, so this form can open with
+  // `tags` and `firstAscents` still in flight, and `updateRoute` replaces rather than patches.
+  const settledRoute = $derived(route.settled ? route.data : undefined)
 
-  // Keyed on the hydrated id, not the row's: `known` has to describe lists that were read whole.
+  // Keyed on the settled row's id: `known` has to describe lists that were read whole.
   seedOnKeyChange(
-    () => hydratedId,
+    () => settledRoute?.id,
     () => {
-      const data = route.data
+      const data = settledRoute
       if (data == null) {
         return
       }
@@ -65,7 +56,7 @@
           label: m.routes_viewRoute(),
         }}
       />
-    {:else if hydratedId !== detail.id}
+    {:else if settledRoute == null}
       <!-- No form until the related rows are here, and outside `Form` so there is no Save above
              the spinner: an empty tag list is a valid submission meaning "remove them all". -->
       {#if isOnline()}

@@ -239,6 +239,7 @@ export function staticGlobalState(
     isComplete: true,
     isEmpty: Array.isArray(value) ? value.length === 0 : value == null,
     isSyncing: false,
+    settled: true,
     status: 'ready',
   })
 
@@ -268,5 +269,10 @@ export function staticGlobalState(
 
 /** One resource's state, for the dev console hook above. */
 function describe(resource: QueryResource<unknown>) {
-  return { isComplete: resource.isComplete, isEmpty: resource.isEmpty, status: resource.status }
+  return {
+    isComplete: resource.isComplete,
+    isEmpty: resource.isEmpty,
+    settled: resource.settled,
+    status: resource.status,
+  }
 }

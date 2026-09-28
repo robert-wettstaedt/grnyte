@@ -82,6 +82,9 @@ export function filteredRouteList<T extends { id: number }>(
     get isSyncing() {
       return routes.isSyncing
     },
+    get settled() {
+      return routes.settled
+    },
     get status() {
       return routes.status
     },

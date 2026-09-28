@@ -21,26 +21,9 @@
 
   const route = routeDetail(() => routeId ?? -1, { enabled: () => open && routeId != null })
 
-  /**
-   * Whether this route's RELATED rows are here, not just its own row. `updateRoute` replaces tags
-   * and first ascensionists rather than patching them, so seeding early strips them. Latched in an
-   * effect, not a `$derived`, which would recompute to false whenever the socket parks and tear the
-   * form down mid-edit.
-   */
-  let hydratedId = $state<number | undefined>()
-  $effect(() => {
-    // Cleared on close, or a reopen of the SAME route would match the stale latch and seed from
-    // whatever the re-enabled query has delivered so far, which is a silently stripped tag list.
-    if (!open) {
-      hydratedId = undefined
-      return
-    }
-    const id = route.data?.id
-    if (id == null || !route.isComplete || hydratedId === id) return
-    hydratedId = id
-  })
-
-  const detail = $derived(hydratedId === route.data?.id ? route.data : undefined)
+  // Disabling on close resets `settled`, and a reopen usually settles in the same flush anyway
+  // because the view is hash-cached and still complete. Either way it never seeds from a partial.
+  const detail = $derived(route.settled ? route.data : undefined)
 
   function onSaved() {
     open = false
