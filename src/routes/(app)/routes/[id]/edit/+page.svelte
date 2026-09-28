@@ -6,7 +6,7 @@
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { entityHref } from '$lib/entities/href'
-  import { routeListsFingerprint } from '$lib/entities/route/fingerprint'
+  import { routeEditSeed } from '$lib/entities/route/editSeed'
   import { canEditRoute } from '$lib/entities/route/permissions'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
@@ -44,14 +44,7 @@
       if (data == null) {
         return
       }
-      updateRoute.fields.set({
-        blockId: String(data.blockFk),
-        description: data.description,
-        firstAscentYear: data.firstAscentYear == null ? '' : String(data.firstAscentYear),
-        id: String(data.id),
-        known: routeListsFingerprint(data.tags, data.firstAscents),
-        name: data.rawName,
-      })
+      updateRoute.fields.set(routeEditSeed(data))
     },
   )
 </script>
