@@ -33,29 +33,19 @@
   // The block's immediate area (last crumb) is the sector the form frames against.
   const area = areaDetail(() => block.data?.areas.at(-1)?.id ?? -1)
 
-  /**
-   * Whether the pin is known to be here, not just the block's own row. A form opened on a partial
-   * snapshot stamps a proof claiming there was no pin, and the seed key (the block id) never
-   * changes to re-stamp it, so every save refuses until a reload. Unreproduced, kept because that
-   * state cannot recover. Worked example: `routes/[id]/edit`.
-   *
-   * An effect, not a `$derived`: a latch has to remember, or a parked socket tears the form down.
-   */
-  let hydratedId = $state<number | undefined>()
-  $effect(() => {
-    const id = block.data?.id
-    if (id == null || !block.isComplete || hydratedId === id) return
-    hydratedId = id
-  })
+  // `settled`, not the raw row: a form opened on a partial snapshot stamps a proof claiming there
+  // was no pin, and the seed key (the block id) never changes to re-stamp it, so every save refuses
+  // until a reload.
+  const settledBlock = $derived(block.settled ? block.data : undefined)
 
   // Keyed on the hydrated id and not the route parameter or the raw row: the seed reads data, so it
   // has to wait for the row rather than write the previous entity's values under the new id, and it
   // may as well land at the moment the form appears. Re-seeding on every snapshot would clobber
   // edits in progress, which is what the guard is for.
   seedOnKeyChange(
-    () => hydratedId,
+    () => settledBlock?.id,
     () => {
-      const data = block.data
+      const data = settledBlock
       if (data == null) {
         return
       }
@@ -84,7 +74,7 @@
               label: m.blocks_viewBlock(),
             }}
           />
-        {:else if hydratedId !== detail.id}
+        {:else if settledBlock == null}
           <!-- No form until the pin is here, and outside `BlockForm` so no Save sits over the
                spinner: a submit with no coordinates validly means "remove the pin". -->
           {#if isOnline()}

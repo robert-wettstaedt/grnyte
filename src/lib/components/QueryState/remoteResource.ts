@@ -42,6 +42,12 @@ export function remoteResource<T>(query: RemoteQuery<T>): QueryResource<T | unde
       return query.loading
     },
 
+    // No error guard, unlike `isComplete` above, and deliberately: `settled` is "was ever whole",
+    // so a failed refresh after a good answer leaves it true. Do not reconcile the two.
+    get settled(): boolean {
+      return query.ready
+    },
+
     get status(): ResourceStatus {
       return status()
     },

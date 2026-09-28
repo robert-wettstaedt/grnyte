@@ -48,6 +48,8 @@ export function getZ(): Z<Schema> {
 export function initZero(session: null | Session | undefined): Z<Schema> {
   const userID = session?.user.id
 
+  // Reused, not rebuilt: rebuilding here would re-target every query, resetting
+  // `QueryResource.settled` and tearing down every open edit form mid-edit.
   if (instance != null && instance.userID === userID) {
     if (session != null && accessToken !== session.access_token) {
       accessToken = session.access_token

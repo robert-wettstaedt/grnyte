@@ -46,6 +46,12 @@ export interface QueryResource<TOut> {
   /** `ready` but with nothing to render: `[]` for lists, `undefined` for `.one()`. */
   readonly isEmpty: boolean
   readonly isSyncing: boolean
+  /**
+   * Whether the related rows were ever whole for the request now in flight. A form seeded before
+   * that stamps a proof of lists it never read, and the seed key never changes to re-stamp it.
+   * Unlike `isComplete` this does not drop when a backgrounded tab loses its socket.
+   */
+  readonly settled: boolean
   readonly status: ResourceStatus
 }
 
@@ -82,6 +88,10 @@ class Resource<
 
   get isSyncing(): boolean {
     return this.#query.details.type === 'unknown'
+  }
+
+  get settled(): boolean {
+    return this.#settled
   }
 
   get status(): ResourceStatus {
@@ -123,17 +133,36 @@ class Resource<
   #data = $derived.by(() => this.#select(this.#query.data))
 
   #offline: OfflinePolicy | undefined
-
   // Zero carries the registry name on every request (`QueryRequest.query.queryName`), so a resource
   // can look up its own offline policy without a single call site having to pass anything.
   #queryName = $derived.by(() => {
     const request = this.#request()
     return typeof request === 'object' && 'query' in request ? request.query.queryName : undefined
   })
-
   #rawEmpty = $derived.by(() => {
     const raw = this.#query.data
     return raw === undefined || (Array.isArray(raw) && raw.length === 0)
+  })
+
+  #settledLatch = false
+
+  // Latched here rather than in each form, and keyed on the VIEW, not the `Query`: `createQuery`
+  // returns a new `Query` on every re-run of the derived above, while `ViewStore` hash-keys the
+  // view on the request, so two `Query` wrappers for one request share a view that may already be
+  // complete. Derived, never an effect: a trailing reset would leave `settled` true for one flush
+  // over the next request's rows.
+  #settledView: unknown = undefined
+
+  #settled = $derived.by(() => {
+    const view = this.#query.view
+    const next = resolveSettled({
+      complete: this.isComplete,
+      latched: this.#settledLatch,
+      sameView: view === this.#settledView,
+    })
+    this.#settledView = view
+    this.#settledLatch = next
+    return next
   })
 
   #status: ResourceStatus = $derived.by(() => {
@@ -258,6 +287,26 @@ export function resolveAvailability(input: {
   }
 
   return 'unsynced'
+}
+
+/**
+ * The settled latch, as a function of its inputs and nothing else. Same reason as
+ * `resolveAvailability` below: `Resource` needs `getZ()` and cannot be constructed in a test.
+ *
+ * A new view means a different request, so the answer starts over from what that view already
+ * knows. Otherwise the latch only ever goes up, which is the whole point: `complete` drops when a
+ * backgrounded tab loses its socket, and a form must not tear down mid-edit.
+ */
+export function resolveSettled({
+  complete,
+  latched,
+  sameView,
+}: {
+  complete: boolean
+  latched: boolean
+  sameView: boolean
+}): boolean {
+  return sameView ? latched || complete : complete
 }
 
 /**
