@@ -80,21 +80,14 @@ afterAll(async () => {
  * The key and not a boolean: every refusal here writes nothing, so a test asserting only "refused"
  * would pass just as happily on a validation error it never meant to trigger. That is exactly what
  * the first draft of this file did, while every URL was being rejected as malformed.
- *
- * A form signals success by THROWING a 303 redirect, so success is the exception path.
  */
 async function submit(user: SeedUser, data: Record<string, unknown>): Promise<string> {
-  try {
-    const result = await asRequest<{ issues?: { message: string }[] }>(user.authId, () =>
-      callForm(updateRegionMapLayers, data),
-    )
-    const [issue] = result.issues ?? []
+  const result = await asRequest<{ issues?: { message: string }[] }>(user.authId, () =>
+    callForm(updateRegionMapLayers, data),
+  )
+  const [issue] = result.issues ?? []
 
-    return issue == null ? 'resolved with no issue' : String((JSON.parse(issue.message) as { message: string }).message)
-  } catch (error) {
-    if ((error as { status?: number })?.status === 303) return 'saved'
-    throw error
-  }
+  return issue == null ? 'saved' : String((JSON.parse(issue.message) as { message: string }).message)
 }
 
 // `submit` above reports only WHETHER the save landed. Where it then sends the reader is its own
