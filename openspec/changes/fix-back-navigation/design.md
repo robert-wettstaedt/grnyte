@@ -161,6 +161,12 @@ the same reload hole. A trip-wire comment beside the pin records the versions.
 
 ## Risks / Trade-offs
 
+A ROLLBACK of section 8, not its deploy, is the direction that degrades. A tab running the new
+`Form.svelte` has no capture, so an old server still sending the 303 pushes the finished form back
+into the history stack: the bug this change exists to fix, returning silently until the tab reloads.
+Deploying section 8 is safe in the other direction because release 1 already reads the envelope.
+
+
 - **The interception cancels a navigation Kit started, so the invalidation Kit requested is lost**
   (Kit sets it in a callback that never runs once cancelled) → the re-issued navigation carries it,
   and a pop calls the invalidation itself.

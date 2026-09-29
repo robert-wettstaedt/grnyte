@@ -6,7 +6,7 @@ import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
 import type { MutationResult } from '$lib/remote/mutation'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { error, redirect, type InvalidField, type RemoteForm, type RemoteFormInput } from '@sveltejs/kit'
+import { error, type InvalidField, type RemoteForm, type RemoteFormInput } from '@sveltejs/kit'
 
 /** Injected into every wrapped handler. Add shared per-call deps here. */
 export interface Context {
@@ -63,10 +63,6 @@ export function authedForm(
 ) {
   return form(schema, async (data, issue) => {
     const value = await run(async (ctx) => handler(data as never, ctx, issue as never))
-
-    if (value?.redirectTo != null) {
-      redirect(303, value.redirectTo)
-    }
 
     return value
   })

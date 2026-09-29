@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { beforeNavigate } from '$app/navigation'
-  import { page } from '$app/state'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import type { RouteDetail } from '$lib/entities/route/dto'
   import { routeEditSeed } from '$lib/entities/route/editSeed'
@@ -11,9 +9,7 @@
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { isOnline } from '$lib/state/online.svelte'
-  import { createRedirectCapture } from '$lib/state/redirectCapture.svelte'
   import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast'
-  import { tick } from 'svelte'
 
   interface Props {
     block: BlockDetail
@@ -37,17 +33,13 @@
     },
   )
 
-  // `updateRoute`'s `redirectTo` reaches the client as a 303 that Kit applies as a push to the
-  // route screen. Right for that form, wrong here: it would leave the editor and take the unsaved
-  // lines with it. Caught and dropped, because this surface stays put.
-  const capture = createRedirectCapture(beforeNavigate, () => page.url.pathname, tick)
-
   // Passing our own callback replaces Kit's, which is what would otherwise clear the form. This
   // surface reopens rather than navigating away, so the seed above clears it instead.
   const submit = updateRoute.enhance(async ({ submit }) => {
     try {
-      const ok = await capture.around(submit)
-      capture.take()
+      // `updateRoute` declares a `redirectTo` for the route screen; this surface stays put and
+      // simply ignores it.
+      const ok = await submit()
       if (ok) {
         onSaved()
       }

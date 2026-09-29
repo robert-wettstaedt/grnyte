@@ -12,8 +12,6 @@
 </script>
 
 <script lang="ts" generics="Input extends RemoteFormInput">
-  import { beforeNavigate } from '$app/navigation'
-  import { page } from '$app/state'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
@@ -21,10 +19,8 @@
   import { m } from '$lib/paraglide/messages'
   import { back, exit } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
-  import { createRedirectCapture } from '$lib/state/redirectCapture.svelte'
   import { Steps } from '@skeletonlabs/skeleton-svelte'
   import type { RemoteForm, RemoteFormInput } from '@sveltejs/kit'
-  import { tick } from 'svelte'
   import FormError from './FormError.svelte'
 
   // Generic chrome for a full-screen remote form: sticky Cancel · title · Submit header,
@@ -87,12 +83,8 @@
     step += 1
   }
 
-  // A handler's `redirectTo` arrives as a 303 that Kit applies as a push, which would leave this
-  // finished form in the stack. The capture takes that destination so the exit below can retire the
-  // form instead. Goes with `authedForm`'s redirect; see the module.
-  const capture = createRedirectCapture(beforeNavigate, () => page.url.pathname, tick)
-
-  /** The destination a handler declared, when it returned the envelope instead of redirecting. */
+  /** Where the handler said to go next. `exit` below, never a push: a finished form must not be
+   *  reachable by going back. */
   const declaredDestination = (): string | undefined =>
     // `form.result` is typed `unknown` here because not every caller's handler is an `authedForm`.
     (form.result as undefined | { redirectTo?: string })?.redirectTo
@@ -156,7 +148,7 @@
     let posted = false
 
     try {
-      const succeeded = await capture.around(submit)
+      const succeeded = await submit()
       posted = true
 
       element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
@@ -175,9 +167,8 @@
           form.fields.set({})
         }
 
-        // Last, so `onSubmitted` has finished whatever the destination depends on. Either shape
-        // works: the redirect the capture took, or a destination the handler returned outright.
-        const destination = capture.take() ?? declaredDestination()
+        // Last, so `onSubmitted` has finished whatever the destination depends on.
+        const destination = declaredDestination()
 
         if (destination != null) {
           await exit(destination)
