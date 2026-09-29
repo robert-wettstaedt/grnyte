@@ -21,8 +21,10 @@
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
+  import { prefersStill } from '$lib/state/motion.svelte'
   import { now } from '$lib/state/now.svelte'
   import { withUndo } from '$lib/state/toast'
+  import { untrack } from 'svelte'
   import CommentReactions from './CommentReactions.svelte'
   import type { CommentThread } from './thread.svelte'
 
@@ -42,7 +44,7 @@
    * comment scrolled to the end sits behind it.
    */
   const reveal = (node: HTMLElement) => {
-    node.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    node.scrollIntoView({ behavior: untrack(prefersStill) ? 'auto' : 'smooth', block: 'center' })
   }
 
   /**

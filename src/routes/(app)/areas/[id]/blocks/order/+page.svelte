@@ -18,8 +18,9 @@
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { motion } from '$lib/state/motion.svelte'
+  import { motion, prefersStill } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
+  import { untrack } from 'svelte'
   import {
     dragHandle,
     dragHandleZone,
@@ -152,7 +153,9 @@
   const select = (id: number) => (selectedId = id)
   $effect(() => {
     if (selectedId == null || listEl == null) return
-    listEl.querySelector(`[data-block-id="${selectedId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    listEl
+      .querySelector(`[data-block-id="${selectedId}"]`)
+      ?.scrollIntoView({ behavior: untrack(prefersStill) ? 'auto' : 'smooth', block: 'nearest' })
   })
 
   // Drag starts only from the grip, so the list still scrolls on touch. `dragHandle` rather than

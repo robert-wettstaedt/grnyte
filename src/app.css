@@ -194,8 +194,15 @@ body {
   outline-offset: -2px;
 }
 
-/* Global, so every `animate-pulse` site answers the preference the same way. */
+/* Global, so every Tailwind transition and `animate-pulse` answers the preference the same way.
+   Svelte transitions are Web Animations and go through `motion()`; the loading spinner still spins. */
 @media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    transition-duration: 0s !important;
+  }
+
   .animate-pulse {
     animation: none;
   }
