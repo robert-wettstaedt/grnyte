@@ -5,6 +5,7 @@
   import AuthField from '$lib/forms/AuthField.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import Honeypot from '$lib/forms/Honeypot.svelte'
+  import ProofOfWork from '$lib/forms/ProofOfWork.svelte'
   import { m } from '$lib/paraglide/messages'
   import { signUp } from './signup.remote'
 
@@ -39,6 +40,7 @@
   <form {...signUp} class="flex flex-col gap-4">
     <FormError form={signUp} />
     <Honeypot field={signUp.fields.website} />
+    <ProofOfWork />
 
     <AuthField
       field={signUp.fields.email}

@@ -61,6 +61,8 @@
     "@tiptap/starter-kit": "^3.30.5",
     "@tiptap/suggestion": "^3.30.5",
     "@types/heic-convert": "^2.1.0",
+    "altcha": "^3.2.3",
+    "altcha-lib": "^2.5.0",
     "d3": "^7.9.0",
     "diff": "^9.0.0",
     "drizzle-zero": "^0.20.0",

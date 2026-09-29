@@ -4,6 +4,7 @@
   import AuthField from '$lib/forms/AuthField.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import Honeypot from '$lib/forms/Honeypot.svelte'
+  import ProofOfWork from '$lib/forms/ProofOfWork.svelte'
   import { m } from '$lib/paraglide/messages'
   import { forgotPassword } from './forgot-password.remote'
 </script>
@@ -25,6 +26,7 @@
   <form {...forgotPassword} class="flex flex-col gap-4">
     <FormError form={forgotPassword} />
     <Honeypot field={forgotPassword.fields.website} />
+    <ProofOfWork />
 
     <AuthField
       field={forgotPassword.fields.email}

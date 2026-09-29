@@ -39,13 +39,16 @@ a solution (`verifySolution`) with no network call. The widget (`altcha`, a web 
 a Web Worker while the person types and writes the payload into a form field.
 
 - Challenge endpoint: a new `GET` `+server.ts` under `(landing)/auth/` returning a fresh challenge,
-  `Cache-Control: no-store`. The HMAC key is a new private env var `ALTCHA_HMAC_KEY` (Bitwarden, all
-  three environments, per `deployment/SECRETS.md`).
+  `Cache-Control: no-store`. The HMAC key is derived, `HMAC-SHA256(SUPABASE_SERVICE_ROLE_KEY,
+  'altcha-challenge')`, rather than a new secret: domain-separated, as secret as its parent, and no
+  Bitwarden step or deploy ordering. Rotating the service role key only voids challenges younger
+  than 10 minutes.
 - Verification: one shared server helper, `requireProofOfWork(payload)`, next to the auth form schemas
   in `$lib/forms/`, called first in both handlers. Nothing about GoTrue runs before it.
 - Widget: one `ProofOfWork.svelte` in `$lib/forms/` beside `AuthField` and `FormError`, rendered in
-  both forms, bound to a hidden form field. The widget script is bundled from npm, never loaded from a
-  CDN.
+  both forms with `display="invisible"` and `auto="onload"`, posting the payload as the `altcha` field.
+  Its human-interaction-signature collector is switched off (pointer and typing telemetry). The widget
+  script is bundled from npm, never loaded from a CDN.
 - Difficulty: `maxNumber` tuned so a mid-range phone solves in about 1 second. Measured, not guessed.
 
 Alternatives: Cap (needs a challenge store, standalone needs Docker plus Valkey), FCaptcha (behaviour
@@ -58,12 +61,13 @@ metadata ends up in every JWT; still leaves the email path in GoTrue's hands wit
 ALTCHA is stateless, so a solved payload is replayable until it expires, which would let one solve
 cover many victims. A new table `spent_challenges (signature text primary key, expires_at timestamptz)`
 takes one `INSERT ... ON CONFLICT DO NOTHING` per accepted submission; zero rows inserted means a
-replay. No personal data, server-only (written through `pinnedTx`, RLS enabled with no policies), and
-excluded from the generated Zero schema so no client can query it. `/api/tasks/cleanup` gains a `sweepSpentChallenges`
+replay. No personal data, server-only (written through `db`, RLS enabled with no policies). It lands in
+the generated Zero schema like `client_error_logs`, since drizzle-zero has no exclusion list, but no
+client query reads it. `/api/tasks/cleanup` gains a `sweepSpentChallenges`
 beside `sweepErrorLogs`, deleting rows past `expires_at`.
 
 Schema change: new table only, no backfill. Runs the pipeline (`schema.ts`, `generate:drizzle`,
-`generate:zero` with the table excluded, `migrate`).
+`generate:zero`, `migrate`).
 
 ### Honeypot
 
