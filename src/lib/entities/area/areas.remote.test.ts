@@ -80,23 +80,15 @@ afterAll(async () => {
   await sql.end()
 })
 
-/**
- * A form handler signals success by THROWING a 303 redirect (`authedForm` turns a `redirectTo` into
- * `redirect()`), so the interesting assertion is always the database afterwards, never the return
- * value. Anything that is not a redirect is a real failure and is rethrown.
- */
+/** Success and a refusal both resolve (Kit folds a refusal into issues), so the database afterwards
+ *  is the assertion. Anything thrown is a real failure. */
 async function submit(data: Record<string, unknown>): Promise<void> {
-  try {
-    await asRequest(maintainer.authId, () => callForm(updateArea, data))
-  } catch (error) {
-    const status = (error as { status?: number })?.status
-    if (status !== 303) throw error
-  }
+  await asRequest(maintainer.authId, () => callForm(updateArea, data))
 }
 
 describe.skipIf(!reachable)('updateArea', () => {
-  // Nothing else in the server suite reads a handler's destination: `submit` above swallows the 303
-  // that carries it. An id from the wrong column here sends a saving reader to another area.
+  // Nothing else in the server suite reads a handler's destination: `submit` above ignores it. An id
+  // from the wrong column here sends a saving reader to another area.
   it('sends the reader back to the area it just saved', async () => {
     const location = await redirectOf(() =>
       asRequest(maintainer.authId, () =>

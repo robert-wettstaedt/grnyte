@@ -108,14 +108,13 @@ afterAll(async () => {
 /**
  * Run the handler. No 'refused' return value on purpose: Kit catches `ValidationError` and records
  * it as form issues, so a refused call and a successful one both resolve. The database separates
- * them, because the unconditional rename sits after the guard. A 303 is success.
+ * them, because the unconditional rename sits after the guard.
  */
 async function submit(data: Record<string, unknown>): Promise<void> {
   try {
     await asRequest(maintainer.authId, () => callForm(updateRoute, data))
   } catch (cause) {
     if (isValidationError(cause)) return
-    if ((cause as { status?: number })?.status === 303) return
     throw cause
   }
 }
