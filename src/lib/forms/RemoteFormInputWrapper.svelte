@@ -5,6 +5,7 @@
   import type { ClassValue, HTMLAttributes } from 'svelte/elements'
   import FormHint from './FormHint.svelte'
   import OptionalBadge from './OptionalBadge.svelte'
+  import { isSeeding } from './seedOnKeyChange.svelte'
 
   interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
     children: Snippet<[HTMLAttributes<HTMLElement>]>
@@ -42,8 +43,9 @@
   // the next submit. Hide it once the reader changes the value it was raised against.
   const corrected = $derived(submitted !== undefined && value !== undefined && value !== submitted)
 
-  // One read, so the aria ids and what FormHint actually renders cannot disagree.
-  const issues = $derived(corrected ? [] : raised)
+  // One read, so the aria ids and what FormHint actually renders cannot disagree. Held back while a
+  // seed clears a previous open's issues, as FormError is.
+  const issues = $derived(corrected || isSeeding() ? [] : raised)
 </script>
 
 <div {...rest} {@attach trackSubmit}>

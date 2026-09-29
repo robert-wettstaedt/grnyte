@@ -11,7 +11,7 @@
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { entityHref } from '$lib/entities/href'
-  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedForm, seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -49,7 +49,7 @@
       if (data == null) {
         return
       }
-      updateBlock.fields.set({ description: data.description, id: String(data.id), name: data.rawName })
+      void seedForm(updateBlock, { description: data.description, id: String(data.id), name: data.rawName })
     },
   )
 </script>

@@ -11,7 +11,7 @@
   import { fieldRows } from '$lib/forms/fieldRows.svelte'
   import Form from '$lib/forms/Form.svelte'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedForm, seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'
@@ -49,7 +49,11 @@
   seedOnKeyChange(
     () => (membership?.synced === true && membership.layersComplete ? regionId : undefined),
     () => {
-      fields.set({ id: String(regionId), known: mapLayersFingerprint(stored), mapLayers: stored.map(toLayerForm) })
+      void seedForm(updateRegionMapLayers, {
+        id: String(regionId),
+        known: mapLayersFingerprint(stored),
+        mapLayers: stored.map(toLayerForm),
+      })
       rows.reset(stored.length)
     },
   )

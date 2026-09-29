@@ -51,8 +51,9 @@ This project uses:
   **replaces** the callback that does it, so `cb` has to clear it, and a surface that reopens rather
   than navigating away clears on open too. Fields live on a module-level singleton outliving the
   component, so whatever you skip leaks into every screen bound to that function. `fields.set({})`
-  clears values; only a real DOM reset clears Kit's issues, which is wrong mid-edit because it
-  blanks work in progress. `Form.svelte` and `TopoAddRouteModal` say why.
+  clears values but not Kit's issues. A real DOM reset clears both, which is wrong mid-edit because
+  it blanks work in progress; `seedForm` (beside `seedOnKeyChange`) seeds and drops stale issues
+  without one. `Form.svelte` and `TopoAddRouteModal` say why.
 - Every add or edit form on a parameterised route seeds through `seedOnKeyChange`
   (`$lib/forms/seedOnKeyChange.svelte.ts`): `/areas/1/blocks/add` and `/areas/2/blocks/add` are one
   route, so anything seeded once follows the reader to the next entity. Pass the route parameter
