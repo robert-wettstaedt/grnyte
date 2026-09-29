@@ -10,7 +10,7 @@
  * so can hold nothing to convert; not external-resource descriptions, which
  * aren't app mentions.
  *
- * Runs as part of `npm run migrate` (via `migrate.ts`). Can also be run on its
+ * Ran once at the v2 cutover, from `migrate.ts`. Can also be run on its
  * own to preview:
  *   npx tsx src/lib/db/scripts/migrate-mentions.ts --dry-run
  *

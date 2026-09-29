@@ -4,7 +4,7 @@
  * `<base>.1024.webp`) that are served for `?w=` requests (#472). Both concerns
  * share one download per image: the download dominates the cost.
  *
- * Runs as part of `npm run migrate` (via `migrate.ts`), after
+ * Ran once at the v2 cutover, from `migrate.ts`, after
  * migrate-promote-originals so derivatives come from the pristine source and
  * before migrate-topo-paths which reads the stored dimensions. Can also be run
  * on its own to preview:

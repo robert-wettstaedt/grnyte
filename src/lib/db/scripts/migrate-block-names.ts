@@ -8,7 +8,7 @@
  * "Block 10 (Teekesselblock)" etc. are real names and left untouched. Blocks in (or nested under)
  * any area named "Frankenjura" are excluded: their names are curated and shouldn't be reset.
  *
- * Runs as part of `npm run migrate` (via `migrate.ts`). Standalone preview:
+ * Ran once at the v2 cutover, from `migrate.ts`. Standalone preview:
  *   npx tsx src/lib/db/scripts/migrate-block-names.ts --dry-run
  *
  * Idempotent: an empty name doesn't match the pattern, so re-running is a no-op.

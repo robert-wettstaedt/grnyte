@@ -107,8 +107,23 @@ missing, and `pg_restore` does not stop for them. Read the errors before moving 
 ## Afterwards
 
 `npm run migrate` is a no-op on the ledger. It re-runs `setup-table-permissions`, which is where the
-`app_writer` grants come from, and then the data backfills in `migrate.ts`. Those are idempotent on
-restored rows, but two of them need the Nextcloud credentials.
+`app_writer` grants come from. The one-off data backfills in `src/lib/db/scripts/migrate-*.ts` ran
+once at the v2 cutover and are no longer part of it; a backup taken after the cutover needs none.
+
+**`grnyte-20260919.dump` and older are 1.0 databases.** The 19th's file is the manual backup taken
+before the cutover's step 3. The last of them goes on the 2026-10-21 run of `backup-db.yml`; delete
+this paragraph after that. On one, `npm run migrate` applies the 2.0 migrations, and the eight
+backfills then have to run in the cutover's order: mentions, block-names, block-order,
+promote-originals, image-derivatives, topo-paths, user-grades, accolades (as wired in
+`git show 6690a640^:src/lib/db/migrate.ts`). Each runs as `npx tsx src/lib/db/scripts/migrate-<name>.ts`,
+all but the last two with `--dry-run`. promote-originals and image-derivatives need the Nextcloud
+credentials.
+
+promote-originals moves files on Nextcloud one way, and no database restore undoes it. Before the
+cutover a prod dry run printed **promoted 716 of 1340 image path(s); 536 had no .orig sibling**, with
+88 held back as smaller or unreadable. Storage was promoted at the cutover, so over it those counts
+WILL differ: run `--dry-run` first and treat any count it would promote as files about to be
+overwritten one way, not as a routine step.
 
 ## Not in the dump
 

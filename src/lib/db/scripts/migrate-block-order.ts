@@ -5,7 +5,7 @@
  *
  * Applies to every area (no exclusions): a contiguous order is a pure data-integrity fix.
  *
- * Runs as part of `npm run migrate` (via `migrate.ts`). Standalone preview:
+ * Ran once at the v2 cutover, from `migrate.ts`. Standalone preview:
  *   npx tsx src/lib/db/scripts/migrate-block-order.ts --dry-run
  *
  * Idempotent: already-contiguous orders don't change, so re-running is a no-op.

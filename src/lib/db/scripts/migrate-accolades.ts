@@ -10,11 +10,14 @@
  * sent it". Judging history against today would hand banners to sends that were nothing special at
  * the time and quietly withhold them from the ones that were.
  *
- * Runs as part of `npm run migrate` (via `migrate.ts`). Idempotent: it recomputes every send and
+ * Ran once at the v2 cutover, from `migrate.ts`. Idempotent: it recomputes every send and
  * writes only the rows whose stored value changes, so a second run is a no-op.
  */
 import { asc, eq, isNull } from 'drizzle-orm'
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { pathToFileURL } from 'node:url'
+import Database from 'postgres'
+import drizzleConfig from '../../../../drizzle.config'
 import { deriveAccolade } from '../../entities/ascent/accolade'
 import { toAccoladeAscent } from '../../entities/ascent/accolade.server'
 import * as schema from '../schema'
@@ -82,4 +85,13 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
   }
 
   console.log(`\nfilled ${written} of ${rows.length} ascent accolade(s).`)
+}
+
+// Standalone: `npx tsx src/lib/db/scripts/migrate-accolades.ts`.
+if (process.argv[1] != null && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  // No preview exists, so refuse the flag rather than run for real behind it.
+  if (process.argv.includes('--dry-run')) throw new Error('migrate-accolades has no --dry-run: it always writes')
+  const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
+  await migrate(drizzle(postgres, { schema }))
+  await postgres.end()
 }
