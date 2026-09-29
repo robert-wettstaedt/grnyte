@@ -2,6 +2,7 @@ import * as schema from '$lib/db/schema'
 import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { EVENT_OBJECT_COLUMNS, type EventObjectType } from './dto'
+import { REFINABLE } from './verbs'
 
 export interface EventInput {
   actorFk: number
@@ -80,11 +81,9 @@ export async function createUpdateEvent(
     object,
     oldEntity,
     regionFk,
-    verb = 'update',
   }: Omit<EventInput, 'verb'> & {
     newEntity: EventDiff
     oldEntity: EventDiff
-    verb?: schema.EventVerb
   },
 ): Promise<boolean> {
   const changes: EventChange[] = Object.keys(newEntity)
@@ -99,7 +98,8 @@ export async function createUpdateEvent(
     return false
   }
 
-  const event = await insertEvent(db, { actorFk, metadata, object, regionFk, verb })
+  // Always `update`: a change row reaches another verb only by folding into it, never directly.
+  const event = await insertEvent(db, { actorFk, metadata, object, regionFk, verb: 'update' })
   return writeChanges(db, event, changes)
 }
 
@@ -120,8 +120,6 @@ export async function createUpdateEvent(
  * `update` on the same object joins it, keeps the verb `update`, and the deletion is never
  * recorded anywhere: the feed reports "Jonas edited Mara's ascent" for a row he removed.
  */
-const REFINABLE = new Set<schema.EventVerb>(['add', 'create', 'update'])
-
 const joins = (verb: schema.EventVerb, open: schema.Event) =>
   verb === open.verb || (verb === 'update' && REFINABLE.has(open.verb))
 
