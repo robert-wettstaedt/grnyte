@@ -2,7 +2,6 @@ import { form, getRequestEvent } from '$app/server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
-import { notifyAdminsOfSignup } from '$lib/entities/notification/signup.server'
 import { spendProofOfWork } from '$lib/forms/proofOfWork.server'
 import {
   authError,
@@ -44,7 +43,6 @@ export const signUp = form(signUpSchema, async ({ altcha, email, password, usern
 
   const {
     locals: { supabase },
-    url,
   } = getRequestEvent()
 
   // GoTrue's public sign-up is switched off, so the published anon key cannot skip the checks above.
@@ -66,7 +64,7 @@ export const signUp = form(signUpSchema, async ({ altcha, email, password, usern
   // can neither sign in nor sign up again.
   // Read out here, because TypeScript drops the null narrowing inside the callback.
   const authUserFk = data.user.id
-  const createdUser = await pinnedTx(async (tx) => {
+  await pinnedTx(async (tx) => {
     const [user] = await tx.insert(schema.users).values({ authUserFk, username }).returning()
     // `contactLocale` is seeded from the request locale: the best guess on the device the account
     // was made on, and the only signal we have until they pick a language in settings.
@@ -75,7 +73,6 @@ export const signUp = form(signUpSchema, async ({ altcha, email, password, usern
       .values({ authUserFk, contactLocale: getLocale(), userFk: user.id })
       .returning()
     await tx.update(schema.users).set({ userSettingsFk: settings.id }).where(eq(schema.users.id, user.id))
-    return user
   })
 
   // The admin API creates without mailing; GoTrue still renders and sends the confirmation.
@@ -83,10 +80,6 @@ export const signUp = form(signUpSchema, async ({ altcha, email, password, usern
   if (resendError != null) {
     invalid(authError(resendError))
   }
-
-  // Last, and after the rows it names exist. Never throws, so a push service or mail host that is
-  // down cannot fail a sign-up that already succeeded.
-  await notifyAdminsOfSignup({ origin: url.origin, userFk: createdUser.id, username })
 
   // No redirect: Supabase may require email confirmation before the first sign-in, so we
   // surface a success message and let the user head to the sign-in tab.
