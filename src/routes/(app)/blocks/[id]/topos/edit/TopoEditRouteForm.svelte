@@ -5,7 +5,7 @@
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
   import { updateRoute } from '$lib/entities/route/routes.remote'
   import FormError from '$lib/forms/FormError.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedForm, seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
   import { submitForm } from '$lib/forms/submit'
   import { m } from '$lib/paraglide/messages'
   import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast'
@@ -24,11 +24,8 @@
   seedOnKeyChange(
     () => route.id,
     () => {
-      // No DOM reset: it blanks the rendered name, and the `fields.set` below then writes the value
-      // the singleton already holds, so nothing re-renders and an empty name submits over a real
-      // one. Cost is that Kit's issues survive a reopen, and unlike `/routes/[id]/edit` this
-      // surface never reloads, so a stale guard error stays on screen until the next submit.
-      updateRoute.fields.set(routeEditSeed(route))
+      // No DOM reset: it blanks the rendered name. `seedForm` drops a stale guard error without one.
+      void seedForm(updateRoute, routeEditSeed(route))
     },
   )
 
