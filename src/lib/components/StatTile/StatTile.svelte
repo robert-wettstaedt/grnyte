@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { MediaQuery } from 'svelte/reactivity'
+  import { prefersStill } from '$lib/state/motion.svelte'
   import { fade } from 'svelte/transition'
 
   // One KPI: a label and the number under it. Belongs inside a `<dl>` grid, which is why it
@@ -15,8 +15,7 @@
 
   const { animate = false, label, value }: Props = $props()
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current || !animate ? 0 : 150)
+  const duration = $derived(prefersStill() || !animate ? 0 : 150)
 </script>
 
 <!-- The transition lives here rather than on a wrapper at the call site: a `dl` group allows one

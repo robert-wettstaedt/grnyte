@@ -11,10 +11,10 @@
   import FormError from '$lib/forms/FormError.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { motion } from '$lib/state/motion.svelte'
   import { tick } from 'svelte'
   import { flip } from 'svelte/animate'
   import type { Attachment } from 'svelte/attachments'
-  import { MediaQuery } from 'svelte/reactivity'
   import { fade, slide } from 'svelte/transition'
 
   /** The block-route-list shape (a subset of RouteListItem): enough for the picker rows. */
@@ -31,8 +31,7 @@
   const { block, candidates, onAdd }: Props = $props()
   const global = getGlobalState()
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   let open = $state(false)
   let query = $state('')

@@ -18,6 +18,7 @@
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import {
     dragHandle,
@@ -28,7 +29,6 @@
   } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
   import type { Attachment } from 'svelte/attachments'
-  import { MediaQuery } from 'svelte/reactivity'
   import ReorderMap from './ReorderMap.svelte'
 
   const global = getGlobalState()
@@ -51,8 +51,7 @@
   const isDndShadow = (block: BlockDetail) => SHADOW_ITEM_MARKER_PROPERTY_NAME in block
 
   // Zero under reduced motion. Shared with the zone, which needs the same number.
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   // Which ids the live list has already carried, so a row knows whether it just synced in. Reset
   // per area here, not in `seedOnKeyChange`, whose effect order against this one is unspecified.

@@ -30,9 +30,9 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { motion } from '$lib/state/motion.svelte'
   import { now } from '$lib/state/now.svelte'
   import { tick, untrack } from 'svelte'
-  import { MediaQuery } from 'svelte/reactivity'
   import { slide } from 'svelte/transition'
   import EventChanges from './EventChanges.svelte'
 
@@ -86,8 +86,7 @@
   // shut while the card slides open, which is what says the card grew out of the line that was
   // pressed rather than arriving from somewhere else. Shared with the changes disclosure, since
   // both are the same gesture. Somebody who asked for less motion gets the cut.
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   // One disclosure whose trigger MOVES: opening tears down the row that was pressed and builds the
   // card, closing does the reverse. Without handing focus over, the element the keyboard was on

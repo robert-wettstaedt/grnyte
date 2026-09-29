@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { motion } from '$lib/state/motion.svelte'
   /** A picked climber, an existing first ascensionist, the signed-in user, or a new name. */
   export interface FaClimber {
     name: string
@@ -13,7 +14,6 @@
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { MediaQuery } from 'svelte/reactivity'
   import { fly } from 'svelte/transition'
 
   // Chips-in-a-box climber picker with typeahead over the region's first ascensionists.
@@ -31,8 +31,7 @@
   const global = getGlobalState()
   const ascensionists = firstAscensionistList(() => ({ regionFk }))
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   let query = $state('')
   let open = $state(false)

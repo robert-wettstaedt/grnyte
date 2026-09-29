@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
   import { m } from '$lib/paraglide/messages'
+  import { motion } from '$lib/state/motion.svelte'
   import type { Snippet } from 'svelte'
-  import { MediaQuery } from 'svelte/reactivity'
   import { slide } from 'svelte/transition'
 
   // A list clamped to `limit` rows behind a show-more. The rows past the limit are their own
@@ -30,8 +30,7 @@
   const shown = $derived(items.slice(0, limit))
   const rest = $derived(items.slice(limit))
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 </script>
 
 <div class="flex flex-col gap-1.5">

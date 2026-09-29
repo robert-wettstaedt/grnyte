@@ -1,7 +1,7 @@
 <script lang="ts">
+  import { motion } from '$lib/state/motion.svelte'
   import type { Snippet } from 'svelte'
   import type { ClassValue } from 'svelte/elements'
-  import { MediaQuery } from 'svelte/reactivity'
   import { slide } from 'svelte/transition'
 
   // A button and an {#if} rather than <details>: a <details> keeps its panel in the DOM and only
@@ -30,8 +30,7 @@
     trigger = $bindable(),
   }: Props = $props()
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 </script>
 
 <div class={className}>

@@ -1,13 +1,11 @@
 <script lang="ts">
+  import { prefersStill } from '$lib/state/motion.svelte'
   import { onMount } from 'svelte'
-  import { MediaQuery } from 'svelte/reactivity'
   import type { Vector3 } from 'three'
 
   let stageEl: HTMLDivElement
   let wrapEl: HTMLDivElement
   let showFallback = $state(true)
-
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
 
   const ROUTES: Array<{ color: number; theta: number }> = [
     { color: 0xe8893f, theta: 1.25 }, // grade-4 orange
@@ -270,7 +268,7 @@
 
   onMount(() => {
     // Snapshot on purpose: the scene is built once, and reduced motion decides how it is built.
-    const reduced = still.current
+    const reduced = prefersStill()
     let cancelled = false
     let dispose: (() => void) | undefined
 

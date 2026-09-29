@@ -17,9 +17,9 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { MediaQuery } from 'svelte/reactivity'
   import { fade } from 'svelte/transition'
   import ActivityChart from './ActivityChart.svelte'
 
@@ -42,8 +42,7 @@
       : resolve('/settings'),
   )
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   // Admin first, the way a member list is read.
   const roles = [...assignableRoles].reverse()
