@@ -21,7 +21,7 @@ begin
   if not exists (select from pg_roles where rolname = 'supabase_auth_admin') then create role supabase_auth_admin nologin; end if;
 end $$;
 
--- auth schema: the `users` table (FK target for 6 app tables; `id` + `email` are all that is read)
+-- auth schema: the `users` table (FK target for 6 app tables; the columns the app reads, as GoTrue types them)
 -- and the two claim readers the RLS policies and SECURITY DEFINER functions call.
 -- Base privileges. On Supabase, anon/authenticated/service_role are granted ALL on public objects
 -- and RLS narrows from there; without this `authenticated` has NO table privileges, so PG denies at
@@ -40,6 +40,9 @@ create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
   email text
 );
+-- Sign-up protection reads confirmation state and account age. `alter`, so a DB shimmed before this gains them.
+alter table auth.users add column if not exists created_at timestamptz default now();
+alter table auth.users add column if not exists email_confirmed_at timestamptz;
 
 -- Verbatim Supabase definitions: read request.jwt.claim.sub / request.jwt.claims, set per-transaction
 -- by createDrizzle (db.server.ts) and by the RLS test harness.
