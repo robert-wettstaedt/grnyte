@@ -17,6 +17,8 @@ export async function submitForm(
 ): Promise<SubmitOutcome> {
   try {
     if (!(await submit())) {
+      // Kit only returns false WITH issues, and `FormError` renders the form-level ones, so a caller
+      // must not also toast here: every validation error would be reported twice.
       return 'rejected'
     }
   } catch (error) {
