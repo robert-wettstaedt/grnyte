@@ -32,6 +32,13 @@ vi.mock('$lib/db/supabaseAdmin.server', () => ({
   }),
 }))
 
+const alerted: string[] = []
+vi.mock('$lib/entities/notification/signup.server', () => ({
+  notifyAdminsOfSignup: async ({ username }: { username: string }) => {
+    alerted.push(username)
+  },
+}))
+
 const supabase = {
   auth: {
     resend: async ({ email }: { email: string }) => {
@@ -104,6 +111,8 @@ describe.skipIf(!reachable)('signUp through the admin API', () => {
 
     expect(created).toEqual([NEW])
     expect(resent).toEqual([NEW])
+    // Admins hear about it on confirmation, not here.
+    expect(alerted).toEqual([])
     const rows = await sql`
       select 1 from public.users u join public.user_settings s on s.id = u.user_settings_fk
       where u.auth_user_fk = ${id} and u.username = ${USERNAME}`

@@ -116,7 +116,8 @@ delete, is logged, and is left for a manual look. Only the count is logged, neve
 ### Admin alert on confirmation
 
 `notifyAdminsOfSignup` moves from `signUp` to `/auth/confirm`: after a successful `verifyOtp` whose
-`type` is `signup` (or `email`, which GoTrue also uses for sign-up confirmation), look up the
+`type` is `signup` (the only type the confirmation template sends; `email` would also match OTP
+sign-ins), look up the
 `users` row for the now-signed-in account and call it. `verifyOtp` refuses a reused token, so it fires
 once. `signup.server.ts` itself does not change.
 
