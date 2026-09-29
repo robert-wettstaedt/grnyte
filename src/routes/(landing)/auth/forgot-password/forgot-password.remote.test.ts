@@ -2,6 +2,7 @@
  * `forgotPassword` sends a reset only to a confirmed account and answers every caller alike.
  */
 import { reachable, sql } from '$lib/db/testDb'
+import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
 import { asAnonymousRequest, callForm } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { forgotPassword } from './forgot-password.remote'
@@ -11,6 +12,7 @@ const UNCONFIRMED = '__forgot_unconfirmed__@example.test'
 const UNKNOWN = '__forgot_unknown__@example.test'
 
 let sent: string[] = []
+const nonces: string[] = []
 const supabase = {
   auth: {
     resetPasswordForEmail: async (email: string) => {
@@ -20,10 +22,22 @@ const supabase = {
   },
 }
 
+interface Outcome {
+  issues?: { message: string }[]
+  result?: { email: string; success: boolean }
+}
+
+const submitRaw = (data: Record<string, unknown>) =>
+  asAnonymousRequest(supabase, () => callForm<Outcome>(forgotPassword, data))
+
+/** The message keys a refusal carries. */
+const refusals = ({ issues = [] }: Outcome) => issues.map((issue) => JSON.parse(issue.message).message)
+
+/** Submits with a fresh genuine solve, the way the widget does. */
 const submit = async (data: Record<string, unknown>) => {
-  const { result } = await asAnonymousRequest(supabase, () =>
-    callForm<{ result: { email: string; success: boolean } }>(forgotPassword, data),
-  )
+  const { encoded, nonce } = await solvedProofOfWork()
+  nonces.push(nonce)
+  const { result } = await submitRaw({ altcha: encoded, ...data })
   return result
 }
 
@@ -41,7 +55,9 @@ beforeEach(() => {
 })
 
 afterAll(async () => {
-  if (reachable) await cleanup()
+  if (!reachable) return
+  await cleanup()
+  await sql`delete from public.spent_challenges where nonce = any(${nonces})`
 })
 
 describe.skipIf(!reachable)('forgotPassword', () => {
@@ -63,6 +79,19 @@ describe.skipIf(!reachable)('forgotPassword', () => {
   it('sends nothing to an unknown address and answers the same', async () => {
     expect(await submit({ email: UNKNOWN })).toEqual({ email: UNKNOWN, success: true })
     expect(sent).toEqual([])
+  })
+
+  it('refuses a request without a solved proof of work and sends nothing', async () => {
+    expect(refusals(await submitRaw({ email: CONFIRMED }))).toEqual(['auth_verificationFailed'])
+    expect(sent).toEqual([])
+  })
+
+  it('refuses a replayed proof of work', async () => {
+    const { encoded, nonce } = await solvedProofOfWork()
+    nonces.push(nonce)
+    await submitRaw({ altcha: encoded, email: CONFIRMED })
+    expect(refusals(await submitRaw({ altcha: encoded, email: CONFIRMED }))).toEqual(['auth_verificationFailed'])
+    expect(sent).toEqual([CONFIRMED])
   })
 
   it('sends nothing when the honeypot is filled, even for a confirmed account', async () => {

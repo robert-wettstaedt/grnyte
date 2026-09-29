@@ -9,16 +9,16 @@
 
 ## 2. Proof-of-work (ALTCHA)
 
-- [ ] 2.1 Add `altcha` and `altcha-lib` and the `ALTCHA_HMAC_KEY` private env var (Bitwarden for all three environments, `deployment/SECRETS.md`); verify `npm run secrets:pull` writes it and the build reads it
-- [ ] 2.2 Add the `spent_challenges` table to `schema.ts` with RLS enabled and no policies, run `generate:drizzle`, exclude it in `generate:zero`, `migrate`; verify the migration applies on a throwaway DB and the Zero schema does not list it
-- [ ] 2.3 Add the challenge `GET` endpoint under `(landing)/auth/` (10-minute expiry, `no-store`); verify with a test that two calls return different challenges
-- [ ] 2.4 Add `requireProofOfWork` in `$lib/forms/` (verify signature and expiry, then insert into `spent_challenges`, refusing when nothing was inserted); verify with server tests for missing, tampered, expired and replayed payloads, each seen red
-- [ ] 2.5 Call `requireProofOfWork` first in `signUp` and `forgotPassword`; verify with a test that a refused payload never reaches GoTrue
-- [ ] 2.6 Add `ProofOfWork.svelte` in `$lib/forms/` (bundled widget, starts solving on mount, submit waits for the solve) and render it in both forms; verify with the Svelte autofixer and by signing up in the running app
-- [ ] 2.7 i18n: keys for the widget's labels and the "reload and try again" refusal in `messages/en.json` and `messages/de.json`; verify both locales render in the running app
-- [ ] 2.8 Add `sweepSpentChallenges` to `api/tasks/cleanup`; verify with a server test that expired rows go and live rows stay
-- [ ] 2.9 Tune `maxNumber` to about 1 second on a mid-range phone, measured on the iOS Simulator and a CPU-throttled 375x667 Chrome profile; record the chosen value in a one-line comment
-- [ ] 2.10 Verification sweep for group 2 and commit
+- [x] 2.1 Add `altcha` and `altcha-lib`, and derive the challenge HMAC key from `SUPABASE_SERVICE_ROLE_KEY` (no new secret); verify with a test that the key is stable and differs from its parent
+- [x] 2.2 Add the `spent_challenges` table to `schema.ts` with RLS enabled and no policies, run `generate:drizzle`, exclude it in `generate:zero`, `migrate`; verify the migration applies on a throwaway DB and the Zero schema does not list it (kept in the generated Zero schema like `client_error_logs`: drizzle-zero has no exclusion list and no client query reads it)
+- [x] 2.3 Add the challenge `GET` endpoint under `(landing)/auth/` (10-minute expiry, `no-store`); verify with a test that two calls return different challenges (tested on `issueChallenge`, which the endpoint returns as is)
+- [x] 2.4 Add `requireProofOfWork` in `$lib/forms/` (verify signature and expiry, then insert into `spent_challenges`, refusing when nothing was inserted); verify with server tests for missing, tampered, expired and replayed payloads, each seen red
+- [x] 2.5 Call `requireProofOfWork` first in `signUp` and `forgotPassword`; verify with a test that a refused payload never reaches GoTrue
+- [x] 2.6 Add `ProofOfWork.svelte` in `$lib/forms/` (bundled widget, starts solving on mount, submit waits for the solve) and render it in both forms; verify with the Svelte autofixer and by signing up in the running app
+- [x] 2.7 i18n: keys for the widget's labels and the "reload and try again" refusal in `messages/en.json` and `messages/de.json`; verify both locales render in the running app (the widget runs `display="invisible"` and shows no labels, so the refusal is the only new key: `auth_verificationFailed`)
+- [x] 2.8 Add `sweepSpentChallenges` to `api/tasks/cleanup`; verify with a server test that expired rows go and live rows stay
+- [x] 2.9 Tune `maxNumber` to about 1 second on a mid-range phone, measured on the iOS Simulator and a CPU-throttled 375x667 Chrome profile; record the chosen value in a one-line comment (browser solve ~90ms per 1000 attempts on 12 laptop workers; the phone figure is extrapolated, since the iOS Simulator runs on the host CPU and DevTools throttling does not slow workers)
+- [x] 2.10 Verification sweep for group 2 and commit
 
 ## 3. Accounts only through the admin API
 

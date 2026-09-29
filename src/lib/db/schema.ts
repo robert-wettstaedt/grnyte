@@ -2219,6 +2219,12 @@ export const clientErrorLogs = table('client_error_logs', {
 export type ClientErrorLogs = InferSelectModel<typeof clientErrorLogs>
 export type InsertClientErrorLog = InferInsertModel<typeof clientErrorLogs>
 
+/** Proof-of-work challenges already accepted once, so one solve cannot be replayed for many addresses. */
+export const spentChallenges = table('spent_challenges', {
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  nonce: text().primaryKey(),
+}).enableRLS()
+
 /**
  * In-app product feedback, read by app admins, answered by email.
  *

@@ -182,6 +182,7 @@
   "auth_usernameInvalid": "Nutze Buchstaben, Zahlen, Bindestriche und Unterstriche, beginnend mit einem Buchstaben oder einer Zahl",
   "auth_usernamePlaceholder": "Dein Anzeigename",
   "auth_usernameTaken": "Benutzername bereits vergeben",
+  "auth_verificationFailed": "Anfrage konnte nicht geprüft werden, lade die Seite neu und versuche es erneut",
   "blocks_addBlock": "Block hinzufügen",
   "blocks_add_addWithoutLocation": "Ohne Standort hinzufügen",
   "blocks_add_chooseOnMap": "Auf Karte wählen",
