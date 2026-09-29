@@ -25,7 +25,7 @@
 
   <form {...forgotPassword} class="flex flex-col gap-4">
     <FormError form={forgotPassword} />
-    <Honeypot field={forgotPassword.fields.website} />
+    <Honeypot field={forgotPassword.fields.hpcheck} />
     <ProofOfWork />
 
     <AuthField

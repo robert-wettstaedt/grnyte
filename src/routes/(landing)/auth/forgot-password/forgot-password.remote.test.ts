@@ -12,12 +12,14 @@ const UNCONFIRMED = '__forgot_unconfirmed__@example.test'
 const UNKNOWN = '__forgot_unknown__@example.test'
 
 let sent: string[] = []
+/** What GoTrue answers a reset with; the rate limit is the one only a confirmed address can hit. */
+let resetError: null | { code: string; message: string } = null
 const nonces: string[] = []
 const supabase = {
   auth: {
     resetPasswordForEmail: async (email: string) => {
       sent.push(email)
-      return { error: null }
+      return { error: resetError }
     },
   },
 }
@@ -52,6 +54,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   sent = []
+  resetError = null
 })
 
 afterAll(async () => {
@@ -69,6 +72,11 @@ describe.skipIf(!reachable)('forgotPassword', () => {
   it('finds the confirmed account whatever case the address is typed in', async () => {
     await submit({ email: CONFIRMED.toUpperCase() })
     expect(sent).toHaveLength(1)
+  })
+
+  it('answers a confirmed account GoTrue refuses exactly like any other address', async () => {
+    resetError = { code: 'over_email_send_rate_limit', message: 'rate limited' }
+    expect(await submit({ email: CONFIRMED })).toEqual({ email: CONFIRMED, success: true })
   })
 
   it('sends nothing to an unconfirmed account and answers the same', async () => {
@@ -95,7 +103,7 @@ describe.skipIf(!reachable)('forgotPassword', () => {
   })
 
   it('sends nothing when the honeypot is filled, even for a confirmed account', async () => {
-    expect(await submit({ email: CONFIRMED, website: 'https://spam.example' })).toEqual({
+    expect(await submit({ email: CONFIRMED, hpcheck: 'https://spam.example' })).toEqual({
       email: CONFIRMED,
       success: true,
     })
