@@ -107,13 +107,14 @@ releases and must not be bundled with them.
       once release 1 has been live long enough for stale tabs to have cycled. Verify by saving every
       form shape in the running app and confirming each still navigates, now through the envelope.
 
-      Driven: `updateRoute` (/routes/738/edit), `updateBlock` (/blocks/27/edit, indirect via
-      BlockForm), `updateUsername` (/settings/username, a static `resolve()` destination rather than
-      `entityHref`) and `updateArea` (/areas/13/edit). All four navigated with `history.length`
-      unchanged across the exit, so the replace-not-push property holds. Not driven: `addParking`,
-      `updateRegion`, `updateRegionMapLayers`, `updateAscent`, `createArea`, `createBlock`. The first
-      four are structurally identical to ones above; the two creates differ only in that the server
-      builds the destination id after the commit, which the client reads through the same envelope.
+      Driven, 9 of the 10: `updateRoute`, `updateBlock` (indirect via BlockForm), `updateUsername`
+      (a static `resolve()` destination rather than `entityHref`), `updateArea`, `updateRegion`,
+      `updateRegionMapLayers`, `updateAscent` (navigates to the ROUTE, not the ascent), `addParking`
+      (multi-step) and `createArea` (destination id built after the commit). Every one navigated with
+      `history.length` unchanged across the exit, so the replace-not-push property holds for each.
+      Not driven: `createBlock`, whose submit stays disabled until a location decision that needs map
+      interaction. It is the same `<Form>`, the same envelope read and the same post-commit id as
+      `createArea` above, which was driven.
 
       The stale-tab ordering this task guards is moot: release 1 shipped `declaredDestination()`
       itself, so a release-1 tab reads the envelope when no 303 arrives. The real residual risk runs
