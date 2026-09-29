@@ -39,7 +39,7 @@
 
   <form {...signUp} class="flex flex-col gap-4">
     <FormError form={signUp} />
-    <Honeypot field={signUp.fields.website} />
+    <Honeypot field={signUp.fields.hpcheck} />
     <ProofOfWork />
 
     <AuthField

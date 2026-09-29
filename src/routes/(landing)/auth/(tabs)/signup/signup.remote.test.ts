@@ -14,6 +14,7 @@ const USERNAME = 'signupnew'
 
 let created: string[] = []
 let resent: string[] = []
+let resendError: null | { code: string; message: string } = null
 /** What the fake admin API answers: a real auth.users id, or a GoTrue error code. */
 let adminAnswer: { code: string } | { id: string } = { code: 'unset' }
 
@@ -43,7 +44,7 @@ const supabase = {
   auth: {
     resend: async ({ email }: { email: string }) => {
       resent.push(email)
-      return { error: null }
+      return { error: resendError }
     },
   },
 }
@@ -79,6 +80,7 @@ const cleanup = async () => {
 beforeEach(async () => {
   created = []
   resent = []
+  resendError = null
   if (reachable) await cleanup()
 })
 
@@ -90,7 +92,7 @@ afterAll(async () => {
 
 describe('signUp', () => {
   it('creates nothing when the honeypot is filled', async () => {
-    const { result } = await submitRaw({ ...FIELDS, website: 'https://spam.example' })
+    const { result } = await submitRaw({ ...FIELDS, hpcheck: 'https://spam.example' })
     expect(result).toEqual({ success: true })
     expect(created).toEqual([])
   })
@@ -126,6 +128,20 @@ describe.skipIf(!reachable)('signUp through the admin API', () => {
 
     expect(resent).toEqual([NEW])
     expect(await sql`select 1 from public.users where username = ${USERNAME}`).toHaveLength(0)
+  })
+
+  it('does not show an existing address that its confirmation was mailed a minute ago', async () => {
+    adminAnswer = { code: 'email_exists' }
+    resendError = { code: 'over_email_send_rate_limit', message: 'rate limited' }
+    expect(await submit(FIELDS)).toMatchObject({ result: { success: true } })
+  })
+
+  it('still shows a new account that its confirmation could not be sent', async () => {
+    const [{ id }] = await sql<{ id: string }[]>`
+      insert into auth.users (id, email) values (gen_random_uuid(), ${NEW}) returning id`
+    adminAnswer = { id }
+    resendError = { code: 'over_email_send_rate_limit', message: 'rate limited' }
+    expect(refusals(await submit(FIELDS))).toEqual(['auth_rateLimited'])
   })
 
   it('maps any other GoTrue refusal onto the form', async () => {
