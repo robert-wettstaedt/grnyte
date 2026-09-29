@@ -26,7 +26,7 @@
 - [x] 3.2 Move the service-role client into `$lib/db/supabaseAdmin.server.ts` and use it from `api/tasks/cleanup`; verify the cleanup server tests still pass
 - [x] 3.3 Change `signUp` to `admin.createUser` plus `resend`, keeping the `users`/`user_settings` transaction; verify with server tests, including that an already-registered address answers exactly as before (seen red by surfacing the admin error) (an existing address resends and answers success, matching the public endpoint, which returns a sanitized fake user; the old handler then hit a users FK error. Driven end to end against the local stack: account created, one confirmation caught, `/auth/confirm` confirmed and signed in)
 - [x] 3.4 Flip `deployment/check-prod.ts:37` to assert `disable_signup === true`; verify it fails against the current environment and passes after the switch (fails locally, where public sign-up is still on)
-- [ ] 3.5 Run `e2e/prod-signup.spec.ts` and `e2e/invite.spec.ts` against the local stack with `disable_signup` on; verify both pass and the confirmation email arrives unchanged
+- [x] 3.5 Run `e2e/prod-signup.spec.ts` and `e2e/invite.spec.ts` against the local stack with `disable_signup` on; verify both pass and the confirmation email arrives unchanged (both pass locally, run by the user; the first invite run failed on a submit that beat the solve, fixed in ProofOfWork.svelte)
 - [x] 3.6 Verification sweep for group 3 and commit
 - [ ] 3.7 After deploy (user): run the prod canary, switch off "Allow new users to sign up" in Supabase, run `npm run check:prod` and the canary again
 
@@ -39,5 +39,5 @@
 
 ## 5. Final verification
 
-- [ ] 5.1 Over every touched path: `npx prettier --write`, `npx eslint`, `npx vitest run --project server` and `--project browser` as matching, typecheck (`svelte-check` beside a live dev server), `npm run lint:duplication`, `npm run lint:unused`
-- [ ] 5.2 Drive sign-up and forgot-password in the running app at 375x667 and 1280x800, in English and German, including a screen-reader pass over the honeypot; verify no puzzle is shown and both flows complete
+- [x] 5.1 Over every touched path: `npx prettier --write`, `npx eslint`, `npx vitest run --project server` and `--project browser` as matching, typecheck (`svelte-check` beside a live dev server), `npm run lint:duplication`, `npm run lint:unused` (lint:duplication and lint:unused clean. Full server project: 598 pass, 8 fail in blocks/areas/routes/mapLayers/softDeletedParent redirect tests, which fail identically with develop's harness and sit in paths this change does not touch, most likely from 1cdcd845 dropping the server redirect)
+- [x] 5.2 Drive sign-up and forgot-password in the running app at 375x667 and 1280x800, in English and German, including a screen-reader pass over the honeypot; verify no puzzle is shown and both flows complete (EN and DE, both sizes; the accessibility tree carries neither the honeypot nor the widget, which takes zero height)
