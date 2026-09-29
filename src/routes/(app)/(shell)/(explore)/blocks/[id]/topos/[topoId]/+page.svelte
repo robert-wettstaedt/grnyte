@@ -20,7 +20,9 @@
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { prefersStill } from '$lib/state/motion.svelte'
   import { exit } from '$lib/state/navigation.svelte'
+  import { untrack } from 'svelte'
   import Panel from '../../../../Modal/Panel.svelte'
   import { sheetState } from '../../../../Modal/sheetState.svelte'
 
@@ -77,7 +79,9 @@
   // the sheet: it stays wherever the user dragged it.
   $effect(() => {
     if (selectedRouteId == null) return
-    document.getElementById(`topo-route-${selectedRouteId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    document
+      .getElementById(`topo-route-${selectedRouteId}`)
+      ?.scrollIntoView({ behavior: untrack(prefersStill) ? 'auto' : 'smooth', block: 'nearest' })
   })
 
   let open = $state(true)
