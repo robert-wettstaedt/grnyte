@@ -1,23 +1,42 @@
 /**
- * `signUp` never reaches GoTrue for a filled honeypot or a missing proof of work.
+ * `signUp` creates accounts through the admin API only after its checks, never reveals an existing
+ * address, and leaves the confirmation email to GoTrue's resend.
  */
+import { deleteAccountRows } from '$lib/db/testAccounts'
+import { reachable, sql } from '$lib/db/testDb'
+import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
 import { asAnonymousRequest, callForm } from '$lib/remote/testHarness'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { signUp } from './signup.remote'
 
-const FIELDS = {
-  confirmPassword: 'correct-horse',
-  email: 'bot@example.test',
-  password: 'correct-horse',
-  username: 'botname',
-}
+const NEW = '__signup_new__@example.test'
+const USERNAME = 'signupnew'
 
-let calls: string[] = []
+let created: string[] = []
+let resent: string[] = []
+/** What the fake admin API answers: a real auth.users id, or a GoTrue error code. */
+let adminAnswer: { code: string } | { id: string } = { code: 'unset' }
+
+vi.mock('$lib/db/supabaseAdmin.server', () => ({
+  supabaseAdmin: () => ({
+    auth: {
+      admin: {
+        createUser: async ({ email }: { email: string }) => {
+          created.push(email)
+          return 'id' in adminAnswer
+            ? { data: { user: { id: adminAnswer.id } }, error: null }
+            : { data: { user: null }, error: { code: adminAnswer.code } }
+        },
+      },
+    },
+  }),
+}))
+
 const supabase = {
   auth: {
-    signUp: async ({ email }: { email: string }) => {
-      calls.push(email)
-      return { data: { user: null }, error: { code: 'unexpected_failure' } }
+    resend: async ({ email }: { email: string }) => {
+      resent.push(email)
+      return { error: null }
     },
   },
 }
@@ -27,24 +46,82 @@ interface Outcome {
   result?: unknown
 }
 
-const submit = (data: Record<string, unknown>) => asAnonymousRequest(supabase, () => callForm<Outcome>(signUp, data))
+const FIELDS = { confirmPassword: 'correct-horse', email: NEW, password: 'correct-horse', username: USERNAME }
+const nonces: string[] = []
+
+const submitRaw = (data: Record<string, unknown>) => asAnonymousRequest(supabase, () => callForm<Outcome>(signUp, data))
+
+const submit = async (data: Record<string, unknown>) => {
+  const { encoded, nonce } = await solvedProofOfWork()
+  nonces.push(nonce)
+  return submitRaw({ altcha: encoded, ...data })
+}
 
 /** The message keys a refusal carries. */
 const refusals = ({ issues = [] }: Outcome) => issues.map((issue) => JSON.parse(issue.message).message)
 
-beforeEach(() => {
-  calls = []
+const cleanup = async () => {
+  const ids = await sql<{ id: string }[]>`select id from auth.users where email = ${NEW}`
+  await deleteAccountRows(
+    sql,
+    ids.map((row) => row.id),
+  )
+  await sql`delete from auth.users where email = ${NEW}`
+}
+
+beforeEach(async () => {
+  created = []
+  resent = []
+  if (reachable) await cleanup()
+})
+
+afterAll(async () => {
+  if (!reachable) return
+  await cleanup()
+  await sql`delete from public.spent_challenges where nonce = any(${nonces})`
 })
 
 describe('signUp', () => {
   it('creates nothing when the honeypot is filled', async () => {
-    const { result } = await submit({ ...FIELDS, website: 'https://spam.example' })
+    const { result } = await submitRaw({ ...FIELDS, website: 'https://spam.example' })
     expect(result).toEqual({ success: true })
-    expect(calls).toEqual([])
+    expect(created).toEqual([])
   })
 
   it('refuses a sign-up without a solved proof of work before reaching GoTrue', async () => {
-    expect(refusals(await submit(FIELDS))).toEqual(['auth_verificationFailed'])
-    expect(calls).toEqual([])
+    expect(refusals(await submitRaw(FIELDS))).toEqual(['auth_verificationFailed'])
+    expect(created).toEqual([])
+  })
+})
+
+describe.skipIf(!reachable)('signUp through the admin API', () => {
+  it('creates the account and its profile, then has GoTrue send the confirmation', async () => {
+    const [{ id }] = await sql<{ id: string }[]>`
+      insert into auth.users (id, email) values (gen_random_uuid(), ${NEW}) returning id`
+    adminAnswer = { id }
+
+    expect((await submit(FIELDS)).result).toEqual({ success: true })
+
+    expect(created).toEqual([NEW])
+    expect(resent).toEqual([NEW])
+    const rows = await sql`
+      select 1 from public.users u join public.user_settings s on s.id = u.user_settings_fk
+      where u.auth_user_fk = ${id} and u.username = ${USERNAME}`
+    expect(rows).toHaveLength(1)
+  })
+
+  it('answers an address that already has an account exactly like a new one', async () => {
+    adminAnswer = { code: 'email_exists' }
+
+    expect(await submit(FIELDS)).toMatchObject({ result: { success: true } })
+
+    expect(resent).toEqual([NEW])
+    expect(await sql`select 1 from public.users where username = ${USERNAME}`).toHaveLength(0)
+  })
+
+  it('maps any other GoTrue refusal onto the form', async () => {
+    adminAnswer = { code: 'weak_password' }
+    expect(refusals(await submit(FIELDS))).toEqual(['auth_passwordWeak'])
+    expect(resent).toEqual([])
   })
 })

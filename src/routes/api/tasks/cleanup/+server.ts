@@ -1,7 +1,6 @@
-import { SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private'
-import { PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { clientErrorLogs, feedback, notifications } from '$lib/db/schema'
+import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { reportBunnyOrphans } from '$lib/entities/file/cleanup.server'
 import { reconcileReadiness } from '$lib/entities/file/readiness.server'
 import { STAGING_BUCKET } from '$lib/entities/file/upload'
@@ -10,7 +9,6 @@ import { ERROR_LOG_MAX_AGE_DAYS, logServerFailure } from '$lib/logging/failure.s
 import { stringifyError } from '$lib/logging/stringify'
 import { isCronAuthorized } from '$lib/remote/cron.server'
 import { getVideoProvider } from '$lib/videos/provider.server'
-import { createClient } from '@supabase/supabase-js'
 import { json } from '@sveltejs/kit'
 import { and, isNotNull, isNull, lt, or } from 'drizzle-orm'
 import type { RequestHandler } from './$types'
@@ -34,8 +32,7 @@ const ERROR_LOG_MAX_AGE_MS = ERROR_LOG_MAX_AGE_DAYS * 24 * 60 * 60 * 1000
 
 /** Delete staging objects older than the cutoff. Service-role: the sweep spans every user's own-uid folder. */
 const sweepStaging = async (before: Date): Promise<number> => {
-  const admin = createClient(PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  const bucket = admin.storage.from(STAGING_BUCKET)
+  const bucket = supabaseAdmin().storage.from(STAGING_BUCKET)
   // ponytail: two-level walk (folders are per auth-uid), 100 objects/page. Fine for
   // a daily job; switch to the S3 list API if the user count ever outgrows one page.
   const { data: folders, error } = await bucket.list()
