@@ -19,7 +19,7 @@
   import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { flip } from 'svelte/animate'
-  import { fade } from 'svelte/transition'
+  import { fade, slide } from 'svelte/transition'
 
   const global = getGlobalState()
 
@@ -60,6 +60,18 @@
 
   const filtered = $derived(ascents.data.filter((ascent) => filter === 'all' || ascent.type === filter))
   const split = $derived(splitAscents(filtered, global.user?.id))
+
+  // The same rows in the same order keep their array, so a section that only moved because its
+  // sibling slid does not re-run its keyed each, whose `animate:flip` would lag the rows behind.
+  const keepIfSame = () => {
+    let last: RouteAscent[] = []
+    return (next: RouteAscent[]) =>
+      next.length === last.length && next.every((ascent, i) => ascent === last[i]) ? last : (last = next)
+  }
+  const sameMine = keepIfSame()
+  const sameCommunity = keepIfSame()
+  const mine = $derived(sameMine(split.mine))
+  const community = $derived(sameCommunity(split.community))
 
   // Viewer siblings: every row's files, newest upload first, so paging next/prev
   // follows the on-screen row order (rows render newest-first). Unfiltered so an
@@ -145,7 +157,7 @@
         {/snippet}
       </PageHeader>
 
-      <div class="mx-auto flex w-full max-w-screen-sm flex-col gap-5 px-4 py-4">
+      <div class="mx-auto flex w-full max-w-screen-sm flex-col px-4 py-4">
         {#if ascentsUnavailable}
           <OfflineNotice excluded />
         {:else}
@@ -154,23 +166,32 @@
              they have an ascent here, and only to somebody who has not answered the ask yet: the
              dismissal flag is shared with every other surface, and the card retires itself once
              permission is granted. -->
-          {#if split.mine.length > 0}
-            <PushSetup dismissible />
+          <!-- A chip that empties a section removes it whole, and the rows' own fades do not run for
+               that, so the section slides as one. The empty note waits for it to finish. The space
+               below the logbook is its padding, not the column's gap, so the slide collapses it too. -->
+          {#if mine.length > 0}
+            <div class="flex flex-col gap-5 pb-5 last:pb-0" transition:slide={{ duration: fadeDuration }}>
+              <PushSetup dismissible />
 
-            {@render ascentSection(split.mine, m.ascents_yourLogbook(), 'text-primary-400', true)}
+              {@render ascentSection(mine, m.ascents_yourLogbook(), 'text-primary-400', true)}
+            </div>
           {/if}
 
-          {#if split.community.length > 0}
-            {@render ascentSection(
-              split.community,
-              `${m.ascents_community()} · ${split.community.length}`,
-              'text-surface-600-400',
-              false,
-            )}
+          {#if community.length > 0}
+            <div transition:slide={{ duration: fadeDuration }}>
+              {@render ascentSection(
+                community,
+                `${m.ascents_community()} · ${community.length}`,
+                'text-surface-600-400',
+                false,
+              )}
+            </div>
           {/if}
 
           {#if filtered.length === 0}
-            <p class="text-surface-600-400 text-sm">{m.ascents_empty()}</p>
+            <p class="text-surface-600-400 text-sm" in:fade={{ delay: fadeDuration, duration: fadeDuration }}>
+              {m.ascents_empty()}
+            </p>
           {/if}
         {/if}
       </div>
