@@ -222,6 +222,7 @@
   "blocks_order_select": "Highlight on map",
   "blocks_order_sortByDistance": "Sort by distance",
   "blocks_order_title": "Reorder blocks",
+  "blocks_photoLocationFailed": "Couldn’t use this photo’s location. Set it on the map instead.",
   "blocks_photoNoLocation": "This photo has no location. Set it on the map instead.",
   "blocks_pinStale": "The location changed while this page was open. Reopen it and make the change again.",
   "blocks_viewBlock": "View block",
