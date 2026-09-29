@@ -5,10 +5,9 @@
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
   import { updateRoute } from '$lib/entities/route/routes.remote'
   import FormError from '$lib/forms/FormError.svelte'
-  import { isOfflineFailure } from '$lib/forms/offlineFailure'
   import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { submitForm } from '$lib/forms/submit'
   import { m } from '$lib/paraglide/messages'
-  import { isOnline } from '$lib/state/online.svelte'
   import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast'
 
   interface Props {
@@ -35,20 +34,11 @@
 
   // Passing our own callback replaces Kit's, which is what would otherwise clear the form. This
   // surface reopens rather than navigating away, so the seed above clears it instead.
+  // `updateRoute` declares a `redirectTo` for the route screen; this surface stays put and ignores
+  // it. A toast rather than the full-screen offline tile, because letting a dead network reach the
+  // error boundary would replace the editor and take the unsaved lines with it.
   const submit = updateRoute.enhance(async ({ submit }) => {
-    try {
-      // `updateRoute` declares a `redirectTo` for the route screen; this surface stays put and
-      // simply ignores it.
-      const ok = await submit()
-      if (ok) {
-        onSaved()
-      }
-    } catch (cause) {
-      // Rethrowing reaches the error boundary, which replaces the whole editor and takes the
-      // unsaved lines with it. A dead network is not worth that, so it stays a toast. Named
-      // copy, not `notifyError`: a fetch TypeError carries no server message and resolves to
-      // the generic error title, which does not tell anyone their connection is the problem.
-      if (!isOfflineFailure(cause, isOnline())) throw cause
+    if ((await submitForm(submit, onSaved)) === 'offline') {
       toaster.create({ duration: FAILURE_TOAST_MS, title: m.error_offline_title(), type: 'warning' })
     }
   })

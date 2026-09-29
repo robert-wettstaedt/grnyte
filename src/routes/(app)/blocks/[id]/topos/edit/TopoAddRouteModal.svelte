@@ -9,9 +9,11 @@
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
   import { createRoute } from '$lib/entities/route/routes.remote'
   import FormError from '$lib/forms/FormError.svelte'
+  import { submitForm } from '$lib/forms/submit'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
+  import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast'
   import { tick } from 'svelte'
   import { flip } from 'svelte/animate'
   import type { Attachment } from 'svelte/attachments'
@@ -118,19 +120,24 @@
   // Both "Quick line" (step 1) and the new-route form (step 2) submit createRoute; the
   // new-route fields only exist in the DOM on step 2, so a quick line posts only blockId
   // (empty name, no grade). Only one of the two forms is ever mounted at a time.
+  // A toast rather than letting a dead network reach the error boundary, which would replace the
+  // editor and take the unsaved lines with it. Same rule as the edit form next door.
   const submit = createRoute.enhance(async ({ element, submit }) => {
-    const ok = await submit()
-    if (!ok) return
+    const outcome = await submitForm(submit, async () => {
+      // Passing our own enhance callback replaced Kit's, which is what left the typed name behind.
+      // Reset while the form is still mounted, so the listener sees the event.
+      await tick()
+      HTMLFormElement.prototype.reset.call(element)
 
-    // Passing our own enhance callback replaced Kit's, which is what left the typed name behind.
-    // Reset while the form is still mounted, so the listener sees the event.
-    await tick()
-    HTMLFormElement.prototype.reset.call(element)
+      const id = createRoute.result?.data?.id
+      if (id != null) {
+        open = false
+        onAdd(id)
+      }
+    })
 
-    const id = createRoute.result?.data?.id
-    if (id != null) {
-      open = false
-      onAdd(id)
+    if (outcome === 'offline') {
+      toaster.create({ duration: FAILURE_TOAST_MS, title: m.error_offline_title(), type: 'warning' })
     }
   })
 </script>
