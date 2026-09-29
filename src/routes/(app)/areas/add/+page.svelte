@@ -8,7 +8,7 @@
   import { canAddArea } from '$lib/entities/area/permissions'
   import { regionDisplayName } from '$lib/entities/region/mapper'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 

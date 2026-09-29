@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { RemoteFormIssue } from '@sveltejs/kit'
   import { resolveIssueMessage } from './issue'
-  import { isSeeding } from './seedOnKeyChange.svelte'
+  import { isSeeding } from './seed.svelte'
 
   // Renders form-level issues: those raised by `invalid('msg')` in a handler, which carry an
   // empty `path`. Field-tied issues (`invalid(issue.name(...))`) keep rendering inline via FormHint.

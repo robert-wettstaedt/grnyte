@@ -13,7 +13,7 @@
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { entityHref } from '$lib/entities/href'
-  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { haversineMetres, sectorReferencePoint, type Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'

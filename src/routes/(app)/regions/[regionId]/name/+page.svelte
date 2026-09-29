@@ -6,7 +6,7 @@
   import { updateRegion } from '$lib/entities/region/regions.remote'
   import AuthField from '$lib/forms/AuthField.svelte'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'

@@ -11,7 +11,7 @@
   import { fieldRows } from '$lib/forms/fieldRows.svelte'
   import Form from '$lib/forms/Form.svelte'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
-  import { seedForm, seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedForm, seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'

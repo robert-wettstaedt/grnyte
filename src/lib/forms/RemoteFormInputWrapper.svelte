@@ -5,7 +5,7 @@
   import type { ClassValue, HTMLAttributes } from 'svelte/elements'
   import FormHint from './FormHint.svelte'
   import OptionalBadge from './OptionalBadge.svelte'
-  import { isSeeding } from './seedOnKeyChange.svelte'
+  import { isSeeding } from './seed.svelte'
 
   interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
     children: Snippet<[HTMLAttributes<HTMLElement>]>

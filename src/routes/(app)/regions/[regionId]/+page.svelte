@@ -27,7 +27,7 @@
   import { regionTags } from '$lib/entities/region/tagVocabulary'
   import type { AppRole, AssignableRole } from '$lib/entities/rolePermission/dto'
   import { resolveIssueMessage } from '$lib/forms/issue'
-  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'

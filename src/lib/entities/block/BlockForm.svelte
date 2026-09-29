@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { AreaDetail } from '$lib/entities/area/dto'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { createAreaPickerMapData } from '$lib/map/exploreData.svelte'
   import { userLocation } from '$lib/map/geolocation.svelte'
   import LocationPickerScreen from '$lib/map/LocationPickerScreen.svelte'
