@@ -12,6 +12,7 @@ import { reachable, sql } from '$lib/db/testDb'
 import { queries } from '$lib/zero/queries'
 import { afterAll, describe, expect, it } from 'vitest'
 import { eventQueryContext, zero } from './testContext'
+import { REFINABLE } from './verbs'
 
 const ctx = await eventQueryContext()
 
@@ -107,7 +108,9 @@ describe.skipIf(!usable)('listEvents', () => {
 
     expect(withChanges.length).toBeGreaterThan(0)
     for (const row of withChanges) {
-      expect(row.verb).toBe('update')
+      // Change rows are only written under `update`, which folds into an open `add` or `create`
+      // too: "added Traumtanz" absorbs the edits made right after it.
+      expect([...REFINABLE], `event ${row.id}`).toContain(row.verb)
       expect(row.changes.every((change: { columnName: string }) => change.columnName != null)).toBe(true)
     }
   })

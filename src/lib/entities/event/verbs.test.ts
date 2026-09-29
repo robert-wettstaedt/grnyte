@@ -16,12 +16,21 @@ import { line } from './line.fixture'
 import {
   parseDeletedAscent,
   parseDeletionScale,
+  REFINABLE,
   stringifyDeletedAscent,
   verbKey,
   VERBS,
   WRITTEN_ROWS,
   type VerbEntry,
 } from './verbs'
+
+describe('REFINABLE', () => {
+  it('lets an update fold into exactly add, create and update', () => {
+    // Pinned as a literal: the event-log test reads the set, so only this catches it WIDENING,
+    // which would let change rows sit under a delete or remove.
+    expect([...REFINABLE].sort()).toEqual(['add', 'create', 'update'])
+  })
+})
 
 // The catalogue is `as const`, so its element type is a union in which only some members declare
 // `columnName` or `value`. Reads of those two go through `WRITTEN_ROWS`, the same entries widened

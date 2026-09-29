@@ -4,6 +4,9 @@ import type { ChangeKind, PairFormat } from './change'
 import type { EventObjectType } from './dto'
 import type { EventVerb } from './mapper'
 
+/** The verbs an `update` folds into (`joins` in event.server.ts): the only ones change rows sit under. */
+export const REFINABLE: ReadonlySet<EventVerb> = new Set<EventVerb>(['add', 'create', 'update'])
+
 /**
  * Whose ascent a deletion took, as its row recorded it.
  *

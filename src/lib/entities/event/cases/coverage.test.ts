@@ -72,8 +72,7 @@ function writeSites(): WriteSite[] {
         file,
         line: source.slice(0, start).split('\n').length,
         objectType: objectType?.[1],
-        // `createUpdateEvent` defaults to `update`, which is what makes an unstated verb an
-        // update rather than a hole.
+        // `createUpdateEvent` always writes `update`, so an unstated verb is an update, not a hole.
         verbs: verbs.length > 0 ? verbs : match[1] === 'createUpdateEvent' ? ['update'] : ['?'],
       })
     }
