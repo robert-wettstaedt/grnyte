@@ -10,7 +10,7 @@
  * backfilled by migrate-image-derivatives, which runs first) and every
  * coordinate is divided by the oriented size.
  *
- * Runs as part of `npm run migrate` (via `migrate.ts`). Can also be run on its
+ * Ran once at the v2 cutover, from `migrate.ts`. Can also be run on its
  * own to preview:
  *   npx tsx src/lib/db/scripts/migrate-topo-paths.ts --dry-run
  *

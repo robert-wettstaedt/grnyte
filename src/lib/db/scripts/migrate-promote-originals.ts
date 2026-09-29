@@ -7,7 +7,7 @@
  * there are no DB writes at all (normalized topo paths are ratio-invariant,
  * overlays stay correct).
  *
- * Runs as part of `npm run migrate` (via `migrate.ts`), before
+ * Ran once at the v2 cutover, from `migrate.ts`, before
  * migrate-image-derivatives so derivatives are generated from the pristine
  * source. Can also be run on its own to preview:
  *   npx tsx src/lib/db/scripts/migrate-promote-originals.ts --dry-run
