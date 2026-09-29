@@ -17,7 +17,7 @@ import { toggleFavorite } from '$lib/entities/favorite/favorites.remote'
 import { restoreComment } from '$lib/entities/reaction/reactions.remote'
 import { createRoute, deleteRoute, restoreRoute } from '$lib/entities/route/routes.remote'
 import { createTopo } from '$lib/entities/topo/topos.remote'
-import { asRequest, callForm, statusOf } from '$lib/remote/testHarness'
+import { asRequest, callForm, redirectOf, statusOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const REGION = '__softdel_region__'
@@ -471,19 +471,19 @@ describe.skipIf(!reachable)('reorderBlocks', () => {
 
 describe.skipIf(!reachable)('a cleared sibling does not reserve its name', () => {
   // The reader cannot see it, so it must not block them. Cost accepted: restoring it afterwards
-  // can leave two siblings sharing a name. A successful form submit leaves via a 303 redirect.
+  // can leave two siblings sharing a name. A successful submit resolves with where to go next.
   it('lets an area reuse a cleared sibling name, but still refuses a live one', async () => {
     const name = '__softdel_dupe_area__'
     await sql`
       insert into public.areas (name, type, region_fk, created_by, parent_fk, deleted_at)
       values (${name}, 'area', ${regionId}, ${maintainer.userId}, ${parentAreaId}, now())`
 
-    const reused = await statusOf(() =>
+    const reused = await redirectOf(() =>
       asRequest(maintainer.authId, () =>
         callForm(createArea, { name, parentFk: String(parentAreaId), regionFk: String(regionId) }),
       ),
     )
-    expect(reused, 'a cleared sibling must not block the name').toBe(303)
+    expect(reused, 'a cleared sibling must not block the name').toMatch(/^\/areas\/\d+$/)
 
     const [live] = await sql<{ count: number }[]>`
       select count(*)::int as count from public.areas where name = ${name} and deleted_at is null`
@@ -511,10 +511,10 @@ describe.skipIf(!reachable)('a cleared sibling does not reserve its name', () =>
       insert into public.blocks (name, area_fk, region_fk, created_by, "order", deleted_at)
       values (${name}, ${sectorAreaId}, ${regionId}, ${maintainer.userId}, 9, now())`
 
-    const reused = await statusOf(() =>
+    const reused = await redirectOf(() =>
       asRequest(maintainer.authId, () => callForm(createBlock, { areaId: String(sectorAreaId), name })),
     )
-    expect(reused, 'a cleared block must not reserve its name').toBe(303)
+    expect(reused, 'a cleared block must not reserve its name').toMatch(/^\/blocks\/\d+$/)
 
     const blocked = await asRequest(maintainer.authId, () =>
       callForm(createBlock, { areaId: String(sectorAreaId), name }),

@@ -85,14 +85,10 @@ afterAll(async () => {
   await sql.end()
 })
 
-/** As in `blocks.remote.test.ts`: success throws a 303, a refusal is folded into form issues by Kit
- *  rather than rethrown, so the database afterwards is what separates the two. */
+/** As in `blocks.remote.test.ts`: success and a refusal both resolve, a refusal folded into form
+ *  issues by Kit, so the database afterwards is what separates the two. */
 async function submit(data: Record<string, unknown>): Promise<void> {
-  try {
-    await asRequest(maintainer.authId, () => callForm(updateBlock, data))
-  } catch (cause) {
-    if ((cause as { status?: number })?.status !== 303) throw cause
-  }
+  await asRequest(maintainer.authId, () => callForm(updateBlock, data))
 }
 
 const edit = (known: string | undefined, extra: Record<string, unknown> = {}) => ({
