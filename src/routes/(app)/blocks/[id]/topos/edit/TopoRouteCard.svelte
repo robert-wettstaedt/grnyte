@@ -175,7 +175,7 @@
           {#if canEdit}
             <button class="btn preset-tonal-surface border-surface-300-700 grow border" onclick={onEditRoute}>
               <Icon name="edit" size={16} />
-              {m.topo_editRoute()}
+              {m.topo_editRouteShort()}
             </button>
           {/if}
 
