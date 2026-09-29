@@ -2,7 +2,7 @@
   import type { RemoteFormIssue } from '@sveltejs/kit'
   import FormError from './FormError.svelte'
   import RemoteFormInputWrapper from './RemoteFormInputWrapper.svelte'
-  import { seedForm } from './seedOnKeyChange.svelte'
+  import { seedForm } from './seed.svelte'
 
   interface Props {
     /** When set, renders its FormError and seeds it from an effect, as a reopened surface does. */

@@ -11,7 +11,7 @@
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import RouteWithBlock from '$lib/entities/route/RouteWithBlock.svelte'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { exit } from '$lib/state/navigation.svelte'

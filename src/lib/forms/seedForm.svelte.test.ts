@@ -2,8 +2,8 @@ import type { RemoteFormIssue } from '@sveltejs/kit'
 import { render } from '@testing-library/svelte'
 import { flushSync, tick } from 'svelte'
 import { describe, expect, it, vi } from 'vitest'
+import { seedForm } from './seed.svelte'
 import SeedFormFixture from './SeedFormFixture.svelte'
-import { seedForm } from './seedOnKeyChange.svelte'
 
 // FormHint's motion module builds a MediaQuery at import, and jsdom has no matchMedia.
 vi.hoisted(() => {

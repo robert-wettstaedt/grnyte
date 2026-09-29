@@ -13,7 +13,7 @@
   import { updateRoute } from '$lib/entities/route/routes.remote'
   import RouteWithBlock from '$lib/entities/route/RouteWithBlock.svelte'
   import Form from '$lib/forms/Form.svelte'
-  import { seedForm, seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedForm, seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { isOnline } from '$lib/state/online.svelte'

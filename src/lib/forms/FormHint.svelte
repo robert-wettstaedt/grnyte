@@ -3,7 +3,7 @@
   import type { RemoteFormIssue } from '@sveltejs/kit'
   import { slide } from 'svelte/transition'
   import { resolveIssueMessage } from './issue'
-  import { isSeeding } from './seedOnKeyChange.svelte'
+  import { isSeeding } from './seed.svelte'
 
   interface Props {
     hint?: string

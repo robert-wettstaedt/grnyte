@@ -55,7 +55,7 @@ This project uses:
   it blanks work in progress; `seedForm` (beside `seedOnKeyChange`) seeds and drops stale issues
   without one. `Form.svelte` and `TopoAddRouteModal` say why.
 - Every add or edit form on a parameterised route seeds through `seedOnKeyChange`
-  (`$lib/forms/seedOnKeyChange.svelte.ts`): `/areas/1/blocks/add` and `/areas/2/blocks/add` are one
+  (`$lib/forms/seed.svelte.ts`): `/areas/1/blocks/add` and `/areas/2/blocks/add` are one
   route, so anything seeded once follows the reader to the next entity. Pass the route parameter
   when seeding to blank, the loaded row's id when seeding from data, and gate the key on that data
   having loaded, not on a selection or a count. Child state seeded from props is out of reach: key

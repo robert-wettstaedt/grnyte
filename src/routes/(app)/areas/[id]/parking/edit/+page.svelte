@@ -9,7 +9,7 @@
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { entityHref } from '$lib/entities/href'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { createAreaPickerMapData } from '$lib/map/exploreData.svelte'
   import LocationPicker from '$lib/map/LocationPicker.svelte'
   import { coordsFromParams } from '$lib/map/map'

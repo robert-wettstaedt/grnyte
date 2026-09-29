@@ -9,7 +9,7 @@
   import BlockForm from '$lib/entities/block/BlockForm.svelte'
   import { createBlock } from '$lib/entities/block/blocks.remote'
   import { entityHref } from '$lib/entities/href'
-  import { seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { coordsFromParams } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'

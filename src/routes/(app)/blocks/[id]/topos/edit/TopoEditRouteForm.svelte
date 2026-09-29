@@ -5,7 +5,7 @@
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
   import { updateRoute } from '$lib/entities/route/routes.remote'
   import FormError from '$lib/forms/FormError.svelte'
-  import { seedForm, seedOnKeyChange } from '$lib/forms/seedOnKeyChange.svelte'
+  import { seedForm, seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { submitForm } from '$lib/forms/submit'
   import { m } from '$lib/paraglide/messages'
   import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast'
