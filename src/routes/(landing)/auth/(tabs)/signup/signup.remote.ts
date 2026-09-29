@@ -2,7 +2,15 @@ import { form, getRequestEvent } from '$app/server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { notifyAdminsOfSignup } from '$lib/entities/notification/signup.server'
-import { authError, formError, passwordSchema, passwordsMatch, usernameSchema } from '$lib/forms/schemas'
+import {
+  authError,
+  formError,
+  honeypotSchema,
+  isHoneypotFilled,
+  passwordSchema,
+  passwordsMatch,
+  usernameSchema,
+} from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { getLocale } from '$lib/paraglide/runtime'
 import { invalid } from '@sveltejs/kit'
@@ -14,6 +22,7 @@ const signUpSchema = z
     email: z.email({ error: formError('form_required') }),
     password: passwordSchema,
     username: usernameSchema,
+    website: honeypotSchema,
   })
   .check(passwordsMatch)
 
@@ -21,7 +30,12 @@ const signUpSchema = z
 // is nothing it could collide with, and an unauthenticated "taken" answer would turn sign-up into a
 // username oracle for regions the caller can't see. Collisions are resolved where they are visible
 // (updateUsername checks the caller's regions).
-export const signUp = form(signUpSchema, async ({ email, password, username }) => {
+export const signUp = form(signUpSchema, async ({ email, password, username, website }) => {
+  // A bot gets the success it expects, so it has no reason to adapt.
+  if (isHoneypotFilled(website)) {
+    return { success: true }
+  }
+
   const {
     locals: { supabase },
     url,

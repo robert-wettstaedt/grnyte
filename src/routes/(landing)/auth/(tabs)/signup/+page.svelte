@@ -4,6 +4,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AuthField from '$lib/forms/AuthField.svelte'
   import FormError from '$lib/forms/FormError.svelte'
+  import Honeypot from '$lib/forms/Honeypot.svelte'
   import { m } from '$lib/paraglide/messages'
   import { signUp } from './signup.remote'
 
@@ -37,6 +38,7 @@
 
   <form {...signUp} class="flex flex-col gap-4">
     <FormError form={signUp} />
+    <Honeypot field={signUp.fields.website} />
 
     <AuthField
       field={signUp.fields.email}

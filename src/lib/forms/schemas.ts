@@ -74,6 +74,11 @@ export const passwordSchema = z
   .string({ error: formError('form_required') })
   .check(z.minLength(8, { error: formError('form_charsMin', { count: 8 }) }))
 
+/** A field people never see. Bots fill every input they find, so a value here means a bot. */
+export const honeypotSchema = z.optional(z.string())
+
+export const isHoneypotFilled = (value: string | undefined): boolean => value != null && value !== ''
+
 /** Object-level check that `confirmPassword` repeats `password`. Apply with `.check()`. */
 export const passwordsMatch = z.refine<{ confirmPassword: string; password: string }>(
   (v) => v.password === v.confirmPassword,
