@@ -21,7 +21,7 @@
   import { gradeLabel } from '$lib/entities/grade/label'
   import { entityHref } from '$lib/entities/href'
   import { canDeleteRoute, canEditRoute } from '$lib/entities/route/permissions'
-  import { deleteRoute, restoreRoute, updateRoute } from '$lib/entities/route/routes.remote'
+  import { deleteRoute, restoreRoute } from '$lib/entities/route/routes.remote'
   import { TopoEditor } from '$lib/entities/topo/editor.svelte'
   import { selectTopoForRoute } from '$lib/entities/topo/mapper'
   import { anchorX } from '$lib/entities/topo/order'
@@ -436,18 +436,6 @@
 
   // Guards every way out (back button, browser back, breadcrumbs), not only `leave`.
   beforeNavigate((navigation) => {
-    // `updateRoute`'s 303 reaches every beforeNavigate handler, and this one runs before the edit
-    // form's capture cancels it. Asking "leave without saving?" for a navigation that never happens
-    // is the exact question this feature exists to stop asking, so skip that one destination while
-    // its save is in flight. Matched on the URL, not just `pending`, so a real navigation raced
-    // against a save still prompts.
-    if (
-      updateRoute.pending > 0 &&
-      selectedRoute != null &&
-      navigation.to?.url.pathname === entityHref('routes', selectedRoute.id)
-    ) {
-      return
-    }
     // Nothing to lose behind the permission screen.
     if (editorLive && editor.dirty && !confirm(m.topo_leaveConfirm())) {
       navigation.cancel()

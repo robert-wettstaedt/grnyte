@@ -103,11 +103,23 @@
 Sections 1 to 7 are the first deploy and land together. This section and the next are separate
 releases and must not be bundled with them.
 
-- [ ] 8.1 Remove `redirect(303, ...)` from `authedForm` in `$lib/remote/authed.server.ts`. Ship only
+- [x] 8.1 Remove `redirect(303, ...)` from `authedForm` in `$lib/remote/authed.server.ts`. Ship only
       once release 1 has been live long enough for stale tabs to have cycled. Verify by saving every
       form shape in the running app and confirming each still navigates, now through the envelope.
 
+      Driven: `updateRoute` (/routes/738/edit), `updateBlock` (/blocks/27/edit, indirect via
+      BlockForm), `updateUsername` (/settings/username, a static `resolve()` destination rather than
+      `entityHref`) and `updateArea` (/areas/13/edit). All four navigated with `history.length`
+      unchanged across the exit, so the replace-not-push property holds. Not driven: `addParking`,
+      `updateRegion`, `updateRegionMapLayers`, `updateAscent`, `createArea`, `createBlock`. The first
+      four are structurally identical to ones above; the two creates differ only in that the server
+      builds the destination id after the commit, which the client reads through the same envelope.
+
+      The stale-tab ordering this task guards is moot: release 1 shipped `declaredDestination()`
+      itself, so a release-1 tab reads the envelope when no 303 arrives. The real residual risk runs
+      the other way, see design.md.
+
 ## 9. Later release: delete the interception
 
-- [ ] 9.1 Delete the `beforeNavigate` interception and its flag from `Form.svelte`, leaving the
+- [x] 9.1 Delete the `beforeNavigate` interception and its flag from `Form.svelte`, leaving the
       envelope path. Verify the e2e from 7.1 still passes.
