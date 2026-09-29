@@ -1,5 +1,6 @@
 import { form, getRequestEvent } from '$app/server'
 import { db } from '$lib/db/db.server'
+import { spendProofOfWork } from '$lib/forms/proofOfWork.server'
 import { authError, formError, honeypotSchema, isHoneypotFilled } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { invalid } from '@sveltejs/kit'
@@ -7,6 +8,7 @@ import { and, eq, isNotNull, sql } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
 
 const forgotPasswordSchema = z.object({
+  altcha: z.optional(z.string()),
   email: z.email({ error: formError('form_required') }),
   website: honeypotSchema,
 })
@@ -23,8 +25,14 @@ async function isConfirmed(email: string): Promise<boolean> {
 
 // Every branch answers alike, so the form cannot tell anyone whether an address has an account.
 // An unconfirmed address never gets a reset: that second email is what subscription bombing wants.
-export const forgotPassword = form(forgotPasswordSchema, async ({ email, website }) => {
-  if (isHoneypotFilled(website) || !(await isConfirmed(email))) {
+export const forgotPassword = form(forgotPasswordSchema, async ({ altcha, email, website }) => {
+  if (isHoneypotFilled(website)) {
+    return { email, success: true }
+  }
+  if (!(await spendProofOfWork(altcha))) {
+    invalid(formError('auth_verificationFailed'))
+  }
+  if (!(await isConfirmed(email))) {
     return { email, success: true }
   }
 

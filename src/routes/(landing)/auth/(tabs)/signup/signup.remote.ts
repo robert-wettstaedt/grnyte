@@ -2,6 +2,7 @@ import { form, getRequestEvent } from '$app/server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { notifyAdminsOfSignup } from '$lib/entities/notification/signup.server'
+import { spendProofOfWork } from '$lib/forms/proofOfWork.server'
 import {
   authError,
   formError,
@@ -18,6 +19,7 @@ import { eq } from 'drizzle-orm'
 
 const signUpSchema = z
   .object({
+    altcha: z.optional(z.string()),
     confirmPassword: z.string({ error: formError('form_required') }),
     email: z.email({ error: formError('form_required') }),
     password: passwordSchema,
@@ -30,10 +32,13 @@ const signUpSchema = z
 // is nothing it could collide with, and an unauthenticated "taken" answer would turn sign-up into a
 // username oracle for regions the caller can't see. Collisions are resolved where they are visible
 // (updateUsername checks the caller's regions).
-export const signUp = form(signUpSchema, async ({ email, password, username, website }) => {
+export const signUp = form(signUpSchema, async ({ altcha, email, password, username, website }) => {
   // A bot gets the success it expects, so it has no reason to adapt.
   if (isHoneypotFilled(website)) {
     return { success: true }
+  }
+  if (!(await spendProofOfWork(altcha))) {
+    invalid(formError('auth_verificationFailed'))
   }
 
   const {

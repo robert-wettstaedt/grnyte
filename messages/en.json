@@ -182,6 +182,7 @@
   "auth_usernameInvalid": "Use letters, numbers, dashes and underscores. Start with a letter or number",
   "auth_usernamePlaceholder": "Your display name",
   "auth_usernameTaken": "Username already taken",
+  "auth_verificationFailed": "Couldn’t verify this request, reload the page and try again",
   "blocks_addBlock": "Add block",
   "blocks_add_addWithoutLocation": "Add without location",
   "blocks_add_chooseOnMap": "Choose on map",
