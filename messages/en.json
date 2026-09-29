@@ -1908,6 +1908,7 @@
   "topo_dragToReorder": "Drag to reorder",
   "topo_editLine": "Edit line",
   "topo_editRoute": "Edit route",
+  "topo_editRouteShort": "Edit route",
   "topo_editTopos": "Edit topos",
   "topo_emptyState": "No photos yet. Add a photo of the block to start drawing route lines.",
   "topo_exitFullscreen": "Exit fullscreen",
