@@ -3,7 +3,6 @@
  */
 import { deleteAccountRows } from '$lib/db/testAccounts'
 import { reachable, sql } from '$lib/db/testDb'
-import { redirectOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GET } from './+server'
 
@@ -19,8 +18,20 @@ vi.mock('$lib/entities/notification/signup.server', () => ({
 
 let authUserId = ''
 
+/** Where the handler redirected. A `+server.ts` throws Kit's redirect rather than returning it. */
+async function locationOf(run: () => Promise<unknown>): Promise<string | undefined> {
+  try {
+    await run()
+    return undefined
+  } catch (thrown) {
+    const { location, status } = (thrown ?? {}) as { location?: string; status?: number }
+    if (status !== 303) throw thrown
+    return location
+  }
+}
+
 const confirm = (type: string, verified: boolean) =>
-  redirectOf(
+  locationOf(
     () =>
       GET({
         locals: {
