@@ -1,6 +1,12 @@
 import { resolve } from '$app/paths'
+import { pinnedTx } from '$lib/db/pinned.server'
+import { users } from '$lib/db/schema'
+import { notifyAdminsOfSignup } from '$lib/entities/notification/signup.server'
+import { logServerFailure } from '$lib/logging/failure.server'
+import { stringifyError } from '$lib/logging/stringify'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { redirect } from '@sveltejs/kit'
+import { eq } from 'drizzle-orm'
 import type { RequestHandler } from './$types'
 
 export const GET: RequestHandler = async ({ locals, url }) => {
@@ -19,8 +25,12 @@ export const GET: RequestHandler = async ({ locals, url }) => {
   redirectTo.searchParams.delete('type')
 
   if (token_hash && type) {
-    const { error } = await locals.supabase.auth.verifyOtp({ token_hash, type })
+    const { data, error } = await locals.supabase.auth.verifyOtp({ token_hash, type })
     if (!error) {
+      // Alerted here rather than at sign-up, so accounts nobody confirms never reach an admin.
+      if (type === 'signup' && data.user != null) {
+        await alertConfirmedSignup(url.origin, data.user.id)
+      }
       redirectTo.searchParams.delete('next')
       redirect(303, redirectTo)
     }
@@ -43,4 +53,22 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
   redirectTo.pathname = resolve('/(landing)/auth/error')
   redirect(303, redirectTo)
+}
+
+/** Never throws: the token is already spent, so a failure here must not cost the redirect. */
+async function alertConfirmedSignup(origin: string, authUserId: string): Promise<void> {
+  try {
+    const [user] = await pinnedTx((tx) =>
+      tx
+        .select({ id: users.id, username: users.username })
+        .from(users)
+        .where(eq(users.authUserFk, authUserId))
+        .limit(1),
+    )
+    if (user != null) {
+      await notifyAdminsOfSignup({ origin, userFk: user.id, username: user.username })
+    }
+  } catch (error) {
+    await logServerFailure('signup-alert', stringifyError(error))
+  }
 }

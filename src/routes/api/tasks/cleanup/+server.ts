@@ -4,6 +4,7 @@ import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { reportBunnyOrphans } from '$lib/entities/file/cleanup.server'
 import { reconcileReadiness } from '$lib/entities/file/readiness.server'
 import { STAGING_BUCKET } from '$lib/entities/file/upload'
+import { sweepUnconfirmedAccounts, UNCONFIRMED_MAX_AGE_MS } from '$lib/entities/user/unconfirmed.server'
 import { sweepSpentChallenges } from '$lib/forms/proofOfWork.server'
 import { ERROR_LOG_MAX_AGE_DAYS, logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
@@ -159,22 +160,25 @@ export const POST: RequestHandler = async ({ request }) => {
   const now = Date.now()
   // reportBunnyOrphans stays last and unbound: it resolves to nothing, so anything destructured
   // after it silently takes its `void`.
-  const [staging, bunny, notificationRows, feedbackRows, errorRows, challengeRows, readinessRows] = await Promise.all([
-    sweepStaging(new Date(now - STAGING_MAX_AGE_MS)),
-    sweepBunny(new Date(now - BUNNY_MAX_AGE_MS)),
-    sweepNotifications(new Date(now - NOTIFICATION_READ_MAX_AGE_MS), new Date(now - NOTIFICATION_UNREAD_MAX_AGE_MS)),
-    sweepFeedback(new Date(now - FEEDBACK_MAX_AGE_MS)),
-    sweepErrorLogs(new Date(now - ERROR_LOG_MAX_AGE_MS)),
-    sweepSpentChallenges(new Date(now)),
-    reconcileReadiness(getVideoProvider()),
-    // Alongside the deletes, not ahead of them: it walks the whole Bunny library, and its own
-    // failure must never cost a retention delete this job promises.
-    reportBunnyOrphans(new Date(now - BUNNY_MAX_AGE_MS)),
-  ])
+  const [staging, bunny, notificationRows, feedbackRows, errorRows, challengeRows, accountRows, readinessRows] =
+    await Promise.all([
+      sweepStaging(new Date(now - STAGING_MAX_AGE_MS)),
+      sweepBunny(new Date(now - BUNNY_MAX_AGE_MS)),
+      sweepNotifications(new Date(now - NOTIFICATION_READ_MAX_AGE_MS), new Date(now - NOTIFICATION_UNREAD_MAX_AGE_MS)),
+      sweepFeedback(new Date(now - FEEDBACK_MAX_AGE_MS)),
+      sweepErrorLogs(new Date(now - ERROR_LOG_MAX_AGE_MS)),
+      sweepSpentChallenges(new Date(now)),
+      sweepUnconfirmedAccounts(new Date(now - UNCONFIRMED_MAX_AGE_MS)),
+      reconcileReadiness(getVideoProvider()),
+      // Alongside the deletes, not ahead of them: it walks the whole Bunny library, and its own
+      // failure must never cost a retention delete this job promises.
+      reportBunnyOrphans(new Date(now - BUNNY_MAX_AGE_MS)),
+    ])
   console.log(
-    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback, ${errorRows} error logs, ${challengeRows} spent challenges, corrected ${readinessRows} video readiness`,
+    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback, ${errorRows} error logs, ${challengeRows} spent challenges, ${accountRows} unconfirmed accounts, corrected ${readinessRows} video readiness`,
   )
   return json({
+    accounts: accountRows,
     bunny,
     challenges: challengeRows,
     errorLogs: errorRows,

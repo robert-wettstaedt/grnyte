@@ -32,10 +32,10 @@
 
 ## 4. Cleanup and alert
 
-- [ ] 4.1 Add `sweepUnconfirmedAccounts` to `api/tasks/cleanup` (7 days, rows in one `pinnedTx`, then `admin.deleteUser`, per-account failures logged and skipped, count-only logging); verify with a server test that a 6-day-old and a confirmed account survive, seen red by dropping the age filter
-- [ ] 4.2 Move `notifyAdminsOfSignup` from `signUp` to `/auth/confirm` after a successful `verifyOtp` of type `signup` or `email`; verify with a test that sign-up alone sends no alert and confirmation sends one
-- [ ] 4.3 Check the privacy notice says nothing that deleting unconfirmed accounts after 7 days contradicts; verify by reading its account-retention section
-- [ ] 4.4 Verification sweep for group 4 and commit
+- [x] 4.1 Add `sweepUnconfirmedAccounts` to `api/tasks/cleanup` (7 days, rows in one `pinnedTx`, then `admin.deleteUser`, per-account failures logged and skipped, count-only logging); verify with a server test that a 6-day-old and a confirmed account survive, seen red by dropping the age filter (in `$lib/entities/user/unconfirmed.server.ts`. Both filters seen red; the mutated runs hit the shared dev DB, every attempted delete rolled back on content FKs, no account lost)
+- [x] 4.2 Move `notifyAdminsOfSignup` from `signUp` to `/auth/confirm` after a successful `verifyOtp` of type `signup` or `email`; verify with a test that sign-up alone sends no alert and confirmation sends one (type `signup` only: the confirmation link always carries it, and `email` would also fire on OTP sign-ins)
+- [x] 4.3 Check the privacy notice says nothing that deleting unconfirmed accounts after 7 days contradicts; verify by reading its account-retention section (section 7 ties data to the account and promises no minimum; it does not mention the expiry, which is optional to add)
+- [x] 4.4 Verification sweep for group 4 and commit
 
 ## 5. Final verification
 
