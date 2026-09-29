@@ -29,6 +29,14 @@ import { authUsers } from 'drizzle-orm/supabase'
 import { SignJWT } from 'jose'
 
 /**
+ * Runs `fn` as a signed-out visitor, the caller of the auth forms. `supabase` is whatever fake the
+ * test wants those forms to reach; they call nothing else on locals.
+ */
+export function asAnonymousRequest<T>(supabase: unknown, fn: () => Promise<T> | T): Promise<T> {
+  return inRequestStore({ claims: null, supabase }, fn)
+}
+
+/**
  * Runs `fn` as the account behind `authUserId`, with the locals a real request would carry.
  *
  * Permissions are read live rather than passed in: a test that hand-builds `userRegions` proves the
@@ -76,37 +84,7 @@ export async function asRequest<T>(authUserId: string, fn: () => Promise<T> | T)
     ),
   }
 
-  // `state.remote.data` is the per-request memo Kit's remote wrappers read through `get_cache`.
-  // A real request always has one; without it the first `form`/`query` call dereferences undefined.
-  //
-  // `transport` is what a `query` needs on top of that: calling one runs `stringify_remote_arg`,
-  // which does `Object.entries(state.transport)` to build its devalue reducers and throws on
-  // undefined before the handler is ever reached. Empty because this app registers no custom
-  // transport types. A `form` never touches it, which is why the harness got this far without one.
-  //
-  // `handleValidationError` is how a schema rejection is reported: `create_validator` hands it the
-  // issues and throws its return value as a 400. A real request gets it from the server hooks;
-  // without it a test that submits input the schema refuses dies on "handleValidationError is not a
-  // function" instead of the 400 production returns.
-  const state = {
-    handleValidationError: ({ issues }: { issues: unknown }) => ({ issues, message: 'Bad Request' }),
-    remote: { data: new Map() },
-    transport: {},
-  }
-
-  // A `command` goes through Kit's own wrapper (a `form` does not, because `callForm` calls past
-  // it), and that wrapper refuses to run from a non-mutative request: `event.request.method` has to
-  // be one of POST/PUT/PATCH/DELETE. The fake event carried no `request` at all, so every command
-  // test died on `Cannot read properties of undefined (reading 'method')` before reaching the
-  // handler.
-  const request = new Request('http://localhost/', { method: 'POST' })
-
-  // `url` too: `mailContext()` and anything else building an absolute link reads
-  // `getRequestEvent().url.origin`, so without it the first test of `inviteRegionMember` dies on
-  // `Cannot read properties of undefined` instead of exercising the gate it was written for.
-  const url = new URL('http://localhost/')
-
-  return with_request_store({ event: { locals, request, url }, state } as never, fn) as Promise<T>
+  return inRequestStore(locals, fn)
 }
 
 /**
@@ -149,6 +127,40 @@ export async function statusOf(run: () => Promise<unknown>): Promise<number | un
   } catch (thrown) {
     return (thrown as { status?: number })?.status
   }
+}
+
+function inRequestStore<T>(locals: object, fn: () => Promise<T> | T): Promise<T> {
+  // `state.remote.data` is the per-request memo Kit's remote wrappers read through `get_cache`.
+  // A real request always has one; without it the first `form`/`query` call dereferences undefined.
+  //
+  // `transport` is what a `query` needs on top of that: calling one runs `stringify_remote_arg`,
+  // which does `Object.entries(state.transport)` to build its devalue reducers and throws on
+  // undefined before the handler is ever reached. Empty because this app registers no custom
+  // transport types. A `form` never touches it, which is why the harness got this far without one.
+  //
+  // `handleValidationError` is how a schema rejection is reported: `create_validator` hands it the
+  // issues and throws its return value as a 400. A real request gets it from the server hooks;
+  // without it a test that submits input the schema refuses dies on "handleValidationError is not a
+  // function" instead of the 400 production returns.
+  const state = {
+    handleValidationError: ({ issues }: { issues: unknown }) => ({ issues, message: 'Bad Request' }),
+    remote: { data: new Map() },
+    transport: {},
+  }
+
+  // A `command` goes through Kit's own wrapper (a `form` does not, because `callForm` calls past
+  // it), and that wrapper refuses to run from a non-mutative request: `event.request.method` has to
+  // be one of POST/PUT/PATCH/DELETE. The fake event carried no `request` at all, so every command
+  // test died on `Cannot read properties of undefined (reading 'method')` before reaching the
+  // handler.
+  const request = new Request('http://localhost/', { method: 'POST' })
+
+  // `url` too: `mailContext()` and anything else building an absolute link reads
+  // `getRequestEvent().url.origin`, so without it the first test of `inviteRegionMember` dies on
+  // `Cannot read properties of undefined` instead of exercising the gate it was written for.
+  const url = new URL('http://localhost/')
+
+  return with_request_store({ event: { locals, request, url }, state } as never, fn) as Promise<T>
 }
 
 /**
