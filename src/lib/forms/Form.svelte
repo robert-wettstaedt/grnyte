@@ -15,7 +15,7 @@
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
-  import { isOfflineFailure } from '$lib/forms/offlineFailure'
+  import { submitForm } from '$lib/forms/submit'
   import { m } from '$lib/paraglide/messages'
   import { back, exit } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
@@ -93,7 +93,7 @@
   // offline state and rethrow anything else, so real server errors still surface as form issues.
   //
   // Missing this branch rethrows, `+error.svelte` replaces the page, and everything typed is lost,
-  // which is why `isOfflineFailure` reads the error before any flag.
+  // which is why `isOfflineFailure` reads the error rather than the connection alone.
   let offline = $state(false)
 
   // Back online → restore the form. Everything typed survives because the form is never unmounted:
@@ -143,44 +143,35 @@
     if (onBeforeSubmit != null && !(await onBeforeSubmit())) {
       return
     }
-    // Only the submit itself can be an offline failure: a `TypeError` from `onSubmitted` would show
-    // the tile over a cleared form and invite a duplicate of a send that already landed.
-    let posted = false
+    const outcome = await submitForm(submit, async () => {
+      // Supplying our own enhance callback replaced Kit's, which clears the form after a
+      // successful submit; the values otherwise sit on the remote singleton all session.
+      //
+      // `fields.set({})` and NOT `element.reset()`: a reset restores each input to its
+      // `defaultValue`, which Svelte's property write only reaches for `hidden`, `checkbox` and
+      // `radio`, so it blanks exactly the visible fields. `resetBlanks.test.ts` pins it.
+      // After `onSubmitted`, which can await: clearing first blanks the form for that wait.
+      // `finally` so a throw still clears.
+      try {
+        await onSubmitted?.()
+      } finally {
+        form.fields.set({})
+      }
 
-    try {
-      const succeeded = await submit()
-      posted = true
+      // Last, so `onSubmitted` has finished whatever the destination depends on.
+      const destination = declaredDestination()
 
+      if (destination != null) {
+        await exit(destination)
+      }
+    })
+
+    if (outcome === 'offline') {
+      offline = true
+    } else if (outcome === 'rejected') {
+      // Only on a rejection: `fields.set({})` clears values but not Kit's issues, so a success can
+      // still have an alert from an earlier rejected submit in the DOM, and scrolling to it is wrong.
       element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
-      if (succeeded) {
-        // Supplying our own enhance callback replaced Kit's, which clears the form after a
-        // successful submit; the values otherwise sit on the remote singleton all session.
-        //
-        // `fields.set({})` and NOT `element.reset()`: a reset restores each input to its
-        // `defaultValue`, which Svelte's property write only reaches for `hidden`, `checkbox` and
-        // `radio`, so it blanks exactly the visible fields. `resetBlanks.test.ts` pins it.
-        // After `onSubmitted`, which can await: clearing first blanks the form for that wait.
-        // `finally` so a throw still clears.
-        try {
-          await onSubmitted?.()
-        } finally {
-          form.fields.set({})
-        }
-
-        // Last, so `onSubmitted` has finished whatever the destination depends on.
-        const destination = declaredDestination()
-
-        if (destination != null) {
-          await exit(destination)
-        }
-      }
-    } catch (error) {
-      // The error outranks the flag: `isOnline()` can be twenty seconds behind a dead radio.
-      if (!posted && isOfflineFailure(error, isOnline())) {
-        offline = true
-        return
-      }
-      throw error
     }
   })}
   class={['flex w-full flex-col', fill ? 'min-h-0 flex-1' : 'min-h-full', offline && 'hidden']}
