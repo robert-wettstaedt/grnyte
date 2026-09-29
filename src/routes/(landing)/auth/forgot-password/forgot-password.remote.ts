@@ -1,8 +1,9 @@
 import { form, getRequestEvent } from '$app/server'
 import { db } from '$lib/db/db.server'
 import { spendProofOfWork } from '$lib/forms/proofOfWork.server'
-import { authError, formError, honeypotSchema, isHoneypotFilled } from '$lib/forms/schemas'
+import { formError, honeypotSchema, isHoneypotFilled } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
+import { logServerFailure } from '$lib/logging/failure.server'
 import { invalid } from '@sveltejs/kit'
 import { and, eq, isNotNull, sql } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
@@ -10,7 +11,7 @@ import { authUsers } from 'drizzle-orm/supabase'
 const forgotPasswordSchema = z.object({
   altcha: z.optional(z.string()),
   email: z.email({ error: formError('form_required') }),
-  website: honeypotSchema,
+  hpcheck: honeypotSchema,
 })
 
 /** GoTrue stores addresses lowercased, so a mixed-case entry must still find its account. */
@@ -25,8 +26,8 @@ async function isConfirmed(email: string): Promise<boolean> {
 
 // Every branch answers alike, so the form cannot tell anyone whether an address has an account.
 // An unconfirmed address never gets a reset: that second email is what subscription bombing wants.
-export const forgotPassword = form(forgotPasswordSchema, async ({ altcha, email, website }) => {
-  if (isHoneypotFilled(website)) {
+export const forgotPassword = form(forgotPasswordSchema, async ({ altcha, email, hpcheck }) => {
+  if (isHoneypotFilled(hpcheck)) {
     return { email, success: true }
   }
   if (!(await spendProofOfWork(altcha))) {
@@ -44,9 +45,9 @@ export const forgotPassword = form(forgotPasswordSchema, async ({ altcha, email,
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${url.origin}/auth/reset-password`,
   })
-
-  if (error != null) {
-    invalid(authError(error))
+  // Never shown: only a confirmed address reaches GoTrue, so its rate limit would say the account exists.
+  if (error != null && error.code !== 'over_email_send_rate_limit') {
+    await logServerFailure('forgot-password', `reset failed: ${error.code ?? error.message}`)
   }
 
   return { email, success: true }
