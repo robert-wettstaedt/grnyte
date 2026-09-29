@@ -22,12 +22,12 @@
 
 ## 3. Accounts only through the admin API
 
-- [ ] 3.1 Verify against the local stack with `disable_signup` on: `auth.admin.createUser` creates an unconfirmed user, `auth.resend({ type: 'signup' })` sends the confirmation, and `/recover` sends nothing for an unknown address; record the outcome in design.md and switch to the `generateLink` fallback if resend refuses
-- [ ] 3.2 Move the service-role client into `$lib/db/supabaseAdmin.server.ts` and use it from `api/tasks/cleanup`; verify the cleanup server tests still pass
-- [ ] 3.3 Change `signUp` to `admin.createUser` plus `resend`, keeping the `users`/`user_settings` transaction; verify with server tests, including that an already-registered address answers exactly as before (seen red by surfacing the admin error)
-- [ ] 3.4 Flip `deployment/check-prod.ts:37` to assert `disable_signup === true`; verify it fails against the current environment and passes after the switch
+- [x] 3.1 Verify against the local stack with `disable_signup` on: `auth.admin.createUser` creates an unconfirmed user, `auth.resend({ type: 'signup' })` sends the confirmation, and `/recover` sends nothing for an unknown address; record the outcome in design.md and switch to the `generateLink` fallback if resend refuses (settled from GoTrue source at v2.167.0, the local version, and master: only the public `Signup` handler reads `DisableSignup`; `resend` mails only an existing unconfirmed account; `/recover` answers an unknown address with 200 and sends nothing. No fallback needed)
+- [x] 3.2 Move the service-role client into `$lib/db/supabaseAdmin.server.ts` and use it from `api/tasks/cleanup`; verify the cleanup server tests still pass
+- [x] 3.3 Change `signUp` to `admin.createUser` plus `resend`, keeping the `users`/`user_settings` transaction; verify with server tests, including that an already-registered address answers exactly as before (seen red by surfacing the admin error) (an existing address resends and answers success, matching the public endpoint, which returns a sanitized fake user; the old handler then hit a users FK error. Driven end to end against the local stack: account created, one confirmation caught, `/auth/confirm` confirmed and signed in)
+- [x] 3.4 Flip `deployment/check-prod.ts:37` to assert `disable_signup === true`; verify it fails against the current environment and passes after the switch (fails locally, where public sign-up is still on)
 - [ ] 3.5 Run `e2e/prod-signup.spec.ts` and `e2e/invite.spec.ts` against the local stack with `disable_signup` on; verify both pass and the confirmation email arrives unchanged
-- [ ] 3.6 Verification sweep for group 3 and commit
+- [x] 3.6 Verification sweep for group 3 and commit
 - [ ] 3.7 After deploy (user): run the prod canary, switch off "Allow new users to sign up" in Supabase, run `npm run check:prod` and the canary again
 
 ## 4. Cleanup and alert

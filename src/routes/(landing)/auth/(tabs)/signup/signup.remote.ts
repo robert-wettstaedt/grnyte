@@ -1,6 +1,7 @@
 import { form, getRequestEvent } from '$app/server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
+import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { notifyAdminsOfSignup } from '$lib/entities/notification/signup.server'
 import { spendProofOfWork } from '$lib/forms/proofOfWork.server'
 import {
@@ -46,7 +47,13 @@ export const signUp = form(signUpSchema, async ({ altcha, email, password, usern
     url,
   } = getRequestEvent()
 
-  const { data, error } = await supabase.auth.signUp({ email, password })
+  // GoTrue's public sign-up is switched off, so the published anon key cannot skip the checks above.
+  const { data, error } = await supabaseAdmin().auth.admin.createUser({ email, email_confirm: false, password })
+  if (error?.code === 'email_exists') {
+    // Same answer as a new address; resend mails only an unconfirmed account, so nothing leaks.
+    await supabase.auth.resend({ email, type: 'signup' })
+    return { success: true }
+  }
   if (error != null) {
     invalid(authError(error))
   }
@@ -70,6 +77,12 @@ export const signUp = form(signUpSchema, async ({ altcha, email, password, usern
     await tx.update(schema.users).set({ userSettingsFk: settings.id }).where(eq(schema.users.id, user.id))
     return user
   })
+
+  // The admin API creates without mailing; GoTrue still renders and sends the confirmation.
+  const { error: resendError } = await supabase.auth.resend({ email, type: 'signup' })
+  if (resendError != null) {
+    invalid(authError(resendError))
+  }
 
   // Last, and after the rows it names exist. Never throws, so a push service or mail host that is
   // down cannot fail a sign-up that already succeeded.

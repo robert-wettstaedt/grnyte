@@ -94,7 +94,7 @@ switched off in GoTrue (`disable_signup: true`), which admin endpoints ignore.
 The service-role client is currently constructed inline in `api/tasks/cleanup/+server.ts`. It moves to
 one `$lib/db/supabaseAdmin.server.ts` export that both use.
 
-Two facts this rests on are unverified and are the first tasks of that group: `admin.createUser` works
+Two facts this rests on were checked against GoTrue's source (v2.167.0 and master) before building: `admin.createUser` works
 with `disable_signup` on, and `resend` of type `signup` still sends with it on. **Fallback** if resend
 refuses: `admin.generateLink({ type: 'signup' })` returns `properties.hashed_token`; the server renders
 the same `confirmation` template (substituting the token into the `/auth/confirm` URL) and sends it
