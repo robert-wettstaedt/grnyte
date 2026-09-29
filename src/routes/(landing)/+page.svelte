@@ -7,9 +7,10 @@
   import type { IconName } from '$lib/components/Icon/icons'
   import { m } from '$lib/paraglide/messages'
   import { isInstalled } from '$lib/state/device.svelte'
+  import { prefersStill } from '$lib/state/motion.svelte'
   import { replaceUrl } from '$lib/state/navigation.svelte'
   import { onMount } from 'svelte'
-  import { MediaQuery, SvelteSet } from 'svelte/reactivity'
+  import { SvelteSet } from 'svelte/reactivity'
   import BoulderThree from './BoulderThree.svelte'
   import { legalLinks } from './legal/links'
 
@@ -81,11 +82,6 @@
     const s = getComputedStyle(el)
     return s.visibility !== 'hidden' && Number(s.opacity) > 0.5
   }
-  // Poster only, no playback, when the visitor asked for less motion. Reactive (the repo's
-  // convention, see MarkdownEditor) rather than a snapshot, so turning Reduce Motion on mid-visit
-  // stops the screencasts instead of leaving them playing until a reload.
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-
   // ===== showcase playback =====
   // Script-driven, never `autoplay`: WCAG 2.2.2 needs a pause control unconditionally, and
   // `preload="none"` then costs nothing until a clip is asked to play. Every visible screen
@@ -100,7 +96,9 @@
     typeof navigator !== 'undefined' &&
     (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true
 
-  const playing = $derived(shots.map((_, i) => !paused && !still.current && !thrifty && onScreen.has(i)))
+  // Poster only, no playback, when the visitor asked for less motion. Read reactively rather than
+  // snapshotted, so turning Reduce Motion on mid-visit stops the screencasts.
+  const playing = $derived(shots.map((_, i) => !paused && !prefersStill() && !thrifty && onScreen.has(i)))
 
   $effect(() => {
     playing.forEach((wanted, i) => {
@@ -139,7 +137,7 @@
 
   onMount(() => {
     // The entrance is decided once, so this one is a snapshot on purpose.
-    const reduced = still.current
+    const reduced = prefersStill()
     const disposers: Array<() => void> = []
     let cancelled = false
 
@@ -437,7 +435,7 @@
            it reads as a control for the screens and not as a second call to action. Hidden only
            when nothing can move anyway: under Reduce Motion or Data Saver every shot is already
            a still poster, and a pause control would have nothing to pause. -->
-      {#if !still.current && !thrifty}
+      {#if !prefersStill() && !thrifty}
         <div class="mb-4 flex justify-center md:justify-end">
           <button
             type="button"
@@ -474,7 +472,7 @@
               class="border-surface-200-800 bg-surface-950 aspect-9/19.5 w-full rounded-4xl border p-2.25 shadow-[0_44px_80px_-36px_black,inset_0_0_0_1px_oklch(0.28_0.01_305)]"
             >
               <div class="lp-screen bg-surface-100-900 relative h-full w-full overflow-hidden rounded-[23px]">
-                {#if s.src != null && !still.current && !thrifty}
+                {#if s.src != null && !prefersStill() && !thrifty}
                   <!-- muted, so a11y_media_has_caption does not apply. aria-hidden because the
                        figcaption below already names this clip; no `autoplay`, because the
                        effect above owns playback. -->

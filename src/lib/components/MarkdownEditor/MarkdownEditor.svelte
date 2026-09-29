@@ -5,6 +5,7 @@
   import { markdownReferences } from '$lib/components/Markdown/lib/references.svelte'
   import { getReferences } from '$lib/components/Markdown/lib/remark-references'
   import { m } from '$lib/paraglide/messages'
+  import { motion } from '$lib/state/motion.svelte'
   import { Editor } from '@tiptap/core'
   import { Markdown } from '@tiptap/markdown'
   import StarterKit from '@tiptap/starter-kit'
@@ -12,7 +13,6 @@
   import { untrack } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
   import type { HTMLAttributes } from 'svelte/elements'
-  import { MediaQuery } from 'svelte/reactivity'
   import { slide } from 'svelte/transition'
   import { createReferenceExtension, REFERENCE_NODE_NAME } from './lib/reference-node'
   import { submitOnEnter } from './lib/submit-on-enter'
@@ -66,7 +66,6 @@
   let focused = $state(false)
 
   /** The reveal is motion, and somebody who asked for less of it gets the toolbar with no slide. */
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
   /**
    * Whether the link dialog is up, which counts as the toolbar still being in use.
    *
@@ -406,7 +405,7 @@
   {#if toolbarShown}
     <div
       class={['border-surface-200-800 flex items-center gap-1 border-b px-2 py-1.5', compact && 'flex-wrap']}
-      transition:slide={{ duration: compact && !still.current ? 130 : 0 }}
+      transition:slide={{ duration: compact ? motion(130) : 0 }}
     >
       {#snippet tool(icon: 'at-sign' | 'bold' | 'italic' | 'list', label: string, active: boolean, onclick: () => void)}
         <button
@@ -474,7 +473,7 @@
          up by a quarter of the screen between two keystrokes. -->
     <div
       class="border-surface-200-800 max-h-64 overflow-y-auto border-t"
-      transition:slide={{ duration: still.current ? 0 : 130 }}
+      transition:slide={{ duration: motion(130) }}
       {@attach keepFocus}
     >
       <EntityList groups={search.groups} activeIndex={picker.index} onselect={selectItem} />

@@ -1,8 +1,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { motion } from '$lib/state/motion.svelte'
   import { isUpdateReady } from '$lib/state/updateReady.svelte'
-  import { MediaQuery } from 'svelte/reactivity'
   import { scale } from 'svelte/transition'
 
   /**
@@ -23,8 +23,7 @@
 
   const props: Props = $props()
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
   const visible = $derived(props.updateReady ?? isUpdateReady())
 </script>
 

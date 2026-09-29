@@ -12,7 +12,7 @@
   import { postComment } from '$lib/entities/reaction/reactions.remote'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { MediaQuery } from 'svelte/reactivity'
+  import { motion } from '$lib/state/motion.svelte'
   import { slide } from 'svelte/transition'
   import type { CommentThread } from './thread.svelte'
 
@@ -26,7 +26,6 @@
   const global = getGlobalState()
 
   /** Motion is the point of the reply label, so somebody who asked for less of it gets none. */
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
 
   let failed = $state(false)
   let sending = $state(false)
@@ -71,10 +70,7 @@
        (and on the event page, the thread above it) down the moment Reply is pressed, and a shove
        with no motion reads as the page glitching rather than as an answer being aimed. -->
   {#if thread.replyTo != null}
-    <p
-      class="text-surface-600-400 flex items-center gap-1.5 text-xs"
-      transition:slide={{ duration: still.current ? 0 : 130 }}
-    >
+    <p class="text-surface-600-400 flex items-center gap-1.5 text-xs" transition:slide={{ duration: motion(130) }}>
       <span class="min-w-0 truncate">{m.comments_replyingTo({ name: thread.replyTo.authorName })}</span>
 
       <button type="button" aria-label={m.comments_cancelReply()} onclick={() => (thread.replyTo = undefined)}>

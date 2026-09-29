@@ -8,7 +8,7 @@
   import type { TopoEditor } from '$lib/entities/topo/editor.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { MediaQuery } from 'svelte/reactivity'
+  import { motion } from '$lib/state/motion.svelte'
   import { fly, slide } from 'svelte/transition'
 
   interface Props {
@@ -26,8 +26,7 @@
   const { canDelete, canEdit, editor, onDeleteRoute, onEditRoute, route }: Props = $props()
   const global = getGlobalState()
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   let cardMinimized = $state(false)
 
@@ -46,7 +45,7 @@
 <!-- Selected-route editing card: overlays the photo strip and slides up like a sheet. -->
 <div
   class="p-safe-3 pointer-events-none absolute inset-x-0 bottom-0 z-40"
-  transition:fly={{ duration: duration === 0 ? 0 : 220, y: 24 }}
+  transition:fly={{ duration: motion(220), y: 24 }}
 >
   <div class="preset-filled-surface-50-950 pointer-events-auto mx-auto w-full max-w-md rounded-2xl p-3 shadow-2xl">
     <div class="flex items-center gap-2">
@@ -75,7 +74,7 @@
     </div>
 
     {#if !cardMinimized}
-      <div class="mt-3 space-y-3" transition:slide={{ duration: duration === 0 ? 0 : 200 }}>
+      <div class="mt-3 space-y-3" transition:slide={{ duration: motion(200) }}>
         <!-- Every button that is not filled carries a border: the tonal preset is nearly
              invisible on this card, so without one they read as bare text, not as pressable. -->
         <div class="flex gap-2">

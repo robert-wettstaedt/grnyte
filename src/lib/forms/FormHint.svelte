@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { motion } from '$lib/state/motion.svelte'
   import type { RemoteFormIssue } from '@sveltejs/kit'
-  import { MediaQuery } from 'svelte/reactivity'
   import { slide } from 'svelte/transition'
   import { resolveIssueMessage } from './issue'
 
@@ -12,8 +12,7 @@
 
   let { hint, id, issues = [] }: Props = $props()
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 </script>
 
 <!-- One container for all issues: `aria-errormessage` points at this id, only one element may carry it.

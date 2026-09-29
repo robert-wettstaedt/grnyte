@@ -16,10 +16,10 @@
   import { setFileVisibility } from '$lib/entities/file/files.remote'
   import { m } from '$lib/paraglide/messages'
   import { createCopyButton } from '$lib/state/clipboard.svelte'
+  import { motion } from '$lib/state/motion.svelte'
   import { notifyError } from '$lib/state/toast'
   import { videoView } from '$lib/videos/view.svelte'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
-  import { MediaQuery } from 'svelte/reactivity'
   import { slide } from 'svelte/transition'
   import { MEDIA_TOOL } from './toolbar'
 
@@ -53,8 +53,7 @@
   const view = $derived(videoView(file))
   const pending = $derived(view?.kind === 'preparing')
   const unavailable = $derived(view?.kind === 'unavailable')
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   const shareUrl = $derived(page.url.origin + resolve('/f/[id]', { id: file.id }))
   const shareData = $derived<ShareData>({ text: shareText, title: PUBLIC_APPLICATION_NAME, url: shareUrl })

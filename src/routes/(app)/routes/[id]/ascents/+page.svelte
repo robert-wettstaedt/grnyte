@@ -16,9 +16,9 @@
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { flip } from 'svelte/animate'
-  import { MediaQuery } from 'svelte/reactivity'
   import { fade } from 'svelte/transition'
 
   const global = getGlobalState()
@@ -79,9 +79,8 @@
   })
 
   // Rows reorder and fade as the filter changes; a Svelte transition ignores the media query.
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const flipDuration = $derived(still.current ? 0 : 200)
-  const fadeDuration = $derived(still.current ? 0 : 150)
+  const flipDuration = $derived(motion(200))
+  const fadeDuration = $derived(motion(150))
 
   const chipStyle = (active: boolean, color: string) =>
     active

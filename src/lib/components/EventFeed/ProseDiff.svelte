@@ -16,7 +16,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { ChangeView } from '$lib/entities/event/change'
   import { m } from '$lib/paraglide/messages'
-  import { MediaQuery } from 'svelte/reactivity'
+  import { motion } from '$lib/state/motion.svelte'
   import { slide } from 'svelte/transition'
 
   interface Props {
@@ -26,8 +26,7 @@
 
   const { change }: Props = $props()
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   let open = $state(false)
 

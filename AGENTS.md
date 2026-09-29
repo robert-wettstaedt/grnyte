@@ -114,10 +114,10 @@ This project uses:
   out of the control that opened it instead of snapping into place. `slide` for a
   disclosure or list row, `fade` for an overlay or a swap in place, `scale` for a small badge, `fly`
   for something arriving from an edge. 150ms unless a neighbour already picked another, and always
-  gated on reduced motion, which a Svelte transition ignores on its own:
-  `const still = new MediaQuery('(prefers-reduced-motion: reduce)')` (from `svelte/reactivity`) plus
-  `const duration = $derived(still.current ? 0 : 150)`, then `transition:slide={{ duration }}`.
-  `EventCard.svelte` is the shortest example.
+  gated on reduced motion, which a Svelte transition ignores on its own: every duration comes from
+  `motion(base)` (`$lib/state/motion.svelte`), so `transition:slide={{ duration: motion() }}`, and
+  `prefersStill()` for the few places that skip an animation rather than shorten it. One shared
+  media query; never construct your own. `EventCard.svelte` is the shortest example.
   A Tailwind `transition-*` class is no substitute: it cannot animate an element that does not exist
   yet, so it stays on hover, focus and state changes of things already mounted.
 - A nested `Modal` must not unmount the one it opened from in the same flush. Closing the inner

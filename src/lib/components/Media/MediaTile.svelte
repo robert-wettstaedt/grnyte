@@ -9,10 +9,10 @@
   import type { MediaFile } from '$lib/entities/file/dto'
   import type { DerivativeSize } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
+  import { motion } from '$lib/state/motion.svelte'
   import { nextDerivativeStage, videoView, watchReadiness, type DerivativeStage } from '$lib/videos/view.svelte'
   import type { Snippet } from 'svelte'
   import type { ClassValue } from 'svelte/elements'
-  import { MediaQuery } from 'svelte/reactivity'
   import { fade } from 'svelte/transition'
 
   /** One delayed retry of the derivative ladder, long enough for the host to have generated them. */
@@ -82,8 +82,7 @@
   }
 
   // A Svelte transition ignores the preference on its own, unlike the CSS in app.css.
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 </script>
 
 <!-- Height comes from the caller; aspect-ratio drives the width so every tile is the

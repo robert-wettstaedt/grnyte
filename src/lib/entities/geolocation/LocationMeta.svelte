@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { MediaQuery } from 'svelte/reactivity'
+  import { motion } from '$lib/state/motion.svelte'
   import { slide } from 'svelte/transition'
 
   /**
@@ -21,8 +21,7 @@
 
   const shown = $derived(pin !== 'set' || isHere || distance != null)
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   const line = 'text-surface-600-400 flex items-center gap-1.5 text-[11px] font-semibold tabular-nums'
 </script>

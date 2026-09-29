@@ -12,7 +12,7 @@
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { QUICK_REACTIONS } from '$lib/entities/reaction/dto'
   import { m } from '$lib/paraglide/messages'
-  import { MediaQuery } from 'svelte/reactivity'
+  import { motion } from '$lib/state/motion.svelte'
   import { scale } from 'svelte/transition'
   import { dismissOutside } from './dismiss'
   import EmojiPicker from './EmojiPicker.svelte'
@@ -43,7 +43,6 @@
   let picking = $state(false)
 
   /** The row grows out of the button it came from. `transition:` runs from JS and honours no query. */
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
 
   /** The add button is outside the row and must not dismiss it: the same press would close it and
    *  then reopen it through the toggle below. */
@@ -87,7 +86,7 @@
         'border-surface-200-800 bg-surface-50-950 absolute bottom-full z-10 mb-1 flex items-center gap-0.5 rounded-full border p-0.5 shadow-lg',
         align === 'end' ? 'inset-e-0 origin-bottom-right' : 'inset-s-0 origin-bottom-left',
       ]}
-      transition:scale={{ duration: still.current ? 0 : 140, opacity: 0, start: 0.85 }}
+      transition:scale={{ duration: motion(140), opacity: 0, start: 0.85 }}
       {@attach dismiss}
     >
       {#each QUICK_REACTIONS as emoji, index (emoji)}
@@ -95,7 +94,7 @@
           type="button"
           class={['hover:bg-surface-200-800 rounded-full px-1.5 py-1', compact ? 'text-base/none' : 'text-lg/none']}
           disabled={busy}
-          in:scale={{ delay: still.current ? 0 : index * 25, duration: still.current ? 0 : 150, start: 0.4 }}
+          in:scale={{ delay: motion(index * 25), duration: motion(150), start: 0.4 }}
           onclick={() => pick(emoji)}
         >
           {emoji}

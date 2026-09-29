@@ -2,7 +2,7 @@
   import { ACTION_TOOL, ACTION_TOOL_LABEL } from '$lib/components/ActionBar/ActionBar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { MediaQuery } from 'svelte/reactivity'
+  import { motion } from '$lib/state/motion.svelte'
   import { slide } from 'svelte/transition'
   import { sheetState } from '../Modal/sheetState.svelte'
 
@@ -10,8 +10,7 @@
    *  because the request rides on the explore sheet's state. Gates itself on what the map can
    *  frame, so no caller can disagree with the map. */
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 </script>
 
 {#if sheetState.canShowOnMap}

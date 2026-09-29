@@ -2,8 +2,8 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import ClearButton from '$lib/forms/ClearButton.svelte'
   import { createPressRepeat } from '$lib/forms/pressRepeat'
+  import { motion } from '$lib/state/motion.svelte'
   import type { Snippet } from 'svelte'
-  import { MediaQuery } from 'svelte/reactivity'
   import { slide } from 'svelte/transition'
 
   // THE stepper row: `− <something> +` with a Clear at the end, shared by GradePicker and
@@ -39,8 +39,7 @@
     steppers = true,
   }: Props = $props()
 
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   // `select-none` and `touch-manipulation` are load-bearing: iOS's text-selection callout at ~500ms
   // fires `pointercancel` and would abort every hold-to-repeat.

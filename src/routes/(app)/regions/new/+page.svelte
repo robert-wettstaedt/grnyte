@@ -11,8 +11,8 @@
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { MediaQuery } from 'svelte/reactivity'
   import { slide } from 'svelte/transition'
   import type { PageProps } from './$types'
 
@@ -41,8 +41,7 @@
   createRegion.fields.set({})
 
   /** The reveal is the animation, so somebody who asked for less motion gets the cut. */
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   const goBack = () => back(resolve('/settings'))
 

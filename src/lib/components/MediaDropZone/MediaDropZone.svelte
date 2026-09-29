@@ -24,11 +24,11 @@
     type MediaUploadTarget,
   } from '$lib/entities/file/upload-manager.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { motion } from '$lib/state/motion.svelte'
   import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast'
   import { isHdrVideo } from '$lib/videos/hdr'
   import { FileUpload, useFileUpload } from '@skeletonlabs/skeleton-svelte'
   import { onDestroy } from 'svelte'
-  import { MediaQuery } from 'svelte/reactivity'
   import { fade, slide } from 'svelte/transition'
   import MediaUploadTile from './MediaUploadTile.svelte'
 
@@ -120,8 +120,7 @@
   // picker. ponytail: drag and drop only works in the plain (non-split) mode.
   const split = $derived(videoSource && accept.includes('video'))
   let sheetOpen = $state(false)
-  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
-  const duration = $derived(still.current ? 0 : 150)
+  const duration = $derived(motion(150))
 
   let sheetStep = $state<'choose' | 'video'>('choose')
   let sheetVideo = $state<File | null>(null)
