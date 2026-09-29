@@ -34,7 +34,9 @@ console.log(`checking ${supabaseUrl}\n`)
 // code lives here, and it is readable with the anon key alone.
 const auth = await fetch(`${supabaseUrl}/auth/v1/settings`, { headers: { apikey: anonKey } }).then((r) => r.json())
 
-check(auth.disable_signup === false, 'signup is enabled (disable_signup is false)')
+// Public sign-up stays off: accounts are created through the admin API, after the bot checks, so the
+// published anon key cannot skip them.
+check(auth.disable_signup === true, 'public signup is disabled (disable_signup is true)')
 check(auth.external?.email === true, 'email provider is enabled')
 // Confirmation is what the /auth/confirm handler and the signup mail exist for. If this flips true,
 // accounts are created confirmed and that whole leg is silently dead.
