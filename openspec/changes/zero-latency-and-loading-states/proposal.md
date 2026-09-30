@@ -4,12 +4,12 @@ Production feels slow, and the interface is not honest about it. Measurement fou
 problems**, not one. An earlier draft of this proposal named a single cause (cross-region client
 view records); that held only for one of the four, and is corrected here.
 
-| # | Problem | Measured | Cause |
-| --- | --- | --- | --- |
-| A | Reader opens the app after a push and waits for one new row | up to **10 s** | Zero takes 2 x `pingTimeoutMs` to notice a socket that died while the app was away |
-| B | Drawing the `/explore` map | **4607 ms**, `listBlocks({})` alone 2081 ms of server time | three unbounded queries hydrating, serialized across 2 sync workers |
-| C | Warm back-navigation to the feed | **1279 ms**, 72% of it NOT server work | per-registration round trips to client view records in another datacenter |
-| D | The interface states things it cannot know | n/a | no signal distinguishing "arriving" from "complete" |
+| #   | Problem                                                     | Measured                                                      | Cause                                                                                                                                                                                                                                    |
+| --- | ----------------------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A   | Reader opens the app after a push and waits for one new row | up to **10 s** reported, **~15 s** measured on the phone path | two, in sequence: Zero takes 2 x `pingTimeoutMs` to notice a socket that died while the app was away (fixed); then the feed's query queues behind the offline guidebook, ~11.5 s of server work re-hydrated on every open after 5 s away |
+| B   | Drawing the `/explore` map                                  | **4607 ms**, `listBlocks({})` alone 2081 ms of server time    | three unbounded queries hydrating, serialized across 2 sync workers                                                                                                                                                                      |
+| C   | Warm back-navigation to the feed                            | **1279 ms**, 72% of it NOT server work                        | per-registration round trips to client view records in another datacenter. **Refuted**: relocating them moved no query (notes, 3.5); the move is kept for Supabase storage                                                               |
+| D   | The interface states things it cannot know                  | n/a                                                           | no signal distinguishing "arriving" from "complete"                                                                                                                                                                                      |
 
 **A is the one a reader hits most often and nothing in this app can detect it.** While Zero waits out
 its idle-then-pong cycle it reports `connected`, so `isOnline()` is true, the status bar stays quiet
@@ -60,6 +60,13 @@ measured before the next, because attribution is the whole point:
   as an absence.
 - Set `maxRecentQueries` to 20, as its own measured step. It defaults to 0, which is why the CVR
   holds 1,509 active and 9,920 deleted desires with zero inactive.
+
+**Resume latency, second half (A).** On an installed device every open re-hydrates the offline
+guidebook (`listRoutes({})`, `listAreas({})`, `listBlocks({})`, ~11.5 s of server work), because a
+client group's server state is dropped 5 s after its last client leaves. A screen registered behind
+it waits for all of it: the feed's new-activity query, 3 ms of work, took ~15 s in three of five
+measured opens. Defer the offline preload until the visible screen is answered. This changes when
+the guidebook syncs, not what it contains.
 
 **Cold-load volume (B), diagnostic only.** `listBlocks({})`, `listAreas({})` and
 `listRoutesForMap({})` are registered on the FEED, not only on `/explore`, and nothing obvious
@@ -118,6 +125,9 @@ unrelated.
   memory alone, before anything was known about what an unreleased query costs in registrations and
   rows pinned. See design.md for the trigger to reopen it, and note it makes step 4 a no-op until it
   lands.
+- **Slimming the offline guidebook.** `listRoutes({})` is 81% of its server time, but its relations
+  are what render a route page with no signal. What offline must cover is a product decision, so
+  it is recorded in design.md and not taken here. Deferral is the fix that needs no such decision.
 - **Cursor paging for the feed.** The growing window was chosen deliberately and is rarely grown.
 - **A write-side optimistic primitive.** Zero has processed zero mutations ever, by design, so there
   is no acknowledgement to await and roughly 14 sites compensate in eight hand-rolled ways. That is

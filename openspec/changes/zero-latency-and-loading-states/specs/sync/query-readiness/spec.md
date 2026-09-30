@@ -141,6 +141,30 @@ Every requirement above is satisfied while the reader looks at superseded conten
 - **THEN** it keeps that connection
 - **AND** the reader sees no interruption
 
+### Requirement: The visible screen is answered before background sync
+
+On a device that keeps data for offline use, the queries of the screen being viewed SHALL be
+answered before the offline guidebook sync is requested. Opening the application SHALL NOT make the
+visible screen wait behind data it does not show.
+
+This exists because the resume requirement above can be fully satisfied, the connection detected and
+re-established promptly, while the reader still waits: a device away for more than a few seconds
+resynchronizes its whole offline guidebook on return, and a screen requested behind that waits for
+all of it.
+
+#### Scenario: Opening the feed on an installed device
+
+- **WHEN** the application is opened on an installed device after being away, and new activity
+  exists in the reader's regions
+- **THEN** the feed indicates the new activity without waiting for the offline guidebook to finish
+  synchronizing
+
+#### Scenario: The guidebook still synchronizes
+
+- **WHEN** the visible screen's queries have been answered
+- **THEN** the offline guidebook synchronization begins
+- **AND** a device that stays connected until it completes is recorded as holding the guidebook
+
 ### Requirement: No unresolvable progress indication
 
 A surface SHALL NOT show a progress indication that cannot resolve. Where nothing can complete the

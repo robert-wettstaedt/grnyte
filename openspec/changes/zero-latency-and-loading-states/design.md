@@ -12,11 +12,20 @@ all established by measurement rather than assumption:
   reading blamed a "cold feed" at 3810 ms; that capture had been clicked into from `/explore` and
   carried its queries along, which is the leak below rather than anything the feed does. A reading is
   only cold if the tab has been nowhere else.
+  **Holds only for a browser tab.** An installed app is a field device, and `preloadForOffline`
+  registers `listRoutes({})`, `listAreas({})` and `listBlocks({})` on every open, whichever screen is
+  showing: ~11.5 s of server work, `listRoutes({})` alone 9.4 s. The phone is never in the state the
+  503 ms describes.
 - Because nothing releases a query, `/explore`'s four unbounded queries stay registered for the rest
   of the session. The 4.6 s is paid once; the registrations are not.
 - `ZERO_NUM_SYNC_WORKERS` is 2 on a 2-core box, and one client group is served by one worker, so a
   page's server-side hydration serializes. Any improvement measured after moving the client view
   records must be read against this rather than as "Zero got faster".
+- A client group's server state lives only while a client is connected. `DEFAULT_KEEPALIVE_MS` is
+  5 s: after the last client leaves, the view-syncer destroys every pipeline, and the next connection
+  hydrates every desired query again. A disconnect never inactivates a desired query and the TTL
+  clock only advances while connected, so query TTL plays no part in this. Any absence over 5 s is a
+  cold open.
 - While Zero has not yet noticed a dead socket it reports `connected`. So `connectionVerdict` returns
   reachable, `isOnline()` is true, `StatusBar` shows nothing and every resource still reports
   complete. No layer in this app can detect that state, which is why it needs its own fix rather
@@ -108,7 +117,9 @@ Measured in dev with real in-app navigation, not inferred. A fresh `/feed` regis
 none of the unbounded map ones. `/explore` adds four. Returning to `/feed` keeps all four, for over a
 minute, with the map's DOM entirely gone. Walking feed, profile, feed, explore, feed, profile the
 count goes 15, 23, 23, 23, 23, 23: it grows to the union of everywhere the session has been and never
-shrinks. Task 10 assumed these were registered BY the feed. They are not.
+shrinks. Task 10 assumed these were registered BY the feed. They are not, by the feed's components;
+on a field device the offline preload registers the same hashes on every open, see "Defer the
+offline preload" below.
 
 Mechanism: `createResource` builds a zero-svelte `Query` inside a `$derived` and calls
 `view.ensureSubscribed()`. Nothing is paired to it. `Query.destroy()` exists and is never called on a
@@ -256,6 +267,37 @@ rejected: it changes what "99+" means for no structural gain.
 Cursor paging was considered and rejected by the user: the window is rarely grown and the growing
 form was chosen deliberately because cursors are awkward here.
 
+### Defer the offline preload until the visible screen is answered
+
+Measured on the phone path (the `offlineData` override, `/feed` typed directly, fresh client groups):
+the feed's new-activity query, 3 ms of server work, reached the screen after ~15 s in three of five
+opens and ~1 s in the other two, with the same ~12 s of other work registered in all five. So the
+query is not slow, it is queued, and whether the screen or the preload reaches the view-syncer first
+is a race. Deferring the preload removes the race rather than winning it more often.
+
+Trigger: once the startup reference preloads (`listGrades`, `currentUser`, `currentUserRole`,
+`listRolePermissions`, `listUserRegions`) report complete. It needs no wiring per screen. It is a
+PROXY for "the visible screen is answered", not a guarantee, so the gate is the measurement in
+tasks.md and not this argument. Rejected: a fixed delay, which guesses at the network, and a
+readiness signal every screen would have to report.
+
+Cost: the offline guidebook starts later, by however long the first screen takes, and the
+`guidebook` stamp moves with it. Limit: a screen opened while the guidebook is still hydrating still
+queues behind it. Deferral protects the first screen; only a cheaper guidebook protects the rest.
+
+### Recorded, not taken: slimming the offline guidebook is a scope decision
+
+| query            | rows   | server   |
+| ---------------- | ------ | -------- |
+| `listRoutes({})` | 19,860 | 9,352 ms |
+| `listBlocks({})` | 6,158  | 1,758 ms |
+| `listAreas({})`  | 760    | 375 ms   |
+
+`listRoutes({})` costs 0.47 ms per row against `listRoutesForMap({})`'s 0.044 over the same routes:
+the relations are the cost. But they are also what render a route page with no signal, which is the
+point of the guidebook. Choosing what offline must cover is a product decision, so it waits for one.
+Deferral is taken first precisely because it changes when the guidebook syncs and not what.
+
 ## Risks / Trade-offs
 
 - **Relocation forces every client to re-sync once** → Same path the 48-hour inactive-record
@@ -295,6 +337,8 @@ mildest of the three latency problems and not the one a reader hits most.
 
 1. **Resume latency (A).** Client-side only, no deploy coupling, targets the complaint that prompted
    this. Rollback is deleting one assignment.
+   1b. **Defer the offline preload (A, second half).** The larger half of the same complaint, found
+   after 1 shipped. Client-side only; rollback is moving one call back.
 2. **Registration removals**, already implemented, deployed before any baseline so the floor is
    clean.
 3. **Why the map queries register on the feed (B).** Diagnostic before architectural. Answer it
@@ -305,11 +349,15 @@ mildest of the three latency problems and not the one a reader hits most.
 6. **`maxRecentQueries` (C)** as a separate deploy, measured against the previous numbers.
 
 The loading-state work (D) is independent of all of these and can land in parallel on its own
-branch. It does not address A, B or C, and A in particular cannot be covered by it.
+branch. It does not address A, B or C, and A in particular cannot be covered by it. After 1b it is
+the backstop for the gap deferral cannot close, not the primary fix for the feed.
 
 ## Open Questions
 
-- The current value of `ZERO_NUM_SYNC_WORKERS`, which is held in Bitwarden. One client group is
-  served by one worker, so if it is 1 on a two-core box then serialization is a property of the
-  deployment rather than of Zero. This does not change the approach or the task breakdown, but it
-  changes how the step 3 numbers should be read, so record it before the baseline.
+- RESOLVED: `ZERO_NUM_SYNC_WORKERS` is 2, recorded in the notes.
+- The view-syncer's ordering of desired-query changes is inferred from timings (a client group's
+  queries finish together, and a screen either precedes the preload or waits for all of it), not
+  read in zero-cache's source. Deferral does not depend on the exact mechanism, but slimming would.
+- Whether earlier clients' desired queries add distinct hydration work. The inspector counted 37 to
+  46 for the client group against 15 for the current client; hydration is per hash, so this needs
+  distinct hashes before it counts as a finding.

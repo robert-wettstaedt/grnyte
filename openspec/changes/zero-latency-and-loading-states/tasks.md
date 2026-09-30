@@ -76,7 +76,8 @@ result as "the lever did not help".
 
 ## 5. The readiness signal
 
-Independent of tasks 1 to 4 and may land in parallel on its own branch.
+Independent of tasks 1 to 4 and may land in parallel on its own branch. Runs AFTER group 12: it is
+the backstop for the gap deferral cannot close, not the primary fix for the feed.
 
 - [ ] 5.1 Add the latched readiness member to `QueryResource` in `src/lib/zero/resource.svelte.ts`,
       keyed on the query hash and never cleared, and verify with a unit test that it stays true
@@ -170,7 +171,9 @@ the 2938 ms without an architectural change.
       against a measured feed capture rather than reasoning alone
 - [x] 10.3 NOT APPLICABLE, and left here rather than deleted so the reason survives. Its precondition
       was "only if 10.2 says scoping". It does not: the feed never registered those queries, so there
-      is nothing on it to scope. What 10.2 found instead is deferred, see design.md
+      is nothing on it to scope. What 10.2 found instead is deferred, see design.md. That holds for
+      a browser tab only: on an installed device the offline preload registers the same queries on
+      every open, which group 12 addresses
 
 ## 11. Device-local resume diagnostics (problem A)
 
@@ -194,3 +197,19 @@ a gate decision, so it is written to be removed in one commit. Nothing leaves th
       under one domain prefix, and verify no key exists in only one file
 - [x] 11.6 Record the removal trip-wire in the change notes: what to delete, and that it goes once
       the gate in 4.4 is decided, verified by the note naming the files rather than describing them
+
+## 12. Defer the offline preload (problem A, second half)
+
+Runs BEFORE groups 5 to 7: it removes most of the wait those groups would otherwise only describe.
+See design.md, "Defer the offline preload until the visible screen is answered". The before
+numbers are the five field-device runs in the notes.
+
+- [ ] 12.1 Move `preloadForOffline(z)` in `src/lib/zero/z.svelte.ts` behind the trigger the design
+      names, and verify by driving a field-device session (the `offlineData` override) that the
+      inspector shows the feed's queries answered before `listRoutes({})` registers
+- [ ] 12.2 Verify offline is unaffected: once the deferred sync completes the `guidebook` stamp
+      still lands, and a route page renders offline with its related rows
+- [ ] 12.3 The gate: rerun the field-device measurement (fresh client groups, `/feed` typed
+      directly, every tab of a profile closed for at least 10 s between runs), five runs, and verify
+      the pill lands in under 2 s in ALL five, against three of five at ~15 s before. Record the
+      result in the change notes
