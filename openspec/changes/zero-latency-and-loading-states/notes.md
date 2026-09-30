@@ -435,3 +435,71 @@ frozen schema still occupies that space until it is dropped, so the move alone r
 
 Sanity check on the cost model: ~88 MB heap over ~208k live rows is ~444 B/row, against the
 ~352 B/row in `offline.ts`. Same order, so that model holds.
+
+## The feed symptom, reproduced: the pill queues behind the offline preload
+
+The reported symptom is NOT the list staying put under a scrolled reader; that is `feed.svelte.ts`
+working as designed. It is the time before the "N new activity" pill appears at all. The pill reads
+`newCount = incoming.data.length`, and `incoming` is `listEvents({after: seen, limit: 50})`: zero
+rows, ~3 ms of server work.
+
+### Two hypotheses refuted on the way
+
+- **Serialisation behind the first window.** `seen` is not persisted and is set from the first
+  window, so the pill cannot register until `events` has rows. But with a warm local store those rows
+  are local at mount: `window` minus `pill` total was 67, 67, 67 ms in three runs, and all three
+  `listEvents` queries finish together. Costs ~67 ms, not a round trip.
+- **Query TTL as the thing that makes the server cold.** Preloads do default to `ttl: 0`
+  (`preloadImpl`), but a disconnect never inactivates desired queries
+  (`#deleteClientDueToDisconnect`), and the TTL clock only advances while a client is connected. What
+  actually drops server state is `DEFAULT_KEEPALIVE_MS` = 5 s: after the last client of a group leaves,
+  the view-syncer shuts down and destroys every pipeline, so the next open re-hydrates every desired
+  query. Consequence: on a phone, ANY absence over 5 s re-hydrates the whole offline guidebook.
+
+### Desktop A/B, head-of-line blocking
+
+Pill `hydrateTotal`, pooled with the 3.5 captures (same design):
+
+- isolated (`/feed` typed, no Explore): 289, 353, 391, 525, 669, 1230, median ~458 ms
+- contended (Explore first): 2855, 3633, 3928, 4963, median ~3781 ms
+
+Ranges do not overlap, and in every valid run the pill landed at roughly the other queries' summed
+server time plus a few hundred ms. Two runs read `total: 0` because another tab kept the view-syncer
+alive; discarded.
+
+### The phone path: field-device override, five runs
+
+Desktop was only ever isolated because a browser tab is not a field device. An installed PWA is
+(`shouldKeepOffline`: `installed` is true), so `preloadForOffline` registers `listRoutes({})`,
+`listAreas({})` and `listBlocks({})` on every open, and `start_url` is `/explore` besides. Forced with
+the `offlineData` override, `/feed` typed directly, fresh client groups:
+
+| run | pillTotal    | pill server | others' server |
+| --- | ------------ | ----------- | -------------- |
+| 1   | 15,097 ms    | 3.4 ms      | 12,328         |
+| 2   | **1,045 ms** | 4.3 ms      | 11,967         |
+| 3   | 15,100 ms    | 3.0 ms      | 12,522         |
+| 4   | 14,915 ms    | 3.1 ms      | 11,995         |
+| 5   | **1,192 ms** | 4.0 ms      | 11,805         |
+
+Three of five wait ~15 s. Two of five escape to ~1 s with the same ~12 s of other work registered,
+which is the decisive observation: the pill is not slow, it is queued, and whether the feed or the
+preload reaches the view-syncer first is a race. That ordering mechanism is inferred from timings, not
+read in zero-cache's source.
+
+### What the queue is made of
+
+| query            | rows   | server   |
+| ---------------- | ------ | -------- |
+| `listRoutes({})` | 19,860 | 9,352 ms |
+| `listBlocks({})` | 6,158  | 1,758 ms |
+| `listAreas({})`  | 760    | 375 ms   |
+| the other twelve |        | ~330 ms  |
+
+`listRoutes({})` is 81% of it, at 0.47 ms/row against `listRoutesForMap`'s 0.044 ms/row over the same
+routes: the relations are the cost, as with `listBlocks`. But `listRoutes({})` IS the offline
+guidebook and its relations are what render a route page with no signal, so slimming it is a product
+decision about offline scope, not a latency fix to make in passing.
+
+Also observed: `inspector.clientGroup.queries()` returned 37 to 46 against 15 for the current client.
+Not yet a finding: hydration is per hash, and those may be the same queries desired by earlier clients.
