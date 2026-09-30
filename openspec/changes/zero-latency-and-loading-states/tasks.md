@@ -48,9 +48,9 @@ Ships before any measurement, so the baseline has a clean floor.
 - [x] 3.3 Document the variable in `deployment/README.md`, including the explicit reason the
       database is not backed up, and verify the note names `backup-db.yml` so a future maintainer
       finds the rationale where they would look
-- [ ] 3.4 Deploy the cutover at low traffic, leaving the previous database untouched, and verify by
+- [x] 3.4 Deploy the cutover at low traffic, leaving the previous database untouched, and verify by
       loading the app that clients re-sync and reach a working state
-- [ ] 3.5 Re-measure the feed page cold and warm exactly as in task 2, THREE captures of each, and
+- [x] 3.5 Re-measure the feed page cold and warm exactly as in task 2, THREE captures of each, and
       verify the verdict is read off median `hydrateServer` per query rather than `hydrateTotal`.
       `listBlocks({})` at roughly 2000 ms of server time is the number that has to move; if it does
       not, the cutover did not help whatever the totals do

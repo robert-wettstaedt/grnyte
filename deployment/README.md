@@ -110,10 +110,20 @@ losing them costs every client one re-sync and nothing else, which is the same p
 takes after 48 hours away when zero-cache collects an inactive record. Backing them up would ship a
 recreatable, fast-growing table around nightly for no recovery benefit.
 
-They live here rather than in the upstream database because unset, `ZERO_CVR_DB` defaults to
-`upstream-db`, which put them in Frankfurt while this box is in Nuremberg, so every query
-registration paid a cross-datacenter round trip. Rolling back is reverting this one variable; the old
-records are still in the upstream schema until something prunes them.
+They live here rather than in the upstream database to keep them off Supabase, which is on a capped
+plan. Measured in the upstream database before the move: the `zero_0/cvr` schema was 184 MB of a
+298 MB database, 62% of the whole thing, against real application data of 114 MB, with 3.2M row
+writes across its tables.
+
+Latency was the ORIGINAL reason and it was wrong, so do not reinstate it: unset, `ZERO_CVR_DB`
+defaults to `upstream-db`, which put the records in Frankfurt while this box is in Nuremberg, and
+moving them was predicted to cut query registration time. It did not. `listBlocks({})` server time
+went 2078.8 ms before to 2174.8 ms after (medians of six and three samples), and every other stable
+query was flat. Cross-region bookkeeping was not a measurable part of this app's sync latency.
+
+Rolling back is still reverting this one variable, but the upstream `zero_0/cvr` schema was dropped
+on 2026-09-30 to reclaim the space, so there are no old records to fall back to: zero-cache
+bootstraps the schema again on boot and every client re-syncs once.
 
 The container takes no password. It sits alone on `cvr_network`, which is `internal: true` and which
 nginx is not on, so the only thing that can route to it is the zero-cache that would hold its

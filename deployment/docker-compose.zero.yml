@@ -1,9 +1,9 @@
 services:
   # Client view records for prod, beside zero-cache instead of in the upstream Supabase.
   #
-  # They are read and written on the critical path of every query registration, and unset they
-  # default to upstream-db, which puts them in Frankfurt while this box is in Nuremberg. Derived
-  # state, so there is no backup and losing the volume costs clients one re-sync: see
+  # Here to keep them off a capped Supabase plan, where they were 184 MB of a 298 MB database.
+  # NOT for latency: that was the original reason and measurement refuted it, see the README.
+  # Derived state, so there is no backup and losing the volume costs clients one re-sync: see
   # `deployment/README.md` beside `ZERO_CVR_DB` before adding it to `backup-db.yml`.
   #
   # Prod only: demo is being torn down and is linked from nowhere, so it is not worth a second
