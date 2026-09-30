@@ -4,12 +4,12 @@ Working notes for this change. Tasks 2.2, 2.3, 3.5, 4.3, 4.4 and 6.1 all record 
 
 ## 2.1 Deployment values, recorded before any change
 
-| Value | Setting | Source |
-| --- | --- | --- |
-| `ZERO_NUM_SYNC_WORKERS` | **2** | user, 2026-09-20 |
-| VPS cores | 2 (arm64, Hetzner CAX11, 4 GB) | `/statz?group=os` |
-| `maxRecentQueries` | 0 (Zero default, never set) | `zero.js:229` + grep of `src/` |
-| `ZERO_CVR_DB` | unset, so the CVR lives in upstream Supabase | grep of repo |
+| Value                   | Setting                                      | Source                         |
+| ----------------------- | -------------------------------------------- | ------------------------------ |
+| `ZERO_NUM_SYNC_WORKERS` | **2**                                        | user, 2026-09-20               |
+| VPS cores               | 2 (arm64, Hetzner CAX11, 4 GB)               | `/statz?group=os`              |
+| `maxRecentQueries`      | 0 (Zero default, never set)                  | `zero.js:229` + grep of `src/` |
+| `ZERO_CVR_DB`           | unset, so the CVR lives in upstream Supabase | grep of repo                   |
 
 Read the sync-worker count alongside the banding in 2.2: a client group is served by one worker, so
 with two workers the serialization observed on a page is partly a property of this deployment rather
@@ -35,10 +35,10 @@ and the fat `listNotifications({limit:100})` are both still present, which is th
 difference in method: `/feed` was typed into a fresh tab rather than reached by clicking, so no
 earlier `/explore` visit could leak into it.
 
-| Reading | Queries | Slowest `hydrateTotal` |
-| --- | --- | --- |
-| 2.0 "cold", reached by clicking | 16 | **3810 ms** |
-| 2.0b cold, typed into a fresh tab | 12 | **503 ms** |
+| Reading                           | Queries | Slowest `hydrateTotal` |
+| --------------------------------- | ------- | ---------------------- |
+| 2.0 "cold", reached by clicking   | 16      | **3810 ms**            |
+| 2.0b cold, typed into a fresh tab | 12      | **503 ms**             |
 
 **The feed was never slow.** 3810 ms was four leaked map queries riding along from a previous
 `/explore` visit in the same tab. A genuinely cold feed is 503 ms, with ~321 ms of server work spread
@@ -48,13 +48,13 @@ Warm, after clicking to Explore and back, 16 queries, slowest **4607 ms**. Every
 set kept its cold total exactly (503, 503, 502 and so on), so none of them re-hydrated. The entire
 warm cost is the four map queries hydrating for the first time:
 
-| Query | server ms | total ms |
-| --- | --- | --- |
-| `listBlocks({})` | **2081** | 4602 |
-| `listAreas({})` | 360 | 4599 |
-| `listRoutesForMap({})` | 358 | 4607 |
-| `listFirstAscensionists({})` | 13 | 4534 |
-| | **2812 total** | |
+| Query                        | server ms      | total ms |
+| ---------------------------- | -------------- | -------- |
+| `listBlocks({})`             | **2081**       | 4602     |
+| `listAreas({})`              | 360            | 4599     |
+| `listRoutesForMap({})`       | 358            | 4607     |
+| `listFirstAscensionists({})` | 13             | 4534     |
+|                              | **2812 total** |          |
 
 ### What this relocates
 
@@ -84,16 +84,16 @@ Desktop, so no guidebook preload: `listRoutes({})` is absent.
 
 **Cold** (fresh tab on `/feed`): 16 queries, slowest `hydrateTotal` **3810 ms**.
 
-| Query | rows | server ms | total ms |
-| --- | --- | --- | --- |
-| `listBlocks({})` | 5,966 | **2104.8** | 3714 |
-| `listRoutesForMap({})` | 6,642 | 422.3 | 3722 |
-| `listAreas({})` | 753 | 411.3 | 3719 |
-| `listEvents({limit:50})` | 226 | 145.6 | 516 |
-| `listEvents({limit:50,upTo})` | 226 | 134.2 | 2963 |
-| `blockTopos({blockId:[]})` | 0 | 1.0 | 3059 |
-| `listNotifications({limit:100})` | 0 | 14.3 | 1077 |
-| (9 others) | | < 13 each | |
+| Query                            | rows  | server ms  | total ms |
+| -------------------------------- | ----- | ---------- | -------- |
+| `listBlocks({})`                 | 5,966 | **2104.8** | 3714     |
+| `listRoutesForMap({})`           | 6,642 | 422.3      | 3722     |
+| `listAreas({})`                  | 753   | 411.3      | 3719     |
+| `listEvents({limit:50})`         | 226   | 145.6      | 516      |
+| `listEvents({limit:50,upTo})`    | 226   | 134.2      | 2963     |
+| `blockTopos({blockId:[]})`       | 0     | 1.0        | 3059     |
+| `listNotifications({limit:100})` | 0     | 14.3       | 1077     |
+| (9 others)                       |       | < 13 each  |          |
 
 Server hydration sums to **~3265 ms of the 3810 ms slowest total, i.e. 86%**. Three unbounded
 queries are **90% of that server work**, and `listBlocks({})` alone is 2.1 s for 5,966 rows.
@@ -140,12 +140,12 @@ loopback, and WebKit is not the variable here.
 
 Both runs on `/feed`, timings read off the wire rather than from any app state:
 
-| Phase | Default 5000 | Tightened 2000 |
-| --- | --- | --- |
-| swallowed ping to socket CLOSE (the pong deadline) | **5.0 s** | **2.0 s** |
-| CLOSE to reconnected (`RUN_LOOP_INTERVAL_MS` backoff) | **5.0 s** | **5.0 s** |
-| from the ping that timed out to connected | **10.1 s** | **7.0 s** |
-| worst case from the socket dying, including the idle wait | **~15 s** | **~9 s** |
+| Phase                                                     | Default 5000 | Tightened 2000 |
+| --------------------------------------------------------- | ------------ | -------------- |
+| swallowed ping to socket CLOSE (the pong deadline)        | **5.0 s**    | **2.0 s**      |
+| CLOSE to reconnected (`RUN_LOOP_INTERVAL_MS` backoff)     | **5.0 s**    | **5.0 s**      |
+| from the ping that timed out to connected                 | **10.1 s**   | **7.0 s**      |
+| worst case from the socket dying, including the idle wait | **~15 s**    | **~9 s**       |
 
 So the change is worth about 40%, not the 2.5x an earlier note claimed. The reason is the 5 s
 reconnect backoff, which `pingTimeoutMs` does not touch: `PingTimeout` maps to `NO_STATUS_TRANSITION`
@@ -169,11 +169,11 @@ Two harness facts worth keeping:
 Task 10 assumed the map's unbounded queries are registered ON the feed. They are not. Measured in
 dev, signed in, using real in-app navigation:
 
-| Step | Queries | Unbounded map queries |
-| --- | --- | --- |
-| fresh `/feed` | 11 | **none** |
-| `/explore` | 15 | all four (correct, the map draws them) |
-| back on `/feed` | 15 | **all four still there** |
+| Step            | Queries | Unbounded map queries                  |
+| --------------- | ------- | -------------------------------------- |
+| fresh `/feed`   | 11      | **none**                               |
+| `/explore`      | 15      | all four (correct, the map draws them) |
+| back on `/feed` | 15      | **all four still there**               |
 
 They register on `/explore` and never leave. Held for at least a minute on the feed, so not a
 deferred cleanup that eventually fires. The `(map)` layout HAS unmounted by then: zero `.ol-viewport`,
@@ -253,10 +253,10 @@ data was already in this origin's replica. They added four registrations and no 
 
 ### Step 0's effect is not measurable in this pair, and that is the finding
 
-| | Queries | Slowest total | Server work |
-| --- | --- | --- | --- |
-| pre-step-0 cold (2.0b) | 12 | **503 ms** | ~321 ms |
-| post-step-0 cold (2.2) | 11 | **882 ms** | ~284 ms |
+|                        | Queries | Slowest total | Server work |
+| ---------------------- | ------- | ------------- | ----------- |
+| pre-step-0 cold (2.0b) | 12      | **503 ms**    | ~321 ms     |
+| post-step-0 cold (2.2) | 11      | **882 ms**    | ~284 ms     |
 
 Step 0 did what it was meant to: one fewer registration, ~37 ms less server work. But wall clock moved
 379 ms the WRONG way on nominally identical captures. Since server work fell, that difference is all
@@ -265,11 +265,11 @@ in the non-server component, which is run-to-run variance on production.
 **Single samples of `hydrateTotal` cannot resolve an effect this size**, and the fix is to stop
 measuring `hydrateTotal`. Across the same captures:
 
-| Metric | Readings | Spread |
-| --- | --- | --- |
-| slowest cold `hydrateTotal` | 503, 882 ms | **~75%** |
-| `listEvents({limit:50})` server | 145.5, 132.7 ms | ~9% |
-| `listBlocks({})` server | 2104.8, 2081.3, 1868.6 ms | ~12% |
+| Metric                          | Readings                  | Spread   |
+| ------------------------------- | ------------------------- | -------- |
+| slowest cold `hydrateTotal`     | 503, 882 ms               | **~75%** |
+| `listEvents({limit:50})` server | 145.5, 132.7 ms           | ~9%      |
+| `listBlocks({})` server         | 2104.8, 2081.3, 1868.6 ms | ~12%     |
 
 The noise lives in the client's network path, which `hydrateServer` excludes, and `hydrateServer` is
 also the half that relocating the client view records should move. Tasks 3.5 and 4.3 now read median
@@ -313,9 +313,9 @@ the hypothesis behind step 3 predicts far more than that, so a null result would
 
 ### Step 0's effect, which `hydrateServer` CAN resolve
 
-| | pre-step-0 | post-step-0 |
-| --- | --- | --- |
-| queries on a cold feed | 12 | **11** |
+|                           | pre-step-0                    | post-step-0                             |
+| ------------------------- | ----------------------------- | --------------------------------------- |
+| queries on a cold feed    | 12                            | **11**                                  |
 | notification query server | 10.8 ms (`listNotifications`) | **2.3 ms** (`countUnreadNotifications`) |
 
 A 79% drop on that query, cleanly resolved from three samples each. Small in absolute terms, about
@@ -323,9 +323,9 @@ A 79% drop on that query, cleanly resolved from three samples each. Small in abs
 
 ### And `hydrateTotal` still does not
 
-| | median | range |
-| --- | --- | --- |
-| cold slowest, pre-step-0 | 447 ms | 437 to 545 |
+|                           | median | range           |
+| ------------------------- | ------ | --------------- |
+| cold slowest, pre-step-0  | 447 ms | 437 to 545      |
 | cold slowest, post-step-0 | 831 ms | 610 to **1297** |
 
 The post-step-0 range alone spans 2.1x, and the medians move 86% in the WRONG direction for a change
@@ -400,3 +400,38 @@ Cold means a first load of `/feed`. Warm means navigating away and back to it, w
 reading in which `maxRecentQueries` can show up at all. Both from the same account, so step 3 and
 step 4 have a comparable pair. Record the query count, the distinct `hydrateTotal` bands, and the
 time from navigation to the last query reporting `got`.
+
+## 3.5 The cutover did not move the gate
+
+Three cold and three warm captures on prod after the CVR relocation, medians of `hydrateServer`:
+
+| query                    | after     | before | delta     | before-range |
+| ------------------------ | --------- | ------ | --------- | ------------ |
+| `listBlocks({})`         | 2174.8 ms | 2078.8 | **+4.6%** | 1926-2473    |
+| `listAreas({})`          | 409.2     | ~379   | +8.0%     | 366-392      |
+| `listRoutesForMap({})`   | 293.6     | ~303   | -3.1%     | 277-329      |
+| `listEvents({limit:50})` | 143.2     | ~148   | -3.3%     | 142-154      |
+
+Null result, and a pre-registered one: the gate was declared unresolvable below ~10% and the
+hypothesis predicted far more. **Cross-region client view record bookkeeping was not a measurable
+part of this app's sync latency.** Do not reinstate that reasoning.
+
+### What the numbers point at instead
+
+`listBlocks` costs 0.353 ms/row; `listRoutesForMap` costs 0.044 ms/row on MORE rows (6729 vs 6158).
+An 8x per-row gap, so this is query shape and not volume: `listBlocks` carries `topos` (with nested
+`file`), `area` (with nested `parent`) and `geolocation`, while `listRoutesForMap` is the
+relation-free twin of `listRoutes` and carries none. A `listBlocksForMap` holding only what markers
+render is the next lever. Note this is NOT the rejected "reduce rows pinned" option in design.md;
+none of that option's objections (the `/explore` hash dedupe, the per-region sync stamp) apply to
+dropping relations the map never draws.
+
+### Why the change was kept anyway
+
+A different benefit, measured after the fact in the upstream database. `zero_0/cvr` was **184 MB of
+a 298 MB database, 62%**, against 114 MB of real application data, with 3.2M row writes across its
+tables. Supabase is on a capped plan, so that is the justification now; the README says so. The
+frozen schema still occupies that space until it is dropped, so the move alone reclaimed nothing.
+
+Sanity check on the cost model: ~88 MB heap over ~208k live rows is ~444 B/row, against the
+~352 B/row in `offline.ts`. Same order, so that model holds.
