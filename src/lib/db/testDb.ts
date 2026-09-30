@@ -15,7 +15,8 @@
  * spec there wants its own {@link connect} pool plus {@link resolveSeedUsers}.
  */
 import 'dotenv/config'
-import { connect, resolveSeedUsers, type SeedUser } from './testAccounts'
+import { randomUUID } from 'node:crypto'
+import { connect, deleteAccountRows, resolveSeedUsers, type SeedUser } from './testAccounts'
 
 export const sql = connect()
 
@@ -93,4 +94,24 @@ export async function seedRegion(
 /** {@link resolveSeedUsers} on this module's pool, which is what every vitest suite wants. */
 export async function seedUsers<K extends string>(emails: Record<K, string>): Promise<Record<K, SeedUser>> {
   return resolveSeedUsers(sql, emails)
+}
+
+/** Older than this, a tagged fixture belongs to a run that died, never to one still going. */
+const STALE_FIXTURE_MS = 60 * 60 * 1000
+
+/**
+ * Tags one run's fixture addresses. Overlapping runs never share a name, and the time in the tag
+ * lets a later run clear what a crashed one left behind ({@link deleteStaleFixtureAccounts}).
+ */
+export const fixtureRun = (): string => `${Date.now()}x${randomUUID().slice(0, 6)}`
+
+/** Deletes accounts whose address starts with `prefix` and whose run tag is over an hour old. */
+export async function deleteStaleFixtureAccounts(prefix: string): Promise<void> {
+  const stale = await sql<{ id: string }[]>`
+    select id from auth.users
+    where starts_with(email, ${prefix})
+      and substring(email from '([0-9]{13})x')::bigint < ${Date.now() - STALE_FIXTURE_MS}`
+  const ids = stale.map((row) => row.id)
+  await deleteAccountRows(sql, ids)
+  await sql`delete from auth.users where id = any(${ids}::uuid[])`
 }

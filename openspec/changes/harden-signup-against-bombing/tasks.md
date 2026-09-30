@@ -41,3 +41,10 @@
 
 - [x] 5.1 Over every touched path: `npx prettier --write`, `npx eslint`, `npx vitest run --project server` and `--project browser` as matching, typecheck (`svelte-check` beside a live dev server), `npm run lint:duplication`, `npm run lint:unused` (lint:duplication and lint:unused clean. Full server project: 598 pass, 8 fail in blocks/areas/routes/mapLayers/softDeletedParent redirect tests, which fail identically with develop's harness and sit in paths this change does not touch, most likely from 1cdcd845 dropping the server redirect)
 - [x] 5.2 Drive sign-up and forgot-password in the running app at 375x667 and 1280x800, in English and German, including a screen-reader pass over the honeypot; verify no puzzle is shown and both flows complete (EN and DE, both sizes; the accessibility tree carries neither the honeypot nor the widget, which takes zero height)
+
+## 6. Architecture review follow-ups
+
+- [x] 6.1 One bot-check module (`botFields`, `screenSubmit`, `BotCheck.svelte`) replaces the per-handler sequence and the `Honeypot`/`ProofOfWork` pair; bot cases tested once in `botCheck.server.test.ts`, seen red by dropping the honeypot check
+- [x] 6.2 Move the submit hold to `submitHold.ts` with browser-project tests; Stryker 90.7%, the 5 survivors are equivalent (state literals, post-verify optional chaining, a re-held resubmit)
+- [x] 6.3 Round-trip test: an expired sign-up leaves nothing after the sweep, seen red by dropping the user_settings delete
+
