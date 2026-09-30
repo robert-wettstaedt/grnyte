@@ -2,12 +2,14 @@
  * Admins hear about a sign-up when its email is confirmed, once, and never from another link type.
  */
 import { deleteAccountRows } from '$lib/db/testAccounts'
-import { reachable, sql } from '$lib/db/testDb'
+import { deleteStaleFixtureAccounts, fixtureRun, reachable, sql } from '$lib/db/testDb'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GET } from './+server'
 
-const EMAIL = '__confirm_alert__@example.test'
-const USERNAME = 'confirmalert'
+const RUN = fixtureRun()
+
+const EMAIL = `__confirm_alert_${RUN}__@example.test`
+const USERNAME = `ca${RUN}`
 
 const alerted: string[] = []
 vi.mock('$lib/entities/notification/signup.server', () => ({
@@ -50,6 +52,7 @@ const confirm = (type: string, verified: boolean) =>
   )
 
 const cleanup = async () => {
+  await deleteStaleFixtureAccounts('__confirm_')
   const ids = await sql<{ id: string }[]>`select id from auth.users where email = ${EMAIL}`
   await deleteAccountRows(
     sql,

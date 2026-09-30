@@ -1,17 +1,16 @@
 import { form, getRequestEvent } from '$app/server'
 import { db } from '$lib/db/db.server'
-import { spendProofOfWork } from '$lib/forms/proofOfWork.server'
-import { formError, honeypotSchema, isHoneypotFilled } from '$lib/forms/schemas'
+import { botFields } from '$lib/forms/botCheck'
+import { screenSubmit } from '$lib/forms/botCheck.server'
+import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { logServerFailure } from '$lib/logging/failure.server'
-import { invalid } from '@sveltejs/kit'
 import { and, eq, isNotNull, sql } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
 
 const forgotPasswordSchema = z.object({
-  altcha: z.optional(z.string()),
+  ...botFields,
   email: z.email({ error: formError('form_required') }),
-  hpcheck: honeypotSchema,
 })
 
 /** GoTrue stores addresses lowercased, so a mixed-case entry must still find its account. */
@@ -26,14 +25,9 @@ async function isConfirmed(email: string): Promise<boolean> {
 
 // Every branch answers alike, so the form cannot tell anyone whether an address has an account.
 // An unconfirmed address never gets a reset: that second email is what subscription bombing wants.
-export const forgotPassword = form(forgotPasswordSchema, async ({ altcha, email, hpcheck }) => {
-  if (isHoneypotFilled(hpcheck)) {
-    return { email, success: true }
-  }
-  if (!(await spendProofOfWork(altcha))) {
-    invalid(formError('auth_verificationFailed'))
-  }
-  if (!(await isConfirmed(email))) {
+export const forgotPassword = form(forgotPasswordSchema, async (submitted) => {
+  const { email } = submitted
+  if ((await screenSubmit(submitted)) === 'bot' || !(await isConfirmed(email))) {
     return { email, success: true }
   }
 
