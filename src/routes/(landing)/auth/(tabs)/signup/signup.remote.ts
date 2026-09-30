@@ -2,16 +2,9 @@ import { form, getRequestEvent } from '$app/server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
-import { spendProofOfWork } from '$lib/forms/proofOfWork.server'
-import {
-  authError,
-  formError,
-  honeypotSchema,
-  isHoneypotFilled,
-  passwordSchema,
-  passwordsMatch,
-  usernameSchema,
-} from '$lib/forms/schemas'
+import { botFields } from '$lib/forms/botCheck'
+import { screenSubmit } from '$lib/forms/botCheck.server'
+import { authError, formError, passwordSchema, passwordsMatch, usernameSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { getLocale } from '$lib/paraglide/runtime'
 import { invalid } from '@sveltejs/kit'
@@ -19,10 +12,9 @@ import { eq } from 'drizzle-orm'
 
 const signUpSchema = z
   .object({
-    altcha: z.optional(z.string()),
+    ...botFields,
     confirmPassword: z.string({ error: formError('form_required') }),
     email: z.email({ error: formError('form_required') }),
-    hpcheck: honeypotSchema,
     password: passwordSchema,
     username: usernameSchema,
   })
@@ -32,14 +24,11 @@ const signUpSchema = z
 // is nothing it could collide with, and an unauthenticated "taken" answer would turn sign-up into a
 // username oracle for regions the caller can't see. Collisions are resolved where they are visible
 // (updateUsername checks the caller's regions).
-export const signUp = form(signUpSchema, async ({ altcha, email, hpcheck, password, username }) => {
-  // A bot gets the success it expects, so it has no reason to adapt.
-  if (isHoneypotFilled(hpcheck)) {
+export const signUp = form(signUpSchema, async (submitted) => {
+  if ((await screenSubmit(submitted)) === 'bot') {
     return { success: true }
   }
-  if (!(await spendProofOfWork(altcha))) {
-    invalid(formError('auth_verificationFailed'))
-  }
+  const { email, password, username } = submitted
 
   const {
     locals: { supabase },

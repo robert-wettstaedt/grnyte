@@ -43,12 +43,8 @@ a Web Worker while the person types and writes the payload into a form field.
   'altcha-challenge')`, rather than a new secret: domain-separated, as secret as its parent, and no
   Bitwarden step or deploy ordering. Rotating the service role key only voids challenges younger
   than 10 minutes.
-- Verification: one shared server helper, `requireProofOfWork(payload)`, next to the auth form schemas
-  in `$lib/forms/`, called first in both handlers. Nothing about GoTrue runs before it.
-- Widget: one `ProofOfWork.svelte` in `$lib/forms/` beside `AuthField` and `FormError`, rendered in
-  both forms with `display="invisible"` and `auto="onload"`, posting the payload as the `altcha` field.
-  Its human-interaction-signature collector is switched off (pointer and typing telemetry). The widget
-  script is bundled from npm, never loaded from a CDN.
+- Verification and rendering: the bot-check module (see the last section) runs the checks first in each
+  handler and renders the widget; the widget script is bundled from npm, never loaded from a CDN.
 - Difficulty: `maxNumber` tuned so a mid-range phone solves in about 1 second. Measured, not guessed.
 
 Alternatives: Cap (needs a challenge store, standalone needs Docker plus Valkey), FCaptcha (behaviour
@@ -150,3 +146,13 @@ Ship in four commits, each deployable alone:
    the Supabase dashboard, flip the `check-prod.ts` assertion, run the canary again. Rollback: flip
    `disable_signup` back; the admin path keeps working with it off.
 4. Unconfirmed-account cleanup and the alert move.
+
+## Bot checks as one module (architecture review, 2026-09-30)
+
+The honeypot and the proof of work are one interface for an anonymous form: `botFields` spread into
+its schema, `screenSubmit` called first in its handler (`'bot'` means answer with the handler's own
+success, a missing or spent solve refuses), and `BotCheck.svelte` rendered in the form. The field
+names are private to `$lib/forms/botCheck.ts`. The submit hold lives in `submitHold.ts`, so it is
+unit-tested against a fake widget and reachable by Stryker. The sign-up/sweep pair is pinned by a
+round-trip test in `unconfirmed.server.test.ts`. An account-lifecycle module and a shared auth-mail
+seam were considered and deferred.

@@ -1,15 +1,17 @@
 /**
  * `forgotPassword` sends a reset only to a confirmed account and answers every caller alike.
  */
-import { reachable, sql } from '$lib/db/testDb'
+import { deleteStaleFixtureAccounts, fixtureRun, reachable, sql } from '$lib/db/testDb'
 import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
 import { asAnonymousRequest, callForm } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { forgotPassword } from './forgot-password.remote'
 
-const CONFIRMED = '__forgot_confirmed__@example.test'
-const UNCONFIRMED = '__forgot_unconfirmed__@example.test'
-const UNKNOWN = '__forgot_unknown__@example.test'
+const RUN = fixtureRun()
+
+const CONFIRMED = `__forgot_confirmed_${RUN}__@example.test`
+const UNCONFIRMED = `__forgot_unconfirmed_${RUN}__@example.test`
+const UNKNOWN = `__forgot_unknown_${RUN}__@example.test`
 
 let sent: string[] = []
 /** What GoTrue answers a reset with; the rate limit is the one only a confirmed address can hit. */
@@ -43,7 +45,10 @@ const submit = async (data: Record<string, unknown>) => {
   return result
 }
 
-const cleanup = () => sql`delete from auth.users where email in (${CONFIRMED}, ${UNCONFIRMED})`
+const cleanup = async () => {
+  await deleteStaleFixtureAccounts('__forgot_')
+  await sql`delete from auth.users where email in (${CONFIRMED}, ${UNCONFIRMED})`
+}
 
 beforeAll(async () => {
   if (!reachable) return
@@ -89,24 +94,14 @@ describe.skipIf(!reachable)('forgotPassword', () => {
     expect(sent).toEqual([])
   })
 
-  it('refuses a request without a solved proof of work and sends nothing', async () => {
-    expect(refusals(await submitRaw({ email: CONFIRMED }))).toEqual(['auth_verificationFailed'])
+  it('answers a filled honeypot like any other address and sends nothing, even to a confirmed account', async () => {
+    const { result } = await submitRaw({ email: CONFIRMED, hpcheck: 'https://spam.example' })
+    expect(result).toEqual({ email: CONFIRMED, success: true })
     expect(sent).toEqual([])
   })
 
-  it('refuses a replayed proof of work', async () => {
-    const { encoded, nonce } = await solvedProofOfWork()
-    nonces.push(nonce)
-    await submitRaw({ altcha: encoded, email: CONFIRMED })
-    expect(refusals(await submitRaw({ altcha: encoded, email: CONFIRMED }))).toEqual(['auth_verificationFailed'])
-    expect(sent).toEqual([CONFIRMED])
-  })
-
-  it('sends nothing when the honeypot is filled, even for a confirmed account', async () => {
-    expect(await submit({ email: CONFIRMED, hpcheck: 'https://spam.example' })).toEqual({
-      email: CONFIRMED,
-      success: true,
-    })
+  it('screens the request before GoTrue: no solve, nothing sent', async () => {
+    expect(refusals(await submitRaw({ email: CONFIRMED }))).toEqual(['auth_verificationFailed'])
     expect(sent).toEqual([])
   })
 })

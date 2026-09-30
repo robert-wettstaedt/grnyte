@@ -3,14 +3,16 @@
  * address, and leaves the confirmation email to GoTrue's resend.
  */
 import { deleteAccountRows } from '$lib/db/testAccounts'
-import { reachable, sql } from '$lib/db/testDb'
+import { deleteStaleFixtureAccounts, fixtureRun, reachable, sql } from '$lib/db/testDb'
 import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
 import { asAnonymousRequest, callForm } from '$lib/remote/testHarness'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { signUp } from './signup.remote'
 
-const NEW = '__signup_new__@example.test'
-const USERNAME = 'signupnew'
+const RUN = fixtureRun()
+
+const NEW = `__signup_new_${RUN}__@example.test`
+const USERNAME = `su${RUN}`
 
 let created: string[] = []
 let resent: string[] = []
@@ -69,6 +71,7 @@ const submit = async (data: Record<string, unknown>) => {
 const refusals = ({ issues = [] }: Outcome) => issues.map((issue) => JSON.parse(issue.message).message)
 
 const cleanup = async () => {
+  await deleteStaleFixtureAccounts('__signup_')
   const ids = await sql<{ id: string }[]>`select id from auth.users where email = ${NEW}`
   await deleteAccountRows(
     sql,
@@ -91,13 +94,14 @@ afterAll(async () => {
 })
 
 describe('signUp', () => {
-  it('creates nothing when the honeypot is filled', async () => {
+  it('answers a filled honeypot with success and creates nothing', async () => {
     const { result } = await submitRaw({ ...FIELDS, hpcheck: 'https://spam.example' })
     expect(result).toEqual({ success: true })
     expect(created).toEqual([])
+    expect(resent).toEqual([])
   })
 
-  it('refuses a sign-up without a solved proof of work before reaching GoTrue', async () => {
+  it('screens the sign-up before GoTrue: no solve, no account', async () => {
     expect(refusals(await submitRaw(FIELDS))).toEqual(['auth_verificationFailed'])
     expect(created).toEqual([])
   })
