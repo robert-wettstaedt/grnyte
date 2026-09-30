@@ -256,6 +256,13 @@ jobs:
               exit 1
             fi
 
+            # Parse the file BEFORE the teardown below, which is unconditional and succeeds on its
+            # own. A missing env file only fails at `up`, once prod is already stopped.
+            if ! docker compose -f docker-compose.zero.yml config --quiet; then
+              echo "❌ docker-compose.zero.yml does not resolve; leaving the running stack alone"
+              exit 1
+            fi
+
             # Stop existing services
             docker compose -f docker-compose.zero.yml down --remove-orphans || true
 
