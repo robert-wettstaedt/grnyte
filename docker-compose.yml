@@ -64,6 +64,43 @@ services:
       timeout: 10s
       retries: 3
 
+  # Prod's zero-cache at prod's speed, for measuring against the prod-shaped Volume Test region.
+  # Opt in with `docker compose --profile perf up -d zero-perf` after stopping `npm run dev:zero`.
+  zero-perf:
+    profiles: ['perf']
+    image: rocicorp/zero:1.9.0
+    container_name: zero-perf
+    ports:
+      - '4848:4848'
+    # 0.4 measured on an M-series Mac: `listRoutes({})` 9.2 s (0.43 ms/row), prod 9.3 to 10.3 s.
+    # Retune live with `docker update --cpus`; no restart needed.
+    cpus: ${ZERO_PERF_CPUS:-0.4}
+    environment:
+      # Its own app id, so it never shares a shard schema or replication slot with dev:zero.
+      - ZERO_APP_ID=zeroperf
+      # The local stack's default password, reached from inside the container.
+      - ZERO_UPSTREAM_DB=${ZERO_PERF_UPSTREAM_DB:-postgres://postgres:your-super-secret-and-long-postgres-password@host.docker.internal:5433/postgres}
+      - ZERO_CVR_DB=postgres://zero@cvr:5432/cvr
+      - ZERO_NUM_SYNC_WORKERS=2
+      - ZERO_AUTH_SECRET=${ZERO_AUTH_SECRET}
+      - ZERO_ADMIN_PASSWORD=${ZERO_ADMIN_PASSWORD:-perf}
+      # A `.localhost` name: Vite's dev server 403s any other host, `host.docker.internal` included.
+      - ZERO_GET_QUERIES_URL=http://app.localhost:3000/api/zero/get-queries
+      - ZERO_GET_QUERIES_FORWARD_COOKIES=true
+      - ZERO_REPLICA_FILE=/data/sync-replica.db
+      - ZERO_SCHEMA_PATH=/opt/app/zero-schema.ts
+    extra_hosts:
+      - 'app.localhost:host-gateway'
+    depends_on:
+      cvr:
+        condition: service_healthy
+    volumes:
+      # Both files under the image's WORKDIR, as in `deployment/docker-compose.zero.yml`.
+      - ./src/lib/zero/zero-schema.ts:/opt/app/zero-schema.ts:ro
+      - ./src/lib/zero/zero-schema.gen.ts:/opt/app/zero-schema.gen.ts:ro
+      - zero_perf_data:/data
+
 volumes:
   zero_data:
   cvr_data:
+  zero_perf_data:
