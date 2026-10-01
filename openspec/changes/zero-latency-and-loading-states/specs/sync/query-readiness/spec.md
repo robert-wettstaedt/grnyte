@@ -165,6 +165,28 @@ all of it.
 - **THEN** the offline guidebook synchronization begins
 - **AND** a device that stays connected until it completes is recorded as holding the guidebook
 
+### Requirement: Synchronizing the offline guidebook does not drop the connection
+
+Synchronizing the offline guidebook SHALL NOT cause the application's connection to be judged dead
+and re-established, on this device or on any other device served by the same sync capacity.
+
+This exists because the guidebook can be satisfied by every requirement above, answered after the
+visible screen and complete in the end, while the work of producing it stalls the server long enough
+that the connection is torn down and the whole synchronization starts again.
+
+#### Scenario: Opening the application on an installed device
+
+- **WHEN** an installed device opens the application after being away and the offline guidebook
+  synchronizes in full
+- **THEN** the connection stays established throughout
+- **AND** no query is synchronized a second time because of a reconnect
+
+#### Scenario: Another reader opening the application at the same time
+
+- **WHEN** one installed device is synchronizing the offline guidebook and another reader is using
+  the application
+- **THEN** the other reader's connection is not dropped by that synchronization
+
 ### Requirement: No unresolvable progress indication
 
 A surface SHALL NOT show a progress indication that cannot resolve. Where nothing can complete the

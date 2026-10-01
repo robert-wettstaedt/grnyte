@@ -285,10 +285,28 @@ Cost: the offline guidebook starts later, by however long the first screen takes
 `guidebook` stamp moves with it. It also now depends on the reference batch: Zero's `complete` stays
 pending rather than rejecting, so if a reference query never completes while online, the guidebook
 never syncs. Accepted because the shell cannot render without those queries either, but the two
-were independent before and a failure in one now silently stops the other. Limit: a screen opened while the guidebook is still hydrating still
-queues behind it. Deferral protects the first screen; only a cheaper guidebook protects the rest.
+were independent before and a failure in one now silently stops the other.
 
-### Recorded, not taken: slimming the offline guidebook is a scope decision
+It also churns the client view records. The CVR remembers the deferred preloads from the last
+session, the opening set no longer contains them, and preloads default to `ttl: 'none'`, so a cold
+open logs `6 to remove` and about a second later `6 to add`: two rewrites of ~23k row records,
+~1.5 s each. Usually both land after the first batch. When the first lands before it, the first
+batch's wall time goes from ~0.9 s to ~2.3 s, which is the 3 to 4 s pill measured on some opens.
+
+Limit: a screen opened while the guidebook is still hydrating still queues behind it. Deferral
+protects the first screen; only a cheaper guidebook protects the rest.
+
+### Rejected on evidence: a TTL on the guidebook preloads
+
+Proposed to stop the churn. Zero defaults preloads to `'none'` because a preload normally runs as
+long as Zero does, and because a TTL on a query whose args change keeps the old variant running
+beside the new one. Deferral breaks the first premise, and the guidebook queries take no args, so
+`ttl: '10m'` looked safe. It is not. It does stop the removal, but a cached inactive query IS
+hydrated when a view-syncer cold-starts: the local zero-cache log showed `listRoutes`, `listBlocks`
+and `listAreas` inside the first batch (`hydrating 20 queries`). That puts the guidebook back in
+front of the visible screen, the original defect. The churn is the price of deferral.
+
+### Decision needed: the guidebook's hydration crosses Zero's dead-connection threshold
 
 | query            | rows   | server   |
 | ---------------- | ------ | -------- |
@@ -298,8 +316,70 @@ queues behind it. Deferral protects the first screen; only a cheaper guidebook p
 
 `listRoutes({})` costs 0.47 ms per row against `listRoutesForMap({})`'s 0.044 over the same routes:
 the relations are the cost. But they are also what render a route page with no signal, which is the
-point of the guidebook. Choosing what offline must cover is a product decision, so it waits for one.
-Deferral is taken first precisely because it changes when the guidebook syncs and not what.
+point of the guidebook. Choosing what offline must cover is a product decision.
+
+It can no longer wait for one, because it is not only latency. `listRoutes({})` hydrates for 9.3 to
+10.9 s on prod and yields to the event loop only rarely, and Zero's client declares a connection
+dead after 2 x `pingTimeoutMs`, 10 s, without a pong. On about half the opens measured, the pong
+missed and the client reconnected: zero-cache logged `client closed` 10.1 s into the hydration, then
+a new view-syncer hydrated all 17 queries again, guidebook included. Every other client group on that
+sync worker is equally starved of pongs while it runs, and there are two workers.
+
+The options, in order of how much they fix: a slimmer `listRoutes({})` (fewer relations), which needs
+the offline-scope decision; splitting the guidebook into several smaller preloads so the worker
+answers pings between them, which keeps the scope but revisits the hash-dedupe reasoning above; more
+sync workers or a larger box, which limits the harm to others without stopping this client's
+disconnect. Raising `pingTimeoutMs` is rejected: it hides the symptom and slows real dead-socket
+detection, the opposite of the resume fix.
+
+### Measure against a prod-shaped, prod-speed local harness
+
+Every decisive number so far came from prod, by deploy and measure, and the deciding evidence for the
+TTL came from a zero-cache log. Group 14's gate needs the ~10 s `listRoutes({})` hydration and the
+disconnect it causes, and locally neither exists: `listRoutes({})` is 7,838 rows in ~600 ms there
+against 19,860 in 9.4 s on prod. Two things differ, and both have to be closed.
+
+**Shape.** The region Volume Test exists to mimic a high-volume prod region, and it is reshaped to do
+that. Measured on prod as aggregates only (no content leaves prod; regions are private), for the
+eight regions one reader sees:
+
+| table                         | prod   | local before | gap           |
+| ----------------------------- | ------ | ------------ | ------------- |
+| routes                        | 6,729  | 5,140        | close         |
+| routes_to_tags                | 3,002  | 2,252        | close         |
+| files                         | 1,805  | 1,430        | close         |
+| blocks                        | 1,838  | 350          | 5x            |
+| areas (nested to depth 4)     | 663    | 125          | 5x            |
+| geolocations                  | 1,581  | 352          | 4.5x          |
+| topos                         | 1,115  | 9            | 124x          |
+| topo_routes                   | 1,808  | 7            | 258x          |
+| routes_to_first_ascensionists | 4,140  | 4            | ~1000x        |
+| first_ascensionists           | 287    | 5            | 57x           |
+| events                        | 12,350 | 578          | 21x           |
+| ascents                       | 1,053  | 6,150        | local 6x more |
+
+Distributions: routes per block p50 2, p90 9, max 58 (the seed's is a flat 20); topos per block 1, 2,
+7; topo lines per route 1, 1, 3. Route volume is not the gap, the relations are: prod's
+`listRoutes({})` is ~3 rows per route because each drags its topo lines, first ascensionists and tags,
+and the seed generates neither topo lines nor first ascensionists. Events are their own gap, and the
+reason the feed's slow window query cannot reproduce locally. Acceptance for the data:
+`listRoutes({})` near 19,860 rows and `listBlocks({})` near 6,167.
+
+Volume Test keeps its members (`user@`, `maintainer@`, `admin@`), so their sessions become
+prod-sized. That is the point of the region, not a side effect.
+
+**Speed.** Prod's box is ~6x slower per row (`listRoutes({})` at 0.47 ms per row against ~0.08 ms
+locally). An opt-in `perf` profile in `docker-compose.yml` runs the same `rocicorp/zero:1.9.0` image as
+prod with a `cpus` cap, `ZERO_NUM_SYNC_WORKERS=2` and `ZERO_CVR_DB` on the local `cvr` container, in
+place of `npm run dev:zero` while measuring. Its logs read with `docker logs -t`, the same commands
+as prod. The cap is calibrated empirically to ~0.47 ms per row, not derived from core counts.
+
+**Acceptance for the harness:** it reproduces prod's two signatures, the pill at ~15 s with the
+deferral reverted and ~1 s with it, and a ~9 to 10 s `listRoutes({})` hydration with an occasional
+`client closed`. Until the second reproduces, group 14 is still judged on prod.
+
+Rejected: copying prod data into dev, because regions are private; a separate region and user for
+isolation, because Volume Test is that region.
 
 ## Risks / Trade-offs
 
@@ -361,6 +441,12 @@ the backstop for the gap deferral cannot close, not the primary fix for the feed
 - The view-syncer's ordering of desired-query changes is inferred from timings (a client group's
   queries finish together, and a screen either precedes the preload or waits for all of it), not
   read in zero-cache's source. Deferral does not depend on the exact mechanism, but slimming would.
+- The feed's own window query is slow in SQLite, ~160 to 330 ms twice per open, on the first
+  batch's critical path: `region_fk IN (SELECT value FROM json_each(?)) ORDER BY created_at desc, id
+desc` across eight regions. Possibly a multi-value IN defeating the composite index; unverified
+  until the replica's query plan is read.
+- Measurement caveat: `hydrateTotal` starts at the server's `hydrating N queries`, so the ~0.7 s of
+  CVR row-record loading before it is not in any pill number. A reader waits that much longer.
 - Whether earlier clients' desired queries add distinct hydration work. The inspector counted 37 to
   46 for the client group against 15 for the current client; hydration is per hash, so this needs
   distinct hashes before it counts as a finding.

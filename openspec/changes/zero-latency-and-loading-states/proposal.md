@@ -68,6 +68,13 @@ it waits for all of it: the feed's new-activity query, 3 ms of work, took ~15 s 
 measured opens. Defer the offline preload until the visible screen is answered. This changes when
 the guidebook syncs, not what it contains.
 
+**The guidebook's hydration (A, correctness).** Moved IN from the non-goals. `listRoutes({})` hydrates
+for 9.3 to 10.9 s on prod and rarely yields, while Zero declares a connection dead after 10 s without
+a pong. About half the measured opens dropped the socket and hydrated everything again, and the stall
+starves every other client on that sync worker. Slimming it was recorded as a product preference; it
+is now a defect. This change takes the decision on what offline must cover and how the guidebook is
+shaped to stay under the threshold (slimmer, or split into smaller preloads), recorded in design.md.
+
 **Cold-load volume (B), diagnostic only.** `listBlocks({})`, `listAreas({})` and
 `listRoutesForMap({})` are registered on the FEED, not only on `/explore`, and nothing obvious
 explains why a feed needs 12,600 rows of map data. Establish why before deciding anything. If it is
@@ -125,9 +132,6 @@ unrelated.
   memory alone, before anything was known about what an unreleased query costs in registrations and
   rows pinned. See design.md for the trigger to reopen it, and note it makes step 4 a no-op until it
   lands.
-- **Slimming the offline guidebook.** `listRoutes({})` is 81% of its server time, but its relations
-  are what render a route page with no signal. What offline must cover is a product decision, so
-  it is recorded in design.md and not taken here. Deferral is the fix that needs no such decision.
 - **Cursor paging for the feed.** The growing window was chosen deliberately and is rarely grown.
 - **A write-side optimistic primitive.** Zero has processed zero mutations ever, by design, so there
   is no acknowledgement to await and roughly 14 sites compensate in eight hand-rolled ways. That is
@@ -159,6 +163,11 @@ reachability probe already produce the signal this needs.
 loading), plus the search surface that fires per keystroke.
 
 **Tables**: none. No schema change, so the drizzle and zero generation pipeline is not involved.
+
+**Test harness**: `src/lib/db/scripts/seed-volume.ts` gains the relations prod has and the seed lacks
+(topo lines, first ascensionists, events, skewed routes per block), and the Volume Test region is
+reseeded to prod's measured shape. `docker-compose.yml` gains an opt-in `perf` profile running prod's
+zero-cache image under a calibrated CPU cap. Dev only; nothing ships.
 
 **Deployment**: `docker-compose.yml`, `deployment/docker-compose.zero.yml`,
 `deployment/README.md`, and a new `ZERO_CVR_DB` secret in Bitwarden with its mapping in
