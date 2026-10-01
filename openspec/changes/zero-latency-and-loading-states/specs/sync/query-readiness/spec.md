@@ -24,6 +24,12 @@ for the arguments in use.
 - **WHEN** the server has confirmed the query complete and the result is genuinely empty
 - **THEN** the surface states the absence plainly
 
+#### Scenario: A surface combining several synchronized queries
+
+- **WHEN** a surface reads data joined on the device from several queries
+- **THEN** it is not confirmed complete until every one of those queries is
+- **AND** until then it does not state that anything is absent
+
 ### Requirement: Unavailable, arriving and complete are distinguishable
 
 A reader SHALL be able to tell three conditions apart: data that is not on this device and is not
@@ -186,6 +192,12 @@ that the connection is torn down and the whole synchronization starts again.
 - **WHEN** one installed device is synchronizing the offline guidebook and another reader is using
   the application
 - **THEN** the other reader's connection is not dropped by that synchronization
+
+#### Scenario: The offline promise survives the reshaping
+
+- **WHEN** an installed device has synchronized the guidebook and loses its connection
+- **THEN** a route shows everything it shows online, other than activity deliberately kept off the
+  device
 
 ### Requirement: No unresolvable progress indication
 

@@ -1,4 +1,5 @@
-> **Execution order: 9 with 11, then 1, 10, 2, 3, 4, then 5 to 7 in parallel, 8 last.**
+> **Execution order: 9 with 11, then 1, 10, 2, 3, 4, then 12, 13 and 15 (done), then 14.1 to 14.5,
+> then 5 to 7 in parallel, then 14.6 to 14.10, 8 last.**
 >
 > Group numbers are the order these were written, not the order they run. They are kept as they are
 > so the completed boxes in groups 1 and 2 stay meaningful. The order above follows the migration
@@ -77,7 +78,8 @@ result as "the lever did not help".
 ## 5. The readiness signal
 
 Independent of tasks 1 to 4 and may land in parallel on its own branch. Runs AFTER group 12: it is
-the backstop for the gap deferral cannot close, not the primary fix for the feed.
+the backstop for the gap deferral cannot close, not the primary fix for the feed. Runs BEFORE 14.6:
+the composite resource implements its members.
 
 - [ ] 5.1 Add the latched readiness member to `QueryResource` in `src/lib/zero/resource.svelte.ts`,
       keyed on the query hash and never cleared, and verify with a unit test that it stays true
@@ -231,39 +233,59 @@ Kept so the reason survives: it is the obvious next idea for the churn in design
 
 ## 14. The guidebook's hydration and the dead-connection threshold
 
-See design.md, "Decision needed: the guidebook's hydration crosses Zero's dead-connection threshold",
-and the spec requirement that synchronizing the guidebook does not drop the connection.
+See design.md, "Flatten the guidebook into relation-free preloads", and the spec requirement that
+synchronizing the guidebook does not drop the connection.
 
-- [ ] 14.1 Take the offline-scope decision: which relations of `listRoutes({})` a route page needs
-      with no signal, and verify by listing them against the route page's actual reads before any
-      query changes
-- [ ] 14.2 Choose between a slimmer `listRoutes({})` and a guidebook split into several smaller
-      preloads, and record the choice and the rejected option in design.md
-- [ ] 14.3 Implement it, and verify on prod with the zero-cache log that across five field-device
-      opens no `client closed` appears during guidebook hydration and no `listRoutes` hydration
-      exceeds ~5 s
-- [ ] 14.4 Read the replica's query plan for the feed's window query (`region_fk IN (SELECT value
-  FROM json_each(?)) ORDER BY created_at desc, id desc`) and verify whether the composite index
+- [x] 14.1 Take the offline-scope decision. Decided: unchanged, every route in every region with
+      everything a route page shows (design.md, "Flatten the guidebook into relation-free preloads")
+- [x] 14.2 Choose the guidebook's shape, recording the choice and the rejected options in design.md.
+      Decided: flatten everything, measured on the harness
+- [ ] 14.3 Add `src/lib/zero/guidebook.ts` with the nine region-gated `guidebook*` queries,
+      registered in the query registry, and verify with a tenancy test seen red that none returns
+      another region's rows
+- [ ] 14.4 Replace the three guidebook preloads in `preloadForOffline` with the `guidebook*` set,
+      stamping `guidebook` only when all complete, and verify on the harness over six cold opens
+      that the median batch is under 3 s and no query exceeds 1 s
+- [ ] 14.5 Make `offline.ts` list the `guidebook*` queries as `field` and `listRoutes`,
+      `listBlocks` and `listAreas` as covered by them. Extend `offline.drift.test.ts` to walk each
+      covered query's AST and fail on any table outside the guidebook set, and see it red by adding
+      a relation to `listRoutes`
+- [ ] 14.6 After group 5, add the composite `QueryResource`: registers named queries, reads a
+      local-only `zql` query, ready when all registered queries complete, latched on their hashes,
+      offline policy taken from them, strict member mirroring the latch with a comment saying why.
+      Verify with unit tests each seen red, plus a test that its local read touches no table outside
+      the registered set
+- [ ] 14.7 Move `exploreData` (the map, `CreateOnMap`, both location pickers) onto the composite
+      resource, and verify the map renders the same blocks, areas and parking at 375x667 and
+      1280x800, and that the inspector shows no `listBlocks({})` or `listAreas({})` registered on
+      /explore
+- [ ] 14.8 Point the /explore empty-region card at the flat areas query, and verify it shows for an
+      empty region and does not flash while syncing
+- [ ] 14.9 Verify on prod over five field-device opens that the median guidebook batch is under 3 s,
+      no guidebook query exceeds 1 s, no ping-related `client closed` appears, and the feed pill
+      appears in under 2 s
+- [ ] 14.10 Read the replica's query plan for the feed's window query (`region_fk IN (SELECT value
+FROM json_each(?)) ORDER BY created_at desc, id desc`) and verify whether the composite index
       is used. Record the answer; change nothing unless the plan shows a sort over the whole table
 
 ## 15. A prod-shaped, prod-speed local harness
 
-Runs BEFORE 14.3, whose gate it lets run locally. See design.md, "Measure against a prod-shaped,
+Runs BEFORE 14.4, whose gate it lets run locally. See design.md, "Measure against a prod-shaped,
 prod-speed local harness", for the targets.
 
-- [ ] 15.1 Extend `src/lib/db/scripts/seed-volume.ts` with what prod has and the seed lacks: topos per
+- [x] 15.1 Extend `src/lib/db/scripts/seed-volume.ts` with what prod has and the seed lacks: topos per
       block, topo lines per route, first ascensionists per route over a shared pool, events, routes
       per block on a skewed distribution, and areas nested to depth 4. Verify by running the prod
       shape query against the reseeded region and matching the design's table within ~10%
-- [ ] 15.2 Reseed Volume Test to those targets with `RESET=true`, and verify with the inspector as a
+- [x] 15.2 Reseed Volume Test to those targets with `RESET=true`, and verify with the inspector as a
       member that `listRoutes({})` returns near 19,860 rows and `listBlocks({})` near 6,167
-- [ ] 15.3 Add the opt-in `perf` profile to `docker-compose.yml` (prod's `rocicorp/zero:1.9.0`, a
+- [x] 15.3 Add the opt-in `perf` profile to `docker-compose.yml` (prod's `rocicorp/zero:1.9.0`, a
       `cpus` cap, `ZERO_NUM_SYNC_WORKERS=2`, `ZERO_CVR_DB` on the local `cvr` container), and verify
       the app syncs through it on :4848 with `npm run dev:zero` stopped and that `docker logs -t`
       shows the view-syncer lines prod shows
-- [ ] 15.4 Calibrate the cap until `listRoutes({})` costs ~0.47 ms per row and hydrates in ~9 to 10 s,
+- [x] 15.4 Calibrate the cap until `listRoutes({})` costs ~0.47 ms per row and hydrates in ~9 to 10 s,
       and record the value in the profile with the measurement beside it
-- [ ] 15.5 Acceptance: reproduce both prod signatures (pill ~15 s with the deferral reverted and
+- [x] 15.5 Acceptance: reproduce both prod signatures (pill ~15 s with the deferral reverted and
       ~1 s with it; a ~9 to 10 s guidebook hydration with an occasional `client closed`) and record
       the runs in the change notes. If the disconnect does not reproduce, say so and keep judging
       14.3 on prod
