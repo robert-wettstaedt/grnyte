@@ -209,7 +209,61 @@ numbers are the five field-device runs in the notes.
       inspector shows the feed's queries answered before `listRoutes({})` registers
 - [x] 12.2 Verify offline is unaffected: once the deferred sync completes the `guidebook` stamp
       still lands, and a route page renders offline with its related rows
-- [ ] 12.3 The gate: rerun the field-device measurement (fresh client groups, `/feed` typed
+- [x] 12.3 The gate: rerun the field-device measurement (fresh client groups, `/feed` typed
       directly, every tab of a profile closed for at least 10 s between runs), five runs, and verify
       the pill lands in under 2 s in ALL five, against three of five at ~15 s before. Record the
-      result in the change notes
+      result in the change notes. PASSED on its five (median 1,075 ms). Two later opens exceeded 2 s
+      and both are traced in the notes: one to the deferral's CVR churn landing before the first
+      batch finished, one to a reconnect caused by the guidebook's hydration (group 14)
+
+## 13. A TTL on the guidebook preloads (rejected)
+
+Kept so the reason survives: it is the obvious next idea for the churn in design.md, and it fails.
+
+- [x] 13.1 Measure the churn the deferral causes on the local client view records, and verify by
+      counting row records rewritten by one open: 10,167 of 10,361 at `'none'`, and 1,977 (all
+      keyed-preload rows, no guidebook rows) at `ttl: '10m'` on the three arg-less queries
+- [x] 13.2 Decide from the zero-cache log, not from timings, whether a cached inactive guidebook is
+      hydrated in a cold view-syncer's first batch, and verify by naming the queries hydrated between
+      `hydrating N queries` and `finished processing queries`. It is (`hydrating 20 queries` with
+      `listRoutes`, `listBlocks`, `listAreas` inside), which undoes the deferral, so the TTL is
+      rejected and was reverted uncommitted
+
+## 14. The guidebook's hydration and the dead-connection threshold
+
+See design.md, "Decision needed: the guidebook's hydration crosses Zero's dead-connection threshold",
+and the spec requirement that synchronizing the guidebook does not drop the connection.
+
+- [ ] 14.1 Take the offline-scope decision: which relations of `listRoutes({})` a route page needs
+      with no signal, and verify by listing them against the route page's actual reads before any
+      query changes
+- [ ] 14.2 Choose between a slimmer `listRoutes({})` and a guidebook split into several smaller
+      preloads, and record the choice and the rejected option in design.md
+- [ ] 14.3 Implement it, and verify on prod with the zero-cache log that across five field-device
+      opens no `client closed` appears during guidebook hydration and no `listRoutes` hydration
+      exceeds ~5 s
+- [ ] 14.4 Read the replica's query plan for the feed's window query (`region_fk IN (SELECT value
+  FROM json_each(?)) ORDER BY created_at desc, id desc`) and verify whether the composite index
+      is used. Record the answer; change nothing unless the plan shows a sort over the whole table
+
+## 15. A prod-shaped, prod-speed local harness
+
+Runs BEFORE 14.3, whose gate it lets run locally. See design.md, "Measure against a prod-shaped,
+prod-speed local harness", for the targets.
+
+- [ ] 15.1 Extend `src/lib/db/scripts/seed-volume.ts` with what prod has and the seed lacks: topos per
+      block, topo lines per route, first ascensionists per route over a shared pool, events, routes
+      per block on a skewed distribution, and areas nested to depth 4. Verify by running the prod
+      shape query against the reseeded region and matching the design's table within ~10%
+- [ ] 15.2 Reseed Volume Test to those targets with `RESET=true`, and verify with the inspector as a
+      member that `listRoutes({})` returns near 19,860 rows and `listBlocks({})` near 6,167
+- [ ] 15.3 Add the opt-in `perf` profile to `docker-compose.yml` (prod's `rocicorp/zero:1.9.0`, a
+      `cpus` cap, `ZERO_NUM_SYNC_WORKERS=2`, `ZERO_CVR_DB` on the local `cvr` container), and verify
+      the app syncs through it on :4848 with `npm run dev:zero` stopped and that `docker logs -t`
+      shows the view-syncer lines prod shows
+- [ ] 15.4 Calibrate the cap until `listRoutes({})` costs ~0.47 ms per row and hydrates in ~9 to 10 s,
+      and record the value in the profile with the measurement beside it
+- [ ] 15.5 Acceptance: reproduce both prod signatures (pill ~15 s with the deferral reverted and
+      ~1 s with it; a ~9 to 10 s guidebook hydration with an occasional `client closed`) and record
+      the runs in the change notes. If the disconnect does not reproduce, say so and keep judging
+      14.3 on prod

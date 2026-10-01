@@ -540,3 +540,163 @@ excluded from offline by design.
 New coupling introduced: the guidebook preload now waits on the reference batch's `complete`, which
 stays pending rather than rejecting. If a reference query never completes online, the guidebook never
 syncs. The shell cannot render without those queries anyway, but the two were independent before.
+
+## 12.3 The gate passed on prod: 5 of 5 under 2 s
+
+Deployed in `83e38ece`. Same protocol as the before runs: field-device override, `/feed` typed
+directly, a fresh profile per run, every tab of it closed past the 5 s keepalive.
+
+|        | run 1  | run 2 | run 3  | run 4  | run 5 | median        |
+| ------ | ------ | ----- | ------ | ------ | ----- | ------------- |
+| before | 15,097 | 1,045 | 15,100 | 14,915 | 1,192 | **14,915 ms** |
+| after  | 1,106  | 1,350 | 1,075  | 962    | 1,043 | **1,075 ms**  |
+
+The guidebook still hydrated in full every run, cold each time: `listRoutes({})` server 9,430,
+9,585, 9,517, 9,255 and 9,526 ms. Nothing was skipped to get the number; the pill no longer waits
+for it. The race that let two of five before-runs escape is gone.
+
+`listRoutes({})` read 0 rows in all five against 19,860 before. Read as timing, not loss: these
+captures were taken as the pill appeared at ~1 s, while those rows were still streaming, whereas
+before the fix a capture could only happen after the guidebook had landed. Not yet confirmed on prod;
+the check is a re-run ~30 s later showing ~19,860 rows and a fresh `guidebookSyncedAt` stamp.
+
+### A sixth run, outside the gate's five, did NOT meet 2 s: 3,929 ms
+
+Not the old failure mode. The pill landed 8.2 s before this run's own guidebook server time, went
+out with the reference batch as designed (every first-batch query finished at ~3.9 to 4.1 s), and no
+guidebook rows had arrived (`listBlocks` and `listAreas` read 0 too), so the guidebook was registered
+after it. What was slow is the first batch as a whole: ~0.5 s of server work, ~4 s of wall time.
+
+Hypothesis, unverified: contention ACROSS client groups. Two sync workers, one per client group, so
+another group's ~12 s guidebook hydration (another user, or the previous profile's group still
+finishing after its tab closed) can hold the worker this group needs. Falsifier: the spacing between
+closing the previous profile and opening this one, against runs 1 to 5. If it holds, deferral fixed
+waiting behind one's OWN guidebook, and what remains is everyone waiting behind everyone's, which
+only a cheaper guidebook or more sync capacity addresses.
+
+### Run 6 against zero-cache's log: the transform is ruled out, two other costs found
+
+Spacing refuted cross-client contention first: runs 1 to 5 were ~10 s apart, run 6 came after a
+10 minute idle, and it was run 6 that was slow. The next suspect, a Vercel cold start of the
+get-queries transform, is refuted twice: Vercel logged that request at 36 ms execution and 54 ms
+end to end, and zero-cache re-transformed all 15 queries inside a ~75 ms window.
+
+zero-cache's own timeline for the client group (`docker logs -t`, UTC):
+
+| time   | step                     | cost                                |
+| ------ | ------------------------ | ----------------------------------- |
+| 43.610 | load CVR                 | 30 ms                               |
+| 44.413 | load 23,040 row records  | 647 ms                              |
+| 44.527 | re-transform 15 queries  | ~75 ms                              |
+| 44.571 | `listEvents` upTo window | 227 ms, flagged "Slow SQLite query" |
+| 44.839 | `listEvents({limit:50})` | 212 ms, flagged "Slow SQLite query" |
+|        | the other nine           | 1 to 6 ms each                      |
+
+Server side the first batch took ~1.46 s of the client's 3,929 ms. Two findings:
+
+- A cold view-syncer loads every row record the client group holds before running anything:
+  23,040, roughly the guidebook. Deferral does not avoid this, because the CVR remembers the rows from
+  earlier sessions. A slimmer guidebook would shrink it.
+- The feed's own window query is slow in SQLite, ~225 ms each time:
+  `region_fk IN (SELECT value FROM json_each(?)) ORDER BY created_at desc, id desc` across 8
+  regions. Possibly a multi-value IN defeating the composite index; unverified until the replica's
+  query plan is read.
+
+~2.4 s falls outside zero-cache's processing, before the connection or after the poke. The A/B
+(profile A after a 10 minute idle, profile B 10 s later) is what separates those.
+
+### A/B after a 10 minute idle: idle time is not the variable, the deferral's churn is
+
+Profile A, opened after a 10 minute idle: pill 1,115 ms. Profile B, opened 10 s later: 3,597 ms,
+but B's capture came after a reconnect (a Zero `Server ping request failed` the reader saw on
+pasting), so B's own open was never measured by the snippet. zero-cache's log for both:
+
+|                                                | A                                          | B                                    |
+| ---------------------------------------------- | ------------------------------------------ | ------------------------------------ |
+| opening set                                    | `6 to remove, 11 to add`                   | `6 to remove, 13 to add`             |
+| 22,912 row CVR flush (the removal)             | 53.923 to 55.454, AFTER the batch finished | 24.088 to 25.471, BEFORE it finished |
+| first batch `finished processing queries`      | wall 887 ms                                | wall 2,342 ms                        |
+| re-add (`0 to remove, 6 to add`), second flush | 22,911 rows, 1.7 s                         | 22,911 rows, 1.7 s                   |
+
+The six removed and re-added are exactly the six queries the deferral holds back. The CVR remembers
+them from the last session, the opening set no longer has them, preloads default to `ttl: 0`, so
+they are removed and ~1 s later added back: two ~1.6 s rewrites of ~23k row records per open, and
+when the first lands before the batch finishes (B) it delays the pill. Inferred, not observed against
+a pre-fix log, but the counts match the deferred set exactly.
+
+Candidate, untested: give the guidebook preloads a TTL (`ttl: '10m'`, the clamp). An inactive query
+is neither hydrated nor removed (`hydrateUnchangedQueries: 19 got queries, 2 inactivated, 17
+hydrated`), so the six would be inactivated and reactivated instead of removed and re-added. The risk
+that decides it: if an inactivated query were hydrated in the first batch, the guidebook would be back
+in front of the feed. Verify by log: `hydrating 11 queries`, the six inactivated, and no
+`flushing 22912 rows` before `finished processing queries`.
+
+Correction to the disconnect finding: the `listRoutes({})` hydration is not one unbroken block. A's
+ran 10,857 ms yet the row flush completed mid-stall at 55.454, so the loop got turns, and A did not
+disconnect. B shows no turn for 10.2 s. It yields rarely, so the ping failure is chance, consistent
+with the reader's ~50%. B's reconnect then re-hydrated 17 queries, guidebook included.
+
+`hydrateTotal` starts at the server's "hydrating N queries", so the ~0.7 s of CVR row record loading
+before it is not in `pillTotal`.
+
+### TTL on the guidebook preloads, verified locally
+
+Zero's docs: ordinary queries default to `5m`, `preload()` to `'none'` ("will stop syncing
+immediately when deactivated"), `10m` is the maximum, and the clock only ticks while Zero runs. The
+stated reason for `'none'`: a preload runs the whole time Zero runs, and a TTL on one whose args
+change keeps the old variant running beside the new. The deferral breaks the first premise, which is
+why `'none'` costs us; the second premise is why only the three arg-less guidebook queries get a TTL.
+
+Measured on the local CVR (`zero_0/cvr.rows` rewritten past the pre-open `patchVersion`, field-device
+override, one client group, every tab closed past the keepalive):
+
+|                           | row records rewritten by one open                                      |
+| ------------------------- | ---------------------------------------------------------------------- |
+| `ttl: 'none'` (before)    | 10,167 of 10,361                                                       |
+| guidebook at `ttl: '10m'` | 1,977: 1,965 `ascents`, 11 `region_members`/`users`, 1 `user_settings` |
+
+The residue is exactly the keyed preloads left at `'none'` (`listUserAscents`, `listUsers`). The
+guidebook tables churned zero rows. On prod those keyed preloads are ~650 rows against 22,912.
+
+Not settled locally: whether a cached-but-inactive guidebook is hydrated in a cold view-syncer's
+first batch, which would undo the deferral. The reference batch was no slower with the TTL (1,157 ms
+against 1,279 ms the same session), which argues against it, but local `listRoutes` is too light to
+be decisive. Decided on prod by the zero-cache log: no `flushing 22912 rows`, fewer than 6 to remove,
+and no `listRoutes` hydration before `finished processing queries`.
+
+### Local probe for "is the cached guidebook in the first batch": failed its controls
+
+Idea: change route 103 (referenced by no first-batch query) and insert a feed event while the app is
+away, then compare the two rows' `patchVersion` in `zero_0/cvr.rows`. Same version would mean the same
+poke, i.e. the guidebook in the first batch.
+
+- Two transactions: different versions in every arm. It measured commit order, not delivery.
+- One transaction: the SAME version (`72qcizw0w`, `72qcn6shc`, `72qcuuj4w`) in all three arms, the
+  original startup preload, deferral plus TTL, and the committed deferral at `'none'`, although prod's
+  log proves the last keeps the guidebook out. So it does not discriminate, and no conclusion follows.
+
+Separately, locally today the guidebook stamp lands within ~3 ms of the reference stamp in every arm,
+unlike the ~1.3 s gap measured locally before. The likeliest reading is that locally the previous
+client's desires are still live at the first sync, so prod's precondition ("6 to remove") does not
+reproduce. Unconfirmed without the local zero-cache log, which runs in a terminal this session cannot
+read. The churn comparison above still holds, since both arms ran the same procedure.
+
+Lesson: a positive control that shows the expected value proves nothing until the opposite arm shows
+the opposite value. The first control "went red" and was only exposed by the negative control.
+
+### Decided by the local zero-cache log: the TTL is rejected
+
+With the local log readable, one cold open on the TTL code (guidebook desires recorded at 10 m):
+
+```text
+syncQueryPipelineSet: 23 CVR queries, 21 custom re-transformed, 0 errored, 3 to remove, 20 to add
+hydrating 20 queries          <- listRoutes, listBlocks, listAreas all hydrated in here
+finished processing queries (process: 792 ms, wall: 878 ms)
+syncQueryPipelineSet: ..., 0 to remove, 3 to add      <- the keyed preloads, still 'none'
+flushing 1984 rows (1984 inserts, 0 deletes)
+```
+
+The TTL does stop the removal (3 to remove instead of 6), but a cached, inactive query IS hydrated
+when a view-syncer cold-starts, so the guidebook lands back in the first batch: 878 ms here, the full
+~12 s on prod, which is the original defect. Reverted to HEAD, never committed. The remove and re-add
+churn is the price of the deferral; only a cheaper guidebook reduces it.
