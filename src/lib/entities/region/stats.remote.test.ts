@@ -144,14 +144,13 @@ beforeAll(async () => {
     insert into public.files (id, region_fk, created_by, path, route_fk)
     values ('__stats_orphan__', ${homeRegionId}, ${owner.userId}, '', ${route.id})`
 
-  // Two this month, one last month, one far outside the window. Pinned to the 2nd of the month
-  // rather than `now() - 2 days`, which lands in the PREVIOUS bucket when the suite runs on the
-  // 1st. OTHER is inserted after HOME and made the most recently active, so the list's sort has
+  // Two this month, one last month, one far outside the window. Pinned to the month's first instant:
+  // `now() - 2 days` lands in the PREVIOUS bucket on the 1st, and the 2nd is in the future then. OTHER is inserted after HOME and made the most recently active, so the list's sort has
   // to contradict insertion order: unsorted, the rows come back home-first.
   await sql`
     insert into public.events (region_fk, actor_fk, verb, route_fk, created_at) values
-      (${homeRegionId}, ${owner.userId}, 'create', ${route.id}, date_trunc('month', now()) + interval '1 day'),
-      (${homeRegionId}, ${owner.userId}, 'update', ${route.id}, date_trunc('month', now()) + interval '1 day'),
+      (${homeRegionId}, ${owner.userId}, 'create', ${route.id}, date_trunc('month', now())),
+      (${homeRegionId}, ${owner.userId}, 'update', ${route.id}, date_trunc('month', now())),
       (${homeRegionId}, ${owner.userId}, 'update', ${route.id}, now() - interval '1 month'),
       (${homeRegionId}, ${owner.userId}, 'update', ${route.id}, now() - interval '5 years')`
   await sql`
@@ -297,10 +296,10 @@ describe.skipIf(!reachable)('regionStats numbers', () => {
 
     expect(result.activityByMonth).toHaveLength(ACTIVITY_MONTHS)
     expect(result.activityByMonth.at(-1)?.count).toBe(2)
-    // The newest HOME event sits on the 2nd of the current month, so assert that window rather
+    // The newest HOME event sits at the start of the current month, so assert that window rather
     // than a rolling one: `createdAt` is no use, the fixture creates the region after the event.
     const monthStartMs = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)
-    expect(result.lastActivityAt).toBeGreaterThan(monthStartMs)
+    expect(result.lastActivityAt).toBeGreaterThanOrEqual(monthStartMs)
     expect(result.lastActivityAt).toBeLessThanOrEqual(Date.now())
   })
 

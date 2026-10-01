@@ -264,22 +264,28 @@ function preloadForOffline(z: Z<Schema>): void {
     return
   }
 
-  // These three go first and unconditionally, because they are the bulk of the sync and they need
-  // nothing looked up first. Anything keyed on the numeric user id has to wait for the row below.
+  // The guidebook, as relation-free tables (see `guidebook.ts`). They need nothing looked up first;
+  // anything keyed on the numeric user id has to wait for the row below.
   //
   // Their completion is stamped, and that stamp is what lets a screen offline treat an empty result
   // as an answer rather than a gap. Without it the only signal was the reference stamp above, which
   // fires seconds earlier on five tiny queries: a device that finished those and then lost the
-  // connection partway through `listRoutes` claimed authority over a guidebook it only partly had,
+  // connection partway through the guidebook claimed authority over a guidebook it only partly had,
   // and rendered every area whose routes never arrived as an area with no routes.
   //
   // No `catch`: `complete` resolves or stays pending, it never rejects, so there is nothing to
   // handle and an interrupted sync never stamps. That is the outcome we want. The `run` calls
   // below are a different matter, those can reject.
   void Promise.all([
-    z.preload(queries.listRoutes({})).complete,
-    z.preload(queries.listAreas({})).complete,
-    z.preload(queries.listBlocks({})).complete,
+    z.preload(queries.guidebookAreas()).complete,
+    z.preload(queries.guidebookBlocks()).complete,
+    z.preload(queries.guidebookFirstAscensionists()).complete,
+    z.preload(queries.guidebookGeolocations()).complete,
+    z.preload(queries.guidebookRouteFirstAscents()).complete,
+    z.preload(queries.guidebookRoutes()).complete,
+    z.preload(queries.guidebookRouteTags()).complete,
+    z.preload(queries.guidebookTopoRoutes()).complete,
+    z.preload(queries.guidebookTopos()).complete,
   ]).then(() => markSynced('guidebook'))
 
   // Your own ascents (sends logged on every route) and your own favorites (the save button's state).

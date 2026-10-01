@@ -14,6 +14,7 @@ import { rolePermissionsQueryDefs } from '$lib/entities/rolePermission/queries'
 import { routesQueryDefs } from '$lib/entities/route/queries'
 import { usersQueryDefs } from '$lib/entities/user/queries'
 import { defineQueries } from '@rocicorp/zero'
+import { guidebookQueryDefs } from './guidebook'
 
 export const queries = defineQueries({
   ...areasQueryDefs,
@@ -25,6 +26,7 @@ export const queries = defineQueries({
   ...firstAscensionistsQueryDefs,
   ...geolocationsQueryDefs,
   ...gradesQueryDefs,
+  ...guidebookQueryDefs,
   ...notificationsQueryDefs,
   ...reactionsQueryDefs,
   ...regionsQueryDefs,
