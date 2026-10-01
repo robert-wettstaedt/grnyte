@@ -204,10 +204,10 @@ Runs BEFORE groups 5 to 7: it removes most of the wait those groups would otherw
 See design.md, "Defer the offline preload until the visible screen is answered". The before
 numbers are the five field-device runs in the notes.
 
-- [ ] 12.1 Move `preloadForOffline(z)` in `src/lib/zero/z.svelte.ts` behind the trigger the design
+- [x] 12.1 Move `preloadForOffline(z)` in `src/lib/zero/z.svelte.ts` behind the trigger the design
       names, and verify by driving a field-device session (the `offlineData` override) that the
       inspector shows the feed's queries answered before `listRoutes({})` registers
-- [ ] 12.2 Verify offline is unaffected: once the deferred sync completes the `guidebook` stamp
+- [x] 12.2 Verify offline is unaffected: once the deferred sync completes the `guidebook` stamp
       still lands, and a route page renders offline with its related rows
 - [ ] 12.3 The gate: rerun the field-device measurement (fresh client groups, `/feed` typed
       directly, every tab of a profile closed for at least 10 s between runs), five runs, and verify

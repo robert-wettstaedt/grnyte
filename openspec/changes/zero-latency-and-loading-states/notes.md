@@ -503,3 +503,40 @@ decision about offline scope, not a latency fix to make in passing.
 
 Also observed: `inspector.clientGroup.queries()` returned 37 to 46 against 15 for the current client.
 Not yet a finding: hydration is per hash, and those may be the same queries desired by earlier clients.
+
+## 12.1 and 12.2, verified locally before the prod gate
+
+Local reproduction of the phone path: Chrome, the `offlineData` override, an event inserted while
+the app is away, every tab closed past the 5 s keepalive, `/feed` reopened with an `initScript`
+observer. Measured is the first moment the new activity is visible at all (in the list or behind
+the pill), against the `guidebook` stamp. Locally the new row lands in the list rather than behind
+the pill, because on localhost the first window arrives before stale local rows are acknowledged.
+
+| arm    | visible  | reference stamp | guidebook stamp | order                       |
+| ------ | -------- | --------------- | --------------- | --------------------------- |
+| before | 2,409 ms |                 | 2,407 ms        | after guidebook, +2 ms      |
+| before | 2,205 ms |                 | 2,203 ms        | after guidebook, +2 ms      |
+| before | 2,234 ms |                 | 2,232 ms        | after guidebook, +2 ms      |
+| after  | 2,109 ms | 2,107 ms        | 3,434 ms        | before guidebook, -1,325 ms |
+| after  | 1,944 ms | 1,941 ms        | 3,211 ms        | before guidebook, -1,267 ms |
+| after  | 2,002 ms | 2,000 ms        | 3,261 ms        | before guidebook, -1,259 ms |
+
+Before, the feed is released by the same event as the guidebook in 3 of 3; after, it is released
+with the reference batch and the guidebook completes ~1.3 s later, in 3 of 3. The guidebook now
+finishing well after the reference stamp is the control that the page ran the new code.
+`listRoutes({})` hydrated fresh every run (604, 598, 598, 624, 576 ms), so each open was cold.
+
+The absolute gain is small here and that is expected: local `listRoutes({})` is 7,838 rows and
+~600 ms against prod's 19,860 and 9,352 ms, so locally the guidebook barely exceeds a ~1.7 s first
+connection cost the feed pays either way. Unexplained, and NOT the guidebook: modules finish loading
+at ~214 ms, and only this client desires the guidebook (39 desires, 21 distinct hashes, the two
+earlier clients 11 each and none of them guidebook queries). Prod's escaped runs landed at ~1 s, so
+the 12.3 gate is where the magnitude is decided.
+
+12.2: offline, a route this client had never opened rendered from the local store with its name,
+grade and full area and block chain. Ascents showed the offline notice, which is correct: they are
+excluded from offline by design.
+
+New coupling introduced: the guidebook preload now waits on the reference batch's `complete`, which
+stays pending rather than rejecting. If a reference query never completes online, the guidebook never
+syncs. The shell cannot render without those queries anyway, but the two were independent before.

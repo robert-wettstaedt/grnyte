@@ -104,9 +104,12 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
       // The reference data is in the local store and the server confirmed it. Narrow on purpose:
       // this says the shell can render, and nothing at all about the guidebook, which is thousands
       // of rows still arriving. `preloadForOffline` stamps that separately.
-    ]).then(() => markSynced('reference'))
-
-    preloadForOffline(z)
+    ]).then(() => {
+      markSynced('reference')
+      // Only now: a client group's queries are answered as one batch, so issued beside these the
+      // guidebook held the first screen back for its whole ~12 s hydration.
+      preloadForOffline(z)
+    })
   }
 
   instance = z
