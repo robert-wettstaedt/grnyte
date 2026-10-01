@@ -30,6 +30,10 @@ describe('remoteResource', () => {
     expect(resource.isEmpty).toBe(true)
   })
 
+  it('claims no absence before any answer, even when Kit is not reporting a load', () => {
+    expect(remoteResource(fake<number[]>({ loading: false, ready: false })).isEmpty).toBe(false)
+  })
+
   it('prefers the error over a stale answer, as the screens did before', () => {
     expect(remoteResource(fake({ current: [1], error: new Error('nope'), loading: false, ready: true })).status).toBe(
       'error',

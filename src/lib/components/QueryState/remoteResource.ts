@@ -33,9 +33,10 @@ export function remoteResource<T>(query: RemoteQuery<T>): QueryResource<T | unde
       return query.ready && query.error == null
     },
 
+    // Settled and empty, as on a Zero resource: an answer that has not arrived claims no absence.
     get isEmpty(): boolean {
       const data = query.current
-      return status() === 'ready' && (data === undefined || (Array.isArray(data) && data.length === 0))
+      return query.ready && status() === 'ready' && (data === undefined || (Array.isArray(data) && data.length === 0))
     },
 
     get isSyncing(): boolean {

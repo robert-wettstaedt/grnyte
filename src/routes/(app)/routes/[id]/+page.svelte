@@ -37,8 +37,11 @@
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { motion } from '$lib/state/motion.svelte'
   import { back, push } from '$lib/state/navigation.svelte'
+  import { resolveUnavailable } from '$lib/zero/resource.svelte'
   import { SvelteMap } from 'svelte/reactivity'
+  import { fade } from 'svelte/transition'
   import RegionLive from './RegionLive.svelte'
   import RouteActions from './RouteActions.svelte'
 
@@ -73,10 +76,9 @@
   // getting wrong: rows being present offline proves nothing, because your own ascents and anything
   // browsed earlier are seeded into the same table by other preloads.
   //
-  // `isComplete` is the deliberate exception to reading availability alone. It survives a
-  // disconnect, so a list the server already confirmed stays on screen through a signal blip
-  // instead of being replaced by "not available offline" ten seconds in and restored afterwards.
-  const ascentsUnavailable = $derived(ascents.availability !== 'ready' && !ascents.isComplete)
+  // Offline only, never merely loading. `settled` keeps a list the server already confirmed on
+  // screen through a signal blip; `isComplete` drops then.
+  const ascentsUnavailable = $derived(resolveUnavailable(ascents))
 
   // The most complete drawing of this route across the block's topos.
   const hit = $derived(selectTopoForRoute(topos.data, routeId))
@@ -122,7 +124,7 @@
   const siblingRoutes = blockRouteList(() => route.data?.blockFk ?? -1)
   const orderedSiblings = $derived(orderRoutesByTopo(siblingRoutes.data, topos.data))
   const routeHref = (id: number) => entityHref('routes', id)
-  const nav = $derived(toSheetNav(orderedSiblings, routeId, routeHref))
+  const nav = $derived(toSheetNav(siblingRoutes.settled ? orderedSiblings : null, routeId, routeHref))
 
   /** Whether the event log is up. It owns the screen while it is, like the media viewer. */
   let logOpen = $state(false)
@@ -300,7 +302,11 @@
           <section class="flex flex-col gap-2.5">
             <div class="flex items-baseline justify-between gap-3">
               <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">{m.ascents_title()}</h2>
-              <span class="text-surface-500 text-xs font-semibold">{ascents.data.length}</span>
+              {#if ascents.settled}
+                <span class="text-surface-500 text-xs font-semibold" transition:fade={{ duration: motion() }}>
+                  {ascents.data.length}
+                </span>
+              {/if}
             </div>
 
             <!-- Row thumbs duplicate the media section below on purpose: they link each
@@ -313,7 +319,7 @@
             {/each}
 
             <a class="btn preset-outlined-surface-200-800 w-full" href={ascentsHref}>
-              {m.ascents_seeAll({ count: ascents.data.length })}
+              {ascents.settled ? m.ascents_seeAll({ count: ascents.data.length }) : m.ascents_seeAllUncounted()}
               <Icon name="chevron-right" size={15} />
             </a>
           </section>
@@ -325,7 +331,7 @@
               <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
                 {m.routes_gradeOpinions()}
               </h2>
-              {#if voteCount > 0}
+              {#if ascents.settled && voteCount > 0}
                 <span class="text-surface-500 text-xs font-semibold tabular-nums">
                   {#if selectedVote != null}
                     {selectedVote.label} · {m.routes_gradeVotes({ count: selectedVote.count })}
@@ -357,6 +363,8 @@
                  opinions" is a claim we can make without the whole list. -->
             {#if ascentsUnavailable}
               <OfflineNotice compact excluded />
+            {:else if !ascents.settled}
+              <!-- A tally of a partial list is a claim about the whole one. -->
             {:else if countByGrade.size > 0}
               <GradeHistogram
                 {countByGrade}

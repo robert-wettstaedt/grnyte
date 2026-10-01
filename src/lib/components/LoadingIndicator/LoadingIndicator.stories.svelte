@@ -32,15 +32,6 @@
   </div>
 {/snippet}
 
-{#snippet inlineWithLabel()}
-  <div
-    class="bg-surface-100-900 border-surface-200-800 flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm whitespace-nowrap shadow-lg"
-  >
-    <LoadingIndicator class="w-fit shrink-0" size={4} />
-    {m.map_loading()}
-  </div>
-{/snippet}
-
 {#snippet inTextButton()}
   <div style="display: flex; align-items: center; gap: 12px;">
     <button class="btn preset-filled-primary-500" type="button">
@@ -135,9 +126,6 @@
      screen. The live version is `fixed inset-0`, which would escape the canvas, so this pins the
      same centring inside a box. -->
 <Story name="Splash" template={splash} />
-
-<!-- The map's loading pill: size 4 inline ahead of a label, inside a bordered rounded chip. -->
-<Story name="Inline with label" template={inlineWithLabel} />
 
 <!-- Pending save, the shape the block-order header and the dialog footer both use: the default ring
      takes the icon slot inside a text button. Button padding, line height and the gap between ring

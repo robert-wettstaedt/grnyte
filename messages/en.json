@@ -122,6 +122,7 @@
   "ascents_notFound": "Ascent not found",
   "ascents_notYours": "Only the person who logged this ascent, or a region admin, can change it.",
   "ascents_seeAll": "See all {count} ascents",
+  "ascents_seeAllUncounted": "See all ascents",
   "ascents_statusFlashed": "Flashed",
   "ascents_statusRedpointed": "Redpointed",
   "ascents_statusRepeated": "Repeated",

@@ -1,4 +1,5 @@
 import { toDisplayName } from '$lib/entities/displayName'
+import { guidebookReadRegistrations, guidebookReads } from '$lib/zero/guidebook'
 import { queries } from '$lib/zero/queries'
 import { createResource, waitForRow } from '$lib/zero/resource.svelte'
 import { toBlockDetail } from './mapper'
@@ -27,6 +28,13 @@ export function blockList(filter: () => BlockListFilter = () => ({}), opts?: { e
     (rows) => rows.map(toBlockDetail),
     opts,
   )
+}
+
+/** Every block in your regions for the map, joined on the device. See `guidebookReads`. */
+export function blockMapList() {
+  return createResource(guidebookReads.blocks, (rows) => rows.map(toBlockDetail), {
+    register: () => guidebookReadRegistrations.map((name) => queries[name]()),
+  })
 }
 
 /**

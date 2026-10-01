@@ -6,8 +6,8 @@
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { AreaListItem } from '$lib/entities/area/dto'
   import { canAddArea, canAddBlock, canAddParking } from '$lib/entities/area/permissions'
-  import { areaList } from '$lib/entities/area/resources.svelte'
-  import { blockList } from '$lib/entities/block/resources.svelte'
+  import { areaMapList } from '$lib/entities/area/resources.svelte'
+  import { blockMapList } from '$lib/entities/block/resources.svelte'
   import { regionDisplayName } from '$lib/entities/region/mapper'
   import { nameCollator } from '$lib/i18n/collator'
   import { formatCoord, formatMetres } from '$lib/map/map'
@@ -35,8 +35,10 @@
   let { center, onrequestcenter, placing = $bindable(), visible }: Props = $props()
 
   const global = getGlobalState()
-  const areas = areaList()
-  const blocks = blockList()
+  const areas = areaMapList()
+  const blocks = blockMapList()
+  // "Nothing found" and "no sector nearby" are claims about every area and block.
+  const placesSettled = $derived(areas.settled && blocks.settled)
 
   let optionsOpen = $state(false)
   let pickerOpen = $state(false)
@@ -355,7 +357,7 @@
           {@render blockedSectorRow(sector)}
         {/each}
 
-        {#if filteredAreas.length === 0 && blockedSectors.length === 0}
+        {#if filteredAreas.length === 0 && blockedSectors.length === 0 && placesSettled}
           <span class="text-surface-600-400 px-3 py-2 text-sm">{m.map_create_noAreasFound()}</span>
         {/if}
       </div>
@@ -390,7 +392,7 @@
               onclick={togglePicker}
             >
               <span class={['truncate', resolvedSector == null && 'text-warning-600-400']}>
-                {resolvedSector?.name ?? m.map_create_noSectorNearby()}
+                {resolvedSector?.name ?? (placesSettled ? m.map_create_noSectorNearby() : m.common_syncing())}
               </span>
               <Icon name="chevron-down" size={16} class="text-surface-600-400 shrink-0" />
             </button>
@@ -419,7 +421,7 @@
                 {@render sectorRow(sector)}
               {/each}
 
-              {#if filteredSectors.length === 0}
+              {#if filteredSectors.length === 0 && placesSettled}
                 <span class="text-surface-600-400 px-3 py-2 text-sm">{m.map_create_noSectorsFound()}</span>
               {/if}
             </div>

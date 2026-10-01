@@ -138,10 +138,8 @@
 
   // Seed the order by distance. Un-located blocks settle at the bottom, stable among themselves.
   //
-  // KNOWN GAP, accepted: a drag stays true of a subset, but sorting is a claim about every block,
-  // so on a partial snapshot it interleaves sorted rows with ones the reader never saw. Left
-  // ungated because `isComplete` goes false whenever the socket parks, which killed the button.
-  // The row labels ("Block <index + 1>") carry the same gap from the other end.
+  // Sorting is a claim about every block, so it waits for `settled`, which a parked socket does not
+  // undo. A drag stays true of a subset, and the server renumbers only the blocks it was sent.
   const sortByDistance = () => {
     const ref = referencePoint
     if (ref == null) return
@@ -236,7 +234,7 @@
               <span class="text-surface-600-400 text-xs">{m.blocks_order_hint()}</span>
               <button
                 class="btn btn-sm preset-tonal-primary flex-none"
-                disabled={referencePoint == null}
+                disabled={referencePoint == null || !blocks.settled}
                 onclick={sortByDistance}
                 type="button"
               >

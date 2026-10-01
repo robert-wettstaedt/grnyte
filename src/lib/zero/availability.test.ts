@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveAvailability } from './resource.svelte'
+import { resolveArriving, resolveAvailability, resolveUnavailable } from './resource.svelte'
 
 /**
  * The truth table for the offline judgement.
@@ -88,5 +88,28 @@ describe('resolveAvailability', () => {
     it('outrank every other input', () => {
       expect(resolveAvailability({ ...base, online: false, policy: 'excluded', status: 'error' })).toBe('error')
     })
+  })
+})
+
+/** Unavailable, arriving and complete must stay three different things on screen. */
+describe('readiness', () => {
+  it('is unavailable only offline, never while merely loading', () => {
+    expect(resolveUnavailable({ availability: 'excluded', settled: false })).toBe(true)
+    expect(resolveUnavailable({ availability: 'unsynced', settled: false })).toBe(true)
+    expect(resolveUnavailable({ availability: 'loading', settled: false })).toBe(false)
+  })
+
+  it('stays available offline once the request was confirmed, so a signal blip keeps the list', () => {
+    expect(resolveUnavailable({ availability: 'excluded', settled: true })).toBe(false)
+  })
+
+  it('is arriving with rows on hand and more expected', () => {
+    expect(resolveArriving({ online: true, settled: false, status: 'ready' })).toBe(true)
+  })
+
+  it('is not arriving once complete, before any row, or offline where nothing is coming', () => {
+    expect(resolveArriving({ online: true, settled: true, status: 'ready' })).toBe(false)
+    expect(resolveArriving({ online: true, settled: false, status: 'loading' })).toBe(false)
+    expect(resolveArriving({ online: false, settled: false, status: 'ready' })).toBe(false)
   })
 })

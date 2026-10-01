@@ -132,7 +132,8 @@
 
 {#if hasRoutes || hasBlocks || hasAreas}
   <section class="space-y-3">
-    <SectionHeading title={m.profile_favorites()} action={isSelf ? removeAllAction : undefined} />
+    <!-- "Remove all N" names the whole list and removes only what is here, so it waits for all of it. -->
+    <SectionHeading title={m.profile_favorites()} action={isSelf && favorites.settled ? removeAllAction : undefined} />
 
     {#if hasRoutes}
       <div class="space-y-2">

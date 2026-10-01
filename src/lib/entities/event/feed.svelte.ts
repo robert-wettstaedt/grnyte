@@ -4,7 +4,9 @@ import { parseTopoChange } from '$lib/entities/topo/change'
 import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
 import { reportIfOnline } from '$lib/logging/report'
 import { getGlobalState } from '$lib/state/global.svelte'
+import { isOnline } from '$lib/state/online.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
+import { syncCaughtUp } from '$lib/zero/z.svelte'
 import { SvelteSet } from 'svelte/reactivity'
 import { eventCard, type CardDensity, type EventCardView } from './card'
 import type { EventObjectType } from './dto'
@@ -26,6 +28,8 @@ export interface EventFeedFilter {
 export interface EventFeedResult {
   /** Take the queued rows into the window on screen, and mark them read. */
   acknowledge: () => void
+  /** Online and not yet caught up: the window or what is newer than it is still unconfirmed. */
+  readonly arriving: boolean
   /**
    * Ids of the cards whose changes are open, mutated in place by the feed component.
    *
@@ -117,6 +121,19 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
     }
   }
 
+  // Caught up once the connection is (`syncCaughtUp`, since a reopened feed's queries report
+  // complete from last session's state) and the window and the count of what is newer are confirmed.
+  // Latched, because every merge re-targets both and would flash the pill again.
+  let caughtUp = $state(false)
+  $effect(() => {
+    if (!syncCaughtUp()) {
+      // A reconnect, e.g. returning to the open app after a push: it has to catch up again.
+      caughtUp = false
+    } else if (!caughtUp && events.settled && (seen == null || incoming.settled)) {
+      caughtUp = true
+    }
+  })
+
   // Both reset with the filter, since a narrowed feed is a different list: an old mark would hold
   // back rows the reader has never seen, and a window grown by five "load older" taps would come
   // back as five pages of whatever they narrowed to.
@@ -124,6 +141,7 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
     filter()
     limit = PAGE_SIZE
     seen = undefined
+    caughtUp = false
   })
 
   // The first window is what the reader opened the page to, so it counts as read; only what lands
@@ -137,6 +155,9 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
 
   return {
     acknowledge,
+    get arriving() {
+      return !caughtUp && isOnline()
+    },
     expandedIds,
     get hasMore() {
       // Zero hands back at most `limit` rows, so a full window is the only signal that there are

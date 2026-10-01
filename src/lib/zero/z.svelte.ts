@@ -76,9 +76,14 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   // The unsubscribe is kept and called on the next swap, so only ever one client reports. That flag
   // is written level-triggered, so two live clients flapping out of step would fight over it.
   connectionUnsubscribe?.()
+  let lastState: string | undefined
   connectionUnsubscribe = z.connection.state.subscribe((state) => {
     reportConnectionState(state)
     noteConnectionForResume(state.name)
+    if (state.name === 'connected' && lastState !== 'connected') {
+      armSyncBarrier(z)
+    }
+    lastState = state.name
   })
 
   // Zero takes 2x `pingTimeoutMs` to notice a socket that died while the app was backgrounded, which
@@ -233,6 +238,27 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   }
 
   return z
+}
+
+let caughtUp = $state(false)
+let barrier = 0
+
+/**
+ * Whether this connection has caught up with the server. `complete` cannot say so: Zero persists
+ * which queries it has, and after a reconnect reports one whose hash it already holds as complete
+ * at once, with last session's rows, while the server is still re-hydrating it.
+ */
+export function syncCaughtUp(): boolean {
+  return caughtUp
+}
+
+function armSyncBarrier(z: Z<Schema>): void {
+  const generation = ++barrier
+  caughtUp = false
+  const nonce = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  void z.run(queries.syncBarrier({ nonce }), { ttl: 'none', type: 'complete' }).then(() => {
+    if (generation === barrier) caughtUp = true
+  })
 }
 
 /**

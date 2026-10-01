@@ -23,11 +23,13 @@
     blockCount: number
     /** Where to drive, resolved by the page from parking or the block centroid. */
     destination: Coords | undefined
+    /** No parking, and the blocks whose centroid stands in for it have not all arrived. */
+    locating: boolean
     location: LocationState
     save: SaveState
   }
 
-  const { area, blockCount, destination, location, save }: Props = $props()
+  const { area, blockCount, destination, locating, location, save }: Props = $props()
   const global = getGlobalState()
 
   const canEdit = $derived(canEditArea(global.userRegions, area))
@@ -64,7 +66,8 @@
 
 <div>
   <!-- Only a sector has a location of its own; a sub-area has nothing to say here. -->
-  {#if area.type === 'sector'}
+  <!-- Not while locating: "no location" is a claim about every block, and they are still arriving. -->
+  {#if area.type === 'sector' && !locating}
     <LocationMeta
       distance={location.distance}
       href={destination == null && canAddParkingHere ? parkingHref : undefined}

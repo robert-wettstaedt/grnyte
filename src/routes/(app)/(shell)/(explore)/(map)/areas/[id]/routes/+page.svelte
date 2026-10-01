@@ -154,6 +154,7 @@
       <Filter
         loading={routes.status === 'loading'}
         routes={routes.data}
+        settled={routes.settled}
         {sortOptions}
         sortDefaults={DEFAULT_DIR}
         placement="sheet"

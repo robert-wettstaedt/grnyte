@@ -6,6 +6,7 @@
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import Topo from '$lib/components/Topo/Topo.svelte'
@@ -98,7 +99,7 @@
   // desktop footer pager). Topos have no names, so the labels state the direction.
   const nav = $derived.by(() => {
     const base = toSheetNav(
-      topos.data.map((view) => ({ id: view.id, name: '' })),
+      topos.settled ? topos.data.map((view) => ({ id: view.id, name: '' })) : null,
       topoId,
       topoHref,
     )
@@ -113,7 +114,8 @@
   // (area trail + block: the block joins the crumbs since it isn't the title here).
   $effect(() => {
     const index = topos.data.findIndex((view) => view.id === topoId)
-    sheetState.title = index === -1 ? m.topo_alt() : m.topo_position({ position: index + 1, total: topos.data.length })
+    sheetState.title =
+      index === -1 || !topos.settled ? m.topo_alt() : m.topo_position({ position: index + 1, total: topos.data.length })
     sheetState.subtitle = block.data == null ? null : breadcrumb
     sheetState.nav = nav
     return () => (sheetState.nav = null)
@@ -189,8 +191,11 @@
 <Panel bind:open onclose={() => exit(blockHref)}>
   <QueryState notFound={m.topo_alt()} resource={topos}>
     {#snippet ready()}
-      {#if topo == null}
+      <!-- The topos are a relation of the block row, so `ready` can arrive before this one has. -->
+      {#if topo == null && topos.settled}
         <ErrorState type="notfound" title={m.topo_alt()} />
+      {:else if topo == null}
+        <div class="flex justify-center py-8"><LoadingIndicator /></div>
       {:else}
         {#if canEditTopos}
           <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- editHref is resolve() + ?topo query. -->

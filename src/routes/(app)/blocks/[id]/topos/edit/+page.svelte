@@ -67,7 +67,7 @@
   const editor = new TopoEditor((topoId) => {
     // `undefined`, not `[]`: "cannot say yet" rather than "no lines". A partial snapshot maps an
     // empty list for a photo that has plenty, and the basis stamped from it would be frozen.
-    if (!topos.isComplete) return undefined
+    if (!topos.settled) return undefined
     const view = topos.data.find((v) => v.id === topoId)
     if (view == null) return undefined
 
@@ -99,10 +99,10 @@
   // runs once, then the user drives selection.
   let selectionApplied = false
   $effect(() => {
-    // `isComplete`, because this effect can DRAW: `?route=` arms a line, which stamps the basis.
+    // `settled`, because this effect can DRAW: `?route=` arms a line, which stamps the basis.
     // A partial snapshot also makes `selectTopoForRoute` miss a route that is already drawn, so it
     // would arm a second one. Deferring is safe: nothing is latched until it runs.
-    if (selectionApplied || !topos.isComplete || topos.data.length === 0 || !editorLive) return
+    if (selectionApplied || !topos.settled || topos.data.length === 0 || !editorLive) return
     selectionApplied = true
 
     const routeParam = page.url.searchParams.get('route')
@@ -466,7 +466,12 @@
   />
 {:else}
   <div class={['bg-surface-950 absolute inset-0 top-0', routesOpen && 'md:right-94 lg:right-105']}>
-    {#if currentTopo == null}
+    {#if currentTopo == null && !topos.settled}
+      <!-- "No topos yet" is a claim about the whole list, so it waits for one. -->
+      <div class="absolute inset-0 flex items-center justify-center" role="status" aria-label={m.common_syncing()}>
+        <LoadingIndicator />
+      </div>
+    {:else if currentTopo == null}
       <div class="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
         <p class="text-surface-600-400 max-w-xs text-sm">{m.topo_emptyState()}</p>
         <button class="btn preset-filled-primary-500" disabled={photoBusy} onclick={() => pickPhoto()}>
@@ -553,7 +558,9 @@
             panelClass="fixed inset-y-0 right-0 z-40"
             contentClass="h-full w-94 rounded-none border-y-0 border-r-0 lg:w-105"
             title={m.topo_routesOnPhoto()}
-            subtitle={m.topo_position({ position: currentTopoIndex + 1, total: topos.data.length })}
+            subtitle={topos.settled
+              ? m.topo_position({ position: currentTopoIndex + 1, total: topos.data.length })
+              : undefined}
             snapPoints={[0.7]}
           >
             {#snippet trigger(props)}
@@ -604,7 +611,7 @@
         onAddPhoto={() => pickPhoto()}
         onReplacePhoto={(topoId) => pickPhoto(topoId)}
         onDeletePhoto={deleteCurrentTopo}
-        onReorder={persistReorder}
+        onReorder={topos.settled ? persistReorder : undefined}
       />
 
       <input bind:this={fileInput} type="file" accept="image/*" class="hidden" onchange={onFilePicked} />

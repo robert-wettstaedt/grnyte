@@ -59,8 +59,9 @@
 
   // The headline counts sit outside the QueryState below, so nothing else stops them stating an
   // absence as a fact. Offline, somebody else's logbook is not kept and their tally is unknowable;
-  // rendering it as 0 says they have never climbed.
-  const ascentsUnavailable = $derived(ascents.availability === 'excluded' || ascents.availability === 'unsynced')
+  // rendering it as 0 says they have never climbed. Online, a tally of a half-synced logbook is
+  // just as wrong, so every whole-logbook number waits for `settled`.
+  const ascentsUnavailable = $derived(!ascents.settled)
   const statusByRoute = $derived(ascentStatusByRoute(ascents.data))
   const projects = $derived(deriveProjects(ascents.data))
   const hardestGrade = $derived(gradeLabel(global.grades, global.gradingScale, stats.hardestGradeFk))
@@ -244,7 +245,7 @@
     {#snippet ready()}
       <div class="space-y-8">
         <!-- Activity heatmap -->
-        {#if sessions.length > 0}
+        {#if ascents.settled && sessions.length > 0}
           <section class="space-y-2.5">
             <SectionHeading title={m.profile_activity()} />
             <ContributionCalendar
@@ -261,7 +262,7 @@
         {/if}
 
         <!-- Grade histogram, with an all-sends / flash toggle -->
-        {#if stats.sends > 0}
+        {#if ascents.settled && stats.sends > 0}
           <section class="space-y-2.5">
             <SectionHeading title={m.profile_gradePyramid()} action={gradeFilter} />
             <GradeHistogram
@@ -298,8 +299,8 @@
           </section>
         {/if}
 
-        <!-- Open projects -->
-        {#if projects.open.length > 0}
+        <!-- Open projects: a send logged later moves a route out, so these wait for the whole logbook. -->
+        {#if ascents.settled && projects.open.length > 0}
           <section class="space-y-2.5">
             <SectionHeading title={m.profile_openProjects()} action={sortToggle} />
             <ProfileRouteList
@@ -313,7 +314,7 @@
         {/if}
 
         <!-- Completed projects -->
-        {#if projects.completed.length > 0}
+        {#if ascents.settled && projects.completed.length > 0}
           <section class="space-y-2.5">
             <SectionHeading title={m.profile_completedProjects()} action={sortToggle} />
             <ProfileRouteList

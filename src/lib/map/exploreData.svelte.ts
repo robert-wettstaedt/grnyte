@@ -2,8 +2,8 @@
    inside $derived (the new reference is the reactivity) and never mutated afterwards.
    SvelteMap made the counter loops pathological in dev: Svelte captures an Error stack per
    set once a signal updates >5 times per flush, costing >1s on the initial /explore load. */
-import { areaList } from '$lib/entities/area/resources.svelte'
-import { blockList } from '$lib/entities/block/resources.svelte'
+import { areaMapList } from '$lib/entities/area/resources.svelte'
+import { blockList, blockMapList } from '$lib/entities/block/resources.svelte'
 import { routeMapList } from '$lib/entities/route/resources.svelte'
 import { blockBounds } from './data.svelte'
 import { isParsedFilterActive, parseRouteFilter, type ParsedRouteFilter } from './filter'
@@ -44,8 +44,9 @@ export function createExploreMapData(
     filters,
     userId,
   )
-  const blocksResult = blockList(() => ({}))
-  const areasResult = areaList(() => ({}))
+  // Joined on the device from the guidebook's flat rows, so a field device hydrates nothing twice.
+  const blocksResult = blockMapList()
+  const areasResult = areaMapList()
 
   // Each field is its own $derived so it only recomputes when its own source query
   // changes: a parking mutation re-emits only the areas query, so `parkingLocations`
@@ -115,6 +116,12 @@ export function createExploreMapData(
     routes.status === 'loading' || blocksResult.status === 'loading' || areasResult.status === 'loading',
   )
 
+  // Marker labels and donuts are totals, so they wait for the whole route list. The filter above
+  // still narrows by the raw counts, so matching blocks appear as their routes arrive.
+  const EMPTY = new Map()
+  const shownRouteCounts = $derived(routes.settled ? routeCountByBlock : EMPTY)
+  const shownGradeCounts = $derived(routes.settled ? gradeCountByBlock : EMPTY)
+
   // A stable object with per-field reactive getters. Callers bind each field to `<Map>`
   // individually (never spread), so a field whose source query didn't change keeps a
   // stable reference and its map layer's effect doesn't re-run: only the changed layer does.
@@ -123,7 +130,7 @@ export function createExploreMapData(
       return blocks
     },
     get gradeCountByBlock() {
-      return gradeCountByBlock
+      return shownGradeCounts
     },
     /** True on cold load while no markers are renderable yet. */
     get isLoading() {
@@ -136,7 +143,7 @@ export function createExploreMapData(
       return parkingLocations
     },
     get routeCountByBlock() {
-      return routeCountByBlock
+      return shownRouteCounts
     },
     /** The underlying route resource, exposed so callers can show filter/loading state. */
     routes,
