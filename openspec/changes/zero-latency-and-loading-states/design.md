@@ -415,6 +415,58 @@ deferral reverted and ~1 s with it, and a ~9 to 10 s `listRoutes({})` hydration 
 Rejected: copying prod data into dev, because regions are private; a separate region and user for
 isolation, because Volume Test is that region.
 
+### A page's chrome renders in every state, not only when ready
+
+On 14 pages the `PageHeader` (back or Cancel, title) and the width container sat inside
+`QueryState`'s `ready` snippet. While loading, and in the empty, not-found, error and offline states,
+those pages had no header, so no way back on a deep link (`ErrorState` offers Back only with
+history), and a full-width skeleton that snapped into a 640 or 768 px column once loaded. Chrome that
+does not depend on the data was rendered as if it did.
+
+Detail pages follow the template notifications, regions, stats, settings and the feed already use:
+`PageHeader` and the container outside `QueryState`, titles as `x.data?.name ?? fallback`, data-bound
+parts of the header (breadcrumb, grade) filling in. Form pages get it once, in `Form`: a loading mode
+that renders the header with Cancel and a fallback title, Save disabled, and the body skeleton inside
+its own width, and that absorbs nested waits (`RouteWithBlock`, `BlockEditor`) so a page shows one
+skeleton rather than two or three in sequence. Rejected: fixing the 11 form pages one by one.
+
+### Secondary content: decide its space before it loads
+
+A page's `QueryState` covers its primary resource only. Sections backed by other queries (a route's
+ascents, media, hero topo, history line) rendered nothing while loading and pushed the page down when
+they arrived; the full list is in notes.md, "Secondary loads". A skeleton is not the fix on its own:
+one that collapses when the answer is "none" shifts the page as much as content popping in (web.dev,
+"Optimize CLS": removing reserved space "can cause just as much CLS as inserting content"). So each
+section is sorted by what is known before it loads:
+
+1. Existence known from data already on screen: reserve exactly that space (a skeleton at the real
+   size, `aspect-ratio` for images), or render nothing. No shift either way.
+2. Existence unknown, with a real empty state: always render the section, skeleton then content or an
+   empty state of about the skeleton's height.
+3. Existence unknown, no empty state worth showing: no reservation, placed low so it appends.
+4. Never insert above content already rendered: reserve its space or move it below.
+
+Skeletons appear only after ~250 ms, so a fast load shows nothing; that hold lives in the skeleton
+primitives, not at call sites. `src/app.css` already stills the pulse under reduced motion.
+
+Decided for `/routes/[id]`: the hero topo is bucket 1 (the route row carries its topo lines and image
+path). With a line, space is reserved at the image's ratio; without one, region editors get a compact
+"Draw this route on a topo" row linking to the topo editor with `?route=`, and read-only members get
+nothing. Media is bucket 1 for editors (the upload tile always renders, thumbs widen a horizontal
+strip) and bucket 3 for read-only members: it moves below the other late sections so it appends.
+
+### Rejected: releasing the guidebook while a hidden tab is disconnected
+
+After Zero's 5-minute hidden-tab disconnect, a resume re-hydrates every registered query in one batch,
+guidebook included, so the deferral only protects a fresh page load. Releasing the preloads on
+disconnect and re-registering them later was traced through Zero 1.9 and rejected. The first batch
+after reconnect then deletes every guidebook row no other live query holds, atomically with the
+screen's data; a signal lost before the re-add lands leaves the device without its guidebook while
+the `guidebook` stamp still claims it. It also resends ~24k rows and rewrites their CVR records on
+every resume, and Zero exposes no reliable "first batch done" hook. No per-query priority exists and a
+TTL keeps an inactive query in the first batch. Kept as is; resume cost is measured on prod in 14.9.
+The 14 s seen locally had two profiles reconnecting at once on the harness's 0.4 CPU.
+
 ## Risks / Trade-offs
 
 - **Relocation forces every client to re-sync once** → Same path the 48-hour inactive-record

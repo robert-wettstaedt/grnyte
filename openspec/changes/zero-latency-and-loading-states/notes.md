@@ -741,3 +741,172 @@ Signature 2 does NOT: no `client closed` during any guidebook hydration across s
 differences are a browser on localhost versus a phone over the internet, and a fractional CPU quota on
 fast cores versus two slow cores. So, per 15.5, 14.3's disconnect criterion stays judged on prod; its
 hydration-time criterion can be measured here.
+
+## 14.4 The flat guidebook on the harness, through the real preload path
+
+Six cold field-device opens of `/feed` (the `offlineData` override, IndexedDB cleared, fresh client
+group each), read off the zero-perf log, twice: 10 s apart, then 30 s apart with `docker stats` sampled.
+
+| spacing | batch span, median (range) | client to stamp | a guidebook query over 1 s |
+| ------- | -------------------------- | --------------- | -------------------------- |
+| 10 s    | 4,254 ms (2,788-5,901)     | 6,615 ms        | 5 of 6 runs                |
+| 30 s    | 4,160 ms (3,798-6,106)     | 7,040 ms        | 6 of 6 runs                |
+
+Today's shape on the same harness: 12.7 s. No `client closed`, no ping failure, no `{}`-arg list query.
+
+Not noise. Every CPU sample overlapping a batch reads the 0.4 cap (39-42 %), idle reads under 3 %, and
+nothing else ran in any slow window: no other client group, no CVR flush (the 24k-row flush always
+starts ~0.4 s after the batch), only the change-streamer's 5 s DDL line, which also lands during fast
+queries. The batch is strictly sequential and its span equals the sum of its walls.
+
+Per query, median (30 s runs): `guidebookRoutes` 1,176 ms (over 1 s in 5 of 6, the bare-table floor of
+7.3k rows at this cap), `guidebookTopoRoutes` 942, `guidebookTopos` 515, `guidebookGeolocations` 348,
+`guidebookRouteFirstAscents` 250, the rest under 200.
+
+Unexplained: the earlier `benchTogether` measurement of the same nine shapes on a fresh client group
+gave 1.9 s, with `topoRoutes` at ~90 ms against ~940 ms here. The obvious differences are issue order
+(alphabetical here) and a client group that already hydrated the feed's queries. Not chased.
+
+Gate revised for the harness (the 3 s / 1 s figures were set from the bench before the real path was
+measured): median span under 5 s, no query over 2.5 s, no open over 7 s. Met by both sets. The prod
+gate in 14.9 is the user's and unchanged; this harness predicts it will read about 4 s there.
+
+## 6.1 The call-site sweep
+
+Patterns: A absence claimed from unconfirmed data, B a whole-collection total from unconfirmed data,
+C hidden or "offline" while merely loading, D `isComplete` where the latch is meant, E a write built
+from an unconfirmed list. Paths under `src/routes/(app)/(shell)/(explore)/(map)/` shortened to `(map)/`.
+
+Structural, behind F1 to F4: `blockRouteList` and `blockTopoList` map a relation of the `.one()`
+`queries.block`, so `#rawEmpty` sees the block row and `status` is `ready` while its routes or topos
+are still arriving. Plain list resources are safe on `status === 'ready' && empty` (complete), only
+unlatched.
+
+| #   | pattern | site                                                                                                             | claim                                   |
+| --- | ------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| F1  | A       | `(map)/blocks/[id]/+page.svelte:148`                                                                             | "no routes yet" while routes arrive     |
+| F2  | A       | same, `:100`, `:128`                                                                                             | "Add topos" while topos arrive          |
+| F3  | B       | same, `:144`, `:98`                                                                                              | route count heading                     |
+| F4  | A       | `(explore)/blocks/[id]/topos/[topoId]/+page.svelte:190`                                                          | "topo not found"                        |
+| F5  | B       | same `:116`, `:99-108`; `blocks/[id]/topos/edit/+page.svelte:556`                                                | "Topo 1 of N"                           |
+| F6  | B       | `(map)/areas/[id]/+page.svelte:107`, `(map)/blocks/[id]/+page.svelte:86`, `routes/[id]/+page.svelte` sibling nav | sibling "n/N"                           |
+| F7  | B       | `(map)/areas/[id]/+page.svelte:62`, `:87-88`, `:127-164`                                                         | histogram, graded count, "All N routes" |
+| F8  | B       | `(map)/areas/[id]/AreaListItem.svelte:17-27`                                                                     | sub-area donut and total                |
+| F9  | B       | `(map)/areas/[id]/AreaList.svelte:18-19`                                                                         | sub-area count                          |
+| F10 | A, B    | `(map)/areas/[id]/BlocksList.svelte:119-124`, `:164-173`                                                         | per-block counts, "No routes"           |
+| F11 | A       | `(map)/areas/[id]/AreaActions.svelte:130`                                                                        | "Order blocks" hidden on a partial list |
+| F12 | A       | `src/lib/map/filteredRoutes.svelte.ts:79-81`                                                                     | filtered list "Nothing here"            |
+| F13 | B       | `(map)/Filter/Filter.svelte:311`, `:101-113`                                                                     | filter route count, grade counts        |
+| F14 | B       | `src/lib/map/exploreData.svelte.ts:55-75`, `layers.svelte.ts:211-222`                                            | marker route counts and donuts          |
+| F15 | B       | `src/lib/components/Profile/ProfileView.svelte:58-66`, `:210-219`                                                | headline sends and hardest              |
+| F16 | B       | same `:247-275`, `:65`, `:131`, `:108`, `:302-327`                                                               | heatmap, pyramid, projects              |
+| F17 | B, E    | `src/lib/components/Profile/ProfileFavorites.svelte:128`, `:69`                                                  | "Remove all N" on a partial list        |
+| F18 | B       | `src/lib/entities/favorite/save.svelte.ts:28-33`                                                                 | save count                              |
+| F19 | A, B    | `regions/[regionId]/+page.svelte:73-74`, `:171-176`                                                              | seats used, sole admin                  |
+| F20 | A       | `src/lib/components/EntitySearch/EntityList.svelte:35-36`                                                        | "No matches" while searching            |
+| F21 | A       | `src/lib/components/Markdown/lib/references.svelte.ts:78-82`                                                     | reference shown as deleted              |
+| F22 | A       | `(map)/CreateOnMap/CreateOnMap.svelte:423`, `:359`, `:393`, `:292`                                               | "no sectors/areas found"                |
+| F23 | B       | `src/lib/components/EventFeed/EventMeta.svelte:79-83`                                                            | "Updated by X" from a stale row         |
+| F24 | E       | `src/lib/entities/event/feed.svelte.ts:132-136`                                                                  | feed cursor pinned to a stale row       |
+| F25 | E       | `areas/[id]/blocks/order/+page.svelte:89-98`, `:145-149`, `:183-189`                                             | block order saved from a partial list   |
+| F26 | E       | `blocks/[id]/topos/edit/+page.svelte:599-607`, `:363-367`                                                        | topo reorder from a partial list        |
+| F27 | A       | same `:469-471`                                                                                                  | "no topos yet" while loading            |
+| F28 | D       | same `:70`, `:105`                                                                                               | first-edit basis refused after a park   |
+| F29 | D       | `routes/[id]/RegionLive.svelte:54-56`                                                                            | dialog unmounts on a park               |
+| F30 | A       | `src/lib/entities/firstAscensionist/FirstAscentField.svelte:70-80`                                               | known climber badged "new"              |
+| F31 | B       | `src/lib/state/global.svelte.ts:157-159`                                                                         | unread badge, deliberately early        |
+| F32 | A       | `(map)/areas/[id]/BlocksList.svelte:159-160`                                                                     | "No topos" on a partial row             |
+
+### 6.4 What became of each
+
+Fixed on `settled`, which now also counts data the offline policy keeps on a synced device (without
+that, every gate below would have hidden a field device's totals at the crag): F1-F3, F5-F11, F13,
+F14 (labels and donuts only; the filter still narrows on raw counts), F15-F17, F18 (no badge until
+whole), F19 (seat line), F20 (`resultsSettled` on `entitySearch`), F21-F23, F25 (sort only; the server
+renumbers only the blocks it is sent, so Save on a partial list is safe), F26 (grip hidden until
+whole: the server appends unlisted photos after listed ones), F27, F28, F29, F30, F31 (zero until
+whole, which keeps the "starts at zero and moves" intent), F32. F4 and F12 too.
+
+Not changed: F24. Pinning `seen` to the newest row already on the device is what queues activity
+that arrived while away behind the "N new" pill, the behaviour the user described as by design and
+the pill 14.9 measures. Gating it on `settled` would fold that activity silently into the list.
+
+## 8.5 Driven on the prod-speed harness instead of a throttled connection
+
+Throttling stalls Zero, and zero-perf already makes the arriving window last seconds. Route page,
+ascents page, block, sector and area pages, profile, search, CreateOnMap and /explore were driven
+cold at 375 and 1280: totals and absences withheld while arriving, correct once settled, no console
+errors. Offline on a field device, area page totals and the map held. The block page's route count
+did not, because `queries.block` had no offline policy; it is now `GUIDEBOOK_COVERED`, with the drift
+test proving the guidebook syncs everything it reaches (and red when a `files` relation is added).
+
+Seen once each and not reproduced in five more loads: a route page dropping from rows back to its
+skeleton for ~2.5 s on a warm reload, and two "Still loading" lines stacked for ~170 ms on the
+ascents page (the page's own and the route QueryState's).
+
+## 14.10 The feed window query's plan, on the zero-perf replica
+
+Indexes on `events`: `events_pkey (id)`, `events_actor_fk_idx`, `events_region_fk_created_at_idx
+(region_fk, created_at DESC)`. For `WHERE region_fk IN (SELECT value FROM json_each(?)) ORDER BY
+created_at desc, id desc LIMIT 50`, and for a literal `IN (2,18)` too, SQLite plans `SCAN events` plus
+`USE TEMP B-TREE FOR ORDER BY`: the composite index is not used, and the sort is over every row.
+
+Not changed anyway: run as written inside the CPU-capped container, the statement takes 1-2 ms over
+12.8k events, so it is not the 160-330 ms the prod log attributed to the feed's window. That time is
+in zero-cache's own pipeline SQL, which this statement does not reproduce. The candidate fix, an
+upstream index on `(created_at DESC, id DESC)` so SQLite walks in order and filters by region, is a
+migration and stays unmade until the slow statement itself is captured.
+
+## `complete` is not "fresh this session", and the sync barrier
+
+Zero persists which queries it holds (`g/` keys) and, once the first poke after a connect lands,
+reports any query registering with a persisted hash as complete at once (`query-manager.js:221`,
+`zero.js:375`), with last session's rows, while the server is still re-hydrating it. Within the
+inactive-query TTL the feed's `incoming` reopens with the same cursor, so the same hash: it said
+"complete, 0 new" instantly and the real event arrived seconds later, with nothing on screen saying so.
+
+`syncBarrier` (a nonce-keyed one-row query run on every connect, `ttl: 'none'`) cannot be in the
+persisted set, so it completes only once the server answers. `syncCaughtUp()` reports it, and the feed
+is arriving until it, the window and the "new" count are all confirmed. Driven: leave, wait 12 s,
+reopen; cards at 1.8 s with "Still loading…", cleared at 4.8 s.
+
+Deferred, decided 2026-10-01: the same check in `QueryState`'s arriving pill for every screen, with a
+~400 ms appearance hold so a fast reconnect does not flash it, and `settled` left alone (stale but whole
+totals beat a flicker). Feed first, because that is where the reader is waiting on something new.
+
+## Secondary loads
+
+Every section backed by a query other than its page's primary resource, as it renders while loading
+(read-only sweep, 2026-10-01). "Nothing" means absent until data arrives, then pushing content down.
+
+- `/routes/[id]` (primary `listRoutes({routeId})`): hero topo (nothing, then up to ~350 px); ascents
+  (nothing until a row); grade opinions (histogram after settled); media (hidden for read-only); history
+  line (nothing, then ~64 px); breadcrumb block link; location line and directions button; description
+  `!type:id!` tokens shown literally until resolved; sibling pager (footer only).
+- `/routes/[id]/ascents`: logbook and community rows append; counts already wait for settled.
+- `/areas/[id]` (primary `area`): blocks list for sectors (nothing at all, no empty state); sub-area
+  list; grade histogram; "All routes" card; referenced-by; history line; directions button; sheet
+  pager; sub-area donuts (icon until settled, same size); "No location" on a sector without parking
+  while its blocks load (a false claim, fixed).
+- `/areas/[id]/routes`: distance sort option appears late; ascent-status glyphs.
+- `/blocks/[id]` (primary `block`): topo strip (nothing, then `h-60`); routes; "add route" square;
+  referenced-by; history line; sheet pager.
+- `/blocks/[id]/topos/[topoId]`: empty dark stage until the image mounts; edit button pops in.
+- `/profile`, `/users/[id]`: heatmap and grade pyramid land ABOVE rendered sessions; first-ascent name
+  line under the username; projects, first ascents and favorites sections appear (block and area
+  favorites skeletons lack their heading); recent sessions append.
+- `/search` and the search bar: later result groups append and re-rank; recent and new groups pop in.
+- Map and filters: marker counts and donuts late; first-ascensionist filter section; CreateOnMap
+  pickers; parking picker map unframed until blocks load.
+- `/feed`: person chip shows "Person" then the name; filter-sheet people rows pop in; expanded topo
+  change (`h-40`).
+- Regions and settings: pending invitations above the invite form; seat count understated until
+  invitations load; tag usage counts; `/settings` invitations above Regions.
+- Forms: "Previous notes (n)" count ungated; first-ascent suggestions; ascent edit's three sequential
+  skeletons; block order rows and pins.
+- Already handled: main lists under `QueryState`, comments, notifications, region members, remote
+  pages, `/users/[id]`, editors, `AscentRow` and `EventCard` name bars, the map's cold-load pill,
+  search's first skeleton, save spinner, empty-region card.
+
+Reusable: `placeholder animate-pulse` bars, the inline name bars in `AscentRow` and `EventCard`,
+`Avatar loading`, `Image` and `MediaTile` pulses, the `Row` shell, `StatusPill`, `LoadingIndicator`.

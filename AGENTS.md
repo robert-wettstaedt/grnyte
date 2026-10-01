@@ -121,6 +121,12 @@ This project uses:
   media query; never construct your own. `EventCard.svelte` is the shortest example.
   A Tailwind `transition-*` class is no substitute: it cannot animate an element that does not exist
   yet, so it stays on hover, focus and state changes of things already mounted.
+- A section backed by a query other than its page's primary resource decides its space before it
+  loads. Known from data already on screen: reserve exactly that space or render nothing. Unknown
+  with a real empty state: always render it, skeleton then content or the empty state. Unknown
+  without one: place it low so it appends. Never insert above rendered content, and never collapse
+  reserved space when the answer is "none", which shifts as much as popping in. Skeletons wait
+  ~250 ms; the reasoning is in the zero-latency change's design.
 - A nested `Modal` must not unmount the one it opened from in the same flush. Closing the inner
   dialog unpauses the outer trap, and if that one's DOM went away in the same flush, zag throws out
   of `getInitialFocusNode`, which aborts the rest of the teardown and leaves the whole app
