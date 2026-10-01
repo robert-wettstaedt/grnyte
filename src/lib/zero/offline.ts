@@ -83,28 +83,43 @@ export const OFFLINE_QUERIES = {
   // a crag. Must render as "not available offline", never as an empty list.
   excluded: ['listComments', 'listEvents', 'listNotifications', 'listRouteAscents'],
 
-  // The guidebook. The first three cover it between them because their related trees overlap and
-  // Zero syncs the union of active queries rather than a copy per query: `listRoutes` carries tags,
-  // first ascents, block, area and topo with its file; `listAreas` the parent chain and parking;
-  // `listBlocks` topos with files, area with parent, and the block's own geolocation. No
-  // geolocations entry is needed, those two already sync every one we render.
-  //
-  // Then your own sends and saves, and everybody in your regions: the one table the guidebook does
-  // not reach that descriptions still point at, through `!users:id!` mentions.
+  // The guidebook as relation-free tables (`guidebook.ts`), then your own sends and saves, and
+  // everybody in your regions: the one table the guidebook does not reach that descriptions still
+  // point at, through `!users:id!` mentions.
   //
   // `listUserAllFavorites` is classified for its only caller, which asks about the signed-in user
   // and is the only one preloaded. Called for somebody else it would promise "connect once and it
   // downloads", which would never come true. No such call site exists; if one appears, it needs the
   // per-usage `offline` override the way `userAscentDetailList` does.
-  field: ['listAreas', 'listBlocks', 'listRoutes', 'listUserAllFavorites', 'listUserAscents', 'listUsers'],
+  field: [
+    'guidebookAreas',
+    'guidebookBlocks',
+    'guidebookFirstAscensionists',
+    'guidebookGeolocations',
+    'guidebookRouteFirstAscents',
+    'guidebookRoutes',
+    'guidebookRouteTags',
+    'guidebookTopoRoutes',
+    'guidebookTopos',
+    'listUserAllFavorites',
+    'listUserAscents',
+    'listUsers',
+  ],
 } satisfies Record<OfflinePolicy, QueryName[]>
 
+/**
+ * `field` without being preloaded: the screens' own guidebook queries, answered offline from the
+ * `guidebook*` rows. `offline.drift.test.ts` fails if one reaches a table those do not sync.
+ */
+export const GUIDEBOOK_COVERED = ['block', 'listAreas', 'listBlocks', 'listRoutes'] as const satisfies QueryName[]
+
 /** Flattened once, so a lookup per resource read is not a scan of three arrays. */
-const POLICY_BY_NAME = new Map<string, OfflinePolicy>(
-  (Object.entries(OFFLINE_QUERIES) as [OfflinePolicy, QueryName[]][]).flatMap(([policy, names]) =>
+const POLICY_BY_NAME = new Map<string, OfflinePolicy>([
+  ...(Object.entries(OFFLINE_QUERIES) as [OfflinePolicy, QueryName[]][]).flatMap(([policy, names]) =>
     names.map((name): [string, OfflinePolicy] => [name, policy]),
   ),
-)
+  ...GUIDEBOOK_COVERED.map((name): [string, OfflinePolicy] => [name, 'field']),
+])
 
 /**
  * The policy for a query, by the name Zero carries on every request.

@@ -26,6 +26,7 @@ import { queries } from '$lib/zero/queries'
 import { schema } from '$lib/zero/zero-schema'
 import { zeroPostgresJS } from '@rocicorp/zero/server/adapters/postgresjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { guidebookQueryDefs } from './guidebook'
 import { authenticatedUserCan, regionMemberCan, regionTables, type QueryContext } from './permissions'
 import { zql } from './zero-schema.gen'
 
@@ -85,11 +86,52 @@ const regionsIn = (rows: { regionFk?: null | number }[]) =>
 
 async function removeFixtures() {
   const names = [REGION_A, REGION_B]
+  const fixtureRegions = sql`(select id from public.regions where name = any(${names}))`
+  // Children before parents: the guidebook rows `seedGuidebook` adds.
+  for (const table of [
+    'topo_routes',
+    'routes_to_tags',
+    'routes_to_first_ascensionists',
+    'topos',
+    'files',
+    'geolocations',
+    'routes',
+    'first_ascensionists',
+    'blocks',
+  ]) {
+    await sql`delete from ${sql('public.' + table)} where region_fk in ${fixtureRegions}`
+  }
   await sql`delete from public.reactions where region_fk in (select id from public.regions where name = any(${names}))`
   await sql`delete from public.events where region_fk in (select id from public.regions where name = any(${names}))`
   await sql`delete from public.areas where name = any(${[AREA_A, AREA_B]})`
   await sql`delete from public.region_members where region_fk in (select id from public.regions where name = any(${names}))`
   await sql`delete from public.regions where name = any(${names})`
+}
+
+/** One row in every guidebook table, so an ungated guidebook query has something to leak. */
+async function seedGuidebook(regionFk: number, areaName: string, userId: number) {
+  const [{ id: areaFk }] = await sql<{ id: number }[]>`select id from public.areas where name = ${areaName}`
+  const [{ id: blockFk }] = await sql<{ id: number }[]>`
+    insert into public.blocks (name, "order", area_fk, region_fk, created_by)
+    values ('__tenancy_block__', 0, ${areaFk}, ${regionFk}, ${userId}) returning id`
+  const [{ id: routeFk }] = await sql<{ id: number }[]>`
+    insert into public.routes (name, block_fk, region_fk, created_by)
+    values ('__tenancy_route__', ${blockFk}, ${regionFk}, ${userId}) returning id`
+  const fileId = crypto.randomUUID()
+  await sql`insert into public.files (id, path, region_fk, created_by) values (${fileId}, '/__tenancy__', ${regionFk}, ${userId})`
+  const [{ id: topoFk }] = await sql<{ id: number }[]>`
+    insert into public.topos (block_fk, file_fk, region_fk) values (${blockFk}, ${fileId}, ${regionFk}) returning id`
+  const [{ id: faFk }] = await sql<{ id: number }[]>`
+    insert into public.first_ascensionists (name, region_fk) values ('__tenancy_fa__', ${regionFk}) returning id`
+
+  await sql`insert into public.topo_routes (region_fk, topo_fk, route_fk, top_type) values (${regionFk}, ${topoFk}, ${routeFk}, 'top')`
+  await sql`insert into public.routes_to_tags (region_fk, route_fk, tag_fk) values (${regionFk}, ${routeFk}, '__tenancy__')`
+  await sql`
+    insert into public.routes_to_first_ascensionists (region_fk, route_fk, first_ascensionist_fk)
+    values (${regionFk}, ${routeFk}, ${faFk})`
+  await sql`insert into public.geolocations (lat, long, block_fk, region_fk) values (0, 0, ${blockFk}, ${regionFk})`
+
+  return { blockFk, fileId }
 }
 
 beforeAll(async () => {
@@ -114,6 +156,11 @@ beforeAll(async () => {
     insert into public.areas (name, region_fk, created_by) values
       (${AREA_A}, ${regionA}, ${users.insider.userId}),
       (${AREA_B}, ${regionB}, ${users.outsider.userId})`
+
+  const a = await seedGuidebook(regionA, AREA_A, users.insider.userId)
+  const b = await seedGuidebook(regionB, AREA_B, users.outsider.userId)
+  // A region B topo on region A's image, as a bad backfill would leave it: only `relatedRegion` stops it.
+  await sql`insert into public.topos (block_fk, file_fk, region_fk) values (${b.blockFk}, ${a.fileId}, ${regionB})`
 }, 30_000)
 
 afterAll(async () => {
@@ -151,6 +198,18 @@ describe.skipIf(!reachable)('region content never crosses the tenancy boundary',
     // return nothing at all for a region the user is not in.
     expect(regionsIn(rows)).not.toContain(regionA)
     expect(regionsIn(rows).filter((regionFk) => regionFk !== regionB)).toEqual([])
+  })
+
+  it.each(Object.keys(guidebookQueryDefs))('never leaks a foreign region through %s', async (name) => {
+    const rows = await run<{ file?: { regionFk: number }; regionFk: number }[]>(
+      queries[name as keyof typeof guidebookQueryDefs],
+      undefined,
+      await ctxFor('outsider'),
+    )
+
+    // Fixture B's own row coming back is what makes the empty foreign set mean something.
+    expect(regionsIn(rows)).toEqual([regionB])
+    expect(regionsIn(rows.flatMap((row) => (row.file == null ? [] : [row.file])))).not.toContain(regionA)
   })
 
   /**

@@ -29,10 +29,13 @@ let region = 0
 if (reachable) {
   const [busy] = await sql<{ regionFk: number }[]>`
     select region_fk as "regionFk" from public.routes where deleted_at is null order by id limit 1`
+  // By events carrying change rows, not by events: a seeded volume region has thousands of
+  // change-less `create` events, which pushed every diff out of the window these cases read.
   const [own] = await sql<{ regionFk: number }[]>`
-    select region_fk as "regionFk" from public.events
-    where region_fk is distinct from ${busy?.regionFk ?? 0}
-    group by region_fk order by count(*) desc limit 1`
+    select e.region_fk as "regionFk" from public.events e
+    where e.region_fk is distinct from ${busy?.regionFk ?? 0}
+      and exists (select 1 from public.changes c where c.event_fk = e.id)
+    group by e.region_fk order by count(*) desc limit 1`
   region = own?.regionFk ?? 0
 }
 
