@@ -21,9 +21,11 @@
     blocks: BlockDetail[]
     /** Every route beneath the area; grouped here by `blockFk`. */
     routes: RouteListItem[]
+    /** Both lists are whole, so a count or a "none" is true. */
+    settled: boolean
   }
 
-  const { blocks, routes }: Props = $props()
+  const { blocks, routes, settled }: Props = $props()
 
   const global = getGlobalState()
 
@@ -116,7 +118,7 @@
             </span>
           {/if}
         {/if}
-        {#if blockRoutes.length > 0}
+        {#if settled && blockRoutes.length > 0}
           {#if block.geolocation == null || block.geolocation.estimated || distance != null}
             <span class="opacity-40" aria-hidden="true">·</span>
           {/if}
@@ -156,7 +158,7 @@
                 </a>
               {/each}
             </div>
-          {:else}
+          {:else if settled}
             <p class="text-surface-600-400 text-sm">{m.topo_none()}</p>
           {/if}
         {:else if blockRoutes.length > 0}
@@ -169,7 +171,9 @@
               </span>
             {/each}
 
-            <p class="text-surface-600-400 text-sm">{m.blocks_noRoutes()}</p>
+            {#if settled}
+              <p class="text-surface-600-400 text-sm">{m.blocks_noRoutes()}</p>
+            {/if}
           </div>
         {/if}
       </div>

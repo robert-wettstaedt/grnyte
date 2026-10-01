@@ -69,6 +69,7 @@
     return sectorReferencePoint(data.parkingLocations.at(0), pins) ?? undefined
   })
 
+  const locating = $derived(destination == null && !blocks.settled)
   const location = createLocationState(() => destination)
   const save = createSaveState(
     () => global.user?.id,
@@ -104,7 +105,7 @@
     const data = area.data
     sheetState.title = title
     sheetState.subtitle = data != null && (regionName != null || data.areas.length > 0) ? breadcrumb : null
-    sheetState.nav = toSheetNav(siblings.data, data?.id, areaHref)
+    sheetState.nav = toSheetNav(siblings.settled ? siblings.data : null, data?.id, areaHref)
     return () => (sheetState.nav = null)
   })
 </script>
@@ -120,11 +121,19 @@
         <AreaEmpty area={detail} />
       {/if}
 
-      <AreaActions area={detail} blockCount={blocks.data.length} {destination} {location} {save} />
+      <AreaActions
+        area={detail}
+        blockCount={blocks.settled ? blocks.data.length : 0}
+        {destination}
+        {locating}
+        {location}
+        {save}
+      />
 
       <CollapsibleMarkdown markdown={detail.description} />
 
-      {#if routes.data.length > 0}
+      <!-- The histogram and its counts describe every route below, so they wait for all of them. -->
+      {#if routes.settled && routes.data.length > 0}
         <section class="space-y-2">
           <div class="flex items-baseline justify-between">
             <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.areas_grades()}</h2>
@@ -145,7 +154,9 @@
             onselect={(bar) => (selected = bar)}
           />
         </section>
+      {/if}
 
+      {#if routes.data.length > 0}
         <a
           class="border-surface-300-700 bg-surface-200-800 hover:bg-surface-300-700 flex items-center gap-3 rounded-xl border p-3 transition-colors"
           href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]/routes', { id: page.params.id! })}
@@ -156,7 +167,9 @@
             <Icon name="list" size={22} />
           </span>
           <span class="min-w-0 flex-1">
-            <span class="block font-semibold">{m.areas_allRoutesCount({ count: routes.data.length })}</span>
+            <span class="block font-semibold">
+              {routes.settled ? m.areas_allRoutesCount({ count: routes.data.length }) : m.areas_allRoutes()}
+            </span>
             <span class="text-surface-600-400 block text-xs">{m.areas_allRoutesHint()}</span>
           </span>
           <Icon name="chevron-right" size={18} class="text-surface-500 flex-none" />
@@ -164,9 +177,9 @@
       {/if}
 
       {#if detail.type === 'sector'}
-        <BlocksList blocks={blocks.data} routes={routes.data} />
+        <BlocksList blocks={blocks.data} routes={routes.data} settled={blocks.settled && routes.settled} />
       {:else if detail.type === 'area'}
-        <AreaList areas={subAreas.data} />
+        <AreaList areas={subAreas.data} settled={subAreas.settled} />
       {:else if !emptyLeads}
         <AreaEmpty area={detail} />
       {/if}

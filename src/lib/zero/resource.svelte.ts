@@ -43,19 +43,28 @@ export interface QueryResource<TOut> {
   readonly availability: Availability
   readonly data: TOut
   readonly isComplete: boolean
-  /** `ready` but with nothing to render: `[]` for lists, `undefined` for `.one()`. */
+  /**
+   * Confirmed to have nothing: `[]` for lists, `undefined` for `.one()`. Never true while rows may
+   * still arrive, so an absence claim can read it without checking anything else.
+   */
   readonly isEmpty: boolean
   readonly isSyncing: boolean
   /**
    * Whether the related rows were ever whole for the request now in flight. A form seeded before
    * that stamps a proof of lists it never read, and the seed key never changes to re-stamp it.
-   * Unlike `isComplete` this does not drop when a backgrounded tab loses its socket.
+   * Unlike `isComplete` this does not drop when a backgrounded tab loses its socket. Offline it is
+   * also true of data the offline policy keeps and this device finished syncing, so a total or an
+   * absence can be stated at the crag.
    */
   readonly settled: boolean
   readonly status: ResourceStatus
 }
 
 export type ResourceStatus = 'error' | 'loading' | 'ready'
+
+// The registry's requests share no argument or row types, and only their names and hashes are read.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type QueryRequest = QueryOrQueryRequest<any, any, any, Schema, any, any>
 
 class Resource<
   TTable extends keyof Schema['tables'] & string,
@@ -66,32 +75,30 @@ class Resource<
   TOut,
 > implements QueryResource<TOut> {
   get availability(): Availability {
-    return resolveAvailability({
-      fieldDevice: isFieldDevice(),
-      guidebookSynced: lastSyncedAt('guidebook') != null,
-      online: isOnline(),
-      policy: this.#offline ?? offlinePolicyOf(this.#queryName),
-      referenceSynced: lastSyncedAt('reference') != null,
-      status: this.#status,
-    })
+    return resolveAvailability({ ...this.#keptInput(), online: isOnline(), status: this.#status })
   }
 
   get data(): TOut {
     return this.#data
   }
   get isComplete(): boolean {
-    return this.#query.details.type === 'complete'
+    return this.#confirming.every((query) => query.details.type === 'complete')
   }
   get isEmpty(): boolean {
-    return this.#status === 'ready' && this.#rawEmpty
+    return resolveEmpty({
+      availability: this.availability,
+      rawEmpty: this.#rawEmpty,
+      settled: this.settled,
+      status: this.#status,
+    })
   }
 
   get isSyncing(): boolean {
-    return this.#query.details.type === 'unknown'
+    return this.#confirming.some((query) => query.details.type === 'unknown')
   }
 
   get settled(): boolean {
-    return this.#settled
+    return this.#settled || (!isOnline() && resolveKept(this.#keptInput()))
   }
 
   get status(): ResourceStatus {
@@ -128,22 +135,36 @@ class Resource<
     return query
   })
 
+  #register: (() => QueryRequest[]) | undefined
+
+  // What the server must confirm: the query itself, or in a composite the named queries it
+  // registers, since its local read is never sent and so never completes.
+  #confirming = $derived.by(() => {
+    if (this.#register == null) {
+      return [this.#query]
+    }
+
+    return this.#register().map((request) => {
+      const query = getZ().createQuery(request, this.#enabled())
+      query.view?.ensureSubscribed()
+      return query
+    })
+  })
+
   #select: (data: HumanReadable<TReturn>) => TOut
 
   #data = $derived.by(() => this.#select(this.#query.data))
 
   #offline: OfflinePolicy | undefined
-  // Zero carries the registry name on every request (`QueryRequest.query.queryName`), so a resource
-  // can look up its own offline policy without a single call site having to pass anything.
-  #queryName = $derived.by(() => {
-    const request = this.#request()
-    return typeof request === 'object' && 'query' in request ? request.query.queryName : undefined
+
+  #policy = $derived.by(() => {
+    const requests = this.#register?.() ?? [this.#request()]
+    return resolvePolicy(requests.map((request) => offlinePolicyOf(queryNameOf(request))))
   })
   #rawEmpty = $derived.by(() => {
     const raw = this.#query.data
     return raw === undefined || (Array.isArray(raw) && raw.length === 0)
   })
-
   #settledLatch = false
 
   // Latched here rather than in each form, and keyed on the VIEW, not the `Query`: `createQuery`
@@ -151,30 +172,29 @@ class Resource<
   // view on the request, so two `Query` wrappers for one request share a view that may already be
   // complete. Derived, never an effect: a trailing reset would leave `settled` true for one flush
   // over the next request's rows.
-  #settledView: unknown = undefined
+  #settledViews: unknown[] = []
 
   #settled = $derived.by(() => {
-    const view = this.#query.view
+    const views = this.#confirming.map((query) => query.view)
     const next = resolveSettled({
       complete: this.isComplete,
       latched: this.#settledLatch,
-      sameView: view === this.#settledView,
+      sameView: sameViews(views, this.#settledViews),
     })
-    this.#settledView = view
+    this.#settledViews = views
     this.#settledLatch = next
     return next
   })
 
   #status: ResourceStatus = $derived.by(() => {
-    const type = this.#query.details.type
-    if (type === 'error') {
+    if (this.#confirming.some((query) => query.details.type === 'error')) {
       return 'error'
     }
 
     // Stale-while-revalidate: local rows (e.g. from the initZero preloads)
     // render immediately even before the server confirms, so only an *empty*
     // unknown result counts as loading.
-    if (type === 'unknown' && this.#rawEmpty) {
+    if (!this.isComplete && this.#rawEmpty) {
       return 'loading'
     }
 
@@ -186,12 +206,21 @@ class Resource<
     select: (data: HumanReadable<TReturn>) => TOut,
     enabled: () => boolean,
     offline: OfflinePolicy | undefined,
+    register: (() => QueryRequest[]) | undefined,
   ) {
     this.#request = request
     this.#select = select
     this.#enabled = enabled
     this.#offline = offline
+    this.#register = register
   }
+
+  #keptInput = () => ({
+    fieldDevice: isFieldDevice(),
+    guidebookSynced: lastSyncedAt('guidebook') != null,
+    policy: this.#offline ?? this.#policy,
+    referenceSynced: lastSyncedAt('reference') != null,
+  })
 }
 
 /**
@@ -208,6 +237,9 @@ class Resource<
  * @param opts.offline overrides the query's entry in `OFFLINE_QUERIES` for this one usage. Only for
  *   a query whose policy genuinely depends on its arguments: somebody else's logbook is not kept
  *   offline while your own is, from the same query.
+ * @param opts.register makes this a composite: `request` is then a local-only `zql` read joining
+ *   rows these named queries sync, and readiness and offline policy come from them. The read may
+ *   reach no table they do not sync (`$lib/zero/coverage` checks that).
  */
 export function createResource<
   TTable extends keyof Schema['tables'] & string,
@@ -219,9 +251,22 @@ export function createResource<
 >(
   request: () => QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>,
   select: (data: HumanReadable<TReturn>) => TOut,
-  opts?: { enabled?: () => boolean; offline?: OfflinePolicy },
+  opts?: { enabled?: () => boolean; offline?: OfflinePolicy; register?: () => QueryRequest[] },
 ): QueryResource<TOut> {
-  return new Resource(request, select, opts?.enabled ?? (() => true), opts?.offline)
+  return new Resource(request, select, opts?.enabled ?? (() => true), opts?.offline, opts?.register)
+}
+
+/** Rows on screen with more expected: render them with the affordance, and no total yet. */
+export function resolveArriving({
+  online,
+  settled,
+  status,
+}: {
+  online: boolean
+  settled: boolean
+  status: ResourceStatus
+}): boolean {
+  return online && !settled && status === 'ready'
 }
 
 /**
@@ -278,15 +323,59 @@ export function resolveAvailability(input: {
   // finished the preload which would have filled it. Without this an area that genuinely
   // has no routes told a reader with a fully synced guidebook to reconnect and download it: the same
   // wrong claim as the fragment above, with the sign flipped.
-  if (input.policy === 'always' && input.referenceSynced) {
-    return 'ready'
-  }
-
-  if (input.policy === 'field' && input.guidebookSynced && input.fieldDevice) {
+  if (resolveKept(input)) {
     return 'ready'
   }
 
   return 'unsynced'
+}
+
+/**
+ * Whether an empty result is an answer. Latched like `settled`, so a parked socket does not turn a
+ * confirmed absence back into a skeleton. Offline, empty is an answer exactly when
+ * `resolveAvailability` says so, which is the only way a never-confirmed query gets here.
+ */
+export function resolveEmpty({
+  availability,
+  rawEmpty,
+  settled,
+  status,
+}: {
+  availability: Availability
+  rawEmpty: boolean
+  settled: boolean
+  status: ResourceStatus
+}): boolean {
+  if (!rawEmpty || status === 'error') {
+    return false
+  }
+
+  return settled || (status === 'loading' && availability === 'ready')
+}
+
+/**
+ * Whether this device holds the whole answer without asking: the policy keeps it and the preload
+ * that fills it finished. The reference stamp does not vouch for the guidebook, which lands later.
+ */
+export function resolveKept(input: {
+  fieldDevice: boolean
+  guidebookSynced: boolean
+  policy: OfflinePolicy | undefined
+  referenceSynced: boolean
+}): boolean {
+  if (input.policy === 'always') {
+    return input.referenceSynced
+  }
+
+  return input.policy === 'field' && input.guidebookSynced && input.fieldDevice
+}
+
+/** A composite's policy: one only when every query it registers agrees, since it is no more kept
+ *  than its least kept query and the order of the policies says nothing about which that is. */
+export function resolvePolicy(policies: (OfflinePolicy | undefined)[]): OfflinePolicy | undefined {
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a plain function, nothing reads it reactively
+  const distinct = new Set(policies)
+  return distinct.size === 1 ? [...distinct][0] : undefined
 }
 
 /**
@@ -307,6 +396,25 @@ export function resolveSettled({
   sameView: boolean
 }): boolean {
   return sameView ? latched || complete : complete
+}
+
+/**
+ * Offline with nothing confirmed for this request: the offline notice's case. Never true while merely
+ * loading online, and never once the request was confirmed, so a signal blip keeps a list on screen.
+ */
+export function resolveUnavailable({
+  availability,
+  settled,
+}: {
+  availability: Availability
+  settled: boolean
+}): boolean {
+  return !settled && (availability === 'excluded' || availability === 'unsynced')
+}
+
+/** Whether a composite still watches the same views, in order. Any change is a new request. */
+export function sameViews(next: unknown[], previous: unknown[]): boolean {
+  return next.length === previous.length && next.every((view, i) => view === previous[i])
 }
 
 /**
@@ -341,4 +449,9 @@ export function waitForRow<
       if (isReady(data as HumanReadable<TReturn>)) finish()
     })
   })
+}
+
+// Zero carries the registry name on every request, so a resource finds its own offline policy.
+function queryNameOf(request: QueryRequest): string | undefined {
+  return typeof request === 'object' && 'query' in request ? request.query.queryName : undefined
 }

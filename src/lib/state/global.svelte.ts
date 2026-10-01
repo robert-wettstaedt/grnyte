@@ -154,8 +154,9 @@ export function setGlobalState(): GlobalState | undefined {
     get rolePermissionsResource() {
       return rolePermissionsResource
     },
+    // Zero until settled, so it moves once, from nothing to the true number, never through a partial one.
     get unreadNotifications() {
-      return unreadResource.data.length
+      return unreadResource.settled ? unreadResource.data.length : 0
     },
     get user() {
       return userResource.data

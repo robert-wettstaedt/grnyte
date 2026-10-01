@@ -62,6 +62,14 @@ export function filteredRouteList<T extends { id: number }>(
     return result
   })
 
+  // The client-side filters read the user's ascents and favorites, so the result is only whole once
+  // those are too.
+  const settled = $derived(
+    routes.settled &&
+      (filter().ascentStatus == null || userAscents.settled) &&
+      (!filter().favoritesOnly || userFavorites.settled),
+  )
+
   return {
     // Delegated, not recomputed: whether the rows are on this device is a fact about the underlying
     // query, and a client-side filter emptying the result does not change it.
@@ -75,15 +83,15 @@ export function filteredRouteList<T extends { id: number }>(
       return routes.isComplete
     },
     // Empty reflects the *filtered* result, so client-side filters that remove
-    // every route still trigger the empty state.
+    // every route still trigger the empty state, once everything they read is whole.
     get isEmpty() {
-      return routes.status === 'ready' && data.length === 0
+      return data.length === 0 && (routes.isEmpty || settled)
     },
     get isSyncing() {
       return routes.isSyncing
     },
     get settled() {
-      return routes.settled
+      return settled
     },
     get status() {
       return routes.status

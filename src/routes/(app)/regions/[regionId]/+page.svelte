@@ -241,7 +241,7 @@
         <!-- Members -->
         <SettingSection title={m.region_members()}>
           {#snippet aside()}
-            {#if detail.maxMembers > 0}
+            {#if detail.maxMembers > 0 && members.settled}
               <!-- The state is spelled out in the copy as well as the tint, so it does not
                    depend on colour alone. -->
               <span

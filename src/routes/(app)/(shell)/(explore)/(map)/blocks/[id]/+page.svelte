@@ -83,7 +83,8 @@
     const data = block.data
     sheetState.title = title
     sheetState.subtitle = data != null && data.areas.length > 0 ? breadcrumb : null
-    sheetState.nav = toSheetNav(siblings.data, data?.id, blockHref)
+    // "3/7" and wrap-around claim the whole sibling list.
+    sheetState.nav = toSheetNav(siblings.settled ? siblings.data : null, data?.id, blockHref)
     return () => (sheetState.nav = null)
   })
 </script>
@@ -125,7 +126,7 @@
             </a>
           {/each}
         </div>
-      {:else if canEditTopo(global.userRegions, detail)}
+      {:else if topos.settled && canEditTopo(global.userRegions, detail)}
         <!-- No topos yet: the strip is hidden, so this is the only entry point to author the first one. -->
         <a
           class="btn preset-tonal-primary w-full"
@@ -141,11 +142,12 @@
       {#if orderedRoutes.length > 0}
         <section class="space-y-2">
           <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">
-            {m.routes_routesCount({ count: orderedRoutes.length })}
+            {routes.settled ? m.routes_routesCount({ count: orderedRoutes.length }) : m.common_routes()}
           </h2>
           <RouteList routes={routesWithTopos} status={ascentStatus} />
         </section>
-      {:else if routes.status === 'ready'}
+      {:else if routes.settled}
+        <!-- The routes are a relation of the block row, so `ready` arrives with the row, before them. -->
         <BlockEmpty block={detail} />
       {/if}
 

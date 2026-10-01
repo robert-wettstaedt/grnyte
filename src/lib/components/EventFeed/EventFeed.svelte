@@ -7,8 +7,8 @@
   scoped one.
 -->
 <script lang="ts">
-  import Icon from '$lib/components/Icon/Icon.svelte'
   import MediaLightbox from '$lib/components/Media/MediaLightbox.svelte'
+  import StatusPill from '$lib/components/StatusPill/StatusPill.svelte'
   import type { EventCardView } from '$lib/entities/event/card'
   import { calendarDay, formatDay } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
@@ -18,6 +18,8 @@
   import EventCard from './EventCard.svelte'
 
   interface Props {
+    /** The window on screen is not confirmed yet. Shares the pill's slot, and yields it to new rows. */
+    arriving?: boolean
     /**
      * Ids of the cards whose changes are open. Passed in (and mutated in place) rather than
      * kept per card, because the feed fetches what only an open card renders. A caller that
@@ -42,6 +44,7 @@
   }
 
   const {
+    arriving = false,
     expandedIds = new SvelteSet<string>(),
     hasMore = false,
     lightbox = true,
@@ -76,16 +79,14 @@
   const EAGER_CARDS = 6
 </script>
 
-<div class="space-y-3">
-  {#if newCount > 0}
-    <div class="sticky top-2 z-20 flex justify-center">
-      <button type="button" class="btn btn-sm preset-filled-primary-500 rounded-full shadow-lg" onclick={onMergeNew}>
-        <Icon name="arrow-up-down" size={14} />
-        {m.feed_newActivity({ count: newCount })}
-      </button>
-    </div>
-  {/if}
+<!-- Outside the list, so the pill adds no gap: it overlays the first card rather than moving it. -->
+{#if newCount > 0}
+  <StatusPill icon="arrow-up-down" onclick={onMergeNew}>{m.feed_newActivity({ count: newCount })}</StatusPill>
+{:else if arriving}
+  <StatusPill>{m.common_syncing()}</StatusPill>
+{/if}
 
+<div class="space-y-3">
   {#each rows as { day, startsDay, view }, index (view.id)}
     {#if startsDay}
       <h2 class="text-surface-600-400 px-1 pt-1 text-xs font-bold tracking-wide uppercase">

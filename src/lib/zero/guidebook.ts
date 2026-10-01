@@ -1,3 +1,4 @@
+import { acrossAreasOrder } from '$lib/entities/block/order'
 import * as z from '$lib/forms/zod'
 import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
@@ -46,3 +47,24 @@ export const guidebookQueryDefs = {
     regionMemberCan(({ ctx }) => zql.topos.related('file', relatedRegion(ctx))),
   ),
 }
+
+/**
+ * The map's blocks and areas, joined on the device from the guidebook rows rather than synced as
+ * relational queries, which would hydrate the same rows a second time. Never sent to the server:
+ * a raw `zql` query has no name, so Zero only runs it locally. No topos, the map draws none.
+ */
+export const guidebookReads = {
+  areas: () =>
+    zql.areas
+      .where('deletedAt', 'IS', null)
+      .orderBy('name', 'asc')
+      .related('parent', (q) => q.related('parent'))
+      .related('parkingLocations'),
+  blocks: () =>
+    acrossAreasOrder(zql.blocks.where('deletedAt', 'IS', null))
+      .related('area', (q) => q.related('parent'))
+      .related('geolocation'),
+}
+
+/** The named queries `guidebookReads` joins, in `createResource`'s `register` shape. */
+export const guidebookReadRegistrations = ['guidebookAreas', 'guidebookBlocks', 'guidebookGeolocations'] as const

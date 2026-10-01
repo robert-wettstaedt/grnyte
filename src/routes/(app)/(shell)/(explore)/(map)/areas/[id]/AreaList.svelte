@@ -5,9 +5,11 @@
 
   interface Props {
     areas: AreaDetail[]
+    /** The whole list is here, so its count is true. */
+    settled: boolean
   }
 
-  const { areas }: Props = $props()
+  const { areas, settled }: Props = $props()
 </script>
 
 {#if areas.length > 0}
@@ -15,9 +17,11 @@
     <div class="flex items-center justify-between">
       <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.areas_title()}</h2>
 
-      <span class="text-surface-500 text-[11px] font-semibold tabular-nums">
-        {m.areas_count({ count: areas.length })}
-      </span>
+      {#if settled}
+        <span class="text-surface-500 text-[11px] font-semibold tabular-nums">
+          {m.areas_count({ count: areas.length })}
+        </span>
+      {/if}
     </div>
 
     <nav class="flex flex-col gap-2">

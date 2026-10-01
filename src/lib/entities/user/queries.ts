@@ -12,7 +12,6 @@ export const usersQueryDefs = {
     z.undefined(),
     authenticatedUserCan(({ ctx }) => zql.userRoles.where('authUserFk', ctx.authUserId).one()),
   ),
-
   listUsers: defineQuery(
     z.object({
       content: z.optional(z.string()),
@@ -52,6 +51,13 @@ export const usersQueryDefs = {
 
       return q
     }),
+  ),
+
+  // A fresh hash per connection, so Zero cannot report it complete from a previous session's state:
+  // it completes only once the server answers, i.e. once this connection has caught up.
+  syncBarrier: defineQuery(
+    z.object({ nonce: z.string() }),
+    authenticatedUserCan(({ ctx }) => zql.users.where('authUserFk', ctx.authUserId).one()),
   ),
 
   /**

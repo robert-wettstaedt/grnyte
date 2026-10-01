@@ -25,7 +25,11 @@ export function createSaveState(
 
   return {
     // The synced count already includes the user's own row, so only an unconverged override moves it.
+    // 0 (no badge) until it is whole: your own preloaded row alone read as "1".
     get count() {
+      if (!count.settled) {
+        return 0
+      }
       if (override == null || override === favorited.data) {
         return count.data
       }

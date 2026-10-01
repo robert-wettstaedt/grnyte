@@ -13,8 +13,9 @@
     currentTopoId: number | undefined
     onAddPhoto: () => void
     onDeletePhoto: () => void
-    /** Persist a new photo order (called once a drag-reorder gesture settles). */
-    onReorder: (orderedIds: number[]) => void
+    /** Persist a new photo order (called once a drag-reorder gesture settles). Omitted, no grip:
+     *  the server keeps unlisted photos after the listed ones, so a partial list reorders unseen ones. */
+    onReorder?: (orderedIds: number[]) => void
     onReplacePhoto: (topoId: number) => void
     onSelect: (topoId: number) => void
     /** An upload is in flight; disables the add button and shows a spinner. */
@@ -61,7 +62,7 @@
     const ids = topos.map((topo) => topo.id)
     const [moved] = ids.splice(from, 1)
     ids.splice(to, 0, moved)
-    onReorder(ids)
+    onReorder?.(ids)
   }
 </script>
 
@@ -148,7 +149,7 @@
       </div>
 
       <!-- Drag handle below the current thumb (keeps the thumbnail itself uncluttered). -->
-      {#if topo.id === currentTopoId}
+      {#if topo.id === currentTopoId && onReorder != null}
         <button
           type="button"
           class="bg-surface-950/60 flex h-6 w-16 cursor-grab touch-none items-center justify-center rounded-lg text-white shadow"

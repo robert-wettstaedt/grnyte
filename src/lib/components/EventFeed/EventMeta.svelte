@@ -72,12 +72,12 @@
 
   // Only ever needed when the log came back empty, which is the one case the row cannot answer
   // from a row's own `user` relation. An empty id list is how a resource is switched off here.
-  const creator = usersByIds(() => (latest.status === 'ready' && latest.data.length === 0 ? [createdBy] : []))
+  const creator = usersByIds(() => (latest.isEmpty ? [createdBy] : []))
 
   // Held back until the log has answered. Deciding early would read the entity's own stamp,
-  // say "Created ...", and then flip to "Updated ..." a tick later.
+  // say "Created ...", and then flip to "Updated ..." a tick later; `ready` came with a stale row.
   const line = $derived(
-    latest.status !== 'ready'
+    !latest.settled
       ? undefined
       : metaLine({ createdAt, creatorName: creator.data[0]?.username, latest: latestRow, now: now() }),
   )

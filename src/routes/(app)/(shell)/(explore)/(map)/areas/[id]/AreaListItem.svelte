@@ -19,10 +19,11 @@
   const countByGrade = $derived(countRoutesByGrade(routes.data))
 </script>
 
+<!-- The donut is the whole sub-tree's grades, so it waits for the whole sub-tree. -->
 <AreaRow
-  {countByGrade}
+  countByGrade={routes.settled ? countByGrade : undefined}
   description={area.description}
   href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) })}
   name={area.name}
-  total={routes.data.length}
+  total={routes.settled ? routes.data.length : undefined}
 />

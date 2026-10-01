@@ -15,9 +15,11 @@
     indexOffset?: number
     /** Selection (tap or Enter). */
     onselect: (item: EntityCandidate) => void
+    /** The search answered whole; until then an empty list is "still searching", not "no matches". */
+    settled?: boolean
   }
 
-  let { activeIndex, groups, indexOffset = 0, onselect }: Props = $props()
+  let { activeIndex, groups, indexOffset = 0, onselect, settled = true }: Props = $props()
 
   // Assign each candidate the flat index that `entitySearch.flat` produces,
   // so keyboard highlighting stays in sync across section boundaries.
@@ -32,7 +34,9 @@
   })
 </script>
 
-{#if groups.length === 0}
+{#if groups.length === 0 && !settled}
+  <p class="text-surface-600-400 px-3 py-6 text-center text-sm" role="status">{m.common_syncing()}</p>
+{:else if groups.length === 0}
   <p class="text-surface-600-400 px-3 py-6 text-center text-sm">{m.editor_noMatches()}</p>
 {:else}
   <ul class="flex flex-col gap-0.5 p-1">

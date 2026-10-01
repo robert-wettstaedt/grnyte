@@ -5,7 +5,7 @@
   import type { RouteId } from '$app/types'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
-  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import StatusPill from '$lib/components/StatusPill/StatusPill.svelte'
   import UpdateBadge from '$lib/components/UpdateBadge/UpdateBadge.svelte'
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
@@ -18,7 +18,7 @@
   import { applyUpdateOnClick } from '$lib/state/updateReady.svelte'
   import { visualViewport } from '$lib/state/visualViewport.svelte'
   import { untrack } from 'svelte'
-  import { fade, fly } from 'svelte/transition'
+  import { fly } from 'svelte/transition'
   import Modal from '../Modal/Modal.svelte'
   import { sheetState } from '../Modal/sheetState.svelte'
   import type { LayoutProps } from './$types'
@@ -276,21 +276,18 @@
 
     <SearchBar>
       {#snippet trailing()}
-        <Filter loading={explore.routes.status === 'loading'} routes={explore.routes.data} />
+        <Filter
+          loading={explore.routes.status === 'loading'}
+          routes={explore.routes.data}
+          settled={explore.routes.settled}
+        />
       {/snippet}
     </SearchBar>
   </div>
 {/if}
 
 {#if explore.isLoading}
-  <div class="pointer-events-none fixed top-16 left-0 z-10 flex w-full justify-center" in:fly={{ y: -20 }} out:fade>
-    <div
-      class="bg-surface-100-900 border-surface-200-800 flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm whitespace-nowrap shadow-lg"
-    >
-      <LoadingIndicator class="w-fit shrink-0" size={4} />
-      {m.map_loading()}
-    </div>
-  </div>
+  <StatusPill class="fixed top-16 left-0 z-10 w-full">{m.map_loading()}</StatusPill>
 {/if}
 
 {#if !open}

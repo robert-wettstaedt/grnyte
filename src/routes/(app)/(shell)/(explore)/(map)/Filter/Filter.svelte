@@ -36,13 +36,15 @@
     placement?: 'search' | 'sheet'
     /** Only `gradeFk` and the count are read, so both the slim map rows and full list items fit. */
     routes: Pick<RouteMapItem, 'gradeFk'>[]
+    /** `routes` is the whole matching set, so its count and grade bars are true. */
+    settled: boolean
     /** Default direction per sort field, used to seed Order and detect defaults. */
     sortDefaults?: Record<string, 'asc' | 'desc'>
     /** When set, a Sort section is shown and `sort`/`dir` URL params are managed. */
     sortOptions?: SortOption[]
   }
 
-  const { loading, placement = 'search', routes, sortDefaults, sortOptions }: Props = $props()
+  const { loading, placement = 'search', routes, settled, sortDefaults, sortOptions }: Props = $props()
 
   // Desktop panel geometry. `search`: under the search bar, sharing its x + width.
   // `sheet`: a slim column docked right of the routes sheet, sharing its y + height.
@@ -102,6 +104,7 @@
     sortDir = dirFor(field)
   }
 
+  const NO_COUNTS = new Map<number, number>()
   const routeCountByGrade = $derived.by(() => {
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt wholesale in this $derived; per-key signals cost >5 dev-mode stack captures per grade on load
     const counts = new Map<number, number>()
@@ -308,7 +311,7 @@
   {contentClass}
   title={showSort ? m.filter_filterAndSort() : m.common_filter()}
   snapPoints={[0.75, 0.6]}
-  subtitle={m.routes_routesCount({ count: routes.length })}
+  subtitle={settled ? m.routes_routesCount({ count: routes.length }) : undefined}
   footer={modalFooter}
 >
   {#snippet trigger(props)}
@@ -372,7 +375,12 @@
     {#if global.grades.length > 0}
       <!-- Grade is the primary filter, so it stays pinned open above the accordion. -->
       <div class="border-surface-200-800 border-b pb-4">
-        <GradeRange grades={global.grades} gradingScale={global.gradingScale} {routeCountByGrade} bind:value />
+        <GradeRange
+          grades={global.grades}
+          gradingScale={global.gradingScale}
+          routeCountByGrade={settled ? routeCountByGrade : NO_COUNTS}
+          bind:value
+        />
       </div>
     {/if}
 

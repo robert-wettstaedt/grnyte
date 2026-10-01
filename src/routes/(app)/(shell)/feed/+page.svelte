@@ -125,8 +125,12 @@
   />
 
   <QueryState resource={feed.resource}>
+    <!-- The feed's own pill slot shows it, so the new-activity pill can take precedence. -->
+    {#snippet syncing()}{/snippet}
+
     {#snippet ready()}
       <EventFeed
+        arriving={feed.arriving}
         expandedIds={feed.expandedIds}
         hasMore={feed.hasMore}
         newCount={feed.newCount}

@@ -277,6 +277,11 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
       const numericId = Number(id)
       return candidates()[type].find((item) => item.id === numericId)?.label
     },
+
+    /** Every query searched has answered whole, so an empty result means "no matches". */
+    get resultsSettled(): boolean {
+      return areas.settled && blocks.settled && routes.settled && (regionFks().length === 0 || users.settled)
+    },
   }
 }
 

@@ -1,3 +1,4 @@
+import { guidebookReadRegistrations, guidebookReads } from '$lib/zero/guidebook'
 import { queries } from '$lib/zero/queries'
 import { createResource, waitForRow } from '$lib/zero/resource.svelte'
 import { toAreaDetail } from './mapper'
@@ -27,6 +28,13 @@ export function areaList(filter: () => AreaListFilter = () => ({}), opts?: { ena
     (rows) => rows.map(toAreaDetail),
     opts,
   )
+}
+
+/** Every area in your regions for the map, joined on the device. See `guidebookReads`. */
+export function areaMapList() {
+  return createResource(guidebookReads.areas, (rows) => rows.map(toAreaDetail), {
+    register: () => guidebookReadRegistrations.map((name) => queries[name]()),
+  })
 }
 
 /** Resolve once Zero has the live area row for `id` locally, or after `timeoutMs`. See {@link waitForRow}. */

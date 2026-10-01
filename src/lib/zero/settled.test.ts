@@ -3,7 +3,7 @@
  * had already diverged; the cases below are what each of their comments was protecting.
  */
 import { describe, expect, it } from 'vitest'
-import { resolveSettled } from './resource.svelte'
+import { resolveEmpty, resolveSettled } from './resource.svelte'
 
 /** Same view, nothing latched yet, nothing complete. Each test bends one thing. */
 const base = { complete: false, latched: false, sameView: true } as const
@@ -35,5 +35,35 @@ describe('resolveSettled', () => {
 
     // The request changed: a different view, still loading.
     expect(resolveSettled({ complete: false, latched: settled, sameView: false })).toBe(false)
+  })
+})
+
+describe('resolveEmpty', () => {
+  /** Online, connected, nothing confirmed yet, nothing local. Each test bends one thing. */
+  const arriving = { availability: 'loading', rawEmpty: true, settled: false, status: 'loading' } as const
+
+  it('claims no absence while the rows may still be arriving', () => {
+    expect(resolveEmpty(arriving)).toBe(false)
+  })
+
+  it('claims it once the server confirmed an empty result', () => {
+    expect(resolveEmpty({ ...arriving, availability: 'ready', settled: true, status: 'ready' })).toBe(true)
+  })
+
+  it('keeps claiming it when the socket parks after confirming', () => {
+    expect(resolveEmpty({ ...arriving, settled: true })).toBe(true)
+  })
+
+  it('claims it offline when the preload that would have filled it finished', () => {
+    expect(resolveEmpty({ ...arriving, availability: 'ready' })).toBe(true)
+  })
+
+  it('claims nothing offline when this device never got the data', () => {
+    expect(resolveEmpty({ ...arriving, availability: 'unsynced' })).toBe(false)
+  })
+
+  it('is never empty with rows on hand, nor on an error', () => {
+    expect(resolveEmpty({ ...arriving, rawEmpty: false, settled: true, status: 'ready' })).toBe(false)
+    expect(resolveEmpty({ ...arriving, availability: 'error', settled: true, status: 'error' })).toBe(false)
   })
 })

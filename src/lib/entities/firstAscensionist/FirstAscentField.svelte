@@ -68,8 +68,10 @@
       .slice(0, 5),
   )
 
+  // "New" is a claim that nobody in the region has the name, so it waits for the whole list.
   const showNew = $derived(
-    query.trim().length >= 2 &&
+    ascensionists.settled &&
+      query.trim().length >= 2 &&
       !picked(query.trim()) &&
       !ascensionists.data.some((fa) => fa.name.toLowerCase() === needle),
   )
@@ -77,7 +79,9 @@
   /** A chip for a name the region hasn't seen yet, flagged so the "new" badge can say
    *  a row will be created on save. */
   const isNew = (climber: FaClimber) =>
-    climber.userFk == null && !ascensionists.data.some((fa) => fa.name.toLowerCase() === climber.name.toLowerCase())
+    ascensionists.settled &&
+    climber.userFk == null &&
+    !ascensionists.data.some((fa) => fa.name.toLowerCase() === climber.name.toLowerCase())
 
   const onFocus = () => {
     clearTimeout(blurTimer)
