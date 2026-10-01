@@ -282,7 +282,10 @@ tasks.md and not this argument. Rejected: a fixed delay, which guesses at the ne
 readiness signal every screen would have to report.
 
 Cost: the offline guidebook starts later, by however long the first screen takes, and the
-`guidebook` stamp moves with it. Limit: a screen opened while the guidebook is still hydrating still
+`guidebook` stamp moves with it. It also now depends on the reference batch: Zero's `complete` stays
+pending rather than rejecting, so if a reference query never completes while online, the guidebook
+never syncs. Accepted because the shell cannot render without those queries either, but the two
+were independent before and a failure in one now silently stops the other. Limit: a screen opened while the guidebook is still hydrating still
 queues behind it. Deferral protects the first screen; only a cheaper guidebook protects the rest.
 
 ### Recorded, not taken: slimming the offline guidebook is a scope decision
