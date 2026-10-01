@@ -72,8 +72,11 @@ the guidebook syncs, not what it contains.
 for 9.3 to 10.9 s on prod and rarely yields, while Zero declares a connection dead after 10 s without
 a pong. About half the measured opens dropped the socket and hydrated everything again, and the stall
 starves every other client on that sync worker. Slimming it was recorded as a product preference; it
-is now a defect. This change takes the decision on what offline must cover and how the guidebook is
-shaped to stay under the threshold (slimmer, or split into smaller preloads), recorded in design.md.
+is now a defect. Decided: offline keeps its scope, every route in every region a reader belongs to
+with everything a route page shows, because the fix must not depend on choosing what to keep. The
+guidebook is preloaded as flat, relation-free queries instead of three relational ones: the same rows
+on the device, 1.9 s of server work against 12.7 s on the prod-speed harness. The map registers the
+same flat queries and joins them on the device, so it keeps sharing the guidebook's server work.
 
 **Cold-load volume (B), diagnostic only.** `listBlocks({})`, `listAreas({})` and
 `listRoutesForMap({})` are registered on the FEED, not only on `/explore`, and nothing obvious
@@ -117,7 +120,13 @@ unrelated.
   stamp, and the largest region holds 4,550 of 6,433 routes so the axis cannot reach the target.
 - **Rearchitecting the explore map.** Moving the map off Zero stays out of scope. What is now IN
   scope is only the diagnostic question above it: why those queries register on the feed at all.
-  Whether anything architectural follows is a later decision, made on that answer.
+  Whether anything architectural follows is a later decision, made on that answer. The map's
+  registrations do change, to the guidebook's flat queries joined on the device (design.md), which
+  keeps it on Zero.
+- **Leftover rows of soft-deleted content.** Tag links, first-ascent links, topo lines, topos and
+  geolocations carry no `deleted_at`, so the flat guidebook keeps syncing a deleted area's leftovers
+  (~2.8k rows if a third of the largest region were deleted). Nothing renders them. A follow-up
+  change gives those tables a `deleted_at` set by the delete cascades.
 - **Sending the resume diagnostics anywhere.** They stay on the device. Routing them into
   `client_error_logs` is the obvious next idea and is rejected on three counts. The viewer groups by
   error text and keeps the newest 100 groups, so unbucketed timings would each become their own

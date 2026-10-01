@@ -306,31 +306,65 @@ hydrated when a view-syncer cold-starts: the local zero-cache log showed `listRo
 and `listAreas` inside the first batch (`hydrating 20 queries`). That puts the guidebook back in
 front of the visible screen, the original defect. The churn is the price of deferral.
 
-### Decision needed: the guidebook's hydration crosses Zero's dead-connection threshold
+### Flatten the guidebook into relation-free preloads
 
-| query            | rows   | server   |
-| ---------------- | ------ | -------- |
-| `listRoutes({})` | 19,860 | 9,352 ms |
-| `listBlocks({})` | 6,158  | 1,758 ms |
-| `listAreas({})`  | 760    | 375 ms   |
+`listRoutes({})` hydrated for 9.3 to 10.9 s on prod and rarely yields, and Zero's client declares a
+connection dead after 2 x `pingTimeoutMs`, 10 s, without a pong. On about half the measured opens
+zero-cache logged `client closed` ~10.1 s in, then hydrated all 17 queries again, starving every
+other client group on that sync worker.
 
-`listRoutes({})` costs 0.47 ms per row against `listRoutesForMap({})`'s 0.044 over the same routes:
-the relations are the cost. But they are also what render a route page with no signal, which is the
-point of the guidebook. Choosing what offline must cover is a product decision.
+The relations are the cost, not the rows. On the prod-speed harness (six cold opens per shape):
 
-It can no longer wait for one, because it is not only latency. `listRoutes({})` hydrates for 9.3 to
-10.9 s on prod and yields to the event loop only rarely, and Zero's client declares a connection
-dead after 2 x `pingTimeoutMs`, 10 s, without a pong. On about half the opens measured, the pong
-missed and the client reconnected: zero-cache logged `client closed` 10.1 s into the hydration, then
-a new view-syncer hydrated all 17 queries again, guidebook included. Every other client group on that
-sync worker is equally starved of pongs while it runs, and there are two workers.
+| guidebook batch                                  | server span, median (range) | client wall |
+| ------------------------------------------------ | --------------------------- | ----------- |
+| today: `listRoutes` + `listBlocks` + `listAreas` | 12.7 s (10.8 to 14.2)       | 13.9 s      |
+| flat routes, relational blocks and areas         | 5.4 s (3.5 to 6.7)          | 6.4 s       |
+| everything flat                                  | 1.9 s (1.7 to 2.9)          | 3.3 s       |
 
-The options, in order of how much they fix: a slimmer `listRoutes({})` (fewer relations), which needs
-the offline-scope decision; splitting the guidebook into several smaller preloads so the worker
-answers pings between them, which keeps the scope but revisits the hash-dedupe reasoning above; more
-sync workers or a larger box, which limits the harm to others without stopping this client's
-disconnect. Raising `pingTimeoutMs` is rejected: it hides the symptom and slows real dead-socket
-detection, the opposite of the resume fix.
+`listRoutes` with no relations hydrates 7,342 rows in ~0.3 s; its relations add ~8 s. All three
+shapes keep the same ~23.9k rows in the CVR. Hydration within a client group is serial, so the batch
+costs the sum of its queries.
+
+Decided: offline keeps its scope (every route in every region, everything a route page shows). The
+`listRoutes({})`, `listBlocks({})` and `listAreas({})` preloads are replaced by relation-free,
+region-gated queries in `src/lib/zero/guidebook.ts`: `guidebookRoutes`, `guidebookRouteTags`,
+`guidebookRouteFirstAscents`, `guidebookFirstAscensionists`, `guidebookTopoRoutes`,
+`guidebookBlocks`, `guidebookAreas`, `guidebookTopos` and `guidebookGeolocations`. `guidebookTopos`
+keeps its one `file` relation, because `files` has no link back to `topos` (0.5 s, the slowest of
+the set). The `guidebook` stamp fires when all of them complete.
+
+Offline is unchanged in mechanism: every query is evaluated against the device's one row store, and
+a screen's `listRoutes({ areaId })` was never the preloaded query either. `offline.ts` lists the
+`guidebook*` queries as `field` and `listRoutes`, `listBlocks` and `listAreas` as covered by them.
+The risk is a covered query gaining a relation the flat set lacks, which would claim absence offline
+from incomplete data, so the drift test walks each covered query's AST and fails on any table
+outside the guidebook set.
+
+The map family (`exploreData`: the map, `CreateOnMap`, both location pickers, and the /explore
+empty-region card) registered `listBlocks({})` and `listAreas({})`, which hash-matched the old
+preloads. Kept relational beside a flat preload, they would hydrate again on every open. So they
+register the same flat named queries and read their joins through a local-only `zql` query: Zero
+sends only named queries to the server, so an ad-hoc `zql` read never registers. This needs a
+composite `QueryResource`: ready when every registered query has completed, latched on the
+registered hashes, taking its offline policy from the registered queries, and asserting in a test
+that its local read touches no table outside them. It also stops non-field devices syncing topos and
+files the map never reads.
+
+Rejected:
+
+- **A slimmer `listRoutes`**: 6.7 s, still in the disconnect range.
+- **A split per region**: still relational, so the 4.5k-route region alone stays slow.
+- **A `related: false` argument on `listRoutes`**: weakens the row type of the most-used query and
+  hides a mode in its arguments.
+- **Flattening routes only**: 5.4 s, because `listBlocks` slows to 3.1 s in that batch.
+- **Filtering link rows by live route with `whereExists`**: 4.6 s for the batch, because it doubles
+  the rows hydrated.
+- **Raising `pingTimeoutMs`**: it hides the symptom and slows real dead-socket detection.
+
+Accepted: the link tables, topos and geolocations carry no `deleted_at`, so a deleted area's
+leftovers keep syncing (~2.8k rows for a third of the largest region). Nothing renders them, because
+local joins start from live routes and blocks. A follow-up change adds the column, set by the delete
+cascades and cleared on restore by the same timestamp.
 
 ### Measure against a prod-shaped, prod-speed local harness
 
@@ -412,6 +446,12 @@ isolation, because Volume Test is that region.
   proposing exactly that, on the grounds it would "massively improve perf and lower cost", with a
   maintainer noting complexities. If that ships, our relocation becomes redundant, though not
   harmful. Not a reason to wait, but a reason to keep the relocation reversible.
+- **A covered query gains a relation the guidebook does not sync** → Offline it would state absence
+  from incomplete data. The drift test's table walk fails first, and the composite resource carries
+  the same check.
+- **First open after deploy rewrites the desired set once** → Three preloads removed, nine added,
+  one CVR rewrite per client group. Tabs on old code keep preloading `listRoutes({})` until they
+  reload, which still works because the query stays.
 
 ## Migration Plan
 
@@ -430,17 +470,19 @@ mildest of the three latency problems and not the one a reader hits most.
 5. **`ZERO_CVR_DB` cutover (C)** at low traffic. Rollback is reverting one environment variable while
    the old database is still intact.
 6. **`maxRecentQueries` (C)** as a separate deploy, measured against the previous numbers.
+7. **Flatten the guidebook (A, correctness).** The preload half first, invisible to the UI. Then the
+   readiness signal (D, group 5), whose members the composite resource implements. Then the map
+   half. Shipped together, because a flat preload beside a relational map hydrates both.
 
-The loading-state work (D) is independent of all of these and can land in parallel on its own
+The loading-state work (D) is independent of 1 to 6 and can land in parallel on its own
 branch. It does not address A, B or C, and A in particular cannot be covered by it. After 1b it is
 the backstop for the gap deferral cannot close, not the primary fix for the feed.
 
 ## Open Questions
 
 - RESOLVED: `ZERO_NUM_SYNC_WORKERS` is 2, recorded in the notes.
-- The view-syncer's ordering of desired-query changes is inferred from timings (a client group's
-  queries finish together, and a screen either precedes the preload or waits for all of it), not
-  read in zero-cache's source. Deferral does not depend on the exact mechanism, but slimming would.
+- RESOLVED: hydration within a client group is serial; each query's `hydrate-start` carries the
+  previous one's `hydrate-finish` timestamp (harness logs, 2026-10-01).
 - The feed's own window query is slow in SQLite, ~160 to 330 ms twice per open, on the first
   batch's critical path: `region_fk IN (SELECT value FROM json_each(?)) ORDER BY created_at desc, id
 desc` across eight regions. Possibly a multi-value IN defeating the composite index; unverified

@@ -700,3 +700,44 @@ The TTL does stop the removal (3 to remove instead of 6), but a cached, inactive
 when a view-syncer cold-starts, so the guidebook lands back in the first batch: 878 ms here, the full
 ~12 s on prod, which is the original defect. Reverted to HEAD, never committed. The remove and re-add
 churn is the price of the deferral; only a cheaper guidebook reduces it.
+
+## Group 15: the prod-shaped, prod-speed local harness
+
+**Shape (15.1, 15.2).** `seed-volume.ts` gained topos with files, topo lines, first ascensionists over a
+shared pool, events, lognormal routes per block and areas to depth 4, all behind `PROFILE=prod`.
+Reseeded as `RESET=true PROFILE=prod REGION_NAME='Volume Test' npx tsx src/lib/db/scripts/seed-volume.ts`
+(with `DATABASE_URL` set). Every table within 10% of prod; routes per block realised 2 / 9 / 58 as on
+prod. A member (`maintainer@`) syncs `listRoutes({})` 21,198 rows (prod 19,860), `listBlocks({})` 6,594
+(prod 6,167), `listAreas({})` 745 (prod 760). The profile's routes-per-block p90 is 8.5, not the measured
+9: a lognormal through 2 and 9 overshoots prod's route count by 16%, and the step is noise-dominated.
+
+**Speed (15.3, 15.4).** `docker compose --profile perf up -d zero-perf`, after stopping `npm run dev:zero`.
+Two traps fixed on the way: Vite 403s any host but localhost names, so the transform URL is
+`app.localhost` mapped to the host gateway; and the instance runs under its own `ZERO_APP_ID` so it never
+shares dev:zero's shard. Calibration, cold opens read off the server log:
+
+| cap     | row records | first batch wall | `listRoutes({})` | guidebook batch wall |
+| ------- | ----------- | ---------------- | ---------------- | -------------------- |
+| 2       | 262 ms      | 804 ms           | 2,389 ms         | 3,027 ms             |
+| 0.25    | 4,495 ms    | 3,315 ms         | 22,300 ms        | 26,808 ms            |
+| 0.5     | 677 ms      | 679 ms           | 6,418 ms         | 8,213 ms             |
+| **0.4** | 1,062 ms    | 887 ms           | **9,184 ms**     | 11,403 ms            |
+| prod    | 598-686 ms  | 887 ms (A)       | 9,255-10,311 ms  | 12,749-13,408 ms     |
+
+0.4 is the default in the profile. Row-record loading is the one phase slower than prod there.
+
+**Acceptance (15.5).** New activity visible, measured from navigation, an event inserted while away:
+
+|                                    | run 1     | run 2     |
+| ---------------------------------- | --------- | --------- |
+| with the deferral (committed code) | 5,628 ms  | 5,673 ms  |
+| deferral reverted (control)        | 15,131 ms | 15,448 ms |
+
+Signature 1 reproduces: the control puts the guidebook in the first batch (`3 to remove, 18 to add`,
+`listRoutes` 9.1 to 9.5 s inside it, first-batch wall 12.7 to 12.9 s), which is prod's ~15 s.
+
+Signature 2 does NOT: no `client closed` during any guidebook hydration across seven cold opens of 9 to
+10 s, nor during one of 22.3 s at the 0.25 cap. Prod dropped about half. Cause unknown; the obvious
+differences are a browser on localhost versus a phone over the internet, and a fractional CPU quota on
+fast cores versus two slow cores. So, per 15.5, 14.3's disconnect criterion stays judged on prod; its
+hydration-time criterion can be measured here.
