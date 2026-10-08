@@ -11,7 +11,7 @@ import type { GradingScale, User } from '$lib/entities/user/dto'
 import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelte'
 import { isOnline } from '$lib/state/online.svelte'
 import { lastSyncedAt } from '$lib/state/sync.svelte'
-import type { QueryResource } from '$lib/zero/resource.svelte'
+import { resolveLoading, type QueryResource } from '$lib/zero/resource.svelte'
 import { getZ } from '$lib/zero/z.svelte'
 import { getContext, setContext } from 'svelte'
 
@@ -118,12 +118,10 @@ export function setGlobalState(): GlobalState | undefined {
       return userResource.data?.userSettings?.gradingScale ?? 'FB'
     },
     get isLoading() {
-      return (
-        gradesResource.status === 'loading' ||
-        userResource.status === 'loading' ||
-        userRoleResource.status === 'loading' ||
-        rolePermissionsResource.status === 'loading' ||
-        userRegionsResource.status === 'loading'
+      // Not the raw status: a reader with no app role or no region has a confirmed-empty answer,
+      // which offline never completes, and that read as loading put the whole app behind `isStoreCold`.
+      return [gradesResource, userResource, userRoleResource, rolePermissionsResource, userRegionsResource].some(
+        resolveLoading,
       )
     },
     get isStoreCold() {
