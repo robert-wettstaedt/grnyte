@@ -101,6 +101,7 @@
           gradeCountByBlock={mapData.gradeCountByBlock}
           lineStrings={mapData.lineStrings}
           parkingLocations={mapData.parkingLocations}
+          countsKnown={mapData.countsKnown}
           routeCountByBlock={mapData.routeCountByBlock}
           static
           focus={{ center: [location.lat, location.long], zoom: 15 }}

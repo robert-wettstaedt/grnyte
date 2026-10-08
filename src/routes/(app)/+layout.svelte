@@ -16,6 +16,7 @@
   import { requestPersistentStorage } from '$lib/state/device.svelte'
   import { setGlobalState } from '$lib/state/global.svelte'
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
+  import { isOnline } from '$lib/state/online.svelte'
   import { syncPushSubscription } from '$lib/state/push.svelte'
   import { authRetryDelay, lastAuthAttemptAt, startAuthRecovery, stopAuthRecovery } from '$lib/zero/authRecovery'
   import { getZ, initZero } from '$lib/zero/z.svelte'
@@ -67,7 +68,12 @@
     // Capped the same way the bell is, which is the point: the query syncs one row past the cap
     // so the bell can say "99+", and an OS badge reading 100 next to a bell reading 99+ is the
     // two-counts-disagreeing problem the dot on the tab exists to avoid.
-    const unread = Math.min(globalState?.unreadNotifications ?? 0, UNREAD_CAP)
+    // Signed out clears it; an unknown count leaves it as the push service worker set it.
+    const count = globalState == null ? 0 : globalState.unreadNotifications
+    if (count === undefined) {
+      return
+    }
+    const unread = Math.min(count, UNREAD_CAP)
     // Rejections are ignored on purpose: the permission can be revoked at any time, and a badge
     // that cannot be set is not something to tell anybody about.
     void (unread > 0 ? navigator.setAppBadge(unread) : navigator.clearAppBadge()).catch(() => undefined)
@@ -132,12 +138,12 @@
   // region-less empty state for the case this cannot cover: a replica that never completes
   // (offline, dead sync socket) leaves this effect silent.
   $effect(() => {
-    // `isComplete`, not `isLoading`: a freshly loaded Zero replica reports ready-with-nothing
-    // before the server has confirmed anything, and bouncing on that throws a member with regions
-    // onto the create screen. This only fires once the server has said "no memberships".
+    // Answered online, not merely loaded: a fresh replica reports ready-with-nothing before the server
+    // confirms, and offline an empty answer is the kept copy, where a document navigation fails.
     const regions = globalState?.userRegionsResource
+    const none = regions?.phase.kind === 'answered' && regions.phase.empty && isOnline()
 
-    if (regions == null || !regions.isComplete || regions.data.length > 0) {
+    if (regions == null || !none) {
       return
     }
 

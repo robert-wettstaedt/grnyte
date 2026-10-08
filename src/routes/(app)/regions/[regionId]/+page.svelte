@@ -183,7 +183,7 @@
 <PageHeader onback={() => back(resolve('/settings'))} title={name ?? m.region_title()} />
 
 <div class="container mx-auto max-w-2xl px-4 py-8 pb-24 md:pb-8">
-  <QueryState resource={region}>
+  <QueryState notFound={m.region_notFound()} resource={region}>
     {#snippet ready(detail)}
       <!-- space-y-8 lives here, not on the container: QueryState is a single child there, so the
              sections it renders would get no spacing between them. -->
@@ -244,7 +244,7 @@
         <SettingSection title={m.region_members()}>
           {#snippet aside()}
             <!-- A pending invitation holds a seat, so the count waits for them as well. -->
-            {#if detail.maxMembers > 0 && members.settled && invitations.current != null}
+            {#if detail.maxMembers > 0 && members.phase.kind === 'answered' && invitations.current != null}
               <!-- The state is spelled out in the copy as well as the tint, so it does not
                    depend on colour alone. -->
               <span

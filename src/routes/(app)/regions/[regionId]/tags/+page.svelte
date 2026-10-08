@@ -2,7 +2,6 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
-  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import SettingSection from '$lib/components/Setting/SettingSection.svelte'
   import { entityHref } from '$lib/entities/href'
@@ -15,6 +14,7 @@
   import { back } from '$lib/state/navigation.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
   import RegionAdminRequired from '../RegionAdminRequired.svelte'
+  import RegionScreen from '../RegionScreen.svelte'
   import TagRow from './TagRow.svelte'
 
   const global = getGlobalState()
@@ -105,18 +105,22 @@
 </svelte:head>
 
 {#if !isAdmin}
-  <RegionAdminRequired {regionId} />
+  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_tags()}>
+    <RegionAdminRequired {regionId} />
+  </RegionScreen>
 {:else if membership?.synced !== true}
   <!-- No editor until the region row is here. `isAdmin` reads the role off the membership, which
        arrives first, so this screen opened early and listed the DEFAULT vocabulary as the region's
        own, with live rename and remove controls. -->
-  <LoadingIndicator class="flex h-full w-full items-center justify-center" size={20} />
+  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_tags()} />
 {:else if !membership.tagsComplete}
   <!-- Refused before rendering, the way the map-layers screen is. `editableTags` already refuses
        the write, but listing the seven defaults as though they were this region's own, with
        working-looking rename and remove controls, invites an admin to act on tags that are not
        theirs and then answers the press with a 409. -->
-  <ErrorState type="generic" title={m.region_tagsUnreadableTitle()} description={m.region_tagsUnreadableBody()} />
+  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_tags()}>
+    <ErrorState type="generic" title={m.region_tagsUnreadableTitle()} description={m.region_tagsUnreadableBody()} />
+  </RegionScreen>
 {:else}
   <PageHeader onback={goBack} title={m.region_tags()} />
 

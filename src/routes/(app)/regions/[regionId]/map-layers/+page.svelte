@@ -3,7 +3,6 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { entityHref } from '$lib/entities/href'
   import { canEditRegion } from '$lib/entities/region/permissions'
   import { updateRegionMapLayers } from '$lib/entities/region/regions.remote'
@@ -16,6 +15,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'
   import RegionAdminRequired from '../RegionAdminRequired.svelte'
+  import RegionScreen from '../RegionScreen.svelte'
 
   const global = getGlobalState()
   const fields = updateRegionMapLayers.fields
@@ -68,20 +68,24 @@
 </svelte:head>
 
 {#if !isAdmin}
-  <RegionAdminRequired {regionId} />
+  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_mapLayers()}>
+    <RegionAdminRequired {regionId} />
+  </RegionScreen>
 {:else if membership?.synced !== true}
   <!-- No form until the region row is here. Rendering one meanwhile is what made this screen
        destructive four rounds running: an empty list is a valid submission that means "remove them
        all", so a form that renders before its data has arrived is a delete button with a Save label. -->
-  <LoadingIndicator class="flex h-full w-full items-center justify-center" size={20} />
+  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_mapLayers()} />
 {:else if !membership.layersComplete}
   <!-- Refused rather than rendered: the form can only submit the layers it could read, so saving it
        would silently drop the ones it could not, and this screen is the only copy of them. -->
-  <ErrorState
-    type="generic"
-    title={m.region_mapLayersUnreadableTitle()}
-    description={m.region_mapLayersUnreadableBody()}
-  />
+  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_mapLayers()}>
+    <ErrorState
+      type="generic"
+      title={m.region_mapLayersUnreadableTitle()}
+      description={m.region_mapLayersUnreadableBody()}
+    />
+  </RegionScreen>
 {:else}
   <Form
     form={updateRegionMapLayers}

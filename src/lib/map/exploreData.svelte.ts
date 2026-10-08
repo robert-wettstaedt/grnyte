@@ -113,14 +113,12 @@ export function createExploreMapData(
   // True only while nothing is renderable yet: local-first preloads flip the
   // source queries to `ready` fast, so this is the cold-load case (no markers).
   const isLoading = $derived(
-    routes.status === 'loading' || blocksResult.status === 'loading' || areasResult.status === 'loading',
+    routes.phase.kind === 'loading' || blocksResult.phase.kind === 'loading' || areasResult.phase.kind === 'loading',
   )
 
-  // Marker labels and donuts are totals, so they wait for the whole route list. The filter above
-  // still narrows by the raw counts, so matching blocks appear as their routes arrive.
-  const EMPTY = new Map()
-  const shownRouteCounts = $derived(routes.settled ? routeCountByBlock : EMPTY)
-  const shownGradeCounts = $derived(routes.settled ? gradeCountByBlock : EMPTY)
+  // Marker numbers are totals, so they wait for the whole route list; until then markers show none.
+  // The filter above still narrows by the raw counts, so matching blocks appear as routes arrive.
+  const countsKnown = $derived(routes.phase.kind === 'answered')
 
   // A stable object with per-field reactive getters. Callers bind each field to `<Map>`
   // individually (never spread), so a field whose source query didn't change keeps a
@@ -129,8 +127,11 @@ export function createExploreMapData(
     get blocks() {
       return blocks
     },
+    get countsKnown() {
+      return countsKnown
+    },
     get gradeCountByBlock() {
-      return shownGradeCounts
+      return gradeCountByBlock
     },
     /** True on cold load while no markers are renderable yet. */
     get isLoading() {
@@ -143,7 +144,7 @@ export function createExploreMapData(
       return parkingLocations
     },
     get routeCountByBlock() {
-      return shownRouteCounts
+      return routeCountByBlock
     },
     /** The underlying route resource, exposed so callers can show filter/loading state. */
     routes,

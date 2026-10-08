@@ -130,7 +130,7 @@
 
 <svelte:head>
   <title>
-    {area.isEmpty
+    {area.phase.kind === 'answered' && area.phase.empty
       ? m.areas_notFound()
       : area.data == null
         ? m.areas_allRoutes()
@@ -152,9 +152,9 @@
   <SearchField bind:value={search} placeholder={m.routes_searchPlaceholder()} onClear={() => (search = '')}>
     {#snippet trailing()}
       <Filter
-        loading={routes.status === 'loading'}
+        loading={routes.phase.kind === 'loading'}
         routes={routes.data}
-        settled={routes.settled}
+        settled={routes.phase.kind === 'answered'}
         {sortOptions}
         sortDefaults={DEFAULT_DIR}
         placement="sheet"

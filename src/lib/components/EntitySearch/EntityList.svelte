@@ -4,7 +4,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
   import { slide } from 'svelte/transition'
-  import { ENTITY_TYPE_ICON, type EntityCandidate, type EntityGroup } from './search.svelte'
+  import { ENTITY_TYPE_ICON, type EntityCandidate, type EntityGroup, type SearchOutcome } from './search.svelte'
 
   interface Props {
     /** Highlighted candidate, indexed across the flattened list. */
@@ -15,11 +15,11 @@
     indexOffset?: number
     /** Selection (tap or Enter). */
     onselect: (item: EntityCandidate) => void
-    /** The search answered whole; until then an empty list is "still searching", not "no matches". */
-    settled?: boolean
+    /** Until `answered`, an empty list is not "no matches". */
+    outcome?: SearchOutcome
   }
 
-  let { activeIndex, groups, indexOffset = 0, onselect, settled = true }: Props = $props()
+  let { activeIndex, groups, indexOffset = 0, onselect, outcome = 'answered' }: Props = $props()
 
   // Assign each candidate the flat index that `entitySearch.flat` produces,
   // so keyboard highlighting stays in sync across section boundaries.
@@ -34,8 +34,12 @@
   })
 </script>
 
-{#if groups.length === 0 && !settled}
+{#if groups.length === 0 && outcome === 'pending'}
   <p class="text-surface-600-400 px-3 py-6 text-center text-sm" role="status">{m.common_syncing()}</p>
+{:else if groups.length === 0 && outcome === 'unavailable'}
+  <p class="text-surface-600-400 px-3 py-6 text-center text-sm">{m.error_offline_title()}</p>
+{:else if groups.length === 0 && outcome === 'error'}
+  <p class="text-error-600-400 px-3 py-6 text-center text-sm" role="alert">{m.queryState_error()}</p>
 {:else if groups.length === 0}
   <p class="text-surface-600-400 px-3 py-6 text-center text-sm">{m.editor_noMatches()}</p>
 {:else}

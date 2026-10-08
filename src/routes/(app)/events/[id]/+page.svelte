@@ -22,6 +22,7 @@
   import EventCard from '$lib/components/EventFeed/EventCard.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import { resolveFallback } from '$lib/components/QueryState/fallback'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import CommentComposer from '$lib/components/Reactions/CommentComposer.svelte'
   import Comments from '$lib/components/Reactions/Comments.svelte'
@@ -32,7 +33,6 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { resolveUnavailable } from '$lib/zero/resource.svelte'
 
   const global = getGlobalState()
 
@@ -59,7 +59,7 @@
 
   // The composer answers the thread on screen, so it shows exactly when `QueryState` shows one.
   const threadShown = $derived(
-    views[0] != null && event != null && events.status === 'ready' && !resolveUnavailable(events),
+    views[0] != null && event != null && resolveFallback([{ phase: events.phase }]).kind === 'open',
   )
 </script>
 

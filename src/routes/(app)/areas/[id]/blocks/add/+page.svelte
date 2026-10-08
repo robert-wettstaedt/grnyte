@@ -8,7 +8,7 @@
   import { createBlock } from '$lib/entities/block/blocks.remote'
   import { entityHref } from '$lib/entities/href'
   import FormGate from '$lib/forms/FormGate.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { noEditPermission } from '$lib/forms/gate'
   import { coordsFromParams } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -29,15 +29,8 @@
     // An editor is refused because the area is the wrong type to hold this, not for permission.
     return checkRegionPermission(global.userRegions, [REGION_PERMISSION_EDIT], data.regionFk)
       ? { description: m.areas_notASectorBody(), primaryAction: view, title: m.areas_notASectorTitle() }
-      : { description: m.form_noEditPermission(), primaryAction: view, title: m.form_noPermissionTitle() }
+      : noEditPermission(view)
   })
-
-  // The fields live on a module-level remote singleton, so they outlive both this page and a
-  // change of area. BlockForm re-seeds its own once-at-mount state off `seedKey` below.
-  seedOnKeyChange(
-    () => page.params.id,
-    () => createBlock.fields.set({}),
-  )
 </script>
 
 <svelte:head>
@@ -49,18 +42,21 @@
   action={{ label: m.common_add() }}
   cancelTo={areaHref}
   {denied}
+  seed={() => createBlock.fields.set({})}
   title={m.blocks_addBlock()}
-  waitFor={[{ notFound: m.areas_notFound(), resource: area }]}
+  waitFor={[{ notFound: m.areas_notFound(), resource: area, whole: false }]}
 >
-  <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the area changes, so the
-       `<form>` it owns is never destroyed and rebuilt under the remote form object. -->
-  <BlockForm
-    area={area.data!}
-    form={createBlock}
-    {initialLocation}
-    cancelTo={areaHref}
-    seedKey={area.data!.id}
-    submitLabel={m.common_add()}
-    title={m.blocks_addBlock()}
-  />
+  {#snippet children([area])}
+    <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the area changes, so the
+         `<form>` it owns is never destroyed and rebuilt under the remote form object. -->
+    <BlockForm
+      {area}
+      form={createBlock}
+      {initialLocation}
+      cancelTo={areaHref}
+      seedKey={area.id}
+      submitLabel={m.common_add()}
+      title={m.blocks_addBlock()}
+    />
+  {/snippet}
 </FormGate>

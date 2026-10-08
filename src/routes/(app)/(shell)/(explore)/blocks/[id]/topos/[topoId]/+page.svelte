@@ -7,9 +7,9 @@
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
-  import SkeletonImage from '$lib/components/Skeleton/SkeletonImage.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
@@ -24,6 +24,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { prefersStill } from '$lib/state/motion.svelte'
   import { exit } from '$lib/state/navigation.svelte'
+  import { expectingMore } from '$lib/zero/resource.svelte'
   import { untrack } from 'svelte'
   import Panel from '../../../../Modal/Panel.svelte'
   import { sheetState } from '../../../../Modal/sheetState.svelte'
@@ -42,13 +43,6 @@
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
   const topo = $derived(topos.data.find((view) => view.id === topoId))
-
-  // The block row carries each photo's stored size, so the stage holds this one's box until the topo
-  // view lands, rather than standing empty.
-  const heldRatio = $derived.by(() => {
-    const image = block.data?.topoImages.find((candidate) => candidate.id === topoId)
-    return image?.width == null || image.height == null || image.height <= 0 ? null : image.width / image.height
-  })
 
   // Only the routes drawn on this topo, ordered as their lines read left-to-right.
   const topoRoutes = $derived.by(() => {
@@ -107,7 +101,7 @@
   // desktop footer pager). Topos have no names, so the labels state the direction.
   const nav = $derived.by(() => {
     const base = toSheetNav(
-      topos.settled ? topos.data.map((view) => ({ id: view.id, name: '' })) : null,
+      topos.phase.kind === 'answered' ? topos.data.map((view) => ({ id: view.id, name: '' })) : null,
       topoId,
       topoHref,
     )
@@ -123,7 +117,9 @@
   $effect(() => {
     const index = topos.data.findIndex((view) => view.id === topoId)
     sheetState.title =
-      index === -1 || !topos.settled ? m.topo_alt() : m.topo_position({ position: index + 1, total: topos.data.length })
+      index === -1 || topos.phase.kind !== 'answered'
+        ? m.topo_alt()
+        : m.topo_position({ position: index + 1, total: topos.data.length })
     sheetState.subtitle = block.data == null ? null : breadcrumb
     sheetState.nav = nav
     return () => (sheetState.nav = null)
@@ -193,23 +189,18 @@
         topType: line.topType,
       }))}
     />
-  {:else if heldRatio != null}
-    <!-- Fitted like the photo will be: as wide as the stage allows at its ratio, centred. -->
-    <div class="[container-type:size] flex h-full w-full items-center justify-center">
-      <div style:width="min(100cqw, calc(100cqh * {heldRatio}))">
-        <SkeletonImage class="w-full" ratio={heldRatio} />
-      </div>
-    </div>
   {/if}
 </div>
 
 <!-- `exit`, not a goto: a dismissed sheet must not be somewhere the back button can return to. -->
 <Panel bind:open onclose={() => exit(blockHref)}>
-  <QueryState notFound={m.topo_alt()} resource={topos}>
+  <QueryState notFound={m.topo_notFound()} resource={topos}>
     {#snippet ready()}
       <!-- The topos are a relation of the block row, so `ready` can arrive before this one has. -->
-      {#if topo == null && topos.settled}
-        <ErrorState type="notfound" title={m.topo_alt()} />
+      {#if topo == null && topos.phase.kind === 'answered'}
+        <ErrorState type="notfound" title={m.topo_notFound()} />
+      {:else if topo == null && !expectingMore(topos.phase)}
+        <OfflineNotice />
       {:else if topo == null || block.data == null}
         <!-- The block row decides the edit button above the list, so the list waits for it too. -->
         <div class="flex justify-center py-8"><LoadingIndicator /></div>

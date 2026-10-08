@@ -10,8 +10,8 @@ import { rolePermissionList } from '$lib/entities/rolePermission/resources.svelt
 import type { GradingScale, User } from '$lib/entities/user/dto'
 import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelte'
 import { isOnline } from '$lib/state/online.svelte'
-import { lastSyncedAt } from '$lib/state/sync.svelte'
-import { resolveLoading, type QueryResource } from '$lib/zero/resource.svelte'
+import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
+import type { QueryResource } from '$lib/zero/resource.svelte'
 import { getZ } from '$lib/zero/z.svelte'
 import { getContext, setContext } from 'svelte'
 
@@ -23,6 +23,9 @@ const GLOBAL_STATE_KEY = Symbol('global-state')
  * they disagree only about what to *do* about it.
  */
 const TERMINAL_CONNECTION = ['closed', 'error', 'needs-auth']
+
+/** How long a replica may take to read back before an empty store is called cold (~1.4 s at 5000 routes). */
+const STORE_PATIENCE_MS = 3000
 
 /**
  * App-wide reference data and the signed-in user, loaded once from Zero and
@@ -54,7 +57,7 @@ export interface GlobalState {
    * this person, never region activity, which is the whole reason the inbox and the feed are two
    * different things.
    */
-  readonly unreadNotifications: number
+  readonly unreadNotifications: number | undefined
   /** The signed-in user with their settings, or `undefined` while loading. */
   readonly user: undefined | User
 
@@ -106,6 +109,8 @@ export function setGlobalState(): GlobalState | undefined {
   // Not part of `isLoading`: the shell must not wait on the inbox to render, and an unread count
   // that starts at zero and moves is exactly right.
   const unreadResource = unreadNotificationList()
+  let patienceOver = $state(false)
+  setTimeout(() => (patienceOver = true), STORE_PATIENCE_MS)
 
   const state: GlobalState = {
     get grades() {
@@ -118,10 +123,10 @@ export function setGlobalState(): GlobalState | undefined {
       return userResource.data?.userSettings?.gradingScale ?? 'FB'
     },
     get isLoading() {
-      // Not the raw status: a reader with no app role or no region has a confirmed-empty answer,
-      // which offline never completes, and that read as loading put the whole app behind `isStoreCold`.
+      // Loading, or offline with nothing kept: a confirmed absence is an answer, which offline is the
+      // only kind an empty result gets, and reading it as loading put the app behind `isStoreCold`.
       return [gradesResource, userResource, userRoleResource, rolePermissionsResource, userRegionsResource].some(
-        resolveLoading,
+        ({ phase }) => phase.kind === 'loading' || phase.kind === 'unavailable',
       )
     },
     get isStoreCold() {
@@ -143,6 +148,10 @@ export function setGlobalState(): GlobalState | undefined {
       if (!this.isLoading) {
         return false
       }
+      // A replica still being read back looks the same as none for its first seconds offline.
+      if (!localStoreLoaded() && !patienceOver) {
+        return false
+      }
 
       return !isOnline() || TERMINAL_CONNECTION.includes(getZ().connectionState.name)
     },
@@ -152,9 +161,10 @@ export function setGlobalState(): GlobalState | undefined {
     get rolePermissionsResource() {
       return rolePermissionsResource
     },
-    // Zero until settled, so it moves once, from nothing to the true number, never through a partial one.
+    // Undefined until answered, so it moves once, never through a partial count, and the OS badge
+    // is left alone rather than cleared while it is unknown.
     get unreadNotifications() {
-      return unreadResource.settled ? unreadResource.data.length : 0
+      return unreadResource.phase.kind === 'answered' ? unreadResource.data.length : undefined
     },
     get user() {
       return userResource.data
@@ -230,16 +240,10 @@ export function staticGlobalState(
     userRole?: AppRole
   } = {},
 ): GlobalState {
+  // The data is already in hand, so this is an answer by construction, whatever the connection does.
   const ready = <T>(value: T): QueryResource<T> => ({
-    // The data is already in hand, so this is an answer by construction: never loading, and never
-    // an offline state, whatever the connection is doing around it.
-    availability: 'ready',
     data: value,
-    isComplete: true,
-    isEmpty: Array.isArray(value) ? value.length === 0 : value == null,
-    isSyncing: false,
-    settled: true,
-    status: 'ready',
+    phase: { empty: Array.isArray(value) ? value.length === 0 : value == null, kind: 'answered' },
   })
 
   const grades = data.grades ?? []
@@ -269,9 +273,6 @@ export function staticGlobalState(
 /** One resource's state, for the dev console hook above. */
 function describe(resource: QueryResource<unknown>) {
   return {
-    isComplete: resource.isComplete,
-    isEmpty: resource.isEmpty,
-    settled: resource.settled,
-    status: resource.status,
+    phase: resource.phase,
   }
 }

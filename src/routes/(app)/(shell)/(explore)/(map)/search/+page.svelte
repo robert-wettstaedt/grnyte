@@ -6,8 +6,16 @@
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import type { AscentStatus } from '$lib/components/EntityRow/types'
   import UserRow from '$lib/components/EntityRow/UserRow.svelte'
-  import { entityCrumbs, entityGroupLabel, type EntityType } from '$lib/components/EntitySearch/search.svelte'
+  import {
+    entityCrumbs,
+    entityGroupLabel,
+    searchOutcome,
+    sources,
+    type EntityType,
+  } from '$lib/components/EntitySearch/search.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
+  import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
@@ -169,7 +177,7 @@
   // already best-first in its own section.
   const showTop = $derived(grouped.length > 1 && topHits.length > 0)
 
-  const anyLoading = $derived([areas, blocks, routes, users].some((resource) => resource.status === 'loading'))
+  const outcome = $derived(searchOutcome(sources(areas, blocks, routes, users, regionFks().length > 0)))
 
   let expanded = $state<Partial<Record<EntityType, boolean>>>({})
 
@@ -197,12 +205,16 @@
 
 {#if query.length === 0}
   <p class="text-surface-600-400 py-10 text-center text-sm">{m.search_hint()}</p>
-{:else if results.length === 0 && anyLoading}
+{:else if results.length === 0 && outcome === 'pending'}
   <div class="space-y-3 py-4" aria-busy="true">
     <div class="placeholder animate-pulse"></div>
     <div class="placeholder animate-pulse"></div>
     <div class="placeholder animate-pulse"></div>
   </div>
+{:else if results.length === 0 && outcome === 'unavailable'}
+  <div class="py-6"><OfflineNotice /></div>
+{:else if results.length === 0 && outcome === 'error'}
+  <div class="py-6"><QueryError /></div>
 {:else if results.length === 0}
   <!-- `wrap-anywhere`: this echoes the query back, and one unbroken token would otherwise pan the
        mobile sheet sideways (its overflow-x is auto). -->

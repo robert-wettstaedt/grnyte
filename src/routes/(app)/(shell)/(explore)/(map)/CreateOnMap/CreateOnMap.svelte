@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import Row from '$lib/components/EntityRow/Row.svelte'
+  import { searchOutcome } from '$lib/components/EntitySearch/search.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { AreaListItem } from '$lib/entities/area/dto'
@@ -38,7 +39,13 @@
   const areas = areaMapList()
   const blocks = blockMapList()
   // "Nothing found" and "no sector nearby" are claims about every area and block.
-  const placesSettled = $derived(areas.settled && blocks.settled)
+  const places = $derived(searchOutcome([areas.phase, blocks.phase]))
+  const placesSettled = $derived(places === 'answered')
+  const placesLabel = {
+    error: m.error_generic_title,
+    pending: m.common_syncing,
+    unavailable: m.error_offline_title,
+  }
 
   let optionsOpen = $state(false)
   let pickerOpen = $state(false)
@@ -392,7 +399,8 @@
               onclick={togglePicker}
             >
               <span class={['truncate', resolvedSector == null && 'text-warning-600-400']}>
-                {resolvedSector?.name ?? (placesSettled ? m.map_create_noSectorNearby() : m.common_syncing())}
+                {resolvedSector?.name ??
+                  (places === 'answered' ? m.map_create_noSectorNearby() : placesLabel[places]())}
               </span>
               <Icon name="chevron-down" size={16} class="text-surface-600-400 shrink-0" />
             </button>

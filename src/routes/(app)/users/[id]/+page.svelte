@@ -30,24 +30,31 @@
 </svelte:head>
 
 <main class="relative min-w-0 flex-1 overflow-y-auto">
-  <QueryState notFound={m.profile_title()} resource={user}>
+  <!-- Chromeless route: a way back in every state without the profile, where ProfileView puts its
+       own, so it does not move when the profile lands. -->
+  {#if user.data == null}
+    <div class="pointer-events-none absolute inset-x-0 top-0 z-10">
+      <div class="container mx-auto max-w-3xl px-4 py-8">
+        <button
+          class="btn-icon preset-filled-surface-200-800 pointer-events-auto"
+          onclick={goBack}
+          title={m.common_back()}
+          aria-label={m.common_back()}
+        >
+          <Icon name="arrow-left" />
+        </button>
+      </div>
+    </div>
+  {/if}
+
+  <QueryState notFound={m.users_notFound()} resource={user}>
     {#snippet ready(data)}
       <ProfileView userId={data.id} username={data.username} isSelf={data.id === global.user?.id} onBack={goBack} />
     {/snippet}
 
     {#snippet loading()}
-      <!-- Chromeless route: a way back while the profile syncs, where ProfileView puts its own so it
-           does not move when the profile lands. The other states use ErrorState's own buttons. -->
       <div class="container mx-auto max-w-3xl px-4 py-8">
         <div class="relative flex flex-col items-center gap-4" aria-busy="true">
-          <button
-            class="btn-icon preset-filled-surface-200-800 absolute top-0 left-0"
-            onclick={goBack}
-            title={m.common_back()}
-            aria-label={m.common_back()}
-          >
-            <Icon name="arrow-left" />
-          </button>
           <div class="skeleton-hold flex flex-col items-center gap-4">
             <Avatar loading name="" size={80} solid />
             <div class="placeholder h-7 w-40 animate-pulse"></div>

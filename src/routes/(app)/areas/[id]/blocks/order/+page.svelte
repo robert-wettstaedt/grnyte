@@ -12,6 +12,7 @@
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { entityHref } from '$lib/entities/href'
   import FormGate from '$lib/forms/FormGate.svelte'
+  import { noEditPermission } from '$lib/forms/gate'
   import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { haversineMetres, sectorReferencePoint, type Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
@@ -191,11 +192,7 @@
   const denied = $derived(
     area.data == null || canEditBlock(global.userRegions, area.data)
       ? undefined
-      : {
-          description: m.form_noEditPermission(),
-          primaryAction: { href: areaHref, label: m.areas_viewArea() },
-          title: m.form_noPermissionTitle(),
-        },
+      : noEditPermission({ href: areaHref, label: m.areas_viewArea() }),
   )
 </script>
 
@@ -210,109 +207,98 @@
   {denied}
   fill
   title={m.blocks_order_title()}
-  waitFor={[{ notFound: m.areas_notFound(), resource: area }]}
+  waitFor={[{ notFound: m.areas_notFound(), resource: area, whole: false }]}
 >
-  <div class="flex h-full flex-col">
-    <PageHeader backLabel={m.common_cancel()} onback={cancel} title={m.blocks_order_title()}>
-      {#snippet action()}
-        <PageHeaderAction disabled={saving} label={m.common_save()} onclick={save} pending={saving} />
-      {/snippet}
-    </PageHeader>
+  {#snippet children([area])}
+    <div class="flex h-full flex-col">
+      <PageHeader backLabel={m.common_cancel()} onback={cancel} title={m.blocks_order_title()}>
+        {#snippet action()}
+          <PageHeaderAction disabled={saving} label={m.common_save()} onclick={save} pending={saving} />
+        {/snippet}
+      </PageHeader>
 
-    <!-- Stacked on mobile (map over list); side-by-side on desktop (map left, list right). -->
-    <div class="flex min-h-0 flex-1 flex-col md:flex-row">
-      <div class="h-[42dvh] flex-none md:h-full md:flex-1">
-        <!-- Rebuilt per area so the fit starts over: it tracks what it last framed and
+      <!-- Stacked on mobile (map over list); side-by-side on desktop (map left, list right). -->
+      <div class="flex min-h-0 flex-1 flex-col md:flex-row">
+        <div class="h-[42dvh] flex-none md:h-full md:flex-1">
+          <!-- Rebuilt per area so the fit starts over: it tracks what it last framed and
              whether the reader has taken the view, and neither belongs to the next area. -->
-        {#key areaId}
-          <ReorderMap
-            blocks={ordered}
-            parking={parkingPoint}
-            geoPaths={area.data!.geoPaths}
-            {selectedId}
-            onselect={select}
-          />
-        {/key}
-      </div>
-
-      <div class="border-surface-200-800 flex min-h-0 flex-1 flex-col md:w-104 md:flex-none md:border-l">
-        <div class="border-surface-200-800 flex flex-none items-center justify-between gap-3 border-b px-4 py-2.5">
-          <span class="text-surface-600-400 text-xs">{m.blocks_order_hint()}</span>
-          <button
-            class="btn btn-sm preset-tonal-primary flex-none"
-            disabled={referencePoint == null || !blocks.settled}
-            onclick={sortByDistance}
-            type="button"
-          >
-            <Icon name="navigation" size={15} />
-            {m.blocks_order_sortByDistance()}
-          </button>
+          {#key areaId}
+            <ReorderMap
+              blocks={ordered}
+              parking={parkingPoint}
+              geoPaths={area.geoPaths}
+              {selectedId}
+              onselect={select}
+            />
+          {/key}
         </div>
 
-        <ul
-          bind:this={listEl}
-          class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-4"
-          use:dragHandleZone={{ dropTargetStyle: {}, flipDurationMs: duration, items: list }}
-          onconsider={consider}
-          onfinalize={finalize}
-        >
-          {#each list as block, index (block.id)}
-            <li
-              data-block-id={block.id}
-              class={[
-                'bg-surface-100-900 border-surface-200-800 flex items-center gap-3 rounded-xl border p-3',
-                block.id === selectedId && 'ring-primary-500 ring-2',
-              ]}
-              animate:flip={{ duration }}
-              {@attach fadeInIfNew(block)}
+        <div class="border-surface-200-800 flex min-h-0 flex-1 flex-col md:w-104 md:flex-none md:border-l">
+          <div class="border-surface-200-800 flex flex-none items-center justify-between gap-3 border-b px-4 py-2.5">
+            <span class="text-surface-600-400 text-xs">{m.blocks_order_hint()}</span>
+            <button
+              class="btn btn-sm preset-tonal-primary flex-none"
+              disabled={referencePoint == null || blocks.phase.kind !== 'answered'}
+              onclick={sortByDistance}
+              type="button"
             >
-              <button
-                class="bg-primary-500/15 text-primary-500 flex size-8 flex-none items-center justify-center rounded-md text-sm font-bold tabular-nums"
-                onclick={() => select(block.id)}
-                type="button"
-                aria-label={m.blocks_order_select()}
+              <Icon name="navigation" size={15} />
+              {m.blocks_order_sortByDistance()}
+            </button>
+          </div>
+
+          <ul
+            bind:this={listEl}
+            class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-4"
+            use:dragHandleZone={{ dropTargetStyle: {}, flipDurationMs: duration, items: list }}
+            onconsider={consider}
+            onfinalize={finalize}
+          >
+            {#each list as block, index (block.id)}
+              <li
+                data-block-id={block.id}
+                class={[
+                  'bg-surface-100-900 border-surface-200-800 flex items-center gap-3 rounded-xl border p-3',
+                  block.id === selectedId && 'ring-primary-500 ring-2',
+                ]}
+                animate:flip={{ duration }}
+                {@attach fadeInIfNew(block)}
               >
-                {index + 1}
-              </button>
+                <button
+                  class="bg-primary-500/15 text-primary-500 flex size-8 flex-none items-center justify-center rounded-md text-sm font-bold tabular-nums"
+                  onclick={() => select(block.id)}
+                  type="button"
+                  aria-label={m.blocks_order_select()}
+                >
+                  {index + 1}
+                </button>
 
-              <span class="min-w-0 flex-1">
-                <!-- Named off the list position, not the stored slot: a nameless block falls
-                     back to "Block <n>", and mid-drag its slot is whatever it was before the
-                     drag started, so the label read one number while the badge beside it read
-                     another. Only the badge: the map pins number off `ordered`, which drops
-                     the drag placeholder when its id is unknown, so in that one window the
-                     dragged block has no pin at all and the rows BELOW it sit one ahead of the
-                     pins that remain. -->
-                <span class="block truncate font-semibold">{blockName(block.rawName, index)}</span>
-                {#if block.geolocation == null}
-                  <span class="text-warning-800-200 flex items-center gap-1 text-xs">
-                    <Icon name="alert-triangle" size={12} />
-                    {m.blocks_noLocation()}
-                  </span>
-                {/if}
-              </span>
+                <span class="min-w-0 flex-1">
+                  <!-- Named off the list position, not the stored slot, so a nameless block's
+                       "Block <n>" matches its badge mid-drag. -->
+                  <span class="block truncate font-semibold">{blockName(block.rawName, index)}</span>
+                  {#if block.geolocation == null}
+                    <span class="text-warning-800-200 flex items-center gap-1 text-xs">
+                      <Icon name="alert-triangle" size={12} />
+                      {m.blocks_noLocation()}
+                    </span>
+                  {/if}
+                </span>
 
-              <!-- A span, not a button: the library refuses to start a drag when the press
-                   lands on an element carrying a `value` property, which is how it avoids
-                   stealing presses from selects and inputs, and `HTMLButtonElement.value` is
-                   ''. Pressing the grip did nothing; only a press that happened to land on the
-                   glyph inside it got through.
-
-                   No role or tabindex here: `dragHandle` sets `role="button"` and drives
-                   tabindex itself, taking the handle out of the tab order for the length of a
-                   drag. Spelling them in the markup only sets a pre-hydration value the action
-                   immediately overwrites, while reading as though this file owned them. -->
-              <span
-                class="text-surface-500 hover:text-surface-950-50 flex-none touch-none p-1"
-                aria-label={m.blocks_order_drag()}
-                use:dragHandle
-              >
-                <Icon name="grip-vertical" size={18} />
-              </span>
-            </li>
-          {/each}
-        </ul>
+                <!-- A span: the library starts no drag on an element with a `value`, which a button
+                     has. No role or tabindex either, `dragHandle` sets both. -->
+                <span
+                  class="text-surface-500 hover:text-surface-950-50 flex-none touch-none p-1"
+                  aria-label={m.blocks_order_drag()}
+                  use:dragHandle
+                >
+                  <Icon name="grip-vertical" size={18} />
+                </span>
+              </li>
+            {/each}
+          </ul>
+        </div>
       </div>
     </div>
-  </div>
+  {/snippet}
 </FormGate>

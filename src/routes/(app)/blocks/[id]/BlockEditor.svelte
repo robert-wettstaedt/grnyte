@@ -8,7 +8,8 @@
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { entityHref } from '$lib/entities/href'
   import FormGate from '$lib/forms/FormGate.svelte'
-  import { seedForm, seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { noEditPermission } from '$lib/forms/gate'
+  import { seedForm } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -34,31 +35,7 @@
   const denied = $derived(
     block.data == null || canEditBlock(global.userRegions, block.data)
       ? undefined
-      : {
-          description: m.form_noEditPermission(),
-          primaryAction: { href: blockHref, label: m.blocks_viewBlock() },
-          title: m.form_noPermissionTitle(),
-        },
-  )
-
-  // `settled`, not the raw row: a form opened on a partial snapshot stamps a proof claiming there
-  // was no pin, and the seed key (the block id) never changes to re-stamp it, so every save refuses
-  // until a reload.
-  const settledBlock = $derived(block.settled ? block.data : undefined)
-
-  // Keyed on the hydrated id and not the route parameter or the raw row: the seed reads data, so it
-  // has to wait for the row rather than write the previous entity's values under the new id, and it
-  // may as well land at the moment the form appears. Re-seeding on every snapshot would clobber
-  // edits in progress, which is what the guard is for.
-  seedOnKeyChange(
-    () => settledBlock?.id,
-    () => {
-      const data = settledBlock
-      if (data == null) {
-        return
-      }
-      void seedForm(updateBlock, { description: data.description, id: String(data.id), name: data.rawName })
-    },
+      : noEditPermission({ href: blockHref, label: m.blocks_viewBlock() }),
   )
 </script>
 
@@ -66,39 +43,43 @@
   <title>{title} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<!-- Outside BlockForm, which seeds its pin at mount: no Save until the pin is here, since a submit
-     with no coordinates validly means "remove the pin". The chrome matches the screen it opens on. -->
+<!-- `whole`: BlockForm seeds its pin at mount, and a submit without coordinates removes the pin. -->
 <FormGate
   action={{ label: initialStep === 'pin' ? m.common_done() : m.common_save() }}
   backLabel={initialStep === 'pin' ? title : undefined}
   cancelTo={blockHref}
   {denied}
   fill={initialStep === 'pin'}
+  seed={([block]) =>
+    void seedForm(updateBlock, { description: block.description, id: String(block.id), name: block.rawName })}
   title={initialStep === 'pin' ? m.blocks_add_setLocationTitle() : title}
   waitFor={[
     { notFound: m.blocks_notFound(), resource: block, whole: true },
-    { notFound: m.areas_notFound(), resource: area },
+    { notFound: m.areas_notFound(), resource: area, whole: false },
   ]}
 >
-  {@const detail = block.data!}
-  <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the id changes, so the `<form>`
-       it owns is never destroyed and rebuilt under the remote form object, which accepts only one
-       element at a time. -->
-  <BlockForm
-    seedKey={detail.id}
-    area={area.data!}
-    editing
-    form={updateBlock}
-    {initialStep}
-    initialLocation={detail.geolocation == null ? null : { lat: detail.geolocation.lat, long: detail.geolocation.long }}
-    initialEstimated={detail.geolocation?.estimated ?? false}
-    cancelTo={blockHref}
-    onLocationCommit={initialStep === 'pin'
-      ? // Not `withUndo`, so the failure has to be reported here.
-        (coords) =>
-          void runCommand(setBlockLocation({ id: detail.id, lat: coords.lat, long: coords.long })).catch(notifyError)
-      : undefined}
-    submitLabel={m.common_save()}
-    {title}
-  />
+  {#snippet children([detail, area])}
+    <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the id changes, so the `<form>`
+         it owns is never destroyed and rebuilt under the remote form object, which accepts only one
+         element at a time. -->
+    <BlockForm
+      seedKey={detail.id}
+      {area}
+      editing
+      form={updateBlock}
+      {initialStep}
+      initialLocation={detail.geolocation == null
+        ? null
+        : { lat: detail.geolocation.lat, long: detail.geolocation.long }}
+      initialEstimated={detail.geolocation?.estimated ?? false}
+      cancelTo={blockHref}
+      onLocationCommit={initialStep === 'pin'
+        ? // Not `withUndo`, so the failure has to be reported here.
+          (coords) =>
+            void runCommand(setBlockLocation({ id: detail.id, lat: coords.lat, long: coords.long })).catch(notifyError)
+        : undefined}
+      submitLabel={m.common_save()}
+      {title}
+    />
+  {/snippet}
 </FormGate>

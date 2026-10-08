@@ -13,6 +13,7 @@
   import MediaGrid from '$lib/components/Media/MediaGrid.svelte'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import PageHeader, { PAGE_CHROME_WIDTH } from '$lib/components/PageHeader/PageHeader.svelte'
+  import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
@@ -43,7 +44,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
   import { back, push } from '$lib/state/navigation.svelte'
-  import { resolveUnavailable } from '$lib/zero/resource.svelte'
+  import { expectingMore } from '$lib/zero/resource.svelte'
   import { SvelteMap } from 'svelte/reactivity'
   import { fade } from 'svelte/transition'
   import RegionLive from './RegionLive.svelte'
@@ -82,7 +83,7 @@
   //
   // Offline only, never merely loading. `settled` keeps a list the server already confirmed on
   // screen through a signal blip; `isComplete` drops then.
-  const ascentsUnavailable = $derived(resolveUnavailable(ascents))
+  const ascentsUnavailable = $derived(ascents.phase.kind === 'unavailable')
 
   // The most complete drawing of this route across the block's topos.
   const hit = $derived(selectTopoForRoute(topos.data, routeId))
@@ -142,7 +143,7 @@
   const siblingRoutes = blockRouteList(() => route.data?.blockFk ?? -1)
   const orderedSiblings = $derived(orderRoutesByTopo(siblingRoutes.data, topos.data))
   const routeHref = (id: number) => entityHref('routes', id)
-  const nav = $derived(toSheetNav(siblingRoutes.settled ? orderedSiblings : null, routeId, routeHref))
+  const nav = $derived(toSheetNav(siblingRoutes.phase.kind === 'answered' ? orderedSiblings : null, routeId, routeHref))
 
   /** Whether the event log is up. It owns the screen while it is, like the media viewer. */
   let logOpen = $state(false)
@@ -193,7 +194,7 @@
           {/if}
           <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- blockHref is pre-resolved above. -->
           <a class={CRUMB_LINK} href={blockHref}>{block.data.name}</a>
-        {:else}
+        {:else if expectingMore(route.phase) || expectingMore(block.phase)}
           <SkeletonText />
         {/if}
       </div>
@@ -210,7 +211,7 @@
       </div>
     </div>
 
-    <!-- Both always render (an ungraded/unrated route shows the "—" pill + empty stars), so until
+    <!-- Both always render (an ungraded/unrated route shows the dash pill + empty stars), so until
          the route is here they keep their space invisibly rather than claim it is ungraded. -->
     <div class={['flex flex-none flex-col items-end gap-1', route.data == null && 'invisible']}>
       <RouteGrade
@@ -256,7 +257,7 @@
               <Icon name="chevron-right" size={13} />
             </span>
           </a>
-        {:else if heroRatio != null && !topos.settled}
+        {:else if heroRatio != null && expectingMore(topos.phase)}
           <SkeletonImage class="max-h-88 w-full" ratio={heroRatio} />
         {:else if detail.topoImagePath == null && canEditTopo(global.userRegions, detail)}
           <!-- An editor's way to a hero (a reader gets nothing). Invisible until the route is confirmed
@@ -265,7 +266,7 @@
           <a
             class={[
               'border-surface-300-700 text-surface-600-400 hover:bg-surface-100-900 flex items-center gap-3 rounded-2xl border border-dashed px-3.5 py-3 text-sm font-semibold transition-colors',
-              !route.settled && 'invisible',
+              route.phase.kind !== 'answered' && 'invisible',
             ]}
             href={drawHref}
           >
@@ -279,7 +280,7 @@
         <!-- The block row lands before its pin, so it is held back until the pin or the answer is
              here: otherwise the line claims "no location" for a block that has one. -->
         <RouteActions
-          block={block.data?.geolocation != null || block.settled ? block.data : undefined}
+          block={block.data?.geolocation != null || block.phase.kind === 'answered' ? block.data : undefined}
           {location}
           route={detail}
           {save}
@@ -355,7 +356,7 @@
           <section class="flex flex-col gap-2.5">
             <div class="flex items-baseline justify-between gap-3">
               <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">{m.ascents_title()}</h2>
-              {#if ascents.settled}
+              {#if ascents.phase.kind === 'answered'}
                 <span class="text-surface-500 text-xs font-semibold" transition:fade={{ duration: motion() }}>
                   {ascents.data.length}
                 </span>
@@ -373,12 +374,16 @@
 
             {#if ascents.data.length > 0}
               <a class="btn preset-outlined-surface-200-800 w-full" href={ascentsHref}>
-                {ascents.settled ? m.ascents_seeAll({ count: ascents.data.length }) : m.ascents_seeAllUncounted()}
+                {ascents.phase.kind === 'answered'
+                  ? m.ascents_seeAll({ count: ascents.data.length })
+                  : m.ascents_seeAllUncounted()}
                 <Icon name="chevron-right" size={15} />
               </a>
-            {:else if ascents.settled}
+            {:else if ascents.phase.kind === 'answered'}
               <!-- The held row's height, so the answer "none" does not pull the page up. -->
               <p class="text-surface-600-400 flex h-14 items-center text-sm">{m.ascents_empty()}</p>
+            {:else if ascents.phase.kind === 'error'}
+              <QueryError compact />
             {:else}
               <SkeletonRows count={1} lead="avatar" />
             {/if}
@@ -391,7 +396,7 @@
             <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
               {m.routes_gradeOpinions()}
             </h2>
-            {#if ascents.settled && voteCount > 0}
+            {#if ascents.phase.kind === 'answered' && voteCount > 0}
               <span class="text-surface-500 text-xs font-semibold tabular-nums">
                 {#if selectedVote != null}
                   {selectedVote.label} · {m.routes_gradeVotes({ count: selectedVote.count })}
@@ -423,7 +428,9 @@
                  opinions" is a claim we can make without the whole list. -->
           {#if ascentsUnavailable}
             <OfflineNotice compact excluded />
-          {:else if !ascents.settled}
+          {:else if ascents.phase.kind === 'error'}
+            <QueryError compact />
+          {:else if ascents.phase.kind !== 'answered'}
             <!-- A tally of a partial list is a claim about the whole one. -->
             <SkeletonRows count={1} lines={1} />
           {:else if countByGrade.size > 0}
@@ -432,10 +439,12 @@
               grades={global.grades}
               gradingScale={global.gradingScale}
               showCounts
+              unit="votes"
               onselect={(bar) => (selectedVote = bar)}
             />
           {:else}
-            <p class="text-surface-600-400 text-sm">{m.routes_noOpinions()}</p>
+            <!-- The held row's height. -->
+            <p class="text-surface-600-400 flex h-7.5 items-center text-sm">{m.routes_noOpinions()}</p>
           {/if}
         </section>
 

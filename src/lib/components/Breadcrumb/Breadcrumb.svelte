@@ -43,7 +43,15 @@
        scrollbar is hidden so it reads as a clean subtitle. -->
   <!-- overflow-x makes this a scroll container in both axes, so it needs the crumbs' own 8px or
        their targets are clipped above and scrollable below. -my-2 keeps the footprint at 16px. -->
-  <div class="breadcrumb -my-2 flex items-center gap-2 overflow-x-auto py-2 whitespace-nowrap">
+  <!-- Starts scrolled to its end: a narrow screen shows the crumbs nearest this page, not a clip
+       that ends on a separator. -->
+  <div
+    class="breadcrumb -my-2 flex items-center gap-2 overflow-x-auto py-2 whitespace-nowrap"
+    {@attach (node) => {
+      void visible
+      node.scrollLeft = node.scrollWidth
+    }}
+  >
     {#if regionName != null}
       <span class="text-surface-600-400 shrink-0 text-xs">{regionName}</span>
 

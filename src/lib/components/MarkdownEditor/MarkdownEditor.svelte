@@ -488,12 +488,7 @@
       transition:slide={{ duration: motion(130) }}
       {@attach keepFocus}
     >
-      <EntityList
-        groups={search.groups}
-        activeIndex={picker.index}
-        onselect={selectItem}
-        settled={search.resultsSettled}
-      />
+      <EntityList groups={search.groups} activeIndex={picker.index} onselect={selectItem} outcome={search.outcome} />
     </div>
   {/if}
 </div>

@@ -7,7 +7,7 @@
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { entityHref } from '$lib/entities/href'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { noEditPermission } from '$lib/forms/gate'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
@@ -19,31 +19,7 @@
   const denied = $derived(
     area.data == null || canEditArea(global.userRegions, area.data)
       ? undefined
-      : {
-          description: m.form_noEditPermission(),
-          primaryAction: { href: areaHref, label: m.areas_viewArea() },
-          title: m.form_noPermissionTitle(),
-        },
-  )
-
-  // Keyed on the loaded row's id and not the route parameter: the seed reads data, so it has to
-  // wait for the row rather than write the previous entity's values under the new id. Re-seeding
-  // on every snapshot would clobber edits in progress, which is what the guard is for.
-  seedOnKeyChange(
-    () => area.data?.id,
-    () => {
-      const data = area.data
-      if (data == null) {
-        return
-      }
-      updateArea.fields.set({
-        description: data.description,
-        id: data.id.toString(),
-        name: data.name,
-        parentFk: data.areas.at(-1)?.id.toString(),
-        regionFk: data.regionFk.toString(),
-      })
-    },
+      : noEditPermission({ href: areaHref, label: m.areas_viewArea() }),
   )
 </script>
 
@@ -55,9 +31,19 @@
   cancelTo={areaHref}
   {denied}
   form={updateArea}
+  seed={([area]) =>
+    updateArea.fields.set({
+      description: area.description,
+      id: area.id.toString(),
+      name: area.name,
+      parentFk: area.areas.at(-1)?.id.toString(),
+      regionFk: area.regionFk.toString(),
+    })}
   submitLabel={m.common_save()}
   title={m.areas_editArea()}
-  waitFor={[{ notFound: m.areas_notFound(), resource: area }]}
+  waitFor={[{ notFound: m.areas_notFound(), resource: area, whole: false }]}
 >
-  <AreaFormFields area={area.data!} form={updateArea} />
+  {#snippet fields([area])}
+    <AreaFormFields {area} form={updateArea} />
+  {/snippet}
 </Form>

@@ -9,7 +9,7 @@
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
   import { createRoute } from '$lib/entities/route/routes.remote'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { noEditPermission } from '$lib/forms/gate'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { exit } from '$lib/state/navigation.svelte'
@@ -22,11 +22,7 @@
   const denied = $derived(
     block.data == null || canAddRoute(global.userRegions, block.data)
       ? undefined
-      : {
-          description: m.form_noEditPermission(),
-          primaryAction: { href: blockHref, label: m.blocks_viewBlock() },
-          title: m.form_noPermissionTitle(),
-        },
+      : noEditPermission({ href: blockHref, label: m.blocks_viewBlock() }),
   )
 
   let uploads = $state<MediaUpload[]>([])
@@ -35,16 +31,13 @@
   // there would arrive here pre-filled.
   // `remove()` and not just dropping the array: only it aborts the transfer and deletes the
   // staged object, so media picked for one block cannot finalize against another.
-  seedOnKeyChange(
-    () => page.params.id,
-    () => {
-      createRoute.fields.set({})
-      for (const upload of uploads) {
-        upload.remove()
-      }
-      uploads = []
-    },
-  )
+  const seed = () => {
+    createRoute.fields.set({})
+    for (const upload of uploads) {
+      upload.remove()
+    }
+    uploads = []
+  }
 
   // Record-first media: the route is created on submit; pending uploads then finalize
   // against it in the background while we move on to the new route's page (the wait is
@@ -69,11 +62,12 @@
   {denied}
   form={createRoute}
   {onSubmitted}
+  {seed}
   submitLabel={m.common_add()}
   title={m.routes_addRoute()}
-  waitFor={[{ notFound: m.blocks_notFound(), resource: block }]}
+  waitFor={[{ notFound: m.blocks_notFound(), resource: block, whole: false }]}
 >
-  {#key block.data!.id}
-    <RouteFormFields block={block.data!} form={createRoute} bind:uploads />
-  {/key}
+  {#snippet fields([block])}
+    <RouteFormFields {block} form={createRoute} bind:uploads />
+  {/snippet}
 </Form>

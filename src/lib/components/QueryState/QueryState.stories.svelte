@@ -5,16 +5,8 @@
 
   const ROUTES = ['Hidden Arete', 'Slab Dance', 'The Roof']
 
-  // Settled and complete; each story bends it through `forceState`, the same override the app has.
-  const resource: QueryResource<string[]> = {
-    availability: 'ready',
-    data: ROUTES,
-    isComplete: true,
-    isEmpty: false,
-    isSyncing: false,
-    settled: true,
-    status: 'ready',
-  }
+  // Answered; each story bends it through `forceState`, the same override the app has.
+  const resource: QueryResource<string[]> = { data: ROUTES, phase: { empty: false, kind: 'answered' } }
 
   const { Story } = defineMeta({
     component: QueryState,

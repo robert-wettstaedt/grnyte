@@ -1,6 +1,6 @@
 import { entityMappers, type EntityType } from '$lib/components/EntitySearch/search.svelte'
 import { queries } from '$lib/zero/queries'
-import { createResource, resolveUnavailable, type QueryResource } from '$lib/zero/resource.svelte'
+import { createResource, expectingMore, type QueryResource } from '$lib/zero/resource.svelte'
 import type { MarkdownReference, MarkdownReferencesIds } from './remark-references'
 
 /**
@@ -65,14 +65,13 @@ export function markdownReferences(ids: () => MarkdownReferencesIds) {
     requested: number[],
     resource: QueryResource<MarkdownReference[]>,
   ): MarkdownReference[] => {
-    // Still coming, and it may yet arrive: emit nothing rather than a placeholder that flashes in
-    // the middle of a sentence and is then replaced by the name. `ready` is not enough: it arrives
-    // with the first row, and a sibling reference still syncing then read as deleted.
-    if (!resource.settled && !resolveUnavailable(resource)) return []
+    // Still coming: emit nothing rather than a placeholder that flashes mid-sentence. Every other
+    // phase (partial and error too) must emit one, or the raw token renders as text.
+    if (expectingMore(resource.phase)) return []
 
-    // `settled`, not `isComplete`, which Zero clears on every disconnect, so a tombstone would
+    // `answered`, not `isComplete`, which Zero clears on every disconnect, so a tombstone would
     // downgrade to "not available" on a pocketed phone. Offline it also covers a synced guidebook.
-    const authoritative = resource.settled
+    const authoritative = resource.phase.kind === 'answered'
 
     return requested
       .filter((id) => !resource.data.some((ref) => ref.id === id))

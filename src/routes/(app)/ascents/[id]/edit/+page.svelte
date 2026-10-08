@@ -9,7 +9,6 @@
   import { entityHref } from '$lib/entities/href'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
@@ -33,26 +32,6 @@
           title: m.form_noPermissionTitle(),
         },
   )
-
-  // The custom inputs seed themselves from the `ascent` prop; this covers the field-driven ones
-  // (notes).
-  // Keyed on the loaded row's id, not the route parameter: the seed reads data, so it has to
-  // wait for the row rather than write the previous entity's values under the new id.
-  seedOnKeyChange(
-    () => ascent.data?.id,
-    () => {
-      const data = ascent.data
-      if (data == null) {
-        return
-      }
-      updateAscent.fields.set({
-        id: String(data.id),
-        notes: data.notes,
-        routeId: String(data.routeFk),
-        type: data.type,
-      })
-    },
-  )
 </script>
 
 <svelte:head>
@@ -64,19 +43,23 @@
   cancelTo={routeHref}
   {denied}
   form={updateAscent}
+  seed={([ascent]) =>
+    // The custom inputs seed themselves from the `ascent` prop; this covers the field-driven ones.
+    updateAscent.fields.set({
+      id: String(ascent.id),
+      notes: ascent.notes,
+      routeId: String(ascent.routeFk),
+      type: ascent.type,
+    })}
   submitLabel={m.common_save()}
   title={m.ascents_editAscent()}
   waitFor={[
-    { notFound: m.ascents_notFound(), resource: ascent },
-    { notFound: m.routes_notFound(), resource: route },
-    { notFound: m.blocks_notFound(), resource: block },
+    { notFound: m.ascents_notFound(), resource: ascent, whole: false },
+    { notFound: m.routes_notFound(), resource: route, whole: false },
+    { notFound: m.blocks_notFound(), resource: block, whole: false },
   ]}
 >
-  <!-- Keyed on the id: this is one route, so `/x/1/edit` to `/x/2/edit` reuses the component rather
-       than remounting it, and Zero answers from the local store so the page never passes through a
-       loading state that would rebuild it. The remote fields re-seed on an id change, but state
-       seeded once at mount does not, which would save the new entity carrying the old one's values. -->
-  {#key ascent.data!.id}
-    <AscentFormFields ascent={ascent.data!} block={block.data!} form={updateAscent} route={route.data!} />
-  {/key}
+  {#snippet fields([ascent, route, block])}
+    <AscentFormFields {ascent} {block} form={updateAscent} {route} />
+  {/snippet}
 </Form>

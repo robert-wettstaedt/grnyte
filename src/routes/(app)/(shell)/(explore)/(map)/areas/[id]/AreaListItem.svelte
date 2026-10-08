@@ -21,9 +21,9 @@
 
 <!-- The donut is the whole sub-tree's grades, so it waits for the whole sub-tree. -->
 <AreaRow
-  countByGrade={routes.settled ? countByGrade : undefined}
+  countByGrade={routes.phase.kind === 'answered' ? countByGrade : undefined}
   description={area.description}
   href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) })}
   name={area.name}
-  total={routes.settled ? routes.data.length : undefined}
+  total={routes.phase.kind === 'answered' ? routes.data.length : undefined}
 />

@@ -2,7 +2,8 @@
    $derived (the new reference is the reactivity) and never mutated afterwards. */
 import { userAscentList } from '$lib/entities/ascent/resources.svelte'
 import { userFavoriteList } from '$lib/entities/favorite/resources.svelte'
-import type { QueryResource } from '$lib/zero/resource.svelte'
+import { isOnline } from '$lib/state/online.svelte'
+import type { QueryPhase, QueryResource } from '$lib/zero/resource.svelte'
 import type { ParsedRouteFilter } from './filter'
 
 /**
@@ -65,36 +66,26 @@ export function filteredRouteList<T extends { id: number }>(
   // The client-side filters read the user's ascents and favorites, so the result is only whole once
   // those are too.
   const settled = $derived(
-    routes.settled &&
-      (filter().ascentStatus == null || userAscents.settled) &&
-      (!filter().favoritesOnly || userFavorites.settled),
+    routes.phase.kind === 'answered' &&
+      (filter().ascentStatus == null || userAscents.phase.kind === 'answered') &&
+      (!filter().favoritesOnly || userFavorites.phase.kind === 'answered'),
   )
 
   return {
-    // Delegated, not recomputed: whether the rows are on this device is a fact about the underlying
-    // query, and a client-side filter emptying the result does not change it.
-    get availability() {
-      return routes.availability
-    },
     get data() {
       return data
     },
-    get isComplete() {
-      return routes.isComplete
-    },
-    // Empty reflects the *filtered* result, so client-side filters that remove
-    // every route still trigger the empty state, once everything they read is whole.
-    get isEmpty() {
-      return data.length === 0 && (routes.isEmpty || settled)
-    },
-    get isSyncing() {
-      return routes.isSyncing
-    },
-    get settled() {
-      return settled
-    },
-    get status() {
-      return routes.status
+    // The routes' own phase, held back from `answered` until the lists the filters read are too.
+    // Empty reflects the *filtered* result, so filters removing every route still show the empty state.
+    get phase(): QueryPhase {
+      const base = routes.phase
+      if (base.kind !== 'answered' && base.kind !== 'arriving' && base.kind !== 'partial') {
+        return base
+      }
+      if (settled || (base.kind === 'answered' && base.empty)) {
+        return { empty: data.length === 0, kind: 'answered' }
+      }
+      return isOnline() ? { kind: 'arriving' } : { kind: 'partial' }
     },
   }
 }

@@ -12,8 +12,9 @@
     /** Grades ordered low → high; `value` is in this array's index space. */
     grades: Grade[]
     gradingScale: GradingScale
-    /** Route counts keyed by grade id (`gradeFk`), used for the histogram. */
-    routeCountByGrade: Map<number, number>
+    /** Route counts keyed by grade id (`gradeFk`) for the histogram; undefined while withheld, which
+     *  hides the bars but leaves the slider usable. */
+    routeCountByGrade: Map<number, number> | undefined
     /** Selected `[minIndex, maxIndex]` into `grades`. */
     value: number[]
   }
@@ -37,7 +38,7 @@
   /** One bar per rung, summing the grades it covers. */
   const rungCounts = $derived(
     spans.map((span) =>
-      grades.slice(span.first, span.last + 1).reduce((sum, grade) => sum + (routeCountByGrade.get(grade.id) ?? 0), 0),
+      grades.slice(span.first, span.last + 1).reduce((sum, grade) => sum + (routeCountByGrade?.get(grade.id) ?? 0), 0),
     ),
   )
   const maxCount = $derived(rungCounts.reduce((max, count) => Math.max(max, count), 0))
@@ -74,11 +75,14 @@
           ></div>
         {/each}
       </div>
+    {:else}
+      <!-- The bars' box, held whenever no bars are drawn, so the slider does not jump. -->
+      <div class="h-12" aria-hidden="true"></div>
     {/if}
 
     <Slider
       aria-label={[`${m.filter_grade()} min`, `${m.filter_grade()} max`]}
-      disabled={maxCount === 0}
+      disabled={routeCountByGrade != null && maxCount === 0}
       getAriaValueText={(details) => rangeLabel(details.value)}
       max={Math.max(0, rungs.length - 1)}
       min={0}

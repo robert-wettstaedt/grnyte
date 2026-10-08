@@ -65,14 +65,14 @@
 </script>
 
 <div>
-  <!-- Only a sector has a location of its own; a sub-area has nothing to say here. -->
-  <!-- Not while locating: "no location" is a claim about every block, and they are still arriving. -->
-  {#if area.type === 'sector' && !locating}
+  <!-- Only a sector has a location. While locating it claims nothing; a "no location" line then slides
+       in above the bar, a deliberate exception: holding it would collapse for most sectors. -->
+  {#if area.type === 'sector'}
     <LocationMeta
       distance={location.distance}
       href={destination == null && canAddParkingHere ? parkingHref : undefined}
       isHere={location.isHere}
-      pin={destination == null ? 'missing' : 'set'}
+      pin={destination == null && !locating ? 'missing' : 'set'}
     />
   {/if}
 

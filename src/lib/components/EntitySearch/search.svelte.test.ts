@@ -2,7 +2,7 @@ import type { RouteListRow } from '$lib/entities/route/mapper'
 import { m } from '$lib/paraglide/messages'
 import { flushSync } from 'svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { debouncedQuery, entityMappers, placeGroups, searchReady } from './search.svelte'
+import { debouncedQuery, entityMappers, placeGroups, searchOutcome, searchReady } from './search.svelte'
 
 // The picker lists must never print a blank row: names come from the entity mappers,
 // which own the "unnamed route" and "Block <order>" fallbacks.
@@ -195,5 +195,25 @@ describe('placeGroups', () => {
 
   it('keeps a shown group in its place while it is momentarily empty', () => {
     expect(placeGroups(['users', 'routes'], ['routes'])).toEqual(['users', 'routes'])
+  })
+})
+
+describe('searchOutcome', () => {
+  const answered = { empty: true, kind: 'answered' } as const
+
+  it('is answered only once every source answered', () => {
+    expect(searchOutcome([answered, answered])).toBe('answered')
+  })
+
+  it('waits while any source may still bring a match, even beside a failure', () => {
+    expect(searchOutcome([{ kind: 'arriving' }, { kind: 'error' }])).toBe('pending')
+  })
+
+  it('reports a failure before an offline gap', () => {
+    expect(searchOutcome([{ kind: 'error' }, { excluded: false, kind: 'unavailable' }])).toBe('error')
+  })
+
+  it('never claims no matches from rows nothing confirmed', () => {
+    expect(searchOutcome([answered, { kind: 'partial' }])).toBe('unavailable')
   })
 })

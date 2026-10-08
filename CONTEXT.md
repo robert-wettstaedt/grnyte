@@ -124,13 +124,14 @@ the app. Monotonic: `ready` is a one-way door, and nothing may move a video back
 what lets a client observation correct a stale row without ever corrupting it. In UI copy the word is
 "Preparing", never "processing", which is the host's word for its own machinery.
 
-**settled**, **arriving**, **unavailable**
-What a synced query may claim, on `QueryResource` (`$lib/zero/resource.svelte`). **settled**: the
-server confirmed this request whole at least once; latched, so a parked socket does not undo it. Only
-a settled query may state an absence or a total. **arriving**: rows are on screen, more are
-expected, and the connection is up; shown with an affordance and no count. **unavailable**: offline
-and never settled, so neither the rows nor their absence can be stated. Not "readiness", which is a
-video's.
+**phase**
+What a synced query may claim, as `QueryResource.phase` (`$lib/zero/resource.svelte`), the one
+answer a screen reads. **answered**: confirmed whole, by the server or offline by a finished
+preload; latched, so a parked socket does not undo it. Only an answered query may state an absence
+or a total. **arriving**: rows on screen, more expected, connection up; shown with an affordance and
+no count. **partial**: offline, rows on hand that nothing confirmed; shown, but with no count and no
+"none". **unavailable**: offline with nothing kept, so neither the rows nor their absence can be
+stated. **loading** and **error** are what they say. Not "readiness", which is a video's.
 
 **slot**
 A block's position inside its area, stored as `blocks.order` and shown 1-based, so slot 2 renders

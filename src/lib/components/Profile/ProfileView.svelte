@@ -24,7 +24,7 @@
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { resolveUnavailable } from '$lib/zero/resource.svelte'
+  import { expectingMore } from '$lib/zero/resource.svelte'
   import { locationCrumb } from './crumbs'
   import ProfileFavorites from './ProfileFavorites.svelte'
   import ProfileHeader from './ProfileHeader.svelte'
@@ -62,12 +62,14 @@
   // The headline counts sit outside the QueryState below, so nothing else stops them stating an
   // absence as a fact. Offline, somebody else's logbook is not kept and their tally is unknowable;
   // rendering it as 0 says they have never climbed. Online, a tally of a half-synced logbook is
-  // just as wrong, so every whole-logbook number waits for `settled`.
-  const ascentsUnavailable = $derived(!ascents.settled)
+  // just as wrong, so every whole-logbook number waits for `answered`.
+  const ascentsUnavailable = $derived(ascents.phase.kind !== 'answered')
 
   // The logbook sections above grow until it is whole, so what sits below them waits for that
   // rather than be pushed down by them.
-  const logbookPlaced = $derived(ascents.settled || ascents.status === 'error' || resolveUnavailable(ascents))
+  const logbookPlaced = $derived(ascents.phase.kind !== 'loading' && ascents.phase.kind !== 'arriving')
+  // A whole-logbook chart waits for the answer, holding its box only while one is still coming.
+  const chartShown = $derived(ascents.phase.kind === 'answered' || expectingMore(ascents.phase))
   const statusByRoute = $derived(ascentStatusByRoute(ascents.data))
   const projects = $derived(deriveProjects(ascents.data))
   const hardestGrade = $derived(gradeLabel(global.grades, global.gradingScale, stats.hardestGradeFk))
@@ -229,7 +231,7 @@
        needs one thing to do. Outside the QueryState on purpose - with no ascents it renders its
        `empty` branch, so anything nested in `ready` would never show on the one profile that
        needs this. Own profile only, and gone the moment anything is logged. -->
-  {#if isSelf && ascents.isEmpty}
+  {#if isSelf && ascents.phase.kind === 'answered' && ascents.phase.empty}
     <a
       class="border-primary-500/30 bg-primary-500/10 hover:bg-primary-500/15 flex items-center gap-3 rounded-2xl border p-3.5 transition-colors"
       href={resolve('/(app)/(shell)/(explore)/(map)/search')}
@@ -252,10 +254,10 @@
       <div class="space-y-8">
         <!-- Activity heatmap. A calendar of half a logbook is a claim about all of it, so it waits for
              the whole one, holding its box above the sessions that render first. -->
-        {#if sessions.length > 0}
+        {#if sessions.length > 0 && chartShown}
           <section class="space-y-2.5">
             <SectionHeading title={m.profile_activity()} />
-            {#if !ascents.settled}
+            {#if ascents.phase.kind !== 'answered'}
               <div class="skeleton-hold h-[161px]" aria-busy="true">
                 <div class="bg-surface-200-800 h-full animate-pulse rounded-xl"></div>
               </div>
@@ -276,10 +278,10 @@
 
         <!-- Grade histogram, with an all-sends / flash toggle. A send on hand is a send in the whole
              logbook, so its box is held from then on, like the heatmap's. -->
-        {#if stats.sends > 0}
+        {#if stats.sends > 0 && chartShown}
           <section class="space-y-2.5">
             <SectionHeading title={m.profile_gradePyramid()} action={gradeFilter} />
-            {#if !ascents.settled}
+            {#if ascents.phase.kind !== 'answered'}
               <SkeletonChart class="pt-4" />
             {:else}
               <GradeHistogram
@@ -318,7 +320,7 @@
         {/if}
 
         <!-- Open projects: a send logged later moves a route out, so these wait for the whole logbook. -->
-        {#if ascents.settled && projects.open.length > 0}
+        {#if ascents.phase.kind === 'answered' && projects.open.length > 0}
           <section class="space-y-2.5">
             <SectionHeading title={m.profile_openProjects()} action={sortToggle} />
             <ProfileRouteList
@@ -332,7 +334,7 @@
         {/if}
 
         <!-- Completed projects -->
-        {#if ascents.settled && projects.completed.length > 0}
+        {#if ascents.phase.kind === 'answered' && projects.completed.length > 0}
           <section class="space-y-2.5">
             <SectionHeading title={m.profile_completedProjects()} action={sortToggle} />
             <ProfileRouteList

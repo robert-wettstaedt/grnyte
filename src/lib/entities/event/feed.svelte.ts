@@ -121,15 +121,14 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
     }
   }
 
-  // Caught up once the connection is (`syncCaughtUp`, since a reopened feed's queries report
-  // complete from last session's state) and the window and the count of what is newer are confirmed.
-  // Latched, because every merge re-targets both and would flash the pill again.
+  // Caught up once the connection is and the window and newer count are confirmed; latched, since
+  // every merge re-targets both. `syncCaughtUp`, because reopened queries report last session's complete.
   let caughtUp = $state(false)
   $effect(() => {
     if (!syncCaughtUp()) {
       // A reconnect, e.g. returning to the open app after a push: it has to catch up again.
       caughtUp = false
-    } else if (!caughtUp && events.settled && (seen == null || incoming.settled)) {
+    } else if (!caughtUp && events.phase.kind === 'answered' && (seen == null || incoming.phase.kind === 'answered')) {
       caughtUp = true
     }
   })

@@ -9,7 +9,8 @@
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
   import { updateRoute } from '$lib/entities/route/routes.remote'
   import Form from '$lib/forms/Form.svelte'
-  import { seedForm, seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { noEditPermission } from '$lib/forms/gate'
+  import { seedForm } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
@@ -23,27 +24,7 @@
   const denied = $derived(
     route.data == null || canEditRoute(global.userRegions, route.data)
       ? undefined
-      : {
-          description: m.form_noEditPermission(),
-          primaryAction: { href: routeHref, label: m.routes_viewRoute() },
-          title: m.form_noPermissionTitle(),
-        },
-  )
-
-  // `settled`, not the raw row: the explore map syncs bare routes, so this form can open with
-  // `tags` and `firstAscents` still in flight, and `updateRoute` replaces rather than patches.
-  const settledRoute = $derived(route.settled ? route.data : undefined)
-
-  // Keyed on the settled row's id: `known` has to describe lists that were read whole.
-  seedOnKeyChange(
-    () => settledRoute?.id,
-    () => {
-      const data = settledRoute
-      if (data == null) {
-        return
-      }
-      void seedForm(updateRoute, routeEditSeed(data))
-    },
+      : noEditPermission({ href: routeHref, label: m.routes_viewRoute() }),
   )
 </script>
 
@@ -51,28 +32,25 @@
   <title>{m.routes_editRoute()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<!-- `whole` on the route: no fields until its related rows are here, since an empty tag list is a
-     valid submission meaning "remove them all". -->
+<!-- `whole` on the route: the explore map syncs bare routes, and an empty tag list is a valid
+     submission meaning "remove them all". `known` has to describe lists that were read whole. -->
 <Form
   cancelTo={routeHref}
   {denied}
   form={updateRoute}
+  seed={([route]) => void seedForm(updateRoute, routeEditSeed(route))}
   submitLabel={m.common_save()}
   title={m.routes_editRoute()}
   waitFor={[
     { notFound: m.routes_notFound(), resource: route, whole: true },
-    { notFound: m.blocks_notFound(), resource: block },
+    { notFound: m.blocks_notFound(), resource: block, whole: false },
   ]}
 >
   <!-- Only rendered fields are submitted, so `fields.set` alone would leave `known` out of the form
        data. -->
   <input type="hidden" {...updateRoute.fields.known.as('text')} />
 
-  <!-- Redundant while the latch above trails a route change by a flush, and kept because that only
-       holds while effects run after the render they follow. `RouteFormFields` seeds grade, tags and
-       first ascensionists once at mount, so a reused component would save the next route carrying
-       this one's values. -->
-  {#key route.data!.id}
-    <RouteFormFields block={block.data!} form={updateRoute} route={route.data!} />
-  {/key}
+  {#snippet fields([route, block])}
+    <RouteFormFields {block} form={updateRoute} {route} />
+  {/snippet}
 </Form>

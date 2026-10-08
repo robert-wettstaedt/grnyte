@@ -4,6 +4,11 @@ import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
 
+// A soft-deleted block or area takes its coordinates and photos off devices: deletion is the remedy a
+// landowner gets. Route link tables stay unfiltered, measured at ~3 s of guidebook sync on prod shape.
+const live = <Q extends { where(column: 'deletedAt', op: 'IS', value: null): Q }>(q: Q) =>
+  q.where('deletedAt', 'IS', null)
+
 /**
  * The offline guidebook as relation-free tables. Relations cost ~15x per row to hydrate, so the
  * same rows synced as one relational `listRoutes({})` crossed Zero's 10 s dead-connection threshold.
@@ -23,7 +28,7 @@ export const guidebookQueryDefs = {
   ),
   guidebookGeolocations: defineQuery(
     z.undefined(),
-    regionMemberCan(() => zql.geolocations),
+    regionMemberCan(() => zql.geolocations.where(({ exists, or }) => or(exists('block', live), exists('area', live)))),
   ),
   guidebookRouteFirstAscents: defineQuery(
     z.undefined(),
@@ -44,15 +49,12 @@ export const guidebookQueryDefs = {
   // `files` has no relation back to `topos`, so a topo's image can only be reached from the topo.
   guidebookTopos: defineQuery(
     z.undefined(),
-    regionMemberCan(({ ctx }) => zql.topos.related('file', relatedRegion(ctx))),
+    regionMemberCan(({ ctx }) => zql.topos.whereExists('block', live).related('file', relatedRegion(ctx))),
   ),
 }
 
-/**
- * The map's blocks and areas, joined on the device from the guidebook rows rather than synced as
- * relational queries, which would hydrate the same rows a second time. Never sent to the server:
- * a raw `zql` query has no name, so Zero only runs it locally. No topos, the map draws none.
- */
+/** The map's blocks and areas, joined on the device from the guidebook rows instead of hydrated
+ *  twice as relational queries. A raw `zql` read has no name, so it never reaches the server. */
 export const guidebookReads = {
   areas: () =>
     zql.areas

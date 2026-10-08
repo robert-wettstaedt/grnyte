@@ -5,14 +5,13 @@ import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
  * When this device last finished a sync, so an empty local store can be told apart from a guidebook
  * that genuinely has nothing in it.
  *
- * Two stamps, not one, because "finished" is two different claims and conflating them states an
+ * Separate stamps, because "finished" is several claims and conflating them states an
  * absence as a fact:
  * - `reference` is the five small always-preloaded queries (grades, the signed-in user, roles,
  *   permissions, memberships). Fast, and enough to render the shell.
  * - `guidebook` is the corpus itself: areas, blocks, routes and their trees, thousands of rows. Slow.
- *   Note this is narrower than the whole `field` policy, which also carries your own logbook and
- *   your regions' members. Those are small, they sit behind a user-id lookup that can fail on its
- *   own, and coupling the stamp to that lookup would make it claim less than it means.
+ * - `personal` is your own logbook and favorites and your regions' members: small, but behind lookups
+ *   that can fail on their own, so they vouch for themselves rather than through the guidebook.
  *
  * A device that finished the first and lost the connection partway through the second is the normal
  * shape of a sync at a crag, not a rare race. With one stamp it then claimed authority over a
@@ -33,26 +32,30 @@ import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
  */
 
 /** Which body of data a stamp is about. See the note above; they are not interchangeable. */
-export type SyncStamp = 'guidebook' | 'reference'
+export type SyncStamp = 'guidebook' | 'personal' | 'reference'
 
 const KEY_PREFIX: Record<SyncStamp, string> = {
   // The reference stamp keeps its original key so an existing install is not read as never-synced.
   guidebook: `${PUBLIC_APPLICATION_NAME}.guidebookSyncedAt`,
+  personal: `${PUBLIC_APPLICATION_NAME}.personalSyncedAt`,
   reference: `${PUBLIC_APPLICATION_NAME}.lastSyncedAt`,
 }
 
-const STAMPS: SyncStamp[] = ['guidebook', 'reference']
+const STAMPS: SyncStamp[] = ['guidebook', 'personal', 'reference']
+const NONE: Record<SyncStamp, null | number> = { guidebook: null, personal: null, reference: null }
 
-let syncedAt = $state<Record<SyncStamp, null | number>>({ guidebook: null, reference: null })
+let syncedAt = $state<Record<SyncStamp, null | number>>(NONE)
 let trackedUser: string | undefined
+// Whether Zero has read its replica back from IndexedDB, which takes seconds on a large one.
+let storeLoaded = $state(false)
 
-/** Drops both stamps because the replica behind them is gone. */
+/** Drops every stamp because the replica behind them is gone. */
 export function forgetSynced(): void {
   if (!browser || trackedUser == null) {
     return
   }
 
-  syncedAt = { guidebook: null, reference: null }
+  syncedAt = NONE
 
   for (const stamp of STAMPS) {
     try {
@@ -70,6 +73,17 @@ export function forgetSynced(): void {
  */
 export function lastSyncedAt(stamp: SyncStamp = 'reference'): null | number {
   return syncedAt[stamp]
+}
+
+/** Reactive. A stamp vouches for rows only once they are readable: until then a kept query is empty
+ *  because it is still loading, or because the replica is gone while its stamps survived. */
+export function localStoreLoaded(): boolean {
+  return storeLoaded
+}
+
+/** Called by the Zero client once the signed-in user's row is local, which proves the replica read. */
+export function markStoreLoaded(): void {
+  storeLoaded = true
 }
 
 /** Records that a sync finished. Cheap to call repeatedly; only the newest value matters. */
@@ -94,13 +108,18 @@ export function markSynced(stamp: SyncStamp): void {
  */
 export function trackSyncFor(userID: string | undefined): void {
   trackedUser = userID
-  syncedAt = { guidebook: null, reference: null }
+  syncedAt = NONE
+  storeLoaded = false
 
   if (!browser || userID == null) {
     return
   }
 
-  syncedAt = { guidebook: read('guidebook', userID), reference: read('reference', userID) }
+  syncedAt = {
+    guidebook: read('guidebook', userID),
+    personal: read('personal', userID),
+    reference: read('reference', userID),
+  }
 }
 
 function key(stamp: SyncStamp, userID: string): string {
