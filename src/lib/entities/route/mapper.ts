@@ -39,7 +39,9 @@ export function toRouteListItem(row: RouteListRow): RouteListItem {
     rawName: row.name,
     regionFk: row.regionFk,
     tags: row.tags.map((t) => t.tagFk),
+    topoImageHeight: thumb?.imageHeight,
     topoImagePath: thumb?.imagePath,
+    topoImageWidth: thumb?.imageWidth,
     topoPoints: thumb?.points,
   }
 }

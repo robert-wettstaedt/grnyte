@@ -2,10 +2,12 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import { ascentDetail } from '$lib/entities/ascent/resources.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { redirectTo } from '$lib/state/navigation.svelte'
+  import { back, redirectTo } from '$lib/state/navigation.svelte'
 
   const ascent = ascentDetail(() => Number(page.params.id))
 
@@ -24,11 +26,14 @@
   <title>{m.ascents_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState notFound={m.ascents_notFound()} resource={ascent}>
-  {#snippet ready(_detail)}
-    <!-- The effect above is already navigating away; hold the loading look. -->
-    <div class="space-y-4 px-4 py-4" aria-busy="true">
-      <div class="placeholder animate-pulse"></div>
-    </div>
-  {/snippet}
-</QueryState>
+<!-- A header while it resolves, so a link that never resolves still has a way back. -->
+<PageHeader onback={() => back(resolve('/(app)/(shell)/feed'))} title={m.ascents_title()} />
+
+<div class="mx-auto w-full max-w-screen-sm px-4 py-4">
+  <QueryState notFound={m.ascents_notFound()} resource={ascent}>
+    {#snippet ready(_detail)}
+      <!-- The effect above is already navigating away; hold the loading look. -->
+      <SkeletonRows count={1} />
+    {/snippet}
+  </QueryState>
+</div>

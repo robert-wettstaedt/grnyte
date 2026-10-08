@@ -1,8 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
-  import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { finalizeMediaUploads, type MediaUpload } from '$lib/entities/file/upload-manager.svelte'
   import { entityHref } from '$lib/entities/href'
@@ -18,6 +16,18 @@
 
   const global = getGlobalState()
   const block = blockDetail(() => Number(page.params.id))
+
+  const blockHref = $derived(entityHref('blocks', Number(page.params.id)))
+
+  const denied = $derived(
+    block.data == null || canAddRoute(global.userRegions, block.data)
+      ? undefined
+      : {
+          description: m.form_noEditPermission(),
+          primaryAction: { href: blockHref, label: m.blocks_viewBlock() },
+          title: m.form_noPermissionTitle(),
+        },
+  )
 
   let uploads = $state<MediaUpload[]>([])
 
@@ -54,30 +64,16 @@
   <title>{m.routes_addRoute()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState notFound={m.blocks_notFound()} resource={block}>
-  {#snippet ready(data)}
-    {#if canAddRoute(global.userRegions, data)}
-      <Form
-        form={createRoute}
-        cancelTo={entityHref('blocks', data.id)}
-        {onSubmitted}
-        submitLabel={m.common_add()}
-        title={m.routes_addRoute()}
-      >
-        {#key data.id}
-          <RouteFormFields block={data} form={createRoute} bind:uploads />
-        {/key}
-      </Form>
-    {:else}
-      <ErrorState
-        type="generic"
-        title={m.form_noPermissionTitle()}
-        description={m.form_noEditPermission()}
-        primaryAction={{
-          href: entityHref('blocks', data.id),
-          label: m.blocks_viewBlock(),
-        }}
-      />
-    {/if}
-  {/snippet}
-</QueryState>
+<Form
+  cancelTo={blockHref}
+  {denied}
+  form={createRoute}
+  {onSubmitted}
+  submitLabel={m.common_add()}
+  title={m.routes_addRoute()}
+  waitFor={[{ notFound: m.blocks_notFound(), resource: block }]}
+>
+  {#key block.data!.id}
+    <RouteFormFields block={block.data!} form={createRoute} bind:uploads />
+  {/key}
+</Form>

@@ -11,6 +11,7 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
   import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
+  import SkeletonChart from '$lib/components/Skeleton/SkeletonChart.svelte'
   import { areaTypeLabel } from '$lib/entities/area/mapper'
   import { areaDetail, areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
@@ -23,6 +24,7 @@
   import { sectorReferencePoint } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { isOnline } from '$lib/state/online.svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import AreaActions from './AreaActions.svelte'
   import AreaEmpty, { areaEmptyIsActionable } from './AreaEmpty.svelte'
@@ -132,31 +134,39 @@
 
       <CollapsibleMarkdown markdown={detail.description} />
 
-      <!-- The histogram and its counts describe every route below, so they wait for all of them. -->
-      {#if routes.settled && routes.data.length > 0}
+      <!-- The histogram and its counts describe every route below, so they wait for all of them, with
+           their box held meanwhile: the lists below render first and must not be pushed down. -->
+      {#if detail.type != null && (routes.data.length > 0 ? routes.settled || isOnline() : !routes.settled && isOnline())}
         <section class="space-y-2">
           <div class="flex items-baseline justify-between">
             <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.areas_grades()}</h2>
-            <span class="text-surface-600-400 text-xs tabular-nums">
-              {#if selected != null}
-                {selected.label} · {m.routes_routesCount({ count: selected.count })}
-              {:else}
-                {m.areas_gradedCount({ count: gradedCount })}
-              {/if}
-            </span>
+            {#if routes.settled}
+              <span class="text-surface-600-400 text-xs tabular-nums">
+                {#if selected != null}
+                  {selected.label} · {m.routes_routesCount({ count: selected.count })}
+                {:else}
+                  {m.areas_gradedCount({ count: gradedCount })}
+                {/if}
+              </span>
+            {/if}
           </div>
 
-          <GradeHistogram
-            {countByGrade}
-            grades={global.grades}
-            gradingScale={global.gradingScale}
-            ungraded={ungradedCount}
-            onselect={(bar) => (selected = bar)}
-          />
+          {#if routes.settled}
+            <GradeHistogram
+              {countByGrade}
+              grades={global.grades}
+              gradingScale={global.gradingScale}
+              ungraded={ungradedCount}
+              onselect={(bar) => (selected = bar)}
+            />
+          {:else}
+            <SkeletonChart />
+          {/if}
         </section>
       {/if}
 
-      {#if routes.data.length > 0}
+      <!-- Always there once a list can be: a link whose count fills in, never a card that appears. -->
+      {#if detail.type != null}
         <a
           class="border-surface-300-700 bg-surface-200-800 hover:bg-surface-300-700 flex items-center gap-3 rounded-xl border p-3 transition-colors"
           href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]/routes', { id: page.params.id! })}
@@ -168,7 +178,9 @@
           </span>
           <span class="min-w-0 flex-1">
             <span class="block font-semibold">
-              {routes.settled ? m.areas_allRoutesCount({ count: routes.data.length }) : m.areas_allRoutes()}
+              {routes.settled && routes.data.length > 0
+                ? m.areas_allRoutesCount({ count: routes.data.length })
+                : m.areas_allRoutes()}
             </span>
             <span class="text-surface-600-400 block text-xs">{m.areas_allRoutesHint()}</span>
           </span>
@@ -218,5 +230,8 @@
         </span>
       {/if}
     </div>
+  {:else}
+    <!-- A fallback like the parking and topo sheets', so the header is never blank while it loads. -->
+    <div class="flex items-center gap-2">{m.common_area()}</div>
   {/if}
 {/snippet}

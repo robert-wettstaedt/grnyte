@@ -11,9 +11,11 @@
 <script lang="ts">
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { isOnline } from '$lib/state/online.svelte'
   import { fly } from 'svelte/transition'
 
   // Chips-in-a-box climber picker with typeahead over the region's first ascensionists.
@@ -67,6 +69,9 @@
       )
       .slice(0, 5),
   )
+
+  // More names may still come, and "New" with them: a row is held at the end where they land.
+  const arriving = $derived(!ascensionists.settled && isOnline())
 
   // "New" is a claim that nobody in the region has the name, so it waits for the whole list.
   const showNew = $derived(
@@ -139,7 +144,7 @@
   />
 </div>
 
-{#if open && (showMe || suggestions.length > 0 || showNew)}
+{#if open && (showMe || suggestions.length > 0 || showNew || arriving)}
   <!-- Same arrival as the map SearchBar's suggestions, since it is the same kind of dropdown. -->
   <div
     class="border-surface-300-700 bg-surface-50-950 mt-2 overflow-hidden rounded-xl border"
@@ -176,6 +181,10 @@
         </span>
       </button>
     {/each}
+
+    {#if arriving}
+      <SkeletonRows class="px-3" count={1} lead="avatar" />
+    {/if}
 
     {#if showNew}
       <button

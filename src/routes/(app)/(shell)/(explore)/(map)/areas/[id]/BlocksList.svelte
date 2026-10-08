@@ -3,6 +3,7 @@
   import RouteList from '$lib/components/EntityRow/RouteList.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Image from '$lib/components/Image/Image.svelte'
+  import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
@@ -12,6 +13,7 @@
   import { formatDistance } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { isOnline } from '$lib/state/online.svelte'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import { SvelteMap } from 'svelte/reactivity'
   import { fade } from 'svelte/transition'
@@ -78,6 +80,16 @@
       </SegmentedControl.Item>
     </SegmentedControl.Control>
   </SegmentedControl>
+{/if}
+
+<!-- A held row while the blocks load, then the empty line at its height, so "none" does not pull
+     the page up. Offline and never confirmed, nothing, as before. -->
+{#if blocks.length === 0}
+  {#if settled}
+    <p class="text-surface-600-400 flex h-16 items-center text-sm">{m.areas_noBlocks()}</p>
+  {:else if isOnline()}
+    <SkeletonRows count={1} lead="thumb" />
+  {/if}
 {/if}
 
 {#each blocks as block (block.id)}

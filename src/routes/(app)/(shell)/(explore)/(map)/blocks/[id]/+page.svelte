@@ -11,6 +11,8 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
   import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
+  import SkeletonImage from '$lib/components/Skeleton/SkeletonImage.svelte'
+  import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
@@ -25,6 +27,7 @@
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { isOnline } from '$lib/state/online.svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import BlockActions from './BlockActions.svelte'
   import BlockEmpty from './BlockEmpty.svelte'
@@ -93,7 +96,7 @@
   <title>{block.data?.name ?? m.common_block()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState notFound={m.common_block()} resource={block}>
+<QueryState notFound={m.blocks_notFound()} resource={block}>
   {#snippet ready(detail)}
     <div class="space-y-5">
       <BlockActions block={detail} {location} routeCount={routes.data.length} {save} />
@@ -126,10 +129,23 @@
             </a>
           {/each}
         </div>
-      {:else if topos.settled && canEditTopo(global.userRegions, detail)}
-        <!-- No topos yet: the strip is hidden, so this is the only entry point to author the first one. -->
+      {:else if detail.topoImages.length > 0}
+        <!-- The block row knows its photos and their sizes, so the strip is held tile for tile. -->
+        <div class="flex gap-3 overflow-hidden pb-1">
+          {#each detail.topoImages as image (image.id)}
+            <SkeletonImage
+              class="h-60 w-auto flex-none"
+              ratio={image.width != null && image.height != null && image.height > 0
+                ? image.width / image.height
+                : 3 / 4}
+            />
+          {/each}
+        </div>
+      {:else if canEditTopo(global.userRegions, detail)}
+        <!-- No topos yet: the strip is hidden, so this is the only entry point to author the first one.
+             Invisible until the block is confirmed whole, so it holds its slot without a false claim. -->
         <a
-          class="btn preset-tonal-primary w-full"
+          class={['btn preset-tonal-primary w-full', !(block.settled || topos.settled) && 'invisible']}
           href={resolve('/(app)/blocks/[id]/topos/edit', { id: String(detail.id) })}
         >
           <Icon name="image" size={18} />
@@ -149,6 +165,8 @@
       {:else if routes.settled}
         <!-- The routes are a relation of the block row, so `ready` arrives with the row, before them. -->
         <BlockEmpty block={detail} />
+      {:else if isOnline()}
+        <SkeletonRows />
       {/if}
 
       <ReferencedBy type="blocks" id={detail.id} />
@@ -183,5 +201,8 @@
         {m.common_block()}
       </span>
     </div>
+  {:else}
+    <!-- A fallback like the parking and topo sheets', so the header is never blank while it loads. -->
+    <div class="flex items-center gap-2">{m.common_block()}</div>
   {/if}
 {/snippet}

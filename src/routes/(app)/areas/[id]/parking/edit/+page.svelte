@@ -2,8 +2,6 @@
   import { beforeNavigate } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
-  import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { addParking } from '$lib/entities/area/areas.remote'
   import { canAddParking } from '$lib/entities/area/permissions'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
@@ -22,6 +20,20 @@
   const global = getGlobalState()
   const areaId = $derived(Number(page.params.id))
   const area = areaDetail(() => areaId)
+
+  const areaHref = $derived(entityHref('areas', areaId))
+
+  const denied = $derived.by(() => {
+    const data = area.data
+    if (data == null || canAddParking(global.userRegions, data)) {
+      return undefined
+    }
+    const view = { href: areaHref, label: m.areas_viewArea() }
+    // Not a permission problem when it is not a sector: parking hangs off one.
+    return data.type === 'sector'
+      ? { description: m.form_noEditPermission(), primaryAction: view, title: m.form_noPermissionTitle() }
+      : { description: m.areas_parkingNeedsSectorBody(), primaryAction: view, title: m.areas_parkingNeedsSectorTitle() }
+  })
 
   // The same blocks/areas/parking the /explore map renders, framed on the area's blocks.
   const picker = createAreaPickerMapData(
@@ -118,54 +130,27 @@
   <title>{m.areas_addParkingLocation()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState notFound={m.areas_notFound()} resource={area}>
-  {#snippet ready(data)}
-    {#if !canAddParking(global.userRegions, data)}
-      {#if data.type !== 'sector'}
-        <!-- Not a permission problem: parking hangs off a sector, and this is not one. -->
-        <ErrorState
-          type="generic"
-          title={m.areas_parkingNeedsSectorTitle()}
-          description={m.areas_parkingNeedsSectorBody()}
-          primaryAction={{
-            href: entityHref('areas', data.id),
-            label: m.areas_viewArea(),
-          }}
-        />
-      {:else}
-        <ErrorState
-          type="generic"
-          title={m.form_noPermissionTitle()}
-          description={m.form_noEditPermission()}
-          primaryAction={{
-            href: entityHref('areas', data.id),
-            label: m.areas_viewArea(),
-          }}
-        />
-      {/if}
-    {:else}
-      <Form
-        fill
-        {onSubmitted}
-        bind:step
-        form={addParking}
-        cancelTo={entityHref('areas', areaId)}
-        submitLabel={m.common_save()}
-        title={m.areas_addParkingLocation()}
-        steps={[
-          { body: placeStep, canContinue: picked != null, label: m.parking_stepPlace(), onContinue: seedPath },
-          { body: pathStep, label: m.parking_stepPath() },
-        ]}
-      >
-        <!-- The submitted parking + optional path, mirrored from state into the form. -->
-        <input name="areaId" type="hidden" value={areaId} />
-        <input name="lat" type="hidden" value={picked?.lat ?? ''} />
-        <input name="long" type="hidden" value={picked?.long ?? ''} />
-        <input name="path" type="hidden" value={encodedPath} />
-      </Form>
-    {/if}
-  {/snippet}
-</QueryState>
+<Form
+  fill
+  {onSubmitted}
+  bind:step
+  cancelTo={areaHref}
+  {denied}
+  form={addParking}
+  submitLabel={m.common_save()}
+  title={m.areas_addParkingLocation()}
+  steps={[
+    { body: placeStep, canContinue: picked != null, label: m.parking_stepPlace(), onContinue: seedPath },
+    { body: pathStep, label: m.parking_stepPath() },
+  ]}
+  waitFor={[{ notFound: m.areas_notFound(), resource: area }]}
+>
+  <!-- The submitted parking + optional path, mirrored from state into the form. -->
+  <input name="areaId" type="hidden" value={areaId} />
+  <input name="lat" type="hidden" value={picked?.lat ?? ''} />
+  <input name="long" type="hidden" value={picked?.long ?? ''} />
+  <input name="path" type="hidden" value={encodedPath} />
+</Form>
 
 {#snippet placeStep()}
   <LocationPicker

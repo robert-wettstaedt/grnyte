@@ -207,8 +207,10 @@
               />
             {/if}
 
-            {#if detail.createdBy != null}
-              <SettingLink label={m.region_createdBy()} value={detail.createdBy} />
+            <!-- On the creator's id, not their name: the name is a relation that lands after the row,
+                 and a row appearing then pushes everything below it down. -->
+            {#if detail.createdByFk != null}
+              <SettingLink label={m.region_createdBy()} value={detail.createdBy ?? ''} />
             {/if}
 
             <!-- No count beside it: the seat counter above is live from Zero and a second,
@@ -241,7 +243,8 @@
         <!-- Members -->
         <SettingSection title={m.region_members()}>
           {#snippet aside()}
-            {#if detail.maxMembers > 0 && members.settled}
+            <!-- A pending invitation holds a seat, so the count waits for them as well. -->
+            {#if detail.maxMembers > 0 && members.settled && invitations.current != null}
               <!-- The state is spelled out in the copy as well as the tint, so it does not
                    depend on colour alone. -->
               <span
@@ -296,18 +299,6 @@
         <!-- Invitations -->
         {#if isAdmin}
           <SettingSection title={m.region_inviteMember()}>
-            {#if pending.length > 0}
-              <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
-                {#each pending as invitation (invitation.id)}
-                  <InvitationRow
-                    {invitation}
-                    onResend={() => onResend(invitation)}
-                    onRevoke={() => onRevoke(invitation)}
-                  />
-                {/each}
-              </div>
-            {/if}
-
             <!-- One joined input-group at every width rather than stacked-then-inline: a
                    full-width filled button under a full-width field read as a page-level CTA that
                    happened to sit below an input, not as the field's action. The section heading is
@@ -344,6 +335,19 @@
             {#each inviteRegionMember.fields.email.issues() as issue (issue.message)}
               <p class="text-error-600-400 text-sm" role="alert">{resolveIssueMessage(issue.message)}</p>
             {/each}
+
+            <!-- Below the form, which renders at once: the list comes from the server, later. -->
+            {#if pending.length > 0}
+              <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+                {#each pending as invitation (invitation.id)}
+                  <InvitationRow
+                    {invitation}
+                    onResend={() => onResend(invitation)}
+                    onRevoke={() => onRevoke(invitation)}
+                  />
+                {/each}
+              </div>
+            {/if}
           </SettingSection>
         {/if}
       </div>

@@ -1,6 +1,7 @@
 <script lang="ts" generics="TOut">
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
+  import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import StatusPill from '$lib/components/StatusPill/StatusPill.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { isOnline } from '$lib/state/online.svelte'
@@ -90,15 +91,11 @@
     <p class="text-surface-600-400 py-8 text-center" in:fade={{ duration: 150 }}>{m.queryState_empty()}</p>
   {/if}
 {:else if status === 'loading'}
-  <!-- No transition: the skeleton is the first feedback on navigation, so it shows instantly. -->
+  <!-- No transition: the skeleton holds its first 250 ms itself, so a fast load shows none. -->
   {#if loading}
     {@render loading()}
   {:else}
-    <div class="space-y-4 py-4" aria-busy="true">
-      <div class="placeholder animate-pulse"></div>
-      <div class="placeholder animate-pulse"></div>
-      <div class="placeholder animate-pulse"></div>
-    </div>
+    <SkeletonRows class="py-2" />
   {/if}
 {:else}
   <!-- Fade the loaded content in as it replaces the skeleton. `in` only (no `out`): an out

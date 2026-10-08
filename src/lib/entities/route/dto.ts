@@ -41,8 +41,11 @@ export interface RouteListItem {
    *  search spans more than one. */
   regionFk: number
   tags: string[]
+  /** Stored dimensions of that image, so its box can be held before the topos load. */
+  topoImageHeight?: number
   /** `files.path` of the route's best topo image, if it's drawn on one. */
   topoImagePath?: string
+  topoImageWidth?: number
   /** The route's line points on that topo. */
   topoPoints?: TopoPoint[]
 }

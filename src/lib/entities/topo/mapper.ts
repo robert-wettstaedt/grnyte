@@ -85,9 +85,12 @@ type BlockRow = QueryRow<typeof queries.blockTopos>
  * "most points wins", but reads straight off the route (no block context needed).
  */
 export function routeTopoThumb(
-  topoRoutes: readonly { path: null | string; topo?: null | { file?: null | { path: null | string } } }[],
-): undefined | { imagePath: string; points: TopoPoint[] } {
-  let best: undefined | { imagePath: string; points: TopoPoint[] }
+  topoRoutes: readonly {
+    path: null | string
+    topo?: null | { file?: null | { height?: null | number; path: null | string; width?: null | number } }
+  }[],
+): undefined | { imageHeight?: number; imagePath: string; imageWidth?: number; points: TopoPoint[] } {
+  let best: undefined | { imageHeight?: number; imagePath: string; imageWidth?: number; points: TopoPoint[] }
   for (const tr of topoRoutes) {
     const imagePath = tr.topo?.file?.path
     if (tr.path == null || tr.path.trim() === '' || imagePath == null) {
@@ -95,7 +98,8 @@ export function routeTopoThumb(
     }
     const points = convertPathToPoints(tr.path)
     if (points.length > 0 && (best == null || points.length > best.points.length)) {
-      best = { imagePath, points }
+      const file = tr.topo?.file
+      best = { imageHeight: file?.height ?? undefined, imagePath, imageWidth: file?.width ?? undefined, points }
     }
   }
   return best

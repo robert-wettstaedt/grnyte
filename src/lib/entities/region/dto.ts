@@ -42,6 +42,8 @@ export interface RegionDetail {
   createdAt: Date | undefined
   /** Username of whoever created the region. */
   createdBy: string | undefined
+  /** The creator's id, on the row itself: the row for them exists before their name arrives. */
+  createdByFk?: number
   maxMembers: number
   name: string
 }

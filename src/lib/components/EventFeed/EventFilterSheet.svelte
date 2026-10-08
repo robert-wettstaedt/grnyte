@@ -12,6 +12,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import type { UserRegion } from '$lib/entities/region/dto'
   import { regionDisplayName } from '$lib/entities/region/mapper'
   import { roleLabel } from '$lib/entities/rolePermission/mapper'
@@ -30,6 +31,8 @@
     open?: boolean
     /** The people who can be filtered to, already scoped and without the signed-in user. */
     people?: UserListItem[]
+    /** The people list is still arriving, so rows are held for it. */
+    peopleLoading?: boolean
     /** Selected region, or `undefined` for all of them. */
     regionFk?: number
     /** The user's regions. With one there is nothing to pick, so that section is hidden. */
@@ -44,6 +47,7 @@
     onReset,
     open = $bindable(false),
     people = [],
+    peopleLoading = false,
     regionFk = $bindable(),
     regions = [],
     userFk = $bindable(),
@@ -118,6 +122,10 @@
           selected={userFk === currentUserFk}
           onclick={() => (userFk = currentUserFk)}
         />
+      {/if}
+
+      {#if people.length === 0 && peopleLoading}
+        <SkeletonRows class="px-1" count={3} lead="avatar" lines={1} />
       {/if}
 
       {#each people as person (person.id)}

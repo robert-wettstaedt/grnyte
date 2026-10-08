@@ -1,7 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import AscentFormFields from '$lib/entities/ascent/AscentFormFields.svelte'
   import { createAscent } from '$lib/entities/ascent/ascents.remote'
   import { canLogAscent } from '$lib/entities/ascent/permissions'
@@ -9,7 +8,6 @@
   import { finalizeMediaUploads, type MediaUpload } from '$lib/entities/file/upload-manager.svelte'
   import { entityHref } from '$lib/entities/href'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
-  import RouteWithBlock from '$lib/entities/route/RouteWithBlock.svelte'
   import Form from '$lib/forms/Form.svelte'
   import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -40,6 +38,16 @@
 
   const routeHref = $derived(entityHref('routes', Number(page.params.id)))
 
+  const denied = $derived(
+    route.data == null || canLogAscent(global.userRegions, route.data)
+      ? undefined
+      : {
+          description: m.region_notMember(),
+          primaryAction: { href: routeHref, label: m.routes_viewRoute() },
+          title: m.form_noPermissionTitle(),
+        },
+  )
+
   // Record-first media: the ascent is created on submit; pending uploads then finalize
   // against it in the background while we return to the route page (which shows them
   // once synced; the route row already exists, so no wait is needed).
@@ -56,27 +64,19 @@
   <title>{m.routes_logAscent()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<RouteWithBlock {block} {route}>
-  {#snippet ready(detail, blockData)}
-    {#if canLogAscent(global.userRegions, detail)}
-      <Form
-        form={createAscent}
-        cancelTo={routeHref}
-        {onSubmitted}
-        submitLabel={m.common_save()}
-        title={m.routes_logAscent()}
-      >
-        {#key detail.id}
-          <AscentFormFields block={blockData} form={createAscent} route={detail} bind:uploads />
-        {/key}
-      </Form>
-    {:else}
-      <ErrorState
-        type="generic"
-        title={m.form_noPermissionTitle()}
-        description={m.region_notMember()}
-        primaryAction={{ href: routeHref, label: m.routes_viewRoute() }}
-      />
-    {/if}
-  {/snippet}
-</RouteWithBlock>
+<Form
+  cancelTo={routeHref}
+  {denied}
+  form={createAscent}
+  {onSubmitted}
+  submitLabel={m.common_save()}
+  title={m.routes_logAscent()}
+  waitFor={[
+    { notFound: m.routes_notFound(), resource: route },
+    { notFound: m.blocks_notFound(), resource: block },
+  ]}
+>
+  {#key route.data!.id}
+    <AscentFormFields block={block.data!} form={createAscent} route={route.data!} bind:uploads />
+  {/key}
+</Form>

@@ -1,8 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
-  import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import AreaFormFields from '$lib/entities/area/AreaFormFields.svelte'
   import { updateArea } from '$lib/entities/area/areas.remote'
   import { canEditArea } from '$lib/entities/area/permissions'
@@ -15,6 +13,18 @@
 
   const global = getGlobalState()
   const area = areaDetail(() => Number(page.params.id))
+
+  const areaHref = $derived(entityHref('areas', Number(page.params.id)))
+
+  const denied = $derived(
+    area.data == null || canEditArea(global.userRegions, area.data)
+      ? undefined
+      : {
+          description: m.form_noEditPermission(),
+          primaryAction: { href: areaHref, label: m.areas_viewArea() },
+          title: m.form_noPermissionTitle(),
+        },
+  )
 
   // Keyed on the loaded row's id and not the route parameter: the seed reads data, so it has to
   // wait for the row rather than write the previous entity's values under the new id. Re-seeding
@@ -41,27 +51,13 @@
   <title>{m.areas_editArea()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState notFound={m.areas_notFound()} resource={area}>
-  {#snippet ready(data)}
-    {#if canEditArea(global.userRegions, data)}
-      <Form
-        form={updateArea}
-        cancelTo={entityHref('areas', data.id)}
-        submitLabel={m.common_save()}
-        title={m.areas_editArea()}
-      >
-        <AreaFormFields area={data} form={updateArea} />
-      </Form>
-    {:else}
-      <ErrorState
-        type="generic"
-        title={m.form_noPermissionTitle()}
-        description={m.form_noEditPermission()}
-        primaryAction={{
-          href: entityHref('areas', data.id),
-          label: m.areas_viewArea(),
-        }}
-      />
-    {/if}
-  {/snippet}
-</QueryState>
+<Form
+  cancelTo={areaHref}
+  {denied}
+  form={updateArea}
+  submitLabel={m.common_save()}
+  title={m.areas_editArea()}
+  waitFor={[{ notFound: m.areas_notFound(), resource: area }]}
+>
+  <AreaFormFields area={area.data!} form={updateArea} />
+</Form>

@@ -19,9 +19,12 @@
   import { m } from '$lib/paraglide/messages'
   import { back, exit } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
-  import { Steps } from '@skeletonlabs/skeleton-svelte'
   import type { RemoteForm, RemoteFormInput } from '@sveltejs/kit'
+  import type { ComponentProps } from 'svelte'
   import FormError from './FormError.svelte'
+  import FormGate from './FormGate.svelte'
+  import FormSteps from './FormSteps.svelte'
+  import type { FormWait } from './gate'
 
   // Generic chrome for a full-screen remote form: sticky Cancel · title · Submit header,
   // form-level error banner, and a centered column for the caller's fields. Pass `steps`
@@ -32,6 +35,8 @@
      *  general fallback. With a trail behind us, cancelling goes back instead. */
     cancelTo: string
     children?: Snippet
+    /** With `waitFor`: the reader may not use this screen. Shown in the form's chrome instead. */
+    denied?: ComponentProps<typeof ErrorState>
     /** Fill the container with an edge-to-edge body (e.g. a map picker) instead of the
      *  default scrolling, padded field column. Fills as a flex item (not `h-full`), so it
      *  still chains height through QueryState's `min-h-full` wrapper. */
@@ -55,11 +60,15 @@
     submitDisabled?: boolean
     submitLabel: string
     title: string
+    /** Rows the fields need. Until they are here the header renders with Save disabled over one
+     *  skeleton, and the fields (with whatever they seed at mount) are not mounted yet. */
+    waitFor?: FormWait[]
   }
 
   let {
     cancelTo,
     children,
+    denied,
     fill = false,
     form,
     nextLabel = m.common_next(),
@@ -70,12 +79,14 @@
     submitDisabled = false,
     submitLabel,
     title,
+    waitFor,
   }: Props = $props()
 
   const stepped = $derived(steps != null && steps.length > 0)
   const current = $derived(stepped ? steps![Math.min(step, steps!.length - 1)] : undefined)
   const isLast = $derived(!stepped || step >= steps!.length - 1)
   const canContinue = $derived(current?.canContinue ?? true)
+  const stepLabels = $derived(steps?.map(({ label }) => label) ?? [])
 
   const advance = async () => {
     if (!canContinue) return
@@ -120,7 +131,24 @@
   })
 </script>
 
-<!-- The offline state goes *over* the form, never instead of it.
+{#if waitFor == null}
+  {@render screen()}
+{:else}
+  <FormGate
+    action={stepped && !isLast ? { icon: 'arrow-right', iconAfter: true, label: nextLabel } : { label: submitLabel }}
+    {cancelTo}
+    {denied}
+    {fill}
+    steps={stepLabels}
+    {title}
+    {waitFor}
+  >
+    {@render screen()}
+  </FormGate>
+{/if}
+
+{#snippet screen()}
+  <!-- The offline state goes *over* the form, never instead of it.
 
      Swapping the two unmounts the whole subtree, and the fields a caller passes as children keep
      their visible state in component `$state` rather than in the remote form: `AscentFormFields`
@@ -134,107 +162,88 @@
      Keeping it mounted fixes all of that for every form at once, with no per-form work. `hidden`
      rather than opacity, and `inert` with it: an overlay over a form that is still focusable and
      still in the accessibility tree trades a data bug for an a11y one. -->
-{#if offline}
-  <ErrorState type="offline" />
-{/if}
+  {#if offline}
+    <ErrorState type="offline" />
+  {/if}
 
-<form
-  {...form.enhance(async ({ element, submit }) => {
-    if (onBeforeSubmit != null && !(await onBeforeSubmit())) {
-      return
-    }
-    const outcome = await submitForm(submit, async () => {
-      // Supplying our own enhance callback replaced Kit's, which clears the form after a
-      // successful submit; the values otherwise sit on the remote singleton all session.
-      //
-      // `fields.set({})` and NOT `element.reset()`: a reset restores each input to its
-      // `defaultValue`, which Svelte's property write only reaches for `hidden`, `checkbox` and
-      // `radio`, so it blanks exactly the visible fields. `resetBlanks.test.ts` pins it.
-      // After `onSubmitted`, which can await: clearing first blanks the form for that wait.
-      // `finally` so a throw still clears.
-      try {
-        await onSubmitted?.()
-      } finally {
-        form.fields.set({})
+  <form
+    {...form.enhance(async ({ element, submit }) => {
+      if (onBeforeSubmit != null && !(await onBeforeSubmit())) {
+        return
       }
+      const outcome = await submitForm(submit, async () => {
+        // Supplying our own enhance callback replaced Kit's, which clears the form after a
+        // successful submit; the values otherwise sit on the remote singleton all session.
+        //
+        // `fields.set({})` and NOT `element.reset()`: a reset restores each input to its
+        // `defaultValue`, which Svelte's property write only reaches for `hidden`, `checkbox` and
+        // `radio`, so it blanks exactly the visible fields. `resetBlanks.test.ts` pins it.
+        // After `onSubmitted`, which can await: clearing first blanks the form for that wait.
+        // `finally` so a throw still clears.
+        try {
+          await onSubmitted?.()
+        } finally {
+          form.fields.set({})
+        }
 
-      // Last, so `onSubmitted` has finished whatever the destination depends on.
-      const destination = declaredDestination()
+        // Last, so `onSubmitted` has finished whatever the destination depends on.
+        const destination = declaredDestination()
 
-      if (destination != null) {
-        await exit(destination)
+        if (destination != null) {
+          await exit(destination)
+        }
+      })
+
+      if (outcome === 'offline') {
+        offline = true
+      } else if (outcome === 'rejected') {
+        // Only on a rejection: `fields.set({})` clears values but not Kit's issues, so a success can
+        // still have an alert from an earlier rejected submit in the DOM, and scrolling to it is wrong.
+        element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
       }
-    })
-
-    if (outcome === 'offline') {
-      offline = true
-    } else if (outcome === 'rejected') {
-      // Only on a rejection: `fields.set({})` clears values but not Kit's issues, so a success can
-      // still have an alert from an earlier rejected submit in the DOM, and scrolling to it is wrong.
-      element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
-    }
-  })}
-  class={['flex w-full flex-col', fill ? 'min-h-0 flex-1' : 'min-h-full', offline && 'hidden']}
-  inert={offline}
->
-  <!-- The bar is page chrome, so it stays full bleed while the field column below is centred and
+    })}
+    class={['flex w-full flex-col', fill ? 'min-h-0 flex-1' : 'min-h-full', offline && 'hidden']}
+    inert={offline}
+  >
+    <!-- The bar is page chrome, so it stays full bleed while the field column below is centred and
        capped. Constraining the form itself inset the bar to 640px on desktop, which read as a
        floating card header beside the full-width one on every other screen. -->
-  <PageHeader
-    backLabel={stepped && step > 0 ? steps![step - 1].label : m.common_cancel()}
-    onback={stepped && step > 0 ? () => (step -= 1) : () => back(cancelTo)}
-    {title}
-  >
-    {#snippet action()}
-      {#if stepped && !isLast}
-        <PageHeaderAction disabled={!canContinue} icon="arrow-right" iconAfter label={nextLabel} onclick={advance} />
-      {:else}
-        <PageHeaderAction
-          disabled={form.pending > 0 || submitDisabled || !canContinue}
-          label={submitLabel}
-          pending={form.pending > 0}
-          type="submit"
-        />
-      {/if}
-    {/snippet}
-  </PageHeader>
-
-  {#if stepped}
-    <!-- Hairline full bleed like the header's, stepper aligned with the fields below it. -->
-    <div class="border-surface-200-800 flex-none border-b">
-      <Steps
-        class="mx-auto w-full max-w-screen-sm px-4 py-2.5"
-        count={steps!.length}
-        {step}
-        onStepChange={(details) => (step = details.step)}
-      >
-        <Steps.List>
-          {#each steps! as { label }, index (index)}
-            <Steps.Item {index}>
-              <Steps.Indicator class="size-6 text-xs font-bold">{index + 1}</Steps.Indicator>
-              <span class="text-xs font-semibold whitespace-nowrap">{label}</span>
-              {#if index < steps!.length - 1}
-                <Steps.Separator />
-              {/if}
-            </Steps.Item>
-          {/each}
-        </Steps.List>
-      </Steps>
-    </div>
-  {/if}
-
-  <div class={fill ? 'flex min-h-0 flex-1 flex-col' : 'mx-auto flex w-full max-w-screen-sm flex-col gap-7 px-4 py-6'}>
-    <FormError {form} />
+    <PageHeader
+      backLabel={stepped && step > 0 ? steps![step - 1].label : m.common_cancel()}
+      onback={stepped && step > 0 ? () => (step -= 1) : () => back(cancelTo)}
+      {title}
+    >
+      {#snippet action()}
+        {#if stepped && !isLast}
+          <PageHeaderAction disabled={!canContinue} icon="arrow-right" iconAfter label={nextLabel} onclick={advance} />
+        {:else}
+          <PageHeaderAction
+            disabled={form.pending > 0 || submitDisabled || !canContinue}
+            label={submitLabel}
+            pending={form.pending > 0}
+            type="submit"
+          />
+        {/if}
+      {/snippet}
+    </PageHeader>
 
     {#if stepped}
-      {@render current!.body()}
-    {:else}
+      <FormSteps labels={stepLabels} {step} onStepChange={(next) => (step = next)} />
+    {/if}
+
+    <div class={fill ? 'flex min-h-0 flex-1 flex-col' : 'mx-auto flex w-full max-w-screen-sm flex-col gap-7 px-4 py-6'}>
+      <FormError {form} />
+
+      {#if stepped}
+        {@render current!.body()}
+      {:else}
+        {@render children?.()}
+      {/if}
+    </div>
+
+    <!-- Multi-step: form-wide content (hidden inputs) that must submit from any step. -->
+    {#if stepped}
       {@render children?.()}
     {/if}
-  </div>
-
-  <!-- Multi-step: form-wide content (hidden inputs) that must submit from any step. -->
-  {#if stepped}
-    {@render children?.()}
-  {/if}
-</form>
+  </form>
+{/snippet}

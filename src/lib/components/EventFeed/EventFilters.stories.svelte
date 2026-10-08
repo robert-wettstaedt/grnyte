@@ -41,3 +41,9 @@
 
 <!-- A person rather than yourself: the chip names them, resolved by the host from the id alone. -->
 <Story name="Person picked" args={{ filtered: true, personName: PEOPLE[2], userFk: 2 }} />
+
+<!-- The name is still loading: a bar holds the chip's place rather than a placeholder word. -->
+<Story name="Person loading" args={{ filtered: true, userFk: 2 }} />
+
+<!-- The sheet open while the people list arrives: rows are held for it. -->
+<Story name="People loading" args={{ open: true, people: [], peopleLoading: true }} />

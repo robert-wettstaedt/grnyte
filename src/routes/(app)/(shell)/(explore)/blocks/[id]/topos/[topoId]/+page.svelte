@@ -9,6 +9,7 @@
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
+  import SkeletonImage from '$lib/components/Skeleton/SkeletonImage.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
@@ -41,6 +42,13 @@
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
   const topo = $derived(topos.data.find((view) => view.id === topoId))
+
+  // The block row carries each photo's stored size, so the stage holds this one's box until the topo
+  // view lands, rather than standing empty.
+  const heldRatio = $derived.by(() => {
+    const image = block.data?.topoImages.find((candidate) => candidate.id === topoId)
+    return image?.width == null || image.height == null || image.height <= 0 ? null : image.width / image.height
+  })
 
   // Only the routes drawn on this topo, ordered as their lines read left-to-right.
   const topoRoutes = $derived.by(() => {
@@ -160,9 +168,10 @@
      the routes live in the Panel (mobile bottom sheet / desktop right pane). On
      mobile the stage's height tracks the sheet's top edge, so dragging the sheet
      resizes the topo; on desktop it spans nav rail → panel, on the Topo's own
-     surface-950 so the contain-fit letterbox bands dissolve into one canvas. -->
+     surface-950 so the contain-fit letterbox bands dissolve into one canvas.
+     The right offsets are `Panel.desktop`'s widths, or the image runs under the panel. -->
 <div
-  class="bg-surface-950 absolute inset-x-0 top-0 md:right-80 md:left-20 lg:right-96"
+  class="bg-surface-950 absolute inset-x-0 top-0 md:right-94 md:left-20 lg:right-105"
   style:height={sheetState.sheetTop == null ? '100%' : `${Math.max(sheetState.sheetTop, 0)}px`}
 >
   {#if topo != null}
@@ -184,6 +193,13 @@
         topType: line.topType,
       }))}
     />
+  {:else if heldRatio != null}
+    <!-- Fitted like the photo will be: as wide as the stage allows at its ratio, centred. -->
+    <div class="[container-type:size] flex h-full w-full items-center justify-center">
+      <div style:width="min(100cqw, calc(100cqh * {heldRatio}))">
+        <SkeletonImage class="w-full" ratio={heldRatio} />
+      </div>
+    </div>
   {/if}
 </div>
 
@@ -194,7 +210,8 @@
       <!-- The topos are a relation of the block row, so `ready` can arrive before this one has. -->
       {#if topo == null && topos.settled}
         <ErrorState type="notfound" title={m.topo_alt()} />
-      {:else if topo == null}
+      {:else if topo == null || block.data == null}
+        <!-- The block row decides the edit button above the list, so the list waits for it too. -->
         <div class="flex justify-center py-8"><LoadingIndicator /></div>
       {:else}
         {#if canEditTopos}

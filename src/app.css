@@ -27,6 +27,18 @@
   padding-left: max(calc(var(--spacing) * --value(number)), env(safe-area-inset-left, 0px));
 }
 
+/* A skeleton stays hidden for its first 250 ms, so a fast load shows none, and keeps its space
+   meanwhile so nothing moves when it appears. A delay, not motion, so reduced motion keeps it. */
+@keyframes skeleton-hold {
+  from {
+    visibility: hidden;
+  }
+}
+
+@utility skeleton-hold {
+  animation: skeleton-hold 0s 250ms both;
+}
+
 html,
 body {
   @apply h-full;
