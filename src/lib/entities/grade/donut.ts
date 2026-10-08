@@ -20,10 +20,11 @@ export interface DonutSegment {
  * colors and a white backing disc so it reads on top of the map, and draws the
  * centered count inside the SVG rather than as an overlaid element.
  *
+ * @param total undefined while the count is withheld: the ring then draws empty, with no number.
  * @param size diameter in pixels.
  */
-export function buildGradeDonutSvg(countByGrade: Map<number, number>, total: number, size: number): string {
-  const segments = computeDonutSegments(countByGrade, total)
+export function buildGradeDonutSvg(countByGrade: Map<number, number>, total: number | undefined, size: number): string {
+  const segments = total === undefined ? [] : computeDonutSegments(countByGrade, total)
   const c = DONUT_CENTER
   const r = DONUT_RADIUS
   const sw = DONUT_STROKE_WIDTH
@@ -48,8 +49,10 @@ export function buildGradeDonutSvg(countByGrade: Map<number, number>, total: num
     `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#52525b" stroke-width="${sw}"/>` +
     `<circle cx="${c}" cy="${c}" r="${hole}" fill="#ffffff" fill-opacity="0.8"/>` +
     ring +
-    `<text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" ` +
-    `font-weight="700" font-size="${fontSize}" fill="#1f2937">${total}</text>` +
+    (total === undefined
+      ? ''
+      : `<text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" ` +
+        `font-weight="700" font-size="${fontSize}" fill="#1f2937">${total}</text>`) +
     `</svg>`
   )
 }

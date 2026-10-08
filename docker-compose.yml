@@ -1,9 +1,8 @@
 version: '3.8'
 
 services:
-  # Local counterpart of the prod `cvr-prod` service, so the relocation can be exercised here before
-  # production. Unset, `ZERO_CVR_DB` defaults to upstream-db, which is the shape prod has today, so
-  # leaving it out of `.env` keeps the old behavior and setting it exercises the new one.
+  # Local counterpart of the prod `cvr-prod` service, where the records now live. Unset,
+  # `ZERO_CVR_DB` defaults to upstream-db, so set it in `.env` to match prod.
   cvr:
     image: postgres:17-alpine
     container_name: zero-cvr

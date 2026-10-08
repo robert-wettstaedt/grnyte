@@ -370,7 +370,7 @@
           <EntityList {activeIndex} groups={emptyGroups} indexOffset={history.length} onselect={selectResult} />
         {/if}
       {:else}
-        <EntityList {activeIndex} groups={search.groups} onselect={selectResult} settled={search.resultsSettled} />
+        <EntityList {activeIndex} groups={search.groups} onselect={selectResult} outcome={search.outcome} />
       {/if}
     </div>
   {/if}

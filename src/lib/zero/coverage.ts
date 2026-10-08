@@ -10,11 +10,8 @@ export function astOf(query: unknown): Ast {
   return (query as { ast: Ast }).ast
 }
 
-/**
- * What `reads` reach that `synced` does not put on the device, as tables and `table.relation` hops.
- * A table `synced` selects at the top level counts whole; one it only reaches through a relation
- * (a topo's image in `files`) counts only along that relation, so route files are not covered.
- */
+/** What `reads` reach that `synced` does not sync, as tables and `table.relation` hops. A table
+ *  reached only through a relation (a topo's `files`) counts only along it, so route files do not. */
 export function uncovered(reads: Ast[], synced: Ast[]): string[] {
   const whole = new Set(synced.map((ast) => ast.table))
   const along = new Set(synced.flatMap((ast) => edgesOf(ast).map(key)))

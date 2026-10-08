@@ -17,7 +17,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { syncSearchParams } from '$lib/state/navigation.svelte'
-  import { isOnline } from '$lib/state/online.svelte'
+  import { expectingMore } from '$lib/zero/resource.svelte'
 
   const global = getGlobalState()
 
@@ -118,12 +118,12 @@
     onReset={reset}
     bind:open={filtersOpen}
     people={others}
-    peopleLoading={!people.settled && isOnline()}
+    peopleLoading={expectingMore(people.phase)}
     personName={selectedPerson.data[0]?.username ??
-      (selectedPerson.settled || !isOnline() ? m.feed_person() : undefined)}
+      (!expectingMore(selectedPerson.phase) ? m.feed_person() : undefined)}
     bind:regionFk
     {regions}
-    unreadNotifications={global.unreadNotifications}
+    unreadNotifications={global.unreadNotifications ?? 0}
     bind:userFk
   />
 

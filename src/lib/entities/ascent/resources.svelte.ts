@@ -29,10 +29,8 @@ export function routeAscentList(routeId: () => number) {
  * `userAscentList` so the shared ascent-status query stays small. Gated by
  * `enabled` and skipped until a `userId` is available.
  *
- * The one query whose offline policy depends on whose it is, which is why it takes `isSelf` rather
- * than reading `OFFLINE_QUERIES` like everything else. Your own logbook is worth keeping and its
- * rows ride along with the preloaded `listUserAscents`; somebody else's is not kept, and offline it
- * has to say so rather than render an empty year as if they had climbed nothing.
+ * Its offline policy depends on whose it is: your own rides along with the preloaded
+ * `listUserAscents`, somebody else's is not kept and must say so offline.
  */
 export function userAscentDetailList(
   userId: () => number | undefined,
@@ -42,7 +40,7 @@ export function userAscentDetailList(
   return createResource(
     () => queries.listUserAscentsDetailed({ userId: userId() ?? -1 }),
     (rows) => rows.map(toUserAscentDetail),
-    { enabled: () => userId() != null && enabled(), offline: isSelf() ? undefined : 'excluded' },
+    { enabled: () => userId() != null && enabled(), offline: () => (isSelf() ? 'personal' : 'excluded') },
   )
 }
 

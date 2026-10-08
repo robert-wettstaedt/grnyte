@@ -3,9 +3,10 @@ import { PUBLIC_ZERO_URL } from '$env/static/public'
 import { recordResume } from '$lib/logging/resumeLog'
 import { isFieldDevice } from '$lib/state/device.svelte'
 import { reportConnectionState, setPingTightenHandler } from '$lib/state/online.svelte'
-import { forgetSynced, markSynced, trackSyncFor } from '$lib/state/sync.svelte'
+import { forgetSynced, markStoreLoaded, markSynced, trackSyncFor } from '$lib/state/sync.svelte'
 import type { Session } from '@supabase/supabase-js'
 import { Z } from 'zero-svelte'
+import { FIELD_STAGES, KEPT, type KeepContext, type KeepStage } from './offline'
 import { queries } from './queries'
 import { schema, type Schema } from './zero-schema'
 
@@ -80,7 +81,9 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   connectionUnsubscribe = z.connection.state.subscribe((state) => {
     reportConnectionState(state)
     noteConnectionForResume(state.name)
-    if (state.name === 'connected' && lastState !== 'connected') {
+    // Signed in only: the barrier is a member query, and a logged-out client's run throws inside
+    // Zero's state listener, which aborts the connect.
+    if (state.name === 'connected' && lastState !== 'connected' && session != null) {
       armSyncBarrier(z)
     }
     lastState = state.name
@@ -92,7 +95,20 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   // just-answered probe makes a short pong deadline safe. See `shouldTightenPing`.
   setPingTightenHandler(() => tightenPing(z))
 
+  storeProbe?.destroy()
+  storeProbe = undefined
   if (session != null) {
+    // The signed-in user always has a row, so seeing it local proves the replica was read back.
+    const probe = z.materialize(queries.currentUser())
+    storeProbe = probe
+    probe.addListener((data) => {
+      if (Array.isArray(data) ? data.length > 0 : data != null) {
+        markStoreLoaded()
+        queueMicrotask(() => probe.destroy())
+        if (storeProbe === probe) storeProbe = undefined
+      }
+    })
+
     // Eagerly sync app-wide reference data and the signed-in user into the
     // local store so resources reading them (see $lib/state/global.svelte)
     // render immediately rather than flashing a loading state.
@@ -100,20 +116,12 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
     // No `catch`: Zero's `complete` promise resolves or stays pending, it does not reject, so a
     // handler here could only ever be dead code. Offline the whole chain never settles,
     // which is the correct outcome - `markSynced` must not fire for a sync that did not happen.
-    void Promise.all([
-      z.preload(queries.listGrades()).complete,
-      z.preload(queries.currentUser()).complete,
-      z.preload(queries.currentUserRole()).complete,
-      z.preload(queries.listRolePermissions()).complete,
-      z.preload(queries.listUserRegions()).complete,
-      // The reference data is in the local store and the server confirmed it. Narrow on purpose:
-      // this says the shell can render, and nothing at all about the guidebook, which is thousands
-      // of rows still arriving. `preloadForOffline` stamps that separately.
-    ]).then(() => {
-      markSynced('reference')
+    const ctx = keepContext(z)
+    // The stamp says the shell can render, and nothing about the guidebook still arriving.
+    void preloadStage(z, KEPT.reference, ctx).then(() => {
       // Only now: a client group's queries are answered as one batch, so issued beside these the
       // guidebook held the first screen back for its whole ~12 s hydration.
-      preloadForOffline(z)
+      preloadForOffline(z, ctx)
     })
   }
 
@@ -240,14 +248,13 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   return z
 }
 
+let storeProbe: undefined | { destroy(): void }
+
 let caughtUp = $state(false)
 let barrier = 0
 
-/**
- * Whether this connection has caught up with the server. `complete` cannot say so: Zero persists
- * which queries it has, and after a reconnect reports one whose hash it already holds as complete
- * at once, with last session's rows, while the server is still re-hydrating it.
- */
+/** Whether this connection caught up with the server. Not `complete`, which a reconnect reports at
+ *  once for a query hash Zero already holds, with last session's rows. */
 export function syncCaughtUp(): boolean {
   return caughtUp
 }
@@ -256,9 +263,24 @@ function armSyncBarrier(z: Z<Schema>): void {
   const generation = ++barrier
   caughtUp = false
   const nonce = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
-  void z.run(queries.syncBarrier({ nonce }), { ttl: 'none', type: 'complete' }).then(() => {
+  // A failed barrier proves nothing either way, so it stops claiming the sync is behind.
+  const settle = () => {
     if (generation === barrier) caughtUp = true
-  })
+  }
+  void z.run(queries.syncBarrier({ nonce }), { ttl: 'none', type: 'complete' }).then(settle, settle)
+}
+
+/** The lookups kept queries take their arguments from, each run once per sync. */
+function keepContext(z: Z<Schema>): KeepContext {
+  let user: Promise<number | undefined> | undefined
+  let regions: Promise<number[]> | undefined
+  return {
+    regionFks: () =>
+      (regions ??= z
+        .run(queries.listUserRegions(), { type: 'complete' })
+        .then((memberships) => memberships.map((membership) => membership.regionFk))),
+    userId: () => (user ??= z.run(queries.currentUser(), { type: 'complete' }).then((row) => row?.id ?? undefined)),
+  }
 }
 
 /**
@@ -280,77 +302,41 @@ function armSyncBarrier(z: Z<Schema>): void {
  * collects an inactive CVR after 48 hours, so any gap longer than that comes back through
  * `onClientStateNotFound`, which drops the sync stamp and reloads into a fresh sync.
  *
- * WHAT is kept lives in `OFFLINE_QUERIES`, not here, and the same table is what every screen reads
- * to decide whether an empty result means "we chose not to keep this" or "this device has not got
- * it". `offline.drift.test.ts` fails if the two halves disagree. This function is only the HOW: the
- * arguments each query needs, and the order they can be issued in.
+ * WHAT is kept, and how each request is built, lives in `KEPT` in `offline.ts`, the same table every
+ * screen reads its offline policy from. This function only decides when each stage starts.
  */
-function preloadForOffline(z: Z<Schema>): void {
+function preloadForOffline(z: Z<Schema>, ctx: KeepContext): void {
   if (!isFieldDevice()) {
     return
   }
 
-  // The guidebook, as relation-free tables (see `guidebook.ts`). They need nothing looked up first;
-  // anything keyed on the numeric user id has to wait for the row below.
-  //
-  // Their completion is stamped, and that stamp is what lets a screen offline treat an empty result
-  // as an answer rather than a gap. Without it the only signal was the reference stamp above, which
-  // fires seconds earlier on five tiny queries: a device that finished those and then lost the
-  // connection partway through the guidebook claimed authority over a guidebook it only partly had,
-  // and rendered every area whose routes never arrived as an area with no routes.
-  //
-  // No `catch`: `complete` resolves or stays pending, it never rejects, so there is nothing to
-  // handle and an interrupted sync never stamps. That is the outcome we want. The `run` calls
-  // below are a different matter, those can reject.
-  void Promise.all([
-    z.preload(queries.guidebookAreas()).complete,
-    z.preload(queries.guidebookBlocks()).complete,
-    z.preload(queries.guidebookFirstAscensionists()).complete,
-    z.preload(queries.guidebookGeolocations()).complete,
-    z.preload(queries.guidebookRouteFirstAscents()).complete,
-    z.preload(queries.guidebookRoutes()).complete,
-    z.preload(queries.guidebookRouteTags()).complete,
-    z.preload(queries.guidebookTopoRoutes()).complete,
-    z.preload(queries.guidebookTopos()).complete,
-  ]).then(() => markSynced('guidebook'))
+  // The guidebook's stamp is what lets a screen offline treat an empty result as an answer, so it
+  // waits for every guidebook table rather than for the reference stamp, which lands seconds sooner.
+  for (const stage of FIELD_STAGES) {
+    void preloadStage(z, stage, ctx)
+  }
+}
 
-  // Your own ascents (sends logged on every route) and your own favorites (the save button's state).
-  // Both are keyed on the numeric `users.id` rather than the auth uid, which is only knowable by
-  // reading the user row first: hence the `run` ahead of the preloads rather than two more entries
-  // in the batch above.
-  z.run(queries.currentUser(), { type: 'complete' })
-    .then((user) => {
-      if (user?.id == null) {
-        return
+/** Preloads one stage of `KEPT`, stamping it once every query in it is complete. A failed lookup
+ *  costs its own query and the stamp, never the rest of the stage. */
+async function preloadStage(z: Z<Schema>, stage: KeepStage, ctx: KeepContext): Promise<void> {
+  let failed = false
+  await Promise.all(
+    Object.entries(stage.queries).map(async ([name, build]) => {
+      try {
+        const request = await build(ctx)
+        if (request != null) {
+          await z.preload(request as Parameters<typeof z.preload>[0]).complete
+        }
+      } catch (error) {
+        failed = true
+        console.error(`Error preloading ${name} for offline use:`, error)
       }
-
-      return Promise.all([
-        z.preload(queries.listUserAscents({ userId: user.id })).complete,
-        z.preload(queries.listUserAllFavorites({ userId: user.id })).complete,
-      ])
-    })
-    .catch((error: unknown) => {
-      console.error('Error preloading your ascents and favorites for offline use:', error)
-    })
-
-  // Everybody in your regions, which is the one table the three queries above do not reach and the
-  // descriptions still point at: a `!users:id!` mention resolves through `usersByIds`, and a query
-  // registered for the first time while offline has nothing local to answer from, so the mention
-  // renders as its raw token in the middle of a sentence. Cheap: a region's community is a few hundred
-  // rows against the ~5k routes already synced.
-  z.run(queries.listUserRegions(), { type: 'complete' })
-    .then((memberships) => {
-      const regionFks = memberships.map((membership) => membership.regionFk)
-
-      if (regionFks.length === 0) {
-        return
-      }
-
-      return z.preload(queries.listUsers({ regionFks })).complete
-    })
-    .catch((error: unknown) => {
-      console.error('Error preloading your region members for offline use:', error)
-    })
+    }),
+  )
+  if (!failed && stage.stamp != null) {
+    markSynced(stage.stamp)
+  }
 }
 
 /**

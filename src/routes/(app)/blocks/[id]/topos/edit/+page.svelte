@@ -8,6 +8,8 @@
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
+  import QueryError from '$lib/components/QueryState/QueryError.svelte'
+  import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import TopoEditorStage from '$lib/components/Topo/TopoEditorStage.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
@@ -35,11 +37,13 @@
     replaceTopoImage,
     saveTopoLines,
   } from '$lib/entities/topo/topos.remote'
+  import { noEditPermission } from '$lib/forms/gate'
   import { reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { FAILURE_TOAST_MS, notifyError, notifyUndo, toaster } from '$lib/state/toast'
+  import { expectingMore } from '$lib/zero/resource.svelte'
   import { tick } from 'svelte'
   import { fly } from 'svelte/transition'
   import { topoEditorKeydown } from './keydown'
@@ -67,7 +71,7 @@
   const editor = new TopoEditor((topoId) => {
     // `undefined`, not `[]`: "cannot say yet" rather than "no lines". A partial snapshot maps an
     // empty list for a photo that has plenty, and the basis stamped from it would be frozen.
-    if (!topos.settled) return undefined
+    if (topos.phase.kind !== 'answered') return undefined
     const view = topos.data.find((v) => v.id === topoId)
     if (view == null) return undefined
 
@@ -85,12 +89,13 @@
   // Precedence copied from QueryState (offline, then error, then empty), which this page cannot
   // use: it is `absolute inset-0` and reads `block.data` from `<svelte:head>` at the top level.
   // Keep the order, or the two surfaces drift.
-  const blockOffline = $derived(block.availability === 'excluded' || block.availability === 'unsynced')
-  const blockErrored = $derived(block.status === 'error')
+  const blockOffline = $derived(block.phase.kind === 'unavailable')
+  const blockErrored = $derived(block.phase.kind === 'error')
+  const blockEmpty = $derived(block.phase.kind === 'answered' && block.phase.empty)
 
   // `canEditHere` reads a missing block as "still loading", so every consumer needs this instead:
   // the window handler and the effects would otherwise stay armed behind the not-found screen.
-  const editorLive = $derived(!blockOffline && !blockErrored && !block.isEmpty && canEditHere)
+  const editorLive = $derived(!blockOffline && !blockErrored && !blockEmpty && canEditHere)
 
   // Initial selection, applied once topos load. A ?topo=<id> deep-link (from the topo detail
   // page) opens on that photo; ?route=<id> (from a route detail page) opens on the photo the
@@ -102,7 +107,7 @@
     // `settled`, because this effect can DRAW: `?route=` arms a line, which stamps the basis.
     // A partial snapshot also makes `selectTopoForRoute` miss a route that is already drawn, so it
     // would arm a second one. Deferring is safe: nothing is latched until it runs.
-    if (selectionApplied || !topos.settled || topos.data.length === 0 || !editorLive) return
+    if (selectionApplied || topos.phase.kind !== 'answered' || topos.data.length === 0 || !editorLive) return
     selectionApplied = true
 
     const routeParam = page.url.searchParams.get('route')
@@ -441,7 +446,7 @@
 
 <svelte:head>
   <title>
-    {block.isEmpty ? m.blocks_notFound() : `${m.topo_editTopos()} – ${block.data?.name ?? m.common_block()}`} – {PUBLIC_APPLICATION_NAME}
+    {blockEmpty ? m.blocks_notFound() : `${m.topo_editTopos()} – ${block.data?.name ?? m.common_block()}`} – {PUBLIC_APPLICATION_NAME}
   </title>
 </svelte:head>
 
@@ -452,24 +457,24 @@
 <svelte:document onfullscreenchange={() => (isFullscreen = document.fullscreenElement != null)} />
 
 {#if blockOffline}
-  <OfflineNotice excluded={block.availability === 'excluded'} />
+  <OfflineNotice excluded={block.phase.kind === 'unavailable' && block.phase.excluded} />
 {:else if blockErrored}
   <ErrorState type="generic" title={m.queryState_error()} />
-{:else if block.isEmpty}
+{:else if blockEmpty}
   <ErrorState type="notfound" title={m.blocks_notFound()} />
 {:else if !canEditHere}
-  <ErrorState
-    type="generic"
-    title={m.form_noPermissionTitle()}
-    description={m.form_noEditPermission()}
-    primaryAction={{ href: blockHref, label: m.blocks_viewBlock() }}
-  />
+  <ErrorState {...noEditPermission({ href: blockHref, label: m.blocks_viewBlock() })} />
 {:else}
   <div class={['bg-surface-950 absolute inset-0 top-0', routesOpen && 'md:right-94 lg:right-105']}>
-    {#if currentTopo == null && !topos.settled}
+    {#if currentTopo == null && expectingMore(topos.phase)}
       <!-- "No topos yet" is a claim about the whole list, so it waits for one. -->
       <div class="absolute inset-0 flex items-center justify-center" role="status" aria-label={m.common_syncing()}>
         <LoadingIndicator />
+      </div>
+    {:else if currentTopo == null && topos.phase.kind !== 'answered'}
+      <!-- Offline with nothing confirmed: nothing is coming, and a photo cannot be added. -->
+      <div class="absolute inset-0 flex items-center justify-center p-6">
+        <OfflineNotice />
       </div>
     {:else if currentTopo == null}
       <div class="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
@@ -558,7 +563,7 @@
             panelClass="fixed inset-y-0 right-0 z-40"
             contentClass="h-full w-94 rounded-none border-y-0 border-r-0 lg:w-105"
             title={m.topo_routesOnPhoto()}
-            subtitle={topos.settled
+            subtitle={topos.phase.kind === 'answered'
               ? m.topo_position({ position: currentTopoIndex + 1, total: topos.data.length })
               : undefined}
             snapPoints={[0.7]}
@@ -572,12 +577,20 @@
               >
                 <Icon name="list" size={18} />
                 {m.topo_routes()}
-                <span class="tabular-nums opacity-60">{topoRoutes.length}</span>
+                {#if topos.phase.kind === 'answered'}
+                  <span class="tabular-nums opacity-60">{topoRoutes.length}</span>
+                {/if}
               </button>
             {/snippet}
 
-            {#if topoRoutes.length === 0}
+            {#if topoRoutes.length === 0 && topos.phase.kind === 'answered'}
               <p class="text-surface-600-400 py-6 text-center text-sm">{m.topo_noRoutesDrawn()}</p>
+            {:else if topoRoutes.length === 0 && expectingMore(topos.phase)}
+              <SkeletonRows count={2} lines={1} />
+            {:else if topoRoutes.length === 0 && topos.phase.kind === 'error'}
+              <QueryError compact />
+            {:else if topoRoutes.length === 0}
+              <OfflineNotice compact />
             {:else}
               <nav class="flex flex-col gap-1.5">
                 {#each topoRoutes as route (route.id)}
@@ -595,7 +608,8 @@
             {/if}
 
             {#snippet footer()}
-              {#if block.data != null}
+              <!-- Only once the lines are whole: a drawn route would otherwise be offered again. -->
+              {#if block.data != null && topos.phase.kind === 'answered'}
                 <TopoAddRouteModal block={block.data} {candidates} onAdd={addRouteLine} />
               {/if}
             {/snippet}
@@ -611,7 +625,8 @@
         onAddPhoto={() => pickPhoto()}
         onReplacePhoto={(topoId) => pickPhoto(topoId)}
         onDeletePhoto={deleteCurrentTopo}
-        onReorder={topos.settled ? persistReorder : undefined}
+        onReorder={topos.phase.kind === 'answered' ? persistReorder : undefined}
+        total={topos.phase.kind === 'answered' ? topos.data.length : undefined}
       />
 
       <input bind:this={fileInput} type="file" accept="image/*" class="hidden" onchange={onFilePicked} />

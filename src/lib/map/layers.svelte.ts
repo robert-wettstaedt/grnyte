@@ -47,6 +47,7 @@ export function buildAreaFeatures(
   areaBoundingBoxes: Map<number, { area: BlockDetail['areas'][0]; bounds: Bounds }>,
   routeCountByArea: Map<number, number>,
   gradeCountByArea: Map<number, Map<number, number>>,
+  countsKnown = true,
 ): Feature[] {
   const features: Feature[] = []
 
@@ -65,7 +66,7 @@ export function buildAreaFeatures(
         fill: new Fill({ color: 'rgba(248, 250, 252, 0.15)' }),
         stroke: new Stroke({ color: '#1f2937', width: 1 }),
       }),
-      ...createDonutMarkerStyles(area.name, routeCount, gradeCounts, 36),
+      ...createDonutMarkerStyles(area.name, countsKnown ? routeCount : undefined, gradeCounts, 36),
     ])
     features.push(feature)
   }
@@ -73,7 +74,11 @@ export function buildAreaFeatures(
   return features
 }
 
-export function buildBlockFeatures(geoBlocks: BlockDetail[], routeCountByBlock: Map<number, number>): Feature[] {
+export function buildBlockFeatures(
+  geoBlocks: BlockDetail[],
+  routeCountByBlock: Map<number, number>,
+  countsKnown = true,
+): Feature[] {
   const features: Feature[] = []
 
   for (const block of geoBlocks) {
@@ -83,7 +88,8 @@ export function buildBlockFeatures(geoBlocks: BlockDetail[], routeCountByBlock: 
       estimated: geo.estimated,
       geometry: new Point(fromLonLat([geo.long, geo.lat])),
       name: block.name,
-      routeCount: routeCountByBlock.get(block.id) ?? 0,
+      // Unknown draws the plain dot, never a number.
+      routeCount: countsKnown ? (routeCountByBlock.get(block.id) ?? 0) : 0,
     })
     features.push(feature)
   }
@@ -159,6 +165,7 @@ export function buildSectorFeatures(
   sectorBoundingBoxes: Map<number, { bounds: Bounds; sector: BlockDetail['areas'][0] }>,
   routeCountBySector: Map<number, number>,
   gradeCountBySector: Map<number, Map<number, number>>,
+  countsKnown = true,
 ): Feature[] {
   const features: Feature[] = []
 
@@ -177,7 +184,7 @@ export function buildSectorFeatures(
         fill: new Fill({ color: 'rgba(255, 255, 255, 0.2)' }),
         stroke: new Stroke({ color: '#313944', width: 1 }),
       }),
-      ...createDonutMarkerStyles(sector.name, routeCount, gradeCounts, 32),
+      ...createDonutMarkerStyles(sector.name, countsKnown ? routeCount : undefined, gradeCounts, 32),
     ])
     features.push(feature)
   }
@@ -329,7 +336,7 @@ export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
 // regenerate) and anchored at the polygon's interior point.
 function createDonutMarkerStyles(
   name: string,
-  count: number,
+  count: number | undefined,
   gradeCounts: Map<number, number>,
   donutSize: number,
 ): Style[] {

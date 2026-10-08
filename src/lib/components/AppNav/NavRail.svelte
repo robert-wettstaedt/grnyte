@@ -41,7 +41,7 @@
           <NavIcon
             icon={item.icon}
             size={23}
-            unread={item.icon === 'feed' && !active ? global.unreadNotifications : 0}
+            unread={item.icon === 'feed' && !active ? (global.unreadNotifications ?? 0) : 0}
           />
           <Navigation.TriggerText class="w-full truncate text-center text-[10px] font-bold">
             {item.label()}

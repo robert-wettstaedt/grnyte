@@ -31,15 +31,21 @@
 
   const { isSelf, status, userId }: Props = $props()
 
-  const favorites = userAllFavoriteList(() => userId)
+  const favorites = userAllFavoriteList(
+    () => userId,
+    () => true,
+    () => isSelf,
+  )
+  // Offline, somebody else's favorites are fragments other queries left, not their list.
+  const known = $derived(favorites.phase.kind === 'unavailable' ? [] : favorites.data)
   const favAreaIds = $derived(
-    favorites.data.filter((favorite) => favorite.entityType === 'area').map((favorite) => favorite.entityId),
+    known.filter((favorite) => favorite.entityType === 'area').map((favorite) => favorite.entityId),
   )
   const favBlockIds = $derived(
-    favorites.data.filter((favorite) => favorite.entityType === 'block').map((favorite) => favorite.entityId),
+    known.filter((favorite) => favorite.entityType === 'block').map((favorite) => favorite.entityId),
   )
   const favRouteIds = $derived(
-    favorites.data.filter((favorite) => favorite.entityType === 'route').map((favorite) => favorite.entityId),
+    known.filter((favorite) => favorite.entityType === 'route').map((favorite) => favorite.entityId),
   )
   const favAreas = areaList(() => ({ id: favAreaIds }), { enabled: () => favAreaIds.length > 0 })
   const favBlocks = blockList(() => ({ blockId: favBlockIds }), { enabled: () => favBlockIds.length > 0 })
@@ -49,9 +55,9 @@
   // stops resolving. Gate each list on what came BACK, not on how many ids were stored, or a
   // subheading renders over "Nothing here yet." `isEmpty` is ready-and-empty, so this does not
   // hide a list that is still loading.
-  const hasRoutes = $derived(favRouteIds.length > 0 && !favRoutes.isEmpty)
-  const hasBlocks = $derived(favBlockIds.length > 0 && !favBlocks.isEmpty)
-  const hasAreas = $derived(favAreaIds.length > 0 && !favAreas.isEmpty)
+  const hasRoutes = $derived(favRouteIds.length > 0 && !(favRoutes.phase.kind === 'answered' && favRoutes.phase.empty))
+  const hasBlocks = $derived(favBlockIds.length > 0 && !(favBlocks.phase.kind === 'answered' && favBlocks.phase.empty))
+  const hasAreas = $derived(favAreaIds.length > 0 && !(favAreas.phase.kind === 'answered' && favAreas.phase.empty))
 
   // Removing a favorite. Zero re-syncs the list, so the row drops out on its own once the write
   // lands.
@@ -133,7 +139,10 @@
 {#if hasRoutes || hasBlocks || hasAreas}
   <section class="space-y-3">
     <!-- "Remove all N" names the whole list and removes only what is here, so it waits for all of it. -->
-    <SectionHeading title={m.profile_favorites()} action={isSelf && favorites.settled ? removeAllAction : undefined} />
+    <SectionHeading
+      title={m.profile_favorites()}
+      action={isSelf && favorites.phase.kind === 'answered' ? removeAllAction : undefined}
+    />
 
     {#if hasRoutes}
       <div class="space-y-2">

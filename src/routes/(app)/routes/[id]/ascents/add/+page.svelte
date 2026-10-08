@@ -9,7 +9,6 @@
   import { entityHref } from '$lib/entities/href'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { exit } from '$lib/state/navigation.svelte'
@@ -21,20 +20,15 @@
 
   let uploads = $state<MediaUpload[]>([])
 
-  // The fields live on a module-level remote singleton. `{#key}` below covers what
-  // AscentFormFields seeds once at mount, including the date, which defaults to today and is
-  // the one that lies quietly. `remove()` and not just dropping the array: it is the only
-  // thing that aborts the transfer, deletes the staged object and revokes the preview.
-  seedOnKeyChange(
-    () => page.params.id,
-    () => {
-      createAscent.fields.set({})
-      for (const upload of uploads) {
-        upload.remove()
-      }
-      uploads = []
-    },
-  )
+  // The fields live on a module-level remote singleton. `remove()` and not just dropping the array:
+  // it is the only thing that aborts the transfer, deletes the staged object and revokes the preview.
+  const seed = () => {
+    createAscent.fields.set({})
+    for (const upload of uploads) {
+      upload.remove()
+    }
+    uploads = []
+  }
 
   const routeHref = $derived(entityHref('routes', Number(page.params.id)))
 
@@ -69,14 +63,15 @@
   {denied}
   form={createAscent}
   {onSubmitted}
+  {seed}
   submitLabel={m.common_save()}
   title={m.routes_logAscent()}
   waitFor={[
-    { notFound: m.routes_notFound(), resource: route },
-    { notFound: m.blocks_notFound(), resource: block },
+    { notFound: m.routes_notFound(), resource: route, whole: false },
+    { notFound: m.blocks_notFound(), resource: block, whole: false },
   ]}
 >
-  {#key route.data!.id}
-    <AscentFormFields block={block.data!} form={createAscent} route={route.data!} bind:uploads />
-  {/key}
+  {#snippet fields([route, block])}
+    <AscentFormFields {block} form={createAscent} {route} bind:uploads />
+  {/snippet}
 </Form>

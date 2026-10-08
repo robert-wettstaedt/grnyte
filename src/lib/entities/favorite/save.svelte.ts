@@ -27,7 +27,7 @@ export function createSaveState(
     // The synced count already includes the user's own row, so only an unconverged override moves it.
     // 0 (no badge) until it is whole: your own preloaded row alone read as "1".
     get count() {
-      if (!count.settled) {
+      if (count.phase.kind !== 'answered') {
         return 0
       }
       if (override == null || override === favorited.data) {
@@ -35,9 +35,9 @@ export function createSaveState(
       }
       return override ? count.data + 1 : count.data - 1
     },
-    /** `availability`, not `isSyncing`: Zero clears `complete` on its own background-tab disconnect. */
+    /** Loading only, not unanswered: Zero clears `complete` on its own background-tab disconnect. */
     get pending() {
-      return favorited.availability === 'loading'
+      return favorited.phase.kind === 'loading'
     },
     get saved() {
       return saved

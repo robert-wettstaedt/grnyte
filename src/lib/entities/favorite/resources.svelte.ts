@@ -43,12 +43,17 @@ export function saveCount(entityType: () => 'area' | 'block' | 'route', entityId
  * A user's favorites across all entity types (area/block/route), newest first:
  * the profile's Favorites section. Skipped until a `userId` is available.
  */
-export function userAllFavoriteList(userId: () => number | undefined, enabled: () => boolean = () => true) {
+export function userAllFavoriteList(
+  userId: () => number | undefined,
+  enabled: () => boolean = () => true,
+  isSelf: () => boolean = () => true,
+) {
   return createResource(
     // ponytail: -1 can't be a real user id; only reached while disabled (userId null)
     () => queries.listUserAllFavorites({ userId: userId() ?? -1 }),
     (rows) => rows.map(toUserFavoriteEntity).filter((favorite) => favorite != null),
-    { enabled: () => userId() != null && enabled() },
+    // Only your own favorites are preloaded; somebody else's local rows are fragments.
+    { enabled: () => userId() != null && enabled(), offline: () => (isSelf() ? undefined : 'excluded') },
   )
 }
 
@@ -62,6 +67,7 @@ export function userFavoriteList(userId: () => number | undefined, enabled: () =
     // ponytail: -1 can't be a real user id; only reached while disabled (userId null)
     () => queries.listUserFavorites({ userId: userId() ?? -1 }),
     (rows) => rows.map(toUserFavorite).filter((favorite) => favorite != null),
-    { enabled: () => userId() != null && enabled() },
+    // Always your own, a subset of the preloaded `listUserAllFavorites`.
+    { enabled: () => userId() != null && enabled(), offline: 'personal' },
   )
 }

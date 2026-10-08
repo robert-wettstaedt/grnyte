@@ -11,6 +11,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'
   import RegionAdminRequired from '../RegionAdminRequired.svelte'
+  import RegionScreen from '../RegionScreen.svelte'
 
   const global = getGlobalState()
 
@@ -44,7 +45,9 @@
 </svelte:head>
 
 {#if !isAdmin}
-  <RegionAdminRequired {regionId} />
+  <RegionScreen backTo={entityHref('regions', regionId)} title={m.settings_changeRegionName()}>
+    <RegionAdminRequired {regionId} />
+  </RegionScreen>
 {:else}
   <Form
     form={updateRegion}

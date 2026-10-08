@@ -235,6 +235,7 @@
     blocks={explore.blocks}
     parkingLocations={explore.parkingLocations}
     lineStrings={explore.lineStrings}
+    countsKnown={explore.countsKnown}
     routeCountByBlock={explore.routeCountByBlock}
     gradeCountByBlock={explore.gradeCountByBlock}
     {selectedBlockId}
@@ -277,9 +278,9 @@
     <SearchBar>
       {#snippet trailing()}
         <Filter
-          loading={explore.routes.status === 'loading'}
+          loading={explore.routes.phase.kind === 'loading'}
           routes={explore.routes.data}
-          settled={explore.routes.settled}
+          settled={explore.routes.phase.kind === 'answered'}
         />
       {/snippet}
     </SearchBar>

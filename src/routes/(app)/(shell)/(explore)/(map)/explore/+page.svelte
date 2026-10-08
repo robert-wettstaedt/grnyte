@@ -46,7 +46,7 @@
   <title>{m.explore_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-{#if global.userRegions.length === 0 || areas.isEmpty}
+{#if global.userRegions.length === 0 || (areas.phase.kind === 'answered' && areas.phase.empty)}
   <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
     <div class="card preset-filled-surface-100-900 pointer-events-auto max-w-sm shadow-xl">
       {#if global.userRegions.length === 0}

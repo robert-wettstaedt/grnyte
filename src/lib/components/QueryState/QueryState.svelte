@@ -4,10 +4,12 @@
   import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import StatusPill from '$lib/components/StatusPill/StatusPill.svelte'
   import { m } from '$lib/paraglide/messages.js'
-  import { isOnline } from '$lib/state/online.svelte'
-  import { resolveArriving, resolveUnavailable, type QueryResource } from '$lib/zero/resource.svelte'
+  import { motion } from '$lib/state/motion.svelte'
+  import type { QueryPhase, QueryResource } from '$lib/zero/resource.svelte'
   import type { Snippet } from 'svelte'
   import { fade } from 'svelte/transition'
+  import { resolveFallback } from './fallback'
+  import QueryError from './QueryError.svelte'
 
   let {
     class: className = '',
@@ -20,11 +22,7 @@
     resource,
     syncing,
   }: {
-    /**
-     * Extra classes for the ready wrapper. `min-h-full` only chains height while the parent
-     * has a definite one, so a QueryState nested inside another one needs `flex-1` here to
-     * keep filling. Without it a full-height child (the map picker) collapses to nothing.
-     */
+    /** Classes for the ready content's column (a `gap-*`), which fills the wrapper as `flex-1`. */
     class?: string
     /** Rendered when the result is `ready` but empty (`[]` or `undefined`). */
     empty?: Snippet
@@ -49,48 +47,41 @@
     syncing?: Snippet
   } = $props()
 
-  const status = $derived(forceState === 'syncing' ? 'ready' : (forceState ?? resource.status))
-  const isEmpty = $derived(forceState === 'empty' || (forceState == null && resource.isEmpty))
-
-  // Tested ahead of the loading branch on purpose. Offline, a query with nothing in the local store
-  // is *stuck* loading rather than passing through it: there is no server to move it on, so left
-  // alone it is a skeleton that pulses until the tab closes.
-  //
-  // Which of the two messages to show is the resource's judgement now, not this component's. It is
-  // the only layer that knows which query it is running and therefore whether the data is missing
-  // because we chose not to keep it or because this device has not got it. The
-  // `offlineExcluded` prop that used to carry that answer in from six call sites is gone.
-  const availability = $derived(forceState == null ? resource.availability : 'ready')
-  const unavailable = $derived(forceState == null && resolveUnavailable({ availability, settled: resource.settled }))
-
-  // Offline nothing is coming, so a never-confirmed query there is the offline notice's business.
-  const arriving = $derived(
-    forceState === 'syncing' ||
-      (forceState == null &&
-        resolveArriving({ online: isOnline(), settled: resource.settled, status: resource.status })),
+  // The override bends the phase, so a story goes down the same path the app does.
+  const phase: QueryPhase = $derived(
+    forceState === 'empty'
+      ? { empty: true, kind: 'answered' }
+      : forceState === 'error'
+        ? { kind: 'error' }
+        : forceState === 'loading'
+          ? { kind: 'loading' }
+          : forceState === 'syncing'
+            ? { kind: 'arriving' }
+            : resource.phase,
   )
+
+  // The one ladder every screen uses: offline ahead of loading, since offline a never-synced query
+  // is stuck rather than on its way, and an empty answer ahead of loading too.
+  const fallback = $derived(resolveFallback([{ notFound, phase }]))
 </script>
 
-{#if unavailable}
-  <OfflineNotice excluded={availability === 'excluded'} />
-{:else if status === 'error'}
+{#if fallback.kind === 'offline'}
+  <OfflineNotice excluded={fallback.excluded} />
+{:else if fallback.kind === 'error'}
   {#if error}
     {@render error()}
   {:else}
-    <div class="card preset-tonal-error px-4 py-3 text-sm" role="alert" in:fade={{ duration: 150 }}>
-      {m.queryState_error()}
-    </div>
+    <QueryError />
   {/if}
-{:else if isEmpty}
-  <!-- Ahead of loading: an empty answer can be confirmed while Zero still reports `unknown`. -->
+{:else if fallback.kind === 'notFound'}
   {#if empty}
     {@render empty()}
-  {:else if notFound != null}
-    <ErrorState type="notfound" title={notFound} />
+  {:else if fallback.title != null}
+    <ErrorState type="notfound" title={fallback.title} />
   {:else}
-    <p class="text-surface-600-400 py-8 text-center" in:fade={{ duration: 150 }}>{m.queryState_empty()}</p>
+    <p class="text-surface-600-400 py-8 text-center" in:fade={{ duration: motion(150) }}>{m.queryState_empty()}</p>
   {/if}
-{:else if status === 'loading'}
+{:else if fallback.kind === 'loading'}
   <!-- No transition: the skeleton holds its first 250 ms itself, so a fast load shows none. -->
   {#if loading}
     {@render loading()}
@@ -98,18 +89,17 @@
     <SkeletonRows class="py-2" />
   {/if}
 {:else}
-  <!-- Fade the loaded content in as it replaces the skeleton. `in` only (no `out`): an out
-       transition would keep the leaving skeleton in flow and jump the layout. The wrapper is
-       `min-h-full flex-col` so full-height pages (sticky footers) still chain their height. -->
-  <div class="flex min-h-full flex-col {className}" in:fade={{ duration: 150 }}>
-    <!-- First, pinned: arriving is what a reader needs to know on opening, not at the end of the list. -->
-    {#if arriving}
-      {#if syncing}
-        {@render syncing()}
-      {:else}
-        <StatusPill>{m.common_syncing()}</StatusPill>
-      {/if}
+  <!-- `in` only: an out transition would keep the leaving skeleton in flow. The pill sits outside the
+       caller's column, so its gap never spaces the content below a pill of no height. -->
+  <div class="flex min-h-full flex-col" in:fade={{ duration: motion(150) }}>
+    <!-- One flat `if`, so the pill's own transition plays when it comes and goes. -->
+    {#if phase.kind === 'arriving' && syncing}
+      {@render syncing()}
+    {:else if phase.kind === 'arriving'}
+      <StatusPill>{m.common_syncing()}</StatusPill>
     {/if}
-    {@render ready(resource.data as NonNullable<TOut>)}
+    <div class="flex flex-1 flex-col {className}">
+      {@render ready(resource.data as NonNullable<TOut>)}
+    </div>
   </div>
 {/if}

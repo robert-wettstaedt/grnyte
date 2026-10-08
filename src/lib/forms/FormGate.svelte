@@ -1,18 +1,19 @@
 <!-- A form screen's chrome until its rows are here: the ready screen's header with its action
      disabled, over one skeleton or state. `Form` renders through it when given `waitFor`. -->
-<script lang="ts">
+<script lang="ts" generics="W extends FormWaits">
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
+  import { resolveFallback } from '$lib/components/QueryState/fallback'
+  import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { m } from '$lib/paraglide/messages'
   import { back } from '$lib/state/navigation.svelte'
-  import { isOnline } from '$lib/state/online.svelte'
-  import type { ComponentProps, Snippet } from 'svelte'
+  import { untrack, type ComponentProps, type Snippet } from 'svelte'
   import type { ClassValue } from 'svelte/elements'
   import FormSteps from './FormSteps.svelte'
-  import { resolveFormGate, type FormWait } from './gate'
+  import { waitedRows, type FormWaits, type Waited } from './gate'
 
   interface Props {
     /** The trailing action as the ready screen labels it, disabled until then. */
@@ -20,18 +21,21 @@
     /** The back chip as the ready screen labels it. */
     backLabel?: string
     cancelTo: string
-    children: Snippet
+    /** The waited rows, and the key of the last seed, which changes only after `seed` has run. */
+    children: Snippet<[Waited<W>, string]>
     /** On the wrapper, which is the flex column a filling screen sizes itself against. */
     class?: ClassValue
     /** Set once the row is known and this reader may not use the screen. */
     denied?: ComponentProps<typeof ErrorState>
     /** The ready screen fills the viewport (a map) rather than the padded field column. */
     fill?: boolean
+    /** Runs once per set of row ids, before the children first mount. */
+    seed?: (rows: Waited<W>) => void
     /** A wizard's step labels, so the indicator is there from the start. */
     steps?: string[]
     title: string
     /** In order: a row keyed off an earlier one is only judged once that one is here. */
-    waitFor: FormWait[]
+    waitFor: W
   }
 
   const {
@@ -42,12 +46,41 @@
     class: className,
     denied,
     fill = false,
+    seed,
     steps,
     title,
     waitFor,
   }: Props = $props()
 
-  const gate = $derived(resolveFormGate(waitFor, { denied: denied != null, online: isOnline() }))
+  const fallback = $derived(
+    resolveFallback(
+      waitFor.map(({ notFound, resource, whole }) => ({ notFound, phase: resource.phase, whole })),
+      { denied: denied != null },
+    ),
+  )
+
+  const waited = $derived(fallback.kind === 'open' ? waitedRows(waitFor) : undefined)
+
+  // Not a seedOnKeyChange: children mount only after their rows' seed. Mounted children stay
+  // mounted across a new id, which `BlockForm` needs; `applied` keeps a reopen from re-seeding.
+  let applied: string | undefined
+  let seeded = $state<string>()
+  $effect(() => {
+    if (waited == null) {
+      seeded = undefined
+      return
+    }
+    const { key, rows } = waited
+    if (key !== applied) {
+      applied = key
+      untrack(() => seed?.(rows))
+    }
+    seeded = key
+  })
+
+  const gate = $derived(
+    fallback.kind === 'open' && (waited == null || seeded == null) ? ({ kind: 'loading' } as const) : fallback,
+  )
 </script>
 
 {#snippet waiting()}
@@ -56,8 +89,8 @@
 
 <!-- The same flex column `QueryState` gave these screens, so a filling body still has a height. -->
 <div class={['flex min-h-full flex-col', className]}>
-  {#if gate.kind === 'open'}
-    {@render children()}
+  {#if gate.kind === 'open' && waited != null && seeded != null}
+    {@render children(waited.rows, seeded)}
   {:else}
     <!-- Passed by name: a `{#snippet action()}` inside the header would shadow the prop. -->
     <PageHeader action={waiting} {backLabel} onback={() => back(cancelTo)} {title} />
@@ -93,7 +126,7 @@
         {:else if gate.kind === 'offline'}
           <OfflineNotice excluded={gate.excluded} />
         {:else}
-          <div class="card preset-tonal-error px-4 py-3 text-sm" role="alert">{m.queryState_error()}</div>
+          <QueryError />
         {/if}
       </div>
     {/if}

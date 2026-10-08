@@ -104,7 +104,6 @@
     sortDir = dirFor(field)
   }
 
-  const NO_COUNTS = new Map<number, number>()
   const routeCountByGrade = $derived.by(() => {
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt wholesale in this $derived; per-key signals cost >5 dev-mode stack captures per grade on load
     const counts = new Map<number, number>()
@@ -378,7 +377,7 @@
         <GradeRange
           grades={global.grades}
           gradingScale={global.gradingScale}
-          routeCountByGrade={settled ? routeCountByGrade : NO_COUNTS}
+          routeCountByGrade={settled ? routeCountByGrade : undefined}
           bind:value
         />
       </div>

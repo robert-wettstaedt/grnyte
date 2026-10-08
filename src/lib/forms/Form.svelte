@@ -11,7 +11,7 @@
   }
 </script>
 
-<script lang="ts" generics="Input extends RemoteFormInput">
+<script lang="ts" generics="Input extends RemoteFormInput, W extends FormWaits = FormWaits">
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
@@ -24,7 +24,7 @@
   import FormError from './FormError.svelte'
   import FormGate from './FormGate.svelte'
   import FormSteps from './FormSteps.svelte'
-  import type { FormWait } from './gate'
+  import type { FormWaits, Waited } from './gate'
 
   // Generic chrome for a full-screen remote form: sticky Cancel · title · Submit header,
   // form-level error banner, and a centered column for the caller's fields. Pass `steps`
@@ -37,6 +37,9 @@
     children?: Snippet
     /** With `waitFor`: the reader may not use this screen. Shown in the form's chrome instead. */
     denied?: ComponentProps<typeof ErrorState>
+    /** With `waitFor`: the fields, given its rows. Remounted after each seed, since fields seed
+     *  their own state once at mount. */
+    fields?: Snippet<[Waited<W>]>
     /** Fill the container with an edge-to-edge body (e.g. a map picker) instead of the
      *  default scrolling, padded field column. Fills as a flex item (not `h-full`), so it
      *  still chains height through QueryState's `min-h-full` wrapper. */
@@ -51,6 +54,8 @@
      *  the destination depends on (finalizing uploads, waiting for a row to sync). Never navigate:
      *  the handler's `redirectTo` is the destination and this component applies it. */
     onSubmitted?: () => Promise<void> | void
+    /** With `waitFor`: seed the form from its rows, once per set of row ids, before `fields` mount. */
+    seed?: (rows: Waited<W>) => void
     /** Current step index (0-based), bindable so callers can read/seed it. */
     step?: number
     /** Provide to render a multi-step form. The default `children` snippet is then used for
@@ -62,18 +67,20 @@
     title: string
     /** Rows the fields need. Until they are here the header renders with Save disabled over one
      *  skeleton, and the fields (with whatever they seed at mount) are not mounted yet. */
-    waitFor?: FormWait[]
+    waitFor?: W
   }
 
   let {
     cancelTo,
     children,
     denied,
+    fields,
     fill = false,
     form,
     nextLabel = m.common_next(),
     onBeforeSubmit,
     onSubmitted,
+    seed,
     step = $bindable(0),
     steps,
     submitDisabled = false,
@@ -139,15 +146,18 @@
     {cancelTo}
     {denied}
     {fill}
+    {seed}
     steps={stepLabels}
     {title}
     {waitFor}
   >
-    {@render screen()}
+    {#snippet children(rows, seeded)}
+      {@render screen(rows, seeded)}
+    {/snippet}
   </FormGate>
 {/if}
 
-{#snippet screen()}
+{#snippet screen(rows?: Waited<W>, seeded?: string)}
   <!-- The offline state goes *over* the form, never instead of it.
 
      Swapping the two unmounts the whole subtree, and the fields a caller passes as children keep
@@ -172,14 +182,8 @@
         return
       }
       const outcome = await submitForm(submit, async () => {
-        // Supplying our own enhance callback replaced Kit's, which clears the form after a
-        // successful submit; the values otherwise sit on the remote singleton all session.
-        //
-        // `fields.set({})` and NOT `element.reset()`: a reset restores each input to its
-        // `defaultValue`, which Svelte's property write only reaches for `hidden`, `checkbox` and
-        // `radio`, so it blanks exactly the visible fields. `resetBlanks.test.ts` pins it.
-        // After `onSubmitted`, which can await: clearing first blanks the form for that wait.
-        // `finally` so a throw still clears.
+        // Our callback replaced Kit's clear-on-success. `fields.set({})`, not a DOM reset, which
+        // blanks the visible fields (`resetBlanks.test.ts`); after `onSubmitted`, and in `finally`.
         try {
           await onSubmitted?.()
         } finally {
@@ -238,6 +242,11 @@
         {@render current!.body()}
       {:else}
         {@render children?.()}
+        {#if rows != null}
+          {#key seeded}
+            {@render fields?.(rows)}
+          {/key}
+        {/if}
       {/if}
     </div>
 

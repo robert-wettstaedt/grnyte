@@ -6,6 +6,7 @@
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
+  import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import SkeletonText from '$lib/components/Skeleton/SkeletonText.svelte'
   import AscentRow from '$lib/entities/ascent/AscentRow.svelte'
@@ -20,7 +21,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion, prefersStill } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { resolveUnavailable } from '$lib/zero/resource.svelte'
+  import { expectingMore } from '$lib/zero/resource.svelte'
   import { flip } from 'svelte/animate'
   import { fade, slide } from 'svelte/transition'
 
@@ -38,7 +39,7 @@
   // "no ascents yet", so unless the list is trustworthy none of them may be shown. Rendering them
   // anyway said "0 ascents" on a route with fifty, and dropped the community section in silence.
   // Trustworthy is `settled`; merely loading shows the rows that are here, never the offline notice.
-  const ascentsUnavailable = $derived(resolveUnavailable(ascents))
+  const ascentsUnavailable = $derived(ascents.phase.kind === 'unavailable')
 
   let filter = $state<'all' | AscentType>('all')
 
@@ -114,10 +115,11 @@
     <div class="flex min-w-0 flex-1 flex-col">
       <!-- The line is held while the route loads, so the header neither grows nor sits off-centre. -->
       <span class="text-surface-600-400 truncate text-xs">
-        {#if route.data == null}
+        {#if route.data == null && expectingMore(route.phase)}
           <SkeletonText />
-        {:else}
-          {route.data.name} · {gradeLabel(global.grades, global.gradingScale, route.data.gradeFk)}{ascents.settled
+        {:else if route.data != null}
+          {route.data.name} · {gradeLabel(global.grades, global.gradingScale, route.data.gradeFk)}{ascents.phase
+            .kind === 'answered'
             ? ` · ${m.ascents_count({ count: ascents.data.length })}`
             : ''}
         {/if}
@@ -139,7 +141,7 @@
             type="button"
           >
             {label()}
-            {#if ascents.settled}
+            {#if ascents.phase.kind === 'answered'}
               <span class="font-semibold opacity-65" transition:fade={{ duration: fadeDuration }}>{count}</span>
             {/if}
           </button>
@@ -193,14 +195,18 @@
             <div transition:slide={{ duration: fadeDuration }}>
               {@render ascentSection(
                 community,
-                ascents.settled ? `${m.ascents_community()} · ${community.length}` : m.ascents_community(),
+                ascents.phase.kind === 'answered'
+                  ? `${m.ascents_community()} · ${community.length}`
+                  : m.ascents_community(),
                 'text-surface-600-400',
                 false,
               )}
             </div>
           {/if}
 
-          {#if !ascents.settled}
+          {#if ascents.phase.kind === 'error'}
+            <QueryError compact />
+          {:else if expectingMore(ascents.phase)}
             <p
               class="text-surface-600-400 flex items-center gap-2 text-sm"
               role="status"
@@ -209,7 +215,7 @@
               <span class={prefersStill() ? '' : 'animate-spin'}><Icon name="sync" size={14} /></span>
               {m.common_syncing()}
             </p>
-          {:else if filtered.length === 0}
+          {:else if ascents.phase.kind === 'answered' && filtered.length === 0}
             <p class="text-surface-600-400 text-sm" in:fade={{ delay: fadeDuration, duration: fadeDuration }}>
               {m.ascents_empty()}
             </p>

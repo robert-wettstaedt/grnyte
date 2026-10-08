@@ -54,19 +54,17 @@ This project uses:
   clears values but not Kit's issues. A real DOM reset clears both, which is wrong mid-edit because
   it blanks work in progress; `seedForm` (beside `seedOnKeyChange`) seeds and drops stale issues
   without one. `Form.svelte` and `TopoAddRouteModal` say why.
-- Every add or edit form on a parameterised route seeds through `seedOnKeyChange`
-  (`$lib/forms/seed.svelte.ts`): `/areas/1/blocks/add` and `/areas/2/blocks/add` are one
-  route, so anything seeded once follows the reader to the next entity. Pass the route parameter
-  when seeding to blank, the loaded row's id when seeding from data, and gate the key on that data
-  having loaded, not on a selection or a count. Child state seeded from props is out of reach: key
-  those with `{#key}` on the same id, never `form.for(key)`, which posts the key as an `id` field.
-  The module says what a key may and may not be. `{#key}` on the id is still not enough when the
-  child seeds from a RELATED row, because "loaded" is not one event: a resource is ready as soon as
-  its own row is local, so tags or first ascensionists are still in flight while the id is already
-  correct, the key never re-fires, and the form seeds empty. Gate the mount on `isComplete`, latched per id
-  because it drops whenever the socket parks (`routes/[id]/edit` is the worked example). It matters
-  because `updateRoute` deletes what the submit leaves out, so an unloaded list is silent data loss,
-  not a blank field. `e2e/form-seeding.spec.ts` caught it.
+- Every add or edit form on a parameterised route seeds per entity: `/areas/1/blocks/add` and
+  `/areas/2/blocks/add` are one route, so anything seeded once follows the reader to the next
+  entity. A form that waits on rows does it through `Form`'s (or `FormGate`'s) `waitFor` and
+  `seed`: the gate runs `seed` once per set of row ids before the fields mount, and `Form` re-keys
+  its `fields` snippet after each seed, so child state seeded from props starts over too. Never
+  `form.for(key)`, which posts the key as an `id` field. A form that seeds from RELATED rows (tags,
+  first ascensionists, a pin) marks that wait `whole: true`, because "loaded" is not one event: the
+  row is local while its relations are still in flight, and `updateRoute` deletes what the submit
+  leaves out, so an unloaded list is silent data loss, not a blank field (`routes/[id]/edit` is the
+  worked example; `e2e/form-seeding.spec.ts` caught it). Outside a gate, `seedOnKeyChange`
+  (`$lib/forms/seed.svelte.ts`) keys on the route parameter to blank, or the loaded row's id.
 - A handler that REPLACES a list or a related row rather than patching it has to prove what it is
   replacing: the form posts a `known` fingerprint of what it loaded, and the handler refuses a
   mismatched submit before its first write. Four handlers are that shape and all four carry it
@@ -130,7 +128,7 @@ This project uses:
 - A page's chrome renders in every state: `PageHeader` and the width container sit outside
   `QueryState`, the title falling back until the row lands, so a deep link always has a way back. A
   form screen gets this from `Form`'s `waitFor` (its rows in order, `whole` for one that replaces
-  lists); one whose fields seed at mount outside `Form` (`BlockForm`) wraps itself in `FormGate`.
+  lists); one whose fields seed at mount outside `Form` (`BlockForm`) is wrapped in `FormGate` by its caller.
 - A nested `Modal` must not unmount the one it opened from in the same flush. Closing the inner
   dialog unpauses the outer trap, and if that one's DOM went away in the same flush, zag throws out
   of `getInitialFocusNode`, which aborts the rest of the teardown and leaves the whole app

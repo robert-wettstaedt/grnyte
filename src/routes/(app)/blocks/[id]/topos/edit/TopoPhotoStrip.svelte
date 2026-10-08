@@ -6,6 +6,7 @@
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { TopoView } from '$lib/entities/topo/dto'
   import { m } from '$lib/paraglide/messages.js'
+  import { motion } from '$lib/state/motion.svelte'
   import { flip } from 'svelte/animate'
   import { fade, fly } from 'svelte/transition'
 
@@ -21,10 +22,21 @@
     /** An upload is in flight; disables the add button and shows a spinner. */
     photoBusy: boolean
     topos: Pick<TopoView, 'id' | 'imagePath'>[]
+    /** The photo count once the list is answered; until then titles name a position only. */
+    total?: number
   }
 
-  const { currentTopoId, onAddPhoto, onDeletePhoto, onReorder, onReplacePhoto, onSelect, photoBusy, topos }: Props =
-    $props()
+  const {
+    currentTopoId,
+    onAddPhoto,
+    onDeletePhoto,
+    onReorder,
+    onReplacePhoto,
+    onSelect,
+    photoBusy,
+    topos,
+    total,
+  }: Props = $props()
 
   let photoMenuOpen = $state(false)
 
@@ -103,7 +115,9 @@
           <Modal
             backdrop
             bind:open={photoMenuOpen}
-            title={m.topo_position({ position: index + 1, total: topos.length })}
+            title={total == null
+              ? m.topo_positionUncounted({ position: index + 1 })
+              : m.topo_position({ position: index + 1, total })}
           >
             {#snippet trigger(props)}
               <button
@@ -148,15 +162,17 @@
         {/if}
       </div>
 
-      <!-- Drag handle below the current thumb (keeps the thumbnail itself uncluttered). -->
-      {#if topo.id === currentTopoId && onReorder != null}
+      <!-- Drag handle below the current thumb. Held, disabled, until reordering is allowed, so the
+           strip does not grow when it is. -->
+      {#if topo.id === currentTopoId}
         <button
           type="button"
-          class="bg-surface-950/60 flex h-6 w-16 cursor-grab touch-none items-center justify-center rounded-lg text-white shadow"
+          class="bg-surface-950/60 flex h-6 w-16 cursor-grab touch-none items-center justify-center rounded-lg text-white shadow disabled:cursor-default disabled:opacity-40"
           aria-label={m.topo_dragToReorder()}
+          disabled={onReorder == null}
           title={m.topo_dragToReorder()}
-          onpointerdown={(event) => onThumbPointerDown(event, index)}
-          transition:fly={{ duration: 150, y: -12 }}
+          onpointerdown={(event) => onReorder != null && onThumbPointerDown(event, index)}
+          transition:fly={{ duration: motion(150), y: -12 }}
         >
           <Icon name="grip-horizontal" size={15} />
         </button>

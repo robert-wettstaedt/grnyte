@@ -1,4 +1,5 @@
-import type { queries } from './queries'
+import type { SyncStamp } from '$lib/state/sync.svelte'
+import { queries } from './queries'
 
 /**
  * What this app keeps on the device, in one place.
@@ -13,12 +14,7 @@ import type { queries } from './queries'
  * Zero already carries at runtime, so teaching every screen what a query's absence means is one
  * edit here rather than a prop threaded through each of them.
  *
- * The sync half is not driven from this table, and saying otherwise would be the next comment to
- * mislead somebody: `preloadForOffline` and `initZero` still issue their `preload` calls by hand,
- * because each needs arguments (`{}`, a numeric user id, a list of region ids) that a name-keyed
- * table cannot carry, and two of them have to wait on a lookup first. Adding a query to the
- * guidebook is therefore still two edits, here and in `z.svelte.ts`. `offline.drift.test.ts` is
- * what stops those two drifting apart.
+ * The sync half walks this table too ({@link KEPT}, by stage), so adding a kept query is one entry.
  *
  * Settled with the user; do not widen it without asking, the cost is not local. Each pinned row
  * costs roughly 510 bytes of CVR per client group on the server, so a fully preloaded user is about
@@ -58,10 +54,18 @@ import type { queries } from './queries'
  * "available offline" promises, which is why it is written here and not quietly changed.
  */
 
+/** Lookups a kept query may need for its arguments, resolved once per sync. */
+export interface KeepContext {
+  regionFks(): Promise<number[]>
+  userId(): Promise<number | undefined>
+}
+
 /**
  * - `always`: reference data, preloaded on every device because the app cannot render without it.
  * - `field`: the guidebook. Preloaded only where the reader might lose signal (see
  *   `isFieldDevice`), because this is the part with real server cost.
+ * - `personal`: your own logbook and favorites, and your regions' members. Field devices only, and
+ *   vouched for by their own stamp, since they sit behind lookups the guidebook does not.
  * - `excluded`: deliberately never kept. These must render as "not available offline" and never as
  *   an empty list, or a gap in the sync reads as a fact about the guidebook.
  *
@@ -69,55 +73,103 @@ import type { queries } from './queries'
  * the reader happened to browse. Offline and empty, it says "not downloaded", which is the honest
  * answer for something we never promised either way.
  */
-export type OfflinePolicy = 'always' | 'excluded' | 'field'
+export type OfflinePolicy = 'always' | 'excluded' | 'field' | 'personal'
 
+type Build<N extends QueryName> = (ctx: KeepContext) => null | Promise<null | RequestOf<N>> | RequestOf<N>
+
+type Builders = { [N in QueryName]?: Build<N> }
 /** Named so the table cannot drift from the registry: a typo is a compile error. */
 type QueryName = keyof typeof queries
 
-export const OFFLINE_QUERIES = {
-  // Reference data, on every device, because the app cannot render its shell without it.
-  // `currentUser` also carries `userSettings`, which the unit and grading-scale formatters read.
-  always: ['currentUser', 'currentUserRole', 'listGrades', 'listRolePermissions', 'listUserRegions'],
+/** A kept query's request, built from its own registry entry, so it cannot return another query.
+ *  `null` skips it (nothing to keep yet, e.g. no regions). */
+type RequestOf<N extends QueryName> = (typeof queries)[N] extends (...args: never[]) => infer R ? R : never
 
-  // Other people's activity: unbounded, changing constantly, and the least useful thing to read at
-  // a crag. Must render as "not available offline", never as an empty list.
-  excluded: ['listComments', 'listEvents', 'listNotifications', 'listRouteAscents'],
+/**
+ * What is kept, in the order it syncs, each stage with its policy and the stamp its completion
+ * writes. `reference` first: the shell waits on it and nothing else may hold it back.
+ */
+export const KEPT = {
+  // The guidebook, as relation-free tables (see `guidebook.ts`): nothing to look up first.
+  guidebook: {
+    policy: 'field',
+    queries: {
+      guidebookAreas: () => queries.guidebookAreas(),
+      guidebookBlocks: () => queries.guidebookBlocks(),
+      guidebookFirstAscensionists: () => queries.guidebookFirstAscensionists(),
+      guidebookGeolocations: () => queries.guidebookGeolocations(),
+      guidebookRouteFirstAscents: () => queries.guidebookRouteFirstAscents(),
+      guidebookRoutes: () => queries.guidebookRoutes(),
+      guidebookRouteTags: () => queries.guidebookRouteTags(),
+      guidebookTopoRoutes: () => queries.guidebookTopoRoutes(),
+      guidebookTopos: () => queries.guidebookTopos(),
+    },
+    stamp: 'guidebook',
+  },
+  // Your own logbook and favorites, and your regions' members, which mentions resolve against.
+  personal: {
+    policy: 'personal',
+    queries: {
+      listUserAllFavorites: async (ctx) => {
+        const userId = await ctx.userId()
+        return userId == null ? null : queries.listUserAllFavorites({ userId })
+      },
+      listUserAscents: async (ctx) => {
+        const userId = await ctx.userId()
+        return userId == null ? null : queries.listUserAscents({ userId })
+      },
+      listUsers: async (ctx) => {
+        const regionFks = await ctx.regionFks()
+        return regionFks.length === 0 ? null : queries.listUsers({ regionFks })
+      },
+    },
+    stamp: 'personal',
+  },
+  reference: {
+    policy: 'always',
+    queries: {
+      currentUser: () => queries.currentUser(),
+      currentUserRole: () => queries.currentUserRole(),
+      listGrades: () => queries.listGrades(),
+      listRolePermissions: () => queries.listRolePermissions(),
+      listUserRegions: () => queries.listUserRegions(),
+    },
+    stamp: 'reference',
+  },
+} as const satisfies Record<string, { policy: Exclude<OfflinePolicy, 'excluded'>; queries: Builders; stamp: SyncStamp }>
 
-  // The guidebook as relation-free tables (`guidebook.ts`), then your own sends and saves, and
-  // everybody in your regions: the one table the guidebook does not reach that descriptions still
-  // point at, through `!users:id!` mentions.
-  //
-  // `listUserAllFavorites` is classified for its only caller, which asks about the signed-in user
-  // and is the only one preloaded. Called for somebody else it would promise "connect once and it
-  // downloads", which would never come true. No such call site exists; if one appears, it needs the
-  // per-usage `offline` override the way `userAscentDetailList` does.
-  field: [
-    'guidebookAreas',
-    'guidebookBlocks',
-    'guidebookFirstAscensionists',
-    'guidebookGeolocations',
-    'guidebookRouteFirstAscents',
-    'guidebookRoutes',
-    'guidebookRouteTags',
-    'guidebookTopoRoutes',
-    'guidebookTopos',
-    'listUserAllFavorites',
-    'listUserAscents',
-    'listUsers',
-  ],
-} satisfies Record<OfflinePolicy, QueryName[]>
+/** One stage of {@link KEPT}. */
+export type KeepStage = (typeof KEPT)[keyof typeof KEPT]
+
+/** What a field device preloads once the reference stage is done. */
+export const FIELD_STAGES: readonly KeepStage[] = [KEPT.guidebook, KEPT.personal]
+
+/** Deliberately never kept, and so never preloaded. */
+export const EXCLUDED = [
+  'listComments',
+  'listEvents',
+  'listNotifications',
+  'listRouteAscents',
+] as const satisfies QueryName[]
 
 /**
  * `field` without being preloaded: the screens' own guidebook queries, answered offline from the
  * `guidebook*` rows. `offline.drift.test.ts` fails if one reaches a table those do not sync.
  */
-export const GUIDEBOOK_COVERED = ['block', 'listAreas', 'listBlocks', 'listRoutes'] as const satisfies QueryName[]
+export const GUIDEBOOK_COVERED = [
+  'block',
+  'listAreas',
+  'listBlocks',
+  'listRoutes',
+  'listRoutesForMap',
+] as const satisfies QueryName[]
 
-/** Flattened once, so a lookup per resource read is not a scan of three arrays. */
+/** Flattened once, so a lookup per resource read is not a scan of the stages. */
 const POLICY_BY_NAME = new Map<string, OfflinePolicy>([
-  ...(Object.entries(OFFLINE_QUERIES) as [OfflinePolicy, QueryName[]][]).flatMap(([policy, names]) =>
-    names.map((name): [string, OfflinePolicy] => [name, policy]),
+  ...Object.values(KEPT).flatMap((stage) =>
+    Object.keys(stage.queries).map((name): [string, OfflinePolicy] => [name, stage.policy]),
   ),
+  ...EXCLUDED.map((name): [string, OfflinePolicy] => [name, 'excluded']),
   ...GUIDEBOOK_COVERED.map((name): [string, OfflinePolicy] => [name, 'field']),
 ])
 

@@ -1,8 +1,10 @@
 <script lang="ts">
+  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
+  import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import { updateRoute } from '$lib/entities/route/routes.remote'
@@ -23,7 +25,7 @@
 
   // Disabling on close resets `settled`, and a reopen usually settles in the same flush anyway
   // because the view is hash-cached and still complete. Either way it never seeds from a partial.
-  const detail = $derived(route.settled ? route.data : undefined)
+  const detail = $derived(route.phase.kind === 'answered' ? route.data : undefined)
 
   function onSaved() {
     open = false
@@ -76,11 +78,15 @@
   <!-- Mounted per open: that is what makes the form seed again on a reopen. -->
   {#if open}
     {#if detail == null}
-      {#if isOnline()}
+      {#if route.phase.kind === 'error'}
+        <QueryError />
+      {:else if route.phase.kind === 'answered'}
+        <!-- Answered empty: deleted, possibly by someone else while this was open. -->
+        <ErrorState type="notfound" title={m.routes_notFound()} />
+      {:else if isOnline()}
         <LoadingIndicator class="flex h-40 w-full items-center justify-center" size={20} />
       {:else}
-        <!-- Offline the spinner would never resolve, and `QueryState` cannot answer this: the
-             route's own row IS local, so the resource reads `ready`, never `unsynced`. -->
+        <!-- Offline the spinner would never resolve: rows on hand are not the whole route. -->
         <OfflineNotice />
       {/if}
     {:else}

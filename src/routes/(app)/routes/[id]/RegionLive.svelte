@@ -47,13 +47,13 @@
   // `canEditRegion` keeps to admins: a member invited as `region_user` got congratulated on
   // somebody else's region and sent to a page they cannot open.
   //
-  // `settled`, not `status === 'ready'`: a resource reports ready as soon as the local replica
-  // has any row, and on a cold load of /routes/[id] the route's own row is already there (its
-  // detail query synced it) while the region-wide count is still coming in. That transient
-  // `length === 1` popped this at members of long-established regions. Not `isComplete` either,
-  // which drops when the socket parks and unmounted the open dialog without `dismiss`.
+  // `answered`: the route's own row is local before the region-wide count, and that transient
+  // `length === 1` popped this at members of long-established regions.
   const show = $derived(
-    !seen && canEditRegion(global.userRegions, regionFk) && routes.settled && routes.data.length === 1,
+    !seen &&
+      canEditRegion(global.userRegions, regionFk) &&
+      routes.phase.kind === 'answered' &&
+      routes.data.length === 1,
   )
 
   const dismiss = () => {

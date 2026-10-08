@@ -9,8 +9,8 @@ services:
   # Prod only: demo is being torn down and is linked from nowhere, so it is not worth a second
   # database. That leaves no rehearsal environment, so the empty-database case was proven locally
   # instead: zero-cache creates its own CVR schema, with no manual bootstrap step. Rolling back is
-  # reverting `ZERO_CVR_DB` and redeploying, and the previous records are still in the upstream
-  # schema, so the blast radius of being wrong is a failed deploy rather than lost data.
+  # reverting `ZERO_CVR_DB` and redeploying; the upstream `zero_0/cvr` schema was dropped on
+  # 2026-09-30, so zero-cache bootstraps it again and every client re-syncs once (README).
   #
   # On `cvr_network` and nothing else, which nginx is not on and which is `internal: true`, so the
   # only thing that can route to this database is the one container that would hold its credentials

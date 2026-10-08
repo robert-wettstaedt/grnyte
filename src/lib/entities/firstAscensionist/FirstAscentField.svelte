@@ -15,7 +15,7 @@
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { isOnline } from '$lib/state/online.svelte'
+  import { expectingMore } from '$lib/zero/resource.svelte'
   import { fly } from 'svelte/transition'
 
   // Chips-in-a-box climber picker with typeahead over the region's first ascensionists.
@@ -71,11 +71,12 @@
   )
 
   // More names may still come, and "New" with them: a row is held at the end where they land.
-  const arriving = $derived(!ascensionists.settled && isOnline())
+  const arriving = $derived(expectingMore(ascensionists.phase))
 
-  // "New" is a claim that nobody in the region has the name, so it waits for the whole list.
+  // "New" is a claim that nobody in the region has the name, so it waits for the whole list. A
+  // failed list cannot vouch either way, but it is the only way to enter a name, so it shows.
   const showNew = $derived(
-    ascensionists.settled &&
+    (ascensionists.phase.kind === 'answered' || ascensionists.phase.kind === 'error') &&
       query.trim().length >= 2 &&
       !picked(query.trim()) &&
       !ascensionists.data.some((fa) => fa.name.toLowerCase() === needle),
@@ -84,7 +85,7 @@
   /** A chip for a name the region hasn't seen yet, flagged so the "new" badge can say
    *  a row will be created on save. */
   const isNew = (climber: FaClimber) =>
-    ascensionists.settled &&
+    ascensionists.phase.kind === 'answered' &&
     climber.userFk == null &&
     !ascensionists.data.some((fa) => fa.name.toLowerCase() === climber.name.toLowerCase())
 

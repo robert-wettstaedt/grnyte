@@ -1,30 +1,24 @@
 <script module lang="ts">
-  import type { QueryResource } from '$lib/zero/resource.svelte'
+  import type { QueryPhase } from '$lib/zero/resource.svelte'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import FormGate from './FormGate.svelte'
   import type { FormWait } from './gate'
 
-  const row: QueryResource<unknown> = {
-    availability: 'ready',
-    data: { id: 1 },
-    isComplete: true,
-    isEmpty: false,
-    isSyncing: false,
-    settled: true,
-    status: 'ready',
-  }
-  const waitOn = (resource: Partial<QueryResource<unknown>>): FormWait[] => [
-    { notFound: 'Route not found', resource: { ...row, ...resource } },
-  ]
+  const row = (phase: QueryPhase, whole = false, notFound = 'Route not found'): FormWait => ({
+    notFound,
+    resource: { data: phase.kind === 'loading' || phase.kind === 'error' ? undefined : { id: 1 }, phase },
+    whole,
+  })
+
+  const answered: QueryPhase = { empty: false, kind: 'answered' }
 
   const { Story } = defineMeta({
     args: {
       action: { label: 'Save' },
       cancelTo: '/routes/1',
-      children: undefined,
       title: 'Edit route',
-      waitFor: waitOn({ status: 'loading' }),
+      waitFor: [row({ kind: 'loading' })],
     },
     component: FormGate,
     parameters: { layout: 'fullscreen' },
@@ -34,9 +28,13 @@
 </script>
 
 <!-- A definite height, as the app's scroll container gives it, so a filling body has one too. -->
-{#snippet template(args: ComponentProps<typeof FormGate>)}
+{#snippet template(args: Omit<ComponentProps<typeof FormGate>, 'children'>)}
   <div style="height: 100dvh">
-    <FormGate {...args} />
+    <FormGate {...args}>
+      {#snippet children(rows)}
+        <p class="p-4">Fields over {rows.length} rows</p>
+      {/snippet}
+    </FormGate>
   </div>
 {/snippet}
 
@@ -56,7 +54,23 @@
   }}
 />
 
-<Story name="Not found" {template} args={{ waitFor: waitOn({ data: undefined, isEmpty: true }) }} />
+<Story
+  name="Second row loading"
+  {template}
+  args={{ waitFor: [row(answered), row({ kind: 'loading' }, false, 'Block not found')] }}
+/>
+
+<Story name="Whole, related rows arriving" {template} args={{ waitFor: [row({ kind: 'arriving' }, true)] }} />
+
+<Story name="Whole, offline before related rows" {template} args={{ waitFor: [row({ kind: 'partial' }, true)] }} />
+
+<Story
+  name="Open"
+  {template}
+  args={{ waitFor: [row({ kind: 'arriving' }), row(answered, false, 'Block not found')] }}
+/>
+
+<Story name="Not found" {template} args={{ waitFor: [row({ empty: true, kind: 'answered' })] }} />
 
 <Story
   name="No permission"
@@ -68,14 +82,10 @@
       title: 'No permission',
       type: 'generic',
     },
-    waitFor: waitOn({}),
+    waitFor: [row(answered)],
   }}
 />
 
-<Story
-  name="Offline, not downloaded"
-  {template}
-  args={{ waitFor: waitOn({ availability: 'unsynced', settled: false, status: 'loading' }) }}
-/>
+<Story name="Offline, not downloaded" {template} args={{ waitFor: [row({ excluded: false, kind: 'unavailable' })] }} />
 
-<Story name="Error" {template} args={{ waitFor: waitOn({ status: 'error' }) }} />
+<Story name="Error" {template} args={{ waitFor: [row({ kind: 'error' })] }} />

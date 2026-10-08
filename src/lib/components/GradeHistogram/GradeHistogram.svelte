@@ -15,9 +15,22 @@
     showCounts?: boolean
     /** Routes with no grade, surfaced as a trailing count below the chart. */
     ungraded?: number
+    /** What a bar counts, for its accessible label. */
+    unit?: 'routes' | 'votes'
   }
 
-  const { countByGrade, grades, gradingScale, onselect, showCounts = false, ungraded = 0 }: Props = $props()
+  const {
+    countByGrade,
+    grades,
+    gradingScale,
+    onselect,
+    showCounts = false,
+    ungraded = 0,
+    unit = 'routes',
+  }: Props = $props()
+
+  const countLabel = (count: number) =>
+    unit === 'votes' ? m.routes_gradeVotes({ count }) : m.routes_routesCount({ count })
 
   interface Bar {
     color: string
@@ -137,7 +150,7 @@
           type="button"
           class="flex h-full flex-1 cursor-pointer items-end"
           aria-pressed={selectedId === bar.id}
-          aria-label="{bar.label}: {m.routes_routesCount({ count: bar.count })}"
+          aria-label="{bar.label}: {countLabel(bar.count)}"
           onclick={() => toggle(bar)}
         >
           <span
@@ -185,8 +198,8 @@
         class:opacity-40={selectedId != null && selectedId !== chip.id}
         class:border-primary-500={selectedId === chip.id}
         aria-pressed={selectedId === chip.id}
-        aria-label="{chip.label}: {m.routes_routesCount({ count: chip.count })}"
-        title={m.routes_routesCount({ count: chip.count })}
+        aria-label="{chip.label}: {countLabel(chip.count)}"
+        title={countLabel(chip.count)}
         onclick={() => toggle(chip)}
       >
         <span class="size-2.5 flex-none rounded-full" style="background-color: {chip.color}"></span>

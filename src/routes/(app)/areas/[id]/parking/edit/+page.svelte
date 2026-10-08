@@ -7,7 +7,7 @@
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { entityHref } from '$lib/entities/href'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { noEditPermission } from '$lib/forms/gate'
   import { createAreaPickerMapData } from '$lib/map/exploreData.svelte'
   import LocationPicker from '$lib/map/LocationPicker.svelte'
   import { coordsFromParams } from '$lib/map/map'
@@ -31,7 +31,7 @@
     const view = { href: areaHref, label: m.areas_viewArea() }
     // Not a permission problem when it is not a sector: parking hangs off one.
     return data.type === 'sector'
-      ? { description: m.form_noEditPermission(), primaryAction: view, title: m.form_noPermissionTitle() }
+      ? noEditPermission(view)
       : { description: m.areas_parkingNeedsSectorBody(), primaryAction: view, title: m.areas_parkingNeedsSectorTitle() }
   })
 
@@ -89,21 +89,18 @@
 
   // Otherwise the hidden `areaId` follows the reader, saving one area's parking at another's
   // coordinates.
-  seedOnKeyChange(
-    () => areaId,
-    () => {
-      addParking.fields.set({})
-      saved = false
-      step = 0
-      mode = 'map'
-      latText = ''
-      lngText = ''
-      picked = null
-      touched = false
-      placedCenter = prefill == null ? null : [prefill.lat, prefill.long]
-      pathPoints = []
-    },
-  )
+  const seed = () => {
+    addParking.fields.set({})
+    saved = false
+    step = 0
+    mode = 'map'
+    latText = ''
+    lngText = ''
+    picked = null
+    touched = false
+    placedCenter = prefill == null ? null : [prefill.lat, prefill.long]
+    pathPoints = []
+  }
 
   // Leaving the place step: seed the path at the parking, keeping any waypoints already traced.
   const seedPath = () => {
@@ -137,13 +134,14 @@
   cancelTo={areaHref}
   {denied}
   form={addParking}
+  {seed}
   submitLabel={m.common_save()}
   title={m.areas_addParkingLocation()}
   steps={[
     { body: placeStep, canContinue: picked != null, label: m.parking_stepPlace(), onContinue: seedPath },
     { body: pathStep, label: m.parking_stepPath() },
   ]}
-  waitFor={[{ notFound: m.areas_notFound(), resource: area }]}
+  waitFor={[{ notFound: m.areas_notFound(), resource: area, whole: false }]}
 >
   <!-- The submitted parking + optional path, mirrored from state into the form. -->
   <input name="areaId" type="hidden" value={areaId} />

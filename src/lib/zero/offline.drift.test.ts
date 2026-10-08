@@ -1,48 +1,46 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { astOf, uncovered, type Ast } from './coverage'
 import { guidebookQueryDefs } from './guidebook'
-import { GUIDEBOOK_COVERED, OFFLINE_QUERIES } from './offline'
+import { EXCLUDED, FIELD_STAGES, GUIDEBOOK_COVERED, KEPT, offlinePolicyOf, type KeepContext } from './offline'
 import { queries } from './queries'
 
-/**
- * The table and the sync have to agree.
- *
- * `OFFLINE_QUERIES` is what every screen reads to decide whether an empty result means "we chose not
- * to keep this" or "this device has not got it". `z.svelte.ts` is what pulls the rows. Those
- * are two halves of one decision held in two files, and the failure when they drift is silent: a
- * query listed as kept but never preloaded renders as though the data were merely late, and a query
- * preloaded but listed as excluded tells the reader to reconnect for rows already on their device.
- *
- * Read as source rather than executed, because `z.svelte.ts` needs a browser, a session and a live
- * Zero client to do anything. That makes this a spelling check, not a proof: it catches the name
- * dropping out of the preload, which is the way this rots, and not a query preloaded with
- * arguments so narrow it fetches nothing.
- */
-// Relative to the repo root, like the other source-reading tests: this suite runs under jsdom,
-// where `import.meta.url` is an http URL and `new URL(...)` against it is not a file path.
-const SOURCE = readFileSync('src/lib/zero/z.svelte.ts', 'utf-8')
+/** Lookups that always answer, so every entry builds the request it would issue. */
+const ctx: KeepContext = { regionFks: async () => [1], userId: async () => 1 }
 
-describe('the offline policy table', () => {
-  it('preloads every query it says is kept', () => {
-    // `z.preload(queries.X(`, not `queries.X(` anywhere: two of these names also appear in a
-    // `z.run` call, and the looser match let those two be satisfied by the `run` alone: both
-    // `preload` lines could have been deleted with every assertion here still green.
-    const missing = [...OFFLINE_QUERIES.always, ...OFFLINE_QUERIES.field].filter(
-      (name) => !SOURCE.includes(`z.preload(queries.${name}(`),
-    )
-
-    expect(missing).toEqual([])
+describe('the offline keep table', () => {
+  it('builds, for every kept query, a request for that same query', async () => {
+    for (const stage of Object.values(KEPT)) {
+      for (const [name, build] of Object.entries(stage.queries)) {
+        const request = (await build(ctx)) as null | { query: { queryName: string } }
+        expect([name, request?.query.queryName]).toEqual([name, name])
+      }
+    }
   })
 
   it('preloads nothing it says is excluded', () => {
-    const contradicted = OFFLINE_QUERIES.excluded.filter((name) => SOURCE.includes(`z.preload(queries.${name}(`))
+    const kept = Object.values(KEPT).flatMap((stage) => Object.keys(stage.queries))
+    expect(EXCLUDED.filter((name) => kept.includes(name))).toEqual([])
+  })
 
-    expect(contradicted).toEqual([])
+  it('answers each query with the policy of the table that lists it, and nothing else', () => {
+    for (const stage of Object.values(KEPT)) {
+      for (const name of Object.keys(stage.queries)) expect([name, offlinePolicyOf(name)]).toEqual([name, stage.policy])
+    }
+    for (const name of EXCLUDED) expect([name, offlinePolicyOf(name)]).toEqual([name, 'excluded'])
+    for (const name of GUIDEBOOK_COVERED) expect([name, offlinePolicyOf(name)]).toEqual([name, 'field'])
+    expect(offlinePolicyOf('ascent')).toBeUndefined()
+  })
+
+  it('preloads every stage: the reference one first, then each field stage', () => {
+    expect(new Set([KEPT.reference, ...FIELD_STAGES])).toEqual(new Set(Object.values(KEPT)))
   })
 
   it('classifies each query at most once', () => {
-    const all = [...OFFLINE_QUERIES.always, ...OFFLINE_QUERIES.excluded, ...OFFLINE_QUERIES.field, ...GUIDEBOOK_COVERED]
+    const all = [
+      ...Object.values(KEPT).flatMap((stage) => Object.keys(stage.queries)),
+      ...EXCLUDED,
+      ...GUIDEBOOK_COVERED,
+    ]
 
     expect(all.length).toBe(new Set(all).size)
   })
@@ -53,27 +51,30 @@ function astOfQuery(name: keyof typeof queries, args: unknown): Ast {
   return astOf((queries[name] as any).fn({ args, ctx: { authUserId: 'drift' } }))
 }
 
+const ROUTE_FILTERS = {
+  areaId: 1,
+  content: 'x',
+  firstAscensionists: [1],
+  // Off: beta videos live on route files and other people's ascents, which no preload has ever
+  // kept, so this filter is already unanswerable offline. On, it would excuse a `files` relation.
+  hasBeta: false,
+  hasTopo: true,
+  maxGrade: 1,
+  minGrade: 1,
+  minRating: 1,
+  references: 'x',
+  regionFk: 1,
+  routeId: 1,
+  tags: ['x'],
+}
+
 /** Every filter switched on, so a table reached only through a filter's `exists` counts too. */
 const EVERY_BRANCH = {
   block: { areaId: 1, blockId: 1 },
   listAreas: { content: 'x', id: 1, limit: 1, parentFk: 1, references: 'x' },
   listBlocks: { areaId: 1, blockId: 1, content: 'x', limit: 1, references: 'x' },
-  listRoutes: {
-    areaId: 1,
-    content: 'x',
-    firstAscensionists: [1],
-    // Off: beta videos live on route files and other people's ascents, which no preload has ever
-    // kept, so this filter is already unanswerable offline. On, it would excuse a `files` relation.
-    hasBeta: false,
-    hasTopo: true,
-    maxGrade: 1,
-    minGrade: 1,
-    minRating: 1,
-    references: 'x',
-    regionFk: 1,
-    routeId: 1,
-    tags: ['x'],
-  },
+  listRoutes: ROUTE_FILTERS,
+  listRoutesForMap: ROUTE_FILTERS,
 } satisfies Record<(typeof GUIDEBOOK_COVERED)[number], object>
 
 describe('the guidebook covers every query that claims it', () => {

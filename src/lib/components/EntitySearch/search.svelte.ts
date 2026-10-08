@@ -6,7 +6,7 @@ import type { EntityKind } from '$lib/entities/href'
 import { toRouteListItem, type RouteListRow } from '$lib/entities/route/mapper'
 import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
-import { createResource } from '$lib/zero/resource.svelte'
+import { createResource, expectingMore, type QueryPhase } from '$lib/zero/resource.svelte'
 
 /** A lightweight entity reference: the shape the `@` picker suggests and inserts. */
 export interface EntityItem {
@@ -71,6 +71,8 @@ const PER_GROUP_LIMIT = 6
 // its own CVR write. Undebounced, one typed word costs four registrations per character.
 const QUERY_DEBOUNCE_MS = 200
 
+export type SearchOutcome = 'answered' | 'error' | 'pending' | 'unavailable'
+
 interface EntitySearchOptions {
   /** Per-type row cap pushed into each query as a `limit`; defaults to {@link PER_GROUP_LIMIT}. */
   limit?: number
@@ -89,12 +91,12 @@ interface EntitySearchOptions {
   /** Regions to search users within; empty hides the People group. */
   regionFks: () => number[]
 }
-
 interface UserRow {
   id: number
   regionMemberships?: readonly { regionFk: number }[] | undefined
   username: string
 }
+
 /**
  * The query text, settled. Closing clears it, so a reopened picker never registers the previous
  * term; typing waits, because only the value that is still there is worth a round trip.
@@ -281,6 +283,11 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
         .map((type) => ({ items: all[type], key: type, label: entityGroupLabel(type) }))
     },
 
+    /** What an empty result means; see {@link searchOutcome}. */
+    get outcome(): SearchOutcome {
+      return searchOutcome(sources(areas, blocks, routes, users, regionFks().length > 0))
+    },
+
     /**
      * Best-effort synchronous label lookup for rehydrating `!type:id!` tokens
      * from whatever the picker currently has loaded. Reliable id→name resolution
@@ -290,11 +297,6 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
       const numericId = Number(id)
       return candidates()[type].find((item) => item.id === numericId)?.label
     },
-
-    /** Every query searched has answered whole, so an empty result means "no matches". */
-    get resultsSettled(): boolean {
-      return areas.settled && blocks.settled && routes.settled && (regionFks().length === 0 || users.settled)
-    },
   }
 }
 
@@ -302,6 +304,13 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
  *  above the rows being read. Groups arriving together take the usual section order. */
 export function placeGroups(placed: readonly EntityType[], present: readonly EntityType[]): EntityType[] {
   return [...placed, ...GROUP_ORDER.filter((type) => present.includes(type) && !placed.includes(type))]
+}
+
+/** One verdict for every search surface: "no matches" only once every source answered. */
+export function searchOutcome(phases: readonly QueryPhase[]): SearchOutcome {
+  if (phases.some(expectingMore)) return 'pending'
+  if (phases.some((phase) => phase.kind === 'error')) return 'error'
+  return phases.every((phase) => phase.kind === 'answered') ? 'answered' : 'unavailable'
 }
 
 /**
@@ -314,4 +323,15 @@ export function placeGroups(placed: readonly EntityType[], present: readonly Ent
  */
 export function searchReady(open: boolean, query: string, settled: string, opensEmpty = false): boolean {
   return open && (opensEmpty || query === '' || settled !== '')
+}
+
+/** The phases a search waits on. Users only with a region to search, otherwise that query never runs. */
+export function sources(
+  areas: { phase: QueryPhase },
+  blocks: { phase: QueryPhase },
+  routes: { phase: QueryPhase },
+  users: { phase: QueryPhase },
+  withUsers: boolean,
+): QueryPhase[] {
+  return [areas, blocks, routes, ...(withUsers ? [users] : [])].map(({ phase }) => phase)
 }

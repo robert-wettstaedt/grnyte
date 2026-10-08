@@ -8,7 +8,7 @@
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { entityHref } from '$lib/entities/href'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { noEditPermission } from '$lib/forms/gate'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
@@ -26,20 +26,8 @@
     // An editor is refused because the area is the wrong type to hold this, not for permission.
     return checkRegionPermission(global.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
       ? { description: m.areas_notAnAreaBody(), primaryAction: view, title: m.areas_notAnAreaTitle() }
-      : { description: m.form_noEditPermission(), primaryAction: view, title: m.form_noPermissionTitle() }
+      : noEditPermission(view)
   })
-
-  // Keyed on the parent's id rather than left as a bare effect: `fields.set` replaces the whole
-  // input, and `parent.data` is a Zero resource that hands back a new object on every snapshot,
-  // so re-running this would wipe a name the reader is part-way through typing.
-  seedOnKeyChange(
-    () => parent.data?.id,
-    () =>
-      createArea.fields.set({
-        parentFk: parent.data?.id.toString(),
-        regionFk: parent.data?.regionFk.toString(),
-      }),
-  )
 </script>
 
 <svelte:head>
@@ -50,9 +38,12 @@
   cancelTo={areaHref}
   {denied}
   form={createArea}
+  seed={([parent]) => createArea.fields.set({ parentFk: parent.id.toString(), regionFk: parent.regionFk.toString() })}
   submitLabel={m.common_add()}
   title={parent.data == null ? m.areas_addArea() : m.areas_newAreaIn({ name: parent.data.name })}
-  waitFor={[{ notFound: m.areas_notFound(), resource: parent }]}
+  waitFor={[{ notFound: m.areas_notFound(), resource: parent, whole: false }]}
 >
-  <AreaFormFields area={parent.data!} form={createArea} />
+  {#snippet fields([parent])}
+    <AreaFormFields area={parent} form={createArea} />
+  {/snippet}
 </Form>

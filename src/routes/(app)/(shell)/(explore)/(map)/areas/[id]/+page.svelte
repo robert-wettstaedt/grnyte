@@ -8,6 +8,7 @@
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import CollapsibleMarkdown from '$lib/components/Markdown/CollapsibleMarkdown.svelte'
+  import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
   import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
@@ -25,6 +26,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { isOnline } from '$lib/state/online.svelte'
+  import { expectingMore } from '$lib/zero/resource.svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import AreaActions from './AreaActions.svelte'
   import AreaEmpty, { areaEmptyIsActionable } from './AreaEmpty.svelte'
@@ -71,7 +73,7 @@
     return sectorReferencePoint(data.parkingLocations.at(0), pins) ?? undefined
   })
 
-  const locating = $derived(destination == null && !blocks.settled)
+  const locating = $derived(destination == null && blocks.phase.kind !== 'answered')
   const location = createLocationState(() => destination)
   const save = createSaveState(
     () => global.user?.id,
@@ -107,7 +109,7 @@
     const data = area.data
     sheetState.title = title
     sheetState.subtitle = data != null && (regionName != null || data.areas.length > 0) ? breadcrumb : null
-    sheetState.nav = toSheetNav(siblings.settled ? siblings.data : null, data?.id, areaHref)
+    sheetState.nav = toSheetNav(siblings.phase.kind === 'answered' ? siblings.data : null, data?.id, areaHref)
     return () => (sheetState.nav = null)
   })
 </script>
@@ -125,7 +127,7 @@
 
       <AreaActions
         area={detail}
-        blockCount={blocks.settled ? blocks.data.length : 0}
+        blockCount={blocks.phase.kind === 'answered' ? blocks.data.length : 0}
         {destination}
         {locating}
         {location}
@@ -134,13 +136,13 @@
 
       <CollapsibleMarkdown markdown={detail.description} />
 
-      <!-- The histogram and its counts describe every route below, so they wait for all of them, with
-           their box held meanwhile: the lists below render first and must not be pushed down. -->
-      {#if detail.type != null && (routes.data.length > 0 ? routes.settled || isOnline() : !routes.settled && isOnline())}
+      <!-- Counts wait for every route below, their box held meanwhile so the lists are not pushed
+           down; an empty answer fills the same box rather than collapsing it. -->
+      {#if detail.type != null && (routes.data.length > 0 ? routes.phase.kind === 'answered' || isOnline() : expectingMore(routes.phase) || routes.phase.kind === 'answered' || routes.phase.kind === 'error')}
         <section class="space-y-2">
           <div class="flex items-baseline justify-between">
             <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.areas_grades()}</h2>
-            {#if routes.settled}
+            {#if routes.phase.kind === 'answered'}
               <span class="text-surface-600-400 text-xs tabular-nums">
                 {#if selected != null}
                   {selected.label} · {m.routes_routesCount({ count: selected.count })}
@@ -151,7 +153,9 @@
             {/if}
           </div>
 
-          {#if routes.settled}
+          {#if routes.phase.kind === 'answered' && routes.data.length === 0}
+            <p class="text-surface-600-400 flex h-31 items-center justify-center text-sm">{m.areas_noRoutes()}</p>
+          {:else if routes.phase.kind === 'answered'}
             <GradeHistogram
               {countByGrade}
               grades={global.grades}
@@ -159,6 +163,8 @@
               ungraded={ungradedCount}
               onselect={(bar) => (selected = bar)}
             />
+          {:else if routes.phase.kind === 'error'}
+            <div class="flex h-31 items-center justify-center"><QueryError compact /></div>
           {:else}
             <SkeletonChart />
           {/if}
@@ -178,7 +184,7 @@
           </span>
           <span class="min-w-0 flex-1">
             <span class="block font-semibold">
-              {routes.settled && routes.data.length > 0
+              {routes.phase.kind === 'answered' && routes.data.length > 0
                 ? m.areas_allRoutesCount({ count: routes.data.length })
                 : m.areas_allRoutes()}
             </span>
@@ -189,9 +195,18 @@
       {/if}
 
       {#if detail.type === 'sector'}
-        <BlocksList blocks={blocks.data} routes={routes.data} settled={blocks.settled && routes.settled} />
+        <BlocksList
+          blocks={blocks.data}
+          routes={routes.data}
+          failed={blocks.phase.kind === 'error' || routes.phase.kind === 'error'}
+          settled={blocks.phase.kind === 'answered' && routes.phase.kind === 'answered'}
+        />
       {:else if detail.type === 'area'}
-        <AreaList areas={subAreas.data} settled={subAreas.settled} />
+        <AreaList
+          areas={subAreas.data}
+          failed={subAreas.phase.kind === 'error'}
+          settled={subAreas.phase.kind === 'answered'}
+        />
       {:else if !emptyLeads}
         <AreaEmpty area={detail} />
       {/if}

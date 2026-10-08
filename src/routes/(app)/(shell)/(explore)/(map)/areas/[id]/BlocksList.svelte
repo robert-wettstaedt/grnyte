@@ -3,6 +3,7 @@
   import RouteList from '$lib/components/EntityRow/RouteList.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Image from '$lib/components/Image/Image.svelte'
+  import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
@@ -21,13 +22,15 @@
   interface Props {
     /** Blocks beneath the area, already ordered by the query. */
     blocks: BlockDetail[]
+    /** Either query failed, so nothing more is coming. */
+    failed?: boolean
     /** Every route beneath the area; grouped here by `blockFk`. */
     routes: RouteListItem[]
     /** Both lists are whole, so a count or a "none" is true. */
     settled: boolean
   }
 
-  const { blocks, routes, settled }: Props = $props()
+  const { blocks, failed = false, routes, settled }: Props = $props()
 
   const global = getGlobalState()
 
@@ -87,6 +90,8 @@
 {#if blocks.length === 0}
   {#if settled}
     <p class="text-surface-600-400 flex h-16 items-center text-sm">{m.areas_noBlocks()}</p>
+  {:else if failed}
+    <QueryError compact />
   {:else if isOnline()}
     <SkeletonRows count={1} lead="thumb" />
   {/if}
@@ -192,3 +197,8 @@
     {/key}
   </section>
 {/each}
+
+<!-- Below the list it fails, so it appends rather than pushing the blocks down. -->
+{#if failed && blocks.length > 0}
+  <QueryError compact />
+{/if}

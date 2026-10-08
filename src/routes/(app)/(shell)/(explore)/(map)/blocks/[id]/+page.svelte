@@ -11,7 +11,6 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
   import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
-  import SkeletonImage from '$lib/components/Skeleton/SkeletonImage.svelte'
   import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
@@ -87,7 +86,7 @@
     sheetState.title = title
     sheetState.subtitle = data != null && data.areas.length > 0 ? breadcrumb : null
     // "3/7" and wrap-around claim the whole sibling list.
-    sheetState.nav = toSheetNav(siblings.settled ? siblings.data : null, data?.id, blockHref)
+    sheetState.nav = toSheetNav(siblings.phase.kind === 'answered' ? siblings.data : null, data?.id, blockHref)
     return () => (sheetState.nav = null)
   })
 </script>
@@ -129,23 +128,14 @@
             </a>
           {/each}
         </div>
-      {:else if detail.topoImages.length > 0}
-        <!-- The block row knows its photos and their sizes, so the strip is held tile for tile. -->
-        <div class="flex gap-3 overflow-hidden pb-1">
-          {#each detail.topoImages as image (image.id)}
-            <SkeletonImage
-              class="h-60 w-auto flex-none"
-              ratio={image.width != null && image.height != null && image.height > 0
-                ? image.width / image.height
-                : 3 / 4}
-            />
-          {/each}
-        </div>
       {:else if canEditTopo(global.userRegions, detail)}
         <!-- No topos yet: the strip is hidden, so this is the only entry point to author the first one.
              Invisible until the block is confirmed whole, so it holds its slot without a false claim. -->
         <a
-          class={['btn preset-tonal-primary w-full', !(block.settled || topos.settled) && 'invisible']}
+          class={[
+            'btn preset-tonal-primary w-full',
+            !(block.phase.kind === 'answered' || topos.phase.kind === 'answered') && 'invisible',
+          ]}
           href={resolve('/(app)/blocks/[id]/topos/edit', { id: String(detail.id) })}
         >
           <Icon name="image" size={18} />
@@ -158,11 +148,13 @@
       {#if orderedRoutes.length > 0}
         <section class="space-y-2">
           <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">
-            {routes.settled ? m.routes_routesCount({ count: orderedRoutes.length }) : m.common_routes()}
+            {routes.phase.kind === 'answered'
+              ? m.routes_routesCount({ count: orderedRoutes.length })
+              : m.common_routes()}
           </h2>
           <RouteList routes={routesWithTopos} status={ascentStatus} />
         </section>
-      {:else if routes.settled}
+      {:else if routes.phase.kind === 'answered'}
         <!-- The routes are a relation of the block row, so `ready` arrives with the row, before them. -->
         <BlockEmpty block={detail} />
       {:else if isOnline()}

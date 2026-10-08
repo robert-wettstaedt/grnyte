@@ -283,7 +283,7 @@
             <Icon name="chevron-right" size={13} />
           </span>
           <!-- The count is of the whole list, so it waits for all of it. -->
-          {m.ascents_form_previousNotes()}{routeAscents.settled ? ` (${previousNotes.length})` : ''}
+          {m.ascents_form_previousNotes()}{routeAscents.phase.kind === 'answered' ? ` (${previousNotes.length})` : ''}
         {/snippet}
 
         {#each previousNotes as prev (prev.id)}

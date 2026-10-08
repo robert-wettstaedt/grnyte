@@ -37,15 +37,20 @@ export function routeList(filter: () => RouteListFilter = () => ({}), opts?: { e
   return createResource(
     () => queries.listRoutes(filter()),
     (rows) => rows.map(toRouteListItem),
-    opts,
+    { ...opts, offline: () => betaPolicy(filter()) },
   )
 }
+
+// Beta lives on media no preload keeps, so a has-beta filter cannot be answered offline.
+const betaPolicy = (filter: RouteListFilter): 'excluded' | undefined =>
+  filter.hasBeta === true ? 'excluded' : undefined
 
 /** Slim route rows for the map (no related trees synced): see `listRoutesForMap`. */
 export function routeMapList(filter: () => RouteListFilter = () => ({})) {
   return createResource(
     () => queries.listRoutesForMap(filter()),
     (rows) => rows.map((row) => ({ blockFk: row.blockFk, gradeFk: row.userGradeFk ?? undefined, id: row.id })),
+    { offline: () => betaPolicy(filter()) },
   )
 }
 

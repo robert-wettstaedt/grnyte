@@ -144,13 +144,12 @@ beforeAll(async () => {
     insert into public.files (id, region_fk, created_by, path, route_fk)
     values ('__stats_orphan__', ${homeRegionId}, ${owner.userId}, '', ${route.id})`
 
-  // Two this month, one last month, one far outside the window. Pinned to the month's first instant:
-  // `now() - 2 days` lands in the PREVIOUS bucket on the 1st, and the 2nd is in the future then. OTHER is inserted after HOME and made the most recently active, so the list's sort has
-  // to contradict insertion order: unsorted, the rows come back home-first.
+  // Two this month (its first UTC instant, as the code buckets by UTC month), one last month, one
+  // far out. OTHER is made the most recently active, so the sort has to contradict insertion order.
   await sql`
     insert into public.events (region_fk, actor_fk, verb, route_fk, created_at) values
-      (${homeRegionId}, ${owner.userId}, 'create', ${route.id}, date_trunc('month', now())),
-      (${homeRegionId}, ${owner.userId}, 'update', ${route.id}, date_trunc('month', now())),
+      (${homeRegionId}, ${owner.userId}, 'create', ${route.id}, date_trunc('month', now() at time zone 'UTC') at time zone 'UTC'),
+      (${homeRegionId}, ${owner.userId}, 'update', ${route.id}, date_trunc('month', now() at time zone 'UTC') at time zone 'UTC'),
       (${homeRegionId}, ${owner.userId}, 'update', ${route.id}, now() - interval '1 month'),
       (${homeRegionId}, ${owner.userId}, 'update', ${route.id}, now() - interval '5 years')`
   await sql`
