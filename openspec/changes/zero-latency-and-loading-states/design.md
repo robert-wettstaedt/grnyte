@@ -428,7 +428,10 @@ Detail pages follow the template notifications, regions, stats, settings and the
 parts of the header (breadcrumb, grade) filling in. Form pages get it once, in `Form`: a loading mode
 that renders the header with Cancel and a fallback title, Save disabled, and the body skeleton inside
 its own width, and that absorbs nested waits (`RouteWithBlock`, `BlockEditor`) so a page shows one
-skeleton rather than two or three in sequence. Rejected: fixing the 11 form pages one by one.
+skeleton rather than two or three in sequence. Rejected: fixing the 11 form pages one by one. The chrome itself is
+`FormGate`, which `Form` renders through when given `waitFor`; three screens use it directly because
+their fields seed at mount outside `Form` (`BlockEditor` and block add through `BlockForm`, and block
+order, which has no `Form`).
 
 ### Secondary content: decide its space before it loads
 

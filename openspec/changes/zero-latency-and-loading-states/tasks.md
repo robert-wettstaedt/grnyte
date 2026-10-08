@@ -133,11 +133,10 @@ Over the touched paths and nothing else, per AGENTS.md.
 
 - [x] 8.1 Run `npx prettier --write` and `npx eslint` over the touched paths, and verify both exit
       clean
-- [ ] 8.2 OPEN: three failures, all data-dependent and none in a touched module. The Volume Test
-      reseed's 12k `create` events push the change rows out of `event/queries.test.ts`'s 200-row
-      window, and its ascents dated today make `region/stats.remote.test.ts` round last activity to
-      midnight, after `now`. Run `npx vitest run --project server` for `*.server.test.ts` and `*.remote.test.ts` and
-      `--project browser` for the rest, and verify both pass
+- [x] 8.2 Run `npx vitest run --project server` for `*.server.test.ts` and `*.remote.test.ts` and
+      `--project browser` for the rest, and verify both pass. Three data-dependent failures after the
+      Volume Test reseed were fixed in the tests (region picked by change-carrying events, fixtures
+      pinned to the month's start); 2026-10-02: browser 1765/1765, server 622 passed, 9 skipped
 - [x] 8.3 Typecheck with `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json` beside the
       running dev server, and verify it reports no new errors
 - [x] 8.4 Run `npm run lint:duplication` and `npm run lint:unused`, and verify no clone is marked
@@ -308,32 +307,32 @@ insert above rendered content. The bucket per section below is proposed; confirm
 
 - [x] 16.1 Fix the false "No location" on a sector without parking while its blocks load: the line is
       withheld while `locating` (no parking and blocks not settled)
-- [ ] 16.2 Skeleton primitives in `$lib/components/`: a row, an image at a given aspect ratio, a
+- [x] 16.2 Skeleton primitives in `$lib/components/`: a row, an image at a given aspect ratio, a
       horizontal strip, a chart. Each appears only after ~250 ms, stills under reduced motion, and
       has a story. Verify with a story per shape at 375 and 1280, light and dark
-- [ ] 16.3 `/routes/[id]`: hero topo bucket 1 (reserve the ratio when the route row has a line; the
+- [x] 16.3 `/routes/[id]`: hero topo bucket 1 (reserve the ratio when the route row has a line; the
       "Draw this route on a topo" row for region editors; nothing for read-only), ascents bucket 2
       (skeleton rows, then rows or "No ascents yet"), grade opinions bucket 2 under the original
       grade, media bucket 1 for editors and bucket 3 for read-only (moved below the late sections),
       history line bucket 3, breadcrumb crumb bucket 1 (the block id is on the route row)
-- [ ] 16.4 `/areas/[id]`: blocks list and sub-area list bucket 2 (skeleton rows, then the list or the
+- [x] 16.4 `/areas/[id]`: blocks list and sub-area list bucket 2 (skeleton rows, then the list or the
       existing empty states), histogram bucket 4 (reserve while routes load), "All routes" card
       bucket 2, referenced-by and history line bucket 3
-- [ ] 16.5 `/blocks/[id]`: topo strip bucket 2 (reserved `h-60` strip, then photos or the existing
+- [x] 16.5 `/blocks/[id]`: topo strip bucket 2 (reserved `h-60` strip, then photos or the existing
       "Add topos" action for editors and nothing for read-only), routes bucket 2, referenced-by and
       history line bucket 3
-- [ ] 16.6 Topo viewer: the stage reserves the image while it loads (bucket 1, the topo row carries
+- [x] 16.6 Topo viewer: the stage reserves the image while it loads (bucket 1, the topo row carries
       the file's dimensions)
-- [ ] 16.7 Profile: heatmap and grade pyramid bucket 4 (reserved at their fixed size above the
+- [x] 16.7 Profile: heatmap and grade pyramid bucket 4 (reserved at their fixed size above the
       sessions), first-ascent line bucket 1 or 4, favorites skeletons gain their heading
-- [ ] 16.8 Search: later groups append below the first rather than re-ranking above it (bucket 4)
-- [ ] 16.9 Regions and settings: invitations bucket 4 (reserve or move below), seat count withheld
+- [x] 16.8 Search: later groups append below the first rather than re-ranking above it (bucket 4)
+- [x] 16.9 Regions and settings: invitations bucket 4 (reserve or move below), seat count withheld
       until invitations load
-- [ ] 16.10 Feed: person chip keeps its width while the name loads; filter-sheet people rows get
+- [x] 16.10 Feed: person chip keeps its width while the name loads; filter-sheet people rows get
       skeleton rows
-- [ ] 16.11 Forms: "Previous notes (n)" count waits for settled; first-ascent suggestions get a
+- [x] 16.11 Forms: "Previous notes (n)" count waits for settled; first-ascent suggestions get a
       skeleton row while unsettled
-- [ ] 16.12 Drive each touched page cold on the harness at 375 and 1280 and record that no section
+- [x] 16.12 Drive each touched page cold on the harness at 375 and 1280 and record that no section
       inserts above rendered content and no reserved space collapses when the answer is "none"
 
 ## 17. A page's chrome renders in every state
@@ -342,21 +341,25 @@ Runs BEFORE group 16: a missing back button strands a reader, and group 16's ske
 judged at the right width. See design.md, "A page's chrome renders in every state, not only when
 ready".
 
-- [ ] 17.1 `Form` loading mode: header with Cancel and a fallback title, Save disabled, body skeleton
+- [x] 17.1 `Form` loading mode: header with Cancel and a fallback title, Save disabled, body skeleton
       inside `Form`'s own width, nested resources awaited inside it. Verify with a story per state
       and that Cancel works while loading
-- [ ] 17.2 Move the form pages onto it: `routes/[id]/edit`, `routes/[id]/ascents/add`,
+- [x] 17.2 Move the form pages onto it: `routes/[id]/edit`, `routes/[id]/ascents/add`,
       `areas/[id]/add`, `areas/[id]/edit`, `areas/[id]/blocks/add`, `areas/[id]/parking/edit`,
       `ascents/[id]/edit`, `blocks/[id]/edit` and `blocks/[id]/move` (via `BlockEditor`),
       `blocks/[id]/routes/add`, `areas/[id]/blocks/order`. Verify each shows its header on a cold
       deep link and one skeleton, not a sequence
-- [ ] 17.3 Detail pages: `routes/[id]` and `routes/[id]/ascents` render `PageHeader` and their width
+- [x] 17.3 Detail pages: `routes/[id]` and `routes/[id]/ascents` render `PageHeader` and their width
       container outside `QueryState`, title falling back, breadcrumb and grade filling in; the sticky
       "Log ascent" footer only once the route is ready
-- [ ] 17.4 Smaller cases: `events/[id]` moves its container out; `users/[id]`'s loading back button
+- [x] 17.4 Smaller cases: `events/[id]` moves its container out; `users/[id]`'s loading back button
       sits where the loaded one does; `ascents/[id]` keeps a header while it redirects; the area and
       block explore sheets get a fallback title like parking and topo
-- [ ] 17.5 Separate defect found on the way: the topo viewer's stage (`md:right-80 lg:right-96`) is
+- [x] 17.5 Separate defect found on the way: the topo viewer's stage (`md:right-80 lg:right-96`) is
       narrower than its panel (`w-94 lg:w-105`), so part of the image sits under the panel
-- [ ] 17.6 Drive every page above cold at 375 and 1280 in the loading, not-found and offline states,
+- [x] 17.6 Drive every page above cold at 375 and 1280 in the loading, not-found and offline states,
       and record that the header and width never change between loading and ready
+- [x] 17.7 Separate defect found driving 17.6 offline: `isLoading` read the raw status, so a reader
+      with no app role (or no region) has a confirmed-empty answer that offline never completes, and
+      the whole app sat behind "Nothing downloaded yet" with a full local copy. A confirmed absence
+      now counts as answered (`resolveLoading`). Verify by reloading offline on a synced device
