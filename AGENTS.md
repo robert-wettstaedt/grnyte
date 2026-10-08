@@ -127,6 +127,10 @@ This project uses:
   without one: place it low so it appends. Never insert above rendered content, and never collapse
   reserved space when the answer is "none", which shifts as much as popping in. Skeletons wait
   ~250 ms; the reasoning is in the zero-latency change's design.
+- A page's chrome renders in every state: `PageHeader` and the width container sit outside
+  `QueryState`, the title falling back until the row lands, so a deep link always has a way back. A
+  form screen gets this from `Form`'s `waitFor` (its rows in order, `whole` for one that replaces
+  lists); one whose fields seed at mount outside `Form` (`BlockForm`) wraps itself in `FormGate`.
 - A nested `Modal` must not unmount the one it opened from in the same flush. Closing the inner
   dialog unpauses the outer trap, and if that one's DOM went away in the same flush, zag throws out
   of `getInitialFocusNode`, which aborts the rest of the teardown and leaves the whole app

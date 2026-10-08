@@ -910,3 +910,73 @@ Every section backed by a query other than its page's primary resource, as it re
 
 Reusable: `placeholder animate-pulse` bars, the inline name bars in `AscentRow` and `EventCard`,
 `Avatar loading`, `Image` and `MediaTile` pulses, the `Row` shell, `StatusPill`, `LoadingIndicator`.
+
+## Group 17, driven (2026-10-01)
+
+On the prod-speed harness (`zero-perf`), each run on a cold device: Zero's IndexedDB and the sync
+stamps cleared before the deep link loads.
+
+- **Form pages, all 11, at 1280 and 375.** The header renders on the first frame after the app's own
+  splash, with Cancel enabled and the action disabled, and keeps its text and box into ready: header
+  row 256+768 and body column 320+640 at 1280, 12+351 and 0+375 at 375. The intended exception is
+  `areas/[id]/add`, whose title falls back from "Add area" to "New area in Area 01". Never more than
+  one skeleton; `ascents/[id]/edit`'s three nested rows used to be three in sequence. Single-row loads
+  answered inside the 250 ms hold, so the skeleton stayed invisible on all but the `whole` waits.
+- **Slow case.** `routes/[id]/edit` in a tab also hydrating the guidebook: header at 6.3 s (after the
+  app splash, which predates this change), skeleton visible at 6.6 s, form at 10.9 s, header and width
+  unchanged throughout. Cancel pressed at 1.1 s on a cold link left for `/routes/<id>`.
+- **Detail pages.** `routes/[id]` holds its header at 65 px through loading (invisible grade column,
+  a held breadcrumb line) and shows the footer only with the row. `routes/[id]/ascents` holds 111 px.
+  `events/[id]` skeleton 272+736 inside the card's 768 column; `users/[id]` back button at 272,32
+  before and after the profile lands (16,32 at 375).
+- **Not found, at both widths.** Every page above keeps its header and a way back over the right
+  not-found title. Found on the way: the block sheet's not-found title was "Block", not
+  "Block not found" (since 65d3b937); fixed.
+- **Offline.** Simulated by rejecting the boot reachability probe and handing Zero a socket that never
+  opens, on a field device with the guidebook synced. Found the 17.7 boot defect first. After the
+  fix: `ascents/<own>/edit` opens from the local copy; `ascents/<not kept>/edit` shows its header,
+  Save disabled, over "Not downloaded"; `events/<id>` shows its header over "You're offline".
+- **17.5.** Stage overlapping the panel: 36 px at 1280 before, 0 after; 0 at 900.
+
+## Group 16, measured (2026-10-02)
+
+Cumulative layout shift from the browser's own Layout Instability API (`layout-shift` entries,
+buffered), each page loaded cold on the prod-speed harness, 9 to 12 s per run. Google's "good" is
+under 0.1.
+
+| Page | 1280 | 375 | What is left |
+|---|---|---|---|
+| `/routes/<drawn>` | 0.0008 | 0.0061 | the location line sliding in on a GPS fix |
+| `/routes/<undrawn>` (editor) | 0.0036 | 0.0196 | same |
+| `/areas/<sector>`, `/areas/<area>` | 0.0026, 0.0024 | 0.031, 0.028 | map controls as the sheet opens; sheet header gaining its crumb |
+| `/blocks/<topos>`, `/blocks/<none>` | 0.0026, 0.0004 | 0.020, 0.029 | same |
+| `/blocks/<id>/topos/<id>` | 0.0034 | 0.0034 | the panel header gaining its crumb |
+| `/users/<id>` | 0 | 0 | |
+| `/regions/<id>` | 0.0053 (was 0.0122) | 0.022 (was 0.105) | a member row sorting in above another |
+| `/feed`, `/search?q=` | 0.0001, 0.0004 | 0, 0.0198 | map controls |
+
+Found and fixed while measuring: the region page's "Created by" row waited for the creator's name
+relation and pushed everything below it down by a row (now keyed on the creator's id); the profile
+rendered first ascents and favorites before the logbook, which then landed above them (they now wait
+for the logbook to be whole); the empty ascents line was 4 px shorter than the row held for it.
+
+Deliberately left, with the reason:
+
+- **The location line** (`LocationMeta`) still slides in when a GPS fix arrives. It is hidden while
+  empty on purpose (eab276d6), and holding a line for a fix that may never come costs every reader
+  the space. About 0.001 to 0.004.
+- **The profile's first-ascent line** under the username is not held. Most people have no
+  first-ascent name, so holding it would collapse for most readers to spare the few; on a field
+  device the names are local and the line renders with the header anyway.
+- **`/settings` invitations** stay above Regions, where a comment puts them on purpose (the one
+  section waiting on the reader). Holding them would collapse for nearly everyone; moving them to
+  the end buries them. Kept as is, confirmed 2026-10-07.
+- **The topo viewer's held stage** (16.6) only shows when the block row is local before the topo
+  view; on a cold deep link both arrive in one batch, so the stage stays empty until then.
+
+Confirmed 2026-10-07: grade opinions on every route and the "All routes" card on every area
+and sector stay.
+
+Read-only member (`user@`), checked: no draw row and no held slot for it on an undrawn route, no
+"Add topos" on a block without topos, and a route's media sits below its history line.
+
