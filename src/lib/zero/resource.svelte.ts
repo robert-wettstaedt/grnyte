@@ -370,6 +370,12 @@ export function resolveKept(input: {
   return input.policy === 'field' && input.guidebookSynced && input.fieldDevice
 }
 
+/** Still waiting for an answer. A confirmed absence is one, and offline it is the only kind an empty
+ *  result gets, since nothing completes without a connection. */
+export function resolveLoading({ isEmpty, status }: { isEmpty: boolean; status: ResourceStatus }): boolean {
+  return status === 'loading' && !isEmpty
+}
+
 /** A composite's policy: one only when every query it registers agrees, since it is no more kept
  *  than its least kept query and the order of the policies says nothing about which that is. */
 export function resolvePolicy(policies: (OfflinePolicy | undefined)[]): OfflinePolicy | undefined {
