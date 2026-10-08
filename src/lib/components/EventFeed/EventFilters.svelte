@@ -29,6 +29,8 @@
     open?: boolean
     /** The people who can be filtered to, already scoped and without the signed-in user. */
     people?: UserListItem[]
+    /** The people list is still arriving: the sheet holds rows for it. */
+    peopleLoading?: boolean
     /** Name of the selected actor, resolved by the host so a reloaded `?user=` still reads out
      *  even when that person is outside the region the picker is currently scoped to. */
     personName?: string
@@ -50,6 +52,7 @@
     onReset,
     open = $bindable(false),
     people = [],
+    peopleLoading = false,
     personName,
     regionFk = $bindable(),
     regions = [],
@@ -77,13 +80,20 @@
   const scopeLabel = $derived(regions.length > 1 && regionFk == null ? m.feed_allRegions() : undefined)
 </script>
 
-{#snippet chip(label: string, clear: () => void)}
+{#snippet chip(label: string | undefined, clear: () => void)}
   <button
     type="button"
     class="preset-tonal-primary flex items-center gap-1 rounded-full py-1 ps-3 pe-2 text-xs font-semibold"
     onclick={clear}
   >
-    {label}
+    {#if label == null}
+      <!-- A name-sized bar rather than a placeholder word the name then replaces. -->
+      <span class="skeleton-hold inline-flex" aria-busy="true">
+        <span class="bg-primary-500/25 inline-block h-3 w-16 animate-pulse rounded"></span>
+      </span>
+    {:else}
+      {label}
+    {/if}
     <Icon name="close" size={13} />
   </button>
 {/snippet}
@@ -117,7 +127,17 @@
       {/if}
     </a>
 
-    <EventFilterSheet {currentUserFk} {filtered} {onReset} bind:open {people} bind:regionFk {regions} bind:userFk />
+    <EventFilterSheet
+      {currentUserFk}
+      {filtered}
+      {onReset}
+      bind:open
+      {people}
+      {peopleLoading}
+      bind:regionFk
+      {regions}
+      bind:userFk
+    />
   </div>
 
   <SegmentedControl
@@ -143,10 +163,7 @@
         {@render chip(regionName, () => (regionFk = undefined))}
       {/if}
       {#if userFk != null}
-        {@render chip(
-          userFk === currentUserFk ? m.feed_justMe() : (personName ?? m.feed_person()),
-          () => (userFk = undefined),
-        )}
+        {@render chip(userFk === currentUserFk ? m.feed_justMe() : personName, () => (userFk = undefined))}
       {/if}
     </div>
   {/if}

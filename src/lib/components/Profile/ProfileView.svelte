@@ -6,6 +6,7 @@
   import MediaLightbox from '$lib/components/Media/MediaLightbox.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import SkeletonChart from '$lib/components/Skeleton/SkeletonChart.svelte'
   import AscentRow from '$lib/entities/ascent/AscentRow.svelte'
   import type { UserAscentDetail } from '$lib/entities/ascent/dto'
   import { deriveProjects, type ProjectRoute } from '$lib/entities/ascent/projects'
@@ -23,6 +24,7 @@
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { now } from '$lib/state/now.svelte'
+  import { resolveUnavailable } from '$lib/zero/resource.svelte'
   import { locationCrumb } from './crumbs'
   import ProfileFavorites from './ProfileFavorites.svelte'
   import ProfileHeader from './ProfileHeader.svelte'
@@ -62,6 +64,10 @@
   // rendering it as 0 says they have never climbed. Online, a tally of a half-synced logbook is
   // just as wrong, so every whole-logbook number waits for `settled`.
   const ascentsUnavailable = $derived(!ascents.settled)
+
+  // The logbook sections above grow until it is whole, so what sits below them waits for that
+  // rather than be pushed down by them.
+  const logbookPlaced = $derived(ascents.settled || ascents.status === 'error' || resolveUnavailable(ascents))
   const statusByRoute = $derived(ascentStatusByRoute(ascents.data))
   const projects = $derived(deriveProjects(ascents.data))
   const hardestGrade = $derived(gradeLabel(global.grades, global.gradingScale, stats.hardestGradeFk))
@@ -244,34 +250,46 @@
   <QueryState resource={ascents}>
     {#snippet ready()}
       <div class="space-y-8">
-        <!-- Activity heatmap -->
-        {#if ascents.settled && sessions.length > 0}
+        <!-- Activity heatmap. A calendar of half a logbook is a claim about all of it, so it waits for
+             the whole one, holding its box above the sessions that render first. -->
+        {#if sessions.length > 0}
           <section class="space-y-2.5">
             <SectionHeading title={m.profile_activity()} />
-            <ContributionCalendar
-              counts={calendarCounts}
-              onselect={(cell) => {
-                if (cell == null) {
-                  if (sheet?.kind === 'day') sheet = null
-                } else if (cell.count > 0) {
-                  sheet = { day: cell.day, kind: 'day' }
-                }
-              }}
-            />
+            {#if !ascents.settled}
+              <div class="skeleton-hold h-[161px]" aria-busy="true">
+                <div class="bg-surface-200-800 h-full animate-pulse rounded-xl"></div>
+              </div>
+            {:else}
+              <ContributionCalendar
+                counts={calendarCounts}
+                onselect={(cell) => {
+                  if (cell == null) {
+                    if (sheet?.kind === 'day') sheet = null
+                  } else if (cell.count > 0) {
+                    sheet = { day: cell.day, kind: 'day' }
+                  }
+                }}
+              />
+            {/if}
           </section>
         {/if}
 
-        <!-- Grade histogram, with an all-sends / flash toggle -->
-        {#if ascents.settled && stats.sends > 0}
+        <!-- Grade histogram, with an all-sends / flash toggle. A send on hand is a send in the whole
+             logbook, so its box is held from then on, like the heatmap's. -->
+        {#if stats.sends > 0}
           <section class="space-y-2.5">
             <SectionHeading title={m.profile_gradePyramid()} action={gradeFilter} />
-            <GradeHistogram
-              countByGrade={histogramCounts}
-              grades={global.grades}
-              gradingScale={global.gradingScale}
-              onselect={(bar) => (sheet = bar == null ? null : { grade: bar, kind: 'grade' })}
-              showCounts
-            />
+            {#if !ascents.settled}
+              <SkeletonChart class="pt-4" />
+            {:else}
+              <GradeHistogram
+                countByGrade={histogramCounts}
+                grades={global.grades}
+                gradingScale={global.gradingScale}
+                onselect={(bar) => (sheet = bar == null ? null : { grade: bar, kind: 'grade' })}
+                showCounts
+              />
+            {/if}
           </section>
         {/if}
 
@@ -335,7 +353,7 @@
   </QueryState>
 
   <!-- First ascents (public) -->
-  {#if faIds.length > 0}
+  {#if logbookPlaced && faIds.length > 0}
     <section class="space-y-2.5">
       <SectionHeading title={m.profile_firstAscents()} />
       <ProfileRouteList
@@ -347,7 +365,9 @@
     </section>
   {/if}
 
-  <ProfileFavorites {userId} {isSelf} status={statusByRoute} />
+  {#if logbookPlaced}
+    <ProfileFavorites {userId} {isSelf} status={statusByRoute} />
+  {/if}
 
   <!-- Detail sheet: routes behind a tapped histogram bar, or a tapped day's ascents
        (with their media). Bottom-sheet on mobile, centered dialog on desktop. -->

@@ -7,6 +7,7 @@
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import SkeletonText from '$lib/components/Skeleton/SkeletonText.svelte'
   import AscentRow from '$lib/entities/ascent/AscentRow.svelte'
   import { ASCENT_TYPES, STATUS } from '$lib/entities/ascent/AscentType.svelte'
   import type { AscentType, RouteAscent } from '$lib/entities/ascent/dto'
@@ -107,62 +108,68 @@
   <title>{m.ascents_title()} – {route.data?.name ?? m.common_route()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<QueryState notFound={m.routes_notFound()} resource={route}>
-  {#snippet ready(detail)}
-    <!-- One section shape for both lists. `mine` frames every row, `community` only the
-         deep-linked one; the id is what the scroll effect above looks up. -->
-    {#snippet ascentSection(list: RouteAscent[], heading: string, headingClass: string, frameAll: boolean)}
-      <section class="flex flex-col gap-2">
-        <h2 class={['text-xs font-bold tracking-wider uppercase', headingClass]}>{heading}</h2>
-        {#each list as ascent (ascent.id)}
-          <div animate:flip={{ duration: flipDuration }} transition:fade={{ duration: fadeDuration }}>
-            <AscentRow
-              {ascent}
-              expanded={ascent.id === targetId}
-              highlight={frameAll || ascent.id === targetId}
-              id={`ascent-${ascent.id}`}
-              routeName={detail.name}
-            />
-          </div>
+<!-- The header and the column render in every state; only the rows wait for the route. -->
+<div class="flex min-h-full w-full flex-col">
+  <PageHeader onback={() => back(routeHref)}>
+    <div class="flex min-w-0 flex-1 flex-col">
+      <!-- The line is held while the route loads, so the header neither grows nor sits off-centre. -->
+      <span class="text-surface-600-400 truncate text-xs">
+        {#if route.data == null}
+          <SkeletonText />
+        {:else}
+          {route.data.name} · {gradeLabel(global.grades, global.gradingScale, route.data.gradeFk)}{ascents.settled
+            ? ` · ${m.ascents_count({ count: ascents.data.length })}`
+            : ''}
+        {/if}
+      </span>
+      <span class="text-base font-bold">{m.ascents_title()}</span>
+    </div>
+
+    {#snippet bottom()}
+      <!-- Every chip carries a count off the same list, so they go together with it. -->
+      <div class={['-mx-3 flex gap-2 overflow-x-auto px-3 pb-0.5', ascentsUnavailable && 'hidden']}>
+        {#each chips as { color, count, key, label } (key)}
+          <button
+            class={[
+              'border-surface-200-800 flex h-8.5 flex-none items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-bold transition-colors',
+              filter !== key && 'bg-surface-100-900 text-surface-600-400',
+            ]}
+            onclick={() => (filter = key)}
+            style={chipStyle(filter === key, color)}
+            type="button"
+          >
+            {label()}
+            {#if ascents.settled}
+              <span class="font-semibold opacity-65" transition:fade={{ duration: fadeDuration }}>{count}</span>
+            {/if}
+          </button>
         {/each}
-      </section>
+      </div>
     {/snippet}
+  </PageHeader>
 
-    <div class="flex min-h-full w-full flex-col">
-      <PageHeader onback={() => back(routeHref)}>
-        <div class="flex min-w-0 flex-1 flex-col">
-          <span class="text-surface-600-400 truncate text-xs">
-            {detail.name} · {gradeLabel(global.grades, global.gradingScale, detail.gradeFk)}{ascents.settled
-              ? ` · ${m.ascents_count({ count: ascents.data.length })}`
-              : ''}
-          </span>
-          <span class="text-base font-bold">{m.ascents_title()}</span>
-        </div>
-
-        {#snippet bottom()}
-          <!-- Every chip carries a count off the same list, so they go together with it. -->
-          <div class={['-mx-3 flex gap-2 overflow-x-auto px-3 pb-0.5', ascentsUnavailable && 'hidden']}>
-            {#each chips as { color, count, key, label } (key)}
-              <button
-                class={[
-                  'border-surface-200-800 flex h-8.5 flex-none items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-bold transition-colors',
-                  filter !== key && 'bg-surface-100-900 text-surface-600-400',
-                ]}
-                onclick={() => (filter = key)}
-                style={chipStyle(filter === key, color)}
-                type="button"
-              >
-                {label()}
-                {#if ascents.settled}
-                  <span class="font-semibold opacity-65" transition:fade={{ duration: fadeDuration }}>{count}</span>
-                {/if}
-              </button>
+  <div class="mx-auto flex w-full max-w-screen-sm flex-col px-4 py-4">
+    <QueryState notFound={m.routes_notFound()} resource={route}>
+      {#snippet ready(detail)}
+        <!-- One section shape for both lists. `mine` frames every row, `community` only the
+             deep-linked one; the id is what the scroll effect above looks up. -->
+        {#snippet ascentSection(list: RouteAscent[], heading: string, headingClass: string, frameAll: boolean)}
+          <section class="flex flex-col gap-2">
+            <h2 class={['text-xs font-bold tracking-wider uppercase', headingClass]}>{heading}</h2>
+            {#each list as ascent (ascent.id)}
+              <div animate:flip={{ duration: flipDuration }} transition:fade={{ duration: fadeDuration }}>
+                <AscentRow
+                  {ascent}
+                  expanded={ascent.id === targetId}
+                  highlight={frameAll || ascent.id === targetId}
+                  id={`ascent-${ascent.id}`}
+                  routeName={detail.name}
+                />
+              </div>
             {/each}
-          </div>
+          </section>
         {/snippet}
-      </PageHeader>
 
-      <div class="mx-auto flex w-full max-w-screen-sm flex-col px-4 py-4">
         {#if ascentsUnavailable}
           <OfflineNotice excluded />
         {:else}
@@ -208,10 +215,12 @@
             </p>
           {/if}
         {/if}
-      </div>
+      {/snippet}
+    </QueryState>
+  </div>
 
-      <!-- One viewer for every row's thumbs; unfiltered so an open file survives chip changes. -->
-      <MediaLightbox items={viewerFiles} shareText={detail.name} />
-    </div>
-  {/snippet}
-</QueryState>
+  <!-- One viewer for every row's thumbs; unfiltered so an open file survives chip changes. -->
+  {#if route.data != null}
+    <MediaLightbox items={viewerFiles} shareText={route.data.name} />
+  {/if}
+</div>

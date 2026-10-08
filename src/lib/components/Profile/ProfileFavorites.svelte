@@ -148,26 +148,27 @@
       </div>
     {/if}
 
+    <!-- The subheadings sit outside each `QueryState`, so the skeleton already has its heading. -->
     {#if hasBlocks}
-      <QueryState resource={favBlocks}>
-        {#snippet ready(blocks)}
-          <div class="space-y-2">
-            {@render subheading(m.common_blocks())}
+      <div class="space-y-2">
+        {@render subheading(m.common_blocks())}
+        <QueryState resource={favBlocks}>
+          {#snippet ready(blocks)}
             <ShowMoreList items={blocks} key={(block) => block.id} limit={FAV_LIMIT} row={blockRow} />
-          </div>
-        {/snippet}
-      </QueryState>
+          {/snippet}
+        </QueryState>
+      </div>
     {/if}
 
     {#if hasAreas}
-      <QueryState resource={favAreas}>
-        {#snippet ready(areas)}
-          <div class="space-y-2">
-            {@render subheading(m.common_areas())}
+      <div class="space-y-2">
+        {@render subheading(m.common_areas())}
+        <QueryState resource={favAreas}>
+          {#snippet ready(areas)}
             <ShowMoreList items={areas} key={(area) => area.id} limit={FAV_LIMIT} row={areaRow} />
-          </div>
-        {/snippet}
-      </QueryState>
+          {/snippet}
+        </QueryState>
+      </div>
     {/if}
   </section>
 {/if}

@@ -16,6 +16,9 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
+  import SkeletonImage from '$lib/components/Skeleton/SkeletonImage.svelte'
+  import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
+  import SkeletonText from '$lib/components/Skeleton/SkeletonText.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import AscentRow from '$lib/entities/ascent/AscentRow.svelte'
   import { splitAscents } from '$lib/entities/ascent/list'
@@ -34,6 +37,7 @@
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { selectTopoForRoute } from '$lib/entities/topo/mapper'
   import { orderRoutesByTopo } from '$lib/entities/topo/order'
+  import { canEditTopo } from '$lib/entities/topo/permissions'
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -85,6 +89,20 @@
 
   const blockHref = $derived(
     route.data == null ? resolve('/(app)/(shell)/(explore)/(map)/explore') : entityHref('blocks', route.data.blockFk),
+  )
+
+  // The route row's own best line, to hold the hero's box before the block's topos arrive.
+  const heroRatio = $derived.by(() => {
+    const width = route.data?.topoImageWidth
+    const height = route.data?.topoImageHeight
+    return width == null || height == null || width <= 0 || height <= 0 ? null : width / height
+  })
+
+  // The topo editor arms a fresh line for `?route=` when the route is drawn nowhere yet.
+  const drawHref = $derived(
+    route.data == null
+      ? null
+      : `${resolve('/(app)/blocks/[id]/topos/edit', { id: String(route.data.blockFk) })}?route=${routeId}`,
   )
 
   // The viewer reads ?route= and opens with this route's line lit.
@@ -156,54 +174,63 @@
 
 <svelte:window onkeydown={handleNavKey} />
 
-<QueryState notFound={m.routes_notFound()} resource={route}>
-  {#snippet ready(detail)}
-    {@const canEdit = canEditRoute(global.userRegions, detail)}
-
-    <!-- Self-gating: renders nothing unless this is the founder's first route. -->
-    <RegionLive regionFk={detail.regionFk} />
-
-    <div class="flex w-full grow flex-col">
-      <!-- Mirrors the area/block detail headers: back button, the name as the title with
-           the entity-type tag beside it, and the containment breadcrumb as the subtitle
-           above. Grade + rating sit on the right, aligned like a RouteRow. -->
-      <PageHeader onback={() => back(blockHref)}>
-        <div class="flex min-w-0 flex-1 flex-col">
-          {#if block.data != null}
-            <div class="flex min-w-0 items-center gap-2 text-xs whitespace-nowrap">
-              {#if breadcrumbArea != null && block.data.areas.length > 0}
-                <div class="min-w-0">
-                  <Breadcrumb area={breadcrumbArea} userRegions={global.userRegions} />
-                </div>
-                <span class="shrink-0">·</span>
-              {/if}
-              <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- blockHref is pre-resolved above. -->
-              <a class={CRUMB_LINK} href={blockHref}>{block.data.name}</a>
+<!-- The header and the column render in every state, so a deep link always has a way back and the
+     content never snaps into a narrower column once it loads. -->
+<div class="flex min-h-full w-full flex-col">
+  <!-- Mirrors the area/block detail headers: back button, the name as the title with
+       the entity-type tag beside it, and the containment breadcrumb as the subtitle
+       above. Grade + rating sit on the right, aligned like a RouteRow. -->
+  <PageHeader onback={() => back(blockHref)}>
+    <div class="flex min-w-0 flex-1 flex-col">
+      <!-- The line is held while the block loads, so the header neither grows nor sits off-centre. -->
+      <div class="flex min-w-0 items-center gap-2 text-xs whitespace-nowrap">
+        {#if block.data != null}
+          {#if breadcrumbArea != null && block.data.areas.length > 0}
+            <div class="min-w-0">
+              <Breadcrumb area={breadcrumbArea} userRegions={global.userRegions} />
             </div>
+            <span class="shrink-0">·</span>
           {/if}
+          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- blockHref is pre-resolved above. -->
+          <a class={CRUMB_LINK} href={blockHref}>{block.data.name}</a>
+        {:else}
+          <SkeletonText />
+        {/if}
+      </div>
 
-          <div class="flex min-w-0 items-center gap-2">
-            <span class="truncate text-base font-bold">{detail.name}</span>
-            <span
-              class="bg-primary-500/20 text-primary-700-300 inline-flex h-5.25 flex-none items-center rounded-[7px] px-2 text-[11px] font-bold tracking-[0.02em]"
-            >
-              {m.common_route()}
-            </span>
-          </div>
-        </div>
+      <div class="flex min-w-0 items-center gap-2">
+        <span class="truncate text-base font-bold">{route.data?.name ?? m.common_route()}</span>
+        {#if route.data != null}
+          <span
+            class="bg-primary-500/20 text-primary-700-300 inline-flex h-5.25 flex-none items-center rounded-[7px] px-2 text-[11px] font-bold tracking-[0.02em]"
+          >
+            {m.common_route()}
+          </span>
+        {/if}
+      </div>
+    </div>
 
-        <!-- Both always render (an ungraded/unrated route shows the "—" pill + empty stars). -->
-        <div class="flex flex-none flex-col items-end gap-1">
-          <RouteGrade
-            band={getGradeBand(detail.gradeFk)}
-            grade={gradeLabel(global.grades, global.gradingScale, detail.gradeFk)}
-          />
-          <RouteRating rating={detail.rating} />
-        </div>
-      </PageHeader>
+    <!-- Both always render (an ungraded/unrated route shows the "—" pill + empty stars), so until
+         the route is here they keep their space invisibly rather than claim it is ungraded. -->
+    <div class={['flex flex-none flex-col items-end gap-1', route.data == null && 'invisible']}>
+      <RouteGrade
+        band={getGradeBand(route.data?.gradeFk ?? null)}
+        grade={gradeLabel(global.grades, global.gradingScale, route.data?.gradeFk ?? null)}
+      />
+      <RouteRating rating={route.data?.rating ?? null} />
+    </div>
+  </PageHeader>
 
-      <div class="mx-auto flex w-full max-w-screen-sm flex-col gap-6 px-4 py-5">
-        <!-- HERO TOPO: capped height so a portrait topo can't dominate the page. -->
+  <div class="mx-auto flex w-full max-w-screen-sm flex-1 flex-col px-4 py-5">
+    <QueryState class="gap-6" notFound={m.routes_notFound()} resource={route}>
+      {#snippet ready(detail)}
+        {@const canEdit = canEditRoute(global.userRegions, detail)}
+
+        <!-- Self-gating: renders nothing unless this is the founder's first route. -->
+        <RegionLive regionFk={detail.regionFk} />
+
+        <!-- HERO TOPO: capped height so a portrait topo can't dominate the page. The route row knows
+             its own line, so the box is held at the photo's ratio until the block's topos land. -->
         {#if topoHref != null && hit != null}
           <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- topoHref is pre-resolved above. -->
           <a class="relative block" href={topoHref} aria-label={m.routes_openTopo()}>
@@ -229,9 +256,34 @@
               <Icon name="chevron-right" size={13} />
             </span>
           </a>
+        {:else if heroRatio != null && !topos.settled}
+          <SkeletonImage class="max-h-88 w-full" ratio={heroRatio} />
+        {:else if detail.topoImagePath == null && canEditTopo(global.userRegions, detail)}
+          <!-- An editor's way to a hero (a reader gets nothing). Invisible until the route is confirmed
+               whole, so it holds the slot without claiming a drawn route is undrawn. -->
+          <!-- eslint-disable svelte/no-navigation-without-resolve -- drawHref is pre-resolved above. -->
+          <a
+            class={[
+              'border-surface-300-700 text-surface-600-400 hover:bg-surface-100-900 flex items-center gap-3 rounded-2xl border border-dashed px-3.5 py-3 text-sm font-semibold transition-colors',
+              !route.settled && 'invisible',
+            ]}
+            href={drawHref}
+          >
+            <Icon name="route" size={18} />
+            <span class="min-w-0 flex-1">{m.routes_drawOnTopo()}</span>
+            <Icon name="chevron-right" size={15} />
+          </a>
+          <!-- eslint-enable svelte/no-navigation-without-resolve -->
         {/if}
 
-        <RouteActions block={block.data} {location} route={detail} {save} />
+        <!-- The block row lands before its pin, so it is held back until the pin or the answer is
+             here: otherwise the line claims "no location" for a block that has one. -->
+        <RouteActions
+          block={block.data?.geolocation != null || block.settled ? block.data : undefined}
+          {location}
+          route={detail}
+          {save}
+        />
 
         {#if detail.tags.length > 0}
           <div class="flex flex-wrap gap-2">
@@ -298,7 +350,8 @@
             <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">{m.ascents_title()}</h2>
             <OfflineNotice compact excluded />
           </section>
-        {:else if ascents.data.length > 0}
+        {:else}
+          <!-- Always a section: its rows, a held row while none are here, or the empty line. -->
           <section class="flex flex-col gap-2.5">
             <div class="flex items-baseline justify-between gap-3">
               <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">{m.ascents_title()}</h2>
@@ -318,68 +371,75 @@
               <AscentRow {ascent} routeName={detail.name} />
             {/each}
 
-            <a class="btn preset-outlined-surface-200-800 w-full" href={ascentsHref}>
-              {ascents.settled ? m.ascents_seeAll({ count: ascents.data.length }) : m.ascents_seeAllUncounted()}
-              <Icon name="chevron-right" size={15} />
-            </a>
+            {#if ascents.data.length > 0}
+              <a class="btn preset-outlined-surface-200-800 w-full" href={ascentsHref}>
+                {ascents.settled ? m.ascents_seeAll({ count: ascents.data.length }) : m.ascents_seeAllUncounted()}
+                <Icon name="chevron-right" size={15} />
+              </a>
+            {:else if ascents.settled}
+              <!-- The held row's height, so the answer "none" does not pull the page up. -->
+              <p class="text-surface-600-400 flex h-14 items-center text-sm">{m.ascents_empty()}</p>
+            {:else}
+              <SkeletonRows count={1} lead="avatar" />
+            {/if}
           </section>
         {/if}
 
-        {#if detail.rawGradeFk != null || countByGrade.size > 0}
-          <section class="flex flex-col gap-2.5">
-            <div class="flex items-baseline justify-between gap-3">
-              <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
-                {m.routes_gradeOpinions()}
-              </h2>
-              {#if ascents.settled && voteCount > 0}
-                <span class="text-surface-500 text-xs font-semibold tabular-nums">
-                  {#if selectedVote != null}
-                    {selectedVote.label} · {m.routes_gradeVotes({ count: selectedVote.count })}
-                  {:else}
-                    {m.routes_gradeVotes({ count: voteCount })}
-                  {/if}
-                </span>
-              {/if}
-            </div>
-
-            <!-- The route's grade is the grade it was created with; the community's votes
-                 (the chart) are what shift the consensus away from it over time. -->
-            {#if detail.rawGradeFk != null}
-              <div
-                class="border-surface-200-800 bg-surface-50-950 flex items-center gap-3 rounded-2xl border px-3.5 py-3"
-              >
-                <RouteGrade
-                  band={getGradeBand(detail.rawGradeFk)}
-                  grade={gradeLabel(global.grades, global.gradingScale, detail.rawGradeFk)}
-                />
-                <span class="text-surface-600-400 text-sm font-semibold">{m.routes_originalGrade()}</span>
-              </div>
+        <!-- Always a section, since whether anybody voted is only known once the ascents are. -->
+        <section class="flex flex-col gap-2.5">
+          <div class="flex items-baseline justify-between gap-3">
+            <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
+              {m.routes_gradeOpinions()}
+            </h2>
+            {#if ascents.settled && voteCount > 0}
+              <span class="text-surface-500 text-xs font-semibold tabular-nums">
+                {#if selectedVote != null}
+                  {selectedVote.label} · {m.routes_gradeVotes({ count: selectedVote.count })}
+                {:else}
+                  {m.routes_gradeVotes({ count: voteCount })}
+                {/if}
+              </span>
             {/if}
+          </div>
 
-            <!-- Availability first, rows second. The votes come from everyone's ascents, which are
+          <!-- The route's grade is the grade it was created with; the community's votes
+                 (the chart) are what shift the consensus away from it over time. -->
+          {#if detail.rawGradeFk != null}
+            <div
+              class="border-surface-200-800 bg-surface-50-950 flex items-center gap-3 rounded-2xl border px-3.5 py-3"
+            >
+              <RouteGrade
+                band={getGradeBand(detail.rawGradeFk)}
+                grade={gradeLabel(global.grades, global.gradingScale, detail.rawGradeFk)}
+              />
+              <span class="text-surface-600-400 text-sm font-semibold">{m.routes_originalGrade()}</span>
+            </div>
+          {/if}
+
+          <!-- Availability first, rows second. The votes come from everyone's ascents, which are
                  not kept offline, and testing `countByGrade.size` first made this branch
                  unreachable: one locally-held graded ascent drew a "1 vote" consensus directly
                  under the notice saying ascents were unavailable. Neither the chart nor "no
                  opinions" is a claim we can make without the whole list. -->
-            {#if ascentsUnavailable}
-              <OfflineNotice compact excluded />
-            {:else if !ascents.settled}
-              <!-- A tally of a partial list is a claim about the whole one. -->
-            {:else if countByGrade.size > 0}
-              <GradeHistogram
-                {countByGrade}
-                grades={global.grades}
-                gradingScale={global.gradingScale}
-                showCounts
-                onselect={(bar) => (selectedVote = bar)}
-              />
-            {:else}
-              <p class="text-surface-600-400 text-sm">{m.routes_noOpinions()}</p>
-            {/if}
-          </section>
-        {/if}
+          {#if ascentsUnavailable}
+            <OfflineNotice compact excluded />
+          {:else if !ascents.settled}
+            <!-- A tally of a partial list is a claim about the whole one. -->
+            <SkeletonRows count={1} lines={1} />
+          {:else if countByGrade.size > 0}
+            <GradeHistogram
+              {countByGrade}
+              grades={global.grades}
+              gradingScale={global.gradingScale}
+              showCounts
+              onselect={(bar) => (selectedVote = bar)}
+            />
+          {:else}
+            <p class="text-surface-600-400 text-sm">{m.routes_noOpinions()}</p>
+          {/if}
+        </section>
 
-        {#if media.length > 0 || canEdit}
+        {#snippet mediaSection()}
           <section class="flex flex-col gap-2.5">
             <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
               {m.routes_form_mediaLabel()}
@@ -391,7 +451,18 @@
               shareText={route.data?.name ?? ''}
             />
           </section>
+        {/snippet}
+
+        <!-- An editor always has the upload tile, so the strip's height is known: it keeps its place.
+             A reader's media may never come, so it goes last and appends. -->
+        {#if canEdit}
+          {@render mediaSection()}
         {/if}
+
+        <!-- The deepest sector screen, and the one whose content is exactly what goes missing without
+             signal, so it is where the offline pitch is concrete rather than abstract. Renders
+             nothing on a desktop, in an installed app, or once the nag policy has retired it. -->
+        <InstallApp dismissible offline />
 
         <!-- No lightbox of its own: this page already mounts one (MediaGrid below), and two
              would both match the same `?media` id and stack two viewers. The log's photos are
@@ -405,31 +476,32 @@
           scopeType="route"
         />
 
-        <!-- The deepest sector screen, and the one whose content is exactly what goes missing without
-             signal, so it is where the offline pitch is concrete rather than abstract. Renders
-             nothing on a desktop, in an installed app, or once the nag policy has retired it. -->
-        <InstallApp dismissible offline />
+        {#if !canEdit && media.length > 0}
+          {@render mediaSection()}
+        {/if}
+      {/snippet}
+    </QueryState>
+  </div>
+
+  <!-- Sticky footer: sibling prev/next pager (like the explore sheets' NavFooter) on the
+       left, the always-visible primary action on the right. Footer treatment mirrors the
+       app's modal footers (border-t-2, btn-sm). Only for a route that exists. -->
+  {#if route.data != null}
+    <footer class="border-surface-100-900 bg-surface-50-950 sticky bottom-0 z-10 mt-auto border-t-2 px-4 py-3">
+      <div class="mx-auto flex w-full items-center justify-between gap-2 {PAGE_CHROME_WIDTH}">
+        {#if nav != null}
+          <div class="flex items-center gap-1.5">
+            <SiblingNav {nav} />
+          </div>
+        {:else}
+          <span></span>
+        {/if}
+
+        <a class="btn btn-sm preset-filled-primary-500" href={logHref}>
+          <Icon name="check" size={16} />
+          {m.routes_logAscent()}
+        </a>
       </div>
-
-      <!-- Sticky footer: sibling prev/next pager (like the explore sheets' NavFooter) on the
-           left, the always-visible primary action on the right. Footer treatment mirrors the
-           app's modal footers (border-t-2, btn-sm). -->
-      <footer class="border-surface-100-900 bg-surface-50-950 sticky bottom-0 z-10 mt-auto border-t-2 px-4 py-3">
-        <div class="mx-auto flex w-full items-center justify-between gap-2 {PAGE_CHROME_WIDTH}">
-          {#if nav != null}
-            <div class="flex items-center gap-1.5">
-              <SiblingNav {nav} />
-            </div>
-          {:else}
-            <span></span>
-          {/if}
-
-          <a class="btn btn-sm preset-filled-primary-500" href={logHref}>
-            <Icon name="check" size={16} />
-            {m.routes_logAscent()}
-          </a>
-        </div>
-      </footer>
-    </div>
-  {/snippet}
-</QueryState>
+    </footer>
+  {/if}
+</div>

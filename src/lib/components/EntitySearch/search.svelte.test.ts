@@ -2,7 +2,7 @@ import type { RouteListRow } from '$lib/entities/route/mapper'
 import { m } from '$lib/paraglide/messages'
 import { flushSync } from 'svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { debouncedQuery, entityMappers, searchReady } from './search.svelte'
+import { debouncedQuery, entityMappers, placeGroups, searchReady } from './search.svelte'
 
 // The picker lists must never print a blank row: names come from the entity mappers,
 // which own the "unnamed route" and "Block <order>" fallbacks.
@@ -181,5 +181,19 @@ describe('debouncedQuery', () => {
     h.type('z')
     expect(h.settled()).toBe('')
     h.stop()
+  })
+})
+
+describe('placeGroups', () => {
+  it('appends a group that answers later instead of putting it above the rows on screen', () => {
+    expect(placeGroups(['routes'], ['areas', 'routes'])).toEqual(['routes', 'areas'])
+  })
+
+  it('takes the usual section order for groups that arrive together', () => {
+    expect(placeGroups([], ['routes', 'users', 'blocks'])).toEqual(['users', 'blocks', 'routes'])
+  })
+
+  it('keeps a shown group in its place while it is momentarily empty', () => {
+    expect(placeGroups(['users', 'routes'], ['routes'])).toEqual(['users', 'routes'])
   })
 })

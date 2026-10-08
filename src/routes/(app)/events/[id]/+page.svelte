@@ -32,6 +32,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
+  import { resolveUnavailable } from '$lib/zero/resource.svelte'
 
   const global = getGlobalState()
 
@@ -55,6 +56,11 @@
   // `regionFk` off the event row, which is the same place the card reads it: 0 until it syncs, and
   // the composer that needs it only renders once it has.
   const thread = createThread(() => ({ eventId, regionFk: event?.regionFk ?? 0 }), { highlight: () => highlightId })
+
+  // The composer answers the thread on screen, so it shows exactly when `QueryState` shows one.
+  const threadShown = $derived(
+    views[0] != null && event != null && events.status === 'ready' && !resolveUnavailable(events),
+  )
 </script>
 
 <svelte:head>
@@ -68,24 +74,22 @@
 <main class="flex min-h-0 flex-1 flex-col overflow-hidden">
   <PageHeader onback={() => back(resolve('/(app)/(shell)/feed'))} title={m.feed_title()} />
 
-  <!-- `QueryState` wraps its ready state in a `min-h-full` column, and `full` is 100% of whatever
-       it is inside. Directly under `main` that resolved to the WHOLE viewport, which the header
-       above it then pushed down by its own height, putting the pinned composer 17px below the
-       fold. This wrapper is what `min-h-full` should measure: the space the header leaves. -->
+  <!-- The scroll area and its column sit outside `QueryState`, so the skeleton and the not-found
+       state are as wide as the card; the composer stays pinned below the scroll area. -->
   <div class="flex min-h-0 flex-1 flex-col">
-    <QueryState resource={events}>
-      {#snippet ready()}
-        {#if views[0] != null && event != null}
-          <div class="min-h-0 flex-1 overflow-y-auto">
-            <div class="container mx-auto max-w-3xl space-y-5 px-4 py-4">
+    <div class="min-h-0 flex-1 overflow-y-auto">
+      <div class="container mx-auto max-w-3xl px-4 py-4">
+        <QueryState class="gap-5" resource={events}>
+          {#snippet ready()}
+            {#if views[0] != null && event != null}
               <!-- `commentsInline`: the card's own bar keeps its emoji and drops the comment button,
-                 because the thread it would open is already on the page underneath it. -->
+                   because the thread it would open is already on the page underneath it. -->
               <EventCard commentsInline view={views[0]} />
 
               <section class="space-y-3">
                 <!-- A count, not the bare word: this screen exists to show a conversation, and how
-                   much of one there is to read is the first thing worth knowing. The rule carries
-                   the section break so the heading does not have to be loud to be one. -->
+                     much of one there is to read is the first thing worth knowing. The rule carries
+                     the section break so the heading does not have to be loud to be one. -->
                 <h2
                   class="text-surface-600-400 border-surface-200-800 border-b pb-2 text-xs font-bold tracking-wide uppercase"
                 >
@@ -94,38 +98,40 @@
 
                 <Comments {thread} />
               </section>
+            {/if}
+          {/snippet}
+
+          <!-- A deleted event takes its thread with it (`event_fk` cascades), so a link to one is a
+               link to something that is really gone rather than something still loading. Also where a
+               reader who has left the region lands, since the row simply stops syncing to them. -->
+          {#snippet empty()}
+            <div class="space-y-1 py-10 text-center">
+              <span
+                class="bg-surface-200-800 text-surface-600-400 mx-auto mb-3 grid size-14 place-items-center rounded-2xl"
+              >
+                <Icon name="messageCircle" size={24} />
+              </span>
+
+              <p class="text-surface-950-50 font-semibold">{m.event_notFound()}</p>
+              <p class="text-surface-600-400 text-sm">{m.event_notFoundBody()}</p>
+
+              <a class="btn preset-tonal-surface mt-3" href={resolve('/(app)/(shell)/feed')}>
+                {m.notifications_emptyAction()}
+              </a>
             </div>
-          </div>
+          {/snippet}
+        </QueryState>
+      </div>
+    </div>
 
-          <!-- Outside the scroll area, so nothing can pass under it and it needs no reserved height:
-             the same arrangement `Modal.mobile` uses for the sheet's footer. -->
-          <div class="border-surface-200-800 bg-surface-50-950 border-t">
-            <div class="container mx-auto max-w-3xl px-4 py-3">
-              <CommentComposer {thread} />
-            </div>
-          </div>
-        {/if}
-      {/snippet}
-
-      <!-- A deleted event takes its thread with it (`event_fk` cascades), so a link to one is a link
-         to something that is really gone rather than something still loading. Also where a reader
-         who has left the region lands, since the row simply stops syncing to them. -->
-      {#snippet empty()}
-        <div class="space-y-1 py-10 text-center">
-          <span
-            class="bg-surface-200-800 text-surface-600-400 mx-auto mb-3 grid size-14 place-items-center rounded-2xl"
-          >
-            <Icon name="messageCircle" size={24} />
-          </span>
-
-          <p class="text-surface-950-50 font-semibold">{m.event_notFound()}</p>
-          <p class="text-surface-600-400 text-sm">{m.event_notFoundBody()}</p>
-
-          <a class="btn preset-tonal-surface mt-3" href={resolve('/(app)/(shell)/feed')}>
-            {m.notifications_emptyAction()}
-          </a>
+    <!-- Outside the scroll area, so nothing can pass under it and it needs no reserved height:
+         the same arrangement `Modal.mobile` uses for the sheet's footer. Only under a thread. -->
+    {#if threadShown}
+      <div class="border-surface-200-800 bg-surface-50-950 border-t">
+        <div class="container mx-auto max-w-3xl px-4 py-3">
+          <CommentComposer {thread} />
         </div>
-      {/snippet}
-    </QueryState>
+      </div>
+    {/if}
   </div>
 </main>

@@ -282,7 +282,8 @@
           <span class={['transition-transform', open && 'rotate-90']}>
             <Icon name="chevron-right" size={13} />
           </span>
-          {m.ascents_form_previousNotes()} ({previousNotes.length})
+          <!-- The count is of the whole list, so it waits for all of it. -->
+          {m.ascents_form_previousNotes()}{routeAscents.settled ? ` (${previousNotes.length})` : ''}
         {/snippet}
 
         {#each previousNotes as prev (prev.id)}

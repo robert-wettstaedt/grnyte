@@ -5,6 +5,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import { trackView } from '$lib/components/EntitySearch/recent.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -35,23 +36,23 @@
     {/snippet}
 
     {#snippet loading()}
-      <!-- Chromeless route (no nav rail/tab bar): keep a way back while the profile syncs, so a
-           dead sync can't strand the user on a skeleton. The empty/error states use ErrorState,
-           which carries its own Explore/Back buttons. -->
-      <div class="absolute top-2 left-2 z-10">
-        <button
-          class="btn-icon preset-filled-surface-200-800"
-          onclick={goBack}
-          title={m.common_back()}
-          aria-label={m.common_back()}
-        >
-          <Icon name="arrow-left" />
-        </button>
-      </div>
-      <div class="space-y-4 py-8" aria-busy="true">
-        <div class="placeholder animate-pulse"></div>
-        <div class="placeholder animate-pulse"></div>
-        <div class="placeholder animate-pulse"></div>
+      <!-- Chromeless route: a way back while the profile syncs, where ProfileView puts its own so it
+           does not move when the profile lands. The other states use ErrorState's own buttons. -->
+      <div class="container mx-auto max-w-3xl px-4 py-8">
+        <div class="relative flex flex-col items-center gap-4" aria-busy="true">
+          <button
+            class="btn-icon preset-filled-surface-200-800 absolute top-0 left-0"
+            onclick={goBack}
+            title={m.common_back()}
+            aria-label={m.common_back()}
+          >
+            <Icon name="arrow-left" />
+          </button>
+          <div class="skeleton-hold flex flex-col items-center gap-4">
+            <Avatar loading name="" size={80} solid />
+            <div class="placeholder h-7 w-40 animate-pulse"></div>
+          </div>
+        </div>
       </div>
     {/snippet}
 

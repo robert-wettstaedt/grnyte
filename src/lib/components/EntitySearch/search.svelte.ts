@@ -247,6 +247,11 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
     { enabled: () => ready() && regionFks().length > 0 },
   )
 
+  // The groups this term has shown so far, in the order they first did. Plain variables: they are
+  // bookkeeping read while rendering, never a reason to render again.
+  let placed: EntityType[] = []
+  let placedTerm: string | undefined
+
   const candidates = (): Record<EntityType, EntityCandidate[]> => ({
     areas: areas.data,
     blocks: blocks.data,
@@ -260,12 +265,20 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
       return this.groups.flatMap((group) => group.items)
     },
 
-    /** Non-empty groups, in section order (already filtered + capped by the queries). */
+    /** Non-empty groups, in the order they arrived for this term (already filtered + capped). */
     get groups(): EntityGroup[] {
       const all = candidates()
-      return GROUP_ORDER.map((type) => ({ items: all[type], key: type, label: entityGroupLabel(type) })).filter(
-        (group) => group.items.length > 0,
+      if (placedTerm !== settled()) {
+        placed = []
+        placedTerm = settled()
+      }
+      placed = placeGroups(
+        placed,
+        GROUP_ORDER.filter((type) => all[type].length > 0),
       )
+      return placed
+        .filter((type) => all[type].length > 0)
+        .map((type) => ({ items: all[type], key: type, label: entityGroupLabel(type) }))
     },
 
     /**
@@ -283,6 +296,12 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
       return areas.settled && blocks.settled && routes.settled && (regionFks().length === 0 || users.settled)
     },
   }
+}
+
+/** Where each result group goes: shown ones keep their place and a later one goes below them, never
+ *  above the rows being read. Groups arriving together take the usual section order. */
+export function placeGroups(placed: readonly EntityType[], present: readonly EntityType[]): EntityType[] {
+  return [...placed, ...GROUP_ORDER.filter((type) => present.includes(type) && !placed.includes(type))]
 }
 
 /**

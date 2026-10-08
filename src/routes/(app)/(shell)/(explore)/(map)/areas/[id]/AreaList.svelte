@@ -1,6 +1,8 @@
 <script lang="ts">
+  import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { m } from '$lib/paraglide/messages.js'
+  import { isOnline } from '$lib/state/online.svelte'
   import AreaListItem from './AreaListItem.svelte'
 
   interface Props {
@@ -12,7 +14,9 @@
   const { areas, settled }: Props = $props()
 </script>
 
-{#if areas.length > 0}
+<!-- Always a section: the list, a held row while it loads, or the empty line. Offline and never
+     confirmed it stays out, as before, rather than pulse with nothing coming. -->
+{#if areas.length > 0 || settled || isOnline()}
   <section class="space-y-2">
     <div class="flex items-center justify-between">
       <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.areas_title()}</h2>
@@ -24,10 +28,17 @@
       {/if}
     </div>
 
-    <nav class="flex flex-col gap-2">
-      {#each areas as area (area.id)}
-        <AreaListItem {area} />
-      {/each}
-    </nav>
+    {#if areas.length > 0}
+      <nav class="flex flex-col gap-2">
+        {#each areas as area (area.id)}
+          <AreaListItem {area} />
+        {/each}
+      </nav>
+    {:else if settled}
+      <!-- The held row's height, so "none" does not pull the page up. -->
+      <p class="text-surface-600-400 flex h-16 items-center text-sm">{m.areas_noAreas()}</p>
+    {:else}
+      <SkeletonRows count={1} lead="thumb" />
+    {/if}
   </section>
 {/if}
