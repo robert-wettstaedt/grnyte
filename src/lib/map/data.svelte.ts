@@ -197,9 +197,6 @@ export function createMapData(props: BlocksMapProps) {
     get blocksBySector() {
       return blocksBySector
     },
-    get countsKnown() {
-      return props.countsKnown ?? true
-    },
     get geoBlocks() {
       return geoBlocks
     },

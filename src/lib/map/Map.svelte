@@ -45,9 +45,6 @@
     get blocks() {
       return props.blocks
     },
-    get countsKnown() {
-      return props.countsKnown
-    },
     get gradeCountByBlock() {
       return props.gradeCountByBlock
     },
@@ -188,18 +185,15 @@
   }
 
   $effect(() =>
-    syncFeatures(
-      areaLayer,
-      buildAreaFeatures(data.areaBoundingBoxes, data.routeCountByArea, data.gradeCountByArea, data.countsKnown),
-    ),
+    syncFeatures(areaLayer, buildAreaFeatures(data.areaBoundingBoxes, data.routeCountByArea, data.gradeCountByArea)),
   )
   $effect(() =>
     syncFeatures(
       sectorLayer,
-      buildSectorFeatures(data.sectorBoundingBoxes, data.routeCountBySector, data.gradeCountBySector, data.countsKnown),
+      buildSectorFeatures(data.sectorBoundingBoxes, data.routeCountBySector, data.gradeCountBySector),
     ),
   )
-  $effect(() => syncFeatures(blockLayer, buildBlockFeatures(data.geoBlocks, data.routeCountByBlock, data.countsKnown)))
+  $effect(() => syncFeatures(blockLayer, buildBlockFeatures(data.geoBlocks, data.routeCountByBlock)))
 
   // Re-style the block layer when the selected block changes so the highlight + z-index follow.
   $effect(() => {

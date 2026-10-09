@@ -45,7 +45,6 @@
       blocks={mapData.blocks}
       parkingLocations={mapData.parkingLocations}
       lineStrings={mapData.lineStrings}
-      countsKnown={mapData.countsKnown}
       routeCountByBlock={mapData.routeCountByBlock}
       gradeCountByBlock={mapData.gradeCountByBlock}
       drawPath

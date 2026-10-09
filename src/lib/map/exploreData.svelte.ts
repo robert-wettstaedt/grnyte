@@ -116,10 +116,6 @@ export function createExploreMapData(
     routes.phase.kind === 'loading' || blocksResult.phase.kind === 'loading' || areasResult.phase.kind === 'loading',
   )
 
-  // Marker numbers are totals, so they wait for the whole route list; until then markers show none.
-  // The filter above still narrows by the raw counts, so matching blocks appear as routes arrive.
-  const countsKnown = $derived(routes.phase.kind === 'answered')
-
   // A stable object with per-field reactive getters. Callers bind each field to `<Map>`
   // individually (never spread), so a field whose source query didn't change keeps a
   // stable reference and its map layer's effect doesn't re-run: only the changed layer does.
@@ -127,9 +123,7 @@ export function createExploreMapData(
     get blocks() {
       return blocks
     },
-    get countsKnown() {
-      return countsKnown
-    },
+    // Unconfirmed on purpose: marker counts follow the rows on hand, a number settling beats a blank.
     get gradeCountByBlock() {
       return gradeCountByBlock
     },
