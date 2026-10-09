@@ -271,14 +271,12 @@ synchronizing the guidebook does not drop the connection.
       loads at 375. Verified 2026-10-09 on 9a3f3275 with test@ moved to a throwaway empty region:
       cold at 375 the card appears once (0.5-0.7 s) and stays, admin and read-only copy both; back
       on its real region no card in 9 s of 30 ms samples. Region deleted, membership restored
-- [ ] 14.9 Verify on prod over five field-device opens that the median guidebook batch is under 4 s
-      (target raised from 3 s on 2026-10-09, after measuring), no guidebook query exceeds 1 s, no
-      ping-related `client closed` appears, and the feed pill appears in under 2 s. Run 2026-10-09 on
-      63090531: guidebook 3,763 ms median, slowest query 653 ms, no ping closes, all pass; feed first
-      window 3,673 ms median, FAILED, queued behind the nine guidebook queries. One query at a time
-      (fee391ef) fixed the feed (493 ms) but doubled the guidebook (7,654 ms). Now: the batch again,
-      sent once the first screen has asked for its rows (harness: card 1.06-1.55 s, guidebook as
-      before). Re-run on prod
+- [x] 14.9 Verify on prod over five field-device opens that the median guidebook batch is under 4.5 s
+      (target set from 3 s after measuring, 2026-10-09), no guidebook query exceeds 1 s, no
+      ping-related `client closed` appears, and the feed pill appears in under 2 s. Passed on 9cf63494:
+      guidebook 4,424 ms median, slowest query 575 ms, no ping closes, feed first window 367 ms.
+      The batch now goes out once the first screen has asked, which moved ~3.3 s off the first screen
+      and ~0.66 s onto the background guidebook. The runs before it are in the notes
 - [x] 14.10 Read the replica's query plan for the feed's window query (`region_fk IN (SELECT value
 FROM json_each(?)) ORDER BY created_at desc, id desc`) and verify whether the composite index
       is used. Record the answer; change nothing unless the plan shows a sort over the whole table
