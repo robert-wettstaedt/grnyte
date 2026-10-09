@@ -13,6 +13,7 @@ import type { EventObjectType } from './dto'
 import { groupEvents } from './grouping'
 import type { EventListItem } from './mapper'
 import { eventList, type EventCursor } from './resources.svelte'
+import { firstWindowConfirmed, shownWindowPhase } from './window'
 
 export interface EventFeedFilter {
   /** Narrow to one actor. */
@@ -143,14 +144,23 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
     caughtUp = false
   })
 
-  // The first window is what the reader opened the page to, so it counts as read; only what lands
-  // after that queues behind the pill. A one-time capture, so it cannot be `$derived`: a mark that
-  // kept following the newest row would never hold anything back.
+  // The first confirmed window counts as read; only what lands after it queues behind the pill. A
+  // one-time capture, so not `$derived`: a mark that kept following the newest row holds nothing back.
   $effect(() => {
-    if (seen == null && events.data.length > 0) {
+    if (seen == null && firstWindowConfirmed(events.phase, events.data.length)) {
       acknowledge()
     }
   })
+
+  // An entity's log keeps its rows on hand: they are that entity's own, not another query's leftovers.
+  const shown: QueryResource<EventListItem[]> = {
+    get data() {
+      return events.data
+    },
+    get phase() {
+      return filter().scope == null ? shownWindowPhase(events.phase, seen != null) : events.phase
+    },
+  }
 
   return {
     acknowledge,
@@ -170,7 +180,7 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
       return incoming.data.length
     },
     get resource() {
-      return events
+      return shown
     },
     get views() {
       return views

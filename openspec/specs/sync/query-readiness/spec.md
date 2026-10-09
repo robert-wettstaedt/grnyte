@@ -75,13 +75,22 @@ subsequently lost or suspended.
 
 A surface SHALL render the rows it already holds rather than withholding all content until the
 query completes, and the indication that more is expected SHALL persist without converting into a
-failure or timeout claim.
+failure or timeout claim. The one exception is a newest-first window with a row limit opened for the
+first time (the activity feed): rows another query left on the device are not its newest, so it
+SHALL wait for its first confirmed answer instead of showing them, and only that answer counts as
+read.
 
 #### Scenario: Partial collection
 
 - **WHEN** some rows of a collection have arrived and more are expected
 - **THEN** the arrived rows are rendered
 - **AND** an indication that more are expected is shown alongside them
+
+#### Scenario: The feed opened after a page left older events on the device
+
+- **WHEN** the only events on the device are one route's, and the reader opens the activity feed
+- **THEN** the feed shows its loading state until its window is confirmed, then the newest events
+- **AND** no "new activity" count claims the events that were newer than the route's
 
 #### Scenario: Arrival stalls indefinitely
 
