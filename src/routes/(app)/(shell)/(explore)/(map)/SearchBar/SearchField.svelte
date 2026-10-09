@@ -53,7 +53,7 @@
     {onkeydown}
     {onkeyup}
     aria-label={placeholder}
-    class="min-w-0 flex-1 border-none bg-transparent outline-none"
+    class="min-w-0 flex-1 border-none bg-transparent outline-none [&::-webkit-search-cancel-button]:appearance-none"
     type="search"
   />
 
