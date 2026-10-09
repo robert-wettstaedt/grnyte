@@ -312,28 +312,39 @@ function preloadForOffline(z: Z<Schema>, ctx: KeepContext): void {
 
   // The guidebook's stamp is what lets a screen offline treat an empty result as an answer, so it
   // waits for every guidebook table rather than for the reference stamp, which lands seconds sooner.
+  // One query at a time: zero-cache hydrates a client group's queries in order, so a batch of nine
+  // held the first screen's own queries behind ~2.6 s of guidebook (prod, 2026-10-09).
   for (const stage of FIELD_STAGES) {
-    void preloadStage(z, stage, ctx)
+    void preloadStage(z, stage, ctx, { sequential: true })
   }
 }
 
 /** Preloads one stage of `KEPT`, stamping it once every query in it is complete. A failed lookup
  *  costs its own query and the stamp, never the rest of the stage. */
-async function preloadStage(z: Z<Schema>, stage: KeepStage, ctx: KeepContext): Promise<void> {
+async function preloadStage(
+  z: Z<Schema>,
+  stage: KeepStage,
+  ctx: KeepContext,
+  { sequential = false } = {},
+): Promise<void> {
   let failed = false
-  await Promise.all(
-    Object.entries(stage.queries).map(async ([name, build]) => {
-      try {
-        const request = await build(ctx)
-        if (request != null) {
-          await z.preload(request as Parameters<typeof z.preload>[0]).complete
-        }
-      } catch (error) {
-        failed = true
-        console.error(`Error preloading ${name} for offline use:`, error)
+  const preload = async ([name, build]: [string, (ctx: KeepContext) => unknown]) => {
+    try {
+      const request = await build(ctx)
+      if (request != null) {
+        await z.preload(request as Parameters<typeof z.preload>[0]).complete
       }
-    }),
-  )
+    } catch (error) {
+      failed = true
+      console.error(`Error preloading ${name} for offline use:`, error)
+    }
+  }
+  const entries = Object.entries(stage.queries) as [string, (ctx: KeepContext) => unknown][]
+  if (sequential) {
+    for (const entry of entries) await preload(entry)
+  } else {
+    await Promise.all(entries.map(preload))
+  }
   if (!failed && stage.stamp != null) {
     markSynced(stage.stamp)
   }
