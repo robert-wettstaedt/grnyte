@@ -235,7 +235,6 @@
     blocks={explore.blocks}
     parkingLocations={explore.parkingLocations}
     lineStrings={explore.lineStrings}
-    countsKnown={explore.countsKnown}
     routeCountByBlock={explore.routeCountByBlock}
     gradeCountByBlock={explore.gradeCountByBlock}
     {selectedBlockId}

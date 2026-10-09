@@ -102,12 +102,20 @@ read.
 
 A count, tally, histogram, position within a set, or any other value asserting something about a
 collection as a whole SHALL NOT be presented while that collection is unconfirmed. A value that
-describes only the rows on screen MAY be presented before confirmation.
+describes only the rows on screen MAY be presented before confirmation. The map's marker counts are
+the exception: a glanceable picture that updates live, they follow the rows on hand and settle once
+confirmed, since a number briefly off reads better than a blank marker.
 
 #### Scenario: Consensus drawn from a partial collection
 
 - **WHEN** a surface would summarise a collection that is still arriving
 - **THEN** the summary is withheld until the collection is confirmed
+
+#### Scenario: Map markers while the routes are unconfirmed
+
+- **WHEN** the map's route list is still being confirmed after a reload or a first open
+- **THEN** each area, sector and block marker shows the count and grade split of the routes on hand
+- **AND** they settle to the confirmed values without the marker going blank
 
 #### Scenario: Value describing only what is shown
 
