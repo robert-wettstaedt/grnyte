@@ -944,16 +944,16 @@ Cumulative layout shift from the browser's own Layout Instability API (`layout-s
 buffered), each page loaded cold on the prod-speed harness, 9 to 12 s per run. Google's "good" is
 under 0.1.
 
-| Page | 1280 | 375 | What is left |
-|---|---|---|---|
-| `/routes/<drawn>` | 0.0008 | 0.0061 | the location line sliding in on a GPS fix |
-| `/routes/<undrawn>` (editor) | 0.0036 | 0.0196 | same |
-| `/areas/<sector>`, `/areas/<area>` | 0.0026, 0.0024 | 0.031, 0.028 | map controls as the sheet opens; sheet header gaining its crumb |
-| `/blocks/<topos>`, `/blocks/<none>` | 0.0026, 0.0004 | 0.020, 0.029 | same |
-| `/blocks/<id>/topos/<id>` | 0.0034 | 0.0034 | the panel header gaining its crumb |
-| `/users/<id>` | 0 | 0 | |
-| `/regions/<id>` | 0.0053 (was 0.0122) | 0.022 (was 0.105) | a member row sorting in above another |
-| `/feed`, `/search?q=` | 0.0001, 0.0004 | 0, 0.0198 | map controls |
+| Page                                | 1280                | 375               | What is left                                                    |
+| ----------------------------------- | ------------------- | ----------------- | --------------------------------------------------------------- |
+| `/routes/<drawn>`                   | 0.0008              | 0.0061            | the location line sliding in on a GPS fix                       |
+| `/routes/<undrawn>` (editor)        | 0.0036              | 0.0196            | same                                                            |
+| `/areas/<sector>`, `/areas/<area>`  | 0.0026, 0.0024      | 0.031, 0.028      | map controls as the sheet opens; sheet header gaining its crumb |
+| `/blocks/<topos>`, `/blocks/<none>` | 0.0026, 0.0004      | 0.020, 0.029      | same                                                            |
+| `/blocks/<id>/topos/<id>`           | 0.0034              | 0.0034            | the panel header gaining its crumb                              |
+| `/users/<id>`                       | 0                   | 0                 |                                                                 |
+| `/regions/<id>`                     | 0.0053 (was 0.0122) | 0.022 (was 0.105) | a member row sorting in above another                           |
+| `/feed`, `/search?q=`               | 0.0001, 0.0004      | 0, 0.0198         | map controls                                                    |
 
 Found and fixed while measuring: the region page's "Created by" row waited for the creator's name
 relation and pushed everything below it down by a row (now keyed on the creator's id); the profile
@@ -980,3 +980,30 @@ and sector stay.
 Read-only member (`user@`), checked: no draw row and no held slot for it on an undrawn route, no
 "Add topos" on a block without topos, and a route's media sits below its history line.
 
+## 14.9 on prod (2026-10-09, build 63090531)
+
+Five cold field-device opens of `/feed` (override, store wiped from `/legal/privacy`, `/feed` typed),
+read from `__zero.inspector` and the stamps, plus `zero-server-prod`'s log.
+
+| run | reference | guidebook span | slowest guidebook query (server) | feed first window (total) |
+| --- | --------- | -------------- | -------------------------------- | ------------------------- |
+| 1   | 1,253     | 4,166          | 653                              | 4,065                     |
+| 2   | 1,043     | 3,650          | 595                              | 3,561                     |
+| 3   | 795       | 3,763          | 567                              | 3,673                     |
+| 4   | 770       | 3,787          | 653                              | 3,692                     |
+| 5   | 832       | 3,487          | 593                              | 3,390                     |
+
+Median guidebook span 3,763 ms: over the 3 s gate, under the 4 s it was moved to (the harness had
+predicted ~4.4 s with the deleted-place filter). No ping-related close; every `client closed` is a
+run's tab leaving, followed by zero-cache's benign "No validated connection is available for shared
+query work" as it stops that view-syncer.
+
+The feed missed 2 s by a wide margin: its own query costs ~0.2 s on the server, the rest is queueing.
+On a cold field device `/feed` mounts when the reference batch answers, which is also when the nine
+guidebook preloads go out, and zero-cache hydrates a client group's queries in order, so the window
+waited out ~2.6 s of guidebook. 12.3 passed this at ~1.07 s before the guidebook was flattened.
+
+Fix: the field stages preload one query at a time, so a screen's query waits behind one guidebook
+query at most. On the harness (zero-perf, cold, 375 touch): first card 1,318 / 1,475 / 845 ms against
+7,520 / 4,181 / 7,564 before; guidebook stamp 7,348 / 7,295 / 3,998 against 7,520 / 4,181 / 7,564,
+i.e. unchanged within this harness's noise. Needs the prod re-run.
