@@ -118,11 +118,9 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
     // which is the correct outcome - `markSynced` must not fire for a sync that did not happen.
     const ctx = keepContext(z)
     // The stamp says the shell can render, and nothing about the guidebook still arriving.
-    void preloadStage(z, KEPT.reference, ctx).then(() => {
-      // Only now: a client group's queries are answered as one batch, so issued beside these the
-      // guidebook held the first screen back for its whole ~12 s hydration.
-      preloadForOffline(z, ctx)
-    })
+    void preloadStage(z, KEPT.reference, ctx)
+      .then(afterFirstScreen)
+      .then(() => preloadForOffline(z, ctx))
   }
 
   instance = z
@@ -259,6 +257,16 @@ export function syncCaughtUp(): boolean {
   return caughtUp
 }
 
+/** Once the first screen has asked for its rows: zero-cache answers in arrival order, so a guidebook
+ *  sent beside them held the feed ~2.6 s on prod, and sent one query at a time took twice as long. */
+function afterFirstScreen(): Promise<void> {
+  return new Promise((resolve) => {
+    // Safari has no `requestIdleCallback`.
+    if ('requestIdleCallback' in window) requestIdleCallback(() => resolve(), { timeout: 1000 })
+    else setTimeout(resolve, 300)
+  })
+}
+
 function armSyncBarrier(z: Z<Schema>): void {
   const generation = ++barrier
   caughtUp = false
@@ -312,39 +320,28 @@ function preloadForOffline(z: Z<Schema>, ctx: KeepContext): void {
 
   // The guidebook's stamp is what lets a screen offline treat an empty result as an answer, so it
   // waits for every guidebook table rather than for the reference stamp, which lands seconds sooner.
-  // One query at a time: zero-cache hydrates a client group's queries in order, so a batch of nine
-  // held the first screen's own queries behind ~2.6 s of guidebook (prod, 2026-10-09).
   for (const stage of FIELD_STAGES) {
-    void preloadStage(z, stage, ctx, { sequential: true })
+    void preloadStage(z, stage, ctx)
   }
 }
 
 /** Preloads one stage of `KEPT`, stamping it once every query in it is complete. A failed lookup
  *  costs its own query and the stamp, never the rest of the stage. */
-async function preloadStage(
-  z: Z<Schema>,
-  stage: KeepStage,
-  ctx: KeepContext,
-  { sequential = false } = {},
-): Promise<void> {
+async function preloadStage(z: Z<Schema>, stage: KeepStage, ctx: KeepContext): Promise<void> {
   let failed = false
-  const preload = async ([name, build]: [string, (ctx: KeepContext) => unknown]) => {
-    try {
-      const request = await build(ctx)
-      if (request != null) {
-        await z.preload(request as Parameters<typeof z.preload>[0]).complete
+  await Promise.all(
+    Object.entries(stage.queries).map(async ([name, build]) => {
+      try {
+        const request = await build(ctx)
+        if (request != null) {
+          await z.preload(request as Parameters<typeof z.preload>[0]).complete
+        }
+      } catch (error) {
+        failed = true
+        console.error(`Error preloading ${name} for offline use:`, error)
       }
-    } catch (error) {
-      failed = true
-      console.error(`Error preloading ${name} for offline use:`, error)
-    }
-  }
-  const entries = Object.entries(stage.queries) as [string, (ctx: KeepContext) => unknown][]
-  if (sequential) {
-    for (const entry of entries) await preload(entry)
-  } else {
-    await Promise.all(entries.map(preload))
-  }
+    }),
+  )
   if (!failed && stage.stamp != null) {
     markSynced(stage.stamp)
   }
