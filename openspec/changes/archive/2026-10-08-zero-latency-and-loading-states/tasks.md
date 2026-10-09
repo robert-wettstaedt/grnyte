@@ -266,9 +266,11 @@ synchronizing the guidebook does not drop the connection.
       resource, and verify the map renders the same blocks, areas and parking at 375x667 and
       1280x800, and that the inspector shows no `listBlocks({})` or `listAreas({})` registered on
       /explore
-- [ ] 14.8 Point the /explore empty-region card at the flat areas query, and verify it shows for an
+- [x] 14.8 Point the /explore empty-region card at the flat areas query, and verify it shows for an
       empty region and does not flash while syncing. Pointed (`areaMapList`), and no flash on two cold
-      loads at 375. NOT verified that it shows: no test user has only empty regions
+      loads at 375. Verified 2026-10-09 on 9a3f3275 with test@ moved to a throwaway empty region:
+      cold at 375 the card appears once (0.5-0.7 s) and stays, admin and read-only copy both; back
+      on its real region no card in 9 s of 30 ms samples. Region deleted, membership restored
 - [ ] 14.9 Verify on prod over five field-device opens that the median guidebook batch is under 3 s,
       no guidebook query exceeds 1 s, no ping-related `client closed` appears, and the feed pill
       appears in under 2 s
