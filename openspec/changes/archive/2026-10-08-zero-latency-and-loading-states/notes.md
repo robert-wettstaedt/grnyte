@@ -1020,3 +1020,26 @@ Replaced by sending the batch as before, but only once the first screen has aske
 screen first and the guidebook still in parallel. Harness, four cold field-device opens: first card
 1,506 / 1,545 / 1,060 / 1,125 ms, guidebook 7,759 / 8,095 / 5,232 / 4,471 ms, the batch's own range
 there. Needs the prod re-run.
+
+### Closed on 9cf63494: the batch after the first screen
+
+Five cold field-device opens, the capture snippet waiting for the guidebook stamp itself (the earlier
+`null` runs were captures taken before it landed, not a stall).
+
+| run | reference | guidebook span | feed first window | slowest guidebook query |
+| --- | --------- | -------------- | ----------------- | ----------------------- |
+| 1   | 1,045     | 4,824          | 367               | 575                     |
+| 2   | 1,074     | 5,050          | 426               | 653                     |
+| 3   | 794       | 4,309          | 327               | 530                     |
+| 4   | 792       | 4,424          | 297               | 571                     |
+| 5   | 775       | 4,330          | 408               | 510                     |
+
+Medians: guidebook 4,424 ms, feed 367 ms. Against the batch sent beside the screen (3,763 / 3,673 ms)
+the first screen gains ~3.3 s and the background guidebook loses ~0.66 s, most of it the idle wait
+(`timeout: 1000`). The gate was set to 4.5 s on that trade. Shortening the wait to one frame might win
+back about half of it; untried. The personal stage lands with the guidebook in every run, being in
+the same batch. No ping-related close.
+
+After the first window is marked read the feed re-targets to an `upTo` window, which queues behind
+the guidebook (~4 s on prod), but nothing on screen waits for it: `caughtUp` latches on the first
+window, before the mark. Driven on the harness: "Loading…" beside the cards for 100 to 150 ms.
