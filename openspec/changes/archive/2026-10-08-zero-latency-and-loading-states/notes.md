@@ -1007,3 +1007,16 @@ Fix: the field stages preload one query at a time, so a screen's query waits beh
 query at most. On the harness (zero-perf, cold, 375 touch): first card 1,318 / 1,475 / 845 ms against
 7,520 / 4,181 / 7,564 before; guidebook stamp 7,348 / 7,295 / 3,998 against 7,520 / 4,181 / 7,564,
 i.e. unchanged within this harness's noise. Needs the prod re-run.
+
+### Re-run on fee391ef: one query at a time trades the feed for the guidebook
+
+Feed first window 548 / 493 / 470 / 480 / 699 ms (median 493). The guidebook took 7,654 ms in run 1
+and had not finished at capture in runs 2 to 5, although all nine queries had server times: each
+query now waits a full round trip plus the client applying its rows before the next is sent, so ~1.7 s
+of server work became ~7.6 s. No ping-related close.
+
+Replaced by sending the batch as before, but only once the first screen has asked for its rows
+(`afterFirstScreen`: an idle callback, a timer where there is none). The server then answers the
+screen first and the guidebook still in parallel. Harness, four cold field-device opens: first card
+1,506 / 1,545 / 1,060 / 1,125 ms, guidebook 7,759 / 8,095 / 5,232 / 4,471 ms, the batch's own range
+there. Needs the prod re-run.

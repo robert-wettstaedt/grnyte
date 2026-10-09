@@ -275,8 +275,10 @@ synchronizing the guidebook does not drop the connection.
       (target raised from 3 s on 2026-10-09, after measuring), no guidebook query exceeds 1 s, no
       ping-related `client closed` appears, and the feed pill appears in under 2 s. Run 2026-10-09 on
       63090531: guidebook 3,763 ms median, slowest query 653 ms, no ping closes, all pass; feed first
-      window 3,673 ms median, FAILED, queued behind the nine guidebook queries. Fix: the field stages
-      preload one query at a time (harness: first card 0.85-1.48 s, was 4.2-7.6 s). Re-run on prod
+      window 3,673 ms median, FAILED, queued behind the nine guidebook queries. One query at a time
+      (fee391ef) fixed the feed (493 ms) but doubled the guidebook (7,654 ms). Now: the batch again,
+      sent once the first screen has asked for its rows (harness: card 1.06-1.55 s, guidebook as
+      before). Re-run on prod
 - [x] 14.10 Read the replica's query plan for the feed's window query (`region_fk IN (SELECT value
 FROM json_each(?)) ORDER BY created_at desc, id desc`) and verify whether the composite index
       is used. Record the answer; change nothing unless the plan shows a sort over the whole table
