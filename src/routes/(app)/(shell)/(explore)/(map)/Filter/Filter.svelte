@@ -321,7 +321,9 @@
         'btn-icon relative shrink-0 gap-1.5',
         open ? 'preset-filled-primary-500' : 'preset-filled-surface-200-800',
       ]}
+      aria-label={showSort ? m.filter_filterAndSort() : m.common_filter()}
       onclick={toggleOpen}
+      title={showSort ? m.filter_filterAndSort() : m.common_filter()}
     >
       {#if active}
         <span class="absolute -top-0.5 -right-0.5 z-10 h-2 w-2 rounded-full bg-red-500"></span>
