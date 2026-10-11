@@ -17,6 +17,7 @@
 import { db } from '$lib/db/db.server'
 import { regionMembers } from '$lib/db/schema'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
+import { LOCK } from '$lib/remote/lock.server'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -256,7 +257,7 @@ describe.skipIf(!reachable)('last-admin race', () => {
   })
 
   it('takes the region lock before counting admins', async () => {
-    await expect(stallsOnLock('region_members', regionId, () => assertNotLastAdmin(db, regionId, 0))).resolves.toBe(
+    await expect(stallsOnLock(LOCK.regionMembers, regionId, () => assertNotLastAdmin(db, regionId, 0))).resolves.toBe(
       true,
     )
   })

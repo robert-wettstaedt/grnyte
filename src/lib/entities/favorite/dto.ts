@@ -16,7 +16,7 @@ export const FAVORITE_KEY = {
 } as const satisfies Record<FavoriteEntityType, string>
 
 /** The same three, as a list, so the zod enums are derived from the map rather than restating it. */
-export const FAVORITE_TYPES = Object.keys(FAVORITE_KEY) as [FavoriteEntityType, ...FavoriteEntityType[]]
+const FAVORITE_TYPES = Object.keys(FAVORITE_KEY) as [FavoriteEntityType, ...FavoriteEntityType[]]
 
 /**
  * What names one favorited thing, for `toggleFavorite` and for the two queries that count them.

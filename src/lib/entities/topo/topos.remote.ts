@@ -5,9 +5,10 @@ import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { authedCommand, authedRls } from '$lib/remote/authed.server'
+import { LOCK, lockKey } from '$lib/remote/lock.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error } from '@sveltejs/kit'
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../file/cleanup.server'
 import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from './change'
@@ -74,7 +75,7 @@ async function requireFreeBlockImage(
   blockFk: null | number,
 ): Promise<void> {
   // Held to commit, so a second claim of this file waits and then reads it taken (409, not a 23505).
-  await db.execute(sql`select pg_advisory_xact_lock(hashtext('topo_file'), hashtext(${fileId}))`)
+  await lockKey(db, LOCK.topoFile, fileId)
   const file = await db.query.files.findFirst({ columns: { blockFk: true }, where: eq(files.id, fileId) })
   if (blockFk == null || file?.blockFk !== blockFk) {
     error(404, formError('files_notFound'))

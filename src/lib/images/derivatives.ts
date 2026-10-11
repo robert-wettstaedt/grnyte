@@ -12,6 +12,9 @@ export const DERIVATIVE_SIZES = [256, 1024] as const
 
 export const DERIVATIVE_QUALITY = 80
 
+/** The Cache Storage name the service worker fills with derivatives, and sign-out deletes. */
+export const IMAGE_CACHE = 'images'
+
 export type DerivativeSize = (typeof DERIVATIVE_SIZES)[number]
 
 /** Storage path of the derivative for `path`, e.g. `/topos/138.jpg` → `/topos/138.1024.webp`. */

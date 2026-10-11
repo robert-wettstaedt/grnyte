@@ -1,10 +1,15 @@
 import { sql } from '$lib/db/testDb'
+import type { LockNamespace } from '$lib/remote/lock.server'
 
 /**
  * Holds an advisory transaction lock in a second session and reports whether `run` stalled on it.
  * Proves the code under test takes that lock, which no single-session test can see.
  */
-export async function stallsOnLock(namespace: string, key: number, run: () => Promise<unknown>): Promise<boolean> {
+export async function stallsOnLock(
+  namespace: LockNamespace,
+  key: number,
+  run: () => Promise<unknown>,
+): Promise<boolean> {
   let release = () => {}
   let ready = () => {}
   const held = new Promise<void>((resolve) => (release = resolve))

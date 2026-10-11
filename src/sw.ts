@@ -10,7 +10,7 @@ import { registerRoute } from 'workbox-routing'
 import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies'
 import { APP_HOME_PATH } from './lib/auth'
 import { isPushPayload, type PushPayload } from './lib/entities/notification/push'
-import { isDerivativeRequest } from './lib/images/derivatives'
+import { IMAGE_CACHE, isDerivativeRequest } from './lib/images/derivatives'
 import { isStorableTile, OSM_TILE_HOST } from './lib/map/tiles'
 import { CLAIM_CHECK } from './lib/state/serviceWorkerMessages'
 
@@ -235,7 +235,7 @@ self.addEventListener('fetch', (event) => {
 registerRoute(
   ({ request, sameOrigin, url }) => request.destination === 'image' && sameOrigin && isDerivativeRequest(url),
   new CacheFirst({
-    cacheName: 'images',
+    cacheName: IMAGE_CACHE,
     plugins: [new ExpirationPlugin({ maxEntries: 1000 })],
   }),
 )

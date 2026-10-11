@@ -9,6 +9,7 @@
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
+import { LOCK } from '$lib/remote/lock.server'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { createRegionForUser, listOwnedRegions } from './create.server'
 import { MAX_OWNED_REGIONS } from './dto'
@@ -60,7 +61,7 @@ describe.skipIf(!reachable)('createRegionForUser', () => {
   })
 
   it('serialises on the founder before counting what they own', async () => {
-    await expect(stallsOnLock('region_owner', founder.userId, () => found('locked'))).resolves.toBe(true)
+    await expect(stallsOnLock(LOCK.regionOwner, founder.userId, () => found('locked'))).resolves.toBe(true)
   })
 
   it('refuses past the cap, and writes nothing when it does', async () => {

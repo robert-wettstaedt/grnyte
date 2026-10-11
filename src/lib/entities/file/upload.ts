@@ -30,7 +30,7 @@ export type FileEntityType = (typeof fileEntityTypes)[number]
 export type MediaKind = 'image' | 'video'
 
 /** Raster formats `finalizeImage` accepts (drives the picker's `accept` too). */
-export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] as const
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] as const
 
 /** Lowercased file extension without the dot; `null` when there is none. */
 export const extensionOf = (name: string): null | string => /\.([^./]+)$/.exec(name)?.[1].toLowerCase() ?? null

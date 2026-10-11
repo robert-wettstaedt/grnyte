@@ -340,32 +340,6 @@ export function resolveAvailability(input: {
   return 'unsynced'
 }
 
-/**
- * Whether this device holds the whole answer without asking: the policy keeps it and the preload
- * that fills it finished. The reference stamp does not vouch for the guidebook, which lands later.
- */
-export function resolveKept(input: {
-  fieldDevice: boolean
-  guidebookSynced: boolean
-  personalSynced: boolean
-  policy: OfflinePolicy | undefined
-  referenceSynced: boolean
-  storeLoaded: boolean
-}): boolean {
-  // Until the replica is read back, kept rows are empty because they are loading, or gone.
-  if (!input.storeLoaded) {
-    return false
-  }
-  if (input.policy === 'always') {
-    return input.referenceSynced
-  }
-  if (!input.fieldDevice) {
-    return false
-  }
-
-  return input.policy === 'field' ? input.guidebookSynced : input.policy === 'personal' && input.personalSynced
-}
-
 /** The phase, from the same evidence the resolvers below read, in the order screens must use. */
 export function resolvePhase(input: {
   availability: Availability
@@ -497,6 +471,32 @@ function resolveEmpty({
   }
 
   return settled || (status === 'loading' && availability === 'ready')
+}
+
+/**
+ * Whether this device holds the whole answer without asking: the policy keeps it and the preload
+ * that fills it finished. The reference stamp does not vouch for the guidebook, which lands later.
+ */
+function resolveKept(input: {
+  fieldDevice: boolean
+  guidebookSynced: boolean
+  personalSynced: boolean
+  policy: OfflinePolicy | undefined
+  referenceSynced: boolean
+  storeLoaded: boolean
+}): boolean {
+  // Until the replica is read back, kept rows are empty because they are loading, or gone.
+  if (!input.storeLoaded) {
+    return false
+  }
+  if (input.policy === 'always') {
+    return input.referenceSynced
+  }
+  if (!input.fieldDevice) {
+    return false
+  }
+
+  return input.policy === 'field' ? input.guidebookSynced : input.policy === 'personal' && input.personalSynced
 }
 
 /**

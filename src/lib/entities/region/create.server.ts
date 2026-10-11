@@ -1,10 +1,10 @@
 import { pinnedTx } from '$lib/db/pinned.server'
 import { regionMembers, regions } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
+import { LOCK, lockKey } from '$lib/remote/lock.server'
 import { error } from '@sveltejs/kit'
 import { count, eq } from 'drizzle-orm'
 import { MAX_OWNED_REGIONS, type OwnedRegion } from './dto'
-import { lockKey } from './guards.server'
 
 /**
  * Found a region and put its creator in it as `region_admin`, in one transaction.
@@ -29,7 +29,7 @@ export async function createRegionForUser({
   return pinnedTx(async (tx) => {
     // Re-checked inside the transaction rather than trusting the handler's check: two tabs
     // submitting at once both pass that one and would leave the account over the cap.
-    await lockKey(tx, 'region_owner', userId)
+    await lockKey(tx, LOCK.regionOwner, userId)
     const [{ owned }] = await tx.select({ owned: count() }).from(regions).where(eq(regions.createdBy, userId))
 
     if (owned >= MAX_OWNED_REGIONS) {
