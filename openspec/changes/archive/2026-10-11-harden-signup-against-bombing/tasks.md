@@ -28,7 +28,7 @@
 - [x] 3.4 Flip `deployment/check-prod.ts:37` to assert `disable_signup === true`; verify it fails against the current environment and passes after the switch (fails locally, where public sign-up is still on)
 - [x] 3.5 Run `e2e/prod-signup.spec.ts` and `e2e/invite.spec.ts` against the local stack with `disable_signup` on; verify both pass and the confirmation email arrives unchanged (both pass locally, run by the user; the first invite run failed on a submit that beat the solve, fixed in ProofOfWork.svelte)
 - [x] 3.6 Verification sweep for group 3 and commit
-- [ ] 3.7 After deploy (user): run the prod canary, switch off "Allow new users to sign up" in Supabase, run `npm run check:prod` and the canary again
+- [x] 3.7 After deploy (user): run the prod canary, switch off "Allow new users to sign up" in Supabase, run `npm run check:prod` and the canary again
 
 ## 4. Cleanup and alert
 
