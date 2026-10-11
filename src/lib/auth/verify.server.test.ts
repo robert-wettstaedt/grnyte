@@ -7,6 +7,7 @@
  * `set_config('request.jwt.claim.sub', ...)` and became `auth.uid()` inside RLS.
  */
 import { SUPABASE_JWT_SECRET } from '$env/static/private'
+import { CONTESTED_SIGNUP } from '$lib/auth'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { SignJWT } from 'jose'
 import { describe, expect, it } from 'vitest'
@@ -39,6 +40,14 @@ describe('verifyAccessToken', () => {
     expect(result.ok).toBe(true)
     expect(result.ok && result.claims.sub).toBe(SUB)
     expect(result.ok && result.claims.email).toBe('climber@example.com')
+  })
+
+  it('refuses a session on a still-contested account, however it was signed in', async () => {
+    expect(await verifyAccessToken(await token({ app_metadata: { [CONTESTED_SIGNUP]: true } }))).toEqual({
+      ok: false,
+      reason: 'invalid',
+    })
+    expect((await verifyAccessToken(await token({ app_metadata: { provider: 'email' } }))).ok).toBe(true)
   })
 
   it('rejects an absent token without calling anything', async () => {

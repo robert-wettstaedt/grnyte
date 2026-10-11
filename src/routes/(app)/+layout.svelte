@@ -20,6 +20,7 @@
   import { isOnline } from '$lib/state/online.svelte'
   import { rootPill } from '$lib/state/pill.svelte'
   import { syncPushSubscription } from '$lib/state/push.svelte'
+  import { wipeAndLeave } from '$lib/state/wipe'
   import { authRetryDelay, lastAuthAttemptAt, startAuthRecovery, stopAuthRecovery } from '$lib/zero/authRecovery'
   import { getZ, initZero } from '$lib/zero/z.svelte'
   import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
@@ -94,7 +95,13 @@
       return
     }
 
-    const { data: auth } = supabase.auth.onAuthStateChange((_, newSession) => {
+    const { data: auth } = supabase.auth.onAuthStateChange((event, newSession) => {
+      // Any sign-out (another tab, a revoked session; never offline): wipe, then replace the whole
+      // document, the only way to drop its in-memory views; an `invalidate` here would cancel a goto.
+      if (event === 'SIGNED_OUT') {
+        void wipeAndLeave(resolve('/'))
+        return
+      }
       if (newSession?.access_token !== data.session?.access_token) {
         void invalidate('supabase:auth')
       }

@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/private'
 import { SUPABASE_JWT_SECRET } from '$env/static/private'
-import type { VerifiedClaims } from '$lib/auth'
+import { isContested, type VerifiedClaims } from '$lib/auth'
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose'
 
 /**
@@ -119,6 +119,12 @@ export async function verifyAccessToken(accessToken: null | string | undefined):
     // to `roleFor`: a claim set with a `sub` and no `authenticated` role is not a user session, and
     // rejecting it at the gate gives a clean 401 instead of a 42501 halfway through a transaction.
     if (typeof payload.sub !== 'string' || payload.sub.length === 0 || payload.role !== 'authenticated') {
+      return { ok: false, reason: 'invalid' }
+    }
+
+    // GoTrue's password grant is public, so the sign-in form is not the only way to a token whose
+    // password may be a stranger's. `/auth/confirm` clears the flag once it has replaced it.
+    if (isContested(payload.app_metadata)) {
       return { ok: false, reason: 'invalid' }
     }
 

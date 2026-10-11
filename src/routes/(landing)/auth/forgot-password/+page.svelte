@@ -1,11 +1,15 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AuthField from '$lib/forms/AuthField.svelte'
   import BotCheck from '$lib/forms/BotCheck.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import { m } from '$lib/paraglide/messages'
   import { forgotPassword } from './forgot-password.remote'
+
+  // Set by /auth/confirm when it could not keep a contested sign-up's session.
+  const contested = $derived(page.url.searchParams.has('contested'))
 </script>
 
 <svelte:head>
@@ -20,7 +24,9 @@
   </div>
 {:else}
   <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_forgotTitle()}</h1>
-  <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">{m.auth_forgotSubtitle()}</p>
+  <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">
+    {contested ? m.auth_forgotContestedSubtitle() : m.auth_forgotSubtitle()}
+  </p>
 
   <form {...forgotPassword} class="flex flex-col gap-4">
     <FormError form={forgotPassword} />
