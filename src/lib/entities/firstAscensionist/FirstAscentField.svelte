@@ -15,6 +15,7 @@
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { quietly } from '$lib/state/pill.svelte'
   import { expectingMore } from '$lib/zero/resource.svelte'
   import { fly } from 'svelte/transition'
 
@@ -31,7 +32,8 @@
   let { regionFk, value = $bindable([]) }: Props = $props()
 
   const global = getGlobalState()
-  const ascensionists = firstAscensionistList(() => ({ regionFk }))
+  // Quietly: a picker's options say nothing about whether the form's own rows are here.
+  const ascensionists = quietly(() => firstAscensionistList(() => ({ regionFk })))
 
   const duration = $derived(motion(150))
 

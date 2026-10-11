@@ -1,6 +1,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import PillHost from '$lib/components/StatusPill/PillHost.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { createPillSurface } from '$lib/state/pill.svelte'
   import { resetOnNavigate } from '$lib/state/scroll'
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
   import NavFooter from './NavFooter.svelte'
@@ -9,6 +11,9 @@
   import type { ModalProps } from './types'
 
   let { children, onclose, open = $bindable() }: ModalProps = $props()
+
+  // This sheet's own pill: what it renders holds it, drawn above its own backdrop.
+  const pill = createPillSurface()
 
   // Keep compatibility with callers that may still set this value.
   $effect(() => {
@@ -60,6 +65,8 @@
             {/if}
           </header>
 
+          <!-- Beside the description, not in it: the dialog's aria-describedby would read the pill. -->
+          <PillHost class="relative top-2 z-20 h-0" surface={pill} />
           <Dialog.Description class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4" {@attach resetOnNavigate}>
             {@render children?.()}
           </Dialog.Description>

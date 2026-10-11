@@ -22,15 +22,17 @@
   interface Props {
     /** Blocks beneath the area, already ordered by the query. */
     blocks: BlockDetail[]
+    /** The routes on hand may be counted (see `summaryOf`). */
+    counted: boolean
     /** Either query failed, so nothing more is coming. */
     failed?: boolean
     /** Every route beneath the area; grouped here by `blockFk`. */
     routes: RouteListItem[]
-    /** Both lists are whole, so a count or a "none" is true. */
+    /** Both lists are whole, so a "none" is true. */
     settled: boolean
   }
 
-  const { blocks, failed = false, routes, settled }: Props = $props()
+  const { blocks, counted, failed = false, routes, settled }: Props = $props()
 
   const global = getGlobalState()
 
@@ -135,7 +137,7 @@
             </span>
           {/if}
         {/if}
-        {#if settled && blockRoutes.length > 0}
+        {#if counted && blockRoutes.length > 0}
           {#if block.geolocation == null || block.geolocation.estimated || distance != null}
             <span class="opacity-40" aria-hidden="true">·</span>
           {/if}

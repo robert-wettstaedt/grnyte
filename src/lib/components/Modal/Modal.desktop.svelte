@@ -1,6 +1,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import PillHost from '$lib/components/StatusPill/PillHost.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { createPillSurface } from '$lib/state/pill.svelte'
   import { Dialog, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import type { Props } from './types'
 
@@ -19,6 +21,9 @@
     title,
     trigger,
   }: Props = $props()
+
+  // This sheet's own pill: what it renders holds it, drawn above its own backdrop.
+  const pill = createPillSurface()
 
   // Two `max-h-*` utilities on one element are the same specificity, so which one wins is the
   // order Tailwind happened to emit them in, not the order they are listed here. Four callers
@@ -75,6 +80,8 @@
             {/if}
           </header>
 
+          <!-- Beside the description, not in it: the dialog's aria-describedby would read the pill. -->
+          <PillHost class="relative top-2 z-20 h-0" surface={pill} />
           <Dialog.Description class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-2 pb-4">
             {@render children?.()}
           </Dialog.Description>
@@ -119,6 +126,8 @@
             <span class="text-lg">{title}</span>
           </header>
 
+          <!-- Beside the description, not in it: the dialog's aria-describedby would read the pill. -->
+          <PillHost class="relative top-2 z-20 h-0" surface={pill} />
           <Popover.Description class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-4">
             {@render children?.()}
           </Popover.Description>

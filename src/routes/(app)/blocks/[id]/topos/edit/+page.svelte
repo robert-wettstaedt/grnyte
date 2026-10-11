@@ -43,7 +43,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { FAILURE_TOAST_MS, notifyError, notifyUndo, toaster } from '$lib/state/toast'
-  import { expectingMore } from '$lib/zero/resource.svelte'
+  import { expectingMore, summaryOf } from '$lib/zero/resource.svelte'
   import { tick } from 'svelte'
   import { fly } from 'svelte/transition'
   import { topoEditorKeydown } from './keydown'
@@ -91,6 +91,7 @@
   // Keep the order, or the two surfaces drift.
   const blockOffline = $derived(block.phase.kind === 'unavailable')
   const blockErrored = $derived(block.phase.kind === 'error')
+  const toposCount = $derived(summaryOf(topos.phase, topos.data.length))
   const blockEmpty = $derived(block.phase.kind === 'answered' && block.phase.empty)
 
   // `canEditHere` reads a missing block as "still loading", so every consumer needs this instead:
@@ -179,6 +180,8 @@
       return route == null ? [] : [route]
     }),
   )
+
+  const topoRouteCount = $derived(summaryOf(topos.phase, topoRoutes.length))
 
   const selectedRoute = $derived(editor.selectedRouteFk == null ? undefined : routeById.get(editor.selectedRouteFk))
 
@@ -563,8 +566,8 @@
             panelClass="fixed inset-y-0 right-0 z-40"
             contentClass="h-full w-94 rounded-none border-y-0 border-r-0 lg:w-105"
             title={m.topo_routesOnPhoto()}
-            subtitle={topos.phase.kind === 'answered'
-              ? m.topo_position({ position: currentTopoIndex + 1, total: topos.data.length })
+            subtitle={toposCount != null
+              ? m.topo_position({ position: currentTopoIndex + 1, total: toposCount })
               : undefined}
             snapPoints={[0.7]}
           >
@@ -577,8 +580,8 @@
               >
                 <Icon name="list" size={18} />
                 {m.topo_routes()}
-                {#if topos.phase.kind === 'answered'}
-                  <span class="tabular-nums opacity-60">{topoRoutes.length}</span>
+                {#if topoRouteCount != null}
+                  <span class="tabular-nums opacity-60">{topoRouteCount}</span>
                 {/if}
               </button>
             {/snippet}
@@ -626,7 +629,7 @@
         onReplacePhoto={(topoId) => pickPhoto(topoId)}
         onDeletePhoto={deleteCurrentTopo}
         onReorder={topos.phase.kind === 'answered' ? persistReorder : undefined}
-        total={topos.phase.kind === 'answered' ? topos.data.length : undefined}
+        total={toposCount}
       />
 
       <input bind:this={fileInput} type="file" accept="image/*" class="hidden" onchange={onFilePicked} />

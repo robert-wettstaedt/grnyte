@@ -21,7 +21,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion, prefersStill } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { expectingMore } from '$lib/zero/resource.svelte'
+  import { expectingMore, summaryOf } from '$lib/zero/resource.svelte'
   import { flip } from 'svelte/animate'
   import { fade, slide } from 'svelte/transition'
 
@@ -77,6 +77,8 @@
   const sameCommunity = keepIfSame()
   const mine = $derived(sameMine(split.mine))
   const community = $derived(sameCommunity(split.community))
+  const ascentCount = $derived(summaryOf(ascents.phase, ascents.data.length))
+  const communityCount = $derived(summaryOf(ascents.phase, community.length))
 
   // Viewer siblings: every row's files, newest upload first, so paging next/prev
   // follows the on-screen row order (rows render newest-first). Unfiltered so an
@@ -118,9 +120,8 @@
         {#if route.data == null && expectingMore(route.phase)}
           <SkeletonText />
         {:else if route.data != null}
-          {route.data.name} · {gradeLabel(global.grades, global.gradingScale, route.data.gradeFk)}{ascents.phase
-            .kind === 'answered'
-            ? ` · ${m.ascents_count({ count: ascents.data.length })}`
+          {route.data.name} · {gradeLabel(global.grades, global.gradingScale, route.data.gradeFk)}{ascentCount != null
+            ? ` · ${m.ascents_count({ count: ascentCount })}`
             : ''}
         {/if}
       </span>
@@ -141,7 +142,7 @@
             type="button"
           >
             {label()}
-            {#if ascents.phase.kind === 'answered'}
+            {#if summaryOf(ascents.phase, count) != null}
               <span class="font-semibold opacity-65" transition:fade={{ duration: fadeDuration }}>{count}</span>
             {/if}
           </button>
@@ -195,9 +196,7 @@
             <div transition:slide={{ duration: fadeDuration }}>
               {@render ascentSection(
                 community,
-                ascents.phase.kind === 'answered'
-                  ? `${m.ascents_community()} · ${community.length}`
-                  : m.ascents_community(),
+                communityCount != null ? `${m.ascents_community()} · ${communityCount}` : m.ascents_community(),
                 'text-surface-600-400',
                 false,
               )}
