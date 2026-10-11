@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import SettingSection from '$lib/components/Setting/SettingSection.svelte'
   import { entityHref } from '$lib/entities/href'
-  import { canEditRegion } from '$lib/entities/region/permissions'
+  import { regionAdminScreen } from '$lib/entities/region/adminScreen.svelte'
   import { addRegionTag, regionTagUsage, removeRegionTag, renameRegionTag } from '$lib/entities/region/regions.remote'
   import { MAX_TAGS, regionTags, tagNameSchema } from '$lib/entities/region/tagVocabulary'
   import { resolveIssueMessage } from '$lib/forms/issue'
@@ -18,23 +17,17 @@
   import TagRow from './TagRow.svelte'
 
   const global = getGlobalState()
-
-  const regionId = $derived(Number(page.params.regionId))
-
-  // Region settings are admin-only, and the link into here is too, so this only catches somebody
-  // typing the URL. The server rejects them either way. This is so they find out before typing.
-  const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
+  const screen = regionAdminScreen()
 
   // Derived, not a snapshot: the vocabulary is whatever the synced membership says right now. A
   // snapshot taken once at init and submitted back as a whole list would delete a tag another
   // admin added while the page sat open, junction rows and all, on a save that touched nothing.
-  const membership = $derived(global.userRegions.find((region) => region.regionFk === regionId))
-  const tags = $derived(regionTags(global.userRegions, regionId))
+  const tags = $derived(regionTags(global.userRegions, screen.regionId))
 
   // One grouped count for the whole screen. Every mutation invalidates it, and until it lands each
   // row's remove control stays disabled rather than offering to destroy an unknown quantity.
-  const usage = $derived(regionTagUsage({ regionFk: regionId }))
-  const refreshUsage = () => regionTagUsage({ regionFk: regionId }).refresh()
+  const usage = $derived(regionTagUsage({ regionFk: screen.regionId }))
+  const refreshUsage = () => regionTagUsage({ regionFk: screen.regionId }).refresh()
 
   /** `undefined` until the counts arrive. An absent key afterwards is a real zero. */
   const routeCount = (tag: string) => (usage.current == null ? undefined : (usage.current[tag] ?? 0))
@@ -55,7 +48,7 @@
 
   const canAdd = $derived(parsed.success && !tags.includes(trimmed) && !full)
 
-  const goBack = () => back(entityHref('regions', regionId))
+  const goBack = () => back(entityHref('regions', screen.regionId))
 
   const onAdd = async () => {
     if (!canAdd || adding) return
@@ -64,7 +57,7 @@
     adding = true
 
     try {
-      await addRegionTag({ name, regionFk: regionId })
+      await addRegionTag({ name, regionFk: screen.regionId })
       // Cleared but never blurred: adding several tags in a row is one field and one Return each.
       // Only if the field still holds what was sent, so a fast typist does not lose the next word.
       if (draft.trim() === name) draft = ''
@@ -78,7 +71,7 @@
 
   const onRename = async (from: string, to: string) => {
     try {
-      await renameRegionTag({ from, regionFk: regionId, to })
+      await renameRegionTag({ from, regionFk: screen.regionId, to })
       await refreshUsage()
       toaster.create({ title: m.region_tagRenamed({ from, to }), type: 'success' })
     } catch (cause) {
@@ -91,7 +84,7 @@
   // confirm is the safeguard instead, which is the better place for it anyway.
   const onRemove = async (name: string) => {
     try {
-      await removeRegionTag({ name, regionFk: regionId })
+      await removeRegionTag({ name, regionFk: screen.regionId })
       await refreshUsage()
       toaster.create({ title: m.region_tagRemoved({ name }), type: 'info' })
     } catch (cause) {
@@ -104,21 +97,21 @@
   <title>{m.region_tags()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-{#if !isAdmin}
-  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_tags()}>
-    <RegionAdminRequired {regionId} />
+{#if !screen.isAdmin}
+  <RegionScreen backTo={entityHref('regions', screen.regionId)} title={m.region_tags()}>
+    <RegionAdminRequired regionId={screen.regionId} />
   </RegionScreen>
-{:else if membership?.synced !== true}
+{:else if screen.membership?.synced !== true}
   <!-- No editor until the region row is here. `isAdmin` reads the role off the membership, which
        arrives first, so this screen opened early and listed the DEFAULT vocabulary as the region's
        own, with live rename and remove controls. -->
-  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_tags()} />
-{:else if !membership.tagsComplete}
+  <RegionScreen backTo={entityHref('regions', screen.regionId)} title={m.region_tags()} />
+{:else if !screen.membership.tagsComplete}
   <!-- Refused before rendering, the way the map-layers screen is. `editableTags` already refuses
        the write, but listing the seven defaults as though they were this region's own, with
        working-looking rename and remove controls, invites an admin to act on tags that are not
        theirs and then answers the press with a 409. -->
-  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_tags()}>
+  <RegionScreen backTo={entityHref('regions', screen.regionId)} title={m.region_tags()}>
     <ErrorState type="generic" title={m.region_tagsUnreadableTitle()} description={m.region_tagsUnreadableBody()} />
   </RegionScreen>
 {:else}

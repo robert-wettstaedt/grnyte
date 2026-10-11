@@ -8,8 +8,9 @@
 import * as schema from '$lib/db/schema'
 import { events, regionInvitations, regionMembers, users } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
+import { LOCK, lockKey } from '$lib/remote/lock.server'
 import { error } from '@sveltejs/kit'
-import { and, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { isLastAdmin } from './permissions'
 
@@ -29,17 +30,8 @@ const membershipEvents = (regionFk: number, userFk: number) =>
     eq(events.regionFk, regionFk),
   )
 
-/**
- * Serialises count-then-write sections on one key until the transaction ends. Advisory rather than
- * `for update` on `regions`: RLS applies the UPDATE policy to `for update`, so a plain member
- * (leaving a region) would see no row and take no lock. Must run on a transaction, not the pool.
- */
-export function lockKey(db: Db, namespace: string, key: number) {
-  return db.execute(sql`select pg_advisory_xact_lock(hashtext(${namespace}), ${key})`)
-}
-
 /** The region's membership and seat counts: take this before reading them to decide a write. */
-export const lockRegionMembers = (db: Db, regionFk: number) => lockKey(db, 'region_members', regionFk)
+export const lockRegionMembers = (db: Db, regionFk: number) => lockKey(db, LOCK.regionMembers, regionFk)
 
 /** The user ids of a region's active admins, which is all {@link isLastAdmin} needs. */
 export async function activeAdminUserFks(db: Db, regionFk: number): Promise<number[]> {

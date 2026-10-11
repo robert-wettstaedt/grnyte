@@ -17,6 +17,7 @@ import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { inviteEmailContent } from '$lib/email/invite'
 import type { SendEmailInput } from '$lib/email/send.server'
+import { LOCK } from '$lib/remote/lock.server'
 import { statusOf } from '$lib/remote/testHarness'
 import { sql as dsql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -225,7 +226,7 @@ describe.skipIf(!reachable)('createInvitation', () => {
 
 describe.skipIf(!reachable)('createInvitation locking', () => {
   it('takes the region lock before counting seats', async () => {
-    await expect(stallsOnLock('region_members', regionId, () => invite())).resolves.toBe(true)
+    await expect(stallsOnLock(LOCK.regionMembers, regionId, () => invite())).resolves.toBe(true)
   })
 })
 
@@ -288,7 +289,7 @@ describe.skipIf(!reachable)('acceptInvitation', () => {
   it('takes the region lock before reading memberships and seats', async () => {
     const { token } = await invite()
 
-    await expect(stallsOnLock('region_members', regionId, () => accept(token))).resolves.toBe(true)
+    await expect(stallsOnLock(LOCK.regionMembers, regionId, () => accept(token))).resolves.toBe(true)
   })
 
   it('refuses an unknown token', async () => {

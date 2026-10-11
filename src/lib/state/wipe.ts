@@ -1,10 +1,8 @@
 import { clearViewed } from '$lib/components/EntitySearch/recent.svelte'
+import { IMAGE_CACHE } from '$lib/images/derivatives'
 import { dropAllDatabases } from '@rocicorp/zero'
 import { clearHistory } from './searchHistory'
 import { forgetAllSynced } from './sync.svelte'
-
-/** The Cache Storage name `src/sw.ts` fills with browsed images. */
-const IMAGE_CACHE = 'images'
 
 /**
  * Removes what the previous account left on this device: its Zero replica, cached images, sync

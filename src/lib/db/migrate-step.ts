@@ -44,7 +44,7 @@ const recordedCount = async (db: PostgresJsDatabase): Promise<number> => {
   return Number(rows[0]?.n ?? 0)
 }
 
-export const migrateThrough = async (db: PostgresJsDatabase, tag: string): Promise<number> => {
+const migrateThrough = async (db: PostgresJsDatabase, tag: string): Promise<number> => {
   const all = taggedMigrations()
   const index = all.findIndex((migration) => migration.tag === tag)
   if (index === -1) {
