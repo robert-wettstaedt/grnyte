@@ -7,7 +7,7 @@ import * as z from '$lib/forms/zod'
 import { authedCommand, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../file/cleanup.server'
 import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from './change'
@@ -73,6 +73,8 @@ async function requireFreeBlockImage(
   fileId: string,
   blockFk: null | number,
 ): Promise<void> {
+  // Held to commit, so a second claim of this file waits and then reads it taken (409, not a 23505).
+  await db.execute(sql`select pg_advisory_xact_lock(hashtext('topo_file'), hashtext(${fileId}))`)
   const file = await db.query.files.findFirst({ columns: { blockFk: true }, where: eq(files.id, fileId) })
   if (blockFk == null || file?.blockFk !== blockFk) {
     error(404, formError('files_notFound'))
@@ -123,9 +125,11 @@ export const createTopo = authedCommand(
     const [created] = await db
       .insert(topos)
       .values({ blockFk: blockId, fileFk: fileId, order: nextOrder, regionFk: block.regionFk })
+      .onConflictDoNothing({ target: topos.fileFk })
       .returning()
+    // `topos.file_fk` is unique: a concurrent create for the same image lands here, not in the check above.
     if (created == null) {
-      error(500, formError('topo_createFailed'))
+      error(409, formError('topo_alreadyTopo'))
     }
 
     await insertTopoEvent(db, user, 'photoAdded', {
@@ -315,16 +319,21 @@ export const saveTopoLines = authedCommand(
 
     for (const line of linesByRoute.values()) {
       const row = existingByRoute.get(line.routeFk)
-      if (row == null) {
-        await db.insert(topoRoutes).values({
-          path: line.path,
-          regionFk: topo.regionFk,
-          routeFk: line.routeFk,
-          topoFk: topoId,
-          topType: line.topType,
-        })
-      } else if (row.path !== line.path || row.topType !== line.topType) {
-        await db.update(topoRoutes).set({ path: line.path, topType: line.topType }).where(eq(topoRoutes.id, row.id))
+      if (row == null || row.path !== line.path || row.topType !== line.topType) {
+        // Unique on (topo, route): a concurrent save that inserted first becomes an update.
+        await db
+          .insert(topoRoutes)
+          .values({
+            path: line.path,
+            regionFk: topo.regionFk,
+            routeFk: line.routeFk,
+            topoFk: topoId,
+            topType: line.topType,
+          })
+          .onConflictDoUpdate({
+            set: { path: line.path, topType: line.topType },
+            target: [topoRoutes.topoFk, topoRoutes.routeFk],
+          })
       }
     }
 

@@ -83,6 +83,63 @@ describe.skipIf(!reachable)('finalizeVideo', () => {
     expect(rows.count, 'and nothing was written').toBe(0)
   })
 
+  describe('when the insert fails after the region check', () => {
+    const FAIL_ID = '7a1d2c33-5b6e-4f80-9a12-3c4d5e6f7a81'
+    const REPLAY_ID = '9b2e3d44-6c7f-4a91-8b23-4d5e6f7a8b92'
+    let maintainer: SeedUser
+
+    beforeAll(async () => {
+      if (!reachable) return
+      maintainer = (await seedUsers({ maintainer: 'maintainer@grnyte.rocks' })).maintainer
+      await sql`
+        insert into public.region_members (region_fk, user_fk, auth_user_fk, role, is_active)
+        values (${regionId}, ${maintainer.userId}, ${maintainer.authId}, 'region_maintainer', true)`
+      // Fails the stream insert the way a real fault would, after the region check has passed.
+      await sql.unsafe(`
+        create or replace function public.__finalize_test_fail() returns trigger language plpgsql as $$
+        begin
+          if new.id = '${FAIL_ID}'::uuid then raise exception 'boom'; end if;
+          if new.id = '${REPLAY_ID}'::uuid then raise exception 'dup' using errcode = '23505'; end if;
+          return new;
+        end $$`)
+      await sql`
+        create trigger __finalize_test_fail before insert on public.bunny_streams
+        for each row execute function public.__finalize_test_fail()`
+    })
+
+    afterAll(async () => {
+      if (!reachable) return
+      await sql`drop trigger if exists __finalize_test_fail on public.bunny_streams`
+      await sql`drop function if exists public.__finalize_test_fail()`
+    })
+
+    const attach = (videoId: string) =>
+      asRequest(maintainer.authId, () =>
+        finalizeVideo({ entityId: areaId, entityType: 'area', token: 'proven', videoId }),
+      )
+
+    it('leaves the video for a retry when the database faults', async () => {
+      remove.mockClear()
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      await expect(attach(FAIL_ID)).rejects.toThrow()
+      // A fault is not a refusal: deleting would turn the client's retry into a re-upload.
+      expect(remove).not.toHaveBeenCalled()
+
+      const [rows] = await sql<{ count: number }[]>`
+        select count(*)::int as count from public.files where region_fk = ${regionId}`
+      expect(rows.count, 'and the file row rolled back').toBe(0)
+    })
+
+    it('leaves a video that is already attached alone', async () => {
+      remove.mockClear()
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      await expect(attach(REPLAY_ID)).rejects.toThrow()
+      expect(remove).not.toHaveBeenCalled()
+    })
+  })
+
   it('still reports the refusal when the reclaim itself fails', async () => {
     // A failing DELETE at Bunny must not replace the 403: a 502 here would invite the client to
     // retry a request that can only ever be refused.

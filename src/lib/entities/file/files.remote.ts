@@ -93,8 +93,8 @@ const finalizeImageSchema = z.object({
  * RLS scopes both sides: the staging download only succeeds inside the
  * caller's own uid folder, and the `files` insert requires read permission in
  * the entity's region, so there are no explicit permission checks here.
- * Ordering makes it retryable: the staging object is deleted last, so any
- * failure before that leaves it in place for another attempt.
+ * The staged object is claimed first (an atomic move), so a double submit cannot insert twice.
+ * Any throw before the insert moves it back; a leftover claim is swept with the staging objects.
  */
 export const finalizeImage = command(
   finalizeImageSchema,
@@ -112,40 +112,15 @@ export const finalizeImage = command(
 
     const regionFk = await rls((db) => resolveAttachRegion(db, user.id, userRegions, entityType, entityId))
 
-    const download = await supabase.storage.from(STAGING_BUCKET).download(stagingPath)
-    if (download.error != null) {
+    // Only one caller wins the move; the loser (or a retry after success) sees the object missing.
+    const staging = supabase.storage.from(STAGING_BUCKET)
+    const claimedPath = `${stagingPath}.claimed`
+    const claim = await staging.move(stagingPath, claimedPath)
+    if (claim.error != null) {
       error(400, formError('upload_stagedMissing'))
     }
+    const release = () => staging.move(claimedPath, stagingPath).catch(() => {})
 
-    const uploaded = await download.data.arrayBuffer()
-    let buffer = Buffer.from(uploaded)
-    let extension = /\.([^./]+)$/.exec(stagingPath)![1].toLowerCase()
-
-    // sharp's prebuilt binaries can't decode HEIC and browsers can't display it,
-    // so an iPhone photo becomes a max-quality JPEG original.
-    if (isHeic(stagingPath)) {
-      try {
-        buffer = Buffer.from(await heicConvert({ buffer, format: 'JPEG', quality: 1 }))
-      } catch {
-        error(400, formError('upload_unreadableImage'))
-      }
-      extension = 'jpg'
-    }
-
-    const dimensions = orientedDimensions(
-      await sharp(buffer)
-        .metadata()
-        .catch(() => ({})),
-    )
-    if (dimensions == null) {
-      error(400, formError('upload_unreadableImage'))
-    }
-
-    // Ascent media lives under the uploader's folder; everything else is topo imagery.
-    // The row id doubles as the storage file name so the two are matchable both ways.
-    const id = createCuid2()
-    const folder = entityType === 'ascent' ? `/user-content/${user.authUserFk}` : '/topos'
-    const path = `${folder}/${id}.${extension}`
     const provider = getImageProvider()
     const stored: string[] = []
     const store = async (target: string, data: Buffer) => {
@@ -155,6 +130,41 @@ export const finalizeImage = command(
 
     let file: File
     try {
+      const download = await staging.download(claimedPath)
+      if (download.error != null) {
+        error(400, formError('upload_stagedMissing'))
+      }
+
+      const uploaded = await download.data.arrayBuffer()
+      let buffer = Buffer.from(uploaded)
+      let extension = /\.([^./]+)$/.exec(stagingPath)![1].toLowerCase()
+
+      // sharp's prebuilt binaries can't decode HEIC and browsers can't display it,
+      // so an iPhone photo becomes a max-quality JPEG original.
+      if (isHeic(stagingPath)) {
+        try {
+          buffer = Buffer.from(await heicConvert({ buffer, format: 'JPEG', quality: 1 }))
+        } catch {
+          error(400, formError('upload_unreadableImage'))
+        }
+        extension = 'jpg'
+      }
+
+      const dimensions = orientedDimensions(
+        await sharp(buffer)
+          .metadata()
+          .catch(() => ({})),
+      )
+      if (dimensions == null) {
+        error(400, formError('upload_unreadableImage'))
+      }
+
+      // Ascent media lives under the uploader's folder; everything else is topo imagery.
+      // The row id doubles as the storage file name so the two are matchable both ways.
+      const id = createCuid2()
+      const folder = entityType === 'ascent' ? `/user-content/${user.authUserFk}` : '/topos'
+      const path = `${folder}/${id}.${extension}`
+
       await store(path, buffer)
       // The app serves the JPEG, but the pristine HEIC is kept as an `.orig.*`
       // sibling (the migrate-promote-originals convention, never derivatized).
@@ -193,17 +203,16 @@ export const finalizeImage = command(
       })
       file = inserted
     } catch (cause) {
-      // Best-effort: unwind whatever landed in image storage so retries (which
-      // mint a fresh id) don't accumulate orphans. The staged object is still
-      // in place, so the upload remains retryable.
-      await Promise.allSettled(stored.map((target) => provider.remove(target)))
+      // Any throw before the commit: unwind image storage and hand the upload back. shortcut: a
+      // timeout throws nothing, so its retry asks for a re-upload; fix only with proof of no insert.
+      await Promise.allSettled([...stored.map((target) => provider.remove(target)), release()])
       throw cause
     }
 
-    // Only once the insert has committed: drop the staged source. supabase-js
+    // Only once the insert has committed: drop the claimed source. supabase-js
     // reports failures as a return value, so at worst this leaves an orphan,
     // swept later by POST /api/tasks/cleanup (staging objects > 24h).
-    await supabase.storage.from(STAGING_BUCKET).remove([stagingPath])
+    await staging.remove([claimedPath])
 
     return { data: file }
   },
@@ -385,54 +394,46 @@ export const finalizeVideo = authedCommand(
       error(403, formError('media_unknownVideo'))
     }
 
-    // Same gate as finalizeImage: pre-check so it fails with a real message instead of an
-    // opaque RLS rollback after two inserts.
-    //
-    // Bunny has the bytes already and the sweeper cannot see a video that got past status 0, so a
-    // refusal strands the asset forever. `verifyUpload` proved ownership above and `remove` is
-    // idempotent, so take it back. Only on a refusal WE raised: anything else is transient, and
-    // deleting there would destroy an upload that deserved to land.
-    let regionFk: number
     try {
-      regionFk = await resolveAttachRegion(db, user.id, userRegions, entityType, entityId)
+      // Same gate as finalizeImage: pre-check so it fails with a real message instead of an
+      // opaque RLS rollback after two inserts.
+      const regionFk = await resolveAttachRegion(db, user.id, userRegions, entityType, entityId)
+      // files.bunnyStreamFk and bunnyStreams.fileFk are circular, and the
+      // bunny_streams UPDATE policy can never pass a NULL -> value file_fk
+      // transition (its USING clause requires file_fk to already point at an
+      // own-ascent file). So: insert the file first (path '': the convention
+      // for video rows; the media lives at Bunny), insert the stream row with
+      // file_fk already set, then complete the link on files: whose
+      // own-ascent/EDIT update policies do pass.
+      const [file] = await db
+        .insert(files)
+        .values({ createdBy: user.id, path: '', regionFk, ...entityFks(entityType, entityId) })
+        .returning()
+      await db.insert(bunnyStreams).values({ fileFk: file.id, id: videoId, regionFk, source })
+      const [linked] = await db.update(files).set({ bunnyStreamFk: videoId }).where(eq(files.id, file.id)).returning()
+
+      await insertUploadEvent(db, { entityType, fileId: file.id, regionFk, userFk: user.id })
+
+      if (linked == null) {
+        // Safety net: the checks above should make this unreachable; if RLS
+        // still swallows the update, roll the whole attach back rather than
+        // leave a file without its video.
+        error(403, formError('form_noPermission'))
+      }
+      return { data: linked }
     } catch (thrown) {
+      // A refusal strands Bunny's copy (the sweeper skips videos past status 0), so take it back; a
+      // fault keeps it for the client's retry, and a failed DELETE is logged, never thrown over the 403.
       if (isHttpError(thrown)) {
-        // Isolated: a DELETE that fails at Bunny must not replace the refusal the caller needs,
-        // which would turn a 403 into a 502 and invite a retry of a request that can only refuse.
-        try {
-          await getVideoProvider().remove(videoId)
-        } catch (reclaimFailed) {
-          // The throw below is about the refusal, not this: an unreclaimed video is a paid asset
-          // nothing sweeps up, and this is its only trace.
-          console.error('[finalizeVideo] reclaim failed', videoId, reclaimFailed)
-          await logServerFailure('finalizeVideo', `reclaim failed for ${videoId}: ${stringifyError(reclaimFailed)}`)
-        }
+        await getVideoProvider()
+          .remove(videoId)
+          .catch(async (reclaimFailed) => {
+            // An unreclaimed video is a paid asset nothing sweeps up, and this is its only trace.
+            console.error('[finalizeVideo] reclaim failed', videoId, reclaimFailed)
+            await logServerFailure('finalizeVideo', `reclaim failed for ${videoId}: ${stringifyError(reclaimFailed)}`)
+          })
       }
       throw thrown
     }
-
-    // files.bunnyStreamFk and bunnyStreams.fileFk are circular, and the
-    // bunny_streams UPDATE policy can never pass a NULL -> value file_fk
-    // transition (its USING clause requires file_fk to already point at an
-    // own-ascent file). So: insert the file first (path '': the convention
-    // for video rows; the media lives at Bunny), insert the stream row with
-    // file_fk already set, then complete the link on files: whose
-    // own-ascent/EDIT update policies do pass.
-    const [file] = await db
-      .insert(files)
-      .values({ createdBy: user.id, path: '', regionFk, ...entityFks(entityType, entityId) })
-      .returning()
-    await db.insert(bunnyStreams).values({ fileFk: file.id, id: videoId, regionFk, source })
-    const [linked] = await db.update(files).set({ bunnyStreamFk: videoId }).where(eq(files.id, file.id)).returning()
-
-    await insertUploadEvent(db, { entityType, fileId: file.id, regionFk, userFk: user.id })
-
-    if (linked == null) {
-      // Safety net: the checks above should make this unreachable; if RLS
-      // still swallows the update, roll the whole attach back rather than
-      // leave a file without its video.
-      error(403, formError('form_noPermission'))
-    }
-    return { data: linked }
   },
 )
