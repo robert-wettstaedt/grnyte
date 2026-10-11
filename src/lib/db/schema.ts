@@ -1254,7 +1254,7 @@ export const topos = table(
   (table) => [
     index('topos_block_fk_idx').on(table.blockFk),
     index('topos_region_fk_idx').on(table.regionFk),
-    index('topos_file_fk_idx').on(table.fileFk),
+    uniqueIndex('topos_file_fk_idx').on(table.fileFk),
 
     ...createBasicTablePolicies('topos', table.regionFk),
     policy(
@@ -1290,7 +1290,7 @@ export const topoRoutes = table(
   (table) => [
     index('topo_routes_region_fk_idx').on(table.regionFk),
     index('topo_routes_route_fk_idx').on(table.routeFk),
-    index('topo_routes_topo_fk_idx').on(table.topoFk),
+    uniqueIndex('topo_routes_topo_fk_route_fk_idx').on(table.topoFk, table.routeFk),
 
     ...createBasicTablePolicies('topo_routes', table.regionFk),
     policy(

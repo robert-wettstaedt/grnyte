@@ -435,14 +435,19 @@ if (TOPO_BLOCK_SHARE > 0) {
   routeIds.forEach((routeId, i) => {
     const topos = toposOfBlock.get(routeBlock[i])
     if (!topos || rand() >= TOPO_LINE_SHARE) return
+    const drawn = new Set<number>()
     for (let k = oneOrMore(TOPO_LINE_EXTRA_P, 3); k > 0; k--) {
-      lineRows.push({
+      const row = {
         path: linePath(),
         region_fk: region.id,
         route_fk: routeId,
         top_type: pick(['top', 'topout']),
         topo_fk: pick(topos),
-      })
+      }
+      // One line per route per topo (a unique index). Dropped, not redrawn, so the random stream is unchanged.
+      if (drawn.has(row.topo_fk)) continue
+      drawn.add(row.topo_fk)
+      lineRows.push(row)
     }
   })
   await insert('topo_routes', lineRows, ['region_fk', 'top_type', 'path', 'route_fk', 'topo_fk'])

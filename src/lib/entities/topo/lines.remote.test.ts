@@ -227,4 +227,21 @@ describe.skipIf(!reachable)('saveTopoLines staleness guard', () => {
     expect(await pathFor(routeOne)).toBe(moved)
     expect(await drawnRoutes()).toEqual([routeOne, routeTwo].sort((a, b) => a - b))
   })
+
+  it('keeps one row per route when two saves draw the same new line at once', async () => {
+    await sql`delete from public.topo_routes where topo_fk = ${topoId}`
+    const known = topoLinesFingerprint([])
+
+    const results = await Promise.all([
+      save(known, [{ path: PATH_ONE, routeFk: routeOne }]),
+      save(known, [{ path: PATH_TWO, routeFk: routeOne }]),
+    ])
+
+    // Both 'ok' when both read before either commits; under load the second may read the first's
+    // row and be refused by `known`, which is the guard working. Never a 23505, never two rows.
+    expect(results).toContain('ok')
+    const [{ count }] = await sql<{ count: number }[]>`
+      select count(*)::int as count from public.topo_routes where topo_fk = ${topoId} and route_fk = ${routeOne}`
+    expect(count).toBe(1)
+  })
 })

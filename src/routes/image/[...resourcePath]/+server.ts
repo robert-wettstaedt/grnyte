@@ -1,10 +1,11 @@
 import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { files } from '$lib/db/schema'
+import { hasDeletedParent, PARENT_DELETED_WITH } from '$lib/entities/file/parentDeleted.server'
 import { DERIVATIVE_SIZES } from '$lib/images/derivatives'
 import { getImageProvider, type ImagePayload } from '$lib/images/provider.server'
 import { error } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 // Only these client headers are safe to forward upstream (partial/range +
 // content negotiation); auth, cookies, etc. must not leak to the storage backend.
@@ -49,8 +50,21 @@ export async function GET({ locals, params, request, url }) {
   // A `visibility: 'public'` file is world-readable (what the /f/<id> share page relies on for anon
   // visitors), so a public row still hands the bytes to a non-member. Private files stay
   // members-only, and a path no row matches at all is a 404 to everyone.
-  if (!authorized && !rows.some((row) => row.visibility === 'public')) {
-    error(404, 'File not found')
+  // A soft-deleted parent withdraws the public share (as /f does) but not a member's bytes, so
+  // only a non-member's request pays for the parent joins.
+  if (!authorized) {
+    const publicRows = rows.some((row) => row.visibility === 'public')
+      ? await pinnedTx((tx) =>
+          tx.query.files.findMany({
+            columns: { id: true },
+            where: and(eq(files.path, resourcePath), eq(files.visibility, 'public')),
+            with: PARENT_DELETED_WITH,
+          }),
+        )
+      : []
+    if (!publicRows.some((row) => !hasDeletedParent(row))) {
+      error(404, 'File not found')
+    }
   }
 
   // Anonymous / non-member requests reached the bytes only via the public-visibility

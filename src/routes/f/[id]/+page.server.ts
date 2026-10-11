@@ -5,6 +5,7 @@ import { files } from '$lib/db/schema'
 import { toDisplayName } from '$lib/entities/displayName'
 import type { MediaFile } from '$lib/entities/file/dto'
 import { toMediaFile } from '$lib/entities/file/mapper'
+import { hasDeletedParent } from '$lib/entities/file/parentDeleted.server'
 import { canDeleteFile, canEditFile } from '$lib/entities/file/permissions'
 import { toGrade } from '$lib/entities/grade/mapper'
 import { error } from '@sveltejs/kit'
@@ -108,15 +109,7 @@ export const load = (async ({ locals, params }) => {
     error(404)
   }
 
-  // A soft-deleted parent takes its files with it; this URL is the last place they stay readable.
-  // One level only: the delete cascade stamps descendants and nothing reparents.
-  const parentDeleted =
-    row.area?.deletedAt != null ||
-    row.ascent?.deletedAt != null ||
-    row.block?.deletedAt != null ||
-    row.route?.deletedAt != null
-
-  if (parentDeleted) {
+  if (hasDeletedParent(row)) {
     error(404)
   }
 
@@ -198,24 +191,25 @@ export const load = (async ({ locals, params }) => {
       : {
           canDelete: canDeleteFile(locals.userRegions, locals.user?.id, file),
           canEdit: canEditFile(locals.userRegions, locals.user?.id, file),
-          parent,
+          // Only read after a delete, which a non-member cannot make, and an id like the ones below.
+          parent: isMember ? parent : null,
           shareText: file.route?.name ?? '',
         }
 
   // Data minimization: an anonymous viewer's UI renders none of the internal ids, so the
   // payload zeroes them (region, uploader, route, ascent, ascent owner) to leak no
-  // cross-file correlation handles. Signed-in viewers keep them for their in-app links.
-  const clientFile: MediaFile =
-    locals.claims != null
-      ? file
-      : {
-          ...file,
-          ascent: file.ascent == null ? undefined : { ...file.ascent, id: 0 },
-          ascentCreatedBy: undefined,
-          regionFk: 0,
-          route: file.route == null ? undefined : { ...file.route, id: 0 },
-          uploader: file.uploader == null ? undefined : { id: 0, username: file.uploader.username },
-        }
+  // cross-file correlation handles. Members keep them for their in-app links; a signed-in
+  // non-member viewing a public file is anonymous here.
+  const clientFile: MediaFile = isMember
+    ? file
+    : {
+        ...file,
+        ascent: file.ascent == null ? undefined : { ...file.ascent, id: 0 },
+        ascentCreatedBy: undefined,
+        regionFk: 0,
+        route: file.route == null ? undefined : { ...file.route, id: 0 },
+        uploader: file.uploader == null ? undefined : { id: 0, username: file.uploader.username },
+      }
 
   return { controls, file: clientFile, grades, gradingScale, user }
 }) satisfies PageServerLoad
