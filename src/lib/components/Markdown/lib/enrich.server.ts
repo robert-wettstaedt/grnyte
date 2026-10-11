@@ -17,7 +17,13 @@ import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
-import { REFERENCE_TOMBSTONE, referenceRegex, remarkReferences, type EncloseOptions } from './remark-references'
+import {
+  encodeReferencePayload,
+  REFERENCE_TOMBSTONE,
+  referenceRegex,
+  remarkReferences,
+  type EncloseOptions,
+} from './remark-references'
 import { remarkSafeUrls } from './remark-safe-urls'
 
 export const convertMarkdownToHtml = async (
@@ -128,7 +134,7 @@ export const enrichMarkdown = async (
         reference += ' '
       }
 
-      reference += `!${type}:${id}:${btoa(payload)}!`
+      reference += `!${type}:${id}:${encodeReferencePayload(payload)}!`
 
       return { match, reference }
     }),

@@ -82,16 +82,19 @@ export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallb
 
   // Reuse an already-granted permission: resume tracking on (re)mount without re-prompting.
   // Querying the Permissions API never shows a prompt.
+  let disposed = false
   void navigator.permissions
     ?.query({ name: 'geolocation' })
     .then((status) => {
-      if (status.state !== 'granted') return
+      // Cleanup may have run while the query was in flight; tracking now would never be stopped.
+      if (disposed || status.state !== 'granted') return
       // Shows the marker only. The reader did not ask for this, so it never claims the camera.
       geolocation.setTracking(true)
     })
     .catch(() => {})
 
   return () => {
+    disposed = true
     mapInstance.getView().un('change:rotation', applyHeading)
     geolocation.setTracking(false)
   }

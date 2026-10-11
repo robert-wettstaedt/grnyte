@@ -1,5 +1,5 @@
 import * as z from '$lib/forms/zod'
-import { applyTextFilters } from '$lib/zero/filters'
+import { applyTextFilters, escapeLikeTerm } from '$lib/zero/filters'
 import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import type { Schema } from '$lib/zero/zero-schema'
 import { zql } from '$lib/zero/zero-schema.gen'
@@ -91,9 +91,12 @@ export const routesQueryDefs = {
   listRoutes: defineQuery(
     z.object({
       ...routeFilterShape,
+      // Names starting with this, so a search can fetch exact and prefix hits that a capped
+      // contains-match would crowd out.
+      namePrefix: z.optional(z.string()),
       pageSize: z.optional(z.number()),
       routeId: z.optional(z.union([z.number(), z.array(z.number())])),
-      sort: z.optional(z.enum(['rating', 'grade', 'firstAscentYear', 'createdAt'])),
+      sort: z.optional(z.enum(['rating', 'grade', 'firstAscentYear', 'createdAt', 'name'])),
       sortOrder: z.optional(z.enum(['asc', 'desc'])),
     }),
     regionMemberCan(({ args, ctx }) => {
@@ -115,6 +118,10 @@ export const routesQueryDefs = {
       }
 
       q = applyRouteFilters(q, args, r)
+
+      if (args.namePrefix != null) {
+        q = q.where('name', 'ILIKE', `${escapeLikeTerm(args.namePrefix)}%`)
+      }
 
       if (args.sortOrder != null && args.sort != null) {
         q = q.orderBy(

@@ -52,7 +52,19 @@
 
   const areas = areaList(() => ({ content: query, limit: CAP }), { enabled })
   const blocks = blockList(() => ({ content: query, limit: CAP }), { enabled })
-  const routes = routeList(() => ({ content: query, pageSize: CAP }), { enabled })
+  // Name-ordered, and a prefix query beside it: "Sun" must be among the rows even when 21k routes
+  // contain "sun" somewhere. The contains-match fills the rest; both merge below.
+  const routes = routeList(() => ({ content: query, pageSize: CAP, sort: 'name', sortOrder: 'asc' }), { enabled })
+  const routePrefix = routeList(() => ({ namePrefix: query, pageSize: CAP, sort: 'name', sortOrder: 'asc' }), {
+    enabled,
+  })
+  // Held until the prefix query has local rows, or its exact match would jump above rows shown;
+  // not until the server confirms, which would hold routes back behind every other group.
+  const routeRows = $derived(
+    routePrefix.phase.kind === 'loading'
+      ? []
+      : [...routePrefix.data, ...routes.data.filter((route) => !routePrefix.data.some((hit) => hit.id === route.id))],
+  )
   const users = userList(() => ({ content: query, limit: CAP, regionFks: regionFks() }), {
     enabled: () => enabled() && regionFks().length > 0,
   })
@@ -112,7 +124,7 @@
       })
     }
 
-    for (const route of routes.data) {
+    for (const route of routeRows) {
       out.push({
         crumbs: crumbsOf(route.regionFk, [route.areaName, route.blockName]),
         grade: gradeLabel(global.grades, global.gradingScale, route.gradeFk),
@@ -177,7 +189,9 @@
   // already best-first in its own section.
   const showTop = $derived(grouped.length > 1 && topHits.length > 0)
 
-  const outcome = $derived(searchOutcome(sources(areas, blocks, routes, users, regionFks().length > 0)))
+  const outcome = $derived(
+    searchOutcome([...sources(areas, blocks, routes, users, regionFks().length > 0), routePrefix.phase]),
+  )
 
   let expanded = $state<Partial<Record<EntityType, boolean>>>({})
 

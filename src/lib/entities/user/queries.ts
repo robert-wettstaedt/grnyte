@@ -1,4 +1,5 @@
 import * as z from '$lib/forms/zod'
+import { escapeLikeTerm } from '$lib/zero/filters'
 import { authenticatedUserCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
@@ -38,7 +39,7 @@ export const usersQueryDefs = {
         .orderBy('username', 'asc')
 
       if (args.content != null) {
-        q = q.where('username', 'ILIKE', `%${args.content}%`)
+        q = q.where('username', 'ILIKE', `%${escapeLikeTerm(args.content)}%`)
       }
 
       if (args.ids != null) {
