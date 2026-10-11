@@ -1230,7 +1230,7 @@
   "feedback_kindSelect": "Choose a type",
   "feedback_notFound": "Feedback not found",
   "feedback_reply": "Reply",
-  "feedback_replyNoMail": "Reply saved, but the email didn’t go out.",
+  "feedback_replyNoMail": "The email didn’t go out. Your reply is still here, so you can try again.",
   "feedback_replyPlaceholder": "Answer in the language they wrote in.",
   "feedback_replySend": "Send reply",
   "feedback_replySent": "Reply sent",
