@@ -18,7 +18,6 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale, setLocale, type Locale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { push } from '$lib/state/navigation.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { disablePush } from '$lib/state/push.svelte'
   import { notifyError } from '$lib/state/toast'
@@ -124,8 +123,7 @@
       notifyError(error)
       return
     }
-
-    await push(resolve('/'))
+    // The (app) layout's SIGNED_OUT listener wipes this device and replaces the document.
   }
 </script>
 

@@ -1,4 +1,4 @@
-import { isSameOriginPath } from '$lib/auth'
+import { APP_HOME_PATH, isSameOriginPath, signedInRedirectTarget } from '$lib/auth'
 import { describe, expect, it } from 'vitest'
 
 // The one thing standing between a form-submitted `redirectTo` and an open redirect, so the
@@ -18,5 +18,24 @@ describe('isSameOriginPath', () => {
     'auth',
   ])('rejects %j', (path) => {
     expect(isSameOriginPath(path)).toBe(false)
+  })
+})
+
+describe('signedInRedirectTarget', () => {
+  it.each([
+    ['//evil.example'],
+    ['https://evil.example'],
+    ['/auth'],
+    ['/auth/signin?next=/explore'],
+    ['/settings\r\n'],
+    ['/set\ttings'],
+    [null],
+    [undefined],
+  ])('falls back to home for %j', (next) => {
+    expect(signedInRedirectTarget(next)).toBe(APP_HOME_PATH)
+  })
+
+  it('keeps a valid path with its search and hash', () => {
+    expect(signedInRedirectTarget('/invite/accept?token=abc#top')).toBe('/invite/accept?token=abc#top')
   })
 })

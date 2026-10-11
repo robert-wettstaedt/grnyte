@@ -12,6 +12,7 @@
   import { resolveErrorMessage } from '$lib/forms/issue'
   import { m } from '$lib/paraglide/messages'
   import { installPromoMode } from '$lib/state/install.svelte'
+  import { wipeAndLeave } from '$lib/state/wipe'
   import type { PageProps } from './$types'
 
   // The one screen every invite path lands on: the emailed link, the signed-in bounce from
@@ -19,6 +20,13 @@
   // (paraglide's preferredLanguage), which is what makes a mis-guessed mail locale cost one
   // paragraph rather than the whole flow.
   const { data }: PageProps = $props()
+
+  const leave = signOut.enhance(async ({ submit }) => {
+    // Only once the sign-out took: a failed one leaves a signed-in user who still needs their replica.
+    if (await submit()) {
+      await wipeAndLeave()
+    }
+  })
 
   const token = $derived(page.url.searchParams.get('token') ?? '')
   const region = $derived(data.regionName ?? '')
@@ -202,7 +210,7 @@
         {m.invite_wrongAccount({ current: data.sessionEmail ?? '', email: data.inviteEmail ?? '' })}
       </p>
 
-      <form class="flex flex-col" {...signOut}>
+      <form class="flex flex-col" {...leave}>
         <!-- Back to this same invitation, not to /auth: signing out of a tokenless page leaves the
              invitee looking at one that reads as invalid. -->
         <input {...signOut.fields.redirectTo.as('hidden', returnTo ?? resolve('/(landing)/invite/accept'))} />

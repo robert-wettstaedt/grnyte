@@ -12,6 +12,14 @@ export const APP_HOME_PATH = '/explore' satisfies Pathname
  *  {@link signedInRedirectTarget} has to recognise it too. */
 export const AUTH_PATH = '/auth' satisfies Pathname
 
+/** `app_metadata` key on an unconfirmed account signed up for twice; confirming it forces a new
+ *  password, and no session counts while the key is still set. */
+export const CONTESTED_SIGNUP = 'contested_signup'
+
+/** The one reading of {@link CONTESTED_SIGNUP}: any value counts, only a removed key clears it. */
+export const isContested = (appMetadata: unknown): boolean =>
+  (appMetadata as null | Record<string, unknown> | undefined)?.[CONTESTED_SIGNUP] != null
+
 /** Only there to give the parser something to resolve a relative path against, see
  *  {@link isSameOriginPath}. Never reachable, so a bug that let one through would 404 rather
  *  than land somewhere real. */

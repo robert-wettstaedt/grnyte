@@ -13,6 +13,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
+  import { wipeAndLeave } from '$lib/state/wipe'
   import { slide } from 'svelte/transition'
   import type { PageProps } from './$types'
 
@@ -66,10 +67,16 @@
 </svelte:head>
 
 {#snippet signOutForm(className: string)}
+  {@const leave = signOut.enhance(async ({ submit }) => {
+    // Only once the sign-out took: a failed one leaves a signed-in user who still needs their replica.
+    if (await submit()) {
+      await wipeAndLeave()
+    }
+  })}
   <!-- The only way out of a chromeless screen for somebody signed in as the wrong account, and the
        only one at all in the welcome framings: this group sits outside (shell), so there is no nav
        rail or tab bar, and authGuard bounces / and /explore straight back here. -->
-  <form class={className} {...signOut}>
+  <form class={className} {...leave}>
     <input {...signOut.fields.redirectTo.as('hidden', resolve('/(landing)/auth'))} />
     <button class="text-surface-600-400 hover:text-surface-950-50 px-4 py-3 text-sm font-medium" type="submit">
       {m.settings_signOut()}
