@@ -5,9 +5,9 @@ import * as z from '$lib/forms/zod'
 import { stringifyCoords } from '$lib/map/coords'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
-import { requireRow, requireRowForm } from '$lib/remote/require.server'
+import { answerReplayedRestore, requireIssuedId, requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
-import { and, count, eq, gt, gte, isNull, sql } from 'drizzle-orm'
+import { and, count, eq, gt, gte, isNull, ne, sql } from 'drizzle-orm'
 import { hasDeletedAncestor, refreshAreaType } from '../area/area.server'
 import { canAddBlock } from '../area/permissions'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
@@ -385,11 +385,23 @@ async function shiftBlockOrdersDown(db: Context['db'], areaFk: number, fromOrder
 
 /** Open a slot at `fromOrder` for a block being restored: push every sibling at or after it up
  *  one, so the restored block lands at exactly its original order. */
-async function shiftBlockOrdersUp(db: Context['db'], areaFk: number, fromOrder: number): Promise<void> {
+async function shiftBlockOrdersUp(
+  db: Context['db'],
+  areaFk: number,
+  fromOrder: number,
+  exceptId?: number,
+): Promise<void> {
   await db
     .update(blocks)
     .set({ order: sql`${blocks.order} + 1` })
-    .where(and(eq(blocks.areaFk, areaFk), isNull(blocks.deletedAt), gte(blocks.order, fromOrder)))
+    .where(
+      and(
+        eq(blocks.areaFk, areaFk),
+        isNull(blocks.deletedAt),
+        gte(blocks.order, fromOrder),
+        exceptId == null ? undefined : ne(blocks.id, exceptId),
+      ),
+    )
 }
 
 /** Soft-delete a block with descendants: stamp one `deletedAt` on it and its routes (the shared
@@ -493,16 +505,14 @@ const restoreBlockSchema = z.discriminatedUnion('mode', [
   z.object({ blockId: z.number(), mode: z.literal('soft') }),
 ])
 
-/** Recreate a hard-deleted block at its original `order`, re-linking its pin. Opens the slot
- *  first so the block lands exactly where it was. Returns the new block id. */
+/** Recreate a hard-deleted block under its original id, `order` and pin. A replayed Undo finds
+ *  the id taken and changes nothing, sibling order included. */
 async function hardRestoreBlock(
   db: Context['db'],
   snapshot: Extract<DeleteBlockSnapshot, { mode: 'hard' }>,
   area: Pick<Area, 'id' | 'regionFk'>,
   createdBy: number,
-): Promise<number> {
-  await shiftBlockOrdersUp(db, area.id, snapshot.block.order)
-
+): Promise<Block | undefined> {
   // Placement comes from the STORED area, not the client-supplied snapshot: `restoreBlock` ran
   // `canAddBlock` against that row, so `area.regionFk` is the region authorized.
   // `createdBy` is the caller, so an undo cannot forge authorship.
@@ -512,11 +522,17 @@ async function hardRestoreBlock(
       areaFk: area.id,
       createdBy,
       description: snapshot.block.description,
+      id: snapshot.blockId,
       name: snapshot.block.name,
       order: snapshot.block.order,
       regionFk: area.regionFk,
     })
+    .onConflictDoNothing({ target: blocks.id })
     .returning()
+  if (created == null) {
+    return undefined
+  }
+  await shiftBlockOrdersUp(db, area.id, snapshot.block.order, created.id)
 
   if (snapshot.geolocation != null) {
     // The three snapshot fields and nothing else. `areaFk` in particular stays unset: a geolocation
@@ -535,7 +551,7 @@ async function hardRestoreBlock(
     await db.update(blocks).set({ geolocationFk: geo.id }).where(eq(blocks.id, created.id))
   }
 
-  return created.id
+  return created
 }
 
 /** Un-soft-delete a block and its routes, slotting it back at the `order` it kept. Opens the
@@ -592,8 +608,15 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
       error(404, formError('areas_parentNotFound'))
     }
 
-    // The area row, not the snapshot's id: everything after the gate reads the row the gate read.
-    const blockId = await hardRestoreBlock(db, snapshot, area, user.id)
+    const blockId = snapshot.blockId
+    await requireIssuedId(db, 'blocks', blockId, formError('blocks_notFound'))
+    if ((await hardRestoreBlock(db, snapshot, area, user.id)) == null) {
+      const replayed = eq(blocks.areaFk, area.id)
+      return {
+        data: { blockId },
+        ...(await answerReplayedRestore(db, 'blocks', blockId, replayed, formError('blocks_notFound'))),
+      }
+    }
 
     // The stored area's id, not `snapshot.areaFk`: the gate above authorized that row, so it is the
     // one everything after it reads.
