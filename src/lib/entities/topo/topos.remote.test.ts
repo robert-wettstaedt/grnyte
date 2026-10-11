@@ -189,4 +189,35 @@ describe.skipIf(!reachable)('topo images', () => {
     const rows = await sql`select id from public.files where id = ${ownFileId}`
     expect(rows).toHaveLength(1)
   })
+
+  it('refuses the loser of two swaps racing onto one image with a 409, not a unique violation', async () => {
+    // Fresh files throughout: the winning swap deletes the image it lets go of.
+    const [a, b, target] = await sql<{ id: string }[]>`
+      insert into public.files (id, path, region_fk, created_by, block_fk)
+      select gen_random_uuid()::text, '/topos/race-' || n || '.jpg', ${regionId}, ${maintainer.userId}, ${blockId}
+      from generate_series(1, 3) as n
+      returning id`
+    const first = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: a.id }))
+    const second = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: b.id }))
+
+    const statuses = await Promise.all(
+      [first!.data!.id, second!.data!.id].map((topoId) =>
+        statusOf(() => asRequest(maintainer.authId, () => replaceTopoImage({ fileId: target.id, topoId }))),
+      ),
+    )
+
+    expect(statuses.sort()).toEqual([409, undefined])
+    const rows = await sql`select id from public.topos where file_fk = ${target.id}`
+    expect(rows).toHaveLength(1)
+  })
+
+  it('keeps one topo per image when two creates race', async () => {
+    const results = await Promise.all(
+      [1, 2].map(() => statusOf(() => asRequest(maintainer.authId, () => createTopo({ blockId, fileId: ownFileId })))),
+    )
+
+    expect(results.filter((status) => status === 409)).toHaveLength(1)
+    const rows = await sql`select id from public.topos where file_fk = ${ownFileId}`
+    expect(rows).toHaveLength(1)
+  })
 })

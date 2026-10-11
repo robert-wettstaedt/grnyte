@@ -159,8 +159,12 @@ beforeAll(async () => {
 
   const a = await seedGuidebook(regionA, AREA_A, users.insider.userId)
   const b = await seedGuidebook(regionB, AREA_B, users.outsider.userId)
-  // A region B topo on region A's image, as a bad backfill would leave it: only `relatedRegion` stops it.
-  await sql`insert into public.topos (block_fk, file_fk, region_fk) values (${b.blockFk}, ${a.fileId}, ${regionB})`
+  // A region B topo on a region A image, as a bad backfill would leave it: only `relatedRegion` stops it.
+  // Its own A image, since one image now holds at most one topo (`topos_file_fk_idx`).
+  const strayFileId = `${a.fileId}-stray`
+  await sql`
+    insert into public.files (id, path, region_fk, created_by) values (${strayFileId}, '/__tenancy__', ${regionA}, ${users.insider.userId})`
+  await sql`insert into public.topos (block_fk, file_fk, region_fk) values (${b.blockFk}, ${strayFileId}, ${regionB})`
 }, 30_000)
 
 afterAll(async () => {

@@ -42,7 +42,7 @@ export function asAnonymousRequest<T>(supabase: unknown, fn: () => Promise<T> | 
  * Permissions are read live rather than passed in: a test that hand-builds `userRegions` proves the
  * handler agrees with the test's idea of the memberships, not with the database's.
  */
-export async function asRequest<T>(authUserId: string, fn: () => Promise<T> | T): Promise<T> {
+export async function asRequest<T>(authUserId: string, fn: () => Promise<T> | T, supabase?: unknown): Promise<T> {
   // `getUserPermissions` deliberately returns `user: undefined`, so the row is loaded alongside it
   // the way the `supabase` handle does. Without it every handler 401s on `user == null`.
   const [permissions, user, [authUser]] = await Promise.all([
@@ -74,14 +74,16 @@ export async function asRequest<T>(authUserId: string, fn: () => Promise<T> | T)
     // `authedRls` hands this to the storage handlers. A Proxy rather than `{}` so the first test
     // that drives one fails by name instead of on a null dereference: `locals` goes into
     // `with_request_store` as `never`, so TypeScript will not catch it.
-    supabase: new Proxy(
-      {},
-      {
-        get: (_, prop) => {
-          throw new Error(`testHarness does not stub supabase.${String(prop)}`)
+    supabase:
+      supabase ??
+      new Proxy(
+        {},
+        {
+          get: (_, prop) => {
+            throw new Error(`testHarness does not stub supabase.${String(prop)}`)
+          },
         },
-      },
-    ),
+      ),
   }
 
   return inRequestStore(locals, fn)
