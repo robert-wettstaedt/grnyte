@@ -1,5 +1,6 @@
+import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
-import { signedInRedirectTarget } from '$lib/auth'
+import { isContested, signedInRedirectTarget } from '$lib/auth'
 import { authError, formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { invalid } from '@sveltejs/kit'
@@ -24,12 +25,18 @@ export const signIn = form(signInSchema, async ({ email, next, password }) => {
     locals: { supabase },
   } = getRequestEvent()
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   // Supabase only speaks English, so its error code is mapped onto our copy and surfaced as a
   // form-level issue (FormError).
   if (error != null) {
     invalid(authError(error))
+  }
+
+  // Still contested means `/auth/confirm` could not replace the password, so it may be a stranger's.
+  if (isContested(data.user?.app_metadata)) {
+    await supabase.auth.signOut({ scope: 'local' })
+    return { redirectTo: `${resolve('/auth/forgot-password')}?contested=1` }
   }
 
   // Returned rather than redirected: a 303 becomes a pushing `goto` in Kit's remote-form client,

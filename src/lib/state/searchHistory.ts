@@ -12,6 +12,14 @@ export function addToHistory(items: string[], query: string, cap = CAP): string[
   return [q, ...items.filter((item) => item.toLowerCase() !== q.toLowerCase())].slice(0, cap)
 }
 
+export function clearHistory(): void {
+  try {
+    localStorage.removeItem(KEY)
+  } catch {
+    // Storage unavailable: nothing was stored.
+  }
+}
+
 export function loadHistory(): string[] {
   if (typeof localStorage === 'undefined') {
     return []
@@ -32,5 +40,9 @@ export function saveHistory(items: string[]): void {
   if (typeof localStorage === 'undefined') {
     return
   }
-  localStorage.setItem(KEY, JSON.stringify(items))
+  try {
+    localStorage.setItem(KEY, JSON.stringify(items))
+  } catch {
+    // Quota or private mode: history is a convenience.
+  }
 }

@@ -49,6 +49,22 @@ let trackedUser: string | undefined
 // Whether Zero has read its replica back from IndexedDB, which takes seconds on a large one.
 let storeLoaded = $state(false)
 
+/** Drops every user's stamps on this device. Sign-out uses it because the tracked user may already be gone. */
+export function forgetAllSynced(): void {
+  syncedAt = NONE
+
+  try {
+    const prefixes = Object.values(KEY_PREFIX).map((prefix) => `${prefix}.`)
+    for (const name of Object.keys(localStorage)) {
+      if (prefixes.some((prefix) => name.startsWith(prefix))) {
+        localStorage.removeItem(name)
+      }
+    }
+  } catch {
+    // Storage refused; the in-memory clear above still holds for this page.
+  }
+}
+
 /** Drops every stamp because the replica behind them is gone. */
 export function forgetSynced(): void {
   if (!browser || trackedUser == null) {

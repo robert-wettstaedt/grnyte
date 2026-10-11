@@ -10,6 +10,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { push, replaceUrl } from '$lib/state/navigation.svelte'
+  import { addToHistory, loadHistory, removeFromHistory, saveHistory } from '$lib/state/searchHistory'
   import { liveSearchQuery, setLiveSearchQuery } from '$lib/state/searchQuery.svelte'
   import { visualViewport } from '$lib/state/visualViewport.svelte'
   import type { Snippet } from 'svelte'
@@ -17,7 +18,6 @@
   import { MediaQuery, SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity'
   import { fly, slide } from 'svelte/transition'
   import SearchField from './SearchField.svelte'
-  import { addToHistory, loadHistory, removeFromHistory, saveHistory } from './searchHistory'
 
   interface Props {
     /** Trailing content inside the bar (e.g. the Filter pill). */

@@ -9,6 +9,10 @@
 
   // Supabase surfaces an expired/invalid recovery link via this query param.
   const linkError = $derived(page.url.searchParams.get('error_description'))
+  // Set by /auth/confirm for a contested sign-up, along with where its link was headed.
+  const contested = $derived(page.url.searchParams.has('contested'))
+  const next = $derived(page.url.searchParams.get('next'))
+  const signInQuery = $derived(new URLSearchParams(next == null ? {} : { next }).toString())
 </script>
 
 <svelte:head>
@@ -19,7 +23,11 @@
   <div class="card preset-tonal-success px-4 py-6 text-center text-sm" role="status">
     <p class="font-bold">{m.auth_passwordUpdated()}</p>
     <p class="text-surface-600-400 mt-1">{m.auth_passwordUpdatedBody()}</p>
-    <a href={resolve('/auth/signin')} class="text-primary-400 mt-3 inline-block font-bold">{m.auth_goToSignIn()}</a>
+    <!-- Signed in by now, so sign-in forwards to a validated `next`. -->
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- resolve()'d, plus a query string -->
+    <a href={`${resolve('/auth/signin')}?${signInQuery}`} class="text-primary-400 mt-3 inline-block font-bold">
+      {m.auth_goToSignIn()}
+    </a>
   </div>
 {:else if linkError != null}
   <div class="card preset-tonal-error px-4 py-6 text-center text-sm" role="alert">
@@ -31,7 +39,9 @@
   </div>
 {:else}
   <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_resetTitle()}</h1>
-  <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">{m.auth_resetSubtitle()}</p>
+  <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">
+    {contested ? m.auth_resetContestedSubtitle() : m.auth_resetSubtitle()}
+  </p>
 
   <form {...resetPassword} class="flex flex-col gap-4">
     <FormError form={resetPassword} />

@@ -1,4 +1,6 @@
 import { form, getRequestEvent } from '$app/server'
+import { CONTESTED_SIGNUP } from '$lib/auth'
+import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
@@ -6,9 +8,11 @@ import { botFields } from '$lib/forms/botCheck'
 import { screenSubmit } from '$lib/forms/botCheck.server'
 import { authError, formError, passwordSchema, passwordsMatch, usernameSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
+import { logServerFailure } from '$lib/logging/failure.server'
 import { getLocale } from '$lib/paraglide/runtime'
 import { invalid } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
+import { authUsers } from 'drizzle-orm/supabase'
 
 const signUpSchema = z
   .object({
@@ -37,6 +41,21 @@ export const signUp = form(signUpSchema, async (submitted) => {
   // GoTrue's public sign-up is switched off, so the published anon key cannot skip the checks above.
   const { data, error } = await supabaseAdmin().auth.admin.createUser({ email, email_confirm: false, password })
   if (error?.code === 'email_exists') {
+    // Either password for an unproven address may be a stranger's, so whoever confirms picks a new
+    // one (`/auth/confirm`). The first username stays; the latest is no likelier to be the owner's.
+    const [unconfirmed] = await db
+      .select({ id: authUsers.id })
+      .from(authUsers)
+      .where(and(eq(authUsers.email, sql`lower(${email})`), isNull(authUsers.emailConfirmedAt)))
+      .limit(1)
+    if (unconfirmed != null) {
+      const { error: flagError } = await supabaseAdmin().auth.admin.updateUserById(unconfirmed.id, {
+        app_metadata: { [CONTESTED_SIGNUP]: true },
+      })
+      if (flagError != null) {
+        await logServerFailure('signup', `contested flag failed: ${flagError.code ?? flagError.message}`)
+      }
+    }
     // Same answer as a new address. Resend mails only an unconfirmed account, and its per-address
     // limit would show one was mailed a minute ago, which a new address can never hit.
     await sendConfirmation(supabase, email, { quietRateLimit: true })

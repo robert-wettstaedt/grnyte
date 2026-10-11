@@ -2,6 +2,7 @@
  * `signUp` creates accounts through the admin API only after its checks, never reveals an existing
  * address, and leaves the confirmation email to GoTrue's resend.
  */
+import { CONTESTED_SIGNUP } from '$lib/auth'
 import { deleteAccountRows } from '$lib/db/testAccounts'
 import { deleteStaleFixtureAccounts, fixtureRun, reachable, sql } from '$lib/db/testDb'
 import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
@@ -15,6 +16,7 @@ const NEW = `__signup_new_${RUN}__@example.test`
 const USERNAME = `su${RUN}`
 
 let created: string[] = []
+let flagged: { claimed: unknown; id: string }[] = []
 let resent: string[] = []
 let resendError: null | { code: string; message: string } = null
 /** What the fake admin API answers: a real auth.users id, or a GoTrue error code. */
@@ -29,6 +31,10 @@ vi.mock('$lib/db/supabaseAdmin.server', () => ({
           return 'id' in adminAnswer
             ? { data: { user: { id: adminAnswer.id } }, error: null }
             : { data: { user: null }, error: { code: adminAnswer.code } }
+        },
+        updateUserById: async (id: string, { app_metadata }: { app_metadata: Record<string, unknown> }) => {
+          flagged.push({ claimed: app_metadata[CONTESTED_SIGNUP], id })
+          return { error: null }
         },
       },
     },
@@ -82,6 +88,7 @@ const cleanup = async () => {
 
 beforeEach(async () => {
   created = []
+  flagged = []
   resent = []
   resendError = null
   if (reachable) await cleanup()
@@ -132,6 +139,23 @@ describe.skipIf(!reachable)('signUp through the admin API', () => {
 
     expect(resent).toEqual([NEW])
     expect(await sql`select 1 from public.users where username = ${USERNAME}`).toHaveLength(0)
+  })
+
+  it('marks an unconfirmed account signed up for twice, so confirming it forces a new password', async () => {
+    const [{ id }] = await sql<{ id: string }[]>`
+      insert into auth.users (id, email) values (gen_random_uuid(), ${NEW}) returning id`
+    adminAnswer = { code: 'email_exists' }
+
+    expect(await submit({ ...FIELDS, email: NEW.toUpperCase() })).toMatchObject({ result: { success: true } })
+    expect(flagged).toEqual([{ claimed: true, id }])
+  })
+
+  it('leaves a confirmed account alone', async () => {
+    await sql`insert into auth.users (id, email, email_confirmed_at) values (gen_random_uuid(), ${NEW}, now())`
+    adminAnswer = { code: 'email_exists' }
+
+    expect(await submit(FIELDS)).toMatchObject({ result: { success: true } })
+    expect(flagged).toEqual([])
   })
 
   it('does not show an existing address that its confirmation was mailed a minute ago', async () => {
