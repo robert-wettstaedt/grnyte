@@ -20,7 +20,6 @@ let actor = 0
 let other = 0
 let route = 0
 let twin = 0
-let ownsTwin = false
 let area = 0
 let block = 0
 
@@ -41,10 +40,28 @@ async function reset() {
  * `events_region_fk_regions_id_fk`. Nothing in this file depends on which region it is, only that
  * it is ours.
  *
- * The twin is a block whose id EQUALS the route's, inserted when the two sequences do not already
- * collide. It is what makes the five `isNull` clauses in `objectMatches` testable at all: matching
+ * The twin is a block whose id EQUALS the route's, both of them ours (see {@link twinId}). It is what makes the five `isNull` clauses in `objectMatches` testable at all: matching
  * on any old block proves nothing, since its id differs anyway.
  */
+/**
+ * An id free in both `routes` and `blocks` that both sequences have already issued, so neither ever
+ * hands it to a parallel suite. Drawn from the lower sequence; the twin used to take the route's id
+ * as a block id above the block sequence, or borrow another suite's block that went mid-run.
+ */
+async function twinId(): Promise<number> {
+  const [{ lower, other }] = await sql<{ lower: string; other: string }[]>`
+    select case when r.v <= b.v then 'routes' else 'blocks' end as lower,
+           case when r.v <= b.v then 'blocks' else 'routes' end as other
+    from (select pg_sequence_last_value('public.routes_id_seq') as v) r,
+         (select pg_sequence_last_value('public.blocks_id_seq') as v) b`
+  for (;;) {
+    const [{ id }] = await sql<{ id: number }[]>`
+      select nextval(pg_get_serial_sequence(${`public.${lower}`}, 'id'))::int as id`
+    const [taken] = await sql`select 1 from ${sql(other)} where id = ${id}`
+    if (taken == null) return id
+  }
+}
+
 if (reachable) {
   // Ordered, for the same reason: another suite's throwaway accounts come and go under an
   // unordered `limit 2`, and the seed logins are the lowest ids there are.
@@ -62,26 +79,21 @@ if (reachable) {
       .insert(schema.blocks)
       .values({ areaFk: ar.id, createdBy: a.id, name, order: 0, regionFk: reg.id })
       .returning()
+    const id = await twinId()
     const [r] = await db
       .insert(schema.routes)
-      .values({ blockFk: b.id, createdBy: a.id, name, regionFk: reg.id })
+      .values({ blockFk: b.id, createdBy: a.id, id, name, regionFk: reg.id })
       .returning()
-
-    const [shared] = await db.select().from(schema.blocks).where(eq(schema.blocks.id, r.id)).limit(1)
-    const [t] =
-      shared == null
-        ? await db
-            .insert(schema.blocks)
-            .values({ areaFk: ar.id, createdBy: a.id, id: r.id, name, order: 0, regionFk: reg.id })
-            .returning()
-        : [shared]
+    const [t] = await db
+      .insert(schema.blocks)
+      .values({ areaFk: ar.id, createdBy: a.id, id, name, order: 0, regionFk: reg.id })
+      .returning()
 
     route = r.id
     region = reg.id
     actor = a.id
     other = o.id
     twin = t.id
-    ownsTwin = shared == null
     area = ar.id
     block = b.id
   }
@@ -93,7 +105,7 @@ afterAll(async () => {
   // The fixtures take their events with them through `events.<object>_fk on delete cascade`, and
   // the region can only go once nothing points at it, so this unwinds in insert order reversed.
   if (route !== 0) await db.delete(schema.routes).where(eq(schema.routes.id, route))
-  if (ownsTwin) await db.delete(schema.blocks).where(eq(schema.blocks.id, twin))
+  if (twin !== 0) await db.delete(schema.blocks).where(eq(schema.blocks.id, twin))
   if (block !== 0) await db.delete(schema.blocks).where(eq(schema.blocks.id, block))
   if (area !== 0) await db.delete(schema.areas).where(eq(schema.areas.id, area))
   if (region !== 0) await db.delete(schema.regions).where(eq(schema.regions.id, region))

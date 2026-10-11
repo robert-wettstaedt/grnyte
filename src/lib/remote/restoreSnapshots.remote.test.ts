@@ -25,9 +25,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 const HOME = '__restore_home__'
 const OTHER = '__restore_other__'
 
-/** No row has this id. The snapshot's own `areaId`/`blockId` only ever addresses activity history,
- *  which a restore reassigns and which these tests do not create. */
-const DEAD_ID = 999_999_999
+/** Ids the sequence issued that no row holds, like a hard-deleted row's: drawn with `nextval`, so
+ *  parallel suites never get them, and a restore under an id never issued is refused. */
+const deadIds: Record<'areas' | 'blocks' | 'routes', number[]> = { areas: [], blocks: [], routes: [] }
+const deadId = (entity: keyof typeof deadIds) => {
+  const id = deadIds[entity].shift()
+  if (id == null) throw new Error(`no dead ${entity} id left`)
+  return id
+}
 
 let maintainer: SeedUser
 let homeRegionId = 0
@@ -71,6 +76,12 @@ async function createRegion(name: string): Promise<number> {
 
 beforeAll(async () => {
   if (!reachable) return
+
+  for (const entity of ['areas', 'blocks', 'routes'] as const) {
+    const rows = await sql<{ id: number }[]>`
+      select nextval(pg_get_serial_sequence(${`public.${entity}`}, 'id'))::int as id from generate_series(1, 10)`
+    deadIds[entity] = rows.map((row) => row.id)
+  }
 
   const users = await seedUsers({ maintainer: 'maintainer@grnyte.rocks' })
   maintainer = users.maintainer
@@ -117,7 +128,7 @@ describe.skipIf(!reachable)('restoreArea (hard)', () => {
           regionFk: homeRegionId,
           walkingPaths: ['__restore_walk__'],
         },
-        areaId: DEAD_ID,
+        areaId: deadId('areas'),
         mode: 'hard',
         parking: [{ lat: 47.1, long: 8.2 }],
       }),
@@ -161,7 +172,7 @@ describe.skipIf(!reachable)('restoreArea (hard)', () => {
     // so this is the shape a hostile client sends rather than one a caller could write inline.
     const snapshot = {
       area: { name: '__restore_typed_area__', parentFk: null, regionFk: homeRegionId, type: 'sector' },
-      areaId: DEAD_ID,
+      areaId: deadId('areas'),
       mode: 'hard',
       parking: [],
     } as unknown as Parameters<typeof restoreArea>[0]
@@ -182,7 +193,7 @@ describe.skipIf(!reachable)('restoreArea (hard)', () => {
       asRequest(maintainer.authId, () =>
         restoreArea({
           area: { name: '__restore_offglobe_area__', parentFk: null, regionFk: homeRegionId },
-          areaId: DEAD_ID,
+          areaId: deadId('areas'),
           mode: 'hard',
           parking: [{ lat: 999, long: 8.2 }],
         }),
@@ -203,7 +214,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
       restoreBlock({
         areaFk: sectorAreaId,
         block: { description: 'Flat landing.', name: '__restore_block__', order: 0, regionFk: homeRegionId },
-        blockId: DEAD_ID,
+        blockId: deadId('blocks'),
         geolocation: { estimated: true, lat: 47.3, long: 8.4 },
         mode: 'hard',
       }),
@@ -251,7 +262,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
         restoreBlock({
           areaFk: sectorAreaId,
           block: { description: null, name: '__restore_foreign_block__', order: 0, regionFk: otherRegionId },
-          blockId: DEAD_ID,
+          blockId: deadId('blocks'),
           geolocation: null,
           mode: 'hard',
         }),
@@ -271,7 +282,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
         restoreBlock({
           areaFk: sectorAreaId,
           block: { description: null, name: '__restore_offglobe_block__', order: 0, regionFk: homeRegionId },
-          blockId: DEAD_ID,
+          blockId: deadId('blocks'),
           geolocation: { estimated: false, lat: 999, long: 8.4 },
           mode: 'hard',
         }),
@@ -310,7 +321,7 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
           firstAscensionistFks: [],
           mode: 'hard',
           route: { ...snapshotFor(blockId, '__restore_rating_route__'), rating: 42 },
-          routeId: DEAD_ID,
+          routeId: deadId('routes'),
           tags: [],
         }),
       ),
@@ -334,7 +345,7 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
           firstAscensionistFks: [],
           mode: 'hard',
           route: { ...snapshotFor(blockId, '__restore_year_route__'), firstAscentYear: -500 },
-          routeId: DEAD_ID,
+          routeId: deadId('routes'),
           tags: [],
         }),
       ),
@@ -347,6 +358,49 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
     expect(rows).toHaveLength(0)
   })
 
+  it('refuses an id the sequence never issued, which would be taken from every later insert', async () => {
+    const blockId = await createBlock('__restore_unissued_block__', sectorAreaId, homeRegionId)
+    const [{ ahead }] = await sql<{ ahead: number }[]>`
+      select (pg_sequence_last_value(pg_get_serial_sequence('public.routes', 'id')) + 1000)::int as ahead`
+
+    const status = await statusOf(() =>
+      asRequest(maintainer.authId, () =>
+        restoreRoute({
+          firstAscensionistFks: [],
+          mode: 'hard',
+          route: snapshotFor(blockId, '__restore_unissued_route__'),
+          routeId: ahead,
+          tags: [],
+        }),
+      ),
+    )
+
+    expect(status).toBe(404)
+    expect(await sql`select 1 from public.routes where id = ${ahead}`).toHaveLength(0)
+  })
+
+  it('refuses an id that holds another entity rather than confirming it exists', async () => {
+    const blockId = await createBlock('__restore_taken_block__', sectorAreaId, homeRegionId)
+    const elsewhere = await createBlock('__restore_taken_other__', sectorAreaId, homeRegionId)
+    const [{ id: takenId }] = await sql<{ id: number }[]>`
+      insert into public.routes (name, block_fk, region_fk, created_by)
+      values ('__restore_taken_route__', ${elsewhere}, ${homeRegionId}, ${maintainer.userId}) returning id`
+
+    const status = await statusOf(() =>
+      asRequest(maintainer.authId, () =>
+        restoreRoute({
+          firstAscensionistFks: [],
+          mode: 'hard',
+          route: snapshotFor(blockId, '__restore_taken_replay__'),
+          routeId: takenId,
+          tags: [],
+        }),
+      ),
+    )
+
+    expect(status).toBe(404)
+  })
+
   it("drops a first ascensionist belonging to a region other than the route's", async () => {
     const blockId = await createBlock('__restore_fa_block__', sectorAreaId, homeRegionId)
     const foreign = await createFirstAscensionist('__restore_foreign_fa__', otherRegionId)
@@ -357,7 +411,7 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
         firstAscensionistFks: [own, foreign],
         mode: 'hard',
         route: snapshotFor(blockId, '__restore_fa_route__'),
-        routeId: DEAD_ID,
+        routeId: deadId('routes'),
         tags: [],
       }),
     )
@@ -398,7 +452,7 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
         // `snapshotFor` forges `createdBy: 0` and leaves `areaFks`/`areaIds` null, so none of the
         // values below can have come from the snapshot.
         route: snapshotFor(blockId, '__restore_derive_route__'),
-        routeId: DEAD_ID,
+        routeId: deadId('routes'),
         tags: [],
       }),
     )
@@ -413,5 +467,72 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
       createdBy: maintainer.userId,
       regionFk: homeRegionId,
     })
+  })
+})
+
+describe.skipIf(!reachable)('a replayed hard Undo', () => {
+  const count = async (table: 'areas' | 'blocks' | 'routes', id: number) =>
+    (await sql`select id from ${sql(`public.${table}`)} where id = ${id}`).length
+
+  it('restores an area once when two Undos race', async () => {
+    const areaId = deadId('areas')
+    const snapshot = {
+      area: { name: '__replay_area__', parentFk: parentAreaId, regionFk: homeRegionId },
+      areaId,
+      mode: 'hard' as const,
+      parking: [{ lat: 47.1, long: 8.2 }],
+    }
+
+    await Promise.all([1, 2].map(() => asRequest(maintainer.authId, () => restoreArea(snapshot))))
+
+    expect(await count('areas', areaId)).toBe(1)
+    expect(await sql`select id from public.geolocations where area_fk = ${areaId}`).toHaveLength(1)
+  })
+
+  it('restores a block once and shifts its siblings once', async () => {
+    const sibling = await createBlock('__replay_sibling__', sectorAreaId, homeRegionId)
+    await sql`update public.blocks set "order" = 5 where id = ${sibling}`
+    const blockId = deadId('blocks')
+    const snapshot = {
+      areaFk: sectorAreaId,
+      block: { description: null, name: '__replay_block__', order: 5, regionFk: homeRegionId },
+      blockId,
+      geolocation: null,
+      mode: 'hard' as const,
+    }
+
+    await Promise.all([1, 2].map(() => asRequest(maintainer.authId, () => restoreBlock(snapshot))))
+    await asRequest(maintainer.authId, () => restoreBlock(snapshot))
+
+    expect(await count('blocks', blockId)).toBe(1)
+    const [row] = await sql<{ order: number }[]>`select "order" as "order" from public.blocks where id = ${sibling}`
+    expect(row.order).toBe(6)
+  })
+
+  it('restores a route once when two Undos race', async () => {
+    const blockId = await createBlock('__replay_route_block__', sectorAreaId, homeRegionId)
+    const routeId = deadId('routes')
+    const snapshot = {
+      firstAscensionistFks: [],
+      mode: 'hard' as const,
+      route: {
+        areaFks: null,
+        areaIds: null,
+        blockFk: blockId,
+        createdBy: 0,
+        description: null,
+        firstAscentYear: null,
+        gradeFk: null,
+        name: '__replay_route__',
+        rating: null,
+        regionFk: homeRegionId,
+      },
+      routeId,
+      tags: [],
+    }
+
+    await Promise.all([1, 2].map(() => asRequest(maintainer.authId, () => restoreRoute(snapshot))))
+
+    expect(await count('routes', routeId)).toBe(1)
   })
 })
