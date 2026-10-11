@@ -15,9 +15,18 @@
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
 import { db } from '$lib/db/db.server'
+import { regionMembers } from '$lib/db/schema'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
+import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { activeAdminUserFks, assertMemberChangeAllowed, findActiveMember, resolveRestore } from './guards.server'
+import {
+  activeAdminUserFks,
+  assertMemberChangeAllowed,
+  assertNotLastAdmin,
+  findActiveMember,
+  resolveRestore,
+} from './guards.server'
+import { stallsOnLock } from './testLock'
 
 const REGION = '__guards_region__'
 const OTHER_REGION = '__guards_other__'
@@ -51,6 +60,7 @@ const logRemoval = (regionFk: number, userFk: number, metadata: null | string = 
 async function removeFixtures() {
   const names = [REGION, OTHER_REGION]
   await sql`delete from public.events where region_fk in (select id from public.regions where name = any(${names}))`
+  await sql`delete from public.region_invitations where region_fk in (select id from public.regions where name = any(${names}))`
   await sql`delete from public.region_members where region_fk in (select id from public.regions where name = any(${names}))`
   await sql`delete from public.regions where name = any(${names})`
 }
@@ -58,6 +68,7 @@ async function removeFixtures() {
 /** admin@ is the sole region_admin, member@ is a plain member, second@ is a maintainer. */
 async function seedMembers() {
   await sql`delete from public.events where region_fk in (${regionId}, ${otherRegionId})`
+  await sql`delete from public.region_invitations where region_fk in (${regionId}, ${otherRegionId})`
   await sql`delete from public.region_members where region_fk in (${regionId}, ${otherRegionId})`
   await sql`
     insert into public.region_members (region_fk, role, is_active, auth_user_fk, user_fk) values
@@ -185,6 +196,7 @@ describe.skipIf(!reachable)('resolveRestore', () => {
       // Derived from `users`, never from the snapshot: this is what grants the region, so a
       // snapshot-supplied value would hand it to whichever account the caller named.
       authUserFk: users.member.authId,
+      invitedByFk: null,
     })
   })
 
@@ -193,5 +205,59 @@ describe.skipIf(!reachable)('resolveRestore', () => {
     await logRemoval(regionId, users.member.userId)
 
     await expect(resolveRestore(db, regionId, users.member.userId)).resolves.toMatchObject({ alreadyMember: true })
+  })
+
+  it('refuses a removal that a later accept or leave has superseded', async () => {
+    await logRemoval(regionId, users.member.userId)
+    await sql`insert into public.events (verb, subject_fk, region_fk, actor_fk) values ('accept', ${users.member.userId}, ${regionId}, ${users.member.userId})`
+    await sql`delete from public.region_members where region_fk = ${regionId} and user_fk = ${users.member.userId}`
+    await sql`insert into public.events (verb, subject_fk, region_fk, actor_fk) values ('leave', ${users.member.userId}, ${regionId}, ${users.member.userId})`
+
+    await expect(resolveRestore(db, regionId, users.member.userId)).rejects.toMatchObject({ status: 404 })
+  })
+
+  it('takes the inviter from the stored acceptance, null for a founder', async () => {
+    await logRemoval(regionId, users.member.userId)
+    await expect(resolveRestore(db, regionId, users.member.userId)).resolves.toMatchObject({ invitedByFk: null })
+
+    await sql`
+      insert into public.region_invitations (region_fk, email, token, invited_by, status, accepted_by, accepted_at, expires_at)
+      values (${regionId}, 'x@example.com', gen_random_uuid(), ${users.admin.userId}, 'accepted', ${users.member.userId}, now(), now() + interval '7 days')`
+    await expect(resolveRestore(db, regionId, users.member.userId)).resolves.toMatchObject({
+      invitedByFk: users.admin.userId,
+    })
+  })
+})
+
+describe.skipIf(!reachable)('last-admin race', () => {
+  it('lets only one of two admins demote the other when they act at once', async () => {
+    await sql`update public.region_members set role = 'region_admin' where region_fk = ${regionId} and user_fk = ${users.second.userId}`
+
+    // Each transaction checks, pauses past the other's check, then writes: without the lock both
+    // checks see two admins and both writes land.
+    const demote = (actor: Who, target: Who) =>
+      db.transaction(async (tx) => {
+        await assertMemberChangeAllowed(tx, users[actor].userId, {
+          nextRole: 'region_user',
+          regionFk: regionId,
+          userFk: users[target].userId,
+        })
+        await new Promise((resolve) => setTimeout(resolve, 200))
+        await tx
+          .update(regionMembers)
+          .set({ role: 'region_user' })
+          .where(and(eq(regionMembers.regionFk, regionId), eq(regionMembers.userFk, users[target].userId)))
+      })
+
+    const settled = await Promise.allSettled([demote('admin', 'second'), demote('second', 'admin')])
+
+    expect(settled.map((result) => result.status).sort()).toEqual(['fulfilled', 'rejected'])
+    expect(await activeAdminUserFks(db, regionId)).toHaveLength(1)
+  })
+
+  it('takes the region lock before counting admins', async () => {
+    await expect(stallsOnLock('region_members', regionId, () => assertNotLastAdmin(db, regionId, 0))).resolves.toBe(
+      true,
+    )
   })
 })

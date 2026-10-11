@@ -21,9 +21,16 @@ import { notify, notifyOutOfBand, retractOutOfBand } from '../notification/notif
 import { assignableRoles, type AssignableRole } from '../rolePermission/dto'
 import { createRegionForUser, listOwnedRegions } from './create.server'
 import { MAX_OWNED_REGIONS, type RegionInvitationItem, type UserInvitationItem } from './dto'
-import { assertMemberChangeAllowed, assertNotLastAdmin, findActiveMember, resolveRestore } from './guards.server'
+import {
+  assertMemberChangeAllowed,
+  assertNotLastAdmin,
+  findActiveMember,
+  lockRegionMembers,
+  resolveRestore,
+} from './guards.server'
 import {
   acceptInvitation,
+  assertSeatFree,
   createInvitation,
   listInvitationsForEmail,
   livePredicate,
@@ -484,7 +491,6 @@ export const updateRegionMemberRole = authedCommand(
 )
 
 export interface RemovedMemberSnapshot {
-  invitedByFk: null | number
   regionFk: number
   /** Not `AppRole`: undo may only put a member back on a role the app can assign in the first
    *  place, so `app_admin` cannot be smuggled in through the snapshot. */
@@ -518,7 +524,6 @@ export const removeRegionMember = authedCommand(
 
     return {
       data: {
-        invitedByFk: member.invitedByFk,
         regionFk,
         // Throws only for a membership hand-set to `app_admin`, which nothing here can produce.
         role: assignableRoleSchema.parse(member.role),
@@ -531,7 +536,6 @@ export const removeRegionMember = authedCommand(
 /** Undo a {@link removeRegionMember}, and erase the event it logged. */
 export const restoreRegionMember = authedCommand(
   z.object({
-    invitedByFk: z.nullable(z.number()),
     regionFk: z.number(),
     role: assignableRoleSchema,
     userFk: z.number(),
@@ -540,13 +544,16 @@ export const restoreRegionMember = authedCommand(
     const { afterCommit, db } = ctx
     assertCanEdit(ctx, snapshot.regionFk)
 
-    // An undo, not an insert. See resolveRestore for what that costs to enforce.
-    const { alreadyMember, authUserFk } = await resolveRestore(db, snapshot.regionFk, snapshot.userFk)
+    // An undo, not an insert. See resolveRestore for what that costs to enforce. Locked like an accept:
+    // the freed seat may have gone to an invitation since, and a join for the same person may race.
+    await lockRegionMembers(db, snapshot.regionFk)
+    const { alreadyMember, authUserFk, invitedByFk } = await resolveRestore(db, snapshot.regionFk, snapshot.userFk)
 
     if (!alreadyMember) {
+      await assertSeatFree(db, snapshot.regionFk)
       await db.insert(regionMembers).values({
         authUserFk,
-        invitedByFk: snapshot.invitedByFk,
+        invitedByFk,
         isActive: true,
         regionFk: snapshot.regionFk,
         role: snapshot.role,
