@@ -12,6 +12,7 @@ import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser }
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { createRegionForUser, listOwnedRegions } from './create.server'
 import { MAX_OWNED_REGIONS } from './dto'
+import { stallsOnLock } from './testLock'
 
 const NAME_PREFIX = '__create_region_test__'
 
@@ -56,6 +57,10 @@ describe.skipIf(!reachable)('createRegionForUser', () => {
       from region_members where region_fk = ${region.id}`
 
     expect(member).toMatchObject({ invitedBy: null, isActive: true, role: 'region_admin', userFk: founder.userId })
+  })
+
+  it('serialises on the founder before counting what they own', async () => {
+    await expect(stallsOnLock('region_owner', founder.userId, () => found('locked'))).resolves.toBe(true)
   })
 
   it('refuses past the cap, and writes nothing when it does', async () => {

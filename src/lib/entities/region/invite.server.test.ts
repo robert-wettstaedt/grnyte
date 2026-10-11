@@ -37,6 +37,7 @@ import {
   restoreInvitation,
   revokeInvitation,
 } from './invite.server'
+import { stallsOnLock } from './testLock'
 
 /**
  * The one mock in this file. `.env` carries a live `RESEND_API_KEY` (the Playwright spec needs
@@ -222,6 +223,12 @@ describe.skipIf(!reachable)('createInvitation', () => {
   })
 })
 
+describe.skipIf(!reachable)('createInvitation locking', () => {
+  it('takes the region lock before counting seats', async () => {
+    await expect(stallsOnLock('region_members', regionId, () => invite())).resolves.toBe(true)
+  })
+})
+
 describe.skipIf(!reachable)('acceptInvitation', () => {
   it('adds the member as region_user, carries the inviter over and marks the invitation used', async () => {
     const { id, token } = await invite()
@@ -265,6 +272,23 @@ describe.skipIf(!reachable)('acceptInvitation', () => {
       select count(*) from public.region_members
       where region_fk = ${regionId} and user_fk = ${users.invitee.userId}`
     expect(Number(count)).toBe(1)
+  })
+
+  it('adds one membership when the same link is accepted twice at once', async () => {
+    const { token } = await invite()
+
+    await Promise.allSettled([accept(token), accept(token)])
+
+    const [{ count }] = await sql<{ count: string }[]>`
+      select count(*) from public.region_members
+      where region_fk = ${regionId} and user_fk = ${users.invitee.userId}`
+    expect(Number(count)).toBe(1)
+  })
+
+  it('takes the region lock before reading memberships and seats', async () => {
+    const { token } = await invite()
+
+    await expect(stallsOnLock('region_members', regionId, () => accept(token))).resolves.toBe(true)
   })
 
   it('refuses an unknown token', async () => {
