@@ -17,7 +17,7 @@ const boundsOfCoords = (coords: Coords[]): Bounds | null => {
 export const blockBounds = (blocks: { geolocation: Coords | null | undefined }[]): Bounds | null =>
   boundsOfCoords(blocks.map((block) => block.geolocation).filter((location) => location != null))
 
-export const withPadding = (bounds: Bounds, blockCount: number): Bounds => {
+const withPadding = (bounds: Bounds, blockCount: number): Bounds => {
   let [minLat, minLng, maxLat, maxLng] = bounds
   const latSpan = maxLat - minLat
   const lngSpan = maxLng - minLng

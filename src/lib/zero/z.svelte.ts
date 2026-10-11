@@ -22,15 +22,6 @@ let accessToken: string | undefined
 let connectionUnsubscribe: (() => void) | undefined
 
 /**
- * A throwaway client with its own empty replica, so `/bench` can time a cold
- * initial sync without disturbing the app's client or its IndexedDB. The caller
- * owns the lifecycle: `close()` it and drop the database named by `storageKey`.
- */
-export function createColdZero(session: Session, storageKey: string): Z<Schema> {
-  return new Z<Schema>(zeroOptions(session, storageKey))
-}
-
-/**
  * The current Zero client. Reactive: reading it inside `$derived`/`$effect`
  * subscribes to client swaps. Only available after the root layout load ran.
  */
@@ -244,6 +235,15 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   }
 
   return z
+}
+
+/**
+ * A throwaway client with its own empty replica, so `/bench` can time a cold
+ * initial sync without disturbing the app's client or its IndexedDB. The caller
+ * owns the lifecycle: `close()` it and drop the database named by `storageKey`.
+ */
+function createColdZero(session: Session, storageKey: string): Z<Schema> {
+  return new Z<Schema>(zeroOptions(session, storageKey))
 }
 
 let storeProbe: undefined | { destroy(): void }

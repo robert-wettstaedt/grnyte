@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { entityHref } from '$lib/entities/href'
-  import { canEditRegion } from '$lib/entities/region/permissions'
+  import { regionAdminScreen } from '$lib/entities/region/adminScreen.svelte'
   import { updateRegionMapLayers } from '$lib/entities/region/regions.remote'
   import { mapLayersFingerprint, toLayerForm } from '$lib/entities/region/settings'
   import { fieldRows } from '$lib/forms/fieldRows.svelte'
@@ -12,27 +11,17 @@
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import { seedForm, seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { getGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'
   import RegionAdminRequired from '../RegionAdminRequired.svelte'
   import RegionScreen from '../RegionScreen.svelte'
 
-  const global = getGlobalState()
+  const screen = regionAdminScreen()
   const fields = updateRegionMapLayers.fields
-
-  // Derived, not read once: this is one route, so the page is reused between regions. Read once,
-  // Save overwrote the previous region's layers under a URL naming the other.
-  const regionId = $derived(Number(page.params.regionId))
-
-  // Region settings are admin-only, and the link into here is too, so this only catches somebody
-  // typing the URL. The server rejects them either way: this is so they find out before typing.
-  const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 
   // From the memberships the shell already has. No async load, so `Form` stays the route's direct
   // child: a wrapper between them breaks its sticky header.
   // Separate from `stored`: an unsynced membership and a region with no layers both give `[]`.
-  const membership = $derived(global.userRegions.find((region) => region.regionFk === regionId))
-  const stored = $derived(membership?.settings.mapLayers ?? [])
+  const stored = $derived(screen.membership?.settings.mapLayers ?? [])
 
   // Only the row identities live here, the values live in the form. `fields.set` replaces the whole
   // input, so a re-seed has to carry the id along with the rows.
@@ -40,17 +29,17 @@
     blank: { attributions: '', minZoom: '', name: '', opacity: '', url: '' },
     read: () => fields.mapLayers.value() ?? [],
     // `known` describes what was LOADED, not what is on screen: recomputing it proves nothing.
-    write: (mapLayers) => fields.set({ id: String(regionId), known: fields.known.value() ?? '', mapLayers }),
+    write: (mapLayers) => fields.set({ id: String(screen.regionId), known: fields.known.value() ?? '', mapLayers }),
   })
 
   // Keyed on `synced`, not the id: a membership can arrive without its region row, and seeding
   // then submits an empty list, which the handler reads as "remove them all".
   // `layersComplete` too: a half-read blob holds fewer layers than are stored.
   seedOnKeyChange(
-    () => (membership?.synced === true && membership.layersComplete ? regionId : undefined),
+    () => (screen.membership?.synced === true && screen.membership.layersComplete ? screen.regionId : undefined),
     () => {
       void seedForm(updateRegionMapLayers, {
-        id: String(regionId),
+        id: String(screen.regionId),
         known: mapLayersFingerprint(stored),
         mapLayers: stored.map(toLayerForm),
       })
@@ -67,19 +56,19 @@
   <title>{m.region_mapLayers()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-{#if !isAdmin}
-  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_mapLayers()}>
-    <RegionAdminRequired {regionId} />
+{#if !screen.isAdmin}
+  <RegionScreen backTo={entityHref('regions', screen.regionId)} title={m.region_mapLayers()}>
+    <RegionAdminRequired regionId={screen.regionId} />
   </RegionScreen>
-{:else if membership?.synced !== true}
+{:else if screen.membership?.synced !== true}
   <!-- No form until the region row is here. Rendering one meanwhile is what made this screen
        destructive four rounds running: an empty list is a valid submission that means "remove them
        all", so a form that renders before its data has arrived is a delete button with a Save label. -->
-  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_mapLayers()} />
-{:else if !membership.layersComplete}
+  <RegionScreen backTo={entityHref('regions', screen.regionId)} title={m.region_mapLayers()} />
+{:else if !screen.membership.layersComplete}
   <!-- Refused rather than rendered: the form can only submit the layers it could read, so saving it
        would silently drop the ones it could not, and this screen is the only copy of them. -->
-  <RegionScreen backTo={entityHref('regions', regionId)} title={m.region_mapLayers()}>
+  <RegionScreen backTo={entityHref('regions', screen.regionId)} title={m.region_mapLayers()}>
     <ErrorState
       type="generic"
       title={m.region_mapLayersUnreadableTitle()}
@@ -89,7 +78,7 @@
 {:else}
   <Form
     form={updateRegionMapLayers}
-    cancelTo={entityHref('regions', regionId)}
+    cancelTo={entityHref('regions', screen.regionId)}
     {onSubmitted}
     submitLabel={m.common_save()}
     title={m.region_mapLayers()}

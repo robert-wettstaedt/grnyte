@@ -39,8 +39,8 @@ export const isImperialLocale = (): boolean => {
   return IMPERIAL_REGIONS.includes(region)
 }
 
-export const celsiusToFahrenheit = (celsius: number): number => celsius * 1.8 + 32
-export const fahrenheitToCelsius = (fahrenheit: number): number => (fahrenheit - 32) / 1.8
+const celsiusToFahrenheit = (celsius: number): number => celsius * 1.8 + 32
+const fahrenheitToCelsius = (fahrenheit: number): number => (fahrenheit - 32) / 1.8
 
 /** A number in the unit it is ALREADY in, localized, never converted. */
 const formatUnit = (value: number, unit: 'celsius' | 'fahrenheit'): string =>

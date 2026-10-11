@@ -42,7 +42,7 @@ type Db = PostgresJsDatabase<typeof schema>
 type Defer = (task: () => Promise<void>) => void
 
 /** How long an invitation stays open. Also stated in the mail copy (`email_inviteMeta`). */
-export const INVITE_TTL_DAYS = 7
+const INVITE_TTL_DAYS = 7
 
 /** One send per invitation per minute. Seats cap how many invitations exist; this is the only
  *  thing stopping an admin from re-sending in a loop. */

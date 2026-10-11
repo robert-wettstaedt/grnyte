@@ -105,7 +105,7 @@ export const stringToIntOptional = z.codec(
   },
 )
 
-export const stringToNumber = z.codec(
+const stringToNumber = z.codec(
   z.string({ error: formError('form_required') }).check(z.regex(z.regexes.number, formError('form_numInvalid'))),
   z.number(),
   {

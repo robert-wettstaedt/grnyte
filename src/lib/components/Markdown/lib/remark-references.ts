@@ -21,7 +21,7 @@ export const REFERENCE_TOMBSTONE = String.fromCharCode(0)
  * would be worse than saying nothing. Kept apart from {@link REFERENCE_TOMBSTONE} so the two never
  * collapse into one message.
  */
-export const REFERENCE_UNAVAILABLE = String.fromCharCode(1)
+const REFERENCE_UNAVAILABLE = String.fromCharCode(1)
 
 // UTF-8 first: bare `btoa` throws on anything past Latin-1 ("Łysa", an emoji).
 export const encodeReferencePayload = (text: string): string =>
