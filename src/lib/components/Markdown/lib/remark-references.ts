@@ -23,6 +23,19 @@ export const REFERENCE_TOMBSTONE = String.fromCharCode(0)
  */
 export const REFERENCE_UNAVAILABLE = String.fromCharCode(1)
 
+// UTF-8 first: bare `btoa` throws on anything past Latin-1 ("Łysa", an emoji).
+export const encodeReferencePayload = (text: string): string =>
+  btoa(Array.from(new TextEncoder().encode(text), (byte) => String.fromCharCode(byte)).join(''))
+
+// null for a payload that is not ours, which `atob` or the decoder would throw on.
+const decodeReferencePayload = (base64: string): null | string => {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)))
+  } catch {
+    return null
+  }
+}
+
 export type EncloseOptions = 'anchor' | 'strong'
 
 export interface MarkdownReferencesIds {
@@ -69,7 +82,7 @@ export const enrichMarkdownWithReferences = (markdown: string, refs: MarkdownRef
   let enrichedMarkdown = markdown
 
   refs.forEach(({ id, missing, name, type, unavailable }) => {
-    const payload = btoa(unavailable ? REFERENCE_UNAVAILABLE : missing ? REFERENCE_TOMBSTONE : name)
+    const payload = encodeReferencePayload(unavailable ? REFERENCE_UNAVAILABLE : missing ? REFERENCE_TOMBSTONE : name)
     enrichedMarkdown = enrichedMarkdown.replace(new RegExp(`!${type}:${id}!`, 'g'), `!${type}:${id}:${payload}!`)
   })
 
@@ -110,7 +123,7 @@ export const remarkReferences: Plugin<[RemarkReferencesOptions?], Root> = ({ enc
       .trim()
       .substring(1, value.length - 1)
       .split(':')
-    const decoded = base64 == null ? null : atob(base64)
+    const decoded = base64 == null ? null : decodeReferencePayload(base64)
 
     // Deleted target, or one this device cannot see right now: inert, muted text either way, and
     // never a link to a page that would render a spinner or a 404.

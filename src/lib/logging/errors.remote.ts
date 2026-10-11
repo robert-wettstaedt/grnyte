@@ -6,6 +6,8 @@ import { requireAppAdmin } from '$lib/remote/require.server'
 import { desc, sql } from 'drizzle-orm'
 import { MAX_ERROR_LENGTH } from './stringify'
 
+const MAX_NAVIGATOR_BYTES = 4096
+
 // Persists a client-side error. Deliberately not `authedCommand`: errors can happen
 // logged-out, and the table has RLS on with no insert policy, so we use the
 // privileged db client and take `createdBy` from the server session, never the client.
@@ -13,7 +15,10 @@ import { MAX_ERROR_LENGTH } from './stringify'
 export const logClientError = command(
   z.object({
     error: z.string().check(z.maxLength(MAX_ERROR_LENGTH)),
-    navigator: z.optional(z.json()),
+    // Refused rather than truncated: a cut JSON blob is no longer JSON.
+    navigator: z.optional(
+      z.json().check(z.refine((v) => new TextEncoder().encode(JSON.stringify(v)).length <= MAX_NAVIGATOR_BYTES)),
+    ),
     pathname: z.optional(z.string().check(z.maxLength(2048))),
   }),
   async ({ error, navigator, pathname }) => {

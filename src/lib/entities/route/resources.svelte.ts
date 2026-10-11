@@ -13,6 +13,8 @@ export interface RouteListFilter {
   maxGrade?: number
   minGrade?: number
   minRating?: number
+  /** Only routes whose name starts with this (case-insensitive). */
+  namePrefix?: string
   /** Cap the result set (e.g. a search preview). */
   pageSize?: number
   /** Find routes whose description references the given `!type:id!` token (backlinks). */
@@ -20,7 +22,7 @@ export interface RouteListFilter {
   /** Scope to one region, for the counts that are only meaningful per region. */
   regionFk?: number
   /** Server-side ordering (pairs with `sortOrder`); unsorted otherwise. */
-  sort?: 'firstAscentYear' | 'grade' | 'rating'
+  sort?: 'firstAscentYear' | 'grade' | 'name' | 'rating'
   sortOrder?: 'asc' | 'desc'
   tags?: string[]
 }

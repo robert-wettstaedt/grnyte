@@ -19,9 +19,8 @@ export function applyTextFilters<Q extends SearchableQuery>(query: Q, args: Text
   let q: SearchableQuery = query
 
   if (args.content != null) {
-    q = q.where((q) =>
-      q.or(q.cmp('name', 'ILIKE', `%${args.content}%`), q.cmp('description', 'ILIKE', `%${args.content}%`)),
-    )
+    const term = escapeLikeTerm(args.content)
+    q = q.where((q) => q.or(q.cmp('name', 'ILIKE', `%${term}%`), q.cmp('description', 'ILIKE', `%${term}%`)))
   }
 
   // A reference token (`!blocks:42!`) inside a description is a backlink to that entity. The
@@ -31,4 +30,9 @@ export function applyTextFilters<Q extends SearchableQuery>(query: Q, args: Text
   }
 
   return q as Q
+}
+
+/** Escapes `\`, `%` and `_` so user input matches literally in an `ILIKE` pattern (server and client agree on `\`). */
+export function escapeLikeTerm(term: string): string {
+  return term.replace(/[\\%_]/g, '\\$&')
 }

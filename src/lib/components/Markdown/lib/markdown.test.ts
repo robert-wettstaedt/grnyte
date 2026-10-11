@@ -129,6 +129,22 @@ describe('Markdown Conversion', () => {
     expect(html).not.toContain('Block not found')
   })
 
+  it('round-trips a name outside Latin-1', () => {
+    const enriched = enrichMarkdownWithReferences('!routes:7!', [{ id: 7, name: 'Łysa 🧗', type: 'routes' }])
+    expect(convertMarkdownToHtmlSync(enriched, [])).toContain('<strong>Łysa 🧗</strong>')
+  })
+
+  it('round-trips a name outside Latin-1 through the server enrichment', async () => {
+    const unicodeDb = {
+      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => [{ name: 'Łysa 🧗' }]) })) })),
+    } as unknown as PostgresJsDatabase<typeof schema>
+    expect(await convertMarkdownToHtml('!routes:7!', unicodeDb)).toContain('<strong>Łysa 🧗</strong>')
+  })
+
+  it('renders a malformed hand-typed payload instead of throwing', () => {
+    expect(convertMarkdownToHtmlSync('!routes:1:A!', [])).toContain('href="/routes/1"')
+  })
+
   it('leaves a reference whose id is not a number as raw text', async () => {
     const markdown = '!routes:foo!'
     const html = await convertMarkdownToHtml(markdown, mockDb)

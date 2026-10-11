@@ -82,21 +82,26 @@ export const toggleReaction = authedCommand(
         return { data: false }
       }
 
-      await tx.insert(reactions).values({
-        authUserFk: user.authUserFk,
-        body: emoji,
-        eventFk: eventId,
-        parentFk: comment?.id ?? null,
-        // Off the event, never off the request: the INSERT policy binds the row to a region the
-        // caller may read, and a submitted one would only be checked against itself.
-        regionFk: event.regionFk,
-        type: 'emoji',
-        userFk: user.id,
-      })
+      // A racing tap already took the slot (unique index): answer as reacted, notify once.
+      const inserted = await tx
+        .insert(reactions)
+        .values({
+          authUserFk: user.authUserFk,
+          body: emoji,
+          eventFk: eventId,
+          parentFk: comment?.id ?? null,
+          // Off the event, never off the request: the INSERT policy binds the row to a region the
+          // caller may read, and a submitted one would only be checked against itself.
+          regionFk: event.regionFk,
+          type: 'emoji',
+          userFk: user.id,
+        })
+        .onConflictDoNothing()
+        .returning({ id: reactions.id })
 
       // Last, and outside the transaction: `notify` runs on the privileged handle, because there
       // is no INSERT policy on `notifications` and deliberately cannot be one.
-      afterCommit(() => notifyReaction({ actorFk: user.id, comment, event }))
+      if (inserted.length > 0) afterCommit(() => notifyReaction({ actorFk: user.id, comment, event }))
 
       return { data: true }
     })
