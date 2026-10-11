@@ -35,9 +35,6 @@
 </script>
 
 <QueryState resource={feed.resource}>
-  <!-- `EventFeed` shows it, sharing one slot with the new-activity pill. -->
-  {#snippet syncing()}{/snippet}
-
   {#snippet ready()}
     <EventFeed
       arriving={feed.arriving}

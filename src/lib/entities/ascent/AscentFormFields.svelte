@@ -24,6 +24,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { summaryOf } from '$lib/zero/resource.svelte'
   import type { RemoteForm } from '@sveltejs/kit'
   import type { AscentFormInput } from './ascents.remote'
   import AscentType from './AscentType.svelte'
@@ -101,6 +102,7 @@
       .filter((prev) => prev.createdBy === global.user?.id && prev.notes.trim() !== '' && prev.id !== ascent?.id)
       .sort((a, b) => (b.dateTime ?? 0) - (a.dateTime ?? 0)),
   )
+  const previousCount = $derived(summaryOf(routeAscents.phase, previousNotes.length))
 
   // Reactive, so switching the unit setting mid-session re-renders the field in the other system.
   const tempField = $derived(temperatureField())
@@ -282,8 +284,7 @@
           <span class={['transition-transform', open && 'rotate-90']}>
             <Icon name="chevron-right" size={13} />
           </span>
-          <!-- The count is of the whole list, so it waits for all of it. -->
-          {m.ascents_form_previousNotes()}{routeAscents.phase.kind === 'answered' ? ` (${previousNotes.length})` : ''}
+          {m.ascents_form_previousNotes()}{previousCount != null ? ` (${previousCount})` : ''}
         {/snippet}
 
         {#each previousNotes as prev (prev.id)}

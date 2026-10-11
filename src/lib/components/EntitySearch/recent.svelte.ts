@@ -1,5 +1,6 @@
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 import type { DisplayName } from '$lib/entities/displayName'
+import { quietly } from '$lib/state/pill.svelte'
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
 import { entityMappers, type EntityCandidate, type EntityType } from './search.svelte'
@@ -90,23 +91,24 @@ export function newEntities({
   // entirely, rather than backfilling with the next-newest ones.
   const fetchLimit = () => limit + skip().length
 
-  const areas = createResource(
-    () => queries.listAreas({ limit: fetchLimit(), sort: 'createdAt' }),
-    (rows) => rows.map((row) => ({ createdAt: row.createdAt, item: map.areas(row) })),
-    { enabled },
-  )
-
-  const blocks = createResource(
-    () => queries.listBlocks({ limit: fetchLimit(), sort: 'createdAt' }),
-    (rows) => rows.map((row) => ({ createdAt: row.createdAt, item: map.blocks(row) })),
-    { enabled },
-  )
-
-  const routes = createResource(
-    () => queries.listRoutes({ pageSize: fetchLimit(), sort: 'createdAt', sortOrder: 'desc' }),
-    (rows) => rows.map((row) => ({ createdAt: row.createdAt, item: map.routes(row) })),
-    { enabled },
-  )
+  // Quietly: a search list has its own loading state, so it never holds the screen's pill.
+  const { areas, blocks, routes } = quietly(() => ({
+    areas: createResource(
+      () => queries.listAreas({ limit: fetchLimit(), sort: 'createdAt' }),
+      (rows) => rows.map((row) => ({ createdAt: row.createdAt, item: map.areas(row) })),
+      { enabled },
+    ),
+    blocks: createResource(
+      () => queries.listBlocks({ limit: fetchLimit(), sort: 'createdAt' }),
+      (rows) => rows.map((row) => ({ createdAt: row.createdAt, item: map.blocks(row) })),
+      { enabled },
+    ),
+    routes: createResource(
+      () => queries.listRoutes({ pageSize: fetchLimit(), sort: 'createdAt', sortOrder: 'desc' }),
+      (rows) => rows.map((row) => ({ createdAt: row.createdAt, item: map.routes(row) })),
+      { enabled },
+    ),
+  }))
 
   return {
     /** The newest `limit` rows overall. Zero can't union across tables, so each query
@@ -141,29 +143,29 @@ export function recentlyViewed({
       .map((ref) => ref.id)
   const hasIds = (type: EntityType) => () => enabled() && idsOf(type).length > 0
 
-  const areas = createResource(
-    () => queries.listAreas({ id: idsOf('areas') }),
-    (rows): EntityCandidate[] => rows.map(map.areas),
-    { enabled: hasIds('areas') },
-  )
-
-  const blocks = createResource(
-    () => queries.listBlocks({ blockId: idsOf('blocks') }),
-    (rows): EntityCandidate[] => rows.map(map.blocks),
-    { enabled: hasIds('blocks') },
-  )
-
-  const routes = createResource(
-    () => queries.listRoutes({ routeId: idsOf('routes') }),
-    (rows): EntityCandidate[] => rows.map(map.routes),
-    { enabled: hasIds('routes') },
-  )
-
-  const users = createResource(
-    () => queries.listUsers({ ids: idsOf('users'), regionFks: regionFks() }),
-    (rows): EntityCandidate[] => rows.map(map.users),
-    { enabled: () => hasIds('users')() && regionFks().length > 0 },
-  )
+  // Quietly: a search list has its own loading state, so it never holds the screen's pill.
+  const { areas, blocks, routes, users } = quietly(() => ({
+    areas: createResource(
+      () => queries.listAreas({ id: idsOf('areas') }),
+      (rows): EntityCandidate[] => rows.map(map.areas),
+      { enabled: hasIds('areas') },
+    ),
+    blocks: createResource(
+      () => queries.listBlocks({ blockId: idsOf('blocks') }),
+      (rows): EntityCandidate[] => rows.map(map.blocks),
+      { enabled: hasIds('blocks') },
+    ),
+    routes: createResource(
+      () => queries.listRoutes({ routeId: idsOf('routes') }),
+      (rows): EntityCandidate[] => rows.map(map.routes),
+      { enabled: hasIds('routes') },
+    ),
+    users: createResource(
+      () => queries.listUsers({ ids: idsOf('users'), regionFks: regionFks() }),
+      (rows): EntityCandidate[] => rows.map(map.users),
+      { enabled: () => hasIds('users')() && regionFks().length > 0 },
+    ),
+  }))
 
   return {
     /** Candidates in most-recently-opened order (the queries return them sorted by name). */

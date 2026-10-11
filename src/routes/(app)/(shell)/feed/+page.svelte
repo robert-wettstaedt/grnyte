@@ -17,6 +17,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { syncSearchParams } from '$lib/state/navigation.svelte'
+  import { quietly } from '$lib/state/pill.svelte'
   import { expectingMore } from '$lib/zero/resource.svelte'
 
   const global = getGlobalState()
@@ -62,9 +63,12 @@
   // community ever outgrows the cap. 51 rather than 50 because the signed-in user is dropped from
   // the page below, and a cap that shrinks by one depending on where their own name happens to
   // sort is not a cap anybody can reason about.
-  const people = userList(() => ({ limit: 51, regionFks: regionFk == null ? memberRegionFks : [regionFk] }), {
-    enabled: () => filtersOpen,
-  })
+  // Quietly, like every picker: its options say nothing about whether the feed is caught up.
+  const people = quietly(() =>
+    userList(() => ({ limit: 51, regionFks: regionFk == null ? memberRegionFks : [regionFk] }), {
+      enabled: () => filtersOpen,
+    }),
+  )
 
   /** "Only me" is its own pinned row, so the signed-in user is not also in the list. */
   const others = $derived(people.data.filter((person) => person.id !== global.user?.id))
@@ -77,9 +81,11 @@
   // embedded in stored content), which would make the chip an id-to-username oracle for the whole
   // user table. Bounded to the regions the viewer is in, walking it reveals only people
   // they already share a community with.
-  const selectedPerson = userList(() => ({ ids: userFk == null ? [] : [userFk], regionFks: memberRegionFks }), {
-    enabled: () => userFk != null,
-  })
+  const selectedPerson = quietly(() =>
+    userList(() => ({ ids: userFk == null ? [] : [userFk], regionFks: memberRegionFks }), {
+      enabled: () => userFk != null,
+    }),
+  )
 
   // The one definition of "narrowed" and the one way out of it, for every surface that offers a
   // Reset: the empty state below and the filter sheet's footer. Defined here because this is the
@@ -128,9 +134,6 @@
   />
 
   <QueryState resource={feed.resource}>
-    <!-- The feed's own pill slot shows it, so the new-activity pill can take precedence. -->
-    {#snippet syncing()}{/snippet}
-
     {#snippet ready()}
       <EventFeed
         arriving={feed.arriving}

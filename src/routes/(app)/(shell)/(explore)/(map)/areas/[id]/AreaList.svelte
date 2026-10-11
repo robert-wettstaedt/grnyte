@@ -8,13 +8,15 @@
 
   interface Props {
     areas: AreaDetail[]
+    /** The rows on hand may be counted (see `summaryOf`). */
+    counted: boolean
     /** The query failed, so nothing more is coming. */
     failed?: boolean
-    /** The whole list is here, so its count is true. */
+    /** The whole list is here, so a "none" is true. */
     settled: boolean
   }
 
-  const { areas, failed = false, settled }: Props = $props()
+  const { areas, counted, failed = false, settled }: Props = $props()
 </script>
 
 <!-- Always a section: the list, a held row while it loads, or the empty line. Offline and never
@@ -24,7 +26,7 @@
     <div class="flex items-center justify-between">
       <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.areas_title()}</h2>
 
-      {#if settled}
+      {#if counted}
         <span class="text-surface-500 text-[11px] font-semibold tabular-nums">
           {m.areas_count({ count: areas.length })}
         </span>

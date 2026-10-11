@@ -44,7 +44,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
   import { back, push } from '$lib/state/navigation.svelte'
-  import { expectingMore } from '$lib/zero/resource.svelte'
+  import { expectingMore, summaryOf } from '$lib/zero/resource.svelte'
   import { SvelteMap } from 'svelte/reactivity'
   import { fade } from 'svelte/transition'
   import RegionLive from './RegionLive.svelte'
@@ -127,6 +127,8 @@
     return counts
   })
   const voteCount = $derived([...countByGrade.values()].reduce((sum, n) => sum + n, 0))
+  const votesShown = $derived(summaryOf(ascents.phase, voteCount))
+  const ascentCount = $derived(summaryOf(ascents.phase, ascents.data.length))
   // Bar under the pointer while scrubbing the vote histogram, echoed in the header.
   let selectedVote = $state<null | { count: number; label: string }>(null)
 
@@ -143,7 +145,7 @@
   const siblingRoutes = blockRouteList(() => route.data?.blockFk ?? -1)
   const orderedSiblings = $derived(orderRoutesByTopo(siblingRoutes.data, topos.data))
   const routeHref = (id: number) => entityHref('routes', id)
-  const nav = $derived(toSheetNav(siblingRoutes.phase.kind === 'answered' ? orderedSiblings : null, routeId, routeHref))
+  const nav = $derived(toSheetNav(summaryOf(siblingRoutes.phase, orderedSiblings), routeId, routeHref))
 
   /** Whether the event log is up. It owns the screen while it is, like the media viewer. */
   let logOpen = $state(false)
@@ -356,9 +358,9 @@
           <section class="flex flex-col gap-2.5">
             <div class="flex items-baseline justify-between gap-3">
               <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">{m.ascents_title()}</h2>
-              {#if ascents.phase.kind === 'answered'}
+              {#if ascentCount != null}
                 <span class="text-surface-500 text-xs font-semibold" transition:fade={{ duration: motion() }}>
-                  {ascents.data.length}
+                  {ascentCount}
                 </span>
               {/if}
             </div>
@@ -374,9 +376,7 @@
 
             {#if ascents.data.length > 0}
               <a class="btn preset-outlined-surface-200-800 w-full" href={ascentsHref}>
-                {ascents.phase.kind === 'answered'
-                  ? m.ascents_seeAll({ count: ascents.data.length })
-                  : m.ascents_seeAllUncounted()}
+                {ascentCount != null ? m.ascents_seeAll({ count: ascentCount }) : m.ascents_seeAllUncounted()}
                 <Icon name="chevron-right" size={15} />
               </a>
             {:else if ascents.phase.kind === 'answered'}
@@ -396,12 +396,12 @@
             <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
               {m.routes_gradeOpinions()}
             </h2>
-            {#if ascents.phase.kind === 'answered' && voteCount > 0}
+            {#if votesShown != null && votesShown > 0}
               <span class="text-surface-500 text-xs font-semibold tabular-nums">
                 {#if selectedVote != null}
                   {selectedVote.label} · {m.routes_gradeVotes({ count: selectedVote.count })}
                 {:else}
-                  {m.routes_gradeVotes({ count: voteCount })}
+                  {m.routes_gradeVotes({ count: votesShown })}
                 {/if}
               </span>
             {/if}
@@ -430,8 +430,8 @@
             <OfflineNotice compact excluded />
           {:else if ascents.phase.kind === 'error'}
             <QueryError compact />
-          {:else if ascents.phase.kind !== 'answered'}
-            <!-- A tally of a partial list is a claim about the whole one. -->
+          {:else if votesShown == null}
+            <!-- Votes on hand show while arriving; no votes yet, or an offline fragment, waits. -->
             <SkeletonRows count={1} lines={1} />
           {:else if countByGrade.size > 0}
             <GradeHistogram

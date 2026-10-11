@@ -1,5 +1,6 @@
 import { isFieldDevice } from '$lib/state/device.svelte'
 import { isOnline } from '$lib/state/online.svelte'
+import { holdsPill, pillSurface, type PillSurface } from '$lib/state/pill.svelte'
 import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
 import type { HumanReadable, QueryOrQueryRequest, ReadonlyJSONValue } from '@rocicorp/zero'
 import { offlinePolicyOf, type OfflinePolicy } from './offline'
@@ -28,8 +29,8 @@ import type { Schema } from './zero-schema'
 export type Availability = 'error' | 'excluded' | 'loading' | 'ready' | 'unsynced'
 
 /**
- * What a screen may say about a query, decided once. `answered` alone may state an absence or a
- * total; `partial` is offline rows never confirmed, shown without either.
+ * What a screen may say about a query, decided once. `answered` alone may state an absence;
+ * `arriving` may summarise its rows (`summaryOf`); `partial` is offline rows never confirmed.
  */
 export type QueryPhase =
   | { empty: boolean; kind: 'answered' }
@@ -216,6 +217,7 @@ class Resource<
     offline: (() => OfflinePolicy | undefined) | OfflinePolicy | undefined,
     register: (() => QueryRequest[]) | undefined,
     source: QuerySource,
+    surface: PillSurface | undefined,
   ) {
     this.#source = source
     this.#request = request
@@ -223,6 +225,21 @@ class Resource<
     this.#enabled = enabled
     this.#offline = offline
     this.#register = register
+
+    // Resolved now, during component init, so it is the surface this resource renders on. Built
+    // outside a component there is none, and it holds no pill rather than throwing.
+    const pill = holdsPill() ? (surface ?? pillSurface()) : undefined
+    if (pill != null) {
+      try {
+        $effect(() => {
+          if (this.phase.kind === 'arriving') {
+            return pill.hold(this)
+          }
+        })
+      } catch {
+        // effect_orphan: no component or effect root owns this resource.
+      }
+    }
   }
 }
 
@@ -240,6 +257,7 @@ class Resource<
  * @param opts.offline overrides the query's offline policy for this usage, for one that depends on
  *   its arguments (your own logbook is kept, somebody else's is not).
  * @param opts.source the Zero client; tests pass a fake.
+ * @param opts.surface the pill to hold while arriving; tests pass one, components read context.
  * @param opts.register makes this a composite: a local-only `zql` read over rows these named queries
  *   sync, which supply its readiness and policy (`$lib/zero/coverage` checks the read stays inside).
  */
@@ -258,6 +276,7 @@ export function createResource<
     offline?: (() => OfflinePolicy | undefined) | OfflinePolicy
     register?: () => QueryRequest[]
     source?: QuerySource
+    surface?: PillSurface
   },
 ): QueryResource<TOut> {
   return new Resource(
@@ -267,6 +286,7 @@ export function createResource<
     opts?.offline,
     opts?.register,
     opts?.source ?? zeroSource,
+    opts?.surface,
   )
 }
 
@@ -423,6 +443,20 @@ export function resolveSettled({
 /** Whether a composite still watches the same views, in order. Any change is a new request. */
 export function sameViews(next: unknown[], previous: unknown[]): boolean {
   return next.length === previous.length && next.every((view, i) => view === previous[i])
+}
+
+/** A summary of a collection (a count, tallies, a sibling list) once it may show: answered, or
+ *  arriving and not zero, since a zero claims absence. Offline fragments never summarise. */
+export function summaryOf<T extends number | { readonly length: number } | { readonly size: number }>(
+  phase: QueryPhase,
+  value: T,
+): T | undefined {
+  if (phase.kind === 'answered') {
+    return value
+  }
+  const counted: number | { readonly length: number } | { readonly size: number } = value
+  const size = typeof counted === 'number' ? counted : 'size' in counted ? counted.size : counted.length
+  return phase.kind === 'arriving' && size > 0 ? value : undefined
 }
 
 /**

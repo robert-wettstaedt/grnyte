@@ -12,6 +12,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { replaceUrl } from '$lib/state/navigation.svelte'
+  import { summaryOf, type QueryPhase } from '$lib/zero/resource.svelte'
   import { SvelteURL } from 'svelte/reactivity'
   import AscentStatusSelect from './fields/AscentStatusSelect.svelte'
   import FavoritesSelect from './fields/FavoritesSelect.svelte'
@@ -29,6 +30,8 @@
 
   interface Props {
     loading: boolean
+    /** What may be said about `routes`: its count and grade bars show per `summaryOf`. */
+    phase: QueryPhase
     /**
      * Desktop panel placement: `search` drops it under the search bar (explore),
      * `sheet` docks a slim column beside the routes sheet (area routes). No effect on mobile.
@@ -36,15 +39,13 @@
     placement?: 'search' | 'sheet'
     /** Only `gradeFk` and the count are read, so both the slim map rows and full list items fit. */
     routes: Pick<RouteMapItem, 'gradeFk'>[]
-    /** `routes` is the whole matching set, so its count and grade bars are true. */
-    settled: boolean
     /** Default direction per sort field, used to seed Order and detect defaults. */
     sortDefaults?: Record<string, 'asc' | 'desc'>
     /** When set, a Sort section is shown and `sort`/`dir` URL params are managed. */
     sortOptions?: SortOption[]
   }
 
-  const { loading, placement = 'search', routes, settled, sortDefaults, sortOptions }: Props = $props()
+  const { loading, phase, placement = 'search', routes, sortDefaults, sortOptions }: Props = $props()
 
   // Desktop panel geometry. `search`: under the search bar, sharing its x + width.
   // `sheet`: a slim column docked right of the routes sheet, sharing its y + height.
@@ -103,6 +104,8 @@
     sortField = field
     sortDir = dirFor(field)
   }
+
+  const routeCount = $derived(summaryOf(phase, routes.length))
 
   const routeCountByGrade = $derived.by(() => {
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt wholesale in this $derived; per-key signals cost >5 dev-mode stack captures per grade on load
@@ -310,7 +313,7 @@
   {contentClass}
   title={showSort ? m.filter_filterAndSort() : m.common_filter()}
   snapPoints={[0.75, 0.6]}
-  subtitle={settled ? m.routes_routesCount({ count: routes.length }) : undefined}
+  subtitle={routeCount != null ? m.routes_routesCount({ count: routeCount }) : undefined}
   footer={modalFooter}
 >
   {#snippet trigger(props)}
@@ -379,7 +382,7 @@
         <GradeRange
           grades={global.grades}
           gradingScale={global.gradingScale}
-          routeCountByGrade={settled ? routeCountByGrade : undefined}
+          routeCountByGrade={routeCount != null ? routeCountByGrade : undefined}
           bind:value
         />
       </div>

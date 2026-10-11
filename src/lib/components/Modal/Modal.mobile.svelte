@@ -1,6 +1,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import PillHost from '$lib/components/StatusPill/PillHost.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { createPillSurface } from '$lib/state/pill.svelte'
   import { Portal } from '@skeletonlabs/skeleton-svelte'
   import { BottomSheet } from 'svelte-bottom-sheet'
   import type { MobileProps } from './types'
@@ -18,6 +20,9 @@
     subtitle,
     title,
   }: MobileProps = $props()
+
+  // This sheet's own pill: what it renders holds it, drawn above its own backdrop.
+  const pill = createPillSurface()
 
   /**
    * The scrim's z-index, its sheet one above, ten per level of `depth`.
@@ -173,6 +178,7 @@
          on a text baseline: the descender space under it is six more pixels than the scroll area
          has, which is a scrollbar for content that fits. -->
     <BottomSheet.Content class="w-full px-4! pt-4! pb-4! {fill ? 'block! h-full' : ''}">
+      <PillHost surface={pill} />
       {@render children?.()}
     </BottomSheet.Content>
 

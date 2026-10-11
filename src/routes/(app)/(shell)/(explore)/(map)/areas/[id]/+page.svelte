@@ -26,7 +26,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { isOnline } from '$lib/state/online.svelte'
-  import { expectingMore } from '$lib/zero/resource.svelte'
+  import { expectingMore, summaryOf } from '$lib/zero/resource.svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import AreaActions from './AreaActions.svelte'
   import AreaEmpty, { areaEmptyIsActionable } from './AreaEmpty.svelte'
@@ -64,6 +64,8 @@
   const routes = routeList(() => ({ areaId: Number(page.params.id) }))
 
   const countByGrade = $derived(countRoutesByGrade(routes.data))
+  const routeCount = $derived(summaryOf(routes.phase, routes.data.length))
+  const subAreaCount = $derived(summaryOf(subAreas.phase, subAreas.data.length))
 
   // A sub-area has no location of its own, so it gets no destination.
   const destination = $derived.by(() => {
@@ -109,7 +111,7 @@
     const data = area.data
     sheetState.title = title
     sheetState.subtitle = data != null && (regionName != null || data.areas.length > 0) ? breadcrumb : null
-    sheetState.nav = toSheetNav(siblings.phase.kind === 'answered' ? siblings.data : null, data?.id, areaHref)
+    sheetState.nav = toSheetNav(summaryOf(siblings.phase, siblings.data), data?.id, areaHref)
     return () => (sheetState.nav = null)
   })
 </script>
@@ -127,7 +129,7 @@
 
       <AreaActions
         area={detail}
-        blockCount={blocks.phase.kind === 'answered' ? blocks.data.length : 0}
+        blockCount={summaryOf(blocks.phase, blocks.data.length) ?? 0}
         {destination}
         {locating}
         {location}
@@ -136,13 +138,13 @@
 
       <CollapsibleMarkdown markdown={detail.description} />
 
-      <!-- Counts wait for every route below, their box held meanwhile so the lists are not pushed
-           down; an empty answer fills the same box rather than collapsing it. -->
+      <!-- Counts show from the routes on hand, their box held meanwhile so the lists are not pushed
+           down; "none" waits for the answer and fills the same box rather than collapsing it. -->
       {#if detail.type != null && (routes.data.length > 0 ? routes.phase.kind === 'answered' || isOnline() : expectingMore(routes.phase) || routes.phase.kind === 'answered' || routes.phase.kind === 'error')}
         <section class="space-y-2">
           <div class="flex items-baseline justify-between">
             <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.areas_grades()}</h2>
-            {#if routes.phase.kind === 'answered'}
+            {#if routeCount != null}
               <span class="text-surface-600-400 text-xs tabular-nums">
                 {#if selected != null}
                   {selected.label} · {m.routes_routesCount({ count: selected.count })}
@@ -155,7 +157,7 @@
 
           {#if routes.phase.kind === 'answered' && routes.data.length === 0}
             <p class="text-surface-600-400 flex h-31 items-center justify-center text-sm">{m.areas_noRoutes()}</p>
-          {:else if routes.phase.kind === 'answered'}
+          {:else if routeCount != null}
             <GradeHistogram
               {countByGrade}
               grades={global.grades}
@@ -184,8 +186,8 @@
           </span>
           <span class="min-w-0 flex-1">
             <span class="block font-semibold">
-              {routes.phase.kind === 'answered' && routes.data.length > 0
-                ? m.areas_allRoutesCount({ count: routes.data.length })
+              {routeCount != null && routeCount > 0
+                ? m.areas_allRoutesCount({ count: routeCount })
                 : m.areas_allRoutes()}
             </span>
             <span class="text-surface-600-400 block text-xs">{m.areas_allRoutesHint()}</span>
@@ -199,11 +201,13 @@
           blocks={blocks.data}
           routes={routes.data}
           failed={blocks.phase.kind === 'error' || routes.phase.kind === 'error'}
+          counted={routeCount != null}
           settled={blocks.phase.kind === 'answered' && routes.phase.kind === 'answered'}
         />
       {:else if detail.type === 'area'}
         <AreaList
           areas={subAreas.data}
+          counted={subAreaCount != null}
           failed={subAreas.phase.kind === 'error'}
           settled={subAreas.phase.kind === 'answered'}
         />

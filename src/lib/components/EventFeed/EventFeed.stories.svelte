@@ -1,5 +1,8 @@
 <script module lang="ts">
+  import PillHost from '$lib/components/StatusPill/PillHost.svelte'
+  import { rootPill } from '$lib/state/pill.svelte'
   import { defineMeta } from '@storybook/addon-svelte-csf'
+  import type { ComponentProps } from 'svelte'
   import EventFeed from './EventFeed.svelte'
   import { feedDensityViews, sampleWeekViews, unresolvedWeek } from './fixtures'
 
@@ -11,6 +14,12 @@
     title: 'Components/EventFeed/EventFeed',
   })
 </script>
+
+<!-- The feed hands "N new" to its surface's pill, which the app draws; a story has to draw it too. -->
+{#snippet withPill(args: ComponentProps<typeof EventFeed>)}
+  <PillHost surface={rootPill} />
+  <EventFeed {...args} onMergeNew={() => {}} />
+{/snippet}
 
 <!-- The design's sample week: day dividers between today, yesterday and two days back.
 
@@ -32,13 +41,17 @@
 <!-- Mixed density with the pill and the load-older button, so the two affordances can be checked
      against the shorter rows: a compact row is 44px, which is also the minimum tap target it owes
      as a disclosure trigger. -->
-<Story name="Mixed density, in use" args={{ hasMore: true, newCount: 3, views: feedDensityViews() }} />
+<Story
+  name="Mixed density, in use"
+  args={{ hasMore: true, newCount: 3, views: feedDensityViews() }}
+  template={withPill}
+/>
 
 <!-- Older rows still exist beyond the sync window. -->
 <Story name="With load older" args={{ hasMore: true }} />
 
 <!-- Rows arrived while reading. Merging is a tap, so the list never jumps. -->
-<Story name="New activity pill" args={{ hasMore: true, newCount: 6 }} />
+<Story name="New activity pill" args={{ hasMore: true, newCount: 6 }} template={withPill} />
 
 <!-- Nothing resolved: every card is tombstone rows under an unnamed headline, and the list still
      holds its shape. -->

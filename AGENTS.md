@@ -125,6 +125,13 @@ This project uses:
   without one: place it low so it appends. Never insert above rendered content, and never collapse
   reserved space when the answer is "none", which shifts as much as popping in. Skeletons wait
   ~250 ms; the reasoning is in the zero-latency change's design.
+- A summary of a collection (a count, a chart, "n of N", sibling nav) reads `summaryOf(phase, value)`
+  from `$lib/zero/resource.svelte`, never `phase.kind === 'answered'`: it shows from the rows on hand
+  while they arrive and holds back only a zero. `answered` is for absence claims, form seeds and
+  action gates. Nothing draws its own syncing pill: each surface (the screen, every `Modal`) has one
+  (`createPillSurface` in `$lib/state/pill.svelte`), an arriving resource holds the nearest, and a
+  screen offers it an action or status through `pillSurface().offer`. Incidental lookups (search,
+  pickers, markdown references) are built in `quietly` so they never hold it.
 - A page's chrome renders in every state: `PageHeader` and the width container sit outside
   `QueryState`, the title falling back until the row lands, so a deep link always has a way back. A
   form screen gets this from `Form`'s `waitFor` (its rows in order, `whole` for one that replaces

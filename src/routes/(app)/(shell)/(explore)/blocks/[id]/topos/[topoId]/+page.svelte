@@ -24,7 +24,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { prefersStill } from '$lib/state/motion.svelte'
   import { exit } from '$lib/state/navigation.svelte'
-  import { expectingMore } from '$lib/zero/resource.svelte'
+  import { expectingMore, summaryOf } from '$lib/zero/resource.svelte'
   import { untrack } from 'svelte'
   import Panel from '../../../../Modal/Panel.svelte'
   import { sheetState } from '../../../../Modal/sheetState.svelte'
@@ -101,7 +101,10 @@
   // desktop footer pager). Topos have no names, so the labels state the direction.
   const nav = $derived.by(() => {
     const base = toSheetNav(
-      topos.phase.kind === 'answered' ? topos.data.map((view) => ({ id: view.id, name: '' })) : null,
+      summaryOf(
+        topos.phase,
+        topos.data.map((view) => ({ id: view.id, name: '' })),
+      ),
       topoId,
       topoHref,
     )
@@ -110,6 +113,8 @@
       : { ...base, next: { ...base.next, label: m.topo_next() }, prev: { ...base.prev, label: m.topo_previous() } }
   })
 
+  const toposCount = $derived(summaryOf(topos.phase, topos.data.length))
+
   const breadcrumbArea = $derived(block.data == null ? null : blockBreadcrumbArea(block.data))
 
   // Panel header, like the (map) sheets: which topo this is, over where it lives
@@ -117,9 +122,7 @@
   $effect(() => {
     const index = topos.data.findIndex((view) => view.id === topoId)
     sheetState.title =
-      index === -1 || topos.phase.kind !== 'answered'
-        ? m.topo_alt()
-        : m.topo_position({ position: index + 1, total: topos.data.length })
+      index === -1 || toposCount == null ? m.topo_alt() : m.topo_position({ position: index + 1, total: toposCount })
     sheetState.subtitle = block.data == null ? null : breadcrumb
     sheetState.nav = nav
     return () => (sheetState.nav = null)

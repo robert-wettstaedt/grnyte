@@ -1,3 +1,4 @@
+import { PillSurface, quietly, rootPill } from '$lib/state/pill.svelte'
 import { flushSync } from 'svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { queries } from './queries'
@@ -37,22 +38,34 @@ function fakeSource() {
 
 describe('a resource built on a fake client', () => {
   let cleanup: () => void
+  let pill: PillSurface
   let fake: ReturnType<typeof fakeSource>
   let resource: ReturnType<typeof createResource<'grades', undefined, undefined, unknown, unknown, unknown>>
+
+  const build = () => {
+    pill = new PillSurface()
+    cleanup = $effect.root(() => {
+      fake = fakeSource()
+      resource = createResource(
+        () => queries.listGrades(),
+        (rows) => rows,
+        { offline: 'field', source: fake.source, surface: pill },
+      ) as typeof resource
+    })
+  }
+
+  // `env` is not reactive and the resource reads its phase once built, so offline cases build after.
+  const rebuild = () => {
+    cleanup()
+    build()
+  }
 
   beforeEach(() => {
     env.online = true
     env.fieldDevice = false
     env.guidebookSynced = false
     env.referenceSynced = false
-    cleanup = $effect.root(() => {
-      fake = fakeSource()
-      resource = createResource(
-        () => queries.listGrades(),
-        (rows) => rows,
-        { offline: 'field', source: fake.source },
-      ) as typeof resource
-    })
+    build()
   })
 
   afterEach(() => cleanup())
@@ -107,6 +120,7 @@ describe('a resource built on a fake client', () => {
     env.online = false
     env.fieldDevice = true
     env.guidebookSynced = true
+    rebuild()
     fake.result.data = [{ id: 1 }]
     expect(phase()).toEqual({ empty: false, kind: 'answered' })
   })
@@ -115,6 +129,7 @@ describe('a resource built on a fake client', () => {
     env.online = false
     env.fieldDevice = true
     env.guidebookSynced = true
+    rebuild()
     fake.result.data = [{ id: 1 }]
     expect(phase().kind).toBe('answered')
 
@@ -163,5 +178,66 @@ describe('a resource built on a fake client', () => {
       ) as typeof resource
     })
     expect(phase()).toEqual({ empty: true, kind: 'answered' })
+  })
+
+  it('holds the pill while arriving, and lets go once answered', () => {
+    fake.result.data = [{ id: 1 }]
+    expect(phase().kind).toBe('arriving')
+    expect(pill.content).toEqual({ kind: 'syncing' })
+
+    fake.result.details = { type: 'complete' }
+    expect(phase().kind).toBe('answered')
+    expect(pill.content).toBeUndefined()
+  })
+
+  it('lets go of the pill when its screen goes away mid-arrival', () => {
+    fake.result.data = [{ id: 1 }]
+    expect(phase().kind).toBe('arriving')
+    expect(pill.content).toEqual({ kind: 'syncing' })
+    cleanup()
+    expect(pill.content).toBeUndefined()
+    cleanup = () => {}
+  })
+
+  it('never holds the pill when built quietly', () => {
+    cleanup()
+    cleanup = $effect.root(() => {
+      fake = fakeSource()
+      resource = quietly(() =>
+        createResource(
+          () => queries.listGrades(),
+          (rows) => rows,
+          { source: fake.source, surface: pill },
+        ),
+      ) as typeof resource
+    })
+    fake.result.data = [{ id: 1 }]
+    expect(phase().kind).toBe('arriving')
+    expect(pill.content).toBeUndefined()
+  })
+
+  it('builds outside any component without throwing, holding no pill', () => {
+    const outside = () =>
+      createResource(
+        () => queries.listGrades(),
+        (rows) => rows,
+        { source: fakeSource().source },
+      )
+    expect(outside).not.toThrow()
+  })
+
+  it('holds no pill when built in an effect outside a component, not even the root one', () => {
+    cleanup()
+    cleanup = $effect.root(() => {
+      fake = fakeSource()
+      resource = createResource(
+        () => queries.listGrades(),
+        (rows) => rows,
+        { source: fake.source },
+      ) as typeof resource
+    })
+    fake.result.data = [{ id: 1 }]
+    expect(phase().kind).toBe('arriving')
+    expect(rootPill.content).toBeUndefined()
   })
 })

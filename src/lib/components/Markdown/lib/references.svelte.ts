@@ -1,4 +1,5 @@
 import { entityMappers, type EntityType } from '$lib/components/EntitySearch/search.svelte'
+import { quietly } from '$lib/state/pill.svelte'
 import { queries } from '$lib/zero/queries'
 import { createResource, expectingMore, type QueryResource } from '$lib/zero/resource.svelte'
 import type { MarkdownReference, MarkdownReferencesIds } from './remark-references'
@@ -14,6 +15,11 @@ import type { MarkdownReference, MarkdownReferencesIds } from './remark-referenc
  * See {@link unresolved} for which placeholder, and why offline gets its own.
  */
 export function markdownReferences(ids: () => MarkdownReferencesIds) {
+  // Quietly: a reference resolving in prose says nothing about the screen, so it never holds its pill.
+  return quietly(() => resolveReferences(ids))
+}
+
+function resolveReferences(ids: () => MarkdownReferencesIds) {
   // Names via the entity mappers, so a reference to a nameless route renders the
   // `common_unnamed` placeholder and a nameless block its "Block <order>" label
   // rather than a link with no text.

@@ -5,6 +5,7 @@ import type { DisplayName } from '$lib/entities/displayName'
 import type { EntityKind } from '$lib/entities/href'
 import { toRouteListItem, type RouteListRow } from '$lib/entities/route/mapper'
 import { m } from '$lib/paraglide/messages'
+import { quietly } from '$lib/state/pill.svelte'
 import { queries } from '$lib/zero/queries'
 import { createResource, expectingMore, type QueryPhase } from '$lib/zero/resource.svelte'
 
@@ -225,29 +226,29 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
   const isReady = $derived(searchReady(open(), query(), settled(), opensEmpty))
   const ready = () => isReady
 
-  const areas = createResource(
-    () => queries.listAreas({ content: settled(), limit: perGroup }),
-    (rows): EntityCandidate[] => rows.map(map.areas),
-    { enabled: ready },
-  )
-
-  const blocks = createResource(
-    () => queries.listBlocks({ content: settled(), limit: perGroup }),
-    (rows): EntityCandidate[] => rows.map(map.blocks),
-    { enabled: ready },
-  )
-
-  const routes = createResource(
-    () => queries.listRoutes({ content: settled(), pageSize: perGroup, sort: 'rating', sortOrder: 'desc' }),
-    (rows): EntityCandidate[] => rows.map(map.routes),
-    { enabled: ready },
-  )
-
-  const users = createResource(
-    () => queries.listUsers({ content: settled(), limit: perGroup, regionFks: regionFks() }),
-    (rows): EntityCandidate[] => rows.map(map.users),
-    { enabled: () => ready() && regionFks().length > 0 },
-  )
+  // Quietly: a search list has its own loading state, so it never holds the screen's pill.
+  const { areas, blocks, routes, users } = quietly(() => ({
+    areas: createResource(
+      () => queries.listAreas({ content: settled(), limit: perGroup }),
+      (rows): EntityCandidate[] => rows.map(map.areas),
+      { enabled: ready },
+    ),
+    blocks: createResource(
+      () => queries.listBlocks({ content: settled(), limit: perGroup }),
+      (rows): EntityCandidate[] => rows.map(map.blocks),
+      { enabled: ready },
+    ),
+    routes: createResource(
+      () => queries.listRoutes({ content: settled(), pageSize: perGroup, sort: 'rating', sortOrder: 'desc' }),
+      (rows): EntityCandidate[] => rows.map(map.routes),
+      { enabled: ready },
+    ),
+    users: createResource(
+      () => queries.listUsers({ content: settled(), limit: perGroup, regionFks: regionFks() }),
+      (rows): EntityCandidate[] => rows.map(map.users),
+      { enabled: () => ready() && regionFks().length > 0 },
+    ),
+  }))
 
   // The groups this term has shown so far, in the order they first did. Plain variables: they are
   // bookkeeping read while rendering, never a reason to render again.

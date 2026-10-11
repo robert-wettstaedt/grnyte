@@ -27,6 +27,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { isOnline } from '$lib/state/online.svelte'
+  import { summaryOf } from '$lib/zero/resource.svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import BlockActions from './BlockActions.svelte'
   import BlockEmpty from './BlockEmpty.svelte'
@@ -47,6 +48,7 @@
   const topos = blockTopoList(() => blockId)
   const routes = blockRouteList(() => blockId)
   const orderedRoutes = $derived(orderRoutesByTopo(routes.data, topos.data))
+  const routeCount = $derived(summaryOf(routes.phase, orderedRoutes.length))
   // The topo thumbnail is folded in here rather than per row: `RouteList` renders a route as it
   // is given, and a route carries at most one topo line.
   const routesWithTopos = $derived(
@@ -85,8 +87,7 @@
     const data = block.data
     sheetState.title = title
     sheetState.subtitle = data != null && data.areas.length > 0 ? breadcrumb : null
-    // "3/7" and wrap-around claim the whole sibling list.
-    sheetState.nav = toSheetNav(siblings.phase.kind === 'answered' ? siblings.data : null, data?.id, blockHref)
+    sheetState.nav = toSheetNav(summaryOf(siblings.phase, siblings.data), data?.id, blockHref)
     return () => (sheetState.nav = null)
   })
 </script>
@@ -148,9 +149,7 @@
       {#if orderedRoutes.length > 0}
         <section class="space-y-2">
           <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">
-            {routes.phase.kind === 'answered'
-              ? m.routes_routesCount({ count: orderedRoutes.length })
-              : m.common_routes()}
+            {routeCount != null ? m.routes_routesCount({ count: routeCount }) : m.common_routes()}
           </h2>
           <RouteList routes={routesWithTopos} status={ascentStatus} />
         </section>

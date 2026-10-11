@@ -153,8 +153,8 @@
     {#snippet trailing()}
       <Filter
         loading={routes.phase.kind === 'loading'}
+        phase={routes.phase}
         routes={routes.data}
-        settled={routes.phase.kind === 'answered'}
         {sortOptions}
         sortDefaults={DEFAULT_DIR}
         placement="sheet"

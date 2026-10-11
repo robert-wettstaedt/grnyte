@@ -8,12 +8,12 @@
 -->
 <script lang="ts">
   import MediaLightbox from '$lib/components/Media/MediaLightbox.svelte'
-  import StatusPill from '$lib/components/StatusPill/StatusPill.svelte'
   import type { EventCardView } from '$lib/entities/event/card'
   import { calendarDay, formatDay } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { now } from '$lib/state/now.svelte'
+  import { pillSurface } from '$lib/state/pill.svelte'
   import { SvelteSet } from 'svelte/reactivity'
   import EventCard from './EventCard.svelte'
 
@@ -77,14 +77,24 @@
    * one frame.
    */
   const EAGER_CARDS = 6
-</script>
 
-<!-- Outside the list, so the pill adds no gap: it overlays the first card rather than moving it. -->
-{#if newCount > 0}
-  <StatusPill icon="arrow-up-down" onclick={onMergeNew}>{m.feed_newActivity({ count: newCount })}</StatusPill>
-{:else if arriving}
-  <StatusPill>{m.common_syncing()}</StatusPill>
-{/if}
+  // The surface's pill: "N new" as its action, and syncing until the connection has caught up, which
+  // outlasts the queries since a reopened one reports last session's answer at once.
+  const pill = pillSurface()
+  $effect(() =>
+    pill?.offer(() =>
+      newCount > 0 && onMergeNew != null
+        ? { icon: 'arrow-up-down', kind: 'action', label: m.feed_newActivity({ count: newCount }), onclick: onMergeNew }
+        : undefined,
+    ),
+  )
+  const pillHolder = {}
+  $effect(() => {
+    if (arriving) {
+      return pill?.hold(pillHolder)
+    }
+  })
+</script>
 
 <div class="space-y-3">
   {#each rows as { day, startsDay, view }, index (view.id)}
