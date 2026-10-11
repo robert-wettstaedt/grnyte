@@ -18,7 +18,7 @@ import { blank, formError, stringToInt, stringToIntOptional } from '$lib/forms/s
 import * as z from '$lib/forms/zod'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
-import { requireRow, requireRowForm } from '$lib/remote/require.server'
+import { answerReplayedRestore, requireIssuedId, requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { areaAncestry, blockIsStranded } from '../area/area.server'
@@ -489,6 +489,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
       error(404, formError('blocks_notFound'))
     }
 
+    await requireIssuedId(db, 'routes', snapshot.routeId, formError('routes_notFound'))
     const areaFks = await areaAncestry(db, block.areaFk)
 
     const [created] = await db
@@ -501,11 +502,21 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
         description: snapshot.route.description,
         firstAscentYear: snapshot.route.firstAscentYear,
         gradeFk: snapshot.route.gradeFk,
+        // The original id makes a replayed Undo (double tap, second tab) a no-op on the primary key.
+        id: snapshot.routeId,
         name: snapshot.route.name,
         rating: snapshot.route.rating,
         regionFk: block.regionFk,
       })
+      .onConflictDoNothing({ target: routes.id })
       .returning()
+    if (created == null) {
+      const replayed = eq(routes.blockFk, block.id)
+      return {
+        data: { routeId: snapshot.routeId },
+        ...(await answerReplayedRestore(db, 'routes', snapshot.routeId, replayed, formError('routes_notFound'))),
+      }
+    }
     await recalcUserGradeAndRating(db, created.id)
 
     // The vocabulary alone, unlike the edit path above: this snapshot went out to the client and

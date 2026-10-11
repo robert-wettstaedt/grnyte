@@ -15,7 +15,7 @@ import { stringifyCoords } from '$lib/map/coords'
 import { decodePath } from '$lib/map/polyline'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
-import { requireRow } from '$lib/remote/require.server'
+import { answerReplayedRestore, requireIssuedId, requireRow } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, count, eq, inArray, isNull, not } from 'drizzle-orm'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
@@ -363,13 +363,13 @@ const restoreAreaSchema = z.discriminatedUnion('mode', [
  *  differ from {@link DeleteAreaSnapshot}, so the restore helpers key off this. */
 type RestoreAreaSnapshot = z.infer<typeof restoreAreaSchema>
 
-/** Recreate a hard-deleted area with its parking. Returns the new row (its `parentFk` drives
- *  the parent's type refresh). */
+/** Recreate a hard-deleted area under its original id, with its parking. Returns the new row (its
+ *  `parentFk` drives the parent's type refresh), or undefined when a replayed Undo finds the id taken. */
 async function hardRestoreArea(
   db: Context['db'],
   snapshot: Extract<RestoreAreaSnapshot, { mode: 'hard' }>,
   createdBy: number,
-): Promise<Area> {
+): Promise<Area | undefined> {
   // The snapshot is client-supplied, so `createdBy` is the caller and `type` is forced to null
   // rather than trusted: the gate asks `canAddArea` with `type: null`, which refuses 'sector', so a
   // snapshot naming 'sector' used to mint through undo a row that create would have rejected and
@@ -380,15 +380,17 @@ async function hardRestoreArea(
       createdBy,
       description: snapshot.area.description,
       geoPaths: snapshot.area.geoPaths,
+      id: snapshot.areaId,
       name: snapshot.area.name,
       parentFk: snapshot.area.parentFk,
       regionFk: snapshot.area.regionFk,
       type: null,
       walkingPaths: snapshot.area.walkingPaths,
     })
+    .onConflictDoNothing({ target: areas.id })
     .returning()
 
-  if (snapshot.parking.length > 0) {
+  if (created != null && snapshot.parking.length > 0) {
     await db
       .insert(geolocations)
       .values(snapshot.parking.map(({ lat, long }) => ({ areaFk: created.id, lat, long, regionFk: created.regionFk })))
@@ -461,7 +463,15 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
       error(403, formError('form_noPermission'))
     }
 
+    await requireIssuedId(db, 'areas', snapshot.areaId, formError('areas_notFound'))
     const created = await hardRestoreArea(db, snapshot, user.id)
+    if (created == null) {
+      const replayed = eq(areas.regionFk, snapshot.area.regionFk)
+      return {
+        data: { areaId: snapshot.areaId },
+        ...(await answerReplayedRestore(db, 'areas', snapshot.areaId, replayed, formError('areas_notFound'))),
+      }
+    }
 
     if (created.parentFk != null) await refreshAreaType(db, created.parentFk)
     // Nothing to move onto the new id: only an area inside the grace window is hard-deleted, and
