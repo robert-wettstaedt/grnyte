@@ -42,10 +42,9 @@ remains governed by its own exception.
 
 The screen, and each sheet, panel or dialog open over it, is a surface. While any collection a
 surface shows is arriving, that surface SHALL show exactly one indication that more is expected, at
-the top of the surface and centred over its content, until every such collection is confirmed. It
-SHALL NOT appear for a wait too short to notice, SHALL NOT disappear and reappear between
-collections that confirm one after another, and SHALL be announced as a status. Data the whole
-application holds, and search results, SHALL NOT keep it shown.
+the top of the surface and centred over its content, announced as a status, until every such
+collection is confirmed. Data the whole application holds, and search results, SHALL NOT keep it
+shown.
 
 #### Scenario: A profile with dependent lists
 
