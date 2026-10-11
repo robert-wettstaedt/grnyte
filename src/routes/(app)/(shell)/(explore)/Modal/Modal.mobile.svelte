@@ -1,7 +1,9 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
+  import PillHost from '$lib/components/StatusPill/PillHost.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { createPillSurface } from '$lib/state/pill.svelte'
   import { resetOnNavigate } from '$lib/state/scroll'
   import { BottomSheet, type TypeOfBottomSheet } from 'svelte-bottom-sheet'
   import SheetHeading from './SheetHeading.svelte'
@@ -19,6 +21,9 @@
     onclose,
     open = $bindable(),
   }: ModalProps & { back?: boolean; collapseOnOutsideClick?: boolean } = $props()
+
+  // This sheet's own pill: what it renders holds it, drawn above its own backdrop.
+  const pill = createPillSurface()
 
   let titleEl = $state<HTMLElement>()
   let innerHeight = $state(window.innerHeight)
@@ -148,6 +153,7 @@
     </div>
 
     <BottomSheet.Content class="w-full px-4!">
+      <PillHost surface={pill} />
       {@render children?.()}
     </BottomSheet.Content>
   </BottomSheet.Sheet>

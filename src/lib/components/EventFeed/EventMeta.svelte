@@ -22,6 +22,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { now } from '$lib/state/now.svelte'
+  import { quietly } from '$lib/state/pill.svelte'
   import EventLog from './EventLog.svelte'
 
   interface Props {
@@ -63,16 +64,18 @@
   /** The same identity as a value, for the one place that has to compare rather than pass it on. */
   const scopeKey = $derived(`${scopeType}:${scopeId}`)
 
-  // One row is the whole question. The sheet opens its own window when it opens, so a reader
-  // who never taps this never syncs the log.
-  const latest = eventList(() => ({ limit: 1, scope }))
+  // One row is the whole question, built quietly so each card does not hold the screen's pill. The
+  // sheet opens its own window, so a reader who never taps this never syncs the log.
+  const latest = quietly(() => eventList(() => ({ limit: 1, scope })))
   // Through the line builder, because `metaLine` reads a card line rather than an event. It only
   // asks whether the newest one is the record appearing or a change to it.
   const latestRow = $derived(latest.data[0] == null ? undefined : eventLines(latest.data[0])[0])
 
   // Only ever needed when the log came back empty, which is the one case the row cannot answer
   // from a row's own `user` relation. An empty id list is how a resource is switched off here.
-  const creator = usersByIds(() => (latest.phase.kind === 'answered' && latest.phase.empty ? [createdBy] : []))
+  const creator = quietly(() =>
+    usersByIds(() => (latest.phase.kind === 'answered' && latest.phase.empty ? [createdBy] : [])),
+  )
 
   // Held back until the log has answered. Deciding early would read the entity's own stamp,
   // say "Created ...", and then flip to "Updated ..." a tick later; `ready` came with a stale row.

@@ -7,6 +7,15 @@ import type { FormWait } from './gate'
 
 vi.mock('$lib/state/navigation.svelte', () => ({ back: vi.fn() }))
 vi.mock('$lib/state/motion.svelte', () => ({ motion: () => 0, prefersStill: () => true }))
+// jsdom has no ResizeObserver; nothing here depends on a measured size.
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    disconnect() {}
+    observe() {}
+    unobserve() {}
+  },
+)
 
 const answered: QueryPhase = { empty: false, kind: 'answered' }
 

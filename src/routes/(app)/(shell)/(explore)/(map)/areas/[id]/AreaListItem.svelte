@@ -4,6 +4,7 @@
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { countRoutesByGrade } from '$lib/entities/grade/counts'
   import { routeList } from '$lib/entities/route/resources.svelte'
+  import { summaryOf } from '$lib/zero/resource.svelte'
 
   interface Props {
     area: AreaDetail
@@ -16,14 +17,15 @@
   // the whole sub-tree, not only routes attached directly to this area.
   const routes = routeList(() => ({ areaId: area.id }))
 
+  const total = $derived(summaryOf(routes.phase, routes.data.length))
   const countByGrade = $derived(countRoutesByGrade(routes.data))
 </script>
 
-<!-- The donut is the whole sub-tree's grades, so it waits for the whole sub-tree. -->
+<!-- The donut draws from the sub-tree's routes on hand; an arriving zero stays blank. -->
 <AreaRow
-  countByGrade={routes.phase.kind === 'answered' ? countByGrade : undefined}
+  countByGrade={total != null ? countByGrade : undefined}
   description={area.description}
   href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) })}
   name={area.name}
-  total={routes.phase.kind === 'answered' ? routes.data.length : undefined}
+  {total}
 />

@@ -7,6 +7,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { pillSurface, rootPill } from '$lib/state/pill.svelte'
   import type { Snippet } from 'svelte'
 
   // The app's one sticky page bar: leading back/cancel chip, centred title, optional trailing
@@ -34,6 +35,12 @@
   }
 
   const { action, backLabel, bottom, children, onback, title }: Props = $props()
+
+  // A chromeless screen's pill hangs below this bar, whatever its height; the app layout draws it,
+  // so it survives one header replacing another. In a sheet the sheet draws its own.
+  let height = $state(0)
+  const anchored = pillSurface() === rootPill
+  $effect(() => (anchored ? rootPill.anchor(() => height) : undefined))
 </script>
 
 <!-- The bar is full bleed (its hairline and blur span the viewport, which is what makes it read as
@@ -42,6 +49,7 @@
      the chrome frames the content rather than sitting inside it. -->
 <header
   class="border-surface-200-800 bg-surface-50-950/90 sticky top-0 z-10 flex flex-col gap-2.5 border-b px-3 py-3 backdrop-blur"
+  bind:offsetHeight={height}
 >
   <div class="mx-auto flex w-full items-center gap-3 {PAGE_CHROME_WIDTH}">
     <!-- Icon-only below sm, icon plus label from sm up: German labels ("Abbrechen") ate so much of

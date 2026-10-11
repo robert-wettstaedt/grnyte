@@ -1,6 +1,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import PillHost from '$lib/components/StatusPill/PillHost.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { createPillSurface } from '$lib/state/pill.svelte'
   import { resetOnNavigate } from '$lib/state/scroll'
   import NavFooter from './NavFooter.svelte'
   import SheetHeading from './SheetHeading.svelte'
@@ -8,6 +10,9 @@
   import type { ModalProps } from './types'
 
   let { children, onclose, open = $bindable() }: ModalProps = $props()
+
+  // This sheet's own pill: what it renders holds it, drawn above its own backdrop.
+  const pill = createPillSurface()
 </script>
 
 {#if open}
@@ -36,6 +41,7 @@
     </header>
 
     <div class="min-h-0 flex-1 overflow-y-auto p-4" {@attach resetOnNavigate}>
+      <PillHost surface={pill} />
       {@render children?.()}
     </div>
 

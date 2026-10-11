@@ -7,6 +7,7 @@
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import StatusBar from '$lib/components/StatusBar/StatusBar.svelte'
+  import PillHost from '$lib/components/StatusPill/PillHost.svelte'
   import Toaster from '$lib/components/Toaster/Toaster.svelte'
   import { UNREAD_CAP } from '$lib/entities/notification/resources.svelte'
   import { REGIONLESS_PATHS } from '$lib/entities/region/dto'
@@ -17,6 +18,7 @@
   import { setGlobalState } from '$lib/state/global.svelte'
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
+  import { rootPill } from '$lib/state/pill.svelte'
   import { syncPushSubscription } from '$lib/state/push.svelte'
   import { authRetryDelay, lastAuthAttemptAt, startAuthRecovery, stopAuthRecovery } from '$lib/zero/authRecovery'
   import { getZ, initZero } from '$lib/zero/z.svelte'
@@ -220,6 +222,16 @@
           </main>
         {/snippet}
       </svelte:boundary>
+
+      {#if !isShellRoute}
+        <!-- The chromeless screens' one pill, kept across header swaps: below the page header when
+             one is mounted (it sits at the top of this frame), else at a fixed spot. -->
+        <PillHost
+          class={['fixed left-0 z-10 w-full', rootPill.anchorBottom == null && 'top-16']}
+          style={rootPill.anchorBottom == null ? undefined : `top: ${rootPill.anchorBottom + 8}px`}
+          surface={rootPill}
+        />
+      {/if}
     </div>
   </div>
 {/if}

@@ -10,6 +10,7 @@ import { rolePermissionList } from '$lib/entities/rolePermission/resources.svelt
 import type { GradingScale, User } from '$lib/entities/user/dto'
 import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelte'
 import { isOnline } from '$lib/state/online.svelte'
+import { quietly } from '$lib/state/pill.svelte'
 import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
 import { getZ } from '$lib/zero/z.svelte'
@@ -101,14 +102,24 @@ export function setGlobalState(): GlobalState | undefined {
     return
   }
 
-  const gradesResource = gradeList()
-  const userResource = currentUser()
-  const userRoleResource = currentUserRole()
-  const rolePermissionsResource = rolePermissionList()
-  const userRegionsResource = userRegionList()
-  // Not part of `isLoading`: the shell must not wait on the inbox to render, and an unread count
-  // that starts at zero and moves is exactly right.
-  const unreadResource = unreadNotificationList()
+  // Quietly: app-wide rows arriving say nothing about the screen, so they never hold its pill.
+  const {
+    gradesResource,
+    rolePermissionsResource,
+    unreadResource,
+    userRegionsResource,
+    userResource,
+    userRoleResource,
+  } = quietly(() => ({
+    gradesResource: gradeList(),
+    rolePermissionsResource: rolePermissionList(),
+    // Not part of `isLoading`: the shell must not wait on the inbox to render, and an unread count
+    // that starts at zero and moves is exactly right.
+    unreadResource: unreadNotificationList(),
+    userRegionsResource: userRegionList(),
+    userResource: currentUser(),
+    userRoleResource: currentUserRole(),
+  }))
   let patienceOver = $state(false)
   setTimeout(() => (patienceOver = true), STORE_PATIENCE_MS)
 

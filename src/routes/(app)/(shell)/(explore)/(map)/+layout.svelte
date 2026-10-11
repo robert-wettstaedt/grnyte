@@ -5,7 +5,7 @@
   import type { RouteId } from '$app/types'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
-  import StatusPill from '$lib/components/StatusPill/StatusPill.svelte'
+  import PillHost from '$lib/components/StatusPill/PillHost.svelte'
   import UpdateBadge from '$lib/components/UpdateBadge/UpdateBadge.svelte'
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
@@ -14,6 +14,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { exit } from '$lib/state/navigation.svelte'
+  import { createPillSurface } from '$lib/state/pill.svelte'
   import { liveSearchQuery } from '$lib/state/searchQuery.svelte'
   import { applyUpdateOnClick } from '$lib/state/updateReady.svelte'
   import { visualViewport } from '$lib/state/visualViewport.svelte'
@@ -126,11 +127,17 @@
   // round trip (the bar restores from it on remount), so it survives open/close.
   const search = liveSearchQuery()
 
+  // Before the map's data, so it holds this pill; the sheet over the map draws its own.
+  const pill = createPillSurface()
+
   const explore = createExploreMapData(
     () => filters,
     () => global.user?.id,
     () => search.current,
   )
+
+  // Nothing on hand to draw yet: the map says so in its pill, over the generic syncing.
+  $effect(() => pill.offer(() => (explore.isLoading ? { kind: 'status', label: m.map_loading() } : undefined)))
 
   // The map URL to return to when a sheet closes: always `/explore` carrying the
   // current filter params (but not the search `q`: the live query rides back via
@@ -278,17 +285,16 @@
       {#snippet trailing()}
         <Filter
           loading={explore.routes.phase.kind === 'loading'}
+          phase={explore.routes.phase}
           routes={explore.routes.data}
-          settled={explore.routes.phase.kind === 'answered'}
         />
       {/snippet}
     </SearchBar>
   </div>
 {/if}
 
-{#if explore.isLoading}
-  <StatusPill class="fixed top-16 left-0 z-10 w-full">{m.map_loading()}</StatusPill>
-{/if}
+<!-- Under the search bar, centred on the map beside the rail. -->
+<PillHost class="fixed top-16 left-0 z-10 w-full md:pl-20" surface={pill} />
 
 {#if !open}
   {@render children?.()}

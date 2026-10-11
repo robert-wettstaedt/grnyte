@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { expectingMore, resolvePhase } from './resource.svelte'
+import { expectingMore, resolvePhase, summaryOf } from './resource.svelte'
 
 /** Online, rows on hand, confirmed. Each test bends one thing. */
 const base = { availability: 'ready', online: true, rawEmpty: false, settled: true, status: 'ready' } as const
@@ -67,6 +67,36 @@ describe('expectingMore', () => {
       { kind: 'error' },
     ] as const) {
       expect(expectingMore(phase)).toBe(false)
+    }
+  })
+})
+
+describe('summaryOf', () => {
+  it('shows any answered value, a confirmed zero included', () => {
+    expect(summaryOf({ empty: false, kind: 'answered' }, 12)).toBe(12)
+    expect(summaryOf({ empty: true, kind: 'answered' }, 0)).toBe(0)
+  })
+
+  it('shows a non-zero value from the rows on hand while they arrive', () => {
+    expect(summaryOf({ kind: 'arriving' }, 3)).toBe(3)
+    expect(summaryOf({ kind: 'arriving' }, ['a'])).toEqual(['a'])
+    expect(summaryOf({ kind: 'arriving' }, new Map([[1, 2]]))?.size).toBe(1)
+  })
+
+  it('holds back an arriving zero, which would claim absence', () => {
+    expect(summaryOf({ kind: 'arriving' }, 0)).toBeUndefined()
+    expect(summaryOf({ kind: 'arriving' }, [])).toBeUndefined()
+    expect(summaryOf({ kind: 'arriving' }, new Map())).toBeUndefined()
+  })
+
+  it('shows nothing while loading, offline or failed, fragments included', () => {
+    for (const phase of [
+      { kind: 'loading' },
+      { kind: 'partial' },
+      { excluded: true, kind: 'unavailable' },
+      { kind: 'error' },
+    ] as const) {
+      expect(summaryOf(phase, 5)).toBeUndefined()
     }
   })
 })

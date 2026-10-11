@@ -2,7 +2,6 @@
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
-  import StatusPill from '$lib/components/StatusPill/StatusPill.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { motion } from '$lib/state/motion.svelte'
   import type { QueryPhase, QueryResource } from '$lib/zero/resource.svelte'
@@ -20,7 +19,6 @@
     notFound,
     ready,
     resource,
-    syncing,
   }: {
     /** Classes for the ready content's column (a `gap-*`), which fills the wrapper as `flex-1`. */
     class?: string
@@ -42,9 +40,6 @@
     /** Rendered once there is data to show; receives the DTO-mapped data. */
     ready: Snippet<[NonNullable<TOut>]>
     resource: QueryResource<TOut>
-    /** Replaces the pinned pill while more rows are expected, e.g. with nothing when the page has its
-     *  own pill. No timeout: slow and stalled look the same. */
-    syncing?: Snippet
   } = $props()
 
   // The override bends the phase, so a story goes down the same path the app does.
@@ -89,15 +84,9 @@
     <SkeletonRows class="py-2" />
   {/if}
 {:else}
-  <!-- `in` only: an out transition would keep the leaving skeleton in flow. The pill sits outside the
-       caller's column, so its gap never spaces the content below a pill of no height. -->
+  <!-- `in` only: an out transition would keep the leaving skeleton in flow. Arriving rows show here
+       too; the app's one pill says more are expected. -->
   <div class="flex min-h-full flex-col" in:fade={{ duration: motion(150) }}>
-    <!-- One flat `if`, so the pill's own transition plays when it comes and goes. -->
-    {#if phase.kind === 'arriving' && syncing}
-      {@render syncing()}
-    {:else if phase.kind === 'arriving'}
-      <StatusPill>{m.common_syncing()}</StatusPill>
-    {/if}
     <div class="flex flex-1 flex-col {className}">
       {@render ready(resource.data as NonNullable<TOut>)}
     </div>
