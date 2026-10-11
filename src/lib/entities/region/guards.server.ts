@@ -6,24 +6,40 @@
  * administrable and its membership consensual, so they are the half worth testing.
  */
 import * as schema from '$lib/db/schema'
-import { events, regionMembers, users } from '$lib/db/schema'
+import { events, regionInvitations, regionMembers, users } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { isLastAdmin } from './permissions'
 
 type Db = PostgresJsDatabase<typeof schema>
 
 /**
- * The event `removeRegionMember` logs, and the only record that a removal happened.
+ * The events that start or end a person's membership. A removal is restorable only while it is the
+ * newest of them: a later `accept` or `leave` supersedes it.
  *
- * `metadata is null` is load-bearing rather than tidiness: a revoked invitation writes the same
- * verb about the same subject, with the address in `metadata`, so without it an admin who revoked
- * an invitation could "restore" a member who was never removed.
+ * `metadata is null` on a `remove` is load-bearing: a revoked invitation writes the same verb about
+ * the same subject with the address in `metadata`, and must not read as a removal.
  */
-const removalEvent = (regionFk: number, userFk: number) =>
-  and(eq(events.verb, 'remove'), eq(events.subjectFk, userFk), eq(events.regionFk, regionFk), isNull(events.metadata))
+const membershipEvents = (regionFk: number, userFk: number) =>
+  and(
+    or(inArray(events.verb, ['accept', 'leave']), and(eq(events.verb, 'remove'), isNull(events.metadata))),
+    eq(events.subjectFk, userFk),
+    eq(events.regionFk, regionFk),
+  )
+
+/**
+ * Serialises count-then-write sections on one key until the transaction ends. Advisory rather than
+ * `for update` on `regions`: RLS applies the UPDATE policy to `for update`, so a plain member
+ * (leaving a region) would see no row and take no lock. Must run on a transaction, not the pool.
+ */
+export function lockKey(db: Db, namespace: string, key: number) {
+  return db.execute(sql`select pg_advisory_xact_lock(hashtext(${namespace}), ${key})`)
+}
+
+/** The region's membership and seat counts: take this before reading them to decide a write. */
+export const lockRegionMembers = (db: Db, regionFk: number) => lockKey(db, 'region_members', regionFk)
 
 /** The user ids of a region's active admins, which is all {@link isLastAdmin} needs. */
 export async function activeAdminUserFks(db: Db, regionFk: number): Promise<number[]> {
@@ -69,6 +85,9 @@ export async function assertMemberChangeAllowed(
  * that is a demotion, a removal or their own departure.
  */
 export async function assertNotLastAdmin(db: Db, regionFk: number, userFk: number) {
+  // Two admins demoting or removing each other would otherwise both count the other as spare.
+  await lockRegionMembers(db, regionFk)
+
   if (isLastAdmin(await activeAdminUserFks(db, regionFk), userFk)) {
     error(409, formError('region_lastAdmin'))
   }
@@ -111,19 +130,32 @@ export async function resolveRestore(
   db: Db,
   regionFk: number,
   userFk: number,
-): Promise<{ alreadyMember: boolean; authUserFk: string }> {
-  const removal = await db.query.events.findFirst({ where: removalEvent(regionFk, userFk) })
+): Promise<{ alreadyMember: boolean; authUserFk: string; invitedByFk: null | number }> {
+  const latest = await db.query.events.findFirst({
+    orderBy: [desc(events.createdAt), desc(events.id)],
+    where: membershipEvents(regionFk, userFk),
+  })
 
-  if (removal == null) {
+  if (latest?.verb !== 'remove') {
     error(404, formError('region_nothingToRestore'))
   }
 
   // Neither of these feeds the other, so they go together rather than one round-trip after the
   // other. The removal check stays ahead of them: it is the one that decides whether to ask at all.
-  const [user, existing] = await Promise.all([
+  const [user, existing, invitation] = await Promise.all([
     db.query.users.findFirst({ columns: { authUserFk: true }, where: eq(users.id, userFk) }),
     db.query.regionMembers.findFirst({
       where: and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.userFk, userFk)),
+    }),
+    // The inviter comes from the stored acceptance, never the request: null marks the founder.
+    db.query.regionInvitations.findFirst({
+      columns: { invitedByFk: true },
+      orderBy: desc(regionInvitations.acceptedAt),
+      where: and(
+        eq(regionInvitations.regionFk, regionFk),
+        eq(regionInvitations.acceptedByFk, userFk),
+        eq(regionInvitations.status, 'accepted'),
+      ),
     }),
   ])
 
@@ -131,5 +163,5 @@ export async function resolveRestore(
     error(404, formError('users_notFound'))
   }
 
-  return { alreadyMember: existing != null, authUserFk: user.authUserFk }
+  return { alreadyMember: existing != null, authUserFk: user.authUserFk, invitedByFk: invitation?.invitedByFk ?? null }
 }

@@ -31,6 +31,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { insertEvent } from '../event/event.server'
 import { notify, notifyOutOfBand, retractOutOfBand } from '../notification/notification.server'
 import { acceptPath, type UserInvitationItem, type UserRegion } from './dto'
+import { lockRegionMembers } from './guards.server'
 import { canEditRegion } from './permissions'
 
 type Db = PostgresJsDatabase<typeof schema>
@@ -157,6 +158,9 @@ export async function acceptInvitation({ authUserId, email, token }: AcceptInvit
       error(404, formError('users_notFound'))
     }
 
+    // Before the membership and seat reads, so a double tap or two joiners cannot both pass them.
+    await lockRegionMembers(tx, invitation.regionFk)
+
     const existing = await tx.query.regionMembers.findFirst({
       where: and(eq(regionMembers.regionFk, invitation.regionFk), eq(regionMembers.userFk, user.id)),
     })
@@ -230,27 +234,18 @@ export function assertResendAllowed(lastSentAt: Date | null, now = Date.now()) {
 }
 
 /**
- * Create (or refresh) an invitation. Runs on the caller's RLS transaction, where the admin
- * INSERT/UPDATE policies on `region_invitations` apply.
+ * Refuses when no seat is left (members plus live invitations, as `seatState` shows), under the
+ * members lock so two callers cannot both take the last one.
  */
-export async function createInvitation(
-  db: Db,
-  { email, invitedByFk, regionFk }: CreateInvitationInput,
-): Promise<{ id: number; token: string }> {
-  // Trim and lowercase, nothing else. `+` aliases are deliberately left alone: they are
-  // different addresses, and GoTrue treats them as such too.
-  const address = normalizeEmail(email)
+export async function assertSeatFree(db: Db, regionFk: number): Promise<void> {
+  await lockRegionMembers(db, regionFk)
 
-  // Members plus live invitations, the same rule `seatState` shows on the screen, so the two
-  // cannot disagree about whether there is room.
   const [region, [{ members }], [{ invitations }]] = await Promise.all([
     db.query.regions.findFirst({ columns: { maxMembers: true }, where: eq(regions.id, regionFk) }),
-
     db
       .select({ members: count() })
       .from(regionMembers)
       .where(and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.isActive, true))),
-
     db
       .select({ invitations: count() })
       .from(regionInvitations)
@@ -264,6 +259,21 @@ export async function createInvitation(
   if (members + invitations >= region.maxMembers) {
     error(409, formError('region_seatsFull', { total: region.maxMembers }))
   }
+}
+
+/**
+ * Create (or refresh) an invitation. Runs on the caller's RLS transaction, where the admin
+ * INSERT/UPDATE policies on `region_invitations` apply.
+ */
+export async function createInvitation(
+  db: Db,
+  { email, invitedByFk, regionFk }: CreateInvitationInput,
+): Promise<{ id: number; token: string }> {
+  // Trim and lowercase, nothing else. `+` aliases are deliberately left alone: they are
+  // different addresses, and GoTrue treats them as such too.
+  const address = normalizeEmail(email)
+
+  await assertSeatFree(db, regionFk)
 
   // Skipping this would leave a pending row that can never resolve into anything.
   if (await isActiveMemberByEmail(db, regionFk, address)) {
