@@ -1230,7 +1230,7 @@
   "feedback_kindSelect": "Art auswählen",
   "feedback_notFound": "Feedback nicht gefunden",
   "feedback_reply": "Antwort",
-  "feedback_replyNoMail": "Antwort gespeichert, die E-Mail konnte aber nicht gesendet werden.",
+  "feedback_replyNoMail": "Die E-Mail konnte nicht gesendet werden. Deine Antwort steht noch da, du kannst es erneut versuchen.",
   "feedback_replyPlaceholder": "Antworte in der Sprache, in der geschrieben wurde.",
   "feedback_replySend": "Antwort senden",
   "feedback_replySent": "Antwort gesendet",

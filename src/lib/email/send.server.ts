@@ -35,6 +35,18 @@ export interface SendEmailInput extends Omit<EmailInput, 'brand'> {
 /** Whether the missing-key state has been recorded this process. */
 let notedUnconfigured = false
 
+/** Resend failures a later attempt can get past; the SDK reports a network failure as `application_error`. */
+const TRANSIENT = new Set([
+  'application_error',
+  'concurrent_idempotent_requests',
+  'daily_quota_exceeded',
+  'internal_server_error',
+  'rate_limit_exceeded',
+])
+
+/** {@link sendEmailOutcome}'s answer: `retry` only when sending again could succeed. */
+export type SendOutcome = 'failed' | 'retry' | 'sent'
+
 /**
  * Sends one email, HTML plus plaintext, through Resend.
  *
@@ -46,7 +58,18 @@ let notedUnconfigured = false
  * ponytail: no retry queue. Delivery is best effort. Add one when a dropped mail costs
  * something (an invite nobody can re-send), not before.
  */
-export async function sendEmail({ idempotencyKey, template, to, ...content }: SendEmailInput): Promise<boolean> {
+export async function sendEmail(input: SendEmailInput): Promise<boolean> {
+  return (await sendEmailOutcome(input)) === 'sent'
+}
+
+/**
+ * {@link sendEmail}, telling a failure worth retrying from one that will fail again. `quietRetry`
+ * leaves a `retry` unlogged, for a caller that retries on a schedule and logs when it gives up.
+ */
+export async function sendEmailOutcome(
+  { idempotencyKey, template, to, ...content }: SendEmailInput,
+  { quietRetry = false } = {},
+): Promise<SendOutcome> {
   // `new Resend('')` throws synchronously, which inside this async function becomes a rejected
   // promise and fails the caller's mutation, exactly what the contract above rules out.
   // `.env.example` ships `RESEND_API_KEY=` empty, so this is the default-config path.
@@ -57,7 +80,7 @@ export async function sendEmail({ idempotencyKey, template, to, ...content }: Se
       notedUnconfigured = true
       await logServerFailure('email', 'RESEND_API_KEY is not set, dropping every mail')
     }
-    return false
+    return 'failed'
   }
 
   const input = { ...content, brand: BRAND }
@@ -74,14 +97,17 @@ export async function sendEmail({ idempotencyKey, template, to, ...content }: Se
   )
 
   if (error == null) {
-    return true
+    return 'sent'
   }
 
   // `error` is an unvalidated JSON.parse of the response body, so nothing here can assume
   // a shape. Log and move on.
   console.error('[email] send failed', { message: error.message, name: error.name, subject: content.subject })
+  const outcome = TRANSIENT.has(error.name) ? 'retry' : 'failed'
   // Name and template only. Not the recipient, not the rendered subject, and not `error.message`:
   // that is an unvalidated parse of Resend's body, and its validation errors quote the address.
-  await logServerFailure('email', `send failed (${String(error.name)}) for ${template}`)
-  return false
+  if (!(quietRetry && outcome === 'retry')) {
+    await logServerFailure('email', `send failed (${String(error.name)}) for ${template}`)
+  }
+  return outcome
 }

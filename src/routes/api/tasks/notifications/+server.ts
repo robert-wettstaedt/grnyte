@@ -14,7 +14,7 @@ import {
   userSettings,
 } from '$lib/db/schema'
 import { membershipRemovedEmailContent, roleChangedEmailContent } from '$lib/email/membership'
-import { sendEmail } from '$lib/email/send.server'
+import { sendEmailOutcome, type SendOutcome } from '$lib/email/send.server'
 import { objectOf } from '$lib/entities/event/dto'
 import { eventParentRef } from '$lib/entities/event/mapper'
 import { notificationView } from '$lib/entities/notification/caption'
@@ -36,9 +36,10 @@ import {
   DIGEST_SCAN_LIMIT,
   DIGEST_TAG,
   digestFloor,
+  DIRECTED_DEBOUNCE_MS,
+  DIRECTED_SCAN_LIMIT,
   directedTag,
   isDigestDue,
-  isDirectedDue,
 } from '$lib/entities/notification/push'
 import { isPushConfigured, sendPushToUser, subscriptionsFor } from '$lib/entities/notification/push.server'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
@@ -48,7 +49,22 @@ import { stringifyError } from '$lib/logging/stringify'
 import type { Locale } from '$lib/paraglide/runtime'
 import { isCronAuthorized } from '$lib/remote/cron.server'
 import { json } from '@sveltejs/kit'
-import { and, count, eq, gt, inArray, isNull, lte, max, ne, notInArray, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lte,
+  max,
+  ne,
+  notInArray,
+  or,
+  sql,
+  type AnyColumn,
+} from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { authUsers } from 'drizzle-orm/supabase'
 import type { RequestHandler } from './$types'
@@ -114,6 +130,12 @@ const OUT_OF_BAND = new Set<NotificationSourceType>(['invitation_received', 'mem
  */
 const MAILED = new Set<NotificationSourceType>(['membership_removed', 'role_changed'])
 
+/** Directed rows claimed and sent per step; see `dispatchSlice`. */
+const CLAIM_SLICE = 100
+
+/** How long a mail that failed is retried before its row is stamped anyway. */
+const MAIL_RETRY_MS = 24 * 60 * 60 * 1000
+
 /**
  * A file's parent: what it is called before a locale is chosen, and the page it lives on.
  *
@@ -121,16 +143,45 @@ const MAILED = new Set<NotificationSourceType>(['membership_removed', 'role_chan
  * so it answers with its route's.
  */
 
+/** The watermark moved forward to `createdAt`, never back. */
+const raisedWatermark = (createdAt: Date) =>
+  sql`greatest(coalesce(${userSettings.pushedUpToEventAt}, to_timestamp(0)), ${createdAt.toISOString()}::timestamptz)`
+
+/** A timestamp column cut to a JS Date's precision, so it compares equal to the value read from it. */
+const toMs = (column: AnyColumn) => sql`date_trunc('milliseconds', ${column})`
+
 /** Move a person's push watermark forward, never back. A timestamp, matching `events.created_at`. */
 async function advanceWatermark(userFk: number, createdAt: Date): Promise<void> {
   await pinnedTx((tx) =>
     tx
       .update(userSettings)
       .set({
-        pushedUpToEventAt: sql`greatest(coalesce(${userSettings.pushedUpToEventAt}, to_timestamp(0)), ${createdAt.toISOString()}::timestamptz)`,
+        pushedUpToEventAt: raisedWatermark(createdAt),
       })
       .where(eq(userSettings.userFk, userFk)),
   )
+}
+
+/**
+ * {@link advanceWatermark}, but only if the mark is still the one this run read: whether this run
+ * won the right to send the digest it computed. An overlapping run that read the same mark loses.
+ */
+async function claimWatermark(userFk: number, expected: Date | null, createdAt: Date): Promise<boolean> {
+  const claimed = await pinnedTx((tx) =>
+    tx
+      .update(userSettings)
+      .set({
+        pushedUpToEventAt: raisedWatermark(createdAt),
+      })
+      .where(
+        and(
+          eq(userSettings.userFk, userFk),
+          sql`${toMs(userSettings.pushedUpToEventAt)} is not distinct from ${expected?.toISOString() ?? null}::timestamptz`,
+        ),
+      )
+      .returning({ userFk: userSettings.userFk }),
+  )
+  return claimed.length > 0
 }
 
 /** Usernames by id, for the digest headline's actor slot. */
@@ -397,7 +448,13 @@ async function sendDigests(nowMs: number): Promise<number> {
       return false
     }
 
-    const delivered = await sendPushToUser(subscriptions, subscriber.userFk, {
+    // Claimed before the push so an overlapping run sends once, and past everything scanned so an
+    // offline phone builds no backlog that fires all at once later.
+    if (!(await claimWatermark(subscriber.userFk, subscriber.pushedUpTo, mark))) {
+      return false
+    }
+
+    return sendPushToUser(subscriptions, subscriber.userFk, {
       badge: unread.get(subscriber.userFk) ?? 0,
       body: copy.body,
       pathname: '/feed',
@@ -406,12 +463,6 @@ async function sendDigests(nowMs: number): Promise<number> {
       tag: DIGEST_TAG,
       title: copy.title,
     })
-
-    // Whether or not a device took it, and past everything scanned rather than only what was
-    // enabled: an offline phone must not build a backlog that all fires at once later.
-    await advanceWatermark(subscriber.userFk, mark)
-
-    return delivered
   }
 
   // Per subscriber, because `inBatches` runs a bare `Promise.all`: one person whose digest throws
@@ -443,7 +494,7 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
   // carries the name), so the actor side needs an alias of its own.
   const actor = alias(users, 'actor')
 
-  const due = await pinnedTx((tx) =>
+  const dispatchable = await pinnedTx((tx) =>
     tx
       .select({
         actorName: actor.username,
@@ -478,119 +529,164 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
       .innerJoin(regions, eq(regions.id, notifications.regionFk))
       .leftJoin(authUsers, eq(authUsers.id, notifications.authUserFk))
       .leftJoin(userSettings, eq(userSettings.userFk, notifications.userFk))
-      .where(and(isNull(notifications.pushedAt), isNull(notifications.readAt))),
+      .where(
+        and(
+          isNull(notifications.pushedAt),
+          isNull(notifications.readAt),
+          lte(notifications.createdAt, new Date(nowMs - DIRECTED_DEBOUNCE_MS)),
+          // Without push, only what could be mailed: stamping the rest would burn a backlog that
+          // adding VAPID later would never deliver.
+          pushConfigured ? undefined : inArray(notifications.sourceType, [...MAILED]),
+        ),
+      )
+      .orderBy(asc(notifications.createdAt), asc(notifications.id))
+      .limit(DIRECTED_SCAN_LIMIT),
   )
 
-  const ready = due.filter((row) => isDirectedDue(row.createdAt.getTime(), nowMs))
-  if (ready.length === 0) {
+  if (dispatchable.length === 0) {
     return 0
   }
 
-  // Mail first, and outside the push pass below, which filters by the six switches and by
-  // `region.read`. Both are push concepts. Inside it, somebody who muted push and was then removed
-  // from a region had their row stamped delivered with nothing sent on either channel.
-  const mailed = ready.filter((row) => MAILED.has(row.sourceType))
-  await inBatches(mailed, (row) =>
-    guarded(row.id, () => sendMembershipEmail(row, contactLocale(row.contactLocale), origin)),
-  )
-
-  // Everything below is the push pass, and all of it (three queries before a payload is built)
-  // is dead work without keys to sign with.
-  let sent = 0
-
-  if (pushConfigured) {
-    const wanted = ready.filter(directedWanted)
-
-    // The same re-check the digest half makes, for the same reason. A member removed from the
-    // region (or whose role lost `region.read`) between the fan-out and now would otherwise be
-    // pushed the name of a route they can no longer open, and find an empty inbox when they tap
-    // it: the row's own SELECT policy requires that permission, so it is hidden from the reader
-    // it names.
-    const regionsByUser = await readableRegions(wanted.map((row) => row.userFk))
-    // Exempt for the out-of-band pair, whose recipient is outside the region by definition. Their
-    // sentence names it in the copy rather than linking into it.
-    const readable = wanted.filter(
-      (row) => OUT_OF_BAND.has(row.sourceType) || regionsByUser.get(row.userFk)?.includes(row.regionFk) === true,
-    )
-
-    const subscriptions = await subscriptionsFor(readable.map((row) => row.userFk))
-    const unread = await unreadCounts(ready.map((row) => row.userFk))
-    // Only the rows that name a file, so a batch without one runs no extra query.
-    const parents = await parentNamesOf(readable.flatMap((row) => (row.fileFk == null ? [] : [row.fileFk])))
-
-    const results = await inBatches(readable, (row) =>
-      guarded(row.id, () => {
-        const locale = contactLocale(row.contactLocale)
-        // The parent's page with the viewer open, for the same reason the inbox row uses it: a
-        // push that opens the share page strands the reader outside the app.
-        const parent = row.fileFk == null ? undefined : parents.get(row.fileFk)
-        const view = notificationView(
-          {
-            actorName: row.actorName,
-            metadata: row.metadata ?? undefined,
-            // The same derivation the inbox makes: whichever typed column is set says what the
-            // row is about. The push only needs it for the sentence, which never asks what type
-            // it was.
-            object: objectOf(row),
-            // A push has no entity row to name the place, so the title says it.
-            objectName: parentNameIn(parent, locale),
-            regionName: row.regionName,
-            sourceType: row.sourceType,
-          },
-          { locale },
+  // One slice at a time, each claimed only once the last is done: a run cut short (a function
+  // timeout) loses one slice rather than all it claimed, and a claim stays inside the bind limit.
+  const dispatchSlice = async (slice: typeof dispatchable): Promise<number> => {
+    // Claimed before anything is sent, so two overlapping runs (a slow one, a second instance) never
+    // both send a row. Matched on `created_at` too: a row re-armed since the read is a new delivery.
+    const claimedAt = new Date()
+    const claimedIds = await pinnedTx((tx) =>
+      tx
+        .update(notifications)
+        .set({ pushedAt: claimedAt })
+        .where(
+          and(
+            isNull(notifications.pushedAt),
+            or(
+              ...slice.map((row) =>
+                and(
+                  eq(notifications.id, row.id),
+                  sql`${toMs(notifications.createdAt)} = ${row.createdAt.toISOString()}::timestamptz`,
+                ),
+              ),
+            ),
+          ),
         )
+        .returning({ id: notifications.id }),
+    )
+    const claimed = new Set(claimedIds.map((row) => row.id))
+    const ready = slice.filter((row) => claimed.has(row.id))
 
-        return sendPushToUser(subscriptions, row.userFk, {
-          badge: unread.get(row.userFk) ?? 0,
-          // Straight to where it happened when the row knows: a comment, a reply, a mention
-          // inside one and an emoji all name their card, and the card's page renders the thread
-          // with the line anchored.
-          pathname: parent == null || row.fileFk == null ? pathnameFor(row) : `${parent.path}?media=${row.fileFk}`,
-          tag: directedTag(row.id),
-          title: resolveMessage(view.key, view.params, { locale }),
-        })
+    // Mail first, and outside the push pass below, which filters by the six switches and by
+    // `region.read`. Both are push concepts. Inside it, somebody who muted push and was then removed
+    // from a region had their row stamped delivered with nothing sent on either channel.
+    const allMailed = ready.filter((row) => MAILED.has(row.sourceType))
+    const mailOutcomes = await inBatches(allMailed, (row) =>
+      sendMembershipEmail(row, contactLocale(row.contactLocale), origin).catch((error: unknown) => {
+        console.error(`[notifications] directed row ${row.id} failed`, error)
+        // The SDK reports network trouble rather than throwing, so a throw is a fault that would repeat.
+        return 'failed' as const
       }),
     )
+    // Only a mail that could go out next time holds its row (and its push) back, for a day at most.
+    const retrying = new Set(
+      allMailed
+        .filter((row, i) => mailOutcomes[i] === 'retry' && nowMs - row.createdAt.getTime() < MAIL_RETRY_MS)
+        .map((row) => row.id),
+    )
+    const gaveUp = allMailed.filter((row, i) => mailOutcomes[i] === 'retry' && !retrying.has(row.id))
+    if (gaveUp.length > 0) {
+      await logServerFailure('notifications', `gave up mailing rows ${gaveUp.map((row) => row.id).join(', ')}`)
+    }
+    if (retrying.size > 0) {
+      // Handed back for the next run; only this run's claim, so a later re-arm is left alone.
+      await pinnedTx((tx) =>
+        tx
+          .update(notifications)
+          .set({ pushedAt: null })
+          .where(and(inArray(notifications.id, [...retrying]), eq(notifications.pushedAt, claimedAt))),
+      )
+    }
+    const deliverable = ready.filter((row) => !retrying.has(row.id))
 
-    sent = results.filter(Boolean).length
-  }
+    // Everything below is the push pass, and all of it (three queries before a payload is built)
+    // is dead work without keys to sign with.
+    let sent = 0
 
-  /**
-   * What this run dispatched, which is what may be stamped. Everything when push is
-   * configured, only the mailed rows when it is not: stamping the rest would burn a backlog the
-   * deployment could not push, and adding VAPID later would never deliver it.
-   */
-  const dispatched = pushConfigured ? ready : mailed
+    if (pushConfigured) {
+      const wanted = deliverable.filter(directedWanted)
 
-  if (dispatched.length === 0) {
+      // The same re-check the digest half makes, for the same reason. A member removed from the
+      // region (or whose role lost `region.read`) between the fan-out and now would otherwise be
+      // pushed the name of a route they can no longer open, and find an empty inbox when they tap
+      // it: the row's own SELECT policy requires that permission, so it is hidden from the reader
+      // it names.
+      const regionsByUser = await readableRegions(wanted.map((row) => row.userFk))
+      // Exempt for the out-of-band pair, whose recipient is outside the region by definition. Their
+      // sentence names it in the copy rather than linking into it.
+      const readable = wanted.filter(
+        (row) => OUT_OF_BAND.has(row.sourceType) || regionsByUser.get(row.userFk)?.includes(row.regionFk) === true,
+      )
+
+      const subscriptions = await subscriptionsFor(readable.map((row) => row.userFk))
+      const unread = await unreadCounts(ready.map((row) => row.userFk))
+      // Only the rows that name a file, so a batch without one runs no extra query.
+      const parents = await parentNamesOf(readable.flatMap((row) => (row.fileFk == null ? [] : [row.fileFk])))
+
+      const results = await inBatches(readable, (row) =>
+        guarded(row.id, () => {
+          const locale = contactLocale(row.contactLocale)
+          // The parent's page with the viewer open, for the same reason the inbox row uses it: a
+          // push that opens the share page strands the reader outside the app.
+          const parent = row.fileFk == null ? undefined : parents.get(row.fileFk)
+          const view = notificationView(
+            {
+              actorName: row.actorName,
+              metadata: row.metadata ?? undefined,
+              // The same derivation the inbox makes: whichever typed column is set says what the
+              // row is about. The push only needs it for the sentence, which never asks what type
+              // it was.
+              object: objectOf(row),
+              // A push has no entity row to name the place, so the title says it.
+              objectName: parentNameIn(parent, locale),
+              regionName: row.regionName,
+              sourceType: row.sourceType,
+            },
+            { locale },
+          )
+
+          return sendPushToUser(subscriptions, row.userFk, {
+            badge: unread.get(row.userFk) ?? 0,
+            // Straight to where it happened when the row knows: a comment, a reply, a mention
+            // inside one and an emoji all name their card, and the card's page renders the thread
+            // with the line anchored.
+            pathname: parent == null || row.fileFk == null ? pathnameFor(row) : `${parent.path}?media=${row.fileFk}`,
+            tag: directedTag(row.id),
+            title: resolveMessage(view.key, view.params, { locale }),
+          })
+        }),
+      )
+
+      sent = results.filter(Boolean).length
+    }
+
+    // Read at send, for the queue-only rows alone: nobody can open them, so left unread they would
+    // sit in `unreadCounts` for 90 days behind a badge that never clears. The stamp is the claim:
+    // every dispatched row keeps it, sent or not, so an offline device builds no queue.
+    const delivered = deliverable.filter((row) => OUT_OF_BAND.has(row.sourceType)).map((row) => row.id)
+
+    if (delivered.length > 0) {
+      await pinnedTx((tx) =>
+        tx.update(notifications).set({ readAt: new Date() }).where(inArray(notifications.id, delivered)),
+      )
+    }
+
     return sent
   }
 
-  // Read at send, for the queue-only rows alone: nobody can open them, so left unread they would
-  // sit in `unreadCounts` for 90 days behind a badge that never clears.
-  const delivered = dispatched.filter((row) => OUT_OF_BAND.has(row.sourceType)).map((row) => row.id)
-
-  if (delivered.length > 0) {
-    await pinnedTx((tx) =>
-      tx.update(notifications).set({ readAt: new Date() }).where(inArray(notifications.id, delivered)),
-    )
+  let total = 0
+  for (let start = 0; start < dispatchable.length; start += CLAIM_SLICE) {
+    total += await dispatchSlice(dispatchable.slice(start, start + CLAIM_SLICE))
   }
-
-  // Every row that was dispatched, not only the ones that went out: a device that is offline or a
-  // person with no subscription must not build a queue that all fires at once later.
-  await pinnedTx((tx) =>
-    tx
-      .update(notifications)
-      .set({ pushedAt: new Date() })
-      .where(
-        inArray(
-          notifications.id,
-          dispatched.map((row) => row.id),
-        ),
-      ),
-  )
-
-  return sent
+  return total
 }
 
 /**
@@ -613,9 +709,10 @@ async function sendMembershipEmail(
   },
   locale: Locale,
   origin: string,
-): Promise<void> {
+): Promise<SendOutcome> {
+  // Nothing to send counts as done, so the row is stamped rather than retried.
   if (!MAILED.has(row.sourceType) || row.email == null) {
-    return
+    return 'sent'
   }
 
   const content =
@@ -629,18 +726,22 @@ async function sendMembershipEmail(
           url: origin,
         })
 
-  await sendEmail({
-    ...content,
-    // The row AND the delivery it belongs to. A row is re-armed rather than replaced when the same
-    // thing happens again (see the `onConflictDoUpdate` in `notify`), so the id alone would let
-    // Resend swallow a second, genuinely different role change as a duplicate of the first.
-    // `created_at` is reset by that re-arm and is stable across cron retries of one delivery.
-    idempotencyKey: `notification-${row.id}-${row.createdAt.getTime()}`,
-    locale,
-    origin,
-    template: `notification-${row.sourceType}`,
-    to: row.email,
-  })
+  return sendEmailOutcome(
+    {
+      ...content,
+      // The row AND the delivery it belongs to. A row is re-armed rather than replaced when the same
+      // thing happens again (see the `onConflictDoUpdate` in `notify`), so the id alone would let
+      // Resend swallow a second, genuinely different role change as a duplicate of the first.
+      // `created_at` is reset by that re-arm and is stable across cron retries of one delivery.
+      idempotencyKey: `notification-${row.id}-${row.createdAt.getTime()}`,
+      locale,
+      origin,
+      template: `notification-${row.sourceType}`,
+      to: row.email,
+    },
+    // Retried every tick for a day; `sendDirected` logs once when it gives up.
+    { quietRetry: true },
+  )
 }
 
 /** Unread inbox rows per person, which is what the app badge shows. Counted here so the service

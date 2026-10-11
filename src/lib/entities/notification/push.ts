@@ -113,6 +113,9 @@ export function isDigestDue(oldestAt: number | undefined, newestAt: number | und
  */
 export const DIGEST_SCAN_LIMIT = 500
 
+/** The most directed rows one run reads, oldest first, so a backlog drains over runs instead of loading whole. */
+export const DIRECTED_SCAN_LIMIT = 1000
+
 /**
  * How far back from "now" a digest scan stops, so a transaction that has not committed yet cannot
  * be stepped over.
@@ -134,10 +137,4 @@ export const DIGEST_COMMIT_LAG_MS = 30 * 1000
  */
 export function digestFloor(pushedUpTo: null | number | undefined, seenUpTo: null | number | undefined): number {
   return Math.max(pushedUpTo ?? 0, seenUpTo ?? 0)
-}
-
-/** Whether a directed row has waited out its debounce. Read state is the caller's to check: it
- *  changes between deciding and sending, and only the caller knows how fresh its copy is. */
-export function isDirectedDue(createdAt: number, nowMs: number): boolean {
-  return nowMs - createdAt >= DIRECTED_DEBOUNCE_MS
 }

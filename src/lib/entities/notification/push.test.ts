@@ -7,32 +7,16 @@ import {
   DIRECTED_DEBOUNCE_MS,
   directedTag,
   isDigestDue,
-  isDirectedDue,
   isPushPayload,
 } from './push'
 
 const NOW = 1_700_000_000_000
 const ago = (ms: number) => NOW - ms
 
-describe('isDirectedDue', () => {
-  it('holds a fresh row back', () => {
-    expect(isDirectedDue(ago(DIRECTED_DEBOUNCE_MS - 1), NOW)).toBe(false)
-  })
-
-  it('releases one that has waited out the debounce', () => {
-    expect(isDirectedDue(ago(DIRECTED_DEBOUNCE_MS), NOW)).toBe(true)
-  })
-
-  /**
-   * The whole reason the debounce exists: an edit and its immediate correction are one buzz.
-   *
-   * A hardcoded 30s rather than one derived from `DIRECTED_DEBOUNCE_MS`, deliberately. The two
-   * tests above are written relative to the constant, so retuning it moves them with it and they
-   * can only ever check the comparison operator. This one holds the promise still: drop the
-   * debounce under 30 seconds and a typo fix buzzes twice, and only this fails.
-   */
-  it('is still holding a row while a typo fix is landing', () => {
-    expect(isDirectedDue(ago(30_000), NOW)).toBe(false)
+describe('DIRECTED_DEBOUNCE_MS', () => {
+  // A hardcoded 30s, deliberately: an edit and its immediate correction must stay one buzz.
+  it('outlasts a typo fix landing', () => {
+    expect(DIRECTED_DEBOUNCE_MS).toBeGreaterThan(30_000)
   })
 })
 
