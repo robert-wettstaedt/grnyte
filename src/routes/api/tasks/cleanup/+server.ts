@@ -31,12 +31,32 @@ const FEEDBACK_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000
  *  that owns them. Nothing pruned them before, so the table only ever grew. */
 const ERROR_LOG_MAX_AGE_MS = ERROR_LOG_MAX_AGE_DAYS * 24 * 60 * 60 * 1000
 
+/** Objects per storage `list` call; the API's own default is 100. */
+const LIST_PAGE = 1000
+
+type StagingBucket = ReturnType<ReturnType<typeof supabaseAdmin>['storage']['from']>
+
+/** Every entry under `prefix`, page by page: one `list` call stops at its limit, silently. Read in
+ *  full before anything is removed, so the deletes cannot shift the offsets under the walk. */
+const listAll = async (bucket: StagingBucket, prefix?: string): ReturnType<StagingBucket['list']> => {
+  const entries = []
+  for (let offset = 0; ; offset += LIST_PAGE) {
+    const page = await bucket.list(prefix, { limit: LIST_PAGE, offset })
+    if (page.error != null) {
+      return page
+    }
+    entries.push(...page.data)
+    if (page.data.length < LIST_PAGE) {
+      return { data: entries, error: null }
+    }
+  }
+}
+
 /** Delete staging objects older than the cutoff. Service-role: the sweep spans every user's own-uid folder. */
 const sweepStaging = async (before: Date): Promise<number> => {
   const bucket = supabaseAdmin().storage.from(STAGING_BUCKET)
-  // ponytail: two-level walk (folders are per auth-uid), 100 objects/page. Fine for
-  // a daily job; switch to the S3 list API if the user count ever outgrows one page.
-  const { data: folders, error } = await bucket.list()
+  // Two levels: one folder per auth uid, the objects inside it.
+  const { data: folders, error } = await listAll(bucket)
   if (error != null || folders == null) {
     console.error('[cleanup] staging list failed', error)
     await logServerFailure('cleanup', `staging list failed: ${stringifyError(error)}`)
@@ -47,7 +67,7 @@ const sweepStaging = async (before: Date): Promise<number> => {
     if (folder.id != null) {
       continue // a stray file at the bucket root, not a uid folder
     }
-    const { data: objects, error: listError } = await bucket.list(folder.name)
+    const { data: objects, error: listError } = await listAll(bucket, folder.name)
     if (listError != null || objects == null) {
       console.error('[cleanup] staging list failed for folder', folder.name, listError)
       await logServerFailure('cleanup', `staging list failed for folder ${folder.name}: ${stringifyError(listError)}`)
