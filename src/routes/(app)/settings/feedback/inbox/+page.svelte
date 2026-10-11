@@ -26,13 +26,15 @@
 
   // Keyed by row id so two open drafts stay apart.
   let drafts = $state<Record<number, string>>({})
+  const draftOf = (item: { id: number; reply: string }) => drafts[item.id] ?? item.reply
   let sending = $state<number | undefined>(undefined)
 
   // The answered row collapses on refresh, so focus is put back on its trigger instead of `<body>`.
   let summaries = $state<Record<number, HTMLButtonElement | undefined>>({})
 
-  const send = async (id: number) => {
-    const reply = drafts[id]?.trim() ?? ''
+  // The draft, or the stored text of a reply whose mail failed, which survives a reload.
+  const send = async (id: number, draft: string) => {
+    const reply = draft.trim()
     if (reply.length === 0) {
       return
     }
@@ -40,9 +42,11 @@
     sending = id
 
     try {
-      // The row is stamped answered before the mail is attempted, so a save is not proof of delivery.
+      // An undelivered reply reopens the row, so the draft stays for another try.
       const { delivered } = await replyToFeedback({ id, reply })
-      drafts = { ...drafts, [id]: '' }
+      if (delivered) {
+        drafts = { ...drafts, [id]: '' }
+      }
       notifySend(delivered, m.feedback_replySent(), m.feedback_replyNoMail())
       await feedback.refresh()
 
@@ -129,7 +133,7 @@
               <label class="flex flex-col gap-2">
                 <span class="text-surface-700-300 text-sm font-semibold">{m.feedback_reply()}</span>
                 <textarea
-                  bind:value={() => drafts[item.id] ?? '', (value) => (drafts = { ...drafts, [item.id]: value })}
+                  bind:value={() => draftOf(item), (value) => (drafts = { ...drafts, [item.id]: value })}
                   class="textarea"
                   disabled={sending === item.id}
                   placeholder={m.feedback_replyPlaceholder()}
@@ -141,8 +145,8 @@
                    because the bare `.btn` is 32px tall. -->
               <button
                 class="btn preset-filled-primary-500 h-11"
-                disabled={sending === item.id || (drafts[item.id]?.trim() ?? '').length === 0}
-                onclick={() => send(item.id)}
+                disabled={sending === item.id || draftOf(item).trim().length === 0}
+                onclick={() => send(item.id, draftOf(item))}
                 type="button"
               >
                 {#if sending === item.id}

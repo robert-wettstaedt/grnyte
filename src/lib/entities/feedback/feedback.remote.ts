@@ -3,7 +3,7 @@ import { command, form, getRequestEvent, query } from '$app/server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { feedback, users, userSettings } from '$lib/db/schema'
 import { feedbackReplyEmailContent } from '$lib/email/feedback'
-import { sendEmail } from '$lib/email/send.server'
+import { sendEmailOutcome } from '$lib/email/send.server'
 import { blank, formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { contactLocale } from '$lib/i18n/message'
@@ -13,6 +13,7 @@ import { error as httpError } from '@sveltejs/kit'
 import { and, desc, eq } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { authUsers } from 'drizzle-orm/supabase'
+import { createHash } from 'node:crypto'
 import { feedbackKind, type FeedbackItem } from './dto'
 import { feedbackExcerpt } from './mapper'
 import { notifyAdminsOfFeedback } from './notify.server'
@@ -140,6 +141,8 @@ export const replyToFeedback = command(
 
     requireAppAdmin(locals.userPermissions)
 
+    const stampedAt = new Date()
+
     // Privileged handle: neither `auth.users` nor `user_settings` is readable by `authenticated`,
     // and the recipient is not the caller.
     const row = await pinnedTx(async (tx) => {
@@ -163,11 +166,10 @@ export const replyToFeedback = command(
 
       // The UPDATE is the gate, not a check before it: a separate read-then-check leaves a window
       // where two admins both pass and the second overwrites the first.
-      // Stamped before the send, so a mail host that is down leaves an answered row rather than a
-      // reply written twice. `sendEmail` never throws and reports delivery as a boolean.
+      // Closed before the send so two admins cannot both mail; reopened below if the send fails.
       const [updated] = await tx
         .update(feedback)
-        .set({ repliedAt: new Date(), reply, status: 'closed' })
+        .set({ repliedAt: stampedAt, reply, status: 'closed' })
         .where(and(eq(feedback.id, id), eq(feedback.status, 'open')))
         .returning({ id: feedback.id })
 
@@ -186,19 +188,27 @@ export const replyToFeedback = command(
 
     const locale = contactLocale(row.locale)
 
-    const delivered = await sendEmail({
+    const outcome = await sendEmailOutcome({
       ...feedbackReplyEmailContent({ locale, original: row.body, reply, url: url.origin }),
-      // Stable, per the `SendEmailInput` contract: the conditional UPDATE closes a row exactly
-      // once, so this key can never carry a second payload.
-      idempotencyKey: `feedback-reply-${id}`,
+      // Per reply text: a retry of the same answer after a send that did go out stays one mail, and
+      // an edited one is a new mail (Resend refuses a reused key with a different body).
+      idempotencyKey: `feedback-reply-${id}-${createHash('sha256').update(reply).digest('hex').slice(0, 16)}`,
       locale,
       origin: url.origin,
       template: 'feedback-reply',
       to: row.email,
     })
 
-    // The row is closed either way. This is what the inbox shows, so an undelivered answer is
-    // visible instead of reading as sent.
-    return { delivered }
+    // Reopened only when a resend could succeed, matched on the stamp to spare a concurrent answer.
+    if (outcome === 'retry') {
+      await pinnedTx((tx) =>
+        tx
+          .update(feedback)
+          .set({ repliedAt: null, status: 'open' })
+          .where(and(eq(feedback.id, id), eq(feedback.repliedAt, stampedAt))),
+      )
+    }
+
+    return { delivered: outcome === 'sent' }
   },
 )
