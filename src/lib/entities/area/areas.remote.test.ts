@@ -14,7 +14,7 @@
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { asRequest, callForm, redirectOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { updateArea } from './areas.remote'
+import { createArea, updateArea } from './areas.remote'
 
 const HOME = '__areas_remote_home__'
 const OTHER = '__areas_remote_other__'
@@ -63,6 +63,15 @@ beforeAll(async () => {
     values ('__areas_remote_toplevel__', 'area', ${homeRegionId}, ${maintainer.userId})
     returning id`
   topLevelAreaId = topLevel.id
+
+  // Name-clash fixtures: a top-level area elsewhere, a top-level sibling here, a nested one here.
+  await sql`
+    insert into public.areas (name, type, region_fk, created_by)
+    values ('__areas_remote_elsewhere__', 'area', ${otherRegionId}, ${maintainer.userId}),
+           ('__areas_remote_sibling__', 'area', ${homeRegionId}, ${maintainer.userId})`
+  await sql`
+    insert into public.areas (name, type, region_fk, parent_fk, created_by)
+    values ('__areas_remote_nested__', 'area', ${homeRegionId}, ${areaId}, ${maintainer.userId})`
 })
 
 afterAll(async () => {
@@ -151,5 +160,52 @@ describe.skipIf(!reachable)('updateArea', () => {
     const [row] = await sql<{ name: string }[]>`
       select name from public.areas where id = ${topLevelAreaId}`
     expect(row.name).toBe('__areas_remote_toplevel_renamed__')
+  })
+
+  const topLevelName = async () =>
+    (await sql<{ name: string }[]>`select name from public.areas where id = ${topLevelAreaId}`)[0].name
+
+  it('lets a top-level area take a name used by a top-level area in another region', async () => {
+    await submit({
+      description: '',
+      id: String(topLevelAreaId),
+      name: '__areas_remote_elsewhere__',
+      parentFk: '',
+      regionFk: String(homeRegionId),
+    })
+
+    expect(await topLevelName()).toBe('__areas_remote_elsewhere__')
+  })
+
+  it('refuses a name a top-level sibling in the same region already has', async () => {
+    const before = await topLevelName()
+    const result = await asRequest(maintainer.authId, () =>
+      callForm(updateArea, {
+        description: '',
+        id: String(topLevelAreaId),
+        name: '__areas_remote_sibling__',
+        parentFk: '',
+        regionFk: String(homeRegionId),
+      }),
+    )
+
+    // The clash itself, not any refusal: a validation error would also leave the name unchanged.
+    expect(JSON.stringify(result)).toContain('areas_nameExists')
+    expect(await topLevelName()).toBe(before)
+  })
+})
+
+describe.skipIf(!reachable)('createArea', () => {
+  it('creates a top-level area named like a nested one, which is not its sibling', async () => {
+    await redirectOf(() =>
+      asRequest(maintainer.authId, () =>
+        callForm(createArea, { description: '', name: '__areas_remote_nested__', regionFk: String(homeRegionId) }),
+      ),
+    )
+
+    const rows = await sql`
+      select id from public.areas
+      where region_fk = ${homeRegionId} and parent_fk is null and name = '__areas_remote_nested__'`
+    expect(rows).toHaveLength(1)
   })
 })

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment'
   import { m } from '$lib/paraglide/messages'
+  import { storage } from '$lib/state/storage'
   import { onMount } from 'svelte'
   import SettingSelect from './SettingSelect.svelte'
 
@@ -14,7 +15,7 @@
   let mode = $state<ModePreference>('system')
 
   onMount(() => {
-    const persistedMode = localStorage.getItem(MODE_STORAGE_KEY)
+    const persistedMode = storage.get(MODE_STORAGE_KEY)
 
     if (persistedMode === 'light' || persistedMode === 'dark' || persistedMode === 'system') {
       mode = persistedMode
@@ -25,7 +26,7 @@
     mode = value
     if (!browser) return
 
-    localStorage.setItem(MODE_STORAGE_KEY, mode)
+    storage.set(MODE_STORAGE_KEY, mode)
     // Theme application (class + theme-color meta) lives in the app.html bootstrap; it reads the
     // persisted mode, so we persist then trigger it.
     window.__applyTheme?.()

@@ -25,6 +25,10 @@ import { hasDeletedAncestor, refreshAreaType } from './area.server'
 import { loadParentArea, requireEditableArea } from './guards.server'
 import { canAddArea, canAddParking, canDeleteArea, canDeleteParking } from './permissions'
 
+/** Areas sharing a parent; top-level ones share their region. Name clashes are checked over these. */
+const siblingsOf = (regionFk: number, parentFk: null | number | undefined) =>
+  parentFk == null ? and(eq(areas.regionFk, regionFk), isNull(areas.parentFk)) : eq(areas.parentFk, parentFk)
+
 const areaActionSchema = z.object({
   description: z._default(z.optional(z.string()), ''),
   id: z.optional(stringToInt),
@@ -70,11 +74,7 @@ export const createArea = authedForm(areaActionSchema, async (value, { afterComm
   // against it names a blocker the reader cannot find or clear. Restoring it later can leave two
   // siblings sharing a name, which is the accepted cost of the reader-facing reading.
   const existingAreasResult = await db.query.areas.findMany({
-    where: and(
-      isNull(areas.deletedAt),
-      eq(areas.name, value.name),
-      parentArea == null ? eq(areas.regionFk, value.regionFk) : eq(areas.parentFk, parentArea.id),
-    ),
+    where: and(isNull(areas.deletedAt), eq(areas.name, value.name), siblingsOf(value.regionFk, parentArea?.id)),
   })
 
   if (existingAreasResult.length > 0) {
@@ -135,7 +135,7 @@ export const updateArea = authedForm(
       where: and(
         isNull(areas.deletedAt),
         eq(areas.name, value.name),
-        area.parentFk == null ? isNull(areas.parentFk) : eq(areas.parentFk, area.parentFk),
+        siblingsOf(area.regionFk, area.parentFk),
         not(eq(areas.id, area.id)),
       ),
     })

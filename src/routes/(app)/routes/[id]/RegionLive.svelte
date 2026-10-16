@@ -7,6 +7,7 @@
   import { routeMapList } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { storage } from '$lib/state/storage'
 
   /**
    * The end of the onboarding chain: the founder made the first route in their region, so the
@@ -37,7 +38,7 @@
   // losing it on a new device costs one dismissed card. Writable derived rather than state+effect,
   // so it is read before the first paint and re-reads if the region changes under it.
   const storageKey = $derived(`${PUBLIC_APPLICATION_NAME}:regionLive:${regionFk}`)
-  let seen = $derived(localStorage.getItem(storageKey) != null)
+  let seen = $derived(storage.get(storageKey) != null)
 
   // Deliberately no member-count condition: a region holding exactly one route is brand new by
   // definition, so such a check would only ever produce false negatives (a founder who invites
@@ -57,7 +58,7 @@
   )
 
   const dismiss = () => {
-    localStorage.setItem(storageKey, '1')
+    storage.set(storageKey, '1')
     seen = true
   }
 </script>
