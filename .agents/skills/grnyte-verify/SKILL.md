@@ -185,9 +185,9 @@ fallback bug in the feed work; clicking through the app would have needed dozens
 
   Filter `type === 'story'`: every component also has a `--docs` entry that renders nothing here.
   `entries[].id` is what goes in `/iframe.html?id=<id>`.
-- The pattern to copy: `src/lib/entities/event/catalogue.ts` enumerates the cases,
-  `catalogue.fixture.ts` builds a row per case, `EventCatalogue.stories.svelte` renders them. A new
-  case is one entry in the catalogue, not a new story.
+- The pattern to copy: `src/lib/entities/event/cases/` enumerates the cases per domain (builders in
+  `cases/world.ts`), and `src/lib/components/EventFeed/EventCatalogue.stories.svelte` renders them. A
+  new case is one entry in `cases/`, not a new story.
 - Sweep it in the browser with the chrome-devtools MCP against the story iframe
   (`/iframe.html?id=<story-id>`), reading rendered text rather than trusting the fixture.
 - What to look for: empty or `undefined` names, a case that renders no card at all, two cases that

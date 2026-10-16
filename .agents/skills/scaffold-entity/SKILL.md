@@ -31,7 +31,7 @@ because concrete code drifts and the live module is the source of truth.
 3. If the table carries a `regionFk`, add it to `regionTables` in `src/lib/zero/permissions.ts`.
    That one list is both the array and the `RegionTable` union, and being on it is what makes
    `regionMemberCan` / `relatedRegion` accept the table at all.
-4. `npm run check` until clean.
+4. Typecheck until clean (beside a running dev server, `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`, see AGENTS.md).
 
 ## Gotchas (these are the ones that cost time)
 

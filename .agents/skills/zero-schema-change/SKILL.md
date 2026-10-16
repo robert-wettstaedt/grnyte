@@ -25,10 +25,8 @@ A schema change is a fixed sequence, not just a `schema.ts` edit.
    ```
    Keeping the backfill in the migration makes `npm run migrate` atomic.
 4. `npm run generate:zero` → regenerates `src/lib/zero/zero-schema.gen.ts`.
-5. `npm run migrate` → applies the SQL migrations, **then** runs `setup-table-permissions` and the
-   data-backfill scripts in `src/lib/db/scripts/` (image derivatives, mentions, etc.), so its output
-   is noisy and includes image/data work; that's expected, not an error.
-6. `npm run check` until clean.
+5. `npm run migrate` → applies the SQL migrations, then re-runs `setup-table-permissions`.
+6. Typecheck until clean (beside a running dev server, `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`, see AGENTS.md).
 
 `npm run generate` runs 2+4 together; `.env` `DATABASE_URL` (supabase pooler) is the target.
 
