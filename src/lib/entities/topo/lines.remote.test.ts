@@ -211,6 +211,8 @@ describe.skipIf(!reachable)('saveTopoLines staleness guard', () => {
     await sql`update public.topo_routes set path = 'Z' where topo_fk = ${topoId} and route_fk = ${routeTwo}`
 
     expect(await save(topoLinesFingerprint([routeOne]), [{ path: PATH_ONE, routeFk: routeOne }])).toBe('ok')
+    // Outside the proof, so outside the delete too: nobody could have erased what they never saw.
+    expect(await pathFor(routeTwo)).toBe('Z')
   })
 
   it('accepts a moved line, because a move is not a replacement', async () => {

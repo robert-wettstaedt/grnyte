@@ -50,6 +50,6 @@ export function requireEditableArea(db: Db, userRegions: UserRegion[], id: numbe
         ? Promise.resolve(undefined)
         : db.query.areas.findFirst({ where: and(eq(areas.id, id), isNull(areas.deletedAt)) }),
     (row) => canEditArea(userRegions, row),
-    formError('areas_parentNotFound'),
+    formError('areas_notFound'),
   )
 }

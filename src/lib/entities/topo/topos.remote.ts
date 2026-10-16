@@ -303,15 +303,13 @@ export const saveTopoLines = authedCommand(
     //
     // Measured over the rows the EDITOR can see: path-less rows, soft-deleted routes' lines and
     // unparseable paths are all invisible there, so counting one would refuse that photo forever.
-    const storedDrawn = existing
-      .filter(
-        (row) =>
-          row.routeFk != null &&
-          liveRouteIds.has(row.routeFk) &&
-          (row.path?.trim() ?? '') !== '' &&
-          convertPathToPoints(row.path!).length > 0,
-      )
-      .map((row) => row.routeFk as number)
+    // One predicate for the proof and the delete, so they can never measure different sets.
+    const visible = (row: { path: null | string; routeFk: null | number }): row is { path: string; routeFk: number } =>
+      row.routeFk != null &&
+      liveRouteIds.has(row.routeFk) &&
+      (row.path?.trim() ?? '') !== '' &&
+      convertPathToPoints(row.path!).length > 0
+    const storedDrawn = existing.flatMap((row) => (visible(row) ? [row.routeFk] : []))
     if (known !== topoLinesFingerprint(storedDrawn)) {
       error(409, formError('topo_linesStale'))
     }
@@ -338,16 +336,12 @@ export const saveTopoLines = authedCommand(
       }
     }
 
-    // Delete only lines the user could see and remove: a drawn line (non-empty path)
+    // Delete only lines the user could see and remove: a `visible` line (non-empty, parseable path)
     // on a live route that is no longer in the set. Path-less association rows and rows for
     // soft-deleted routes are invisible in the editor, so leave them (a path-less row would be
     // hard-deleted out from under `deleteRoute`; a deleted route's line must survive for restore).
     const erased = (row: { path: null | string; routeFk: null | number }) =>
-      row.routeFk != null &&
-      liveRouteIds.has(row.routeFk) &&
-      row.path != null &&
-      row.path.trim() !== '' &&
-      !desiredRoutes.has(row.routeFk)
+      visible(row) && !desiredRoutes.has(row.routeFk)
 
     for (const row of existing) {
       if (erased(row)) {
