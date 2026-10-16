@@ -318,6 +318,7 @@ export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
         // The credits sheet parses them through `./attribution` instead.
         source: new TileWMS({
           params: regionLayer.params ?? {},
+          transition: 0,
           url: regionLayer.url,
         }),
       }),
