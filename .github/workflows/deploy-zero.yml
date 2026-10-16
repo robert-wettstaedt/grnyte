@@ -10,25 +10,13 @@ on:
       - 'deployment/**'
       - 'src/lib/zero/**'
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy'
-        required: true
-        default: 'prod'
-        type: choice
-        options:
-          - prod
-          - demo
-          - both
 
 jobs:
   setup-repo:
     runs-on: ubuntu-latest
     environment: 'Production – grnyte.rocks'
     steps:
-      # Only the three values needed to reach the box. The prod project, because this job is scoped
-      # to the prod environment; the same key is duplicated into grnyte-demo for the demo matrix leg,
-      # since one VPS carries both and the free tier has no room for a shared infra project.
+      # Only the three values needed to reach the box.
       - name: Load VPS access from Bitwarden
         uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
         with:
@@ -78,9 +66,8 @@ jobs:
       matrix:
         environment:
           # `secret_ids` is the allowlist for this leg, and the reason it is here rather than in a
-          # GitHub variable: the two environments hold the same keys under different uuids, and the
-          # canary runs under the prod environment too but needs a completely different set. An
-          # allowlist nobody can review in a diff is not one.
+          # GitHub variable: the canary runs under the prod environment too but needs a completely
+          # different set. An allowlist nobody can review in a diff is not one.
           #
           # Deliberately not every ZERO_* the project holds, and deliberately not a count either:
           # the step below writes whichever ones are listed here, so this list grows by one line and
@@ -106,63 +93,30 @@ jobs:
               00050332-e579-440d-981b-b4b100937e3b > VPS_SSH_KEY
               1e8728fb-6dc4-436f-beeb-b4b10092ea48 > VPS_HOST
               3669b3d5-cdce-4964-84f1-b4b10092e14d > VPS_USER
-          - name: demo
-            env_name: 'Production – demo.grnyte.rocks'
-            secret_ids: |
-              e96fdf05-edc1-4cb6-8289-b4b1008c0033 > ZERO_UPSTREAM_DB
-              37eff7c3-3ebb-49ca-be4e-b4b1008c7b56 > ZERO_AUTH_SECRET
-              04500bb1-0ee3-4a27-bd2c-b4b1008b65dc > ZERO_ADMIN_PASSWORD
-              e63841ab-c739-416b-842f-b4b1008b3726 > ZERO_GET_QUERIES_URL
-              b7ed66f2-5075-46fe-a6f8-b4b1008afc86 > ZERO_NUM_SYNC_WORKERS
-              fb80d072-1a87-4250-81d1-b4b1008af01e > ZERO_CVR_MAX_CONNS
-              8bc0c6f6-2fd3-41a6-8af4-b4b1008af5e9 > ZERO_UPSTREAM_MAX_CONNS
-              742af3f6-e5f8-4da2-ac38-b4b10159d95d > ZERO_ENABLE_CRUD_MUTATIONS
-              714b6094-5d1d-44a1-9cf2-b4b100938cbe > VPS_SSH_KEY
-              fb993808-d4d3-4b4b-8a25-b4b10092b747 > VPS_HOST
-              5938e081-f470-4db0-8f6d-b4b10092d456 > VPS_USER
     environment: ${{ matrix.environment.env_name }}
     steps:
-      - name: Check if deployment needed
-        id: should_deploy
-        run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            echo "deploy=true" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            if [[ "${{ inputs.environment }}" == "${{ matrix.environment.name }}" || "${{ inputs.environment }}" == "both" ]]; then
-              echo "deploy=true" >> $GITHUB_OUTPUT
-            else
-              echo "deploy=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "deploy=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Checkout code
-        if: steps.should_deploy.outputs.deploy == 'true'
         uses: actions/checkout@v6
 
       # Replaces `curl https://bws.bitwarden.com/install | sh`, which fetched an unpinned script over
       # the network into a job holding an access token to the whole project. The action is pinned by
       # commit, and it masks every value it retrieves, which the bare CLI does not.
       - name: Load ${{ matrix.environment.name }} secrets from Bitwarden
-        if: steps.should_deploy.outputs.deploy == 'true'
         uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
         with:
           access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
           secrets: ${{ matrix.environment.secret_ids }}
 
       - name: Setup SSH
-        if: steps.should_deploy.outputs.deploy == 'true'
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
-      # The access token is the only thing that says which environment this is: it belongs to a
-      # machine account that can read the grnyte-prod project or the grnyte-demo one, never both.
+      # The access token is the only thing that says which environment this is: its machine account
+      # can read the grnyte-prod project and nothing else.
       - name: Prepare ${{ matrix.environment.name }} environment
-        if: steps.should_deploy.outputs.deploy == 'true'
         env:
           SECRET_IDS: ${{ matrix.environment.secret_ids }}
         run: |
@@ -195,7 +149,7 @@ jobs:
           echo "✅ Environment configured for ${{ matrix.environment.name }}"
 
       - name: Cleanup
-        if: always() && steps.should_deploy.outputs.deploy == 'true'
+        if: always()
         run: rm -f ~/.ssh/id_rsa
 
   deploy-infrastructure:
@@ -203,9 +157,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: 'Production – grnyte.rocks'
     steps:
-      # Only the three values needed to reach the box. The prod project, because this job is scoped
-      # to the prod environment; the same key is duplicated into grnyte-demo for the demo matrix leg,
-      # since one VPS carries both and the free tier has no room for a shared infra project.
+      # Only the three values needed to reach the box.
       - name: Load VPS access from Bitwarden
         uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
         with:
@@ -269,7 +221,7 @@ jobs:
 
             # Clean up Docker resources
             docker network prune -f || true
-            docker rm -f zero-server-prod zero-server-demo zero-cvr-prod nginx-main certbot-main || true
+            docker rm -f zero-server-prod zero-cvr-prod nginx-main certbot-main || true
 
             # Start services
             echo "Starting Zero servers and nginx..."
@@ -278,15 +230,13 @@ jobs:
             # Wait for Zero servers to be ready
             echo "⏳ Waiting for Zero servers..."
             for i in {1..30}; do
-                if docker exec zero-server-prod curl -f http://localhost:4848 >/dev/null 2>&1 && \
-                   docker exec zero-server-demo curl -f http://localhost:4848 >/dev/null 2>&1; then
-                    echo "✅ Zero servers are ready"
+                if docker exec zero-server-prod curl -f http://localhost:4848 >/dev/null 2>&1; then
+                    echo "✅ Zero server is ready"
                     break
                 fi
                 if [ $i -eq 30 ]; then
-                    echo "❌ Zero servers failed to start"
+                    echo "❌ Zero server failed to start"
                     docker logs zero-server-prod | tail -5
-                    docker logs zero-server-demo | tail -5
                     exit 1
                 fi
                 sleep 2
@@ -294,7 +244,7 @@ jobs:
 
             # Test HTTP accessibility
             echo "🧪 Testing HTTP accessibility..."
-            for domain in "zero.grnyte.rocks" "zero.demo.grnyte.rocks"; do
+            for domain in "zero.grnyte.rocks"; do
                 if curl -f -m 10 "http://$domain/" >/dev/null 2>&1; then
                     echo "✅ $domain is accessible via HTTP"
                 else

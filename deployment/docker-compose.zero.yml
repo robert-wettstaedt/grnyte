@@ -6,10 +6,9 @@ services:
   # Derived state, so there is no backup and losing the volume costs clients one re-sync: see
   # `deployment/README.md` beside `ZERO_CVR_DB` before adding it to `backup-db.yml`.
   #
-  # Prod only: demo is being torn down and is linked from nowhere, so it is not worth a second
-  # database. That leaves no rehearsal environment, so the empty-database case was proven locally
-  # instead: zero-cache creates its own CVR schema, with no manual bootstrap step. Rolling back is
-  # reverting `ZERO_CVR_DB` and redeploying; the upstream `zero_0/cvr` schema was dropped on
+  # There is no rehearsal environment, so the empty-database case was proven locally instead:
+  # zero-cache creates its own CVR schema, with no manual bootstrap step. Rolling back is reverting
+  # `ZERO_CVR_DB` and redeploying; the upstream `zero_0/cvr` schema was dropped on
   # 2026-09-30, so zero-cache bootstraps it again and every client re-syncs once (README).
   #
   # On `cvr_network` and nothing else, which nginx is not on and which is `internal: true`, so the
@@ -57,7 +56,7 @@ services:
     # authenticate at all (see `auth.server.ts`), so it is true in every environment or none.
     #
     # Tunables are NOT here. ZERO_CVR_MAX_CONNS, ZERO_UPSTREAM_MAX_CONNS and ZERO_NUM_SYNC_WORKERS
-    # come from the project through `.env.<env>`, so prod and demo can differ.
+    # come from the project through `.env.prod`.
     environment:
       - ZERO_REPLICA_FILE=/data/sync-replica.db
       - ZERO_SCHEMA_PATH=/opt/app/zero-schema.ts
@@ -84,45 +83,6 @@ services:
       - zero_network
       - cvr_network
 
-  zero-demo:
-    # Must move in lockstep with `@rocicorp/zero` in package.json, server deployed first.
-    image: rocicorp/zero:1.9.0
-    container_name: zero-server-demo
-    expose:
-      - '4848'
-    env_file:
-      - .env.demo
-    # Only what this file is the authority on. `environment:` overrides `env_file:`, so anything
-    # listed here silently wins over the value Bitwarden holds, and a knob in both places is a knob
-    # you cannot turn.
-    #
-    # The two paths stay because they are half of a fact stated below: `/data` is the named volume
-    # and `/opt/app/zero-schema.ts` is the bind mount. Split them into the vault and it could disagree
-    # with the mount, and the container would die on a missing file for a reason invisible from
-    # either side alone. FORWARD_COOKIES stays because it is a correctness requirement rather than a
-    # preference: zero-cache has to forward the browser cookie for the get-queries endpoint to
-    # authenticate at all (see `auth.server.ts`), so it is true in every environment or none.
-    #
-    # Tunables are NOT here. ZERO_CVR_MAX_CONNS, ZERO_UPSTREAM_MAX_CONNS and ZERO_NUM_SYNC_WORKERS
-    # come from the project through `.env.<env>`, so prod and demo can differ.
-    environment:
-      - ZERO_REPLICA_FILE=/data/sync-replica.db
-      - ZERO_SCHEMA_PATH=/opt/app/zero-schema.ts
-      - ZERO_GET_QUERIES_FORWARD_COOKIES=true
-    volumes:
-      - ../src/lib/zero/zero-schema.ts:/opt/app/zero-schema.ts:ro
-      - ../src/lib/zero/zero-schema.gen.ts:/opt/app/zero-schema.gen.ts:ro
-      - zero_data_demo:/data
-    restart: unless-stopped
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:4848']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    networks:
-      - zero_network
-
   nginx:
     image: nginx:alpine
     container_name: nginx-main
@@ -135,7 +95,6 @@ services:
     restart: unless-stopped
     depends_on:
       - zero-prod
-      - zero-demo
     networks:
       - zero_network
 
@@ -151,5 +110,4 @@ networks:
 
 volumes:
   zero_data_prod:
-  zero_data_demo:
   cvr_data_prod:

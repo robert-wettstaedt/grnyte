@@ -6,7 +6,7 @@ echo "This sets up SSL certificates and HTTPS redirect"
 echo "Run this ONCE after your initial deployment is working"
 echo ""
 
-read -p "Have you verified that http://zero.grnyte.rocks and http://zero.demo.grnyte.rocks work? (y/n): " confirm
+read -p "Have you verified that http://zero.grnyte.rocks works? (y/n): " confirm
 if [ "$confirm" != "y" ]; then
     echo "Please test HTTP first, then run this script"
     exit 1
@@ -32,8 +32,7 @@ sudo certbot certonly \
     --email info@grnyte.rocks \
     --agree-tos \
     --no-eff-email \
-    -d zero.grnyte.rocks \
-    -d zero.demo.grnyte.rocks
+    -d zero.grnyte.rocks
 
 if [ $? -eq 0 ]; then
     echo "✅ SSL certificates obtained"
@@ -51,7 +50,7 @@ http {
     # Redirect HTTP to HTTPS
     server {
         listen 80;
-        server_name zero.grnyte.rocks zero.demo.grnyte.rocks;
+        server_name zero.grnyte.rocks;
         return 301 https://$host$request_uri;
     }
 
@@ -65,26 +64,6 @@ http {
 
         location / {
             proxy_pass http://zero-server-prod:4848;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto https;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-        }
-    }
-
-    # HTTPS for demo
-    server {
-        listen 443 ssl http2;
-        server_name zero.demo.grnyte.rocks;
-
-        ssl_certificate /etc/letsencrypt/live/zero.demo.grnyte.rocks/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/zero.demo.grnyte.rocks/privkey.pem;
-
-        location / {
-            proxy_pass http://zero-server-demo:4848;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
