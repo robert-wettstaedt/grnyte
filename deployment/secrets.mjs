@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Bitwarden Secrets Manager glue for the three environments.
+// Bitwarden Secrets Manager glue for the dev and prod environments.
 //
 // Which environment a run touches is decided by BWS_ACCESS_TOKEN and nothing else: each machine
-// account (grnyte-dev / grnyte-demo / grnyte-prod) is granted exactly one project, so no project
+// account (grnyte-dev / grnyte-prod) is granted exactly one project, so no project
 // id, no environment name and no per-environment branch ever appears in this file. Point the token
-// at demo and every command below talks to demo.
+// at prod and every command below talks to prod.
 //
 // deployment/SECRETS.md has the one-time setup.
 //
@@ -232,9 +232,7 @@ async function selftest() {
  * all - `ZERO_AUTH_SECRET` carrying some other value looks like an auth bug for as long as it takes
  * to think of this.
  *
- * Run it once per environment: the workflows carry prod and demo uuids side by side, so each token
- * sees half of them and reports the other half as belonging elsewhere. A uuid that neither token
- * recognises is the one to chase.
+ * Run it with the prod token: the workflows carry only prod uuids, so any "not in this project" is dead.
  */
 function verify() {
   const keyById = new Map(listSecrets().map((secret) => [secret.id, secret.key]))

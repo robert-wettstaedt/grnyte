@@ -1,25 +1,24 @@
 # Secrets
 
-Every environment variable for the three environments lives in Bitwarden Secrets Manager. Nothing is
+Every environment variable for both environments lives in Bitwarden Secrets Manager. Nothing is
 typed into the Vercel dashboard, the VPS or GitHub by hand any more, with the two exceptions listed
 under [What stays out](#what-stays-out).
 
 ## The model
 
-Three projects, three machine accounts, one account per project, `Can read`:
+Two projects, two machine accounts, one account per project, `Can read`:
 
 | Project       | Machine account | Reads                                                           |
 | ------------- | --------------- | --------------------------------------------------------------- |
 | `grnyte-dev`  | `grnyte-dev`    | your laptop                                                     |
-| `grnyte-demo` | `grnyte-demo`   | Vercel demo project, `zero-server-demo`                         |
 | `grnyte-prod` | `grnyte-prod`   | Vercel prod project, `zero-server-prod`, the post-deploy canary |
 
 The access token **is** the environment selector. Because a machine account can see exactly one
 project, no project id, no environment name and no per-environment branch appears in
-`deployment/secrets.mjs` or in the workflows: point `BWS_ACCESS_TOKEN` at demo and every command
-below talks to demo.
+`deployment/secrets.mjs` or in the workflows: point `BWS_ACCESS_TOKEN` at prod and every command
+below talks to prod.
 
-Secret keys are the environment variable names, verbatim, so the same key exists in all three
+Secret keys are the environment variable names, verbatim, so the same key exists in both
 projects with different values.
 
 Which half of a project goes where:
@@ -35,22 +34,19 @@ Which half of a project goes where:
   Anything in BOTH places is a knob you cannot turn, because `environment:` overrides `env_file:`.
   That was true of the two connection limits until 2026-08-25, so editing them in the vault did
   nothing at all.
-- `VPS_SSH_KEY`, `VPS_HOST` and `VPS_USER` are the deploy's, and live in **grnyte-prod and
-  grnyte-demo both**, with the same value in each: one VPS carries both Zero servers, and the free
-  plan has no room for a shared infrastructure project. Rotating the key means editing two secrets,
-  and forgetting the second one fails the demo leg at `ssh-keyscan`.
+- `VPS_SSH_KEY`, `VPS_HOST` and `VPS_USER` are the deploy's, and live in grnyte-prod.
 - Everything else is the app's. It goes to Vercel. `PUBLIC_ZERO_URL` is the app's, not the server's.
 - Local development gets both halves, because it runs both. `VPS_*` is not in grnyte-dev: nothing
   local talks to the VPS.
 
-This fits the Bitwarden **Free** plan exactly: 2 users, 3 projects, 3 machine accounts. A fourth
+This fits the Bitwarden **Free** plan: 2 users, 3 projects, 3 machine accounts. A fourth
 environment means Teams.
 
 ## One-time setup
 
 1. Admin Console > Billing > Subscription > check **Subscribe to Secrets Manager**.
-2. Secrets Manager > **New > Project**, three times: `grnyte-dev`, `grnyte-demo`, `grnyte-prod`.
-3. **New > Machine account**, three times, same names. In each account's **Projects** tab assign its
+2. Secrets Manager > **New > Project**, twice: `grnyte-dev`, `grnyte-prod`.
+3. **New > Machine account**, twice, same names. In each account's **Projects** tab assign its
    one project as **Can read, write** for now; downgrade to **Can read** once the bootstrap below is
    done.
 4. In each account's **Access tokens** tab, **Create access token**, expiration **Never**. The token
@@ -68,7 +64,7 @@ updates the ones that already exist, so it is safe to re-run.
 # dev, from the .env you already have
 BWS_ACCESS_TOKEN=<dev token> node deployment/secrets.mjs seed .env
 
-# prod and demo, from Vercel
+# prod, from Vercel
 vercel env pull .env.tmp --environment=production --project grnyte
 BWS_ACCESS_TOKEN=<prod token> node deployment/secrets.mjs seed .env.tmp
 rm .env.tmp
@@ -85,8 +81,7 @@ Two things `vercel env pull` will not give you:
 Then, in GitHub:
 
 - Environment `Production – grnyte.rocks`: add secret `BWS_ACCESS_TOKEN` (the prod token).
-- Environment `Production – demo.grnyte.rocks`: add secret `BWS_ACCESS_TOKEN` (the demo token).
-  The scheduled post-deploy canary reads the first of these through an `environment:` on its job.
+  The scheduled post-deploy canary reads it through an `environment:` on its job.
   An earlier version of this file asked for a repository-level `BWS_ACCESS_TOKEN_PROD` as well, so
   that a required-reviewer rule could never park a scheduled run. The trade went the other way: a
   repository secret is readable by a job on **any branch**, which is a wider standing exposure for
@@ -95,7 +90,7 @@ Then, in GitHub:
   `Production – grnyte.rocks` stops the canary running at all, and a canary that does not run looks
   exactly like one that passes.
 
-**These two are the only secrets GitHub stores.** There are no repository secrets and no Actions
+**This is the only secret GitHub stores.** There are no repository secrets and no Actions
 variables; every other value is read from Bitwarden at run time by `bitwarden/sm-action`, pinned by
 commit in each workflow. Delete the rest **after the v2 cutover, not before** — `main` still reads
 `ZERO_UPSTREAM_DB`, `ZERO_AUTH_SECRET`, `ZERO_ADMIN_PASSWORD` and `VPS_SSH_KEY` as `secrets.*`, and
@@ -111,15 +106,15 @@ Zero deploys from `main`:
   `main`'s `ci.yml` sets both to `foobar`, so nothing on any branch reads them once `ci.yml`
   generates its own pair.
 
-Finally downgrade the three machine accounts to **Can read**. The workflows only read, and the
+Finally downgrade both machine accounts to **Can read**. The workflows only read, and the
 difference is not academic: the tokens live in GitHub, this repository is public, and a leaked
 read-only token discloses production's secrets while a leaked writable one also lets somebody swap
 `ZERO_AUTH_SECRET` for one they control and mint JWTs the Zero server accepts. Disclosure versus
 takeover.
 
-Check it rather than assume it. On 2026-08-25 the demo account was `Can read` and the prod one was
-not, which surfaced only because an edit against demo failed while the same edit against prod
-succeeded. All three were downgraded the same day, and that downgrade is the control here: nothing
+Check it rather than assume it. On 2026-08-25 one account was `Can read` and the prod one was
+not, which surfaced only because the same edit failed against one and succeeded against prod. All
+were downgraded the same day, and that downgrade is the control here: nothing
 in the workflows limits what a token could do with write access, so the grant is the only thing that
 does.
 
@@ -142,12 +137,12 @@ The mappings live next to the jobs rather than in a GitHub variable, because `de
 review in a diff is not one. `node deployment/secrets.mjs ids` prints them in the exact input format;
 uuids are identifiers rather than credentials, so they belong in a public workflow file.
 
-Uuids are per project, so the same key has a different one in prod and demo. `deploy-zero.yml` keeps
-each environment's mapping in its matrix entry beside the environment name.
+Uuids are per project. `deploy-zero.yml` keeps the mapping in its matrix entry beside the
+environment name.
 
 `node deployment/secrets.mjs verify` checks those mappings against what the project actually holds.
-Run it once per environment; each token sees its half and reports the rest as belonging elsewhere,
-so a uuid neither token recognises is the one to chase. Worth doing after any secret is deleted and
+Run it with the prod token; every uuid in the workflows is prod's, so one reported as not in
+the project is dead. Worth doing after any secret is deleted and
 re-created, because that changes the uuid. The failure it exists to catch is the quiet one: a uuid
 that still resolves but has been RENAMED injects the wrong value under the right name, and
 `ZERO_AUTH_SECRET` carrying something else looks like an auth bug rather than a config one.
@@ -163,7 +158,6 @@ bws run -- npm run dev
 
 # Push an environment to its Vercel project (ZERO_* are skipped)
 BWS_ACCESS_TOKEN=<prod token> node deployment/secrets.mjs vercel grnyte
-BWS_ACCESS_TOKEN=<demo token> node deployment/secrets.mjs vercel <demo project>
 ```
 
 The VPS half is automatic: `deploy-zero.yml` pulls the project on the runner, keeps the `ZERO_*`
@@ -199,9 +193,6 @@ Note the `=`. `bws` parses its arguments with clap, which reads a value beginnin
 flag and fails with `unexpected argument`. Any PEM block hits this, so an SSH key cannot be passed
 with the spaced form at all.
 
-`VPS_SSH_KEY`, `VPS_HOST` and `VPS_USER` exist in two projects. Rotate both, and verify the demo leg
-of `deploy-zero.yml` rather than assuming it followed prod.
-
 An access token: create the new one first, update the GitHub secret, then revoke the old one in the
 machine account's **Access tokens** tab.
 
@@ -218,8 +209,8 @@ machine account's **Access tokens** tab.
   line-based readers downstream (docker compose's `env_file`, the grep in `deploy-zero.yml`) rather
   than for these two, which both handle it.
 
-  `VPS_SSH_KEY` is the newline case: a PEM block is multiline, so `secrets:pull:prod` and
-  `secrets:pull:demo` skip it. That is correct rather than broken - a private key has no business in
+  `VPS_SSH_KEY` is the newline case: a PEM block is multiline, so `secrets:pull:prod` skips
+  it. That is correct rather than broken - a private key has no business in
   a `.env`, and nothing local reads this one. `deploy-zero.yml` takes it from Bitwarden by uuid
   through `bitwarden/sm-action` and never sees a `.env`, so the skip costs the deploy nothing.
 
