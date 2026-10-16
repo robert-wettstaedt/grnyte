@@ -6,12 +6,14 @@
   import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
   import SaveButton from '$lib/components/SaveButton/SaveButton.svelte'
   import ShareButton from '$lib/components/ShareButton/ShareButton.svelte'
+  import ShowOnMapButton from '$lib/components/ShowOnMapButton/ShowOnMapButton.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockPin, blockRepairHref } from '$lib/entities/block/pin'
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
+  import { entityHref } from '$lib/entities/href'
   import type { RouteDetail } from '$lib/entities/route/dto'
   import { canDeleteRoute, canEditRoute } from '$lib/entities/route/permissions'
   import { waitForRoute } from '$lib/entities/route/resources.svelte'
@@ -68,6 +70,9 @@
   <LocationMeta distance={location.distance} href={repairHref} isHere={location.isHere} {pin} />
 
   <ActionBar>
+    <!-- The block's sheet frames it, so Show is just the way there; Back returns here. -->
+    <ShowOnMapButton href={entityHref('blocks', route.blockFk)} shown={destination != null} />
+
     <DirectionsButton {destination} />
 
     <SaveButton count={save.count} ontoggle={save.toggle} pending={save.pending} saved={save.saved} />

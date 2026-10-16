@@ -1,6 +1,6 @@
 <!--
-  The pill floating over the screen. Filled when it does something (merge new rows), a plain surface
-  with a spinner when it only reports. One box for both, which resizes and crossfades between them.
+  The floating pill: filled when it acts, a plain surface when it reports or holds a state to clear.
+  One box for every face, which resizes and crossfades between them.
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -40,7 +40,7 @@
 </script>
 
 <div
-  class={['pointer-events-none flex items-start justify-center', placement]}
+  class={['@container pointer-events-none flex items-start justify-center', placement]}
   {style}
   transition:fly={{ duration: motion(), y: -8 }}
 >
@@ -52,6 +52,7 @@
       content.kind === 'action'
         ? 'preset-filled-primary-500 pointer-events-auto border-transparent'
         : 'bg-surface-100-900 border-surface-200-800',
+      content.kind === 'dismiss' && 'pointer-events-auto',
     ]}
     style:width={width > 0 ? `calc(${width}px + 2px)` : undefined}
     style:transition-duration="{motion()}ms"
@@ -70,6 +71,22 @@
             <Icon name={face.icon} size={14} />
             {face.label}
           </button>
+        {:else if face.kind === 'dismiss'}
+          <!-- Quiet like a status, because it reports a state; only the trailing button acts. Kept at
+               the other faces' 32px height, so the button is the pill's full height. -->
+          <p class="flex items-center gap-2 ps-3">
+            <Icon name={face.icon} size={14} />
+            <!-- Capped to the strip the pill floats over (less the icon and button), so the button stays on screen. -->
+            <span class="max-w-[calc(100cqw-5rem)] truncate">{face.label}</span>
+            <button
+              type="button"
+              class="btn-icon hover:preset-tonal size-8 rounded-full p-0"
+              aria-label={face.dismissLabel}
+              onclick={face.ondismiss}
+            >
+              <Icon name="close" size={14} />
+            </button>
+          </p>
         {:else}
           <p class="flex items-center gap-2 px-3 py-1.5">
             <LoadingIndicator class="w-fit shrink-0" size={4} />
