@@ -40,7 +40,7 @@ This project uses:
 - Read `CONTEXT.md` before writing user-facing copy, i18n keys, or naming a domain concept. It is short, and it records distinctions the code depends on (a sector is a typed area and "crag" is prose only, `send` is the umbrella over `flash`/`redpoint`/`repeat`).
 - Mutations are SvelteKit remote functions (`command` / `authedCommand`), RLS-gated. Never Zero mutators.
 - A mutation that acts on an existing row gates through `requireRow` / `requireRowForm` (`$lib/remote/require.server`): they fetch the row and hand it to the permission predicate, so the check's subject is always stored data, never request input. Do not hand-roll `findFirst` + 404 + `can*` in a handler. The one exception is a writer of `regions.settings`, which must load its row under a lock `requireRow` cannot express; converting one back silently removes the lock.
-- Every write to `regions.settings` goes through `settings.server.ts` and nothing else: it is one
+- Every write to `regions.settings` goes through `entities/region/settings.server.ts` and nothing else: it is one
   jsonb blob with two independently edited keys, so every write locks the row, proves the key read
   whole, and merges. Read that module before touching any of it. The one exception is a fixture
   INSERTING a region (`e2e/fixtures.ts`): no other writer exists yet and there is nothing to merge
@@ -67,7 +67,7 @@ This project uses:
   (`$lib/forms/seed.svelte.ts`) keys on the route parameter to blank, or the loaded row's id.
 - A handler that REPLACES a list or a related row rather than patching it has to prove what it is
   replacing: the form posts a `known` fingerprint of what it loaded, and the handler refuses a
-  mismatched submit before its first write. Four handlers are that shape and all four carry it
+  mismatched submit before its first write. Every handler of that shape carries it
   (`updateRoute`, `updateBlock`, `saveTopoLines`, `updateRegionMapLayers`). A count is no substitute,
   since a delete plus an add leaves it unchanged. Keep one hash function
   (`$lib/forms/fingerprint.ts`): browser and server must agree byte for byte forever, and a second
@@ -124,7 +124,8 @@ This project uses:
   with a real empty state: always render it, skeleton then content or the empty state. Unknown
   without one: place it low so it appends. Never insert above rendered content, and never collapse
   reserved space when the answer is "none", which shifts as much as popping in. Skeletons wait
-  ~250 ms; the reasoning is in the zero-latency change's design.
+  ~250 ms; the reasoning is in
+  `openspec/changes/archive/2026-10-08-zero-latency-and-loading-states/design.md`.
 - A summary of a collection (a count, a chart, "n of N", sibling nav) reads `summaryOf(phase, value)`
   from `$lib/zero/resource.svelte`, never `phase.kind === 'answered'`: it shows from the rows on hand
   while they arrive and holds back only a zero. `answered` is for absence claims, form seeds and
@@ -171,8 +172,7 @@ This project uses:
 - `auth.users` and `public.users` are both `users` to drizzle, so a query joining them needs
   `alias(authUsers, 'auth_user')` from `drizzle-orm/pg-core`. Without it nothing catches it first: it typechecks, it lints, no
   test covers a handler needing both tables, and it throws `42P09 table reference "users" is
-ambiguous` the first time a person triggers it. Has bitten
-  twice. Reach for the alias whenever a query wants an address or login record alongside a profile;
+ambiguous` the first time a person triggers it. Reach for the alias whenever a query wants an address or login record alongside a profile;
   `adminRecipients.server.ts` is the shortest correct example.
 - A deploy is not atomic on the client: the server updates instantly, the service worker within the hour, and an open document only when it reloads. Three things break already-loaded tabs across that gap, all of them silently, with no build or type error:
   - **Moving a `.remote.ts` file or renaming an exported remote function.** The endpoint id is `hash(module path) + '/' + exportName`, a path hash, so any move 404s every call an open tab makes. Reorganising entity modules is the usual way to trip this. `src/lib/state/serviceWorker.ts` gets stale tabs reloaded eventually, but not instantly.
@@ -186,28 +186,9 @@ ambiguous` the first time a person triggers it. Has bitten
   (two entities identical in the dimension asserted on, a value truthy on both branches). Grep the
   mutated text first: a mutation that never applied looks exactly like one that was not caught.
   `npm run test:mutation -- --mutate <file>` does the same thing mechanically for every edit at
-  once, which is worth it on a module you are about to trust; without arguments it runs the
-  configured scope, and `test:mutation:server -- <file>` the DB-backed half, which takes a target
-  rather than defaulting to one (needs docker, one throwaway Postgres per worker). Both configs and
-  the runner live in `stryker/`, so a bare `npx stryker run` finds nothing.
-  Aim it at a module whose contract is written down, read every survivor, and expect a third of them
-  to be equivalent mutants. The score is not the output, the survivor list is; never track it.
-  Three things decide whether a target runs at all. A test has to import it DIRECTLY: the runner
-  drives `vitest related`, so a module reached only transitively instruments its mutants and then
-  hard-errors with `No tests were found`, executing none. The same rule makes `NoCoverage` a claim
-  about the related set, not about the suite: a function whose only caller is tested elsewhere
-  reports as uncovered here while `vitest run --coverage` shows it covered. Check one against the
-  other before writing tests to close it. `--mutate` REPLACES the config array,
-  negations included, so a directory glob must re-pass them
-  (`--mutate 'src/lib/foo/**/*.ts,!src/**/*.test.ts'`). And `*.svelte` is never matched, so logic
-  in a `<script module>` block is unreachable until it moves to a `.ts`.
-  Re-running an unchanged file replays stored results without executing anything, which reads as
-  "my new test didn't help": pass `--force`, not `--incremental false`, which commander parses as a
-  positional and rejects. Mutators are a fixed set, so a rationale resting on an edit Stryker cannot
-  make (reordering statements, swapping two arguments, widening a `toFixed`) is describing a mutant
-  that will never appear. A pure relabeling is equivalent by construction: if a function's result is
-  only ever compared against another result of the same function, every mutant that permutes its
-  labels survives and none of them is a gap.
+  once (`test:mutation:server -- <file>` for the DB-backed half). Read `stryker/README.md` before a
+  run: its traps decide whether a target executes anything at all, and the survivor list, not the
+  score, is the output.
 - Answering clarification or grilling questions is not a go-ahead. After a planning round, write the
   plan down and stop. Start on an explicit instruction ("start", "do #1-#3"), not on "ok" or "yes".
 - Before handing back, over the paths you touched and nothing else: `npx prettier --write`,
@@ -271,18 +252,5 @@ Several agents often work this repo at once, each in its own worktree, against o
 
 ---
 
-You are able to use the Svelte MCP server, where you have access to comprehensive Svelte 5 and SvelteKit documentation. Here's how to use the available tools effectively:
-
-## Svelte MCP Tools
-
-### 1. list-sections
-
-Discovers all available documentation sections (titles, use_cases, paths). Use this first for non-trivial Svelte or SvelteKit work to find relevant sections.
-
-### 2. get-documentation
-
-Retrieves full documentation for specific sections. After list-sections, analyze the returned use_cases and fetch ALL sections relevant to the task.
-
-### 3. svelte-autofixer
-
-Analyzes Svelte code and returns issues and suggestions. You MUST use this whenever writing Svelte code before sending it to the user. Keep calling it until no issues or suggestions are returned.
+Use the Svelte MCP server's docs for non-trivial Svelte 5 / SvelteKit work, and run `svelte-autofixer`
+on Svelte code you write before handing it back.

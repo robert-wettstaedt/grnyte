@@ -26,7 +26,8 @@ User-facing strings are Paraglide messages, accessed as `import { m } from '$lib
    real translation in each (write the German, or run `npm run machine-translate` to fill from the
    English source).
 3. Use it in the component as `m.the_key()`.
-4. `npm run check`: a missing/renamed key fails the build, which is the safety net.
+4. Typecheck (beside a running dev server, `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`,
+   see AGENTS.md): a missing/renamed key fails it, which is the safety net.
 
 ## Example
 
