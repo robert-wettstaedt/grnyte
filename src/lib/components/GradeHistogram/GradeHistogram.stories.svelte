@@ -16,6 +16,11 @@
     [5, 4],
     [8, 2],
   ])
+
+  // Some grades match partly, one fully, one not at all.
+  const matching = new Map<number, number>(
+    [...TYPICAL_COUNTS].map(([id, count], i) => [id, i === 2 ? count : i === 3 ? 0 : Math.floor(count / 2)]),
+  )
 </script>
 
 <!-- Typical distribution, coloured by the 4-tier difficulty scale (very easy → hard). -->
@@ -32,3 +37,6 @@
 
 <!-- Same data on the V scale. -->
 <Story name="V scale" args={{ gradingScale: 'V' }} />
+
+<!-- Reader's route filter active: full counts faded, matching share solid. -->
+<Story name="Matching a filter" args={{ matchingByGrade: matching }} />

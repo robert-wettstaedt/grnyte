@@ -49,8 +49,10 @@ shared filter.
 
 The layout already holds the region's filtered route rows (`explore.routes`). It publishes, through
 the same shared module, the set of matching route ids (null with no filter) and that resource's
-phase. Detail screens intersect their own route ids with it. Counts go through `summaryOf`, so a
-"2 of 6" shows from the rows on hand while the filtered set arrives and holds back only a zero.
+phase. Detail screens intersect their own route ids with it. Headline counts go through `summaryOf`,
+so a "2 of 6" shows from the rows on hand while the filtered set arrives and holds back only a zero.
+What claims a route is outside the filter (dimmed rows, per-block "n of N", the chart's faded share)
+waits for `answered`, since a row not yet on hand is not a row the filter dropped.
 
 Alternative: each detail screen runs `filteredRouteList` over its own query. Rejected: a second
 filtered subscription per screen, and two answers to one question.
@@ -58,11 +60,13 @@ filtered subscription per screen, and two answers to one question.
 ### 4. Presentation reuses the existing components
 
 - Block detail: the routes heading switches to a match count key; `RouteList` takes an optional
-  `dimmed(id)` and passes it to `RouteRow`, which lowers the row's emphasis. The heading text is what
-  a screen reader gets; the dimming is visual only.
+  `dimmed(id)` and passes it to `RouteRow`, which lowers the thumb and stars and outlines the grade
+  (`RouteGrade` `muted`) rather than fading it, so the grade text keeps its contrast. The heading
+  text is what a screen reader gets; the dimming is visual only.
 - Area detail: the route count and each `BlocksList` row use the same "n of N" key.
-  `GradeHistogram` takes an optional `matchingByGrade`, drawn solid over the existing bars faded,
-  with each bar's accessible label giving both numbers.
+  `GradeHistogram` takes an optional `matchingByGrade`, drawn solid over the existing bars faded
+  (fainter on dark, where the easy grades' dark hues otherwise read as solid), with each bar's
+  accessible label giving both numbers.
 
 ### 5. Clearing from the indicator
 

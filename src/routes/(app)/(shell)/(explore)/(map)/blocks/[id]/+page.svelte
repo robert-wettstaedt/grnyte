@@ -27,6 +27,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { isOnline } from '$lib/state/online.svelte'
+  import { matchingRoutes } from '$lib/state/searchQuery.svelte'
   import { summaryOf } from '$lib/zero/resource.svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import BlockActions from './BlockActions.svelte'
@@ -49,6 +50,14 @@
   const routes = blockRouteList(() => blockId)
   const orderedRoutes = $derived(orderRoutesByTopo(routes.data, topos.data))
   const routeCount = $derived(summaryOf(routes.phase, orderedRoutes.length))
+  // Under a route filter, how many of these routes it keeps, from the map's filtered rows.
+  const matching = matchingRoutes()
+  const matchingIds = $derived(matching.current.ids)
+  const matchingCount = $derived(
+    matchingIds == null
+      ? undefined
+      : summaryOf(matching.current.phase, orderedRoutes.filter((route) => matchingIds.has(route.id)).length),
+  )
   // The topo thumbnail is folded in here rather than per row: `RouteList` renders a route as it
   // is given, and a route carries at most one topo line.
   const routesWithTopos = $derived(
@@ -149,9 +158,19 @@
       {#if orderedRoutes.length > 0}
         <section class="space-y-2">
           <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">
-            {routeCount != null ? m.routes_routesCount({ count: routeCount }) : m.common_routes()}
+            {#if routeCount != null && matchingCount != null}
+              {m.routes_matchingCount({ count: routeCount, matching: matchingCount })}
+            {:else}
+              {routeCount != null ? m.routes_routesCount({ count: routeCount }) : m.common_routes()}
+            {/if}
           </h2>
-          <RouteList routes={routesWithTopos} status={ascentStatus} />
+          <RouteList
+            dimmed={matchingIds == null || matching.current.phase.kind !== 'answered'
+              ? undefined
+              : (id) => !matchingIds.has(id)}
+            routes={routesWithTopos}
+            status={ascentStatus}
+          />
         </section>
       {:else if routes.phase.kind === 'answered'}
         <!-- The routes are a relation of the block row, so `ready` arrives with the row, before them. -->

@@ -26,13 +26,15 @@
     counted: boolean
     /** Either query failed, so nothing more is coming. */
     failed?: boolean
+    /** Route ids the active route filter keeps; null with no filter. */
+    matching?: null | Set<number>
     /** Every route beneath the area; grouped here by `blockFk`. */
     routes: RouteListItem[]
     /** Both lists are whole, so a "none" is true. */
     settled: boolean
   }
 
-  const { blocks, counted, failed = false, routes, settled }: Props = $props()
+  const { blocks, counted, failed = false, matching = null, routes, settled }: Props = $props()
 
   const global = getGlobalState()
 
@@ -141,7 +143,12 @@
           {#if block.geolocation == null || block.geolocation.estimated || distance != null}
             <span class="opacity-40" aria-hidden="true">·</span>
           {/if}
-          {m.routes_routesCount({ count: blockRoutes.length })}
+          {matching == null
+            ? m.routes_routesCount({ count: blockRoutes.length })
+            : m.routes_matchingCount({
+                count: blockRoutes.length,
+                matching: blockRoutes.filter((route) => matching.has(route.id)).length,
+              })}
         {/if}
       </span>
     </a>
@@ -181,7 +188,11 @@
             <p class="text-surface-600-400 text-sm">{m.topo_none()}</p>
           {/if}
         {:else if blockRoutes.length > 0}
-          <RouteList routes={blockRoutes} status={ascentStatus} />
+          <RouteList
+            dimmed={matching == null ? undefined : (id) => !matching.has(id)}
+            routes={blockRoutes}
+            status={ascentStatus}
+          />
         {:else}
           <div class="flex items-center gap-2">
             {#each block.topoImages as image (image.id)}

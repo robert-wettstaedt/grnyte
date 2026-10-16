@@ -12,13 +12,15 @@
   interface Props {
     /** Rendered after the rows, inside the same nav (an infinite-scroll sentinel). */
     children?: Snippet
+    /** Routes outside the active route filter, drawn receded (absent with no filter). */
+    dimmed?: (routeId: number) => boolean
     /** Already ordered and already filtered: this only renders. */
     routes: RouteListEntry[]
     /** The user's logged ascent state per route id: `userAscentStatus` satisfies it. */
     status?: { get(routeId: number): AscentStatus | undefined }
   }
 
-  let { children, routes, status }: Props = $props()
+  let { children, dimmed, routes, status }: Props = $props()
 
   const global = getGlobalState()
 </script>
@@ -29,6 +31,7 @@
   {#each routes as route (route.id)}
     <RouteRow
       {route}
+      dimmed={dimmed?.(route.id)}
       grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
       status={status?.get(route.id)}
       href={resolve('/(app)/routes/[id]', { id: String(route.id) })}

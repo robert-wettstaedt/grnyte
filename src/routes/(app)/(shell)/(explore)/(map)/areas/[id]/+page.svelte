@@ -26,6 +26,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { isOnline } from '$lib/state/online.svelte'
+  import { liveRouteFilter, matchingRoutes } from '$lib/state/searchQuery.svelte'
   import { expectingMore, summaryOf } from '$lib/zero/resource.svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import AreaActions from './AreaActions.svelte'
@@ -64,6 +65,25 @@
   const routes = routeList(() => ({ areaId: Number(page.params.id) }))
 
   const countByGrade = $derived(countRoutesByGrade(routes.data))
+  // Under a route filter, the part of this area it keeps, from the map's filtered rows.
+  const matching = matchingRoutes()
+  const matchingIds = $derived(matching.current.ids)
+  const matchingHere = $derived(matchingIds == null ? null : routes.data.filter((route) => matchingIds.has(route.id)))
+  // What is outside the filter is an absence claim, so it waits for the filtered rows to be answered.
+  const matchingAnswered = $derived(matching.current.phase.kind === 'answered')
+  const matchingByGrade = $derived(
+    matchingHere == null || !matchingAnswered ? undefined : countRoutesByGrade(matchingHere),
+  )
+  const matchingCount = $derived(
+    matchingHere == null ? undefined : summaryOf(matching.current.phase, matchingHere.length),
+  )
+
+  // The route list writes the shared filter from its URL, so it is entered carrying it.
+  const routeFilter = liveRouteFilter()
+  const routesHref = $derived(
+    resolve('/(app)/(shell)/(explore)/(map)/areas/[id]/routes', { id: page.params.id! }) +
+      (routeFilter.current.search ? `?${routeFilter.current.search}` : ''),
+  )
   const routeCount = $derived(summaryOf(routes.phase, routes.data.length))
   const subAreaCount = $derived(summaryOf(subAreas.phase, subAreas.data.length))
 
@@ -94,7 +114,11 @@
   const ungradedCount = $derived(routes.data.filter((route) => route.gradeFk == null).length)
   const gradedCount = $derived(routes.data.length - ungradedCount)
 
-  let selected = $state<null | { count: number; label: string }>(null)
+  let selected = $state<null | { count: number; id: number; label: string }>(null)
+  // Read at render, so the header follows a filter changed or cleared while a bar is selected.
+  const selectedMatching = $derived(
+    selected == null || matchingByGrade == null ? undefined : (matchingByGrade.get(selected.id) ?? 0),
+  )
 
   // Only worth naming the region when the user belongs to more than one. With a
   // single region it's implied and would be noise in the breadcrumb.
@@ -147,7 +171,12 @@
             {#if routeCount != null}
               <span class="text-surface-600-400 text-xs tabular-nums">
                 {#if selected != null}
-                  {selected.label} · {m.routes_routesCount({ count: selected.count })}
+                  {selected.label} ·
+                  {selectedMatching == null
+                    ? m.routes_routesCount({ count: selected.count })
+                    : m.routes_matchingCount({ count: selected.count, matching: selectedMatching })}
+                {:else if matchingCount != null && routeCount != null}
+                  {m.routes_matchingCount({ count: routeCount, matching: matchingCount })}
                 {:else}
                   {m.areas_gradedCount({ count: gradedCount })}
                 {/if}
@@ -160,6 +189,7 @@
           {:else if routeCount != null}
             <GradeHistogram
               {countByGrade}
+              {matchingByGrade}
               grades={global.grades}
               gradingScale={global.gradingScale}
               ungraded={ungradedCount}
@@ -175,9 +205,10 @@
 
       <!-- Always there once a list can be: a link whose count fills in, never a card that appears. -->
       {#if detail.type != null}
+        <!-- eslint-disable svelte/no-navigation-without-resolve -- resolve() plus the filter's query -->
         <a
           class="border-surface-300-700 bg-surface-200-800 hover:bg-surface-300-700 flex items-center gap-3 rounded-xl border p-3 transition-colors"
-          href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]/routes', { id: page.params.id! })}
+          href={routesHref}
         >
           <span
             class="bg-primary-500/15 text-primary-500 flex size-11 flex-none items-center justify-center rounded-xl"
@@ -194,12 +225,14 @@
           </span>
           <Icon name="chevron-right" size={18} class="text-surface-500 flex-none" />
         </a>
+        <!-- eslint-enable svelte/no-navigation-without-resolve -->
       {/if}
 
       {#if detail.type === 'sector'}
         <BlocksList
           blocks={blocks.data}
           routes={routes.data}
+          matching={matchingAnswered ? matchingIds : null}
           failed={blocks.phase.kind === 'error' || routes.phase.kind === 'error'}
           counted={routeCount != null}
           settled={blocks.phase.kind === 'answered' && routes.phase.kind === 'answered'}
