@@ -77,6 +77,24 @@ describe('a surface pill', () => {
     expect(announced(container)).toBe('')
   })
 
+  it('shows a dismissible state at once, announced in full, and inert while it lingers', () => {
+    const ondismiss = vi.fn()
+    const withdraw = surface.offer(() => ({
+      announcement: 'Map shows matches for Egg',
+      dismissLabel: 'Clear search',
+      icon: 'search',
+      kind: 'dismiss',
+      label: 'Egg',
+      ondismiss,
+    }))
+    flushSync()
+    expect(announced(container)).toBe('Map shows matches for Egg')
+    withdraw()
+    flushSync()
+    container.querySelector('button')?.click()
+    expect(ondismiss).not.toHaveBeenCalled()
+  })
+
   it('shows again at once when wanted back during the linger', () => {
     const release = surface.hold({})
     flushSync()

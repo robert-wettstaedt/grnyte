@@ -39,24 +39,27 @@
     }
   })
 
-  // Once shown, it follows the live offer, so the linger keeps the latest label; an action shows at once.
+  // Once shown, it follows the live offer, so the linger keeps the latest label; a pressable face shows at once.
   $effect(() => {
-    if (wanted != null && (untrack(() => shown) != null || wanted.kind === 'action')) {
+    if (wanted != null && (untrack(() => shown) != null || wanted.kind === 'action' || wanted.kind === 'dismiss')) {
       shown = wanted
     }
   })
 
-  // A withdrawn action lingering on its way out does nothing when tapped.
-  const current: PillContent | undefined = $derived(
-    wanted == null && shown?.kind === 'action' ? { ...shown, onclick: () => {} } : shown,
-  )
+  // A withdrawn pressable face lingering on its way out does nothing when tapped.
+  const current: PillContent | undefined = $derived.by(() => {
+    if (wanted != null || shown == null) return shown
+    if (shown.kind === 'action') return { ...shown, onclick: () => {} }
+    if (shown.kind === 'dismiss') return { ...shown, ondismiss: () => {} }
+    return shown
+  })
   const content: PillOffer | undefined = $derived(
     current?.kind === 'syncing' ? { kind: 'status', label: m.common_syncing() } : current,
   )
 </script>
 
 <!-- Mounted from the start, since a live region inserted with its text is often not announced. -->
-<p class="sr-only" role="status">{content?.label ?? ''}</p>
+<p class="sr-only" role="status">{content?.kind === 'dismiss' ? content.announcement : (content?.label ?? '')}</p>
 
 {#if content}
   <StatusPill class={placement} {content} {style} />

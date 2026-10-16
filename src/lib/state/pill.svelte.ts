@@ -5,9 +5,20 @@ import { SvelteSet } from 'svelte/reactivity'
 /** What the pill shows: a screen's offer, or the generic syncing status. */
 export type PillContent = PillOffer | { kind: 'syncing' }
 
-/** What a screen hands its surface's pill: an action to take, or a status of its own. */
+/** What a screen hands its surface's pill: an action to take, a status of its own, or a state with a
+ *  separate control that ends it (the label is inert). */
 export type PillOffer =
-  { icon: IconName; kind: 'action'; label: string; onclick: () => void } | { kind: 'status'; label: string }
+  | {
+      /** What a screen reader hears, since the short visible label lacks the context the icon gives. */
+      announcement: string
+      dismissLabel: string
+      icon: IconName
+      kind: 'dismiss'
+      label: string
+      ondismiss: () => void
+    }
+  | { icon: IconName; kind: 'action'; label: string; onclick: () => void }
+  | { kind: 'status'; label: string }
 
 /** The screen, or a sheet, panel or dialog over it: each draws its own pill. */
 export class PillSurface {
@@ -17,14 +28,12 @@ export class PillSurface {
     return this.#anchors[this.#anchors.length - 1]?.() || undefined
   }
 
-  /** The pill's content right now, before its show delay and hide linger; an action wins. */
+  /** The pill's content right now, before its show delay and hide linger: an action, then a status (a
+   *  state worth hearing first, like the map loading), then a dismissible state, then syncing. */
   get content(): PillContent | undefined {
     const offered = [...this.#offers].map((offer) => offer()).filter((offer) => offer != null)
-    return (
-      offered.find((offer) => offer.kind === 'action') ??
-      offered[0] ??
-      (this.#holders.size > 0 ? { kind: 'syncing' } : undefined)
-    )
+    const of = (kind: PillOffer['kind']) => offered.find((offer) => offer.kind === kind)
+    return of('action') ?? of('status') ?? of('dismiss') ?? (this.#holders.size > 0 ? { kind: 'syncing' } : undefined)
   }
 
   #anchors = $state<(() => number)[]>([])

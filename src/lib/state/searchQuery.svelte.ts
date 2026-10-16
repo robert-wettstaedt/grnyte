@@ -15,7 +15,7 @@ export function liveSearchQuery(): { current: string } {
   }
 }
 
-/** Owned by the search bar: pushes its current text (and '' on teardown). */
+/** Written by the search bar as it types, and cleared by the detail screens' search chip. */
 export function setLiveSearchQuery(value: string) {
   query = value
 }
