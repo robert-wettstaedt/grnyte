@@ -256,6 +256,8 @@ Several agents often work this repo at once, each in its own worktree, against o
 - **Relay findings in full, never a summary.** `SendMessage` the named agent every finding with its
   `file:line` and failure case, numbered so the user can answer per item, and pin the HEAD and
   `git status --short` you reviewed beside them.
+- **A review loop runs through `/review-loop`** from the implementing session; offer it in one line
+  after non-trivial work. The rules below still apply when sessions review each other by hand.
 - **A review fanned out to two sessions is one round.** Wait until every reviewer has reported before
   applying anything, and touch no tracked file until they all have: an edit under an in-flight
   reviewer forces a reconcile and costs the round. Then merge, dedupe, fix, and request again.
