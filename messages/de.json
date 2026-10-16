@@ -1394,7 +1394,9 @@
   "legal_terms_metaDescription": "Die Regeln für {name}: deine Inhalte bleiben deine, welche Rechte ich brauche und wie die Haftung geregelt ist.",
   "legal_terms_title": "Nutzungsbedingungen",
   "map_attribution": "Kartendaten",
+  "map_clearFilters": "Filter zurücksetzen",
   "map_clearSearch": "Suche zurücksetzen",
+  "map_clearSearchAndFilters": "Suche und Filter zurücksetzen",
   "map_create_areaInsideArea": "In einem Gebiet",
   "map_create_chooseArea": "Gebiet wählen",
   "map_create_chooseSector": "Sektor auswählen",
@@ -1408,6 +1410,8 @@
   "map_create_sector": "Sektor",
   "map_create_title": "Erstellen",
   "map_create_withoutLocation": "Noch ohne Standort",
+  "map_filtersMatch": "Karte zeigt Routen, die zu deinen Filtern passen",
+  "map_filtersOn": "Filter aktiv",
   "map_keyboardPannable": "Karte. Mit den Pfeiltasten verschieben.",
   "map_layers": "Ebenen",
   "map_loading": "Karte wird geladen…",
@@ -1415,6 +1419,8 @@
   "map_locationTimeout": "Die Standortbestimmung hat zu lange gedauert. Versuche es erneut, am besten draußen mit freiem Blick zum Himmel.",
   "map_locationUnavailable": "Dein Standort ist nicht verfügbar. Prüfe, ob die Standortdienste aktiviert sind, und versuche es erneut.",
   "map_markers": "Markierungen",
+  "map_searchAndFilters": "{query} + Filter",
+  "map_searchAndFiltersMatch": "Karte zeigt Treffer für {query} innerhalb deiner Filter",
   "map_searchMatches": "Karte zeigt Treffer für {query}",
   "map_show": "Zeigen",
   "map_showAttribution": "Kartendaten anzeigen",
@@ -1792,11 +1798,22 @@
   ],
   "routes_listsStale": "Die Tags oder Erstbegeher haben sich geändert, während diese Seite offen war. Öffne sie erneut und nimm die Änderung noch einmal vor.",
   "routes_logAscent": "Begehung eintragen",
+  "routes_matchingCount": [
+    {
+      "declarations": ["input matching", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{matching} von {count} Route",
+        "countPlural=other": "{matching} von {count} Routen"
+      }
+    }
+  ],
   "routes_nameExists": "Eine Route namens „{name}“ existiert schon an diesem Block",
   "routes_noOpinions": "Noch keine Meinungen",
   "routes_notFound": "Route nicht gefunden",
   "routes_openTopo": "Topo öffnen",
   "routes_originalGrade": "Ursprünglicher Grad",
+  "routes_outsideFilters": "außerhalb deiner Filter",
   "routes_routesCount": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

@@ -30,6 +30,8 @@
     crumbs?: string | string[]
     /** Pre-resolved route detail href: the "Details" action of the expanded row. */
     detailsHref?: string
+    /** Outside the active route filter: thumb and stars recede, the grade goes outlined. */
+    dimmed?: boolean
     /** Display grade in the user's scale, e.g. "7a+". */
     grade: string
     /** Render as a link. */
@@ -54,6 +56,7 @@
     active = false,
     crumbs,
     detailsHref,
+    dimmed = false,
     grade,
     href,
     mapHref,
@@ -95,7 +98,9 @@
 
 {#snippet title()}
   <span class="name-row">
-    <span class="title-md ellipsis">{route.name}</span>
+    <span class="title-md ellipsis">
+      {route.name}{#if dimmed}<span class="sr-only">{` (${m.routes_outsideFilters()})`}</span>{/if}
+    </span>
   </span>
 {/snippet}
 
@@ -133,10 +138,10 @@
   <div class="flex flex-col items-end justify-center gap-2">
     <div class="flex">
       <AscentType {status} />
-      <RouteGrade {band} {grade} />
+      <RouteGrade {band} {grade} muted={dimmed} />
     </div>
 
-    <RouteRating rating={route.rating} />
+    <span class={[dimmed && 'opacity-40']}><RouteRating rating={route.rating} /></span>
   </div>
 {/snippet}
 
@@ -152,7 +157,7 @@
   description={body}
   footer={expanded ? footer : undefined}
 >
-  <span class="thumb bg-surface-200-800">
+  <span class={['thumb bg-surface-200-800', dimmed && 'opacity-40']}>
     {#if number != null}
       <span
         class="absolute inset-0 grid place-items-center font-mono text-lg font-bold"
