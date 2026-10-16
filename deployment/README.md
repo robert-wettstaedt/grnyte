@@ -14,7 +14,7 @@ This deployment has been simplified to be more reliable. The process:
 - `docker-compose.zero.yml` - Main services (no profiles needed)
 - `nginx.zero.conf` - nginx configuration (serves HTTP initially, then HTTPS)
 - `setup-ssl.sh` - Automated SSL certificate setup script
-- `.env.prod` and `.env.demo` - Environment configurations, written by `deploy-zero.yml` out of
+- `.env.prod` - Environment configuration, written by `deploy-zero.yml` out of
   Bitwarden Secrets Manager. See [SECRETS.md](SECRETS.md).
 
 ### Quick Manual Deployment
@@ -27,7 +27,6 @@ docker compose -f docker-compose.zero.yml up -d
 
 # 2. Wait for services to be ready
 docker logs zero-server-prod
-docker logs zero-server-demo
 
 # 3. Setup SSL certificates
 chmod +x setup-ssl.sh
@@ -36,17 +35,16 @@ chmod +x setup-ssl.sh
 
 ## Architecture
 
-- **Single VPS deployment** with nginx routing to multiple Zero instances
+- **Single VPS deployment** with nginx in front of the Zero instance
 - **Production instance**: `zero.grnyte.rocks`
-- **Demo instance**: `zero.demo.grnyte.rocks`
-- **SSL/TLS**: Automatic SSL certificates via Let's Encrypt for both domains
+- **SSL/TLS**: Automatic SSL certificates via Let's Encrypt
 - **Migration-friendly**: Can easily be split to separate servers in the future
 
 ## Files
 
-- `docker-compose.zero.yml` - Combined Docker Compose configuration for both Zero instances
+- `docker-compose.zero.yml` - Docker Compose configuration for the Zero instance and its CVR database
 - `nginx.zero.conf` - Domain-based nginx configuration with SSL support
-- `.env.prod` / `.env.demo` - Per-instance environment variables (written during deployment)
+- `.env.prod` - Instance environment variables (written during deployment)
 
 ## Deployment
 
@@ -54,11 +52,10 @@ chmod +x setup-ssl.sh
 
 The deployment is handled automatically by the `deploy-zero.yml` GitHub Actions workflow when changes are pushed to the main branch. The workflow:
 
-1. Writes `.env.prod` and `.env.demo` from the matching Bitwarden project
-2. Deploys both Zero instances using `docker-compose.zero.yml`
-3. Sets up nginx with domain-based routing
-4. Obtains SSL certificates for both domains
-5. Performs health checks on both instances
+1. Writes `.env.prod` from the Bitwarden project
+2. Deploys the Zero instance using `docker-compose.zero.yml`
+3. Sets up nginx
+4. Performs a health check on the instance
 
 ### Manual Deployment
 
@@ -71,7 +68,7 @@ ssh user@your-vps
 # Navigate to deployment directory
 cd ~/zero-deployment/deployment
 
-# Write the environment files from Bitwarden, one token per instance. Run this from a checkout on
+# Write the environment file from Bitwarden. Run this from a checkout on
 # your machine, not on the VPS: no access token belongs on that box.
 BWS_ACCESS_TOKEN=<prod token> node deployment/secrets.mjs pull env.all
 grep '^ZERO_' env.all | ssh user@your-vps 'cat > ~/zero-deployment/deployment/.env.prod'
@@ -81,7 +78,7 @@ rm env.all
 docker compose -f docker-compose.zero.yml down -v --remove-orphans
 docker network prune -f
 
-# Deploy both instances
+# Deploy
 docker compose -f docker-compose.zero.yml up -d
 
 # Check status
@@ -134,20 +131,6 @@ The rest (`ZERO_REPLICA_FILE`, `ZERO_SCHEMA_PATH`, the connection caps) are path
 live in `docker-compose.zero.yml` where you can read them. See [SECRETS.md](SECRETS.md) for how the
 values get here.
 
-## Migration to Separate Servers
-
-To migrate to separate servers in the future:
-
-1. Split `docker-compose.zero.yml` into separate files:
-   - `docker-compose.prod.yml` (production instance + nginx)
-   - `docker-compose.demo.yml` (demo instance + nginx)
-
-2. Update nginx configurations to handle single domains each
-
-3. Update GitHub Actions workflow to deploy to different servers
-
-4. Update DNS to point domains to their respective servers
-
 ## Monitoring
 
 Check deployment status:
@@ -158,19 +141,17 @@ docker compose -f docker-compose.zero.yml ps
 
 # View logs
 docker compose -f docker-compose.zero.yml logs zero-prod
-docker compose -f docker-compose.zero.yml logs zero-demo
 docker compose -f docker-compose.zero.yml logs nginx
 
 # Test connectivity
 curl -f https://zero.grnyte.rocks
-curl -f https://zero.demo.grnyte.rocks
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Environment variables not loaded**: Ensure `.env.prod` and `.env.demo` exist and contain the four `ZERO_*` variables
+1. **Environment variables not loaded**: Ensure `.env.prod` exists and contains the `ZERO_*` variables
 2. **Network conflicts**: Clean up with `docker network prune -f`
 3. **SSL certificate issues**: Check certbot logs with `docker compose logs certbot`
 4. **Zero server health checks failing**: Check individual container logs
@@ -180,7 +161,7 @@ curl -f https://zero.demo.grnyte.rocks
 ```bash
 # Complete reset (WARNING: This will delete all data)
 docker compose -f docker-compose.zero.yml down -v --remove-orphans
-docker volume rm deployment_zero_data_prod deployment_zero_data_demo deployment_certbot_conf deployment_certbot_www
+docker volume rm deployment_zero_data_prod deployment_certbot_conf deployment_certbot_www
 docker network prune -f
 ```
 
