@@ -13,6 +13,14 @@
   const placement = 'sticky top-2 z-20 h-0'
   const status: PillOffer = { kind: 'status', label: 'Loading…' }
   const action: PillOffer = { icon: 'arrow-up-down', kind: 'action', label: '3 new activities', onclick: () => {} }
+  const dismiss: PillOffer = {
+    announcement: 'Map shows matches for Rubber Gun',
+    dismissLabel: 'Clear search',
+    icon: 'search',
+    kind: 'dismiss',
+    label: 'Rubber Gun',
+    ondismiss: () => {},
+  }
 </script>
 
 <script lang="ts">
@@ -40,6 +48,14 @@
 <Story name="Status">
   {#snippet template()}
     <StatusPill class={placement} content={status} />
+    {@render rows()}
+  {/snippet}
+</Story>
+
+<!-- A search narrowing the map under a detail sheet: quiet, and only the clear button acts. -->
+<Story name="Dismiss">
+  {#snippet template()}
+    <StatusPill class={placement} content={dismiss} />
     {@render rows()}
   {/snippet}
 </Story>

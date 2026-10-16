@@ -51,7 +51,9 @@ const betaPolicy = (filter: RouteListFilter): 'excluded' | undefined =>
 export function routeMapList(filter: () => RouteListFilter = () => ({})) {
   return createResource(
     () => queries.listRoutesForMap(filter()),
-    (rows) => rows.map((row) => ({ blockFk: row.blockFk, gradeFk: row.userGradeFk ?? undefined, id: row.id })),
+    // `name` is raw, for search matching only: render through the route mapper.
+    (rows) =>
+      rows.map((row) => ({ blockFk: row.blockFk, gradeFk: row.userGradeFk ?? undefined, id: row.id, name: row.name })),
     { offline: () => betaPolicy(filter()) },
   )
 }

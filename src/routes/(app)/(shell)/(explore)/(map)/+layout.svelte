@@ -10,12 +10,13 @@
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
   import Map from '$lib/map/Map.svelte'
+  import type { OpenEntity } from '$lib/map/narrow'
   import { BLOCK_LABEL_ZOOM, type MapCameraClaim, type MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { exit } from '$lib/state/navigation.svelte'
   import { createPillSurface } from '$lib/state/pill.svelte'
-  import { liveSearchQuery } from '$lib/state/searchQuery.svelte'
+  import { liveSearchQuery, setLiveSearchQuery } from '$lib/state/searchQuery.svelte'
   import { applyUpdateOnClick } from '$lib/state/updateReady.svelte'
   import { visualViewport } from '$lib/state/visualViewport.svelte'
   import { untrack } from 'svelte'
@@ -23,7 +24,7 @@
   import Modal from '../Modal/Modal.svelte'
   import { sheetState } from '../Modal/sheetState.svelte'
   import type { LayoutProps } from './$types'
-  import { cameraTarget } from './cameraTarget'
+  import { cameraTarget, entityOf } from './cameraTarget'
   import CreateOnMap from './CreateOnMap/CreateOnMap.svelte'
   import Filter from './Filter/Filter.svelte'
   import SearchBar from './SearchBar/SearchBar.svelte'
@@ -127,17 +128,44 @@
   // round trip (the bar restores from it on remount), so it survives open/close.
   const search = liveSearchQuery()
 
+  // The open block or area, which no search or filter may hide (parking is never narrowed).
+  const openEntity = $derived.by<OpenEntity>(() => {
+    const kind = entityOf(page.route.id ?? '')
+    const id = Number(page.params.id)
+    return (kind === 'blocks' || kind === 'areas') && Number.isFinite(id) ? { id, kind } : null
+  })
+
   // Before the map's data, so it holds this pill; the sheet over the map draws its own.
   const pill = createPillSurface()
 
   const explore = createExploreMapData(
     () => filters,
     () => global.user?.id,
-    () => search.current,
+    // Placing a block or parking spot shows every block, so the reader sees what is already there.
+    () => (placing == null ? search.current : ''),
+    () => openEntity,
   )
 
   // Nothing on hand to draw yet: the map says so in its pill, over the generic syncing.
   $effect(() => pill.offer(() => (explore.isLoading ? { kind: 'status', label: m.map_loading() } : undefined)))
+
+  const searchBarShown = $derived((!open || page.route.id === SEARCH_ROUTE) && placing == null)
+
+  // The search bar is hidden under a detail, so the map says what still narrows it.
+  $effect(() =>
+    pill.offer(() =>
+      open && page.route.id !== SEARCH_ROUTE && search.current !== ''
+        ? {
+            announcement: m.map_searchMatches({ query: search.current }),
+            dismissLabel: m.map_clearSearch(),
+            icon: 'search',
+            kind: 'dismiss',
+            label: search.current,
+            ondismiss: () => setLiveSearchQuery(''),
+          }
+        : undefined,
+    ),
+  )
 
   // The map URL to return to when a sheet closes: always `/explore` carrying the
   // current filter params (but not the search `q`: the live query rides back via
@@ -268,7 +296,7 @@
   }}
 />
 
-{#if (!open || page.route.id === SEARCH_ROUTE) && placing == null}
+{#if searchBarShown}
   <div
     class="fixed top-2 left-0 z-10 flex w-full items-center justify-center gap-2 px-1 md:left-27 md:w-sm md:px-0 lg:w-md"
     style:top="calc(0.5rem + {vv.offsetTop}px)"
@@ -293,8 +321,16 @@
   </div>
 {/if}
 
-<!-- Under the search bar, centred on the map beside the rail. -->
-<PillHost class="fixed top-16 left-0 z-10 w-full md:pl-20" surface={pill} />
+<!-- Under the search bar, or in its slot under a sheet (placement's hint owns the top centre); centred
+     on the uncovered map, beside the rail or the desktop sheet (left-27 plus max-w-sm / lg:max-w-md). -->
+<PillHost
+  class={[
+    'fixed left-0 z-10 w-full',
+    open && !searchBarShown ? 'top-2' : 'top-16',
+    open && !searchBarShown ? 'md:pl-123 lg:pl-139' : 'md:pl-20',
+  ]}
+  surface={pill}
+/>
 
 {#if !open}
   {@render children?.()}

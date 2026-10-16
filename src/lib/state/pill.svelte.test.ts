@@ -31,6 +31,25 @@ describe('a pill surface', () => {
     expect(pill.content).toEqual({ kind: 'syncing' })
   })
 
+  it('ranks a status over a dismissible state over syncing', () => {
+    const pill = new PillSurface()
+    pill.hold({})
+    const search = {
+      announcement: 'Egg',
+      dismissLabel: 'Clear',
+      icon: 'search',
+      kind: 'dismiss',
+      label: 'Egg',
+      ondismiss: () => {},
+    } as const
+    pill.offer(() => search)
+    expect(pill.content).toBe(search)
+    const withdrawStatus = pill.offer(() => ({ kind: 'status', label: 'Loading map' }))
+    expect(pill.content).toEqual({ kind: 'status', label: 'Loading map' })
+    withdrawStatus()
+    expect(pill.content).toBe(search)
+  })
+
   it('skips an offer that currently has nothing to say', () => {
     const pill = new PillSurface()
     pill.offer(() => undefined)
