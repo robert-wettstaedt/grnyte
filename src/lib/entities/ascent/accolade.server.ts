@@ -1,5 +1,7 @@
 import * as schema from '$lib/db/schema'
 import { ascents } from '$lib/db/schema'
+import { logServerFailure } from '$lib/logging/failure.server'
+import { stringifyError } from '$lib/logging/stringify'
 import { and, eq, gte, inArray, isNotNull, isNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { deriveAccolade, parseAccolade, type AccoladeAscent } from './accolade'
@@ -38,7 +40,11 @@ export async function recordAccolades(
 ): Promise<void> {
   const run = ascent.createdBy === actorFk ? syncAccolades : clearAccolades
 
-  await run(db, ascent.createdBy, ascent.routeFk).catch(() => undefined)
+  // A savepoint: a failed statement on the caller's transaction would abort it, and the log with it.
+  // The report is not awaited: it takes a second pool connection while this one is still held.
+  await db
+    .transaction((tx) => run(tx, ascent.createdBy, ascent.routeFk))
+    .catch((e: unknown) => void logServerFailure('accolades', `route ${ascent.routeFk}: ${stringifyError(e)}`))
 }
 
 /**

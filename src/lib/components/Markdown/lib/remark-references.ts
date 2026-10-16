@@ -52,9 +52,11 @@ export const getReferences = (markdown: string): MarkdownReferencesIds => {
   const references: MarkdownReferencesIds = { areas: [], blocks: [], routes: [], users: [] }
 
   matches.forEach((match) => {
+    // Lowercased: the match is case-insensitive, the keys are not.
     const [type, id] = match[0]
       .trim()
       .substring(1, match[0].length - 1)
+      .toLowerCase()
       .split(':') as [EntityType, string]
 
     const idNumber = Number(id)
@@ -83,7 +85,7 @@ export const enrichMarkdownWithReferences = (markdown: string, refs: MarkdownRef
 
   refs.forEach(({ id, missing, name, type, unavailable }) => {
     const payload = encodeReferencePayload(unavailable ? REFERENCE_UNAVAILABLE : missing ? REFERENCE_TOMBSTONE : name)
-    enrichedMarkdown = enrichedMarkdown.replace(new RegExp(`!${type}:${id}!`, 'g'), `!${type}:${id}:${payload}!`)
+    enrichedMarkdown = enrichedMarkdown.replace(new RegExp(`!${type}:${id}!`, 'gi'), `!${type}:${id}:${payload}!`)
   })
 
   return enrichedMarkdown

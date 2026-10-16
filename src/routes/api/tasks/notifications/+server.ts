@@ -15,6 +15,7 @@ import {
 } from '$lib/db/schema'
 import { membershipRemovedEmailContent, roleChangedEmailContent } from '$lib/email/membership'
 import { sendEmailOutcome, type SendOutcome } from '$lib/email/send.server'
+import type { EmailContent } from '$lib/email/shell'
 import { objectOf } from '$lib/entities/event/dto'
 import { eventParentRef } from '$lib/entities/event/mapper'
 import { notificationView } from '$lib/entities/notification/caption'
@@ -128,7 +129,24 @@ const OUT_OF_BAND = new Set<NotificationSourceType>(['invitation_received', 'mem
  * `invitation_received` is deliberately absent: the invitation mail has already gone out, carries
  * the token, and reaches addresses with no account at all.
  */
-const MAILED = new Set<NotificationSourceType>(['membership_removed', 'role_changed'])
+type MailBuilder = (
+  row: { actorName: string; metadata: null | string; regionName: string },
+  locale: Locale,
+  url: string,
+) => EmailContent
+
+const MAIL: Partial<Record<NotificationSourceType, MailBuilder>> = {
+  membership_removed: (row, locale, url) => membershipRemovedEmailContent({ locale, regionName: row.regionName, url }),
+  role_changed: (row, locale, url) =>
+    roleChangedEmailContent({
+      actor: row.actorName,
+      locale,
+      regionName: row.regionName,
+      role: roleLabelFor(row.metadata ?? undefined, { locale }),
+      url,
+    }),
+}
+const MAILED = new Set(Object.keys(MAIL) as NotificationSourceType[])
 
 /** Directed rows claimed and sent per step; see `dispatchSlice`. */
 const CLAIM_SLICE = 100
@@ -691,7 +709,7 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
 
 /**
  * The membership half of a directed row, as mail. A no-op for everything else, so adding a source
- * type to {@link MAILED} is the whole change.
+ * type to {@link MAIL} with its content is the whole change.
  *
  * The role label is resolved here rather than read off the view, which folds it into a sentence
  * while the mail needs it as a value. `roleLabelFor` rather than `roleLabel`: the string came out
@@ -711,20 +729,12 @@ async function sendMembershipEmail(
   origin: string,
 ): Promise<SendOutcome> {
   // Nothing to send counts as done, so the row is stamped rather than retried.
-  if (!MAILED.has(row.sourceType) || row.email == null) {
+  const build = MAIL[row.sourceType]
+  if (build == null || row.email == null) {
     return 'sent'
   }
 
-  const content =
-    row.sourceType === 'membership_removed'
-      ? membershipRemovedEmailContent({ locale, regionName: row.regionName, url: origin })
-      : roleChangedEmailContent({
-          actor: row.actorName,
-          locale,
-          regionName: row.regionName,
-          role: roleLabelFor(row.metadata ?? undefined, { locale }),
-          url: origin,
-        })
+  const content = build(row, locale, origin)
 
   return sendEmailOutcome(
     {
