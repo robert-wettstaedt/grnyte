@@ -50,6 +50,9 @@
 
 <Story name="Repeat" args={{ status: 'repeat' }} />
 
+<!-- Outside the active route filter on a block sheet: thumb and grade recede, the name stays. -->
+<Story name="Dimmed" args={{ dimmed: true }} />
+
 <Story name="No ascent" args={{ route: { ...base.route, rating: 0 }, status: undefined }} />
 
 <Story name="As link" args={{ href: '#' }} />

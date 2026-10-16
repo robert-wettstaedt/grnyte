@@ -8,15 +8,21 @@
   import PillHost from '$lib/components/StatusPill/PillHost.svelte'
   import UpdateBadge from '$lib/components/UpdateBadge/UpdateBadge.svelte'
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
-  import { parseRouteFilter } from '$lib/map/filter'
+  import { FILTER_PARAM_KEYS, isParsedFilterActive } from '$lib/map/filter'
   import Map from '$lib/map/Map.svelte'
   import type { OpenEntity } from '$lib/map/narrow'
   import { BLOCK_LABEL_ZOOM, type MapCameraClaim, type MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { exit } from '$lib/state/navigation.svelte'
+  import { exit, replaceUrl } from '$lib/state/navigation.svelte'
   import { createPillSurface } from '$lib/state/pill.svelte'
-  import { liveSearchQuery, setLiveSearchQuery } from '$lib/state/searchQuery.svelte'
+  import {
+    liveRouteFilter,
+    liveSearchQuery,
+    setLiveRouteFilter,
+    setLiveSearchQuery,
+    setMatchingRoutes,
+  } from '$lib/state/searchQuery.svelte'
   import { applyUpdateOnClick } from '$lib/state/updateReady.svelte'
   import { visualViewport } from '$lib/state/visualViewport.svelte'
   import { untrack } from 'svelte'
@@ -41,6 +47,7 @@
   // a route moved out of this group would silently stop matching. These are compile errors instead.
   const EXPLORE_ROUTE: RouteId = '/(app)/(shell)/(explore)/(map)/explore'
   const SEARCH_ROUTE: RouteId = '/(app)/(shell)/(explore)/(map)/search'
+  const AREA_ROUTES_ROUTE: RouteId = '/(app)/(shell)/(explore)/(map)/areas/[id]/routes'
 
   let open = $state(page.route.id !== EXPLORE_ROUTE)
   let mapViewState = $state<null | { center: [number, number]; zoom: number }>(null)
@@ -106,22 +113,15 @@
     createFocus = null
   })
 
-  // Parsing the URL into typed filter values lives in ./Filter/filter, and
-  // applying it to routes (incl. the client-side ascent/favorites filters) in
-  // ./Filter/filteredRoutes, so this layout only composes the result for the map.
-  //
-  // `page.url` changes on every navigation, so re-parsing would hand the route
-  // query a new (value-identical) filter object each time a detail sheet opens,
-  // re-running the whole map-data chain and flickering the markers. Keep the same
-  // reference until the filter changes so navigation leaves the map still.
-  let cachedFilters = parseRouteFilter(page.url.searchParams)
-  const filters = $derived.by(() => {
-    const next = parseRouteFilter(page.url.searchParams)
-    if (JSON.stringify(next) !== JSON.stringify(cachedFilters)) {
-      cachedFilters = next
-    }
-    return cachedFilters
+  // The URL writes the shared filter only where it carries one; every other screen (a detail, a deep
+  // link) keeps the last one. The setter keeps an equal filter's reference, so navigation leaves the map still.
+  const writesFilter = (id: null | string) => id === EXPLORE_ROUTE || id === SEARCH_ROUTE || id === AREA_ROUTES_ROUTE
+  if (writesFilter(page.route.id)) setLiveRouteFilter(page.url.searchParams)
+  $effect.pre(() => {
+    if (writesFilter(page.route.id)) setLiveRouteFilter(page.url.searchParams)
   })
+  const routeFilter = liveRouteFilter()
+  const filters = $derived(routeFilter.current.parsed)
 
   // The live search-bar text narrows the map markers as the user types (not only
   // the committed `?q=` the /search list reads). It persists across a detail
@@ -146,45 +146,54 @@
     () => openEntity,
   )
 
+  // Detail screens report "n of N" against the rows this filtered map already holds.
+  $effect(() => setMatchingRoutes(isParsedFilterActive(filters), explore.routes.data, explore.routes.phase))
+
   // Nothing on hand to draw yet: the map says so in its pill, over the generic syncing.
   $effect(() => pill.offer(() => (explore.isLoading ? { kind: 'status', label: m.map_loading() } : undefined)))
 
   const searchBarShown = $derived((!open || page.route.id === SEARCH_ROUTE) && placing == null)
 
-  // The search bar is hidden under a detail, so the map says what still narrows it.
+  // The search bar is hidden under a detail, so the map says what still narrows it, and clears both.
+  const clearNarrowing = () => {
+    setLiveSearchQuery('')
+    setLiveRouteFilter(new URLSearchParams())
+    // The route list's URL writes the filter, so it must drop the keys or they come straight back.
+    if (page.route.id === AREA_ROUTES_ROUTE) {
+      const url = new URL(page.url)
+      for (const key of FILTER_PARAM_KEYS) url.searchParams.delete(key)
+      void replaceUrl(url)
+    }
+  }
   $effect(() =>
-    pill.offer(() =>
-      open && page.route.id !== SEARCH_ROUTE && search.current !== ''
-        ? {
-            announcement: m.map_searchMatches({ query: search.current }),
-            dismissLabel: m.map_clearSearch(),
-            icon: 'search',
-            kind: 'dismiss',
-            label: search.current,
-            ondismiss: () => setLiveSearchQuery(''),
-          }
-        : undefined,
-    ),
+    pill.offer(() => {
+      const query = search.current
+      const filtered = isParsedFilterActive(filters)
+      if (!open || page.route.id === SEARCH_ROUTE || (query === '' && !filtered)) return undefined
+      return {
+        announcement: !filtered
+          ? m.map_searchMatches({ query })
+          : query === ''
+            ? m.map_filtersMatch()
+            : m.map_searchAndFiltersMatch({ query }),
+        dismissLabel: !filtered
+          ? m.map_clearSearch()
+          : query === ''
+            ? m.map_clearFilters()
+            : m.map_clearSearchAndFilters(),
+        icon: query === '' ? 'filter' : 'search',
+        kind: 'dismiss',
+        label: !filtered ? query : query === '' ? m.map_filtersOn() : m.map_searchAndFilters({ query }),
+        ondismiss: clearNarrowing,
+      }
+    }),
   )
 
-  // The map URL to return to when a sheet closes: always `/explore` carrying the
-  // current filter params (but not the search `q`: the live query rides back via
-  // the signal, so a cleared search can't reappear from a stale URL). Captured while
-  // on an explore route; retained while a detail route is open. Mapping the search
-  // route to `/explore` is also what lets the search list itself dismiss to the map.
-  // Deterministic on purpose: history depth can't be relied on (mobile sheet history,
-  // intermediate detail-to-detail hops), but this URL literally carries the filters back.
-  let exploreReturn = resolve('/explore')
-  $effect(() => {
-    const id = page.route.id
-    if (id === EXPLORE_ROUTE || id === SEARCH_ROUTE) {
-      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- throwaway parse to build a return-URL string, not reactive state
-      const params = new URLSearchParams(page.url.search)
-      params.delete('q')
-      const qs = params.toString()
-      exploreReturn = resolve('/explore') + (qs ? `?${qs}` : '')
-    }
-  })
+  // Where a closing sheet returns: `/explore` with the shared filter, never the search `q` (the live
+  // query rides back on its own, so a cleared search cannot reappear from a stale URL).
+  const exploreReturn = $derived(
+    resolve('/explore') + (routeFilter.current.search ? `?${routeFilter.current.search}` : ''),
+  )
 
   // What the open route wants of the camera. One triage in `cameraTarget`, so the framing and the
   // claim cannot disagree about which entity is open. Padding keeps the marker clear of the sheet:

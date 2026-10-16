@@ -1394,7 +1394,9 @@
   "legal_terms_metaDescription": "The rules for using {name}: your content stays yours, the licence I need, and how liability works.",
   "legal_terms_title": "Terms of Service",
   "map_attribution": "Map data",
+  "map_clearFilters": "Clear filters",
   "map_clearSearch": "Clear search",
+  "map_clearSearchAndFilters": "Clear search and filters",
   "map_create_areaInsideArea": "Inside an area",
   "map_create_chooseArea": "Choose an area",
   "map_create_chooseSector": "Choose a sector",
@@ -1408,6 +1410,8 @@
   "map_create_sector": "Sector",
   "map_create_title": "Create",
   "map_create_withoutLocation": "No location yet",
+  "map_filtersMatch": "Map shows routes matching your filters",
+  "map_filtersOn": "Filters on",
   "map_keyboardPannable": "Map. Use the arrow keys to pan.",
   "map_layers": "Layers",
   "map_loading": "Loading map…",
@@ -1415,6 +1419,8 @@
   "map_locationTimeout": "Finding your location took too long. Try again, ideally outdoors with a clear view of the sky.",
   "map_locationUnavailable": "Your location is unavailable. Check that location services are switched on, then try again.",
   "map_markers": "Markers",
+  "map_searchAndFilters": "{query} + filters",
+  "map_searchAndFiltersMatch": "Map shows matches for {query} within your filters",
   "map_searchMatches": "Map shows matches for {query}",
   "map_show": "Show",
   "map_showAttribution": "Show map data",
@@ -1792,11 +1798,22 @@
   ],
   "routes_listsStale": "The tags or first ascensionists changed while this page was open. Reopen it and make the change again.",
   "routes_logAscent": "Log ascent",
+  "routes_matchingCount": [
+    {
+      "declarations": ["input matching", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{matching} of {count} route",
+        "countPlural=other": "{matching} of {count} routes"
+      }
+    }
+  ],
   "routes_nameExists": "A route named “{name}” already exists on this block",
   "routes_noOpinions": "No opinions yet",
   "routes_notFound": "Route not found",
   "routes_openTopo": "Open topo",
   "routes_originalGrade": "Original grade",
+  "routes_outsideFilters": "outside your filters",
   "routes_routesCount": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

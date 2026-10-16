@@ -10,6 +10,8 @@
     /** All grades, ordered low → high. */
     grades: Grade[]
     gradingScale: GradingScale
+    /** Route counts per grade matching the reader's filter; absent means no filter. Ignored for votes. */
+    matchingByGrade?: Map<number, number>
     onselect?: (bar: null | { count: number; id: number; label: string }) => void
     /** Show the count above each non-empty bar (for small-n charts like grade votes). */
     showCounts?: boolean
@@ -23,6 +25,7 @@
     countByGrade,
     grades,
     gradingScale,
+    matchingByGrade,
     onselect,
     showCounts = false,
     ungraded = 0,
@@ -32,18 +35,38 @@
   const countLabel = (count: number) =>
     unit === 'votes' ? m.routes_gradeVotes({ count }) : m.routes_routesCount({ count })
 
+  const matchingOf = (id: number): number | undefined =>
+    unit === 'routes' && matchingByGrade ? (matchingByGrade.get(id) ?? 0) : undefined
+
+  // An empty grade inside the range says "0 routes", not "0 of 0 routes".
+  const itemLabel = (item: { count: number; matching?: number }) =>
+    item.matching === undefined || item.count === 0
+      ? countLabel(item.count)
+      : m.routes_matchingCount({ count: item.count, matching: item.matching })
+
   interface Bar {
     color: string
     count: number
     id: number
     /** Compact axis label. */
     label: string
+    /** Routes matching the filter; undefined when unfiltered. */
+    matching?: number
   }
 
   // Grade strings carry the scale as a redundant prefix (e.g. `FB 6A+`); drop it
   // so the axis reads as only `6A+`. The V scale (`V5`) has no prefix to strip.
   const stripScale = (value: string): string =>
     value.startsWith(`${gradingScale} `) ? value.slice(gradingScale.length + 1) : value
+
+  // What a bar and a chip both show for one grade.
+  const entryOf = (grade: Grade): Bar => ({
+    color: getGradeColor(grade),
+    count: countByGrade.get(grade.id) ?? 0,
+    id: grade.id,
+    label: stripScale(grade[gradingScale] ?? '—'),
+    matching: matchingOf(grade.id),
+  })
 
   // Grades that have routes, low → high. Drives both the histogram's
   // visible span and the sparse-data chip fallback.
@@ -61,12 +84,7 @@
       const lastId = occupiedGrades[occupiedGrades.length - 1].id
       for (const grade of grades) {
         if (grade.id >= firstId && grade.id <= lastId) {
-          result.push({
-            color: getGradeColor(grade),
-            count: countByGrade.get(grade.id) ?? 0,
-            id: grade.id,
-            label: stripScale(grade[gradingScale] ?? '—'),
-          })
+          result.push(entryOf(grade))
         }
       }
     }
@@ -79,18 +97,12 @@
     count: number
     id: number
     label: string
+    matching?: number
   }
 
   // One entry per grade that has routes. Shown when there are too few distinct
   // grades for a bar chart to read as anything but a couple of oversized blocks.
-  const chips = $derived.by(() =>
-    occupiedGrades.map<Chip>((grade) => ({
-      color: getGradeColor(grade),
-      count: countByGrade.get(grade.id) ?? 0,
-      id: grade.id,
-      label: stripScale(grade[gradingScale] ?? '—'),
-    })),
-  )
+  const chips = $derived.by(() => occupiedGrades.map<Chip>(entryOf))
 
   // A bar chart needs a handful of columns to read as a distribution; below this
   // the bars balloon into full-width blocks, so fall back to compact grade chips.
@@ -150,19 +162,36 @@
           type="button"
           class="flex h-full flex-1 cursor-pointer items-end"
           aria-pressed={selectedId === bar.id}
-          aria-label="{bar.label}: {countLabel(bar.count)}"
+          aria-label="{bar.label}: {itemLabel(bar)}"
           onclick={() => toggle(bar)}
         >
           <span
             class="relative w-full rounded-t-sm transition-[height,opacity]"
             class:opacity-40={selectedId != null && selectedId !== bar.id}
-            style="height: {barHeight(bar.count)}%; background-color: {bar.color}"
+            style="height: {barHeight(bar.count)}%;{bar.matching === undefined
+              ? ` background-color: ${bar.color}`
+              : ''}"
           >
+            {#if bar.matching !== undefined}
+              <!-- Full count faded (fainter on dark, where the easy grades' dark hues read as solid), the matching share solid. -->
+              <span
+                class="absolute inset-0 rounded-t-sm opacity-30 dark:opacity-15"
+                style="background-color: {bar.color}"
+              ></span>
+              {#if bar.count > 0}
+                <!-- A neutral edge, since the palest grades vanish into a light sheet at that opacity. -->
+                <span class="border-surface-300-700 absolute inset-0 rounded-t-sm border"></span>
+              {/if}
+              <span
+                class="absolute inset-x-0 bottom-0 rounded-t-sm"
+                style="height: {bar.count > 0 ? (bar.matching / bar.count) * 100 : 0}%; background-color: {bar.color}"
+              ></span>
+            {/if}
             {#if showCounts && bar.count > 0}
               <span
                 class="text-surface-600-400 absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] whitespace-nowrap tabular-nums"
               >
-                {bar.count}
+                {bar.matching ?? bar.count}
               </span>
             {/if}
           </span>
@@ -198,13 +227,13 @@
         class:opacity-40={selectedId != null && selectedId !== chip.id}
         class:border-primary-500={selectedId === chip.id}
         aria-pressed={selectedId === chip.id}
-        aria-label="{chip.label}: {countLabel(chip.count)}"
-        title={countLabel(chip.count)}
+        aria-label="{chip.label}: {itemLabel(chip)}"
+        title={itemLabel(chip)}
         onclick={() => toggle(chip)}
       >
         <span class="size-2.5 flex-none rounded-full" style="background-color: {chip.color}"></span>
         <span class="text-sm font-semibold">{chip.label}</span>
-        <span class="text-surface-600-400 text-xs tabular-nums">{chip.count}</span>
+        <span class="text-surface-600-400 text-xs tabular-nums">{chip.matching ?? chip.count}</span>
       </button>
     {/each}
   </div>
