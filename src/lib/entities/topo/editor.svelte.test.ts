@@ -1052,3 +1052,49 @@ describe('after a save that collapsed a run', () => {
     })
   })
 })
+
+// A selection that outlived a photo switch armed a preview dot whose `place()` inserted nothing.
+describe('switching photos', () => {
+  const line = (routeFk: number): EditLine => ({ points: [], routeFk, topType: 'top' })
+
+  it('drops a selected route that has no line on the new photo', () => {
+    const store: Record<number, EditLine[]> = { 1: [line(42)], 2: [] }
+    const editor = new TopoEditor((id) => store[id] ?? [])
+    editor.topoId = 1
+    editor.selectRoute(42)
+    editor.pointType = 'start'
+
+    editor.topoId = 2
+
+    expect(editor.selectedRouteFk).toBeUndefined()
+    expect(editor.placementIntentAt(0.5, 0.5)).toBeUndefined()
+  })
+
+  it("offers no point once an undo removed the selected route's line, and keeps the redo", () => {
+    const store: Record<number, EditLine[]> = { 1: [] }
+    const editor = new TopoEditor((id) => store[id] ?? [])
+    editor.topoId = 1
+    editor.addLine(42)
+    editor.pointType = 'start'
+
+    editor.undo()
+
+    expect(editor.placementIntentAt(0.5, 0.5)).toBeUndefined()
+    expect(editor.place(0.5, 0.5)).toBeUndefined()
+    expect(editor.canRedo).toBe(true)
+    // Disarmed too, so the stage pans and a background tap works again.
+    expect(editor.selectedRouteFk).toBeUndefined()
+    expect(editor.pointType).toBeUndefined()
+  })
+
+  it('keeps a route drawn on both photos selected', () => {
+    const store: Record<number, EditLine[]> = { 1: [line(42)], 2: [line(42)] }
+    const editor = new TopoEditor((id) => store[id] ?? [])
+    editor.topoId = 1
+    editor.selectRoute(42)
+
+    editor.topoId = 2
+
+    expect(editor.selectedRouteFk).toBe(42)
+  })
+})

@@ -199,7 +199,7 @@
   }
 
   function onSurfacePointerDown(event: PointerEvent) {
-    if (editor.pointType == null || editor.selectedRouteFk == null) return
+    if (editor.pointType == null || editor.currentLine == null) return
     // In arm mode a press starts placement, never a pan.
     event.stopPropagation()
     beginGesture(event)
