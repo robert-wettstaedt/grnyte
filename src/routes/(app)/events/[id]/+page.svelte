@@ -28,8 +28,10 @@
   import Comments from '$lib/components/Reactions/Comments.svelte'
   import { createThread } from '$lib/components/Reactions/thread.svelte'
   import { eventCard } from '$lib/entities/event/card'
+  import { topoBlockIds } from '$lib/entities/event/feed.svelte'
   import { groupEvents } from '$lib/entities/event/grouping'
   import { eventList } from '$lib/entities/event/resources.svelte'
+  import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
@@ -47,7 +49,13 @@
   // The feed's own query, narrowed to one row. Grouped and decided exactly as it is there, so the
   // card reads identically to the one the reader would have found by scrolling.
   const events = eventList(() => ({ ids: [eventId], limit: 1 }))
-  const views = $derived(groupEvents(events.data).map((group) => eventCard(group, global.user?.id)))
+  // Topos only once the card is open, as on the feed. Closed again whenever the id changes, like the keyed card.
+  let expanded = $derived.by(() => {
+    void eventId
+    return false
+  })
+  const topos = toposByBlockIds(() => (expanded ? topoBlockIds(events.data) : []))
+  const views = $derived(groupEvents(events.data).map((group) => eventCard(group, global.user?.id, topos.data)))
 
   const event = $derived(events.data[0])
 
@@ -84,7 +92,9 @@
             {#if views[0] != null && event != null}
               <!-- `commentsInline`: the card's own bar keeps its emoji and drops the comment button,
                    because the thread it would open is already on the page underneath it. -->
-              <EventCard commentsInline view={views[0]} />
+              {#key eventId}
+                <EventCard commentsInline onToggle={(open) => (expanded = open)} view={views[0]} />
+              {/key}
 
               <section class="space-y-3">
                 <!-- A count, not the bare word: this screen exists to show a conversation, and how
