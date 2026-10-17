@@ -3,7 +3,6 @@ import { blocks, geolocations } from '$lib/db/schema'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
-/** Takes the caller's RLS transaction or a plain handle, like `area.server.ts`. */
 type Db = PostgresJsDatabase<typeof schema>
 
 /** A block's pin is a geolocation row it points at, which points back. Never `areaFk`: that marks a

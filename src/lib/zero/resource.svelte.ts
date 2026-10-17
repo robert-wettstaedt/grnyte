@@ -285,11 +285,8 @@ export function resolveKept(input: {
   return input.policy === 'field' ? input.guidebookSynced : input.policy === 'personal' && input.personalSynced
 }
 
-/**
- * What a screen may say, from the transport status and the settled latch. Order is load-bearing:
- * `settled` already folds in "offline and kept", and `loading` implies no rows, so an answer or an
- * excluded fragment needs no separate offline judgement.
- */
+/** What a screen may say. Order is load-bearing: `settled` already folds in "offline and kept", and
+ *  `loading` implies no rows, so neither needs its own offline check. */
 export function resolvePhase({
   excluded,
   online,

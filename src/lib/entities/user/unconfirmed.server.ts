@@ -2,13 +2,14 @@ import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { users, userSettings } from '$lib/db/schema'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
+import { DAY_MS } from '$lib/i18n/relativeTime'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
 import { and, eq, isNull, lt } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
 
 /** Unconfirmed accounts older than 7 days, as the confirmation link has long expired. */
-export const UNCONFIRMED_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+export const UNCONFIRMED_MAX_AGE_MS = 7 * DAY_MS
 
 /**
  * Delete accounts created before `before` that never confirmed their email, with their profile.

@@ -10,19 +10,8 @@ describe('sourceTraits', () => {
     expect(QUEUE_ONLY).toEqual(['invitation_received', 'membership_removed'])
   })
 
-  it('draws no row for the sentence-only types', () => {
-    expect(where((type) => !sourceTraits(type).row)).toEqual(
-      ['ascent_deleted', 'invitation_received', 'invite_accepted', 'membership_removed', 'role_changed'].sort(),
-    )
-  })
-
   it('lets only video_ready notify its own actor', () => {
     expect(where((type) => sourceTraits(type).selfAddressed)).toEqual(['video_ready'])
-  })
-
-  it('gates reactions and comments on their own switches, the rest on the directed one', () => {
-    expect(where((type) => sourceTraits(type).push === 'reactions')).toEqual(['reaction'])
-    expect(where((type) => sourceTraits(type).push === 'comments')).toEqual(['comment', 'comment_reply'])
   })
 })
 

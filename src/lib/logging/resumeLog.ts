@@ -1,4 +1,5 @@
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+import { storage } from '$lib/state/storage'
 
 /**
  * Resumes that turned out to need a reconnect, kept on this device only.
@@ -31,18 +32,13 @@ export function appendResume(entries: ResumeEntry[], entry: ResumeEntry, cap = C
 }
 
 export function clearResumeLog(): void {
-  try {
-    localStorage.removeItem(KEY)
-  } catch {
-    // As above.
-  }
+  storage.remove(KEY)
 }
 
-/** Reading storage throws in a private window or with site data blocked, and a diagnostic must
- *  never be the thing that breaks the app. Every access here is guarded for that reason. */
+/** A diagnostic must never be the thing that breaks the app, so unreadable storage reads as empty. */
 export function readResumeLog(): ResumeEntry[] {
+  const raw = storage.get(KEY)
   try {
-    const raw = localStorage.getItem(KEY)
     const parsed: unknown = raw == null ? [] : JSON.parse(raw)
     return Array.isArray(parsed) ? parsed.filter(isResumeEntry) : []
   } catch {
@@ -50,12 +46,9 @@ export function readResumeLog(): ResumeEntry[] {
   }
 }
 
+/** A refused write loses one diagnostic, which is the correct outcome. */
 export function recordResume(entry: ResumeEntry): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(appendResume(readResumeLog(), entry)))
-  } catch {
-    // Storage is unavailable or full. Losing a diagnostic is the correct outcome.
-  }
+  storage.set(KEY, JSON.stringify(appendResume(readResumeLog(), entry)))
 }
 
 /** Checked rather than cast: this is parsed from storage a previous release wrote. */

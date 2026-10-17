@@ -101,7 +101,6 @@ export const createBlock = authedForm(
       })
       .returning()
 
-    // Optional location, linked both ways once the block exists.
     if (value.lat != null && value.long != null) {
       await attachPin(db, block, { estimated: value.estimated, lat: value.lat, long: value.long })
     }

@@ -80,9 +80,8 @@ export function createMapData(props: BlocksMapProps) {
     })
   }
 
-  // Area tier, drawn zoomed out: each block under its outermost area. Falls back to the outermost
-  // ancestor whatever its type, or a sector at a region's root would be in no group below
-  // SECTOR_ZOOM and its blocks would vanish; it then draws the same rect at both zooms, never together.
+  // Area tier, zoomed out. Falls back to the outermost ancestor of any type, or a sector at a
+  // region's root would draw in no tier below SECTOR_ZOOM and its blocks would vanish.
   const areaTier = $derived(tierOf((block) => block.areas.find((area) => area.type === 'area') ?? block.areas[0]))
   // Sector tier, drawn at mid zoom: the block-holding area.
   const sectorTier = $derived(tierOf((block) => block.areas.find((area) => area.type === 'sector')))
