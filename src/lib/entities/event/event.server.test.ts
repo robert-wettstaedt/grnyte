@@ -58,7 +58,12 @@ async function twinId(): Promise<number> {
     const [{ id }] = await sql<{ id: number }[]>`
       select nextval(pg_get_serial_sequence(${`public.${lower}`}, 'id'))::int as id`
     const [taken] = await sql`select 1 from ${sql(other)} where id = ${id}`
-    if (taken == null) return id
+    if (taken != null) continue
+    // Past the other sequence, it would issue this id again to a parallel suite's insert.
+    await sql`
+      select nextval(pg_get_serial_sequence(${`public.${other}`}, 'id')) from generate_series(1,
+        ${id} - coalesce(pg_sequence_last_value(pg_get_serial_sequence(${`public.${other}`}, 'id')::regclass), 0))`
+    return id
   }
 }
 
