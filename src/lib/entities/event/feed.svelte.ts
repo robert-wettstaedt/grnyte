@@ -1,6 +1,5 @@
 import type { EventEntityRef } from '$lib/entities/event/entity'
 import { markEventFeedSeen } from '$lib/entities/notification/notifications.remote'
-import { parseTopoChange } from '$lib/entities/topo/change'
 import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
 import { reportIfOnline } from '$lib/logging/report'
 import { getGlobalState } from '$lib/state/global.svelte'
@@ -12,6 +11,7 @@ import { eventCard, type CardDensity, type EventCardView } from './card'
 import type { EventObjectType } from './dto'
 import { groupEvents } from './grouping'
 import type { EventListItem } from './mapper'
+import { decodeMetadata } from './metadata'
 import { eventList, type EventCursor } from './resources.svelte'
 import { firstWindowConfirmed, shownWindowPhase } from './window'
 
@@ -80,7 +80,7 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
 
   const expandedIds = new SvelteSet<string>()
   // Only the open cards, and among those only the events that say a topo photo changed, which
-  // `parseTopoChange` reads off the metadata. Taking every block event would sync that block's
+  // the decoded metadata records. Taking every block event would sync that block's
   // whole topo tree (its topos and their files) for a card that merely renamed it, which is the
   // cost the "open cards only" rule exists to avoid in the first place.
   const expandedBlockIds = $derived([
@@ -93,7 +93,9 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
         .filter((group) => expandedIds.has(group.id))
         .flatMap((group) => group.events)
         .flatMap((event) =>
-          event.objectType === 'block' && parseTopoChange(event.metadata) != null ? [Number(event.objectId)] : [],
+          event.objectType === 'block' && decodeMetadata(event.metadata).kind === 'topo'
+            ? [Number(event.objectId)]
+            : [],
         )
         .filter(Number.isInteger),
     ),

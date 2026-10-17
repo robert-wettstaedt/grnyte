@@ -11,7 +11,7 @@ import { and, count, eq, isNull } from 'drizzle-orm'
 import { hasDeletedAncestor, refreshAreaType } from '../area/area.server'
 import { canAddBlock } from '../area/permissions'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
-import { stringifyDeletionScale } from '../event/verbs'
+import { stringifyDeletionScale } from '../event/metadata'
 import { notifyMentions } from '../notification/notification.server'
 import { blockPinFingerprint } from './fingerprint'
 import {

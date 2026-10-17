@@ -1,7 +1,6 @@
-import { parseTopoChange } from '$lib/entities/topo/change'
-import { parseCoords } from '$lib/map/coords'
 import type { EventObjectType } from './dto'
 import type { EventChangeItem, EventListItem, EventVerb } from './mapper'
+import { decodeMetadata, type EventMetadata } from './metadata'
 
 /**
  * One line a card can speak: an event, narrowed to the one thing that line is about.
@@ -26,6 +25,8 @@ export interface CardLine {
   /** The column this line is about, where the line is about one. */
   columnName: string | undefined
   createdAt: number
+  /** `metadata` decoded; the raw string stays for grouping, `oldValue` and the invitee address. */
+  decoded: EventMetadata
   /** The event's id. Several lines of one event share it; `change.ts` keys on it plus the column. */
   id: number
   metadata: string | undefined
@@ -51,11 +52,12 @@ export interface CardLine {
  * so a card can never end up with nothing to say.
  */
 export function eventLines(event: EventListItem): CardLine[] {
+  const decoded = decodeMetadata(event.metadata)
   if (event.verb !== 'update' || event.changes.length === 0) {
-    return [line(event)]
+    return [line(event, decoded)]
   }
 
-  return event.changes.map((change) => line(event, change))
+  return event.changes.map((change) => line(event, decoded, change))
 }
 
 /**
@@ -66,26 +68,26 @@ export function eventLines(event: EventListItem): CardLine[] {
  * sentence but a wrong one: without this a cleared parking pin reads as media removed from the
  * area, and a claimed first ascent has no sentence at all.
  */
-function columnFor(event: EventListItem): string | undefined {
+function columnFor(event: EventListItem, decoded: EventMetadata): string | undefined {
   const { metadata, objectType, verb } = event
 
   if (verb === 'add') {
-    if (objectType === 'area' && parseCoords(metadata) != null) return 'parking location'
+    if (objectType === 'area' && decoded.kind === 'coords') return 'parking location'
     if (objectType === 'user') return 'first ascensionist'
     return undefined
   }
 
   if (verb === 'remove') {
     if (objectType === 'user') return metadata == null ? 'role' : 'invitation'
-    if (objectType === 'area' && parseCoords(metadata) != null) return 'parking location'
-    if (objectType === 'block' && parseTopoChange(metadata) != null) return 'topo'
-    if (objectType === 'block' && parseCoords(metadata) != null) return 'location'
+    if (objectType === 'area' && decoded.kind === 'coords') return 'parking location'
+    if (objectType === 'block' && decoded.kind === 'topo') return 'topo'
+    if (objectType === 'block' && decoded.kind === 'coords') return 'location'
     return 'file'
   }
 
   // A topo edit that moved no column of its own (a photo added, the order changed) says which it
   // was in `metadata`; one that did move a column arrives with a change row instead.
-  if (verb === 'update' && objectType === 'block' && parseTopoChange(metadata) != null) {
+  if (verb === 'update' && objectType === 'block' && decoded.kind === 'topo') {
     return 'topo'
   }
 
@@ -96,15 +98,16 @@ function columnFor(event: EventListItem): string | undefined {
   return undefined
 }
 
-function line(event: EventListItem, change?: EventChangeItem): CardLine {
+function line(event: EventListItem, decoded: EventMetadata, change?: EventChangeItem): CardLine {
   const newValue = change?.newValue ?? storedValue(event)
 
   return {
     actorFk: event.actorFk,
     actorName: event.actorName,
     cleared: change != null && (change.newValue == null || change.newValue.length === 0),
-    columnName: change?.columnName ?? columnFor(event),
+    columnName: change?.columnName ?? columnFor(event, decoded),
     createdAt: event.createdAt,
+    decoded,
     id: event.id,
     metadata: event.metadata,
     newValue,

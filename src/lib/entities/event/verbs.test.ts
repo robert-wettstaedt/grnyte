@@ -13,16 +13,7 @@ import { ascentTypeEnum } from '$lib/db/schema'
 import { describe, expect, it } from 'vitest'
 import { changeViews } from './change'
 import { line } from './line.fixture'
-import {
-  parseDeletedAscent,
-  parseDeletionScale,
-  REFINABLE,
-  stringifyDeletedAscent,
-  verbKey,
-  VERBS,
-  WRITTEN_ROWS,
-  type VerbEntry,
-} from './verbs'
+import { REFINABLE, verbKey, VERBS, WRITTEN_ROWS, type VerbEntry } from './verbs'
 
 describe('REFINABLE', () => {
   it('lets an update fold into exactly add, create and update', () => {
@@ -83,6 +74,7 @@ describe('VERBS', () => {
           cleared: false,
           columnName: verb.columnName,
           createdAt: 0,
+          decoded: { kind: 'none' },
           id: 1,
           metadata: undefined,
           newValue: undefined,
@@ -110,53 +102,6 @@ describe('VERBS', () => {
     const shadowed = VERBS.filter((verb) => verbKey(verb) !== verb.key)
 
     expect(shadowed).toEqual([])
-  })
-})
-
-describe('parseDeletionScale', () => {
-  it('reads the counts a deletion recorded', () => {
-    expect(parseDeletionScale('{"blocks":3,"routes":42}')).toEqual({ areas: undefined, blocks: 3, routes: 42 })
-  })
-
-  it('answers nothing for metadata that is not a scale', () => {
-    // A topo row's metadata sits in the same column, and rows written before scales existed
-    // have none at all.
-    expect(parseDeletionScale('{"action":"lines","topoId":1}')).toBeUndefined()
-    expect(parseDeletionScale('not json')).toBeUndefined()
-    expect(parseDeletionScale(undefined)).toBeUndefined()
-  })
-
-  it('drops a count that is not a number', () => {
-    // The card sums these with `+=`, where a string concatenates instead of adding and turns
-    // one deletion of 9 routes into "09 routes". JSON is not this code's to trust.
-    expect(parseDeletionScale('{"routes":"9"}')).toBeUndefined()
-    expect(parseDeletionScale('{"blocks":2,"routes":"9"}')).toEqual({
-      areas: undefined,
-      blocks: 2,
-      routes: undefined,
-    })
-  })
-})
-
-describe('parseDeletedAscent', () => {
-  it('round-trips what a deletion recorded', () => {
-    const climber = { climberFk: 7, climberName: 'Ada Rossi' }
-
-    expect(parseDeletedAscent(stringifyDeletedAscent(climber))).toEqual(climber)
-  })
-
-  it('answers nothing for the other things that share the column', () => {
-    // Topo metadata is not JSON at all, a deletion scale is JSON without a climber in it, and
-    // every ascent deleted before this shipped carries no metadata.
-    expect(parseDeletedAscent('{"action":"lines","topoId":1}')).toBeUndefined()
-    expect(parseDeletedAscent('{"routes":3}')).toBeUndefined()
-    expect(parseDeletedAscent(undefined)).toBeUndefined()
-  })
-
-  it('refuses a half-recorded climber rather than naming nobody', () => {
-    expect(parseDeletedAscent('{"climberFk":7}')).toBeUndefined()
-    expect(parseDeletedAscent('{"climberName":"Ada Rossi"}')).toBeUndefined()
-    expect(parseDeletedAscent('{"climberFk":"7","climberName":"Ada Rossi"}')).toBeUndefined()
   })
 })
 

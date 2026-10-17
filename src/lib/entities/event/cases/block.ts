@@ -14,7 +14,7 @@
  * block minutes apart write ONE event with two change rows.
  */
 import { stringifyCoords } from '$lib/map/coords'
-import { stringifyDeletionScale } from '../verbs'
+import { stringifyDeletionScale } from '../metadata'
 import type { EventCase } from './types'
 import { blockEntity, change, eventAgo, ME, PIN } from './world'
 

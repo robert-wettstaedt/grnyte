@@ -16,6 +16,7 @@ import { eventEntityKey, type EventEntity, type EventEntityMap, type EventEntity
  * Not imported by the app.
  */
 import type { CardLine } from './line'
+import { decodeMetadata } from './metadata'
 
 let nextId = 1
 
@@ -49,6 +50,7 @@ export function line(partial: Partial<CardLine> = {}): CardLine {
     cleared: false,
     columnName: undefined,
     createdAt: 0,
+    decoded: decodeMetadata(partial.metadata),
     id: nextId++,
     metadata: undefined,
     newValue: undefined,
