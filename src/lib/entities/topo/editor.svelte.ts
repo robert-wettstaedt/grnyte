@@ -65,7 +65,6 @@ export class TopoEditor {
    */
   snapTolerance = $state<{ x: number; y: number }>({ x: SNAP_RADIUS, y: SNAP_RADIUS })
 
-  topoId = $state<number | undefined>(undefined)
   get canRedo(): boolean {
     return this.topoId != null && (this.#future.get(this.topoId)?.length ?? 0) > 0
   }
@@ -73,22 +72,32 @@ export class TopoEditor {
   get canUndo(): boolean {
     return this.topoId != null && (this.#past.get(this.topoId)?.length ?? 0) > 0
   }
+
   get currentLine(): EditLine | undefined {
     return this.currentLines.find((line) => line.routeFk === this.selectedRouteFk)
   }
+
   get currentLines(): EditLine[] {
     return this.topoId == null ? [] : this.lines(this.topoId)
   }
+
   get dirty(): boolean {
     return this.dirtyTopoIds.length > 0
   }
   get dirtyTopoIds(): number[] {
     return [...this.#docs.keys()].filter((id) => this.isDirty(id))
   }
-
   get selectedPoint(): TopoPoint | undefined {
     if (this.selectedPointId == null) return undefined
     return this.currentLine?.points.find((point) => point.id === this.selectedPointId)
+  }
+  /** Switching photos drops a selected route with no line there: a point placed for it lands nowhere. */
+  get topoId(): number | undefined {
+    return this.#topoId
+  }
+  set topoId(id: number | undefined) {
+    this.#topoId = id
+    this.#dropOrphanSelection()
   }
 
   /** The committed set at the clone, fingerprinted. Never recomputed: `#committedFor` reads live,
@@ -112,6 +121,8 @@ export class TopoEditor {
   // the Zero replication window, so after a successful Save we stamp the saved signature here and
   // dirt is measured against it: the pill/guard clear immediately instead of waiting for the echo.
   #saved = new SvelteMap<number, string>()
+
+  #topoId = $state<number | undefined>(undefined)
 
   constructor(committedFor: (topoId: number) => EditLine[] | undefined) {
     this.#committedFor = committedFor
@@ -313,7 +324,8 @@ export class TopoEditor {
    * points on one hold. Other lines still place, which is how two routes share a hold.
    */
   placementIntentAt(x: number, y: number): PlacementIntent | undefined {
-    if (this.pointType == null || this.selectedRouteFk == null) return undefined
+    // No line for the route on this photo (after an undo, or before lines sync): nothing would land.
+    if (this.pointType == null || this.currentLine == null) return undefined
     const own = nearestWithin(this.currentLine?.points ?? [], x, y, this.snapTolerance)
     if (own != null) return { kind: 'select', point: own }
     const snapped = this.snapTargetAt(x, y, this.currentLine?.points.map((point) => point.id) ?? [])
@@ -327,6 +339,7 @@ export class TopoEditor {
     this.#past.set(id, [...(this.#past.get(id) ?? []), cloneLines(this.lines(id))])
     this.#docs.set(id, future[future.length - 1])
     this.#future.set(id, future.slice(0, -1))
+    this.#dropOrphanSelection()
   }
 
   /** Remove a route's line from the current photo (kept local until Save). */
@@ -415,6 +428,7 @@ export class TopoEditor {
     this.#future.set(id, [...(this.#future.get(id) ?? []), cloneLines(this.lines(id))])
     this.#docs.set(id, past[past.length - 1])
     this.#past.set(id, past.slice(0, -1))
+    this.#dropOrphanSelection()
   }
 
   /** Mutate the current topo's doc. `snapshot` records an undo step first (skip it mid-gesture). */
@@ -442,6 +456,11 @@ export class TopoEditor {
     if (pending != null && pending.topoId === id) {
       this.#pushUndo(id, pending.lines)
     }
+  }
+
+  /** A selected route with no line on this photo has nothing to arm or place: drop it. */
+  #dropOrphanSelection(): void {
+    if (this.selectedRouteFk != null && this.currentLine == null) this.selectRoute(undefined)
   }
 
   // --- save ---------------------------------------------------------------

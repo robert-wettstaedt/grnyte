@@ -23,7 +23,6 @@
   import { wipeAndLeave } from '$lib/state/wipe'
   import { authRetryDelay, lastAuthAttemptAt, startAuthRecovery, stopAuthRecovery } from '$lib/zero/authRecovery'
   import { getZ, initZero } from '$lib/zero/z.svelte'
-  import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
 
   const { children, data } = $props()
 
@@ -165,12 +164,9 @@
   // close) can fall back to an in-app route instead of leaving the origin. Lives at the
   // (app) root so the count stays accurate across every page, not only the map area.
   trackHistoryDepth()
-
-  let markdownCssHref = $state(markdownLightCssUrl)
 </script>
 
 <svelte:head>
-  <link rel="stylesheet" href={markdownCssHref} />
   <title>{PUBLIC_APPLICATION_NAME}</title>
   <meta name="description" content="Secure boulder topo and session tracker." />
   <meta property="og:title" content={PUBLIC_APPLICATION_NAME} />
