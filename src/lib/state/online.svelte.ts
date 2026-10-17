@@ -1,5 +1,6 @@
 import { browser } from '$app/environment'
 import { base } from '$app/paths'
+import { isTerminal, RECONNECT_HOLD_MS, type ConnectionName } from '$lib/zero/connection'
 
 /**
  * Whether the app can reach anything.
@@ -16,7 +17,7 @@ import { base } from '$app/paths'
  *
  * So the second signal is Zero's own connection, reported in by `initZero`. Zero is the only thing
  * in the app continuously trying to reach the server, and it knows within one retry whether that
- * works. When it has been unable to connect for {@link UNREACHABLE_HOLD_MS}, we are offline no
+ * works. When it has been unable to connect for {@link RECONNECT_HOLD_MS}, we are offline no
  * matter what the browser claims.
  *
  * That hold is far too slow to be the answer at startup, though: it leaves several seconds in which
@@ -35,26 +36,6 @@ import { base } from '$app/paths'
  * the offline work, and the convention above only holds if there is one place to keep it.
  */
 
-/**
- * How long Zero must fail to connect before the app calls itself offline.
- *
- * Zero retries every five seconds and flaps through `connecting` on token refresh and tab wake, so
- * anything shorter turns a normal reconnect into a flash of "not downloaded" across the screen. The
- * same value as `StatusBar`'s transient hold on purpose: the bar and the screen behind it must not
- * disagree about whether there is a connection.
- */
-const UNREACHABLE_HOLD_MS = 10_000
-
-/**
- * States Zero does not recover from by retrying (see `StatusBar`). They mean the sync is broken, not
- * that the network is down, and they get their own red bar telling the reader to reload. Calling
- * them "offline" would send somebody looking for signal when the problem is their token.
- *
- * `error` and `closed` say nothing about the network, so they leave the flag exactly as they found
- * it. Setting it true would be the same false-positive this module exists to prevent.
- */
-const TERMINAL = ['closed', 'error', 'needs-auth']
-
 /** How long one resume's events are treated as the same resume. They arrive together, not spread. */
 const RESUME_COALESCE_MS = 500
 
@@ -63,10 +44,10 @@ const RETRY_BACKOFF_MS = [5_000, 10_000, 20_000, 30_000]
 
 // Undefined until Zero reports, which never happens on a route that builds no client. An initial
 // `'connecting'` read as "consistent with a dead network" and latched the flag false there.
-let currentConnectionState: string | undefined
+let currentConnectionState: ConnectionName | undefined
 let online = $state(true)
 let reachable = $state(true)
-let reported: string | undefined
+let reported: ConnectionName | undefined
 let timer: null | ReturnType<typeof setTimeout> = null
 // The document resumed and nothing has re-confirmed the connection since, so `currentConnectionState`
 // may have been frozen mid-suspension and is not evidence about the network.
@@ -132,10 +113,10 @@ if (browser) {
  *
  * - `reachable`: something answered. Proof the network works.
  * - `no-evidence`: says nothing either way; leave the flag where it stands.
- * - `unreachable`: consistent with a dead network, but only after {@link UNREACHABLE_HOLD_MS},
+ * - `unreachable`: consistent with a dead network, but only after {@link RECONNECT_HOLD_MS},
  *   because a normal reconnect passes through here too.
  */
-export function connectionVerdict(name: string): 'no-evidence' | 'reachable' | 'unreachable' {
+export function connectionVerdict(name: ConnectionName): 'no-evidence' | 'reachable' | 'unreachable' {
   // Connected is proof, and it is the most direct proof there is.
   if (name === 'connected') {
     return 'reachable'
@@ -156,7 +137,7 @@ export function connectionVerdict(name: string): 'no-evidence' | 'reachable' | '
   }
 
   // The other two terminal states are a broken sync on a network that may be perfectly fine.
-  if (TERMINAL.includes(name)) {
+  if (isTerminal(name)) {
     return 'no-evidence'
   }
 
@@ -178,9 +159,9 @@ export function isOnline(): boolean {
  *   background (`DEFAULT_DISCONNECT_HIDDEN_DELAY_MS`) and reports `disconnected` with
  *   `reason.kind === 'Hidden'`. Treating that as evidence made the app declare itself offline on
  *   perfect wifi for anybody who put their phone in a pocket, which at a crag is everybody.
- * - **Terminal states are a broken sync, not a broken network.** See {@link TERMINAL}.
+ * - **Terminal states are a broken sync, not a broken network.** See {@link connectionVerdict}.
  */
-export function reportConnectionState(state: { name: string }): void {
+export function reportConnectionState(state: { name: ConnectionName }): void {
   currentConnectionState = state.name
   unconfirmed = false
   applyConnectionState(state.name)
@@ -206,7 +187,7 @@ export function setPingTightenHandler(handler: (() => void) | undefined): void {
  * Tightening a live connection costs one early ping. Not tightening a dead one costs ten seconds.
  */
 export function shouldTightenPing(input: {
-  connectionState: string | undefined
+  connectionState: ConnectionName | undefined
   networkAnswered: boolean
   resumed: boolean
 }): boolean {
@@ -214,7 +195,7 @@ export function shouldTightenPing(input: {
 }
 
 /** The half a replay runs too. `unconfirmed` is what stops a frozen state writing the flags true. */
-function applyConnectionState(name: string): void {
+function applyConnectionState(name: ConnectionName): void {
   const verdict = connectionVerdict(name)
 
   // Level-triggered, deliberately: `probeReachability` can set the flag false at any moment, so a
@@ -260,7 +241,7 @@ function applyConnectionState(name: string): void {
 
     // No retry armed: a succeeding probe may not clear this, so only Zero reporting in ever will.
     reachable = false
-  }, UNREACHABLE_HOLD_MS)
+  }, RECONNECT_HOLD_MS)
 }
 
 /** Stop asking. Called on any answer, including one that leaves `reachable` false for the sync. */
@@ -302,7 +283,7 @@ async function probeReachability(): Promise<void> {
   try {
     await fetch(`${base}/_app/version.json?reachability=${Date.now()}`, {
       cache: 'no-store',
-      signal: AbortSignal.timeout(UNREACHABLE_HOLD_MS),
+      signal: AbortSignal.timeout(RECONNECT_HOLD_MS),
     })
 
     if (generation !== probeGeneration) {

@@ -1,3 +1,5 @@
+import type { ConnectionName } from './connection'
+
 /** Long enough that a dead refresh family is not hammered, which is what revokes it. */
 export const AUTH_RETRY_COOLDOWN_MS = 30_000
 
@@ -15,7 +17,7 @@ interface Attempt<Session> {
  * A delay rather than a yes/no: the caller rebuilds this watcher on every connection change, so
  * refusing inside the cooldown leaves nothing armed at all.
  */
-export function authRetryDelay(connection: string, lastAttemptAt: number, now: number): null | number {
+export function authRetryDelay(connection: ConnectionName, lastAttemptAt: number, now: number): null | number {
   if (connection !== 'needs-auth') {
     return null
   }

@@ -6,10 +6,7 @@
  */
 import type { IconName } from '$lib/components/Icon/icons'
 import { m } from '$lib/paraglide/messages'
-
-// Zero states that no reconnect loop recovers from: only a fresh client (i.e. a
-// reload, which also mints a fresh Supabase token) fixes them.
-export const TERMINAL = ['closed', 'error', 'needs-auth']
+import { isTerminal, type ConnectionName } from '$lib/zero/connection'
 
 export interface Status {
   action?: 'reload'
@@ -26,12 +23,12 @@ export interface Status {
  * Offline suppresses the reconnecting branch but not the terminal one, which is the only branch
  * carrying an action. See the ordering note in the body.
  */
-export function resolveStatus(online: boolean, connection: string, updateReady: boolean): null | Status {
+export function resolveStatus(online: boolean, connection: ConnectionName, updateReady: boolean): null | Status {
   // Terminal first, offline second. These states carry the only action the bar ever offers, and
   // the offline branch has none: a reader whose sync is dead and whose reachability flag happens
   // to be stale got the actionless "you're offline" bar with the reload button hidden behind it.
   // Being told the wrong cause is survivable; being shown no way out is not.
-  if (TERMINAL.includes(connection)) {
+  if (isTerminal(connection)) {
     return {
       action: 'reload',
       icon: 'alert-triangle',

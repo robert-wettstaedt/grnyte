@@ -12,18 +12,12 @@ import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelt
 import { isOnline } from '$lib/state/online.svelte'
 import { quietly } from '$lib/state/pill.svelte'
 import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
+import { isTerminal } from '$lib/zero/connection'
 import type { QueryResource } from '$lib/zero/resource.svelte'
 import { getZ } from '$lib/zero/z.svelte'
 import { getContext, setContext } from 'svelte'
 
 const GLOBAL_STATE_KEY = Symbol('global-state')
-
-/**
- * Connection states Zero stops retrying out of, so a replica that is empty in one of them stays
- * empty until somebody acts. Same list as `StatusBar`'s and `online.svelte`'s, for the same reason;
- * they disagree only about what to *do* about it.
- */
-const TERMINAL_CONNECTION = ['closed', 'error', 'needs-auth']
 
 /** How long a replica may take to read back before an empty store is called cold (~1.4 s at 5000 routes). */
 const STORE_PATIENCE_MS = 3000
@@ -156,7 +150,7 @@ export function setGlobalState(): GlobalState | undefined {
         return false
       }
 
-      return !isOnline() || TERMINAL_CONNECTION.includes(getZ().connectionState.name)
+      return !isOnline() || isTerminal(getZ().connectionState.name)
     },
     get lastSyncedAt() {
       return lastSyncedAt()

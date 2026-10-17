@@ -8,7 +8,7 @@ describe('resolveStatus', () => {
   })
 
   it('offline wins over a sync that is merely retrying', () => {
-    for (const connection of ['connected', 'connecting']) {
+    for (const connection of ['connected', 'connecting'] as const) {
       const status = resolveStatus(false, connection, false)
       expect(status).toMatchObject({ icon: 'no-signal', tone: 'preset-tonal-warning' })
       expect(status?.action).toBeUndefined()
@@ -20,13 +20,13 @@ describe('resolveStatus', () => {
     // reload button behind a reachability flag that had gone stale left a reader with a dead sync
     // looking at "you're offline" and nothing to press. Being told the wrong cause is survivable;
     // being shown no way out is not.
-    for (const connection of ['needs-auth', 'error', 'closed']) {
+    for (const connection of ['needs-auth', 'error', 'closed'] as const) {
       expect(resolveStatus(false, connection, false)).toMatchObject({ action: 'reload', role: 'alert' })
     }
   })
 
   it('offers a reload on the terminal states only', () => {
-    for (const connection of ['needs-auth', 'error', 'closed']) {
+    for (const connection of ['needs-auth', 'error', 'closed'] as const) {
       expect(resolveStatus(true, connection, false)).toMatchObject({ action: 'reload', role: 'alert' })
     }
 
@@ -49,7 +49,7 @@ describe('resolveStatus', () => {
     // The update branch is last on purpose, so this is the whole of that ordering. A deploy lands
     // while a reader is offline or mid-reconnect just as often as it lands on a healthy client,
     // and "a new version is ready" over the top of "you're offline" is a contradiction.
-    for (const connection of ['needs-auth', 'error', 'closed']) {
+    for (const connection of ['needs-auth', 'error', 'closed'] as const) {
       expect(resolveStatus(true, connection, true)).toMatchObject({ message: m.status_notSyncing })
     }
 
