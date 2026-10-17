@@ -8,7 +8,7 @@ describe('authRetryDelay', () => {
   })
 
   it('leaves every other connection state alone', () => {
-    for (const state of ['connected', 'connecting', 'disconnected', 'closed']) {
+    for (const state of ['connected', 'connecting', 'disconnected', 'closed'] as const) {
       expect(authRetryDelay(state, 0, 10_000_000)).toBeNull()
     }
   })

@@ -1,3 +1,4 @@
+import type { ConnectionName } from '$lib/zero/connection'
 import { describe, expect, it } from 'vitest'
 import { shouldKeepOffline } from './device.svelte'
 import { connectionVerdict } from './online.svelte'
@@ -38,7 +39,7 @@ describe('connectionVerdict', () => {
   it('does not assume an unknown future state is harmless', () => {
     // Zero has six states today. A seventh should hold the app to its ten-second check rather than
     // be waved through as evidence of a working connection.
-    expect(connectionVerdict('some-new-state')).toBe('unreachable')
+    expect(connectionVerdict('some-new-state' as ConnectionName)).toBe('unreachable')
   })
 })
 
