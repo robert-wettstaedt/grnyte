@@ -6,6 +6,7 @@ import type { EmailContent } from '$lib/email/shell'
 import { objectOf } from '$lib/entities/event/dto'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import { contactLocale, resolveMessage } from '$lib/i18n/message'
+import { DAY_MS } from '$lib/i18n/relativeTime'
 import { logServerFailure } from '$lib/logging/failure.server'
 import type { Locale } from '$lib/paraglide/runtime'
 import { and, asc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm'
@@ -67,7 +68,7 @@ const MAILED = new Set(Object.keys(MAIL) as NotificationSourceType[])
 const CLAIM_SLICE = 100
 
 /** How long a mail that failed is retried before its row is stamped anyway. */
-const MAIL_RETRY_MS = 24 * 60 * 60 * 1000
+const MAIL_RETRY_MS = DAY_MS
 
 /**
  * Directed pushes: one per unread row past its debounce.
@@ -216,7 +217,7 @@ export async function sendDirected(nowMs: number, origin: string, pushConfigured
       )
 
       const subscriptions = await subscriptionsFor(readable.map((row) => row.userFk))
-      const unread = await unreadCounts(ready.map((row) => row.userFk))
+      const unread = await unreadCounts(readable.map((row) => row.userFk))
       // Only the rows that name a file, so a batch without one runs no extra query.
       const parents = await parentNamesOf(readable.flatMap((row) => (row.fileFk == null ? [] : [row.fileFk])))
 

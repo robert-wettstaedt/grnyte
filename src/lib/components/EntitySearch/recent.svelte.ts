@@ -1,6 +1,7 @@
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 import type { DisplayName } from '$lib/entities/displayName'
 import { quietly } from '$lib/state/pill.svelte'
+import { storage } from '$lib/state/storage'
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
 import { entityMappers, type EntityCandidate, type EntityType } from './search.svelte'
@@ -45,21 +46,13 @@ interface SectionOptions {
 /** Forget every stored view. The flyout offers this because the list names places and
  *  people by name, which is not something a borrowed browser should keep showing. */
 export function clearViewed(): void {
-  try {
-    localStorage.removeItem(VIEWED_KEY)
-  } catch {
-    // Storage refused the delete. Nothing stored can be read either, so there is
-    // nothing left to leak; the caller has already dropped its in-memory copy.
-  }
+  storage.remove(VIEWED_KEY)
 }
 
 /** The entities opened most recently on this browser, newest first. */
 export function loadViewed(): EntityRef[] {
-  if (typeof localStorage === 'undefined') {
-    return []
-  }
   try {
-    const raw: unknown = JSON.parse(localStorage.getItem(VIEWED_KEY) ?? '[]')
+    const raw: unknown = JSON.parse(storage.get(VIEWED_KEY) ?? '[]')
     return Array.isArray(raw)
       ? raw
           .map(parseRef)
@@ -181,25 +174,10 @@ export function recentlyViewed({
   }
 }
 
-/**
- * Remember that an entity was opened, newest first.
- *
- * The write is guarded like every other one in the app: `typeof localStorage` is still
- * `'object'` in a browser that blocks site data, and it is `setItem` that throws there.
- * An unguarded throw would come out of the caller's `$effect` and blank the detail page,
- * which is a steep price for a dropdown section.
- */
+/** Remember that an entity was opened, newest first. A refused write leaves the list as it was. */
 export function recordView(ref: EntityRef): void {
-  if (typeof localStorage === 'undefined') {
-    return
-  }
   const next = [ref, ...loadViewed().filter((item) => refKey(item) !== refKey(ref))].slice(0, VIEWED_CAP)
-  try {
-    localStorage.setItem(VIEWED_KEY, JSON.stringify(next.map(refKey)))
-  } catch {
-    // Storage refused the write. The section stays as it was, which is invisible
-    // next to losing the page the reader asked for.
-  }
+  storage.set(VIEWED_KEY, JSON.stringify(next.map(refKey)))
 }
 
 /**

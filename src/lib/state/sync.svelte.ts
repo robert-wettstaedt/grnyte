@@ -1,5 +1,6 @@
 import { browser } from '$app/environment'
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+import { storage } from './storage'
 
 /**
  * When this device last finished a sync, so an empty local store can be told apart from a guidebook
@@ -74,11 +75,7 @@ export function forgetSynced(): void {
   syncedAt = NONE
 
   for (const stamp of STAMPS) {
-    try {
-      localStorage.removeItem(key(stamp, trackedUser))
-    } catch {
-      // Nothing to do. The in-memory clear above is what the current page reads.
-    }
+    storage.remove(key(stamp, trackedUser))
   }
 }
 
@@ -111,11 +108,8 @@ export function markSynced(stamp: SyncStamp): void {
   const at = Date.now()
   syncedAt = { ...syncedAt, [stamp]: at }
 
-  try {
-    localStorage.setItem(key(stamp, trackedUser), String(at))
-  } catch {
-    // In-memory value still stands for this page, and the next successful sync tries again.
-  }
+  // A refused write leaves the in-memory value for this page; the next successful sync tries again.
+  storage.set(key(stamp, trackedUser), String(at))
 }
 
 /**
@@ -142,18 +136,13 @@ function key(stamp: SyncStamp, userID: string): string {
   return `${KEY_PREFIX[stamp]}.${userID}`
 }
 
+/** A refused read (private mode, disabled cookies) degrades to "never synced". */
 function read(stamp: SyncStamp, userID: string): null | number {
-  try {
-    // `Number('')` is 0, not NaN, so an empty or whitespace value would read as a real stamp at the
-    // epoch and tell a device with nothing to restore to reconnect and restore it. Only `markSynced`
-    // writes here so it cannot happen today; the guard costs one condition and does not rely on that
-    // staying true.
-    const raw = localStorage.getItem(key(stamp, userID))?.trim()
-    const parsed = raw == null || raw === '' ? Number.NaN : Number(raw)
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
-  } catch {
-    // Storage refused the read (private mode, disabled cookies). Degrades to "never synced", which
-    // only costs a returning user one honest "reconnect to restore" instead of a silent empty page.
-    return null
-  }
+  // `Number('')` is 0, not NaN, so an empty or whitespace value would read as a real stamp at the
+  // epoch and tell a device with nothing to restore to reconnect and restore it. Only `markSynced`
+  // writes here so it cannot happen today; the guard costs one condition and does not rely on that
+  // staying true.
+  const raw = storage.get(key(stamp, userID))?.trim()
+  const parsed = raw == null || raw === '' ? Number.NaN : Number(raw)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }

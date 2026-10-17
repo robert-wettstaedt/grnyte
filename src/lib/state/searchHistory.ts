@@ -1,4 +1,5 @@
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+import { storage } from './storage'
 
 const KEY = `${PUBLIC_APPLICATION_NAME}:searchHistory`
 const CAP = 8
@@ -13,19 +14,12 @@ export function addToHistory(items: string[], query: string, cap = CAP): string[
 }
 
 export function clearHistory(): void {
-  try {
-    localStorage.removeItem(KEY)
-  } catch {
-    // Storage unavailable: nothing was stored.
-  }
+  storage.remove(KEY)
 }
 
 export function loadHistory(): string[] {
-  if (typeof localStorage === 'undefined') {
-    return []
-  }
   try {
-    const raw: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]')
+    const raw: unknown = JSON.parse(storage.get(KEY) ?? '[]')
     return Array.isArray(raw) ? raw.filter((item): item is string => typeof item === 'string').slice(0, CAP) : []
   } catch {
     return []
@@ -36,13 +30,7 @@ export function removeFromHistory(items: string[], query: string): string[] {
   return items.filter((item) => item !== query)
 }
 
+/** A refused write is fine: history is a convenience. */
 export function saveHistory(items: string[]): void {
-  if (typeof localStorage === 'undefined') {
-    return
-  }
-  try {
-    localStorage.setItem(KEY, JSON.stringify(items))
-  } catch {
-    // Quota or private mode: history is a convenience.
-  }
+  storage.set(KEY, JSON.stringify(items))
 }
