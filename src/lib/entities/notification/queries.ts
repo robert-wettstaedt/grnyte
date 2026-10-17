@@ -48,20 +48,17 @@ export const notificationsQueryDefs = {
    * memory. That pass, and the skeleton state it needed, are gone.
    */
   listNotifications: defineQuery(
-    z.object({
-      limit: z.optional(z.number()),
-      /** The badge's query: what has not been opened yet. */
-      unreadOnly: z.optional(z.boolean()),
-    }),
+    // Empty, not removed: an already-loaded tab still calls this query, and stray keys are stripped.
+    z.object({}),
     // `authenticatedUserCan` rather than `regionMemberCan`, which is what every other own-rows
     // query uses: this callback dereferences `ctx.authUserId`, and only that wrapper refuses a
     // missing context instead of reading through it. The region filter is then applied by hand,
     // exactly as `listUsers` does.
-    authenticatedUserCan(({ args, ctx }) => {
+    authenticatedUserCan(({ ctx }) => {
       const r = relatedRegion(ctx)
       const route = relatedRouteTree(ctx)
 
-      let q = zql.notifications
+      const q = zql.notifications
         .where('authUserFk', ctx.authUserId)
         // This exclusion, not the region gate, is what keeps the send-queue rows out of the inbox:
         // an invitee who accepts, or a removed member invited back, passes that gate afterwards.
@@ -86,13 +83,8 @@ export const notificationsQueryDefs = {
         .related('file', relatedFileTree(ctx))
         .related('subject')
 
-      if (args.unreadOnly === true) {
-        q = q.where('readAt', 'IS', null)
-      }
-
-      // Always bounded: an inbox nobody opens grows without limit, and the badge only has to
-      // count far enough to say "more than you want to read".
-      return relatedRegion(ctx)(q.limit(args.limit ?? DEFAULT_LIMIT))
+      // Always bounded: an inbox nobody opens grows without limit.
+      return relatedRegion(ctx)(q.limit(DEFAULT_LIMIT))
     }),
   ),
 }

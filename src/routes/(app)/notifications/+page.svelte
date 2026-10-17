@@ -28,9 +28,7 @@
 
   const global = getGlobalState()
 
-  // The regions are handed in rather than read inside the resource: the badge builds the same
-  // resource from `setGlobalState`, where the context does not exist yet. See `notificationList`.
-  const notifications = notificationList(undefined, () => global.userRegions)
+  const notifications = notificationList(() => global.userRegions)
 
   /**
    * Which rows were unread when the reader got here.
