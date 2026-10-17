@@ -4,8 +4,10 @@ import type { PhrasingContent, Root } from 'mdast'
 import { findAndReplace, type ReplaceFunction } from 'mdast-util-find-and-replace'
 import { type Plugin } from 'unified'
 
-export const referenceRegex = '!(areas|blocks|routes|users):\\d+!'
-const referenceRegexWithBase64 = '!(areas|blocks|routes|users):\\d+:[A-Za-z0-9+/=]+!'
+/** The reference types every `!type:id!` reader and the editor share; matched case-insensitively. */
+export const REFERENCE_TYPES = 'areas|blocks|routes|users'
+export const referenceRegex = `!(${REFERENCE_TYPES}):\\d+!`
+const referenceRegexWithBase64 = `!(${REFERENCE_TYPES}):\\d+:[A-Za-z0-9+/=]+!`
 
 /**
  * Token payload (base64-encoded into a reference) marking a target that no longer exists,

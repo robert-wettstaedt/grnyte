@@ -138,10 +138,7 @@ export const updateBlock = authedForm(
   blockActionSchema,
   async ({ id, ...value }, { afterCommit, db, user, userRegions }, issue) => {
     const block = await requireRowForm(
-      () =>
-        id == null
-          ? Promise.resolve(undefined)
-          : db.query.blocks.findFirst({ where: and(eq(blocks.id, id), isNull(blocks.deletedAt)) }),
+      () => (id == null ? Promise.resolve(undefined) : lockLiveBlock(db, id)),
       (row) => canEditBlock(userRegions, row),
       formError('blocks_notFound'),
     )
@@ -246,10 +243,22 @@ export const updateBlock = authedForm(
 /** Coordinates aimed at one live block, the shape both pin-only commands take. */
 const blockPinSchema = z.object({ id: z.number(), lat: boundedDegrees(90), long: boundedDegrees(180) })
 
+/** The live block, row-locked to commit. Every pin writer loads through this, so two first pins
+ *  cannot both read "no pin" and orphan one; the later save waits and sees the earlier pin.
+ *  `for update` applies the UPDATE policy, so a reader without edit rights gets not-found, not 403. */
+async function lockLiveBlock(db: Context['db'], id: number) {
+  const [row] = await db
+    .select()
+    .from(blocks)
+    .where(and(eq(blocks.id, id), isNull(blocks.deletedAt)))
+    .for('update')
+  return row
+}
+
 /** The live block a pin command names, once the caller is allowed to move it. */
 function requireEditableBlock(db: Context['db'], id: number, userRegions: Context['userRegions']) {
   return requireRow(
-    () => db.query.blocks.findFirst({ where: and(eq(blocks.id, id), isNull(blocks.deletedAt)) }),
+    () => lockLiveBlock(db, id),
     (row) => canEditBlock(userRegions, row),
     formError('blocks_notFound'),
   )
