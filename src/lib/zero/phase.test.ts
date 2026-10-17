@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { expectingMore, resolvePhase, summaryOf } from './resource.svelte'
 
 /** Online, rows on hand, confirmed. Each test bends one thing. */
-const base = { availability: 'ready', online: true, rawEmpty: false, settled: true, status: 'ready' } as const
+const base = { excluded: false, online: true, rawEmpty: false, settled: true, status: 'ready' } as const
 
 describe('resolvePhase', () => {
   it('answers a confirmed query with rows', () => {
@@ -18,9 +18,7 @@ describe('resolvePhase', () => {
   })
 
   it('is loading while nothing is on hand online', () => {
-    expect(
-      resolvePhase({ ...base, availability: 'loading', rawEmpty: true, settled: false, status: 'loading' }),
-    ).toEqual({
+    expect(resolvePhase({ ...base, rawEmpty: true, settled: false, status: 'loading' })).toEqual({
       kind: 'loading',
     })
   })
@@ -34,22 +32,27 @@ describe('resolvePhase', () => {
   })
 
   it('answers empty offline once the preload that keeps it finished', () => {
-    const kept = { ...base, online: false, rawEmpty: true, settled: false, status: 'loading' } as const
+    // A kept query counts as settled offline (`resolveKept` feeds the latch), whatever Zero says.
+    const kept = { ...base, online: false, rawEmpty: true, settled: true, status: 'loading' } as const
     expect(resolvePhase(kept)).toEqual({ empty: true, kind: 'answered' })
   })
 
   it('is unavailable offline when never synced, not loading forever', () => {
-    const gone = { availability: 'unsynced', online: false, rawEmpty: true, settled: false, status: 'loading' } as const
+    const gone = { excluded: false, online: false, rawEmpty: true, settled: false, status: 'loading' } as const
     expect(resolvePhase(gone)).toEqual({ excluded: false, kind: 'unavailable' })
   })
 
   it('is unavailable as excluded for data never kept, even with a fragment on hand', () => {
-    const fragment = { ...base, availability: 'excluded', online: false, settled: false } as const
+    const fragment = { ...base, excluded: true, online: false, settled: false } as const
     expect(resolvePhase(fragment)).toEqual({ excluded: true, kind: 'unavailable' })
   })
 
+  it('is still just data when online, excluded or not', () => {
+    expect(resolvePhase({ ...base, excluded: true, settled: false })).toEqual({ kind: 'arriving' })
+  })
+
   it('reports an error over anything else', () => {
-    expect(resolvePhase({ ...base, availability: 'error', status: 'error' })).toEqual({ kind: 'error' })
+    expect(resolvePhase({ ...base, status: 'error' })).toEqual({ kind: 'error' })
   })
 })
 

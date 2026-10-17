@@ -1,5 +1,4 @@
 <script module lang="ts">
-  import { m } from '$lib/paraglide/messages'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import StatusBar from './StatusBar.svelte'
 
@@ -27,15 +26,3 @@
 <!-- A deploy landed while this tab was open. Ranks below every branch above it, so the story has
      to pin a healthy connection to show it at all. -->
 <Story name="Update ready" args={{ connectionState: { name: 'connected' }, online: true, updateReady: true }} />
-
-<!-- Announcement, the only dismissible variant. Dismissing really does persist, under a
-     story-only id so it cannot hide the shipped notice: clear `<app name>.dismissedAnnouncements`
-     from localStorage to bring this story back. -->
-<Story
-  name="Announcement"
-  args={{
-    announcement: { endsAt: '2099-01-01', id: 'storybook', message: m.status_announcementV2 },
-    connectionState: { name: 'connected' },
-    online: true,
-  }}
-/>

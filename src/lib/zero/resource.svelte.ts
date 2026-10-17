@@ -8,27 +8,6 @@ import { getZ } from './z.svelte'
 import type { Schema } from './zero-schema'
 
 /**
- * Why there is nothing to show yet, answered once here instead of at every call site.
- *
- * - `ready`: there is an answer. Possibly an empty one, which is still an answer.
- * - `loading`: genuinely on its way. Only ever reported while online.
- * - `excluded`: offline, and this is data we deliberately do not keep (see `EXCLUDED`).
- *   It is not coming until the connection does, and whatever rows are locally present are a
- *   fragment left by some other query's preload rather than the answer.
- * - `unsynced`: offline, and this is not on the device. It may exist; we cannot say.
- * - `error`: the server rejected or failed it. A fact rather than an absence, but it belongs in the
- *   same union so that a caller asking "may I state this number" gets one answer and not four.
- *
- * The last two used to be four separate judgements in four modules, each reading different
- * evidence, and three of them were wrong: one called a completed-and-genuinely-empty result "not
- * downloaded", one used row count as a proxy for completeness on a query its own preload seeded,
- * and two keyed on `isComplete`/`isSyncing`, which are facts about the transport and reset
- * themselves when a backgrounded tab loses its socket. The resource is the only layer holding all
- * the evidence, so the judgement belongs here.
- */
-export type Availability = 'error' | 'excluded' | 'loading' | 'ready' | 'unsynced'
-
-/**
  * What a screen may say about a query, decided once. `answered` alone may state an absence;
  * `arriving` may summarise its rows (`summaryOf`); `partial` is offline rows never confirmed.
  */
@@ -76,10 +55,6 @@ class Resource<
   TReturn,
   TOut,
 > implements QueryResource<TOut> {
-  get availability(): Availability {
-    return resolveAvailability({ ...this.#keptInput(), online: isOnline(), status: this.#status })
-  }
-
   get data(): TOut {
     return this.#data
   }
@@ -89,16 +64,12 @@ class Resource<
 
   get phase(): QueryPhase {
     return resolvePhase({
-      availability: this.availability,
+      excluded: this.#keptInput().policy === 'excluded',
       online: isOnline(),
       rawEmpty: this.#rawEmpty,
-      settled: this.settled,
+      settled: this.#settled,
       status: this.#status,
     })
-  }
-
-  get settled(): boolean {
-    return this.#settled
   }
 
   #enabled: () => boolean
@@ -196,18 +167,11 @@ class Resource<
   })
 
   #status: ResourceStatus = $derived.by(() => {
-    if (this.#confirming.some((query) => query.details.type === 'error')) {
-      return 'error'
-    }
-
-    // Stale-while-revalidate: local rows (e.g. from the initZero preloads)
-    // render immediately even before the server confirms, so only an *empty*
-    // unknown result counts as loading.
-    if (!this.isComplete && this.#rawEmpty) {
-      return 'loading'
-    }
-
-    return 'ready'
+    return resolveStatus({
+      complete: this.isComplete,
+      errored: this.#confirming.some((query) => query.details.type === 'error'),
+      rawEmpty: this.#rawEmpty,
+    })
   })
 
   constructor(
@@ -296,94 +260,54 @@ export function expectingMore(phase: QueryPhase): boolean {
 }
 
 /**
- * The offline judgement, as a function of its inputs and nothing else.
- *
- * Six inputs, five outputs, and an order between the branches that is load-bearing twice. It lived
- * inside a class getter reading three module singletons, so it could not be constructed and could
- * not be asserted, and every bug found in it was a case a truth table would have caught first:
- * `ready` on a fragment, `always`/`field` sitting dead, `error` folded into `ready`, and a `field`
- * gate leaning on a stamp that was about the reference data rather than the guidebook.
- *
- * Same shape as `connectionVerdict` and `shouldKeepOffline`, for the same reason.
- *
- * @param input.status what Zero's result type says, mapped by the resource.
- * @param input.policy this query's offline policy, or a per-usage override.
- * @param input.online the app's own reachability answer, not `navigator.onLine`.
- * @param input.referenceSynced this device finished the always-preload at least once.
- * @param input.guidebookSynced this device finished the field preload at least once. NOT the same
- *   claim: the reference stamp lands seconds into a sync with thousands of rows still to come.
- * @param input.fieldDevice this device keeps the guidebook at all.
- * @param input.personalSynced this device finished the personal preload (own logbook, favorites).
- * @param input.storeLoaded Zero has read the replica back; no stamp vouches for rows before that.
+ * Whether this device holds the whole answer without asking: the policy keeps it and the preload
+ * that fills it finished. The reference stamp does not vouch for the guidebook, which lands later.
  */
-export function resolveAvailability(input: {
+export function resolveKept(input: {
   fieldDevice: boolean
   guidebookSynced: boolean
-  online: boolean
   personalSynced: boolean
   policy: OfflinePolicy | undefined
   referenceSynced: boolean
-  status: ResourceStatus
   storeLoaded: boolean
-}): Availability {
-  if (input.status === 'error') {
-    return 'error'
+}): boolean {
+  // Until the replica is read back, kept rows are empty because they are loading, or gone.
+  if (!input.storeLoaded) {
+    return false
+  }
+  if (input.policy === 'always') {
+    return input.referenceSynced
+  }
+  if (!input.fieldDevice) {
+    return false
   }
 
-  // Tested before the rows are, and this order is the whole point. Zero answers a query from the
-  // local replica, and an excluded query's table is seeded by *other* preloads: a stranger's ascents
-  // arrive with the routes you browsed. So offline these hold a fragment, and a fragment is
-  // indistinguishable from an answer by row count alone. Reporting `ready` because something was
-  // there let a profile draw a tally, a hardest grade and a whole histogram out of whichever few
-  // rows happened to be local, and present them as that person's climbing.
-  if (!input.online && input.policy === 'excluded') {
-    return 'excluded'
-  }
-
-  if (input.status !== 'loading') {
-    return 'ready'
-  }
-
-  // Online, "nothing yet" means exactly that.
-  if (input.online) {
-    return 'loading'
-  }
-
-  // Offline and empty. Empty is an *answer* here rather than a gap, but only on a device that
-  // finished the preload which would have filled it. Without this an area that genuinely
-  // has no routes told a reader with a fully synced guidebook to reconnect and download it: the same
-  // wrong claim as the fragment above, with the sign flipped.
-  if (resolveKept(input)) {
-    return 'ready'
-  }
-
-  return 'unsynced'
+  return input.policy === 'field' ? input.guidebookSynced : input.policy === 'personal' && input.personalSynced
 }
 
-/** The phase, from the same evidence the resolvers below read, in the order screens must use. */
-export function resolvePhase(input: {
-  availability: Availability
+/**
+ * What a screen may say, from the transport status and the settled latch. Order is load-bearing:
+ * `settled` already folds in "offline and kept", and `loading` implies no rows, so an answer or an
+ * excluded fragment needs no separate offline judgement.
+ */
+export function resolvePhase({
+  excluded,
+  online,
+  rawEmpty,
+  settled,
+  status,
+}: {
+  excluded: boolean
   online: boolean
   rawEmpty: boolean
   settled: boolean
   status: ResourceStatus
 }): QueryPhase {
-  if (input.status === 'error') {
-    return { kind: 'error' }
-  }
-  if (resolveUnavailable(input)) {
-    return { excluded: input.availability === 'excluded', kind: 'unavailable' }
-  }
-  if (resolveEmpty(input)) {
-    return { empty: true, kind: 'answered' }
-  }
-  if (input.status === 'loading') {
-    return { kind: 'loading' }
-  }
-  if (input.settled) {
-    return { empty: false, kind: 'answered' }
-  }
-  return resolveArriving(input) ? { kind: 'arriving' } : { kind: 'partial' }
+  if (status === 'error') return { kind: 'error' }
+  if (settled) return { empty: rawEmpty, kind: 'answered' }
+  if (!online && (excluded || status === 'loading')) return { excluded, kind: 'unavailable' }
+  if (status === 'loading') return { kind: 'loading' }
+  return online ? { kind: 'arriving' } : { kind: 'partial' }
 }
 
 /** A composite's policy: one only when every query it registers agrees, since it is no more kept
@@ -395,8 +319,7 @@ export function resolvePolicy(policies: (OfflinePolicy | undefined)[]): OfflineP
 }
 
 /**
- * The settled latch, as a function of its inputs and nothing else. Same reason as
- * `resolveAvailability` below: `Resource` needs `getZ()` and cannot be constructed in a test.
+ * The settled latch, as a function of its inputs and nothing else, so a truth table can assert it.
  *
  * A new view means a different request, so the answer starts over from what that view already
  * knows. Otherwise the latch only ever goes up, which is the whole point: `complete` drops when a
@@ -412,6 +335,23 @@ export function resolveSettled({
   sameView: boolean
 }): boolean {
   return sameView ? latched || complete : complete
+}
+
+/**
+ * What Zero's result says, mapped. Stale-while-revalidate: local rows (e.g. from the initZero
+ * preloads) render before the server confirms, so only an EMPTY unconfirmed result is loading.
+ */
+export function resolveStatus({
+  complete,
+  errored,
+  rawEmpty,
+}: {
+  complete: boolean
+  errored: boolean
+  rawEmpty: boolean
+}): ResourceStatus {
+  if (errored) return 'error'
+  return !complete && rawEmpty ? 'loading' : 'ready'
 }
 
 /** Whether a composite still watches the same views, in order. Any change is a new request. */
@@ -470,73 +410,4 @@ export function waitForRow<
 // Zero carries the registry name on every request, so a resource finds its own offline policy.
 function queryNameOf(request: QueryRequest): string | undefined {
   return typeof request === 'object' && 'query' in request ? request.query.queryName : undefined
-}
-
-/** Rows on screen with more expected: render them with the affordance, and no total yet. */
-function resolveArriving({
-  online,
-  settled,
-  status,
-}: {
-  online: boolean
-  settled: boolean
-  status: ResourceStatus
-}): boolean {
-  return online && !settled && status === 'ready'
-}
-
-/**
- * Whether an empty result is an answer: latched like `settled`, and offline exactly when
- * `resolveAvailability` says so.
- */
-function resolveEmpty({
-  availability,
-  rawEmpty,
-  settled,
-  status,
-}: {
-  availability: Availability
-  rawEmpty: boolean
-  settled: boolean
-  status: ResourceStatus
-}): boolean {
-  if (!rawEmpty || status === 'error') {
-    return false
-  }
-
-  return settled || (status === 'loading' && availability === 'ready')
-}
-
-/**
- * Whether this device holds the whole answer without asking: the policy keeps it and the preload
- * that fills it finished. The reference stamp does not vouch for the guidebook, which lands later.
- */
-function resolveKept(input: {
-  fieldDevice: boolean
-  guidebookSynced: boolean
-  personalSynced: boolean
-  policy: OfflinePolicy | undefined
-  referenceSynced: boolean
-  storeLoaded: boolean
-}): boolean {
-  // Until the replica is read back, kept rows are empty because they are loading, or gone.
-  if (!input.storeLoaded) {
-    return false
-  }
-  if (input.policy === 'always') {
-    return input.referenceSynced
-  }
-  if (!input.fieldDevice) {
-    return false
-  }
-
-  return input.policy === 'field' ? input.guidebookSynced : input.policy === 'personal' && input.personalSynced
-}
-
-/**
- * Offline with nothing confirmed for this request: the offline notice's case. Never true while merely
- * loading online, and never once the request was confirmed, so a signal blip keeps a list on screen.
- */
-function resolveUnavailable({ availability, settled }: { availability: Availability; settled: boolean }): boolean {
-  return !settled && (availability === 'excluded' || availability === 'unsynced')
 }
