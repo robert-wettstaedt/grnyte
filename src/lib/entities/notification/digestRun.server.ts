@@ -188,12 +188,14 @@ export async function sendDigests(nowMs: number): Promise<number> {
       },
     )
 
-    const enabled = queued.filter((event) => categoryEnabled(event, subscriber))
-
     // Rows this person has switched off still count as covered. Leaving them behind the watermark
     // means re-reading a growing prefix on every run and, the moment they switch that category
     // back on, one push announcing the entire backlog.
     const mark = safeMark(queued, queued.length === DIGEST_SCAN_LIMIT)
+    // Only what the mark covers: rows a truncated scan defers are counted by the run that covers them.
+    const enabled = queued.filter(
+      (event) => event.createdAt.getTime() <= mark.getTime() && categoryEnabled(event, subscriber),
+    )
 
     if (enabled.length === 0) {
       await advanceWatermark(subscriber.userFk, mark)
