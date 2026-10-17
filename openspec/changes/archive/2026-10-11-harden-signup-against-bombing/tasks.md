@@ -47,4 +47,3 @@
 - [x] 6.1 One bot-check module (`botFields`, `screenSubmit`, `BotCheck.svelte`) replaces the per-handler sequence and the `Honeypot`/`ProofOfWork` pair; bot cases tested once in `botCheck.server.test.ts`, seen red by dropping the honeypot check
 - [x] 6.2 Move the submit hold to `submitHold.ts` with browser-project tests; Stryker 90.7%, the 5 survivors are equivalent (state literals, post-verify optional chaining, a re-held resubmit)
 - [x] 6.3 Round-trip test: an expired sign-up leaves nothing after the sweep, seen red by dropping the user_settings delete
-

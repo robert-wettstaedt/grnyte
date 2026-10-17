@@ -18,10 +18,12 @@ the detail screens. No writes, no remote functions, no schema change.
 ## Goals / Non-Goals
 
 **Goals:**
+
 - One source for "what narrows the map" across every screen under the explore layout.
 - "Does this route match" is answered once, from rows the map already holds.
 
 **Non-Goals:**
+
 - Filter state in detail URLs, or a second filter for the area route list.
 
 ## Decisions
