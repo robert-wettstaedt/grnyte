@@ -13,6 +13,12 @@ import type { NotificationSourceType } from '$lib/entities/notification/dto'
 import type { Locale } from '$lib/paraglide/runtime'
 import { sourceTraits } from './sourceType'
 
+/**
+ * A file's parent: what it is called before a locale is chosen, and the page it lives on.
+ *
+ * A block's fallback name needs its order, and an ascent has neither a name nor a page of its own,
+ * so it answers with its route's.
+ */
 export type ParentName = ({ kind: 'block'; name: string; order: number } | { kind: 'plain'; name: string }) & {
   path: string
 }
