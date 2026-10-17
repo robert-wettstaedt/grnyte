@@ -1,4 +1,5 @@
 import type { EntityItem, EntityType } from '$lib/components/EntitySearch/search.svelte'
+import { REFERENCE_TYPES } from '$lib/components/Markdown/lib/remark-references'
 import type { JSONContent, MarkdownToken } from '@tiptap/core'
 import Mention, { type MentionOptions } from '@tiptap/extension-mention'
 import type { DOMOutputSpec, Node as PMNode } from '@tiptap/pm/model'
@@ -14,10 +15,10 @@ interface ReferenceAttrs {
   type: EntityType
 }
 
-const REF_TYPES = 'areas|blocks|routes|users'
 // `start` scans for the next possible token; the anchored form parses one at the cursor.
-const REF_FIND = new RegExp(`!(?:${REF_TYPES}):\\d+!`)
-const REF_ANCHORED = new RegExp(`^!(${REF_TYPES}):(\\d+)!`)
+// Case-insensitive like the renderer, so `!Routes:5!` is a chip, not text.
+const REF_FIND = new RegExp(`!(?:${REFERENCE_TYPES}):\\d+!`, 'i')
+const REF_ANCHORED = new RegExp(`^!(${REFERENCE_TYPES}):(\\d+)!`, 'i')
 
 const attrsOf = (node: JSONContent | PMNode): ReferenceAttrs => {
   const attrs = (node.attrs ?? {}) as Partial<ReferenceAttrs>
@@ -64,7 +65,7 @@ export const createReferenceExtension = ({ resolveLabel, suggestion }: Reference
         if (match == null) {
           return undefined
         }
-        return { raw: match[0], refId: match[2], refType: match[1], type: REFERENCE_NODE_NAME }
+        return { raw: match[0], refId: match[2], refType: match[1].toLowerCase(), type: REFERENCE_NODE_NAME }
       },
     },
 

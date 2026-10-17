@@ -14,7 +14,7 @@
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { asRequest, callForm, redirectOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { createBlock, updateBlock } from './blocks.remote'
+import { createBlock, estimateBlockLocationFromPhoto, updateBlock } from './blocks.remote'
 import { blockPinFingerprint } from './fingerprint'
 
 const REGION = '__blocks_remote_region__'
@@ -242,4 +242,58 @@ describe.skipIf(!reachable)('block pins', () => {
     expect(row.geoId).not.toBeNull()
     expect(row).toMatchObject({ blockFk: row.blockId, estimated: true, pinRegion: regionId })
   })
+
+  // Both saves start from "no pin", so both carry the same `known`. Unlocked, both attached a pin
+  // and the block kept only the second, orphaning the first.
+  it('keeps one pin when two saves place the first pin at once', async () => {
+    const name = '__blocks_remote_race__'
+    await submit(createBlock, { areaId: String(sectorId), description: '', name })
+    const [{ id }] = await sql<{ id: number }[]>`
+      select id from public.blocks where name = ${name} and region_fk = ${regionId}`
+
+    const save = (lat: string) =>
+      submit(updateBlock, {
+        areaId: String(sectorId),
+        description: '',
+        id: String(id),
+        known: blockPinFingerprint(null),
+        lat,
+        long: '11.5',
+        name,
+      })
+    await Promise.all([save('49.1'), save('49.2')])
+
+    expect(await pinIds(id)).toEqual(await linkedPin(id))
+  })
+
+  // The photo backfill is a second writer of a first pin; it loads the block under the same lock.
+  it('keeps one pin when a photo estimate races a save placing the first pin', async () => {
+    const name = '__blocks_remote_race_estimate__'
+    await submit(createBlock, { areaId: String(sectorId), description: '', name })
+    const [{ id }] = await sql<{ id: number }[]>`
+      select id from public.blocks where name = ${name} and region_fk = ${regionId}`
+
+    await Promise.all([
+      submit(updateBlock, {
+        areaId: String(sectorId),
+        description: '',
+        id: String(id),
+        known: blockPinFingerprint(null),
+        lat: '49.1',
+        long: '11.5',
+        name,
+      }),
+      asRequest(maintainer.authId, () => estimateBlockLocationFromPhoto({ id, lat: 49.2, long: 11.5 })),
+    ])
+
+    expect(await pinIds(id)).toEqual(await linkedPin(id))
+  })
 })
+
+const pinIds = async (blockId: number) =>
+  (await sql<{ id: number }[]>`select id from public.geolocations where block_fk = ${blockId}`).map((pin) => pin.id)
+
+const linkedPin = async (blockId: number) =>
+  (
+    await sql<{ geoId: null | number }[]>`select geolocation_fk as "geoId" from public.blocks where id = ${blockId}`
+  ).map((row) => row.geoId)
