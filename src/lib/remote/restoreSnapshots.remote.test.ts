@@ -431,16 +431,9 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
   })
 
   /**
-   * The three columns `restoreRoute` refuses to take from the snapshot, and the only test that
-   * looks at them.
-   *
-   * The route path reaches the INSERT in exactly one other place (the first-ascensionist case
-   * above), and that one asserts only the junction, so every derivation was unguarded: swap
-   * `createdBy: user.id` back to `snapshot.route.createdBy`, or copy `areaFks`/`areaIds` through
-   * instead of recomputing them from `areaAncestry(block.areaFk)`, and the whole suite stayed
-   * green. `restoreFidelity` cannot cover it either, since it excludes these columns by design.
-   * The handler's own comment calls this out: a DELETE holder could otherwise restore a route
-   * with forged authorship into another region's block, carrying poisoned search tokens.
+   * The columns `restoreRoute` derives rather than takes: the snapshot schema no longer has them,
+   * so forged values are stripped on parse, and this pins that authorship and the area chain come
+   * from the session and `areaAncestry(block.areaFk)`. `restoreFidelity` excludes these columns.
    */
   it('stamps the caller as author and recomputes the area chain from the stored block', async () => {
     const blockId = await createBlock('__restore_derive_block__', sectorAreaId, homeRegionId)
