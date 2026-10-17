@@ -19,10 +19,12 @@ All reads here are existing Zero queries (`listRoutesForMap`, `blockMapList`, `a
 ## Goals / Non-Goals
 
 **Goals:**
+
 - One place decides which blocks the map draws, and it is a pure function with a unit test.
 - The exemption feeds both the markers and the camera from the same array, so they cannot disagree.
 
 **Non-Goals:**
+
 - Changing what the route filter does on detail screens (`carry-route-filter-into-details`).
 - Touching `cameraTarget`: given the right `blocks`, it already frames and claims correctly.
 

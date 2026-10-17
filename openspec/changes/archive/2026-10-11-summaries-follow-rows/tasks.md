@@ -53,7 +53,6 @@
 - [x] 7.7 EventFeed story renders a `PillHost` so "New activity pill" shows the action
 - [x] 7.8 Re-run the sweep (prettier, eslint, svelte-check, vitest browser, lint:duplication, lint:unused) and drive the sheet, feed, map and activity log at 375 and 1280
 
-
 ## 8. Review round 2
 
 - [x] 8.1 AGENTS.md describes per-surface pills, `pillSurface().offer` and `quietly`

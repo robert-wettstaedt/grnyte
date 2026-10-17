@@ -45,9 +45,9 @@ rules:
   tasks:
     - Keep each task to one reviewable edit.
     - Add an explicit i18n task whenever the change introduces user-facing copy.
-    - "End with the verification sweep from AGENTS.md over the touched paths:
+    - 'End with the verification sweep from AGENTS.md over the touched paths:
       prettier, eslint, the matching vitest project, typecheck, lint:duplication,
-      lint:unused, and driving the running app at 375x667 and 1280x800."
+      lint:unused, and driving the running app at 375x667 and 1280x800.'
 
 operations:
   apply:

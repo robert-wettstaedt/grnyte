@@ -61,8 +61,7 @@
       today. Keep every toast. `settings/email` is deliberately excluded: it has no `onSubmitted`,
       stays on the form to render `updateEmail.result?.email`, and giving it a destination would
       change behaviour this change is not about. Verify each of the five still lands on its
-      destination in the running app, and that the feedback and password ones (plain `form`, so no
-      303) exercise the envelope path rather than the interception.
+      destination in the running app, and that the feedback and password ones (plain `form`, so no 303) exercise the envelope path rather than the interception.
 
 ## 5. Unsaved work guard
 
@@ -94,7 +93,7 @@
 - [x] 7.5 Run the AGENTS.md sweep over the touched paths only: `npx prettier --write`, `npx eslint`,
       `npx vitest run --project server` for the `.server.test.ts` and `.remote.test.ts` files and
       `--project browser` for the rest, then `./node_modules/.bin/svelte-check --tsconfig
-      ./tsconfig.json` beside the running dev server.
+    ./tsconfig.json` beside the running dev server.
 - [x] 7.6 Run `npm run lint:duplication` and `npm run lint:unused`, resolving any clone marked
       `[NEW]` or accepting it deliberately with `npm run lint:duplication:accept` and saying why.
 
@@ -108,17 +107,17 @@ releases and must not be bundled with them.
       form shape in the running app and confirming each still navigates, now through the envelope.
 
       Driven, 9 of the 10: `updateRoute`, `updateBlock` (indirect via BlockForm), `updateUsername`
-      (a static `resolve()` destination rather than `entityHref`), `updateArea`, `updateRegion`,
-      `updateRegionMapLayers`, `updateAscent` (navigates to the ROUTE, not the ascent), `addParking`
-      (multi-step) and `createArea` (destination id built after the commit). Every one navigated with
-      `history.length` unchanged across the exit, so the replace-not-push property holds for each.
-      Not driven: `createBlock`, whose submit stays disabled until a location decision that needs map
-      interaction. It is the same `<Form>`, the same envelope read and the same post-commit id as
-      `createArea` above, which was driven.
+          (a static `resolve()` destination rather than `entityHref`), `updateArea`, `updateRegion`,
+          `updateRegionMapLayers`, `updateAscent` (navigates to the ROUTE, not the ascent), `addParking`
+          (multi-step) and `createArea` (destination id built after the commit). Every one navigated with
+          `history.length` unchanged across the exit, so the replace-not-push property holds for each.
+          Not driven: `createBlock`, whose submit stays disabled until a location decision that needs map
+          interaction. It is the same `<Form>`, the same envelope read and the same post-commit id as
+          `createArea` above, which was driven.
 
-      The stale-tab ordering this task guards is moot: release 1 shipped `declaredDestination()`
-      itself, so a release-1 tab reads the envelope when no 303 arrives. The real residual risk runs
-      the other way, see design.md.
+          The stale-tab ordering this task guards is moot: release 1 shipped `declaredDestination()`
+          itself, so a release-1 tab reads the envelope when no 303 arrives. The real residual risk runs
+          the other way, see design.md.
 
 ## 9. Later release: delete the interception
 

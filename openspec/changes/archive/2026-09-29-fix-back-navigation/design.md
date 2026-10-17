@@ -5,11 +5,11 @@ See proposal.md for motivation. What shapes the approach is where the exits alre
 Every mutation exit in the app already funnels through one of three places, and all three push a new
 history entry:
 
-| exit | where | reach |
-| --- | --- | --- |
-| `redirect(303, redirectTo)` server-side | `authedForm` in `$lib/remote/authed.server.ts` | 22 handlers |
-| `await goto(result.redirectTo)` | `runCommand` in `$lib/remote/mutation.ts` | ~24 delete and undo sites |
-| hand-rolled `goto` in `onSubmitted` | 4 page components | 4 |
+| exit                                    | where                                          | reach                     |
+| --------------------------------------- | ---------------------------------------------- | ------------------------- |
+| `redirect(303, redirectTo)` server-side | `authedForm` in `$lib/remote/authed.server.ts` | 22 handlers               |
+| `await goto(result.redirectTo)`         | `runCommand` in `$lib/remote/mutation.ts`      | ~24 delete and undo sites |
+| hand-rolled `goto` in `onSubmitted`     | 4 page components                              | 4                         |
 
 SvelteKit applies the 303 through its internal `_goto` with no `replaceState`, which is why the
 dominant path pushes. Kit is pinned at `^2.59.1`.
@@ -165,7 +165,6 @@ A ROLLBACK of section 8, not its deploy, is the direction that degrades. A tab r
 `Form.svelte` has no capture, so an old server still sending the 303 pushes the finished form back
 into the history stack: the bug this change exists to fix, returning silently until the tab reloads.
 Deploying section 8 is safe in the other direction because release 1 already reads the envelope.
-
 
 - **The interception cancels a navigation Kit started, so the invalidation Kit requested is lost**
   (Kit sets it in a callback that never runs once cancelled) → the re-issued navigation carries it,
