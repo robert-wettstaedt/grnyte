@@ -379,7 +379,10 @@
             type="button"
             class="text-surface-600-400 hover:text-surface-950-50 relative flex shrink-0 items-center gap-1 py-0.5 text-xs font-semibold before:absolute before:inset-x-0 before:-inset-y-3"
             aria-expanded={expanded}
-            onclick={() => onToggle?.((expanded = !expanded))}
+            onclick={() => {
+              expanded = !expanded
+              onToggle?.(expanded)
+            }}
           >
             <Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={14} />
             {expanded ? m.event_hideChanges() : m.event_showChanges()}
