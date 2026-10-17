@@ -1,4 +1,4 @@
-import { areas, blocks, files, geolocations, routes, topos, type Area, type Block } from '$lib/db/schema'
+import { areas, blocks, files, geolocations, routes, topos } from '$lib/db/schema'
 import { entityHref } from '$lib/entities/href'
 import { blank, boundedDegrees, formError, optionalCoordinate, stringToInt } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -7,15 +7,25 @@ import { authedCommand, authedForm, type Context } from '$lib/remote/authed.serv
 import type { MutationResult } from '$lib/remote/mutation'
 import { answerReplayedRestore, requireIssuedId, requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
-import { and, count, eq, gt, gte, isNull, ne, sql } from 'drizzle-orm'
+import { and, count, eq, isNull } from 'drizzle-orm'
 import { hasDeletedAncestor, refreshAreaType } from '../area/area.server'
 import { canAddBlock } from '../area/permissions'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { stringifyDeletionScale } from '../event/verbs'
 import { notifyMentions } from '../notification/notification.server'
 import { blockPinFingerprint } from './fingerprint'
+import {
+  hardDeleteBlock,
+  hardRestoreBlock,
+  restoreBlockSchema,
+  shiftBlockOrdersDown,
+  softDeleteBlock,
+  softRestoreBlock,
+  type DeleteBlockSnapshot,
+} from './lifecycle.server'
 import { inAreaOrderSql } from './order.server'
 import { canDeleteBlock, canEditBlock } from './permissions'
+import { attachPin, movePin, removePin } from './pin.server'
 
 const blockActionSchema = z.object({
   areaId: stringToInt,
@@ -76,16 +86,6 @@ export const createBlock = authedForm(
       .from(blocks)
       .where(and(eq(blocks.areaFk, value.areaId), isNull(blocks.deletedAt)))
 
-    // Optional location: a geolocation row the block points at via `geolocationFk`.
-    let geolocationFk: number | undefined
-    if (value.lat != null && value.long != null) {
-      const [geolocation] = await db
-        .insert(geolocations)
-        .values({ estimated: value.estimated, lat: value.lat, long: value.long, regionFk: area.regionFk })
-        .returning()
-      geolocationFk = geolocation.id
-    }
-
     const [block] = await db
       .insert(blocks)
       .values({
@@ -95,16 +95,15 @@ export const createBlock = authedForm(
         // `description IS NULL` means what it says. Same as `routes`. Trimmed, because the
         // editor reserialises an emptied document with a trailing newline (see `changed`).
         description: blank(value.description),
-        geolocationFk,
         name: value.name,
         order: blocksCount.count,
         regionFk: area.regionFk,
       })
       .returning()
 
-    if (geolocationFk != null) {
-      // Back-link the geolocation to its block (mirrors parking's areaFk link).
-      await db.update(geolocations).set({ blockFk: block.id }).where(eq(geolocations.id, geolocationFk))
+    // Optional location, linked both ways once the block exists.
+    if (value.lat != null && value.long != null) {
+      await attachPin(db, block, { estimated: value.estimated, lat: value.lat, long: value.long })
     }
 
     await refreshAreaType(db, value.areaId)
@@ -190,22 +189,10 @@ export const updateBlock = authedForm(
       newLocation = stringifyCoords({ lat: value.lat, long: value.long }, value.estimated)
 
       if (existing == null) {
-        const [geolocation] = await db
-          .insert(geolocations)
-          .values({
-            blockFk: block.id,
-            estimated: value.estimated,
-            lat: value.lat,
-            long: value.long,
-            regionFk: block.regionFk,
-          })
-          .returning()
-        geolocationFk = geolocation.id
+        geolocationFk = (await attachPin(db, block, { estimated: value.estimated, lat: value.lat, long: value.long }))
+          .id
       } else {
-        await db
-          .update(geolocations)
-          .set({ estimated: value.estimated, lat: value.lat, long: value.long })
-          .where(eq(geolocations.id, existing.id))
+        await movePin(db, existing.id, { estimated: value.estimated, lat: value.lat, long: value.long })
       }
     } else if (geolocationFk != null) {
       // Read the pin before dropping it: `oldValue` is the only place the feed can learn where
@@ -213,9 +200,7 @@ export const updateBlock = authedForm(
       const removed = storedPin
       oldLocation = removed == null ? null : stringifyCoords(removed, removed.estimated)
 
-      // Removed: break the block→geo link first so the row can be deleted.
-      await db.update(blocks).set({ geolocationFk: null }).where(eq(blocks.id, block.id))
-      await db.delete(geolocations).where(eq(geolocations.id, geolocationFk))
+      await removePin(db, { geolocationFk, id: block.id })
       geolocationFk = null
     }
 
@@ -281,13 +266,9 @@ export const setBlockLocation = authedCommand(blockPinSchema, async (value, { db
       : await db.query.geolocations.findFirst({ where: eq(geolocations.id, block.geolocationFk) })
 
   if (existing == null) {
-    const [geolocation] = await db
-      .insert(geolocations)
-      .values({ blockFk: block.id, lat: value.lat, long: value.long, regionFk: block.regionFk })
-      .returning()
-    await db.update(blocks).set({ geolocationFk: geolocation.id }).where(eq(blocks.id, block.id))
+    await attachPin(db, block, { estimated: false, lat: value.lat, long: value.long })
   } else {
-    await db.update(geolocations).set({ lat: value.lat, long: value.long }).where(eq(geolocations.id, existing.id))
+    await movePin(db, existing.id, { lat: value.lat, long: value.long })
   }
 
   // The pin dragged on the map keeps whatever `estimated` flag it had: this move confirms
@@ -313,17 +294,7 @@ export const estimateBlockLocationFromPhoto = authedCommand(
 
     if (block.geolocationFk != null) return
 
-    const [geolocation] = await db
-      .insert(geolocations)
-      .values({
-        blockFk: block.id,
-        estimated: true,
-        lat: value.lat,
-        long: value.long,
-        regionFk: block.regionFk,
-      })
-      .returning()
-    await db.update(blocks).set({ geolocationFk: geolocation.id }).where(eq(blocks.id, block.id))
+    await attachPin(db, block, { estimated: true, lat: value.lat, long: value.long })
 
     // Always the first pin (the guard above returns when the block has one), so no old value.
     await createUpdateEvent(db, {
@@ -335,92 +306,6 @@ export const estimateBlockLocationFromPhoto = authedCommand(
     })
   },
 )
-
-/** Snapshot {@link deleteBlock} returns so {@link restoreBlock} can undo either delete path.
- *  The hard path carries `order` so the restore can slot the block back where it was. */
-type DeleteBlockSnapshot =
-  | {
-      areaFk: number
-      block: Pick<Block, 'description' | 'name' | 'order' | 'regionFk'>
-      blockId: number
-      geolocation: null | { estimated: boolean; lat: number; long: number }
-      mode: 'hard'
-    }
-  // No `deletedAt`: read off the stored block rather than accepted from the client (see `softRestoreBlock`).
-  | { blockId: number; mode: 'soft' }
-
-/** Hard-delete a bare block: drop its pin (FK-linked both ways) then the row. Returns the
- *  snapshot (including `order`) that {@link restoreBlock} recreates it from. */
-async function hardDeleteBlock(db: Context['db'], block: Block): Promise<DeleteBlockSnapshot> {
-  const geolocation =
-    block.geolocationFk == null
-      ? null
-      : await db.query.geolocations.findFirst({ where: eq(geolocations.id, block.geolocationFk) })
-
-  if (block.geolocationFk != null) {
-    // Break the block→geo link first so the row can be deleted.
-    await db.update(blocks).set({ geolocationFk: null }).where(eq(blocks.id, block.id))
-    await db.delete(geolocations).where(eq(geolocations.id, block.geolocationFk))
-  }
-  await db.delete(blocks).where(eq(blocks.id, block.id))
-
-  return {
-    areaFk: block.areaFk,
-    block: { description: block.description, name: block.name, order: block.order, regionFk: block.regionFk },
-    blockId: block.id,
-    geolocation:
-      geolocation == null ? null : { estimated: geolocation.estimated, lat: geolocation.lat, long: geolocation.long },
-    mode: 'hard',
-  }
-}
-
-/** Close the gap a removed block leaves: pull every later sibling in the area down one, so the
- *  visible blocks stay contiguously ordered (keeping "Block N" labels sensible). */
-async function shiftBlockOrdersDown(db: Context['db'], areaFk: number, fromOrder: number): Promise<void> {
-  await db
-    .update(blocks)
-    .set({ order: sql`${blocks.order} - 1` })
-    .where(and(eq(blocks.areaFk, areaFk), isNull(blocks.deletedAt), gt(blocks.order, fromOrder)))
-}
-
-/** Open a slot at `fromOrder` for a block being restored: push every sibling at or after it up
- *  one, so the restored block lands at exactly its original order. */
-async function shiftBlockOrdersUp(
-  db: Context['db'],
-  areaFk: number,
-  fromOrder: number,
-  exceptId?: number,
-): Promise<void> {
-  await db
-    .update(blocks)
-    .set({ order: sql`${blocks.order} + 1` })
-    .where(
-      and(
-        eq(blocks.areaFk, areaFk),
-        isNull(blocks.deletedAt),
-        gte(blocks.order, fromOrder),
-        exceptId == null ? undefined : ne(blocks.id, exceptId),
-      ),
-    )
-}
-
-/** Soft-delete a block with descendants: stamp one `deletedAt` on it and its routes (the shared
- *  restore key). The block keeps its `order`, so a restore can slot it back exactly.
- *  ponytail: timestamp as restore key; sub-ms collision with a concurrent delete is the
- *  ceiling. Upgrade = a dedicated deletion-batch id column. */
-async function softDeleteBlock(db: Context['db'], block: Block): Promise<DeleteBlockSnapshot> {
-  const deletedAt = new Date()
-  await db
-    .update(blocks)
-    .set({ deletedAt })
-    .where(and(eq(blocks.id, block.id), isNull(blocks.deletedAt)))
-  await db
-    .update(routes)
-    .set({ deletedAt })
-    .where(and(eq(routes.blockFk, block.id), isNull(routes.deletedAt)))
-
-  return { blockId: block.id, mode: 'soft' }
-}
 
 /** Delete a block. A bare block (no routes, topos or files) is hard-deleted with a snapshot;
  *  one with descendants is soft-deleted. Either way the remaining siblings close the gap so
@@ -484,102 +369,6 @@ export const deleteBlock = authedCommand(
     return { data, redirectTo: entityHref('areas', block.areaFk) }
   },
 )
-
-const restoreBlockSchema = z.discriminatedUnion('mode', [
-  z.object({
-    areaFk: z.number(),
-    block: z.object({
-      description: z.nullable(z.string()),
-      name: z.string(),
-      order: z.number(),
-      regionFk: z.number(),
-    }),
-    blockId: z.number(),
-    // Bounded like every other coordinate this app accepts (`coordinate(90)` on the block form,
-    // `estimateBlockLocationFromPhoto` on the command side). `geolocations` has no CHECK constraint,
-    // so an unbounded snapshot was the one door that could park a block at lat 999.
-    geolocation: z.nullable(z.object({ estimated: z.boolean(), lat: boundedDegrees(90), long: boundedDegrees(180) })),
-    mode: z.literal('hard'),
-  }),
-  // No `deletedAt` to accept: the restore reads it off the stored block.
-  z.object({ blockId: z.number(), mode: z.literal('soft') }),
-])
-
-/** Recreate a hard-deleted block under its original id, `order` and pin. A replayed Undo finds
- *  the id taken and changes nothing, sibling order included. */
-async function hardRestoreBlock(
-  db: Context['db'],
-  snapshot: Extract<DeleteBlockSnapshot, { mode: 'hard' }>,
-  area: Pick<Area, 'id' | 'regionFk'>,
-  createdBy: number,
-): Promise<Block | undefined> {
-  // Placement comes from the STORED area, not the client-supplied snapshot: `restoreBlock` ran
-  // `canAddBlock` against that row, so `area.regionFk` is the region authorized.
-  // `createdBy` is the caller, so an undo cannot forge authorship.
-  const [created] = await db
-    .insert(blocks)
-    .values({
-      areaFk: area.id,
-      createdBy,
-      description: snapshot.block.description,
-      id: snapshot.blockId,
-      name: snapshot.block.name,
-      order: snapshot.block.order,
-      regionFk: area.regionFk,
-    })
-    .onConflictDoNothing({ target: blocks.id })
-    .returning()
-  if (created == null) {
-    return undefined
-  }
-  await shiftBlockOrdersUp(db, area.id, snapshot.block.order, created.id)
-
-  if (snapshot.geolocation != null) {
-    // The three snapshot fields and nothing else. `areaFk` in particular stays unset: a geolocation
-    // that carries one is a PARKING (that is how `deleteParking` tells the two apart, and removing a
-    // parking takes region DELETE), and a spread is one added snapshot field away from setting it.
-    const [geo] = await db
-      .insert(geolocations)
-      .values({
-        blockFk: created.id,
-        estimated: snapshot.geolocation.estimated,
-        lat: snapshot.geolocation.lat,
-        long: snapshot.geolocation.long,
-        regionFk: area.regionFk,
-      })
-      .returning()
-    await db.update(blocks).set({ geolocationFk: geo.id }).where(eq(blocks.id, created.id))
-  }
-
-  return created
-}
-
-/** Un-soft-delete a block and its routes, slotting it back at the `order` it kept. Opens the
- *  slot among the visible siblings first (the block itself is still `deletedAt` at that point).
- *
- *  Both statements name the block, and the timestamp comes off the stored row rather than off the
- *  client. They used to match on `deletedAt = <client-supplied timestamp>` alone: `deleted_at` is
- *  not unique and carries no region, so an undo here revived every other region's block stamped in
- *  the same millisecond, and the routes statement did not mention the block at all, so it could
- *  bring routes back under a block that stayed deleted.
- *
- *  A block that is not deleted returns before the order shift, which would otherwise renumber live
- *  siblings around a block that never left. */
-async function softRestoreBlock(db: Context['db'], block: Block): Promise<void> {
-  if (block.deletedAt == null) {
-    return
-  }
-
-  await shiftBlockOrdersUp(db, block.areaFk, block.order)
-  await db
-    .update(blocks)
-    .set({ deletedAt: null })
-    .where(and(eq(blocks.id, block.id), eq(blocks.deletedAt, block.deletedAt)))
-  await db
-    .update(routes)
-    .set({ deletedAt: null })
-    .where(and(eq(routes.blockFk, block.id), eq(routes.deletedAt, block.deletedAt)))
-}
 
 /** Undo a {@link deleteBlock}: recreate the hard-deleted block (with its pin) or clear the
  *  `deletedAt` the soft delete stamped: either way slotting it back at its original order, and

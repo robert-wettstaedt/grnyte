@@ -43,6 +43,9 @@ async function removeFixtures() {
   // point at the area, and everything points at the region.
   await sql`delete from public.notifications where region_fk in ${inRegion}`
   await sql`delete from public.events where region_fk in ${inRegion}`
+  // A pin points at its block and back, so the block's link goes first.
+  await sql`update public.blocks set geolocation_fk = null where region_fk in ${inRegion}`
+  await sql`delete from public.geolocations where region_fk in ${inRegion}`
   await sql`delete from public.blocks where region_fk in ${inRegion}`
   await sql`delete from public.areas where region_fk in ${inRegion}`
   await sql`delete from public.region_members where region_fk in ${inRegion}`
@@ -214,5 +217,29 @@ describe.skipIf(!reachable)('block descriptions', () => {
     })
 
     expect(await storedDescription()).toBeNull()
+  })
+})
+
+describe.skipIf(!reachable)('block pins', () => {
+  it('creates a block with a pin linked both ways, in the block region', async () => {
+    const name = '__blocks_remote_pinned__'
+    await submit(createBlock, {
+      areaId: String(sectorId),
+      description: '',
+      estimated: 'true',
+      lat: '49.5',
+      long: '11.5',
+      name,
+    })
+
+    const [row] = await sql<
+      { blockFk: null | number; blockId: number; estimated: boolean; geoId: null | number; pinRegion: number }[]
+    >`
+      select b.id as "blockId", b.geolocation_fk as "geoId", g.block_fk as "blockFk", g.estimated,
+             g.region_fk as "pinRegion"
+      from public.blocks b left join public.geolocations g on g.id = b.geolocation_fk
+      where b.name = ${name} and b.region_fk = ${regionId}`
+    expect(row.geoId).not.toBeNull()
+    expect(row).toMatchObject({ blockFk: row.blockId, estimated: true, pinRegion: regionId })
   })
 })
