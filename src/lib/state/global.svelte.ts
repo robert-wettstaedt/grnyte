@@ -5,7 +5,7 @@ import { gradeList } from '$lib/entities/grade/resources.svelte'
 import { unreadNotificationList } from '$lib/entities/notification/resources.svelte'
 import type { RegionMembership, UserRegion } from '$lib/entities/region/dto'
 import { userRegionList } from '$lib/entities/region/resources.svelte'
-import type { AppRole, Permission, RolePermission } from '$lib/entities/rolePermission/dto'
+import type { AppRole, Permission } from '$lib/entities/rolePermission/dto'
 import { rolePermissionList } from '$lib/entities/rolePermission/resources.svelte'
 import type { GradingScale, User } from '$lib/entities/user/dto'
 import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelte'
@@ -36,8 +36,6 @@ const STORE_PATIENCE_MS = 3000
 export interface GlobalState {
   /** All grades, ordered by their ordinal id (low → high). */
   readonly grades: Grade[]
-  /** Raw resources, for loading/empty/error states. */
-  readonly gradesResource: QueryResource<Grade[]>
   /** The user's preferred grading scale; defaults to `FB` until settings load. */
   readonly gradingScale: GradingScale
   /** True while app-shell prerequisites are still loading. */
@@ -49,7 +47,6 @@ export interface GlobalState {
   readonly isStoreCold: boolean
   /** When this device last completed a sync, or null if it never has. Per device, not per account. */
   readonly lastSyncedAt: null | number
-  readonly rolePermissionsResource: QueryResource<RolePermission[]>
   /**
    * Unread directed notifications, capped at `UNREAD_CAP + 1`.
    *
@@ -67,10 +64,8 @@ export interface GlobalState {
   /** The user's active region memberships, each with the permissions its role grants. */
   readonly userRegions: UserRegion[]
   readonly userRegionsResource: QueryResource<RegionMembership[]>
-  readonly userResource: QueryResource<undefined | User>
   /** The user's app/region role, or `undefined` if they have none. */
   readonly userRole: AppRole | undefined
-  readonly userRoleResource: QueryResource<AppRole | undefined>
 }
 
 /** Reads the global state published by {@link setGlobalState}. */
@@ -127,9 +122,6 @@ export function setGlobalState(): GlobalState | undefined {
     get grades() {
       return gradesResource.data
     },
-    get gradesResource() {
-      return gradesResource
-    },
     get gradingScale() {
       return userResource.data?.userSettings?.gradingScale ?? 'FB'
     },
@@ -169,9 +161,6 @@ export function setGlobalState(): GlobalState | undefined {
     get lastSyncedAt() {
       return lastSyncedAt()
     },
-    get rolePermissionsResource() {
-      return rolePermissionsResource
-    },
     // Undefined until answered, so it moves once, never through a partial count, and the OS badge
     // is left alone rather than cleared while it is unknown.
     get unreadNotifications() {
@@ -203,14 +192,8 @@ export function setGlobalState(): GlobalState | undefined {
     get userRegionsResource() {
       return userRegionsResource
     },
-    get userResource() {
-      return userResource
-    },
     get userRole() {
       return userRoleResource.data
-    },
-    get userRoleResource() {
-      return userRoleResource
     },
   }
 
@@ -262,22 +245,18 @@ export function staticGlobalState(
 
   return {
     grades,
-    gradesResource: ready(grades),
     gradingScale: data.gradingScale ?? data.user?.userSettings?.gradingScale ?? 'FB',
     isLoading: false,
     // The static fixture is server-rendered or a Storybook decorator: its data is already in hand,
     // so it is never cold and has nothing to say about this device's sync history.
     isStoreCold: false,
     lastSyncedAt: null,
-    rolePermissionsResource: ready([]),
     unreadNotifications: 0,
     user: data.user,
     userPermissions: data.userPermissions,
     userRegions,
     userRegionsResource: ready(userRegions),
-    userResource: ready(data.user),
     userRole: data.userRole,
-    userRoleResource: ready(data.userRole),
   }
 }
 

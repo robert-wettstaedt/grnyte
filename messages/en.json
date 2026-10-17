@@ -1908,8 +1908,6 @@
   "sort_name": "Name",
   "sort_order": "Order",
   "sort_sortBy": "Sort by",
-  "status_announcementV2": "Welcome to the new grnyte.",
-  "status_dismiss": "Dismiss",
   "status_notSyncing": "Not getting updates.",
   "status_offline": "You’re offline. Changes won’t save.",
   "status_reconnecting": "Reconnecting. You might not see the latest changes.",

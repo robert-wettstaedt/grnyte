@@ -22,12 +22,12 @@
   import { createMapData } from './data.svelte'
   import { setupGeolocation } from './geolocation'
   import {
-    buildAreaFeatures,
+    AREA_TIER_LOOK,
     buildBlockFeatures,
     buildLayerEntries,
     buildParkingFeatures,
     buildPathFeatures,
-    buildSectorFeatures,
+    buildTierFeatures,
     createAreaLayer,
     createBlockLayer,
     createDrawnPathLayer,
@@ -35,6 +35,7 @@
     createPathLayer,
     createSectorLayer,
     createWmsLayers,
+    SECTOR_TIER_LOOK,
   } from './layers.svelte'
   import { isMapPanKey } from './map'
   import { BLOCK_LABEL_ZOOM, MARKERS_LAYER_KEY, type BlocksMapProps, type LayerEntry } from './types'
@@ -184,15 +185,8 @@
     source.addFeatures(features)
   }
 
-  $effect(() =>
-    syncFeatures(areaLayer, buildAreaFeatures(data.areaBoundingBoxes, data.routeCountByArea, data.gradeCountByArea)),
-  )
-  $effect(() =>
-    syncFeatures(
-      sectorLayer,
-      buildSectorFeatures(data.sectorBoundingBoxes, data.routeCountBySector, data.gradeCountBySector),
-    ),
-  )
+  $effect(() => syncFeatures(areaLayer, buildTierFeatures(data.areaTier, AREA_TIER_LOOK)))
+  $effect(() => syncFeatures(sectorLayer, buildTierFeatures(data.sectorTier, SECTOR_TIER_LOOK)))
   $effect(() => syncFeatures(blockLayer, buildBlockFeatures(data.geoBlocks, data.routeCountByBlock)))
 
   // Re-style the block layer when the selected block changes so the highlight + z-index follow.

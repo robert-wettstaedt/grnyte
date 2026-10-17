@@ -36,146 +36,56 @@ const withPadding = (bounds: Bounds, blockCount: number): Bounds => {
   return [minLat, minLng, maxLat, maxLng]
 }
 
+/** One rect of an area or sector tier, with what its donut marker shows. */
+export interface TierEntry {
+  area: BlockDetail['areas'][0]
+  bounds: Bounds
+  gradeCounts: Map<number, number>
+  routeCount: number
+}
+
 export function createMapData(props: BlocksMapProps) {
   const geoBlocks = $derived(props.blocks.filter((block) => block.geolocation != null))
   const routeCountByBlock = $derived(props.routeCountByBlock ?? new Map<number, number>())
   const gradeCountByBlock = $derived(props.gradeCountByBlock ?? new Map<number, Map<number, number>>())
 
-  // Area tier: the outermost grouping, shown when zoomed out so the far view isn't
-  // cluttered with every sector. Group each block under its first (outermost) area ancestor.
-  const blocksByArea = $derived.by(() => {
-    const grouped = new Map<number, { area: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
-
-    for (const block of geoBlocks) {
-      // Falls back to the outermost ancestor whatever its type. A sector sitting at the root of a
-      // region has no 'area' above it, and without this its blocks were in no group at all below
-      // SECTOR_ZOOM, so they vanished when zoomed out. A root sector is its own outermost
-      // grouping; the two tiers then draw the same rect at different zooms, never together.
-      const area = block.areas.find((area) => area.type === 'area') ?? block.areas[0]
-      if (area == null) continue
-
-      const existing = grouped.get(area.id)
-      if (existing == null) {
-        grouped.set(area.id, { area, blocks: [block] })
-      } else {
-        existing.blocks.push(block)
-      }
-    }
-
-    return grouped
-  })
-
-  // Sector tier: the block-holding area, shown at mid zoom (between the area rects and the
-  // individual block markers).
-  const blocksBySector = $derived.by(() => {
-    const grouped = new Map<number, { blocks: BlockDetail[]; sector: BlockDetail['areas'][0] }>()
-
-    for (const block of geoBlocks) {
-      const sector = block.areas.find((area) => area.type === 'sector')
-      if (sector == null) continue
-
-      const existing = grouped.get(sector.id)
-      if (existing == null) {
-        grouped.set(sector.id, { blocks: [block], sector })
-      } else {
-        existing.blocks.push(block)
-      }
-    }
-
-    return grouped
-  })
-
-  const routeCountByArea = $derived.by(() => {
-    const counts = new Map<number, number>()
-    const rcMap = routeCountByBlock
-
-    for (const [areaId, group] of blocksByArea) {
-      let total = 0
-      for (const block of group.blocks) {
-        total += rcMap.get(block.id) ?? 0
-      }
-      counts.set(areaId, total)
-    }
-
-    return counts
-  })
-
-  const routeCountBySector = $derived.by(() => {
-    const counts = new Map<number, number>()
-    const rcMap = routeCountByBlock
-
-    for (const [sectorId, group] of blocksBySector) {
-      let total = 0
-      for (const block of group.blocks) {
-        total += rcMap.get(block.id) ?? 0
-      }
-      counts.set(sectorId, total)
-    }
-
-    return counts
-  })
-
   // Per-grade route counts, merged from each member block, for the donut markers.
   const mergeGradeCounts = (blocks: BlockDetail[]): Map<number, number> => {
     const merged = new Map<number, number>()
     for (const block of blocks) {
-      const byGrade = gradeCountByBlock.get(block.id)
-      if (byGrade == null) continue
-      for (const [gradeFk, count] of byGrade) {
+      for (const [gradeFk, count] of gradeCountByBlock.get(block.id) ?? []) {
         merged.set(gradeFk, (merged.get(gradeFk) ?? 0) + count)
       }
     }
     return merged
   }
 
-  // The padded box a tier draws, so both zoom tiers frame their rects the same way.
-  const boundsOf = (blocks: BlockDetail[]): Bounds | null => {
-    const coords = blocks.map((block) => block.geolocation).filter((location) => location != null)
-    const bounds = boundsOfCoords(coords)
-    return bounds == null ? null : withPadding(bounds, coords.length)
+  /** One rect per ancestor `pick` chooses, framing that ancestor's located blocks. */
+  const tierOf = (pick: (block: BlockDetail) => BlockDetail['areas'][0] | undefined): TierEntry[] => {
+    const grouped = new Map<number, { area: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
+    for (const block of geoBlocks) {
+      const area = pick(block)
+      if (area == null) continue
+      const group = grouped.get(area.id)
+      if (group == null) grouped.set(area.id, { area, blocks: [block] })
+      else group.blocks.push(block)
+    }
+
+    return [...grouped.values()].flatMap(({ area, blocks }) => {
+      const coords = blocks.map((block) => block.geolocation).filter((location) => location != null)
+      const bounds = boundsOfCoords(coords)
+      if (bounds == null) return []
+      const routeCount = blocks.reduce((sum, block) => sum + (routeCountByBlock.get(block.id) ?? 0), 0)
+      return [{ area, bounds: withPadding(bounds, coords.length), gradeCounts: mergeGradeCounts(blocks), routeCount }]
+    })
   }
 
-  const gradeCountByArea = $derived.by(() => {
-    const counts = new Map<number, Map<number, number>>()
-    for (const [areaId, group] of blocksByArea) {
-      counts.set(areaId, mergeGradeCounts(group.blocks))
-    }
-    return counts
-  })
-
-  const gradeCountBySector = $derived.by(() => {
-    const counts = new Map<number, Map<number, number>>()
-    for (const [sectorId, group] of blocksBySector) {
-      counts.set(sectorId, mergeGradeCounts(group.blocks))
-    }
-    return counts
-  })
-
-  const areaBoundingBoxes = $derived.by(() => {
-    const boxes = new Map<number, { area: BlockDetail['areas'][0]; bounds: Bounds }>()
-
-    for (const [areaId, group] of blocksByArea) {
-      const bounds = boundsOf(group.blocks)
-      if (bounds == null) continue
-
-      boxes.set(areaId, { area: group.area, bounds })
-    }
-
-    return boxes
-  })
-
-  const sectorBoundingBoxes = $derived.by(() => {
-    const boxes = new Map<number, { bounds: Bounds; sector: BlockDetail['areas'][0] }>()
-
-    for (const [sectorId, group] of blocksBySector) {
-      const bounds = boundsOf(group.blocks)
-      if (bounds == null) continue
-
-      boxes.set(sectorId, { bounds, sector: group.sector })
-    }
-
-    return boxes
-  })
+  // Area tier, drawn zoomed out: each block under its outermost area. Falls back to the outermost
+  // ancestor whatever its type, or a sector at a region's root would be in no group below
+  // SECTOR_ZOOM and its blocks would vanish; it then draws the same rect at both zooms, never together.
+  const areaTier = $derived(tierOf((block) => block.areas.find((area) => area.type === 'area') ?? block.areas[0]))
+  // Sector tier, drawn at mid zoom: the block-holding area.
+  const sectorTier = $derived(tierOf((block) => block.areas.find((area) => area.type === 'sector')))
 
   const uniqueParkingLocations = $derived.by(() => {
     const deduplicated = new Map<number, Geolocation>()
@@ -188,35 +98,17 @@ export function createMapData(props: BlocksMapProps) {
   const uniqueLineStrings = $derived([...new Set(props.lineStrings ?? [])])
 
   return {
-    get areaBoundingBoxes() {
-      return areaBoundingBoxes
-    },
-    get blocksByArea() {
-      return blocksByArea
-    },
-    get blocksBySector() {
-      return blocksBySector
+    get areaTier() {
+      return areaTier
     },
     get geoBlocks() {
       return geoBlocks
     },
-    get gradeCountByArea() {
-      return gradeCountByArea
-    },
-    get gradeCountBySector() {
-      return gradeCountBySector
-    },
-    get routeCountByArea() {
-      return routeCountByArea
-    },
     get routeCountByBlock() {
       return routeCountByBlock
     },
-    get routeCountBySector() {
-      return routeCountBySector
-    },
-    get sectorBoundingBoxes() {
-      return sectorBoundingBoxes
+    get sectorTier() {
+      return sectorTier
     },
     get uniqueLineStrings() {
       return uniqueLineStrings
