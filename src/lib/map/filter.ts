@@ -52,6 +52,31 @@ export const parseRouteFilter = (params: URLSearchParams): ParsedRouteFilter => 
   }
 }
 
+/** Writes what {@link parseRouteFilter} reads, in place: defaults (unset, empty list, `false`, rating 0)
+ *  are deleted and keys the filter does not own stay where they are. */
+export const writeRouteFilter = (params: URLSearchParams, parsed: ParsedRouteFilter): void => {
+  const { filter } = parsed
+  const list = (values: (number | string)[] | undefined) => (values?.length ? values.join(',') : undefined)
+  const values: Record<(typeof FILTER_PARAM_KEYS)[number], string | undefined> = {
+    ascentStatus: parsed.ascentStatus,
+    favorites: parsed.favoritesOnly ? '1' : undefined,
+    firstAscensionists: list(filter.firstAscensionists),
+    hasBeta: filter.hasBeta ? '1' : undefined,
+    hasTopo: filter.hasTopo ? '1' : undefined,
+    maxGrade: filter.maxGrade == null ? undefined : String(filter.maxGrade),
+    minGrade: filter.minGrade == null ? undefined : String(filter.minGrade),
+    minRating: filter.minRating == null || filter.minRating <= 0 ? undefined : String(filter.minRating),
+    tags: list(filter.tags),
+  }
+
+  // In key-list order: `set` appends a new key, so this order is the order a fresh URL gets.
+  for (const key of FILTER_PARAM_KEYS) {
+    const value = values[key]
+    if (value == null) params.delete(key)
+    else params.set(key, value)
+  }
+}
+
 /** True when any route filter is currently applied. */
 export const isFilterActive = (params: URLSearchParams): boolean => FILTER_PARAM_KEYS.some((key) => params.has(key))
 

@@ -5,10 +5,11 @@
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { groupFirstAscensionists } from '$lib/entities/firstAscensionist/mapper'
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
+  import { countRoutesByGrade } from '$lib/entities/grade/counts'
   import { allRegionTags } from '$lib/entities/region/tagVocabulary'
   import type { RouteMapItem } from '$lib/entities/route/dto'
   import type { AscentStatus } from '$lib/entities/route/resources.svelte'
-  import { FILTER_PARAM_KEYS, isAscentStatus, isFilterActive } from '$lib/map/filter'
+  import { FILTER_PARAM_KEYS, isFilterActive, parseRouteFilter, writeRouteFilter } from '$lib/map/filter'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { replaceUrl } from '$lib/state/navigation.svelte'
@@ -107,16 +108,7 @@
 
   const routeCount = $derived(summaryOf(phase, routes.length))
 
-  const routeCountByGrade = $derived.by(() => {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt wholesale in this $derived; per-key signals cost >5 dev-mode stack captures per grade on load
-    const counts = new Map<number, number>()
-    for (const route of routes) {
-      if (route.gradeFk != null) {
-        counts.set(route.gradeFk, (counts.get(route.gradeFk) ?? 0) + 1)
-      }
-    }
-    return counts
-  })
+  const routeCountByGrade = $derived(countRoutesByGrade(routes))
 
   // Short, value-aware summaries shown in each collapsed section's header so the
   // applied filters stay readable at a glance without expanding every section.
@@ -172,31 +164,17 @@
   // so they always reflect the URL's current values.
   const toggleOpen = () => {
     if (!open) {
-      const minParam = page.url.searchParams.get('minGrade')
-      const maxParam = page.url.searchParams.get('maxGrade')
-      value = [
-        indexOfGrade(minParam == null ? undefined : Number(minParam), 0),
-        indexOfGrade(maxParam == null ? undefined : Number(maxParam), lastIndex),
+      const applied = parseRouteFilter(page.url.searchParams)
+      value = [indexOfGrade(applied.filter.minGrade, 0), indexOfGrade(applied.filter.maxGrade, lastIndex)]
+      minRating = applied.filter.minRating ?? 0
+      ascentStatus = applied.ascentStatus ?? ''
+      selectedTags = applied.filter.tags ?? []
+      mediaFilters = [
+        ...(applied.filter.hasTopo ? (['hasTopo'] as const) : []),
+        ...(applied.filter.hasBeta ? (['hasBeta'] as const) : []),
       ]
-
-      const ratingParam = page.url.searchParams.get('minRating')
-      minRating = ratingParam == null ? 0 : Number(ratingParam)
-
-      const ascentParam = page.url.searchParams.get('ascentStatus')
-      ascentStatus = isAscentStatus(ascentParam) ? ascentParam : ''
-
-      const tagsParam = page.url.searchParams.get('tags')
-      selectedTags = tagsParam ? tagsParam.split(',') : []
-
-      const media: MediaFilter[] = []
-      if (page.url.searchParams.get('hasTopo') === '1') media.push('hasTopo')
-      if (page.url.searchParams.get('hasBeta') === '1') media.push('hasBeta')
-      mediaFilters = media
-
-      favoritesOnly = page.url.searchParams.get('favorites') === '1'
-
-      const faParam = page.url.searchParams.get('firstAscensionists')
-      selectedFirstAscensionists = faParam ? faParam.split(',').map(Number) : []
+      favoritesOnly = applied.favoritesOnly
+      selectedFirstAscensionists = applied.filter.firstAscensionists ?? []
       firstAscensionistSearch = ''
 
       if (showSort) {
@@ -213,59 +191,20 @@
     const url = new SvelteURL(page.url)
     const [minIndex, maxIndex] = value
 
-    if (minIndex <= 0) {
-      url.searchParams.delete('minGrade')
-    } else {
-      url.searchParams.set('minGrade', String(global.grades[minIndex].id))
-    }
-
-    if (maxIndex >= lastIndex) {
-      url.searchParams.delete('maxGrade')
-    } else {
-      url.searchParams.set('maxGrade', String(global.grades[maxIndex].id))
-    }
-
-    if (minRating <= 0) {
-      url.searchParams.delete('minRating')
-    } else {
-      url.searchParams.set('minRating', String(minRating))
-    }
-
-    if (ascentStatus === '') {
-      url.searchParams.delete('ascentStatus')
-    } else {
-      url.searchParams.set('ascentStatus', ascentStatus)
-    }
-
-    if (selectedTags.length === 0) {
-      url.searchParams.delete('tags')
-    } else {
-      url.searchParams.set('tags', selectedTags.join(','))
-    }
-
-    if (mediaFilters.includes('hasTopo')) {
-      url.searchParams.set('hasTopo', '1')
-    } else {
-      url.searchParams.delete('hasTopo')
-    }
-
-    if (mediaFilters.includes('hasBeta')) {
-      url.searchParams.set('hasBeta', '1')
-    } else {
-      url.searchParams.delete('hasBeta')
-    }
-
-    if (favoritesOnly) {
-      url.searchParams.set('favorites', '1')
-    } else {
-      url.searchParams.delete('favorites')
-    }
-
-    if (selectedFirstAscensionists.length === 0) {
-      url.searchParams.delete('firstAscensionists')
-    } else {
-      url.searchParams.set('firstAscensionists', selectedFirstAscensionists.join(','))
-    }
+    // An end of the slider is no bound, which the writer then leaves out of the URL.
+    writeRouteFilter(url.searchParams, {
+      ascentStatus: ascentStatus === '' ? undefined : ascentStatus,
+      favoritesOnly,
+      filter: {
+        firstAscensionists: selectedFirstAscensionists,
+        hasBeta: mediaFilters.includes('hasBeta') || undefined,
+        hasTopo: mediaFilters.includes('hasTopo') || undefined,
+        maxGrade: maxIndex >= lastIndex ? undefined : global.grades[maxIndex].id,
+        minGrade: minIndex <= 0 ? undefined : global.grades[minIndex].id,
+        minRating,
+        tags: selectedTags,
+      },
+    })
 
     if (showSort) {
       // Omit params that match the page's defaults (first field, its default dir).
