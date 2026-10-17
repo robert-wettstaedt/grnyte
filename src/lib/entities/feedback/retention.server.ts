@@ -1,9 +1,10 @@
 import { pinnedTx } from '$lib/db/pinned.server'
 import { feedback } from '$lib/db/schema'
+import { DAY_MS } from '$lib/i18n/relativeTime'
 import { and, isNotNull, isNull, lt, or } from 'drizzle-orm'
 
 /** Feedback. 12 months, mirrored in the privacy notice, section 7: change both together. */
-export const FEEDBACK_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000
+export const FEEDBACK_MAX_AGE_MS = 365 * DAY_MS
 
 /**
  * Drop feedback past its retention: from the reply where the row has one, from arrival where it does not.
@@ -19,8 +20,7 @@ export const sweepFeedback = async (before: Date): Promise<number> => {
           and(isNotNull(feedback.repliedAt), lt(feedback.repliedAt, before)),
           and(isNull(feedback.repliedAt), lt(feedback.createdAt, before)),
         ),
-      )
-      .returning({ id: feedback.id }),
+      ),
   )
-  return removed.length
+  return removed.count
 }

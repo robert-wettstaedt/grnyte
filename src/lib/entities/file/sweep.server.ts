@@ -1,11 +1,12 @@
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { STAGING_BUCKET } from '$lib/entities/file/upload'
+import { DAY_MS } from '$lib/i18n/relativeTime'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
 import { getVideoProvider } from '$lib/videos/provider.server'
 
 /** Staging orphans past this age are abandoned-form or failed-finalize leftovers. */
-export const STAGING_MAX_AGE_MS = 24 * 60 * 60 * 1000
+export const STAGING_MAX_AGE_MS = DAY_MS
 
 /** Bunny orphans past this age are dead: the TUS resume window is 24h, so 48h clears clock skew too. */
 export const BUNNY_MAX_AGE_MS = 48 * 60 * 60 * 1000

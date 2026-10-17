@@ -1,12 +1,13 @@
 import { pinnedTx } from '$lib/db/pinned.server'
 import { notifications } from '$lib/db/schema'
+import { DAY_MS } from '$lib/i18n/relativeTime'
 import { and, isNotNull, isNull, lt, or } from 'drizzle-orm'
 
 /** A notification somebody has already opened is history the inbox does not render. */
-export const NOTIFICATION_READ_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
+export const NOTIFICATION_READ_MAX_AGE_MS = 30 * DAY_MS
 
 /** One they never opened is kept three times as long before it is written off as never read. */
-export const NOTIFICATION_UNREAD_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000
+export const NOTIFICATION_UNREAD_MAX_AGE_MS = 90 * DAY_MS
 
 /**
  * Drop notifications nobody is going to read again.
@@ -24,8 +25,7 @@ export const sweepNotifications = async (readBefore: Date, unreadBefore: Date): 
           and(isNotNull(notifications.readAt), lt(notifications.readAt, readBefore)),
           and(isNull(notifications.readAt), lt(notifications.createdAt, unreadBefore)),
         ),
-      )
-      .returning({ id: notifications.id }),
+      ),
   )
-  return removed.length
+  return removed.count
 }

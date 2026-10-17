@@ -1,3 +1,6 @@
+/** One day in milliseconds, for durations stated in days. */
+export const DAY_MS = 86_400_000
+
 /**
  * Intl formatters are costly to construct and free to reuse: on Node 24, building a
  * `RelativeTimeFormat` and formatting once measures ~9 µs against ~0.3 µs for a reused one, and the
@@ -63,12 +66,11 @@ export function formatDate(timestamp: number, locale: string): string {
  * within the last week, an absolute date beyond it.
  */
 export function formatDay(timestamp: number, now: number, locale: string): string {
-  const DAY = 86_400_000
   // The timestamp names a calendar date (UTC midnight); `now` is a moment in the
   // viewer's local day. Compare both as UTC midnights of their calendar dates, and
   // format the absolute date in UTC, so neither the time of day nor the timezone
   // can shift the label by a day.
-  const days = Math.round((timestamp - calendarDay(now)) / DAY)
+  const days = Math.round((timestamp - calendarDay(now)) / DAY_MS)
   if (Math.abs(days) >= 7) {
     return formatDate(timestamp, locale)
   }
@@ -89,7 +91,6 @@ export function formatUploadedAt(timestamp: number, now: number, locale: string)
   // uploaded in eight seconds.
   const ms = Math.min(0, timestamp - now)
   const abs = Math.abs(ms)
-  const DAY = 86_400_000
 
   if (isDatedMoment(timestamp, now)) {
     // The viewer's own zone, unlike `formatDate`: this one is a moment, not a stored calendar date.
@@ -101,8 +102,8 @@ export function formatUploadedAt(timestamp: number, now: number, locale: string)
   const HOUR = 3_600_000
   if (abs < MINUTE) return rtf.format(Math.round(ms / 1000), 'second')
   if (abs < HOUR) return rtf.format(Math.round(ms / MINUTE), 'minute')
-  if (abs < DAY) return rtf.format(Math.round(ms / HOUR), 'hour')
-  return rtf.format(Math.round(ms / DAY), 'day')
+  if (abs < DAY_MS) return rtf.format(Math.round(ms / HOUR), 'hour')
+  return rtf.format(Math.round(ms / DAY_MS), 'day')
 }
 
 /**
@@ -114,7 +115,7 @@ export function formatUploadedAt(timestamp: number, now: number, locale: string)
  * from the formatter the first time either moved.
  */
 export function isDatedMoment(timestamp: number, now: number): boolean {
-  return Math.abs(Math.min(0, timestamp - now)) >= 7 * 86_400_000
+  return Math.abs(Math.min(0, timestamp - now)) >= 7 * DAY_MS
 }
 
 /**

@@ -1,6 +1,7 @@
 import { pinnedTx } from '$lib/db/pinned.server'
 import { bunnyStreams, files } from '$lib/db/schema'
 import { notify } from '$lib/entities/notification/notification.server'
+import { DAY_MS } from '$lib/i18n/relativeTime'
 import { logServerFailure } from '$lib/logging/failure.server'
 // Type-only, so nothing here pulls the provider's `$env/static/private` keys into a test.
 import type { VideoProvider } from '$lib/videos/provider.server'
@@ -20,7 +21,7 @@ const NOTIFY_AFTER_MS = 5 * 60 * 1000
  * record. Anchored on the 24 hours `0131` used to backfill `ready`, so the rows this silences are
  * exactly the ones that backfill would have covered had they existed then.
  */
-const NOTIFY_WITHIN_MS = 24 * 60 * 60 * 1000
+const NOTIFY_WITHIN_MS = DAY_MS
 
 /** Readiness rows corrected per sweep. See {@link reconcileReadiness} for why this is bounded. */
 const RECONCILE_LIMIT = 100

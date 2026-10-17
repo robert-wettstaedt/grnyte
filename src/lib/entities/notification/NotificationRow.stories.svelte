@@ -12,9 +12,8 @@
   // cascades on delete, so a row never outlives the file it names. Stories are the only way to see
   // them, which is why this file exists.
   //
-  // Deliberately absent: `invitation_received` and `membership_removed`. They are `queueOnly` in
-  // `sourceType.ts`, so the inbox query never returns them, and a story of one would describe a
-  // screen nobody can open.
+  // No `invitation_received` or `membership_removed`: they are `queueOnly`, so the inbox never
+  // shows them and a story of one would describe a screen nobody can open.
   const { Story } = defineMeta({
     component: NotificationRow,
     parameters: {
