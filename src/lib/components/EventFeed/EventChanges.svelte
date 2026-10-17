@@ -197,21 +197,24 @@
       </span>
     </div>
   {:else if change.kind === 'topo'}
-    <div class="flex min-w-0 flex-col gap-1.5">
+    <div class="flex w-full min-w-0 flex-col gap-1.5">
       <!-- A redraw draws its own before and after; the photo actions draw the photo as it
            stands. A removed photo has no image left either way, and a reorder is about the
            strip rather than any one photo in it. -->
       {#if change.image != null}
-        <!-- `self-start`: the column stretches its children, which would hold the box at the
-             card's width while the photo contains itself inside it, in a frame of dark bars. -->
-        <Topo
-          alt={m.topo_alt()}
-          class="h-40 w-auto self-start"
-          height={change.image.height}
-          imagePath={change.image.path}
-          lines={change.lines}
-          width={change.image.width}
-        />
+        {@const { height, width } = change.image}
+        <!-- 10rem tall, narrowing with its ratio where the column is narrower, so a landscape photo
+             never overflows at 375 or sits in a frame of dark bars. -->
+        <div class="flex w-full" style:max-width={width && height ? `calc(10rem * ${width / height})` : undefined}>
+          <Topo
+            alt={m.topo_alt()}
+            class={width && height ? 'w-full' : 'h-40 w-auto max-w-full'}
+            {height}
+            imagePath={change.image.path}
+            lines={change.lines}
+            {width}
+          />
+        </div>
       {/if}
 
       <span class="flex flex-wrap items-center gap-1.5">
