@@ -40,11 +40,30 @@ vi.mock('$lib/entities/notification/push.server', () => ({
   },
   subscriptionsFor: async () => new Map(),
 }))
-// The directed scan limit, lowered per case so a small backlog can exceed it.
+// The scan limits, lowered per case so a small backlog can exceed them.
 let scanLimit = 1000
+let digestLimit = 500
 vi.mock('$lib/entities/notification/push', async (importOriginal) => {
   const real = await importOriginal<typeof import('$lib/entities/notification/push')>()
-  return Object.defineProperty({ ...real }, 'DIRECTED_SCAN_LIMIT', { enumerable: true, get: () => scanLimit })
+  return Object.defineProperties(
+    { ...real },
+    {
+      DIGEST_SCAN_LIMIT: { enumerable: true, get: () => digestLimit },
+      DIRECTED_SCAN_LIMIT: { enumerable: true, get: () => scanLimit },
+    },
+  )
+})
+// How many events each digest counted, in order.
+const digestCounts: number[] = []
+vi.mock('$lib/entities/notification/digest.server', async (importOriginal) => {
+  const real = await importOriginal<typeof import('$lib/entities/notification/digest.server')>()
+  return {
+    ...real,
+    digestCopy: (events: Parameters<typeof real.digestCopy>[0], ...rest: unknown[]) => {
+      digestCounts.push(events.length)
+      return (real.digestCopy as (...args: unknown[]) => ReturnType<typeof real.digestCopy>)(events, ...rest)
+    },
+  }
 })
 // Holds each run's first query (the read of due rows) until both runs have made it, so the two
 // genuinely read the same rows before either claims: the overlap a claim exists for.
@@ -175,6 +194,30 @@ describe.skipIf(!reachable)('POST /api/tasks/notifications, membership mail', ()
     await sql`delete from public.events where region_fk = ${regionId} and verb = 'remove'`
   })
 
+  it('reports how many directed pushes it sent', async () => {
+    outcome = 'sent'
+    pushOn = true
+    await sql`delete from public.notifications where region_fk = ${regionId}`
+    await sql`
+      with e as (
+        insert into public.events (region_fk, actor_fk, verb, subject_fk)
+        select ${regionId}, ${actor.userId}, 'remove', ${removed.userId} from generate_series(1, 3)
+        returning id
+      )
+      insert into public.notifications (actor_fk, auth_user_fk, region_fk, source_type, user_fk, event_fk, created_at)
+      select ${actor.userId}, ${removed.authId}, ${regionId}, 'membership_removed', ${removed.userId}, e.id,
+        now() - interval '10 minutes'
+      from e`
+    try {
+      const body = (await (await run()).json()) as { directed: number }
+      expect(body.directed).toBe(3)
+    } finally {
+      pushOn = false
+      await sql`delete from public.notifications where region_fk = ${regionId}`
+      await sql`delete from public.events where region_fk = ${regionId} and verb = 'remove'`
+    }
+  })
+
   it('reads at most the scan limit per run, oldest first, leaving fresh rows unread by the run', async () => {
     outcome = 'sent'
     scanLimit = 120
@@ -281,5 +324,30 @@ describe.skipIf(!reachable)('POST /api/tasks/notifications, digest', () => {
     pushedTo.length = 0
     await Promise.all([run(), run()])
     expect(pushedTo.filter((userFk) => userFk === reader.userId)).toHaveLength(1)
+  })
+
+  it('counts each event once when a truncated scan defers the events sharing its last timestamp', async () => {
+    pushOn = true
+    digestLimit = 3
+    digestCounts.length = 0
+    const [{ id: routeId }] = await sql<{ id: number }[]>`
+      select id from public.routes where name = '__task_notifications_route__' and region_fk = ${regionId}`
+    await sql`update public.user_settings set pushed_up_to_event_at = now() - interval '1 hour' where user_fk = ${reader.userId}`
+    await sql`
+      insert into public.events (region_fk, actor_fk, verb, route_fk, created_at)
+      values (${regionId}, ${actor.userId}, 'update', ${routeId}, now() - interval '29 minutes')`
+    // One statement, so the three share one timestamp exactly.
+    await sql`
+      insert into public.events (region_fk, actor_fk, verb, route_fk, created_at)
+      select ${regionId}, ${actor.userId}, 'update', ${routeId}, now() - interval '28 minutes' from generate_series(1, 3)`
+    const sent: number[] = []
+    try {
+      for (let i = 0; i < 2; i++) sent.push(((await (await run()).json()) as { digests: number }).digests)
+    } finally {
+      digestLimit = 500
+    }
+    expect(sent).toEqual([1, 1])
+    // Five events: the first run stops short of the three it cannot finish, the second takes them.
+    expect(digestCounts).toEqual([2, 3])
   })
 })
