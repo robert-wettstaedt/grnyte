@@ -1,6 +1,6 @@
 import { sourceHost } from '$lib/entities/file/upload'
 import { getGradeBand, type GradeBand } from '$lib/entities/grade/color'
-import { diffTopoLines, parseTopoChange, type TopoLineDiff, type TopoLineState } from '$lib/entities/topo/change'
+import { diffTopoLines, type TopoLineDiff, type TopoLineState } from '$lib/entities/topo/change'
 import type { TopoPoint, TopoView } from '$lib/entities/topo/dto'
 import { convertPathToPoints } from '$lib/entities/topo/mapper'
 import type { MessageKey } from '$lib/i18n/message'
@@ -430,7 +430,7 @@ function topoChange(
   redrawn: TopoLineChip[]
   removed: TopoLineChip[]
 } {
-  const change = parseTopoChange(line.metadata)
+  const change = line.decoded.kind === 'topo' ? line.decoded.change : null
 
   if (change == null) {
     return {

@@ -19,7 +19,7 @@ import { answerReplayedRestore, requireIssuedId, requireRow } from '$lib/remote/
 import { error, invalid } from '@sveltejs/kit'
 import { and, count, eq, inArray, isNull, not } from 'drizzle-orm'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
-import { stringifyDeletionScale } from '../event/verbs'
+import { stringifyDeletionScale } from '../event/metadata'
 import { notifyMentions } from '../notification/notification.server'
 import { hasDeletedAncestor, refreshAreaType } from './area.server'
 import { loadParentArea, requireEditableArea } from './guards.server'

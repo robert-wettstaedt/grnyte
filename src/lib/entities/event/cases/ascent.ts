@@ -11,7 +11,7 @@
  * grade chip needs the region's grade list, a temperature needs the reader's units), the claim
  * says so rather than inventing the output.
  */
-import { stringifyDeletedAscent } from '../verbs'
+import { stringifyDeletedAscent } from '../metadata'
 import type { EventCase } from './types'
 import { ascentEntity, change, eventAgo, ME, PEOPLE, utcDay } from './world'
 

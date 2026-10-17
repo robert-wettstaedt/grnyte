@@ -16,7 +16,7 @@ import {
 } from './entity'
 import type { EventGroupKind } from './grouping'
 import type { CardLine } from './line'
-import { parseDeletedAscent, parseDeletionScale, verbEntry, verbKey } from './verbs'
+import { verbEntry, verbKey } from './verbs'
 
 /** The lines one group of events produced. Built by `eventCard` from an `EventGroup`. */
 export interface CardGroup {
@@ -232,7 +232,9 @@ export function cardView(
   // one sentence a card about somebody else's log must not say.
   const climber = [refs[0], place].map(entityOf).find((entity) => entity?.climberFk != null)
   const recorded = group.rows
-    .map((line) => (line.objectType === 'ascent' ? parseDeletedAscent(line.metadata) : undefined))
+    .map((line) =>
+      line.objectType === 'ascent' && line.decoded.kind === 'deletedAscent' ? line.decoded.climber : undefined,
+    )
     .find((entry) => entry != null)
   const climberFk = climber?.climberFk ?? recorded?.climberFk
   const owner = climberFk == null ? 'none' : climberFk === newest.actorFk ? 'self' : 'other'
@@ -422,7 +424,7 @@ function deletionScaleParts(group: CardGroup): MessagePart[] | undefined {
   const totals = { areas: 0, blocks: 0, routes: 0 }
 
   for (const line of group.rows) {
-    const scale = line.verb === 'delete' ? parseDeletionScale(line.metadata) : undefined
+    const scale = line.verb === 'delete' && line.decoded.kind === 'deletionScale' ? line.decoded.scale : undefined
     totals.areas += scale?.areas ?? 0
     totals.blocks += scale?.blocks ?? 0
     totals.routes += scale?.routes ?? 0
