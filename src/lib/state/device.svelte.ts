@@ -1,5 +1,6 @@
 import { browser } from '$app/environment'
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+import { storage } from '$lib/state/storage'
 
 /**
  * What kind of device this is, as far as it matters to the app.
@@ -129,11 +130,7 @@ function readOverride(): boolean | null {
     return null
   }
 
-  try {
-    const raw = localStorage.getItem(`${PUBLIC_APPLICATION_NAME}.offlineData`)
-    return raw === 'always' ? true : raw === 'never' ? false : null
-  } catch {
-    // Storage refused the read (private mode, disabled cookies). Fall back to detection.
-    return null
-  }
+  // A refused read (private mode, disabled cookies) is null, which falls back to detection.
+  const raw = storage.get(`${PUBLIC_APPLICATION_NAME}.offlineData`)
+  return raw === 'always' ? true : raw === 'never' ? false : null
 }

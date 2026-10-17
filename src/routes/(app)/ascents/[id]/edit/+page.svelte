@@ -45,7 +45,7 @@
   form={updateAscent}
   seed={([ascent]) =>
     // The custom inputs seed themselves from the `ascent` prop; this covers the field-driven ones.
-    updateAscent.fields.set({
+    ({
       id: String(ascent.id),
       notes: ascent.notes,
       routeId: String(ascent.routeFk),

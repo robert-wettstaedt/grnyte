@@ -7,11 +7,20 @@ export const storage = {
       return null
     }
   },
-  set(key: string, value: string): void {
+  remove(key: string): void {
+    try {
+      localStorage.removeItem(key)
+    } catch {
+      // Blocked storage holds nothing to remove.
+    }
+  },
+  /** Whether the write took: blocked or full storage refuses it. */
+  set(key: string, value: string): boolean {
     try {
       localStorage.setItem(key, value)
+      return true
     } catch {
-      // Blocked storage: the value is simply not remembered.
+      return false
     }
   },
 }

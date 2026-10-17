@@ -31,14 +31,13 @@
   cancelTo={areaHref}
   {denied}
   form={updateArea}
-  seed={([area]) =>
-    updateArea.fields.set({
-      description: area.description,
-      id: area.id.toString(),
-      name: area.name,
-      parentFk: area.areas.at(-1)?.id.toString(),
-      regionFk: area.regionFk.toString(),
-    })}
+  seed={([area]) => ({
+    description: area.description,
+    id: area.id.toString(),
+    name: area.name,
+    parentFk: area.areas.at(-1)?.id.toString(),
+    regionFk: area.regionFk.toString(),
+  })}
   submitLabel={m.common_save()}
   title={m.areas_editArea()}
   waitFor={[{ notFound: m.areas_notFound(), resource: area, whole: false }]}

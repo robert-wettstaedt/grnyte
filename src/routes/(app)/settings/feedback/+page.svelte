@@ -15,11 +15,11 @@
   // Reset, not merge: fields live on the module-level remote singleton, so the last report typed
   // this session would reappear. `pathname` is the last non-settings screen, since this form is
   // reached through settings. No `kind`: the inbox triages by it and only the writer can answer it.
-  submitFeedback.fields.set({
+  const initial = {
     body: '',
     locale: getLocale(),
     pathname: lastAppRoute(),
-  })
+  }
 
   const onSubmitted = () => {
     toaster.create({ title: m.feedback_sent(), type: 'success' })
@@ -32,6 +32,7 @@
 
 <Form
   form={submitFeedback}
+  {initial}
   cancelTo={resolve('/settings')}
   {onSubmitted}
   submitLabel={m.feedback_send()}

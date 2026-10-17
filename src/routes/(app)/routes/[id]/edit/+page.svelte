@@ -10,7 +10,6 @@
   import { updateRoute } from '$lib/entities/route/routes.remote'
   import Form from '$lib/forms/Form.svelte'
   import { noEditPermission } from '$lib/forms/gate'
-  import { seedForm } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
@@ -38,7 +37,7 @@
   cancelTo={routeHref}
   {denied}
   form={updateRoute}
-  seed={([route]) => void seedForm(updateRoute, routeEditSeed(route))}
+  seed={([route]) => routeEditSeed(route)}
   submitLabel={m.common_save()}
   title={m.routes_editRoute()}
   waitFor={[

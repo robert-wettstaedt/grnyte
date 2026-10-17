@@ -2,6 +2,7 @@ import { browser } from '$app/environment'
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 import { hasCoarsePointer, isInstalled } from '$lib/state/device.svelte'
 import { now } from '$lib/state/now.svelte'
+import { storage } from '$lib/state/storage'
 
 /**
  * Whether to promote installing the PWA, and how.
@@ -100,11 +101,7 @@ function forgetPrompt(): void {
 }
 
 function readStored(key: string): null | number {
-  try {
-    return Number(localStorage.getItem(key)) || null
-  } catch {
-    return null
-  }
+  return Number(storage.get(key)) || null
 }
 
 // Per browser, not per account: installability is a fact about this device, and storing it on the
@@ -147,14 +144,10 @@ export function dismissBanner(): void {
   // is not clobbered by this write.
   const count = (readStored(DISMISS_COUNT_KEY) ?? 0) + 1
 
-  try {
-    // Timestamp first: if the second write throws, the snooze still holds. The reverse order would
-    // burn a dismissal and then show the card again on the next load.
-    localStorage.setItem(DISMISSED_AT_KEY, String(at))
-    localStorage.setItem(DISMISS_COUNT_KEY, String(count))
-  } catch {
-    // Storage refused the write. The in-memory state below still hides the card for this page, and
-    // the policy degrades to asking again next load, which is the safe direction.
+  // Count only once the timestamp took: a counted dismissal with no snooze shows the card again.
+  // Refused outright, in-memory state below still hides it for this page; it asks again next load.
+  if (storage.set(DISMISSED_AT_KEY, String(at))) {
+    storage.set(DISMISS_COUNT_KEY, String(count))
   }
 
   dismissedAt = at

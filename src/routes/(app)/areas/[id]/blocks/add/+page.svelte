@@ -42,7 +42,7 @@
   action={{ label: m.common_add() }}
   cancelTo={areaHref}
   {denied}
-  seed={() => createBlock.fields.set({})}
+  seed={{ form: createBlock, values: () => ({}) }}
   title={m.blocks_addBlock()}
   waitFor={[{ notFound: m.areas_notFound(), resource: area, whole: false }]}
 >

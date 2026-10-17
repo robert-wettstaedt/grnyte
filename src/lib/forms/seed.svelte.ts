@@ -15,13 +15,13 @@ export const isSeeding = (): boolean => seeding > 0
  * clears issues only on a `reset` event; this one is cancelled, so Svelte's `bind:` inputs keep
  * their state, and the seed is written again because Kit rebuilds its values from what is rendered.
  */
-export async function seedForm<Values>(
-  form: {
-    readonly element: HTMLFormElement | null
-    fields: { allIssues: () => undefined | unknown[]; set: (values: Values) => unknown }
-  },
-  values: Values,
-): Promise<void> {
+/** What `seedForm` writes to: a remote form, or anything shaped like one. */
+export interface SeedTarget<Values> {
+  readonly element: HTMLFormElement | null
+  fields: { allIssues: () => undefined | unknown[]; set: (values: Values) => unknown }
+}
+
+export async function seedForm<Values>(form: SeedTarget<Values>, values: Values): Promise<void> {
   form.fields.set(values)
   // Untracked: called from an effect, reading the count it writes would re-run that effect.
   untrack(() => (seeding += 1))
