@@ -2,11 +2,6 @@ import {
   ascents,
   blocks,
   files,
-  firstAscensionists,
-  routeExternalResource27crags,
-  routeExternalResource8a,
-  routeExternalResources,
-  routeExternalResourceTheCrag,
   routes,
   routesToFirstAscensionists,
   routesToTags,
@@ -27,6 +22,13 @@ import { notifyMentions } from '../notification/notification.server'
 import { regionTags } from '../region/tagVocabulary'
 import { routeListsFingerprint } from './fingerprint'
 import { resolveFirstAscensionists } from './firstAscensionist.server'
+import {
+  hardDeleteRoute,
+  hardRestoreRoute,
+  restoreRouteSchema,
+  softDeleteRoute,
+  type DeleteRouteSnapshot,
+} from './lifecycle.server'
 import { canAddRoute, canDeleteRoute, canEditRoute } from './permissions'
 import { recalcUserGradeAndRating } from './user-grade.server'
 
@@ -303,29 +305,6 @@ export const updateRoute = authedForm(
   },
 )
 
-/** Snapshot {@link deleteRoute} returns so {@link restoreRoute} can undo either delete path. */
-type DeleteRouteSnapshot =
-  | {
-      firstAscensionistFks: number[]
-      mode: 'hard'
-      route: Pick<
-        Route,
-        | 'areaFks'
-        | 'areaIds'
-        | 'blockFk'
-        | 'createdBy'
-        | 'description'
-        | 'firstAscentYear'
-        | 'gradeFk'
-        | 'name'
-        | 'rating'
-        | 'regionFk'
-      >
-      routeId: number
-      tags: string[]
-    }
-  | { mode: 'soft'; routeId: number }
-
 /** Delete a route. A bare route (no ascents, files or topo lines) is hard-deleted with a
  *  snapshot; one with dependents is soft-deleted so undo restores them cleanly. */
 export const deleteRoute = authedCommand(
@@ -358,68 +337,7 @@ export const deleteRoute = authedCommand(
       object: { id, type: 'route' },
     })
 
-    let data: DeleteRouteSnapshot
-    if (erasable) {
-      const tagRows = await db.query.routesToTags.findMany({ where: eq(routesToTags.routeFk, id) })
-      const faRows = await db.query.routesToFirstAscensionists.findMany({
-        where: eq(routesToFirstAscensionists.routeFk, id),
-      })
-      await db.delete(routesToTags).where(eq(routesToTags.routeFk, id))
-      await db.delete(routesToFirstAscensionists).where(eq(routesToFirstAscensionists.routeFk, id))
-
-      // External resources are scraped from the providers, so they're deleted without a
-      // snapshot (a restored route only re-syncs them). The circular FKs (route ↔ resources
-      // ↔ provider rows) are broken by nulling the nullable sides before deleting.
-      const externalResourceRows = await db.query.routeExternalResources.findMany({
-        columns: { id: true },
-        where: eq(routeExternalResources.routeFk, id),
-      })
-      if (externalResourceRows.length > 0) {
-        const externalResourceIds = externalResourceRows.map((row) => row.id)
-        await db.update(routes).set({ externalResourcesFk: null }).where(eq(routes.id, id))
-        await db
-          .update(routeExternalResources)
-          .set({ externalResource8aFk: null, externalResource27cragsFk: null, externalResourceTheCragFk: null })
-          .where(inArray(routeExternalResources.id, externalResourceIds))
-        await db
-          .delete(routeExternalResource8a)
-          .where(inArray(routeExternalResource8a.externalResourcesFk, externalResourceIds))
-        await db
-          .delete(routeExternalResource27crags)
-          .where(inArray(routeExternalResource27crags.externalResourcesFk, externalResourceIds))
-        await db
-          .delete(routeExternalResourceTheCrag)
-          .where(inArray(routeExternalResourceTheCrag.externalResourcesFk, externalResourceIds))
-        await db.delete(routeExternalResources).where(inArray(routeExternalResources.id, externalResourceIds))
-      }
-
-      await db.delete(routes).where(eq(routes.id, id))
-
-      data = {
-        firstAscensionistFks: faRows.map((row) => row.firstAscensionistFk),
-        mode: 'hard',
-        route: {
-          areaFks: route.areaFks,
-          areaIds: route.areaIds,
-          blockFk: route.blockFk,
-          createdBy: route.createdBy,
-          description: route.description,
-          firstAscentYear: route.firstAscentYear,
-          gradeFk: route.gradeFk,
-          name: route.name,
-          rating: route.rating,
-          regionFk: route.regionFk,
-        },
-        routeId: id,
-        tags: tagRows.map((row) => row.tagFk),
-      }
-    } else {
-      await db
-        .update(routes)
-        .set({ deletedAt: new Date() })
-        .where(and(eq(routes.id, id), isNull(routes.deletedAt)))
-      data = { mode: 'soft', routeId: id }
-    }
+    const data = erasable ? await hardDeleteRoute(db, route) : await softDeleteRoute(db, route)
 
     // Written on the soft path only, unlike an ascent's deletion which also depends on who did it:
     // a route is shared, so its removal is news to the region regardless of who removed it, and the
@@ -441,31 +359,6 @@ export const deleteRoute = authedCommand(
     }
   },
 )
-
-const restoreRouteSchema = z.discriminatedUnion('mode', [
-  z.object({
-    firstAscensionistFks: z.array(z.number()),
-    mode: z.literal('hard'),
-    route: z.object({
-      areaFks: z.nullable(z.array(z.number())),
-      areaIds: z.nullable(z.string()),
-      blockFk: z.number(),
-      createdBy: z.number(),
-      description: z.nullable(z.string()),
-      // Bounded exactly as `routeActionSchema` bounds them: the snapshot round-trips through the
-      // client, `routes` has no CHECK on either column, and `rating` feeds `recalcUserGradeAndRating`.
-      firstAscentYear: z.nullable(z.int().check(z.gte(1900), z.lte(2100))),
-      gradeFk: z.nullable(z.number()),
-      name: z.string(),
-      // 1-3 stars, as on the form; unrated is null rather than 0.
-      rating: z.nullable(z.int().check(z.gte(1), z.lte(3))),
-      regionFk: z.number(),
-    }),
-    routeId: z.number(),
-    tags: z.array(z.string()),
-  }),
-  z.object({ mode: z.literal('soft'), routeId: z.number() }),
-])
 
 /** Undo a {@link deleteRoute}: recreate the hard-deleted route (with its tag and first-ascent
  *  links) or clear the soft delete's `deletedAt`, erasing the delete event with it. */
@@ -490,66 +383,15 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
     }
 
     await requireIssuedId(db, 'routes', snapshot.routeId, formError('routes_notFound'))
-    const areaFks = await areaAncestry(db, block.areaFk)
-
-    const [created] = await db
-      .insert(routes)
-      .values({
-        areaFks,
-        areaIds: areaFks.map((id) => `^${id}$`).join(','),
-        blockFk: block.id,
-        createdBy: user.id,
-        description: snapshot.route.description,
-        firstAscentYear: snapshot.route.firstAscentYear,
-        gradeFk: snapshot.route.gradeFk,
-        // The original id makes a replayed Undo (double tap, second tab) a no-op on the primary key.
-        id: snapshot.routeId,
-        name: snapshot.route.name,
-        rating: snapshot.route.rating,
-        regionFk: block.regionFk,
-      })
-      .onConflictDoNothing({ target: routes.id })
-      .returning()
+    // Filtered before the insert: the restored row takes the block's region either way.
+    const restoredTags = allowedTags(regionTags(userRegions, block.regionFk), snapshot.tags)
+    const created = await hardRestoreRoute(db, block, snapshot, user.id, restoredTags)
     if (created == null) {
       const replayed = eq(routes.blockFk, block.id)
       return {
         data: { routeId: snapshot.routeId },
         ...(await answerReplayedRestore(db, 'routes', snapshot.routeId, replayed, formError('routes_notFound'))),
       }
-    }
-    await recalcUserGradeAndRating(db, created.id)
-
-    // The vocabulary alone, unlike the edit path above: this snapshot went out to the client and
-    // came back, so a route restored after its region retired one of its tags comes back without
-    // that tag rather than carrying a string in no vocabulary.
-    const restoredTags = allowedTags(regionTags(userRegions, created.regionFk), snapshot.tags)
-    if (restoredTags.length > 0) {
-      await db
-        .insert(routesToTags)
-        .values(restoredTags.map((tagFk) => ({ regionFk: created.regionFk, routeFk: created.id, tagFk })))
-    }
-    // Region-scoped like `resolveFirstAscensionists`: these ids round-tripped through the client,
-    // and the junction's WITH CHECK only tests its own `region_fk` (the FK's referential check
-    // doesn't run under RLS), so an id from another region would insert cleanly and stay, invisible
-    // everywhere `queries.ts` region-filters it except to a member of both regions.
-    const ownFirstAscensionists =
-      snapshot.firstAscensionistFks.length === 0
-        ? []
-        : await db.query.firstAscensionists.findMany({
-            columns: { id: true },
-            where: and(
-              eq(firstAscensionists.regionFk, created.regionFk),
-              inArray(firstAscensionists.id, snapshot.firstAscensionistFks),
-            ),
-          })
-    if (ownFirstAscensionists.length > 0) {
-      await db.insert(routesToFirstAscensionists).values(
-        ownFirstAscensionists.map((firstAscensionist) => ({
-          firstAscensionistFk: firstAscensionist.id,
-          regionFk: created.regionFk,
-          routeFk: created.id,
-        })),
-      )
     }
 
     // Nothing to move onto the new id: only a route inside the grace window is hard-deleted, and
@@ -574,6 +416,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
     error(404, formError('blocks_notFound'))
   }
 
+  // Unguarded by stamp, unlike `stampDeletedAt`: kept as it was, so this is not that helper.
   await db.update(routes).set({ deletedAt: null }).where(eq(routes.id, route.id))
   // The delete event and nothing else: the route's own create and every edit ever made to it
   // still point at this id and stay live, exactly as they were before the delete.

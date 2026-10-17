@@ -1,5 +1,5 @@
 import * as schema from '$lib/db/schema'
-import { areas, blocks } from '$lib/db/schema'
+import { areas, blocks, routes } from '$lib/db/schema'
 import type { Context } from '$lib/remote/authed.server'
 import { and, count, eq, inArray, isNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -72,4 +72,42 @@ export async function refreshAreaType(db: Context['db'], areaId: number): Promis
 
   const type = blockRow.count > 0 ? 'sector' : subAreaRow.count > 0 ? 'area' : null
   await db.update(areas).set({ type }).where(eq(areas.id, areaId))
+}
+
+/**
+ * Set `deletedAt` to `to` on these areas, then these blocks, then the routes on those blocks or
+ * named by id, touching only rows still carrying `from` (null: live). So a restore passes the
+ * delete's stamp and never revives a child that was deleted on its own.
+ */
+export async function stampDeletedAt(
+  db: Db,
+  { areaIds = [], blockIds = [], routeIds = [] }: { areaIds?: number[]; blockIds?: number[]; routeIds?: number[] },
+  to: Date | null,
+  from: Date | null,
+): Promise<void> {
+  const carrying = (column: typeof areas.deletedAt | typeof blocks.deletedAt | typeof routes.deletedAt) =>
+    from == null ? isNull(column) : eq(column, from)
+
+  if (areaIds.length > 0) {
+    await db
+      .update(areas)
+      .set({ deletedAt: to })
+      .where(and(inArray(areas.id, areaIds), carrying(areas.deletedAt)))
+  }
+  if (blockIds.length > 0) {
+    await db
+      .update(blocks)
+      .set({ deletedAt: to })
+      .where(and(inArray(blocks.id, blockIds), carrying(blocks.deletedAt)))
+    await db
+      .update(routes)
+      .set({ deletedAt: to })
+      .where(and(inArray(routes.blockFk, blockIds), carrying(routes.deletedAt)))
+  }
+  if (routeIds.length > 0) {
+    await db
+      .update(routes)
+      .set({ deletedAt: to })
+      .where(and(inArray(routes.id, routeIds), carrying(routes.deletedAt)))
+  }
 }
