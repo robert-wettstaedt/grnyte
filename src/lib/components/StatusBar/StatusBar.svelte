@@ -2,14 +2,13 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { isOnline } from '$lib/state/online.svelte'
   import { isUpdateReady } from '$lib/state/updateReady.svelte'
+  import { isTerminal, RECONNECT_HOLD_MS, type ConnectionName } from '$lib/zero/connection'
   import { getZ } from '$lib/zero/z.svelte'
-  import { resolveStatus, TERMINAL } from './statusBar'
+  import { resolveStatus } from './statusBar'
 
   // Supabase rotates the token hourly and Zero can pass through `needs-auth` on the
   // way back up, so a zero-delay red bar would flash on every slow handoff.
   const TERMINAL_HOLD_MS = 3_000
-  // Zero retries every 5s and flaps through `connecting` on token refresh and tab wake.
-  const TRANSIENT_HOLD_MS = 10_000
 </script>
 
 <script lang="ts">
@@ -18,7 +17,7 @@
   // trigger live (`needs-auth`, `closed`, a deploy mid-session). Unset, the bar reads the
   // real device, the real Zero connection and the real service worker.
   interface Props {
-    connectionState?: { name: string }
+    connectionState?: { name: ConnectionName }
     /** Overrides the hold below. A story pinning a state has already waited for it, and
      *  10s of blank canvas reads as a broken story rather than as a deliberate delay. */
     holdMs?: number
@@ -28,7 +27,7 @@
 
   const props: Props = $props()
 
-  let settled = $state('connected')
+  let settled = $state<ConnectionName>('connected')
 
   // The shared signal rather than a local `navigator.onLine` pair: that flag reads true on a fresh
   // document load with the network already dead, so the bar would say "reconnecting" to somebody
@@ -45,7 +44,7 @@
       return
     }
 
-    const hold = props.holdMs ?? (TERMINAL.includes(raw) ? TERMINAL_HOLD_MS : TRANSIENT_HOLD_MS)
+    const hold = props.holdMs ?? (isTerminal(raw) ? TERMINAL_HOLD_MS : RECONNECT_HOLD_MS)
     const timer = setTimeout(() => (settled = raw), hold)
     return () => clearTimeout(timer)
   })

@@ -6,6 +6,7 @@ import { reportConnectionState, setPingTightenHandler } from '$lib/state/online.
 import { forgetSynced, markStoreLoaded, markSynced, trackSyncFor } from '$lib/state/sync.svelte'
 import type { Session } from '@supabase/supabase-js'
 import { Z } from 'zero-svelte'
+import type { ConnectionName } from './connection'
 import { FIELD_STAGES, KEPT, type KeepContext, type KeepStage } from './offline'
 import { queries } from './queries'
 import { schema, type Schema } from './zero-schema'
@@ -68,7 +69,7 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   // The unsubscribe is kept and called on the next swap, so only ever one client reports. That flag
   // is written level-triggered, so two live clients flapping out of step would fight over it.
   connectionUnsubscribe?.()
-  let lastState: string | undefined
+  let lastState: ConnectionName | undefined
   connectionUnsubscribe = z.connection.state.subscribe((state) => {
     reportConnectionState(state)
     noteConnectionForResume(state.name)
@@ -379,7 +380,7 @@ let openResume: null | { droppedSince: boolean; startedAt: number } = null
  * The drop is what makes it worth knowing about: a resume onto a live socket is the ordinary case
  * and writes nothing, so the entry count is itself the answer to how often this happens.
  */
-function noteConnectionForResume(name: string): void {
+function noteConnectionForResume(name: ConnectionName): void {
   if (openResume == null) {
     return
   }

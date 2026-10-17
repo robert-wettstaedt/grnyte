@@ -566,7 +566,7 @@ describe('tightening the ping after a resume', () => {
   // Zero only pings while connected. Anywhere else it is already retrying and this buys nothing.
   it('does not ask in a state Zero does not ping in', async () => {
     const online = await load()
-    for (const connectionState of ['connecting', 'disconnected', 'needs-auth', 'error', undefined]) {
+    for (const connectionState of ['connecting', 'disconnected', 'needs-auth', 'error', undefined] as const) {
       expect(online.shouldTightenPing({ connectionState, networkAnswered: true, resumed: true })).toBe(false)
     }
   })
