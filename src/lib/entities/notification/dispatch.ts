@@ -11,6 +11,7 @@ import { isAscentEvent } from '$lib/entities/event/dto'
 import type { DigestEvent } from '$lib/entities/notification/digest.server'
 import type { NotificationSourceType } from '$lib/entities/notification/dto'
 import type { Locale } from '$lib/paraglide/runtime'
+import { sourceTraits } from './sourceType'
 
 export type ParentName = ({ kind: 'block'; name: string; order: number } | { kind: 'plain'; name: string }) & {
   path: string
@@ -48,19 +49,12 @@ export function directedWanted(row: {
   notifyComments: boolean | null
   notifyDirected: boolean | null
   notifyReactions: boolean | null
-  sourceType: string
+  sourceType: NotificationSourceType
 }): boolean {
-  if (row.sourceType === 'reaction') {
-    return row.notifyReactions !== false
-  }
-
-  // A reply is a comment somebody aimed at you, so it answers to the comment switch rather than
-  // to a third one nobody would think to look for.
-  if (row.sourceType === 'comment' || row.sourceType === 'comment_reply') {
-    return row.notifyComments !== false
-  }
-
-  return row.notifyDirected !== false
+  const push = sourceTraits(row.sourceType).push
+  const allowed =
+    push === 'reactions' ? row.notifyReactions : push === 'comments' ? row.notifyComments : row.notifyDirected
+  return allowed !== false
 }
 
 /**

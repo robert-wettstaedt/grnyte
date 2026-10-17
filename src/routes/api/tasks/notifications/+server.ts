@@ -43,6 +43,7 @@ import {
   isDigestDue,
 } from '$lib/entities/notification/push'
 import { isPushConfigured, sendPushToUser, subscriptionsFor } from '$lib/entities/notification/push.server'
+import { QUEUE_ONLY, sourceTraits } from '$lib/entities/notification/sourceType'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import { contactLocale, resolveMessage } from '$lib/i18n/message'
 import { logServerFailure } from '$lib/logging/failure.server'
@@ -99,6 +100,12 @@ import type { RequestHandler } from './$types'
  * ```
  */
 
+type MailBuilder = (
+  row: { actorName: string; metadata: null | string; regionName: string },
+  locale: Locale,
+  url: string,
+) => EmailContent
+
 /**
  * Deliver one directed row, and let a bad one fail alone. `inBatches` is a bare `Promise.all`, so
  * one rejection takes down `sendDirected` before it can stamp anything, and every push already
@@ -116,25 +123,12 @@ async function guarded(id: number, task: () => Promise<boolean | void>): Promise
 }
 
 /**
- * The send-queue source types (see `notificationSourceType` in `schema.ts`). Their recipient
- * cannot read the region the row names, so they are exempt from the `region.read` re-check below,
- * stamped read once sent, and never counted toward the badge.
- */
-const OUT_OF_BAND = new Set<NotificationSourceType>(['invitation_received', 'membership_removed'])
-
-/**
  * The source types that also go out as email: the role you hold, and the access you no longer
  * have. Unconditional, ignoring the six push switches, which govern push and nothing else.
  *
  * `invitation_received` is deliberately absent: the invitation mail has already gone out, carries
  * the token, and reaches addresses with no account at all.
  */
-type MailBuilder = (
-  row: { actorName: string; metadata: null | string; regionName: string },
-  locale: Locale,
-  url: string,
-) => EmailContent
-
 const MAIL: Partial<Record<NotificationSourceType, MailBuilder>> = {
   membership_removed: (row, locale, url) => membershipRemovedEmailContent({ locale, regionName: row.regionName, url }),
   role_changed: (row, locale, url) =>
@@ -638,10 +632,11 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
       // it: the row's own SELECT policy requires that permission, so it is hidden from the reader
       // it names.
       const regionsByUser = await readableRegions(wanted.map((row) => row.userFk))
-      // Exempt for the out-of-band pair, whose recipient is outside the region by definition. Their
+      // Exempt for the queue-only pair, whose recipient is outside the region by definition. Their
       // sentence names it in the copy rather than linking into it.
       const readable = wanted.filter(
-        (row) => OUT_OF_BAND.has(row.sourceType) || regionsByUser.get(row.userFk)?.includes(row.regionFk) === true,
+        (row) =>
+          sourceTraits(row.sourceType).queueOnly || regionsByUser.get(row.userFk)?.includes(row.regionFk) === true,
       )
 
       const subscriptions = await subscriptionsFor(readable.map((row) => row.userFk))
@@ -689,7 +684,7 @@ async function sendDirected(nowMs: number, origin: string, pushConfigured: boole
     // Read at send, for the queue-only rows alone: nobody can open them, so left unread they would
     // sit in `unreadCounts` for 90 days behind a badge that never clears. The stamp is the claim:
     // every dispatched row keeps it, sent or not, so an offline device builds no queue.
-    const delivered = deliverable.filter((row) => OUT_OF_BAND.has(row.sourceType)).map((row) => row.id)
+    const delivered = deliverable.filter((row) => sourceTraits(row.sourceType).queueOnly).map((row) => row.id)
 
     if (delivered.length > 0) {
       await pinnedTx((tx) =>
@@ -774,7 +769,7 @@ async function unreadCounts(userFks: readonly number[]): Promise<Map<number, num
           // counting them would put a number on the home-screen icon for a row the inbox cannot show
           // and the reader can therefore never clear. The same exclusion is in the inbox query, so
           // the badge the app draws and the badge the payload carries count the same rows.
-          notInArray(notifications.sourceType, [...OUT_OF_BAND]),
+          notInArray(notifications.sourceType, [...QUEUE_ONLY]),
         ),
       )
       .groupBy(notifications.userFk),

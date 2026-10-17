@@ -60,7 +60,7 @@ describe('categoryEnabled', () => {
 })
 
 describe('directedWanted', () => {
-  const row = { notifyComments: true, notifyDirected: true, notifyReactions: true, sourceType: 'mention' }
+  const row = { notifyComments: true, notifyDirected: true, notifyReactions: true, sourceType: 'mention' as const }
 
   it('reads the reaction switch for a reaction', () => {
     expect(directedWanted({ ...row, notifyReactions: false, sourceType: 'reaction' })).toBe(false)
@@ -68,7 +68,7 @@ describe('directedWanted', () => {
   })
 
   it('answers a reply to the comment switch, not a third one', () => {
-    for (const sourceType of ['comment', 'comment_reply']) {
+    for (const sourceType of ['comment', 'comment_reply'] as const) {
       expect(directedWanted({ ...row, notifyComments: false, sourceType })).toBe(false)
       expect(directedWanted({ ...row, notifyDirected: false, sourceType })).toBe(true)
     }
