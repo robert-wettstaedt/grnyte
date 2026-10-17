@@ -16,6 +16,7 @@ import { notifications, regionMembers, rolePermissions, users } from '$lib/db/sc
 import { objectColumns, type EventObject } from '$lib/entities/event/event.server'
 import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { NotificationSourceType } from './dto'
+import { sourceTraits } from './sourceType'
 
 /** The columns of the `notifications_source_idx` constraint, in its order. Keep the two in step. */
 const NOTIFICATION_CONFLICT_TARGET = [
@@ -41,7 +42,7 @@ export interface NotificationRecipient {
 /** What a mutation hands over: who did what to which entity, and who might want to know. */
 export interface NotifyInput {
   /** Who caused it. Dropped from the recipients so nobody is told about their own edit, unless the
-   *  source type is in {@link SELF_ADDRESSED_SOURCE_TYPES}. */
+   *  source type is `selfAddressed` (see `sourceTraits`). */
   actorFk: number
   /**
    * Which card, for the source types that are about one. Part of the idempotency key, so two
@@ -60,13 +61,9 @@ export interface NotifyInput {
   userFks: readonly number[]
 }
 
-/** Source types that are about your own action, where the self filter must not drop you. Named one
- *  by one, so no other source type gains the power to notify its own actor. */
-const SELF_ADDRESSED_SOURCE_TYPES: ReadonlySet<NotificationSourceType> = new Set(['video_ready'])
-
 /**
  * Which of `userFks` may be told about something in `regionFk`, minus the actor, except for a
- * source type in {@link SELF_ADDRESSED_SOURCE_TYPES}.
+ * `selfAddressed` source type.
  *
  * Mirrors the `events` SELECT policy exactly (`authorize_in_region('region.read', region_fk)`,
  * which resolves to an active `region_members` row whose role holds that permission), because
@@ -79,7 +76,7 @@ export async function notificationRecipients(
   actorFk: number,
   sourceType?: NotificationSourceType,
 ): Promise<NotificationRecipient[]> {
-  const keepActor = sourceType != null && SELF_ADDRESSED_SOURCE_TYPES.has(sourceType)
+  const keepActor = sourceType != null && sourceTraits(sourceType).selfAddressed
   const candidates = [...new Set(userFks)].filter((userFk) => keepActor || userFk !== actorFk)
 
   if (candidates.length === 0) {

@@ -12,9 +12,9 @@
   // cascades on delete, so a row never outlives the file it names. Stories are the only way to see
   // them, which is why this file exists.
   //
-  // Deliberately absent: `invitation_received` and `membership_removed`. `QUEUE_ONLY` in
-  // `queries.ts` excludes them from the inbox query, so they never render here, and a story of one
-  // would describe a screen nobody can open.
+  // Deliberately absent: `invitation_received` and `membership_removed`. They are `queueOnly` in
+  // `sourceType.ts`, so the inbox query never returns them, and a story of one would describe a
+  // screen nobody can open.
   const { Story } = defineMeta({
     component: NotificationRow,
     parameters: {
@@ -83,7 +83,7 @@
 <Story name="Unread" args={{ notification: notification('mention'), unread: true }} />
 
 <!-- ─────────────────────────────────────────────────────────────────────────────────────────────
-     SENTENCE-ONLY ROWS. `NO_ROW` in caption.ts: the sentence already names the subject, so a row
+     SENTENCE-ONLY ROWS. `row: false` in sourceType.ts: the sentence already names the subject, so a row
      underneath would only repeat it. These show the region crumb instead, which the entity row
      would otherwise carry in its own crumbs.
      ───────────────────────────────────────────────────────────────────────────────────────── -->

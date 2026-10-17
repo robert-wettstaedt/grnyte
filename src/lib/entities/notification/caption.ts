@@ -2,6 +2,7 @@ import type { EventEntityRef } from '$lib/entities/event/entity'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import type { MessageKey, MessageOptions } from '$lib/i18n/message'
 import type { NotificationListItem, NotificationSourceType } from './dto'
+import { sourceTraits } from './sourceType'
 
 /**
  * What one inbox row says, decided before any markup touches it.
@@ -16,8 +17,8 @@ export interface NotificationView {
   /**
    * What the row renders underneath the caption, for the shared hydration to resolve.
    *
-   * Absent whenever the row would only repeat its own sentence, which is the case for three of
-   * the five source types:
+   * Absent whenever the row would only repeat its own sentence: the inbox's `row: false` types
+   * (see `sourceType.ts`):
    * - a role change stores the member it is about, which is the recipient, so the row would be
    *   their own name linking to their own profile;
    * - an accepted invitation stores the person who accepted, who is the actor the caption already
@@ -25,19 +26,10 @@ export interface NotificationView {
    * - a deleted ascent can only hydrate into a tombstone, and "your ascent" is the one thing the
    *   caption has already said.
    *
-   * The region carries the place in all three, and `regionFk` already holds it.
+   * The region carries the place in each, and `regionFk` already holds it.
    */
   ref: EventEntityRef | undefined
 }
-
-/** The source types whose subject the caption (and the actor's avatar) has already said. */
-const NO_ROW = new Set<NotificationSourceType>([
-  'ascent_deleted',
-  'invitation_received',
-  'invite_accepted',
-  'membership_removed',
-  'role_changed',
-])
 
 /** One key per source type. Exhaustive by construction: a value added to the DB enum (and
  *  regenerated into the Zero schema) breaks this record at compile time. */
@@ -94,11 +86,11 @@ export function notificationView(notification: NotificationSubject, options?: Me
       region: notification.regionName,
       role,
     },
-    // A row whose object is gone has none to point at, which reads the same way as the three
-    // source types that never had one: the sentence stands on its own and nothing is drawn under
+    // A row whose object is gone has none to point at, which reads the same way as the
+    // sentence-only types: the sentence stands on its own and nothing is drawn under
     // it. The sentence itself never asked what type the object was.
     ref:
-      NO_ROW.has(notification.sourceType) || notification.object == null
+      !sourceTraits(notification.sourceType).row || notification.object == null
         ? undefined
         : { id: String(notification.object.id), type: notification.object.type },
   }
