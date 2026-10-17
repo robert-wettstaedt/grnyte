@@ -2,6 +2,7 @@ import { browser } from '$app/environment'
 import { env as publicEnv } from '$env/dynamic/public'
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 import { subscribeToPush, unsubscribeFromPush } from '$lib/entities/notification/notifications.remote'
+import { storage } from '$lib/state/storage'
 
 /**
  * Whether this device can receive push, whether it does, and how to change that.
@@ -54,11 +55,8 @@ if (browser) {
     (publicEnv.PUBLIC_VAPID_KEY ?? '').length > 0
   permission = supported ? Notification.permission : undefined
 
-  try {
-    dismissed = localStorage.getItem(PROMPT_DISMISSED_KEY) != null
-  } catch {
-    // Storage refused the read, so the ask is shown. Costs one card, never correctness.
-  }
+  // Storage refusing the read shows the ask: one card, never correctness.
+  dismissed = storage.get(PROMPT_DISMISSED_KEY) != null
 }
 
 /**
@@ -88,12 +86,9 @@ export async function disablePush(): Promise<void> {
 }
 
 export function dismissPushPrompt(): void {
-  try {
-    localStorage.setItem(PROMPT_DISMISSED_KEY, String(Date.now()))
-  } catch {
-    // In-memory state still hides it for this page; it comes back next load, which is the safe
-    // direction for something that is one tap to dismiss again.
-  }
+  // Refused, in-memory state still hides it for this page; it comes back next load, the safe
+  // direction for something that is one tap to dismiss again.
+  storage.set(PROMPT_DISMISSED_KEY, String(Date.now()))
   dismissed = true
 }
 
@@ -206,14 +201,10 @@ async function register(subscription: PushSubscription): Promise<void> {
 
 /** Write (or clear) {@link ENDPOINT_KEY}. Storage refusing only means the repair does not arm. */
 function rememberEndpoint(value: string | undefined): void {
-  try {
-    if (value == null) {
-      localStorage.removeItem(ENDPOINT_KEY)
-    } else {
-      localStorage.setItem(ENDPOINT_KEY, value)
-    }
-  } catch {
-    // See above.
+  if (value == null) {
+    storage.remove(ENDPOINT_KEY)
+  } else {
+    storage.set(ENDPOINT_KEY, value)
   }
 }
 
@@ -230,11 +221,7 @@ function sameKey(stored: ArrayBuffer | null, current: BufferSource): boolean {
 
 /** The endpoint this device last registered, if storage still has it. */
 function storedEndpoint(): string | undefined {
-  try {
-    return localStorage.getItem(ENDPOINT_KEY) ?? undefined
-  } catch {
-    return undefined
-  }
+  return storage.get(ENDPOINT_KEY) ?? undefined
 }
 
 /**

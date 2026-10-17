@@ -10,7 +10,7 @@
   // The form's fields live on the module-level remote singleton, so they survive navigation for
   // the whole session. Clear them on every visit: nobody wants to find their old password still
   // typed in, least of all after the change already went through.
-  updatePassword.fields.set({ confirmPassword: '', currentPassword: '', password: '' })
+  const initial = { confirmPassword: '', currentPassword: '', password: '' }
 
   const onSubmitted = () => {
     toaster.create({ title: m.auth_passwordUpdated(), type: 'success' })
@@ -23,6 +23,7 @@
 
 <Form
   form={updatePassword}
+  {initial}
   cancelTo={resolve('/settings')}
   {onSubmitted}
   submitLabel={m.common_save()}

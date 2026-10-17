@@ -32,11 +32,11 @@
   // `remove()` and not just dropping the array: only it aborts the transfer and deletes the
   // staged object, so media picked for one block cannot finalize against another.
   const seed = () => {
-    createRoute.fields.set({})
     for (const upload of uploads) {
       upload.remove()
     }
     uploads = []
+    return {}
   }
 
   // Record-first media: the route is created on submit; pending uploads then finalize

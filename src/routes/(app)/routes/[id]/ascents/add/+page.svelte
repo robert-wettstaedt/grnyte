@@ -23,11 +23,11 @@
   // The fields live on a module-level remote singleton. `remove()` and not just dropping the array:
   // it is the only thing that aborts the transfer, deletes the staged object and revokes the preview.
   const seed = () => {
-    createAscent.fields.set({})
     for (const upload of uploads) {
       upload.remove()
     }
     uploads = []
+    return {}
   }
 
   const routeHref = $derived(entityHref('routes', Number(page.params.id)))

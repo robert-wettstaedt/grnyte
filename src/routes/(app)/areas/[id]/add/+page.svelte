@@ -38,7 +38,7 @@
   cancelTo={areaHref}
   {denied}
   form={createArea}
-  seed={([parent]) => createArea.fields.set({ parentFk: parent.id.toString(), regionFk: parent.regionFk.toString() })}
+  seed={([parent]) => ({ parentFk: parent.id.toString(), regionFk: parent.regionFk.toString() })}
   submitLabel={m.common_add()}
   title={parent.data == null ? m.areas_addArea() : m.areas_newAreaIn({ name: parent.data.name })}
   waitFor={[{ notFound: m.areas_notFound(), resource: parent, whole: false }]}

@@ -58,7 +58,9 @@ This project uses:
   `/areas/2/blocks/add` are one route, so anything seeded once follows the reader to the next
   entity. A form that waits on rows does it through `Form`'s (or `FormGate`'s) `waitFor` and
   `seed`: the gate runs `seed` once per set of row ids before the fields mount, and `Form` re-keys
-  its `fields` snippet after each seed, so child state seeded from props starts over too. Never
+  its `fields` snippet after each seed, so child state seeded from props starts over too. `Form`'s
+  `seed` returns the values and `Form` writes them through `seedForm`, so no caller can pick the
+  writer that leaks issues; `initial` does the same for a form with nothing to wait for. Never
   `form.for(key)`, which posts the key as an `id` field. A form that seeds from RELATED rows (tags,
   first ascensionists, a pin) marks that wait `whole: true`, because "loaded" is not one event: the
   row is local while its relations are still in flight, and `updateRoute` deletes what the submit

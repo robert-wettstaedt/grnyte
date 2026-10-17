@@ -5,7 +5,7 @@
   import { updateRegion } from '$lib/entities/region/regions.remote'
   import AuthField from '$lib/forms/AuthField.svelte'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { seedForm, seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { toaster } from '$lib/state/toast'
   import RegionAdminRequired from '../RegionAdminRequired.svelte'
@@ -20,7 +20,7 @@
     () => {
       // Narrowing only: the key above is undefined whenever the membership is.
       if (screen.membership == null) return
-      updateRegion.fields.set({ id: String(screen.regionId), name: screen.membership.name })
+      void seedForm(updateRegion, { id: String(screen.regionId), name: screen.membership.name })
     },
   )
 
