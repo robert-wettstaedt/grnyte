@@ -36,7 +36,7 @@
 ## 4. Verification sweep
 
 - [x] 4.1 Over the touched paths: `npx prettier --write`, `npx eslint`, `npx vitest run --project
-  server` for the entity and `src/lib/remote` suites, and `svelte-check` (beside a running dev
+server` for the entity and `src/lib/remote` suites, and `svelte-check` (beside a running dev
       server, per AGENTS.md).
 - [x] 4.2 `npm run lint:duplication` and `npm run lint:unused`; accept moved clones only, and say so.
 - [x] 4.3 Drive the running app at 375x667 and 1280x800: create a block with a pin, move it on the map,

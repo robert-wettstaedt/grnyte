@@ -40,7 +40,7 @@ a Web Worker while the person types and writes the payload into a form field.
 
 - Challenge endpoint: a new `GET` `+server.ts` under `(landing)/auth/` returning a fresh challenge,
   `Cache-Control: no-store`. The HMAC key is derived, `HMAC-SHA256(SUPABASE_SERVICE_ROLE_KEY,
-  'altcha-challenge')`, rather than a new secret: domain-separated, as secret as its parent, and no
+'altcha-challenge')`, rather than a new secret: domain-separated, as secret as its parent, and no
   Bitwarden step or deploy ordering. Rotating the service role key only voids challenges younger
   than 10 minutes.
 - Verification and rendering: the bot-check module (see the last section) runs the checks first in each
