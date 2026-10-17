@@ -10,9 +10,11 @@
     counts: Map<number, number>
     /** Fires when a day is tapped (its UTC-midnight millis + count), or null when deselected. */
     onselect?: (day: null | { count: number; day: number }) => void
+    /** The tapped day (UTC-midnight millis). Bind it when the caller also closes what a tap opened, or the day stays ringed. */
+    selected?: null | number
   }
 
-  const { counts, onselect }: Props = $props()
+  let { counts, onselect, selected = $bindable(null) }: Props = $props()
 
   const DAY = 86_400_000
   const WEEKS = 53
@@ -84,10 +86,6 @@
   const dayFormat = $derived(new Intl.DateTimeFormat(getLocale(), { dateStyle: 'full', timeZone: 'UTC' }))
   const label = (cell: Cell): string => `${dayFormat.format(cell.day)}: ${m.profile_climbsCount({ count: cell.count })}`
 
-  // Tapping a cell surfaces its date + count in the caption (cells are too small for
-  // a hover tooltip on touch); desktop also gets the native title on hover.
-  let selected = $state<Cell | null>(null)
-
   // The most recent weeks sit at the right edge; open scrolled to them. Runs once on
   // mount (no reactive reads), so the daily `now()` tick can't yank the user back.
   const scrollToEnd = (node: HTMLDivElement): void => {
@@ -114,15 +112,15 @@
                 type="button"
                 class="size-3.25 flex-none rounded-[3px]"
                 class:bg-surface-200-800={bg === ''}
-                class:ring-2={selected?.day === cell.day}
-                class:ring-primary-500={selected?.day === cell.day}
+                class:ring-2={selected === cell.day}
+                class:ring-primary-500={selected === cell.day}
                 style:background-color={bg === '' ? undefined : bg}
                 title={label(cell)}
                 aria-label={label(cell)}
-                aria-pressed={selected?.day === cell.day}
+                aria-pressed={selected === cell.day}
                 onclick={() => {
-                  selected = selected?.day === cell.day ? null : cell
-                  onselect?.(selected)
+                  selected = selected === cell.day ? null : cell.day
+                  onselect?.(selected == null ? null : cell)
                 }}
               ></button>
             {/each}
@@ -133,6 +131,6 @@
   </div>
 
   <p class="text-surface-600-400 mt-2 text-xs" aria-live="polite">
-    {selected == null ? m.profile_activityHint() : label(selected)}
+    {selected == null ? m.profile_activityHint() : label({ count: counts.get(selected) ?? 0, day: selected })}
   </p>
 </div>

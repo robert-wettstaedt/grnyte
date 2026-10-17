@@ -13,6 +13,8 @@
     /** Route counts per grade matching the reader's filter; absent means no filter. Ignored for votes. */
     matchingByGrade?: Map<number, number>
     onselect?: (bar: null | { count: number; id: number; label: string }) => void
+    /** The pressed bar. Bind it when the caller also closes what a tap opened, or the bar stays pressed. */
+    selectedId?: null | number
     /** Show the count above each non-empty bar (for small-n charts like grade votes). */
     showCounts?: boolean
     /** Routes with no grade, surfaced as a trailing count below the chart. */
@@ -21,12 +23,13 @@
     unit?: 'routes' | 'votes'
   }
 
-  const {
+  let {
     countByGrade,
     grades,
     gradingScale,
     matchingByGrade,
     onselect,
+    selectedId = $bindable(null),
     showCounts = false,
     ungraded = 0,
     unit = 'routes',
@@ -136,8 +139,6 @@
     }
     return Math.max(8, (count / maxCount) * 100)
   }
-
-  let selectedId = $state<null | number>(null)
 
   // Click/tap toggles a *persistent* selection (survives the pointer leaving), so
   // a caller can reveal content below the chart and the user can still reach it.

@@ -82,6 +82,12 @@
   >(null)
 
   const selectedGradeId = $derived(sheet?.kind === 'grade' ? sheet.grade.id : null)
+  // The calendar also selects empty days (caption only), so its selection is not the sheet's.
+  // Reset per user: the page reuses this component across `/users/[id]`.
+  let selectedDay = $derived.by((): null | number => {
+    void userId
+    return null
+  })
   const routeGrade = $derived(new Map(ascents.data.map((ascent) => [ascent.routeFk, ascent.routeGradeFk])))
   const gradeRouteIds = $derived.by(() => {
     if (selectedGradeId == null) {
@@ -254,6 +260,7 @@
           <section class="space-y-2.5">
             <SectionHeading title={m.profile_activity()} />
             <ContributionCalendar
+              bind:selected={selectedDay}
               counts={calendarCounts}
               onselect={(cell) => {
                 if (cell == null) {
@@ -274,6 +281,7 @@
               countByGrade={histogramCounts}
               grades={global.grades}
               gradingScale={global.gradingScale}
+              selectedId={selectedGradeId}
               onselect={(bar) => (sheet = bar == null ? null : { grade: bar, kind: 'grade' })}
               showCounts
             />
@@ -362,7 +370,9 @@
     bind:open={
       () => sheet !== null,
       (value) => {
-        if (!value) sheet = null
+        if (value) return
+        if (sheet?.kind === 'day') selectedDay = null
+        sheet = null
       }
     }
     backdrop
