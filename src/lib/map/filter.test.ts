@@ -63,3 +63,23 @@ describe('writeRouteFilter', () => {
     expect(written('minRating=2&tags=a&firstAscensionists=1', parsed)).toBe('')
   })
 })
+
+// The route query rejects NaN, so a hand-edited link used to render the error page.
+describe('parseRouteFilter', () => {
+  it('reads an unreadable number as unset', () => {
+    const { filter } = parseRouteFilter(
+      new URLSearchParams('minGrade=abc&maxGrade=&minRating=NaN&firstAscensionists=1,,abc,2'),
+    )
+
+    expect(filter).toMatchObject({
+      firstAscensionists: [1, 2],
+      maxGrade: undefined,
+      minGrade: undefined,
+      minRating: undefined,
+    })
+  })
+
+  it('drops an id list with nothing readable in it', () => {
+    expect(parseRouteFilter(new URLSearchParams('firstAscensionists=abc,')).filter.firstAscensionists).toBeUndefined()
+  })
+})
