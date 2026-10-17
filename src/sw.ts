@@ -364,7 +364,7 @@ function readJson(data: PushMessageData): unknown {
  */
 function showFor(payload: PushPayload, focused: boolean): Promise<void> {
   return self.registration.showNotification(payload.title, {
-    badge: '/pwa-192x192.png',
+    badge: '/badge-96x96.png',
     body: payload.body,
     data: { pathname: payload.pathname },
     icon: '/pwa-192x192.png',
