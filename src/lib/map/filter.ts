@@ -28,6 +28,18 @@ export interface ParsedRouteFilter {
 export const isAscentStatus = (value: null | string): value is AscentStatus =>
   value === 'done' || value === 'todo' || value === 'project'
 
+/** A hand-edited or truncated link must not reach the query, which rejects NaN: anything unreadable is unset. */
+const finite = (value: null | string): number | undefined => {
+  const number = value == null || value.trim() === '' ? NaN : Number(value)
+  return Number.isFinite(number) ? number : undefined
+}
+
+/** A comma list of ids, dropping the unreadable ones; `undefined` when none is left. */
+const ids = (value: null | string): number[] | undefined => {
+  const list = value?.split(',').flatMap((part) => finite(part) ?? [])
+  return list?.length ? list : undefined
+}
+
 /** Reads the explore URL's search params into typed route-filter values. */
 export const parseRouteFilter = (params: URLSearchParams): ParsedRouteFilter => {
   const minGrade = params.get('minGrade')
@@ -41,12 +53,12 @@ export const parseRouteFilter = (params: URLSearchParams): ParsedRouteFilter => 
     ascentStatus: isAscentStatus(ascentStatus) ? ascentStatus : undefined,
     favoritesOnly: params.get('favorites') === '1',
     filter: {
-      firstAscensionists: firstAscensionists ? firstAscensionists.split(',').map(Number) : undefined,
+      firstAscensionists: ids(firstAscensionists),
       hasBeta: params.get('hasBeta') === '1' ? true : undefined,
       hasTopo: params.get('hasTopo') === '1' ? true : undefined,
-      maxGrade: maxGrade == null ? undefined : Number(maxGrade),
-      minGrade: minGrade == null ? undefined : Number(minGrade),
-      minRating: minRating == null ? undefined : Number(minRating),
+      maxGrade: finite(maxGrade),
+      minGrade: finite(minGrade),
+      minRating: finite(minRating),
       tags: tags ? tags.split(',') : undefined,
     },
   }
