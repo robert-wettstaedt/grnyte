@@ -20,11 +20,12 @@
   import { back, exit } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
   import type { RemoteForm, RemoteFormInput } from '@sveltejs/kit'
-  import type { ComponentProps } from 'svelte'
+  import { untrack, type ComponentProps } from 'svelte'
   import FormError from './FormError.svelte'
   import FormGate from './FormGate.svelte'
   import FormSteps from './FormSteps.svelte'
   import type { FormWaits, Waited } from './gate'
+  import { seedForm } from './seed.svelte'
 
   // Generic chrome for a full-screen remote form: sticky Cancel · title · Submit header,
   // form-level error banner, and a centered column for the caller's fields. Pass `steps`
@@ -45,6 +46,9 @@
      *  still chains height through QueryState's `min-h-full` wrapper. */
     fill?: boolean
     form: RemoteForm<Input, unknown>
+    /** Without `waitFor`: the values the screen opens with, written through `seedForm` as it mounts so
+     *  an earlier visit's values and issues are gone. */
+    initial?: Parameters<RemoteForm<Input, unknown>['fields']['set']>[0]
     /** Label for the advance button on non-final steps. */
     nextLabel?: string
     /** Run just before the form submits; return `false` to cancel it (e.g. to surface a
@@ -54,8 +58,9 @@
      *  the destination depends on (finalizing uploads, waiting for a row to sync). Never navigate:
      *  the handler's `redirectTo` is the destination and this component applies it. */
     onSubmitted?: () => Promise<void> | void
-    /** With `waitFor`: seed the form from its rows, once per set of row ids, before `fields` mount. */
-    seed?: (rows: Waited<W>) => void
+    /** With `waitFor`: the values to seed from its rows, once per set of row ids, before `fields`
+     *  mount. Written through `seedForm`, so an earlier open's issues never survive the seed. */
+    seed?: (rows: Waited<W>) => Parameters<RemoteForm<Input, unknown>['fields']['set']>[0]
     /** Current step index (0-based), bindable so callers can read/seed it. */
     step?: number
     /** Provide to render a multi-step form. The default `children` snippet is then used for
@@ -77,6 +82,7 @@
     fields,
     fill = false,
     form,
+    initial,
     nextLabel = m.common_next(),
     onBeforeSubmit,
     onSubmitted,
@@ -88,6 +94,12 @@
     title,
     waitFor,
   }: Props = $props()
+
+  // At init, not mount: `seedForm` waits for the form itself and holds issue renderers back until
+  // then, so a previous visit's issue never reaches the DOM.
+  untrack(() => {
+    if (initial != null) void seedForm(form, initial)
+  })
 
   const stepped = $derived(steps != null && steps.length > 0)
   const current = $derived(stepped ? steps![Math.min(step, steps!.length - 1)] : undefined)
@@ -146,7 +158,7 @@
     {cancelTo}
     {denied}
     {fill}
-    {seed}
+    seed={seed && { form, values: seed }}
     steps={stepLabels}
     {title}
     {waitFor}

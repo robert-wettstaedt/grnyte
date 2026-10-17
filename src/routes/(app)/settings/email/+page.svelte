@@ -10,7 +10,7 @@
 
   // Fields live on the module-level remote singleton and would otherwise keep an address typed on
   // an earlier visit for the rest of the session. See the password page for the same reset.
-  updateEmail.fields.set({ email: '' })
+  const initial = { email: '' }
 
   const currentEmail = $derived(page.data.session?.user.email)
   const sentTo = $derived(updateEmail.result?.email)
@@ -35,6 +35,7 @@
 {:else}
   <Form
     form={updateEmail}
+    {initial}
     cancelTo={resolve('/settings')}
     submitLabel={m.common_save()}
     title={m.settings_changeEmail()}

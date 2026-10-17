@@ -10,9 +10,9 @@
 
   const global = getGlobalState()
 
-  // Seeded once at init (the app shell gates rendering until the user has loaded), so a failed
+  // Seeded once as the page opens (the app shell gates rendering until the user has loaded), so a failed
   // submit keeps what was typed instead of snapping back to the stored name.
-  updateUsername.fields.set({ username: global.user?.username ?? '' })
+  const initial = { username: global.user?.username ?? '' }
 
   const onSubmitted = () => {
     toaster.create({ title: m.settings_usernameUpdated(), type: 'success' })
@@ -25,6 +25,7 @@
 
 <Form
   form={updateUsername}
+  {initial}
   cancelTo={resolve('/settings')}
   {onSubmitted}
   submitLabel={m.common_save()}

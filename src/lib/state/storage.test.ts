@@ -8,7 +8,7 @@ afterEach(() => {
 
 describe('storage', () => {
   it('reads back what it wrote', () => {
-    storage.set('k', 'v')
+    expect(storage.set('k', 'v')).toBe(true)
     expect(storage.get('k')).toBe('v')
   })
 
@@ -21,6 +21,6 @@ describe('storage', () => {
     })
 
     expect(storage.get('k')).toBeNull()
-    expect(() => storage.set('k', 'v')).not.toThrow()
+    expect(storage.set('k', 'v')).toBe(false)
   })
 })

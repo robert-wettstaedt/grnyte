@@ -9,7 +9,6 @@
   import { entityHref } from '$lib/entities/href'
   import FormGate from '$lib/forms/FormGate.svelte'
   import { noEditPermission } from '$lib/forms/gate'
-  import { seedForm } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -50,8 +49,10 @@
   cancelTo={blockHref}
   {denied}
   fill={initialStep === 'pin'}
-  seed={([block]) =>
-    void seedForm(updateBlock, { description: block.description, id: String(block.id), name: block.rawName })}
+  seed={{
+    form: updateBlock,
+    values: ([block]) => ({ description: block.description, id: String(block.id), name: block.rawName }),
+  }}
   title={initialStep === 'pin' ? m.blocks_add_setLocationTitle() : title}
   waitFor={[
     { notFound: m.blocks_notFound(), resource: block, whole: true },

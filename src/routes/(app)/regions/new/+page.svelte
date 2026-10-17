@@ -9,11 +9,13 @@
   import Form from '$lib/forms/Form.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
+  import { seedForm } from '$lib/forms/seed.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { wipeAndLeave } from '$lib/state/wipe'
+  import { onMount } from 'svelte'
   import { slide } from 'svelte/transition'
   import type { PageProps } from './$types'
 
@@ -39,7 +41,8 @@
   // Fields live on the module-level remote singleton, so a value typed on an earlier visit
   // would still be here for the rest of the session. Same reset as the settings pages; the
   // ids this form needs are static hidden inputs, and submitting reads those from the DOM.
-  createRegion.fields.set({})
+  // Both branches below bind `createRegion`, so this seeds whichever one rendered.
+  onMount(() => void seedForm(createRegion, {}))
 
   /** The reveal is the animation, so somebody who asked for less motion gets the cut. */
   const duration = $derived(motion(150))

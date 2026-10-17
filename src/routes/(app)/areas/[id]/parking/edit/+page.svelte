@@ -90,7 +90,6 @@
   // Otherwise the hidden `areaId` follows the reader, saving one area's parking at another's
   // coordinates.
   const seed = () => {
-    addParking.fields.set({})
     saved = false
     step = 0
     mode = 'map'
@@ -100,6 +99,7 @@
     touched = false
     placedCenter = prefill == null ? null : [prefill.lat, prefill.long]
     pathPoints = []
+    return {}
   }
 
   // Leaving the place step: seed the path at the parking, keeping any waypoints already traced.

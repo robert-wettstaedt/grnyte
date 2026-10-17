@@ -1,5 +1,6 @@
 <script lang="ts">
   import FormHint from '$lib/forms/FormHint.svelte'
+  import { isSeeding } from '$lib/forms/seed.svelte'
   import type { RemoteFormField } from '@sveltejs/kit'
   import type { Snippet } from 'svelte'
   import type { HTMLInputAttributes } from 'svelte/elements'
@@ -37,6 +38,10 @@
   }: Props = $props()
 
   const id = $props.id()
+
+  // One read for the hint and the input's aria, held back while a seed clears a previous open's
+  // issues, as RemoteFormInputWrapper does.
+  const issues = $derived(isSeeding() ? [] : (field.issues() ?? []))
 </script>
 
 <label class="flex flex-col gap-1.5">
@@ -57,10 +62,11 @@
     {required}
     autocorrect="off"
     spellcheck="false"
-    aria-errormessage="{id}-error"
+    aria-invalid={issues.length === 0 ? undefined : 'true'}
+    aria-errormessage={issues.length === 0 ? undefined : `${id}-error`}
     class="input h-12 px-3.5"
     {placeholder}
   />
 
-  <FormHint {id} issues={field.issues()} />
+  <FormHint {id} {issues} />
 </label>
