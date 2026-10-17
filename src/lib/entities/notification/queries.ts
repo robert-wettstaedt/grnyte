@@ -3,14 +3,10 @@ import * as z from '$lib/forms/zod'
 import { authenticatedUserCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
+import { QUEUE_ONLY } from './sourceType'
 
 /** Sync window when a caller doesn't pick one: one screenful of inbox, newest first. */
 const DEFAULT_LIMIT = 50
-
-/** The send-queue source types, which nothing renders. Mirrors `OUT_OF_BAND` in the notifications
- *  task by hand: a shared module would have to import cleanly into both a Zero query definition
- *  and a task route, for two strings. See `notificationSourceType` in `schema.ts`. */
-const QUEUE_ONLY = ['invitation_received', 'membership_removed'] as const
 
 export const notificationsQueryDefs = {
   /**
