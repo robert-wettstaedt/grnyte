@@ -11,6 +11,7 @@
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
+import { stringifyDeletedAscent } from '$lib/entities/event/metadata'
 import { m } from '$lib/paraglide/messages'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { digestCopy, entityNames, type DigestEvent } from './digest.server'
@@ -187,6 +188,20 @@ describe.skipIf(!reachable)('digestCopy', () => {
 
     expect(copy?.title).toBe('Anna added the route Kante direkt')
     expect(copy?.body).toBe('and 4 more updates')
+  })
+
+  it('names the climber a deleted ascent recorded', async () => {
+    const metadata = stringifyDeletedAscent({ climberFk: 42, climberName: 'Mara' })
+    const gone = event({
+      ascentFk: 999999999,
+      metadata,
+      parentId: routeId,
+      parentType: 'route',
+      routeFk: null,
+      verb: 'delete',
+    })
+
+    expect((await digestCopy([gone], names(), 'en'))?.title).toContain('Mara’s ascent')
   })
 
   /** A deleted entity has no row left to name it, and the sentence still has to be a sentence.

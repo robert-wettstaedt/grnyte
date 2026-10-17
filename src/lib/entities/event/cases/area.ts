@@ -6,7 +6,7 @@
  * derived by reading the code, so it is what is under review, never the oracle.
  */
 import { stringifyCoords } from '$lib/map/coords'
-import { stringifyDeletionScale } from '../verbs'
+import { stringifyDeletionScale } from '../metadata'
 import type { EventCase } from './types'
 import { areaEntity, change, eventAgo, ME, PIN } from './world'
 

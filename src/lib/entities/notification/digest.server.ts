@@ -10,7 +10,7 @@ import { eventEntityKey, eventRefs, type EventEntityRef } from '$lib/entities/ev
 import { groupEvents } from '$lib/entities/event/grouping'
 import { eventLines } from '$lib/entities/event/line'
 import type { EventListItem } from '$lib/entities/event/mapper'
-import { parseDeletedAscent, verbKey } from '$lib/entities/event/verbs'
+import { verbKey } from '$lib/entities/event/verbs'
 import { resolveMessage } from '$lib/i18n/message'
 import { m } from '$lib/paraglide/messages'
 import { baseLocale, type Locale } from '$lib/paraglide/runtime'
@@ -109,7 +109,7 @@ export async function digestCopy(
   const names = await entityNames(subject == null ? [] : [subject], locale)
 
   const lead = lines[0]
-  const climber = parseDeletedAscent(lead.metadata ?? undefined)
+  const climber = lead.decoded.kind === 'deletedAscent' ? lead.decoded.climber : undefined
 
   // Through the same precedence the feed card uses, not the database alone. A deleted area is
   // gone from `areas` and its name survives only in `oldValue`; an invitation deliberately has no

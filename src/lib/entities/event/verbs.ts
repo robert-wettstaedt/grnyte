@@ -8,38 +8,6 @@ import type { EventVerb } from './mapper'
 export const REFINABLE: ReadonlySet<EventVerb> = new Set<EventVerb>(['add', 'create', 'update'])
 
 /**
- * Whose ascent a deletion took, as its row recorded it.
- *
- * An ascent is hard-deleted, and the event row is written in the same transaction, so by the
- * time any reader sees the card there is nothing left to ask who climbed it. Without this the
- * card can only say "removed an ascent of Rampe", which is the one thing a maintainer clearing
- * up somebody else's log must not say. Same reasoning as the name an area delete stashes in
- * `oldValue`: write down what is about to stop being knowable.
- *
- * The name travels with the id because the id alone would need a user lookup the feed does not
- * otherwise do for a row whose subject is gone.
- */
-export interface DeletedAscentClimber {
-  climberFk: number
-  climberName: string
-}
-
-/**
- * What a whole-entity deletion took with it, as its row stores it.
- *
- * A deletion is the one card whose subject a reader cannot go and look at, so the scale of it
- * has to be written down while it is still knowable. Counts only: the card says "12 blocks,
- * 200 routes", never a list, because a list of things that no longer exist is not navigable.
- *
- * Rows written before this carry no metadata and render exactly as they always did.
- */
-export interface DeletionScale {
-  areas?: number
-  blocks?: number
-  routes?: number
-}
-
-/**
  * The label, icon and change-line shape for one changed column.
  *
  * The shape is declared here rather than mapped somewhere else, so a column states how it
@@ -56,65 +24,6 @@ export interface VerbField {
   icon: IconName
   kind: ChangeKind
   labelKey: MessageKey
-}
-
-export function parseDeletedAscent(metadata: string | undefined): DeletedAscentClimber | undefined {
-  if (metadata == null || metadata.length === 0) {
-    return undefined
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(metadata)
-    if (typeof parsed !== 'object' || parsed == null) {
-      return undefined
-    }
-
-    const { climberFk, climberName } = parsed as Record<string, unknown>
-    return typeof climberFk === 'number' && Number.isFinite(climberFk) && typeof climberName === 'string'
-      ? { climberFk, climberName }
-      : undefined
-  } catch {
-    // Shares the column with topo metadata, which is not JSON. Not ours, so not a climber.
-    return undefined
-  }
-}
-
-export function parseDeletionScale(metadata: string | undefined): DeletionScale | undefined {
-  if (metadata == null || metadata.length === 0) {
-    return undefined
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(metadata)
-    if (typeof parsed !== 'object' || parsed == null) {
-      return undefined
-    }
-
-    // Each count checked rather than cast: the card adds these up, and `+=` on a string that
-    // came out of JSON concatenates instead of adding ("09 routes"). The column is shared with
-    // rows this code did not write, so what it holds is not this code's to assume.
-    const raw = parsed as Record<string, unknown>
-    const counted = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : undefined)
-    const scale: DeletionScale = {
-      areas: counted(raw.areas),
-      blocks: counted(raw.blocks),
-      routes: counted(raw.routes),
-    }
-    return scale.areas == null && scale.blocks == null && scale.routes == null ? undefined : scale
-  } catch {
-    // A topo row's metadata sits in the same column and is not JSON. Not ours, so not a scale.
-    return undefined
-  }
-}
-
-export function stringifyDeletedAscent(climber: DeletedAscentClimber): string {
-  return JSON.stringify(climber)
-}
-
-/** Only the non-zero counts, so an empty sector stores nothing rather than a row of zeroes. */
-export function stringifyDeletionScale(scale: DeletionScale): string | undefined {
-  const entries = Object.entries(scale).filter(([, value]) => typeof value === 'number' && value > 0)
-  return entries.length === 0 ? undefined : JSON.stringify(Object.fromEntries(entries))
 }
 
 /**
