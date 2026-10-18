@@ -15,7 +15,10 @@ type Mutation = Parameters<ReturnType<typeof getZ>['mutate']>[0]
  * with our message on a refusal, the offline message when Zero could not take it. Refused before
  * it is applied while offline: Zero rejects or holds writes off the connection.
  */
-export async function write<T = void>(mutation: Mutation, opts?: { redirectTo?: string }): Promise<MutationResult<T>> {
+export async function write<T = void>(
+  mutation: Mutation,
+  opts?: { redirectTo?: ((data: T) => string) | string },
+): Promise<MutationResult<T>> {
   if (!isOnline()) {
     throw { ...rejection(formError('error_offline_title')), offline: true }
   }
@@ -35,7 +38,8 @@ export async function write<T = void>(mutation: Mutation, opts?: { redirectTo?: 
     )
   }
 
-  return { data: result.data as T, redirectTo: opts?.redirectTo }
+  const data = result.data as T
+  return { data, redirectTo: typeof opts?.redirectTo === 'function' ? opts.redirectTo(data) : opts?.redirectTo }
 }
 
 const rejection = (message: string, field?: null | string): WriteRejection => ({ body: { field, message } })

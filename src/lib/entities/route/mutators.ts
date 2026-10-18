@@ -1,9 +1,16 @@
+import * as z from '$lib/forms/zod'
 import { defineMutator } from '@rocicorp/zero'
-import { routeActionSchema } from './dto'
+import { restoreRouteSchema, routeActionSchema } from './dto'
+
+// Each validates and writes nothing: a form, a create and a delete wait for the server, and ids are
+// serial, so a local row would show something the server then replaces.
+const waitForServer = async () => {}
 
 export const routesMutatorDefs = {
   routes: {
-    // Validates and writes nothing: a form waits for the server, and a half-applied edit would show.
-    update: defineMutator(routeActionSchema, async () => {}),
+    create: defineMutator(routeActionSchema, waitForServer),
+    delete: defineMutator(z.object({ id: z.number() }), waitForServer),
+    restore: defineMutator(restoreRouteSchema, waitForServer),
+    update: defineMutator(routeActionSchema, waitForServer),
   },
 }

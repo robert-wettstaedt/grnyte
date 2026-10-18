@@ -20,7 +20,6 @@
   import type { MutationResult } from '$lib/remote/mutation'
   import { back, exit } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
-  import type { WriteRejection } from '$lib/zero/write'
   import type { RemoteForm, RemoteFormInput } from '@sveltejs/kit'
   import { untrack, type ComponentProps } from 'svelte'
   import FormError from './FormError.svelte'
@@ -150,29 +149,17 @@
 
     submitting = true
     try {
-      if (!(await store.validate()).ok) {
+      // The raw values, not the parsed ones: the mutator validates the same input again.
+      const outcome = await store.submit(submit)
+      if (outcome.kind === 'offline') {
+        // The overlay keeps the form mounted under it, with everything typed.
+        offline = true
+      } else if (outcome.kind !== 'done') {
         element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
-        return
+      } else {
+        await onSubmitted?.()
+        await exit(outcome.result?.redirectTo ?? cancelTo)
       }
-      let result: MutationResult<unknown> | void
-      try {
-        // The raw values, not the parsed ones: the mutator validates the same input again.
-        // A snapshot: Zero freezes a mutation's arguments, and a live proxy refuses that.
-        result = await submit($state.snapshot(store.fields.value()) as Input)
-      } catch (cause) {
-        const rejection = cause as Partial<WriteRejection> | undefined
-        if (rejection?.body == null) throw cause
-        // Offline keeps the form mounted under the overlay, with everything typed.
-        if (rejection.offline) {
-          offline = true
-          return
-        }
-        store.setIssue(rejection.body.field, rejection.body.message)
-        element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
-        return
-      }
-      await onSubmitted?.()
-      await exit(result?.redirectTo ?? cancelTo)
     } finally {
       submitting = false
     }

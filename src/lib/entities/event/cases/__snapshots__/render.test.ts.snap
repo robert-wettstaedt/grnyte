@@ -3595,7 +3595,7 @@ exports[`the case catalogue renders what it claims > GROUP-03a: /blocks/400 -> A
       ],
     },
   ],
-  "expected": "One card, not two. \`mergeCreatedWithMedia\` folds the upload group into the group holding the create it landed on, and the merged group keeps the CREATE group's kind, which for a route created under a block is KIND \`burst\`. The create is moved to the front, so the headline is "You added the route Kante direkt" with a "2 photos" sub line, both photos above one route row. The create half is written by routes.remote.ts:163.",
+  "expected": "One card, not two. \`mergeCreatedWithMedia\` folds the upload group into the group holding the create it landed on, and the merged group keeps the CREATE group's kind, which for a route created under a block is KIND \`burst\`. The create is moved to the front, so the headline is "You added the route Kante direkt" with a "2 photos" sub line, both photos above one route row. The create half is written by save.server.ts:237.",
 }
 `;
 

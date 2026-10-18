@@ -185,10 +185,10 @@ privileged and already carry a reasoned exemption.
 
 ### 9. Tests run through the mutate endpoint
 
-`src/lib/zero/mutate.server.test.ts` builds a real push request with a signed token and drives
-`handleMutate`. Each entity's `*.remote.test.ts` is ported to that harness in the entity's own
-commit, and its guards are seen red. The remote function tests go with the remote functions in the
-later release.
+`zeroClient` in `src/lib/remote/testHarness.ts` pushes real mutations with a signed token through
+`handleMutate`. Each entity commit adds tests of its mutator path (what it answers, how a refusal
+arrives), seen red; the `*.remote.test.ts` suites keep covering the shared bodies while the remote
+functions stay, and are ported to the harness before those are deleted.
 
 ### 10. Callers write through the entity's `writes.ts`, as they read through its resources
 
@@ -204,6 +204,10 @@ Alternative: callers name the mutator, as the pilot first did. That leaks the tr
 component, the thing the read side was built to avoid.
 
 ## Risks / Trade-offs
+
+- [A delete's sync removes the row before `.server` resolves, so a detail screen shows "not found"
+  for about 65 ms before it leaves] → open: either leave before the server answers, or give a
+  vanished row a short grace before the not-found state; decided at the batch review.
 
 - [After-commit work runs before the answer, so slow storage teardown delays the next write in the
   same client group] → teardown already ran before the response under remote functions; measure

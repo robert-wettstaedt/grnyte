@@ -17,7 +17,7 @@
   import type { RouteDetail } from '$lib/entities/route/dto'
   import { canDeleteRoute, canEditRoute } from '$lib/entities/route/permissions'
   import { waitForRoute } from '$lib/entities/route/resources.svelte'
-  import { deleteRoute, restoreRoute } from '$lib/entities/route/routes.remote'
+  import { deleteRoute, restoreRoute } from '$lib/entities/route/writes'
   import { canEditTopo } from '$lib/entities/topo/permissions'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -59,7 +59,7 @@
   )
 
   const onDelete = () =>
-    withUndo(deleteRoute({ id: route.id }), {
+    withUndo(deleteRoute(route), {
       message: m.routes_deleted(),
       onUndo: restoreRoute,
       waitFor: (data) => waitForRoute(data.routeId),

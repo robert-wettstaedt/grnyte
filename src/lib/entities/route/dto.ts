@@ -1,3 +1,4 @@
+import type { Route } from '$lib/db/schema'
 import type { DisplayName } from '$lib/entities/displayName'
 import type { TopoPoint } from '$lib/entities/topo/dto'
 import { formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
@@ -30,6 +31,39 @@ export const routeActionSchema = z.object({
   rating: z.pipe(stringToIntOptional, z.optional(z.int().check(z.gte(1), z.lte(3)))),
   tags: z._default(z.optional(z.array(z.string())), []),
 })
+
+/** What `restoreRoute` accepts. Placement and authorship are never in it: they come from the block. */
+export const restoreRouteSchema = z.discriminatedUnion('mode', [
+  z.object({
+    firstAscensionistFks: z.array(z.number()),
+    mode: z.literal('hard'),
+    route: z.object({
+      blockFk: z.number(),
+      description: z.nullable(z.string()),
+      // Bounded exactly as `routeActionSchema` bounds them: the snapshot round-trips through the
+      // client, `routes` has no CHECK on either column, and `rating` feeds `recalcUserGradeAndRating`.
+      firstAscentYear: z.nullable(z.int().check(z.gte(1900), z.lte(2100))),
+      gradeFk: z.nullable(z.number()),
+      name: z.string(),
+      // 1-3 stars, as on the form; unrated is null rather than 0.
+      rating: z.nullable(z.int().check(z.gte(1), z.lte(3))),
+    }),
+    routeId: z.number(),
+    tags: z.array(z.string()),
+  }),
+  z.object({ mode: z.literal('soft'), routeId: z.number() }),
+])
+
+/** Snapshot `deleteRoute` returns so `restoreRoute` can undo either delete path. */
+export type DeleteRouteSnapshot =
+  | {
+      firstAscensionistFks: number[]
+      mode: 'hard'
+      route: Pick<Route, 'blockFk' | 'description' | 'firstAscentYear' | 'gradeFk' | 'name' | 'rating'>
+      routeId: number
+      tags: string[]
+    }
+  | { mode: 'soft'; routeId: number }
 
 export type RouteDetail = RouteListItem & {
   /** The route's first ascensionists, for the edit form's picker. */
