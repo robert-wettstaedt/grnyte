@@ -19,7 +19,7 @@ export const FAVORITE_KEY = {
 const FAVORITE_TYPES = Object.keys(FAVORITE_KEY) as [FavoriteEntityType, ...FavoriteEntityType[]]
 
 /**
- * What names one favorited thing, for `toggleFavorite` and for the two queries that count them.
+ * What names one favorited thing, for `saveFavorite` and for the two queries that count them.
  *
  * One schema, because the three of them are the same question and had already drifted: the command
  * coerced its id from a string while the queries required a number, and the comment on each said it

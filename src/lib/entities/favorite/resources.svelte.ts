@@ -5,7 +5,7 @@ import { toUserFavorite, toUserFavoriteEntity } from './mapper'
 
 /**
  * Whether the signed-in user has favorited one specific entity. Reactive, so it flips on its own
- * once a {@link toggleFavorite} write syncs back through Zero.
+ * once a `saveFavorite` write syncs back through Zero.
  *
  * Answered from the user's whole favorites list rather than a per-entity query, which is what makes
  * it work at a crag with no signal. The per-entity form asked a question only the server could
