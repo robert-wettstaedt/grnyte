@@ -3,17 +3,20 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { entityHref } from '$lib/entities/href'
+  import { routeActionSchema } from '$lib/entities/route/dto'
   import { routeEditSeed } from '$lib/entities/route/editSeed'
   import { canEditRoute } from '$lib/entities/route/permissions'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
-  import { updateRoute } from '$lib/entities/route/routes.remote'
+  import { updateRoute } from '$lib/entities/route/writes'
   import Form from '$lib/forms/Form.svelte'
   import { noEditPermission } from '$lib/forms/gate'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
   const global = getGlobalState()
+  const store = createFormStore(routeActionSchema)
   const route = routeDetail(() => Number(page.params.id))
   // The block the route lives on frames the form (breadcrumb, region, hidden blockId).
   const block = blockDetail(() => route.data?.blockFk ?? -1)
@@ -36,7 +39,8 @@
 <Form
   cancelTo={routeHref}
   {denied}
-  form={updateRoute}
+  {store}
+  submit={updateRoute}
   seed={([route]) => routeEditSeed(route)}
   submitLabel={m.common_save()}
   title={m.routes_editRoute()}
@@ -45,11 +49,7 @@
     { notFound: m.blocks_notFound(), resource: block, whole: false },
   ]}
 >
-  <!-- Only rendered fields are submitted, so `fields.set` alone would leave `known` out of the form
-       data. -->
-  <input type="hidden" {...updateRoute.fields.known.as('text')} />
-
   {#snippet fields([route, block])}
-    <RouteFormFields {block} form={updateRoute} {route} />
+    <RouteFormFields {block} form={store} {route} />
   {/snippet}
 </Form>
