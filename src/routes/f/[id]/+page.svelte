@@ -16,7 +16,8 @@
   import ShareSheet from '$lib/components/Media/ShareSheet.svelte'
   import { MEDIA_TOOL } from '$lib/components/Media/toolbar'
   import Toaster from '$lib/components/Toaster/Toaster.svelte'
-  import { deleteFile } from '$lib/entities/file/files.remote'
+  // Remote functions, not `writes.ts`: this page renders outside `(app)`, with no Zero client.
+  import { deleteFile, setFileVisibility } from '$lib/entities/file/files.remote'
   import type { FileParent } from '$lib/entities/file/mapper'
   import { entityHref, type EntityKind } from '$lib/entities/href'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
@@ -126,6 +127,7 @@
         shareText={controls.shareText}
         bind:open={shareOpen}
         onVisibilityChange={(next) => (visibilityOverride = next)}
+        persist={(fileId, visibility) => setFileVisibility({ fileId, visibility })}
       />
 
       {#if controls.canDelete}

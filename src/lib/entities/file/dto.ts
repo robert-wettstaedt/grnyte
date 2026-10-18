@@ -1,4 +1,6 @@
 import type { AscentType } from '$lib/entities/ascent/dto'
+import { formError } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 
 /** Whether a video can be played yet. Monotonic: `ready` is a one-way door. See CONTEXT.md. */
 export const videoReadiness: ['pending', 'ready', 'failed'] = ['pending', 'ready', 'failed']
@@ -67,3 +69,25 @@ export type VideoReadiness = (typeof videoReadiness)[number]
 export function mediaWord(file: { bunnyStreamFk: null | string | undefined }): 'photo' | 'video' {
   return file.bunnyStreamFk == null ? 'photo' : 'video'
 }
+
+/**
+ * A credit URL. The scheme filter is the point: a bare `z.url()` takes `javascript:` and `data:`,
+ * and this value ends up in an `href`. The client gate lives in a component, so a direct command
+ * call would otherwise walk straight past it.
+ */
+export const sourceUrl = z
+  .url({ error: formError('form_urlInvalid'), protocol: /^https?$/ })
+  .check(z.maxLength(500, { error: formError('form_charsMax', { count: 500 }) }))
+
+export const fileIdSchema = z.string().check(z.minLength(1))
+
+export const fileVisibilitySchema = z.object({
+  fileId: fileIdSchema,
+  visibility: z.enum(['public', 'private']),
+})
+
+export const videoSourceSchema = z.object({ fileId: fileIdSchema, source: z.nullable(sourceUrl) })
+
+export const deleteFileSchema = z.object({ id: fileIdSchema })
+
+export type FileVisibility = z.output<typeof fileVisibilitySchema>['visibility']

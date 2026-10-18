@@ -12,8 +12,8 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
-  import type { MediaFile } from '$lib/entities/file/dto'
-  import { setFileVisibility } from '$lib/entities/file/files.remote'
+  import type { FileVisibility, MediaFile } from '$lib/entities/file/dto'
+  import { setFileVisibility } from '$lib/entities/file/writes'
   import { m } from '$lib/paraglide/messages'
   import { createCopyButton } from '$lib/state/clipboard.svelte'
   import { motion } from '$lib/state/motion.svelte'
@@ -32,11 +32,20 @@
     onVisibilityChange?: (visibility: 'private' | 'public') => void
     /** Bindable so the host can pause its own shortcuts while the sheet is up. */
     open?: boolean
+    /** The write. `/f` passes the remote function: it renders outside `(app)`, with no Zero client. */
+    persist?: (fileId: string, visibility: FileVisibility) => Promise<unknown>
     /** Text shared alongside the link (e.g. the route name). */
     shareText: string
   }
 
-  let { canEdit, file, onVisibilityChange, open = $bindable(false), shareText }: Props = $props()
+  let {
+    canEdit,
+    file,
+    onVisibilityChange,
+    open = $bindable(false),
+    persist = setFileVisibility,
+    shareText,
+  }: Props = $props()
 
   let saving = $state(false)
 
@@ -70,7 +79,7 @@
     saving = true
     try {
       const visibility = next ? 'public' : 'private'
-      await setFileVisibility({ fileId: file.id, visibility })
+      await persist(file.id, visibility)
       onVisibilityChange?.(visibility)
     } catch (cause) {
       notifyError(cause)

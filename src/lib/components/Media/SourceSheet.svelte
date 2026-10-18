@@ -8,8 +8,8 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { MediaFile } from '$lib/entities/file/dto'
-  import { setVideoSource } from '$lib/entities/file/files.remote'
   import { isValidSource, normalizeSource } from '$lib/entities/file/upload'
+  import { setVideoSource } from '$lib/entities/file/writes'
   import { m } from '$lib/paraglide/messages'
   import { notifyError } from '$lib/state/toast'
   import SourceField from './SourceField.svelte'
@@ -37,7 +37,7 @@
     }
     saving = true
     try {
-      await setVideoSource({ fileId: file.id, source: normalized ?? null })
+      await setVideoSource(file.id, normalized ?? null)
       open = false
     } catch (cause) {
       notifyError(cause)
