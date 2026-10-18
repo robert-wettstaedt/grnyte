@@ -3620,7 +3620,7 @@ exports[`the case catalogue renders what it claims > GROUP-03b: /routes/500 -> L
       ],
     },
   ],
-  "expected": "One KIND \`session\` card holding the create and the upload: the same merge, into a session group this time, because a lone ascent create is a session of one. The headline is the create's own sentence, "You flashed Rampe", with a "1 video" sub line, not "You logged a session". The create half is written by ascents.remote.ts:69.",
+  "expected": "One KIND \`session\` card holding the create and the upload: the same merge, into a session group this time, because a lone ascent create is a session of one. The headline is the create's own sentence, "You flashed Rampe", with a "1 video" sub line, not "You logged a session". The create half is written by save.server.ts:54.",
 }
 `;
 

@@ -19,10 +19,10 @@
   import { now } from '$lib/state/now.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
   import { slide } from 'svelte/transition'
-  import { deleteAscent } from './ascents.remote'
   import AscentType from './AscentType.svelte'
   import type { RouteAscent } from './dto'
   import { canEditAscent } from './permissions'
+  import { deleteAscent } from './writes'
 
   // One ascent in a route's ascent list. Tapping the row toggles the expanded
   // details (full note, conditions, the climber's edit/delete actions); media thumbs
@@ -69,7 +69,7 @@
   // undo. No navigation needed: the removal syncs and the row drops out of the list.
   const onDelete = async () => {
     try {
-      await deleteAscent({ id: ascent.id })
+      await deleteAscent(ascent.id)
     } catch (cause) {
       // Not `withUndo`, so the failure has to be reported here.
       notifyError(cause)
