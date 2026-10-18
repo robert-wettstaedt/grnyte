@@ -73,7 +73,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `session` card, "You logged a session", with a "5 ascents" sub line. Five routes means the window agrees on no shared parent, so the sub line names no place: a session summary appends one only when every event points at the same one. Four rows render and the fifth collapses into "1 more", and that fifth ascent keeps no reaction bar, since a bar rides a rendered row.',
     id: 'GROUP-01a',
-    writer: 'ascents.remote.ts:69',
+    writer: 'save.server.ts:54',
   },
   {
     action: 'Log two ascents eight minutes apart, with local midnight somewhere between them',
@@ -99,7 +99,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `session` card of 2 ascents. The session key holds no calendar day and `joins` takes the 30 minute window first, so a log that runs past local midnight stays one card instead of splitting in two. Whether midnight really falls between these two depends on when the wall is read, which is the honest state of this case: nothing in the fixtures can pin an event to a clock time.',
     id: 'GROUP-01b',
-    writer: 'ascents.remote.ts:69',
+    writer: 'save.server.ts:54',
   },
   {
     action: 'Log one ascent, climb for another hour and a half, log the next',
@@ -125,7 +125,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `session` card of 2 ascents, held together by the `isSameDay` arm alone: 100 minutes is well past the 30 minute window, and only a session has that second arm. Read close to local midnight the older event falls on the previous day and this becomes two KIND `single` cards, which makes it the one claim on this wall the clock can change.',
     id: 'GROUP-01c',
-    writer: 'ascents.remote.ts:69',
+    writer: 'save.server.ts:54',
   },
   {
     action: 'Two climbers log their afternoon in the same session, seen from one feed',
@@ -167,7 +167,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Two KIND `session` cards of 2 ascents each, interleaved minute by minute in the feed: the session key carries the actor, so climbing together never merges two logbooks. "You logged a session" and "Sofia Brandt logged a session".',
     id: 'GROUP-01d',
-    writer: 'ascents.remote.ts:69',
+    writer: 'save.server.ts:54',
   },
 
   {
@@ -207,7 +207,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       "One KIND `session` card of 3 ascents, and each row carries what THAT climb was logged with: an Opinion strip under Kante direkt holding your own grade and three stars, with your note quoted below it, one under Riss holding your grade and one star, and one under Dach with no Opinion label at all, since an attempt logged with conditions alone said nothing about grade or stars. All three were logged at the same temperature, and the conditions pill sits outside the label on each of them, because a reading is not a take on the climb. The grades are stored as ids here and render through the reader's own scale, the same as the temperature renders through their units, so what the chips say depends on who is looking. The community numbers stay on the rows themselves, which is what the label is there to tell apart. A card-level strip could only ever have shown the first of the three, and did.",
     id: 'GROUP-01e',
-    writer: 'ascents.remote.ts:69',
+    writer: 'save.server.ts:54',
   },
 
   {
@@ -232,7 +232,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'ONE card that still says "You flashed Rampe", with the flash glyph, one row, and "1 edit" as the sub line. Two events (20 minutes is past the 15 minute server fold) about one climb: that is not a session, and the card used to say "You logged a session" over "1 ascent", contradicting itself about how much happened. A card holding one create that every line is about speaks that create\'s sentence, and what it counts is then EDITS, since the log itself is not one. The row keeps its Opinion strip: it is named by an update AND by a create, and the strip comes off the create wherever it sits rather than off whichever line is newest, or an evening correction would take the morning\'s grade and stars off the card that logged them. The Rating line sits behind the changes toggle, and the strip shows where the rating ended up, since it reads the ascent as it stands now.',
     id: 'GROUP-01f',
-    writer: 'ascents.remote.ts:117',
+    writer: 'save.server.ts:108',
   },
 
   {
@@ -446,7 +446,7 @@ export const GROUPING_CASES: EventCase[] = [
       eventAgo(290, { actorFk: ME, objectId: 9001, objectType: 'ascent', verb: 'create' }),
     ],
     expected:
-      'One KIND `session` card holding the create and the upload: the same merge, into a session group this time, because a lone ascent create is a session of one. The headline is the create\'s own sentence, "You flashed Rampe", with a "1 video" sub line, not "You logged a session". The create half is written by ascents.remote.ts:69.',
+      'One KIND `session` card holding the create and the upload: the same merge, into a session group this time, because a lone ascent create is a session of one. The headline is the create\'s own sentence, "You flashed Rampe", with a "1 video" sub line, not "You logged a session". The create half is written by save.server.ts:54.',
     id: 'GROUP-03b',
     writer: 'files.remote.ts:59',
   },
@@ -818,7 +818,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Two KIND `session` cards of 2 ascents each, one per region, interleaved in the feed. Every group key carries the region: without it these four fold into one "4 ascents" card that belongs to neither place. Nobody climbs in two regions in one afternoon, but a person who moved does, and the same guard is what keeps two roles in two regions from becoming one card.',
     id: 'GROUP-06a',
-    writer: 'ascents.remote.ts:69',
+    writer: 'save.server.ts:54',
   },
 
   {
@@ -902,7 +902,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `single` card, "You flashed Rampe", and the corrections are invisible: an `update` joins an open `create` and the verb stays `create`, but `eventLines` expands changes only for an `update`, so the two rows the fold saved render as nothing at all. The card also sits at the CORRECTION\'s time, since joining bumps the open event back to the top of the feed.',
     id: 'GROUP-08b',
-    writer: 'ascents.remote.ts:117',
+    writer: 'save.server.ts:108',
   },
   {
     action: 'Delete three photos off one route from the media viewer, one after another',

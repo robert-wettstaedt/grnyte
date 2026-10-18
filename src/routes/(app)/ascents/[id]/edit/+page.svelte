@@ -2,17 +2,20 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AscentFormFields from '$lib/entities/ascent/AscentFormFields.svelte'
-  import { updateAscent } from '$lib/entities/ascent/ascents.remote'
+  import { ascentActionSchema } from '$lib/entities/ascent/dto'
   import { canEditAscent } from '$lib/entities/ascent/permissions'
   import { ascentDetail } from '$lib/entities/ascent/resources.svelte'
+  import { updateAscent } from '$lib/entities/ascent/writes'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { entityHref } from '$lib/entities/href'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
   const global = getGlobalState()
+  const store = createFormStore(ascentActionSchema)
   const ascent = ascentDetail(() => Number(page.params.id))
   // The route and its block frame the form (context card, breadcrumb, mentions region).
   const route = routeDetail(() => ascent.data?.routeFk ?? -1)
@@ -42,15 +45,11 @@
 <Form
   cancelTo={routeHref}
   {denied}
-  form={updateAscent}
   seed={([ascent]) =>
-    // The custom inputs seed themselves from the `ascent` prop; this covers the field-driven ones.
-    ({
-      id: String(ascent.id),
-      notes: ascent.notes,
-      routeId: String(ascent.routeFk),
-      type: ascent.type,
-    })}
+    // The custom inputs seed themselves from the `ascent` prop and write into the store.
+    ({ notes: ascent.notes })}
+  {store}
+  submit={updateAscent}
   submitLabel={m.common_save()}
   title={m.ascents_editAscent()}
   waitFor={[
@@ -60,6 +59,6 @@
   ]}
 >
   {#snippet fields([ascent, route, block])}
-    <AscentFormFields {ascent} {block} form={updateAscent} {route} />
+    <AscentFormFields {ascent} {block} form={store} {route} />
   {/snippet}
 </Form>

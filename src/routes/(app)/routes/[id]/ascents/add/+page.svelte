@@ -2,25 +2,27 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AscentFormFields from '$lib/entities/ascent/AscentFormFields.svelte'
-  import { createAscent } from '$lib/entities/ascent/ascents.remote'
+  import { ascentActionSchema, type AscentFormInput } from '$lib/entities/ascent/dto'
   import { canLogAscent } from '$lib/entities/ascent/permissions'
+  import { createAscent } from '$lib/entities/ascent/writes'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { finalizeMediaUploads, type MediaUpload } from '$lib/entities/file/upload-manager.svelte'
   import { entityHref } from '$lib/entities/href'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { exit } from '$lib/state/navigation.svelte'
 
   const global = getGlobalState()
+  const store = createFormStore(ascentActionSchema)
   const route = routeDetail(() => Number(page.params.id))
   // The block frames the form's breadcrumb. `-1` while the route loads is the idiom.
   const block = blockDetail(() => route.data?.blockFk ?? -1)
 
   let uploads = $state<MediaUpload[]>([])
 
-  // The fields live on a module-level remote singleton. `remove()` and not just dropping the array:
+  // `remove()` and not just dropping the array:
   // it is the only thing that aborts the transfer, deletes the staged object and revokes the preview.
   const seed = () => {
     for (const upload of uploads) {
@@ -42,15 +44,13 @@
         },
   )
 
-  // Record-first media: the ascent is created on submit; pending uploads then finalize
-  // against it in the background while we return to the route page (which shows them
-  // once synced; the route row already exists, so no wait is needed).
-  const onSubmitted = async () => {
-    const id = createAscent.result?.data?.id
-    if (id == null) return
-    void finalizeMediaUploads(uploads, { id, type: 'ascent' })
-    // This page leaves on its own, for the reason the add-route page gives.
-    await exit(routeHref)
+  // Record-first media: the ascent is created on submit; pending uploads then finalize against it
+  // in the background while the form returns to the route, which already exists.
+  const submit = async (values: AscentFormInput) => {
+    const created = await createAscent(values)
+    const id = created.data?.id
+    if (id != null) void finalizeMediaUploads(uploads, { id, type: 'ascent' })
+    return created
   }
 </script>
 
@@ -61,9 +61,9 @@
 <Form
   cancelTo={routeHref}
   {denied}
-  form={createAscent}
-  {onSubmitted}
   {seed}
+  {store}
+  {submit}
   submitLabel={m.common_save()}
   title={m.routes_logAscent()}
   waitFor={[
@@ -72,6 +72,6 @@
   ]}
 >
   {#snippet fields([route, block])}
-    <AscentFormFields {block} form={createAscent} {route} bind:uploads />
+    <AscentFormFields {block} form={store} {route} bind:uploads />
   {/snippet}
 </Form>
