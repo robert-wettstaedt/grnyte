@@ -5,6 +5,7 @@ import type { Geolocation, ParkingDetail } from './dto'
 /** What `toParkingDetail` reads: a geolocation row with its `area` relation. */
 interface ParkingDetailRow {
   readonly area?: AreaAncestor | undefined
+  readonly areaFk: null | number
   readonly id: number
   readonly lat: number
   readonly long: number
@@ -18,6 +19,7 @@ export function toGeolocation(row: Row<'geolocations'>): Geolocation {
 export function toParkingDetail(row: ParkingDetailRow): ParkingDetail {
   return {
     area: row.area == null ? null : toAreaListItem(row.area),
+    areaFk: row.areaFk ?? undefined,
     id: row.id,
     lat: row.lat,
     long: row.long,
