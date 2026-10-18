@@ -38,7 +38,15 @@ This project uses:
 ## Conventions
 
 - Read `CONTEXT.md` before writing user-facing copy, i18n keys, or naming a domain concept. It is short, and it records distinctions the code depends on (a sector is a typed area and "crag" is prose only, `send` is the umbrella over `flash`/`redpoint`/`repeat`).
-- Mutations are SvelteKit remote functions (`command` / `authedCommand`), RLS-gated. Never Zero mutators.
+- Writes are Zero custom mutators: a client def in `<entity>/mutators.ts`, a server def in
+  `<entity>/mutators.server.ts`, aggregated in `$lib/zero/mutators*.ts` like the queries. The server
+  def wraps a handler body from `<entity>/*.server.ts` in `asCaller` (RLS) or, only where the body
+  used `pinnedTx`, `asPrivileged`; `gates.test.ts` holds both to a named gate. Toggles write the
+  local store optimistically; forms, creates and deletes write nothing on the client and await
+  `.server`, because ids are serial. Remote functions remain for what a mutator cannot answer:
+  auth and account, the upload steps, `sendTestPush`, `replyToFeedback` and remote reads.
+  Components write through the entity's `writes.ts` (one function per write, which owns the
+  destination), never `mutators` or `write` directly, as they read through its resources.
 - A mutation that acts on an existing row gates through `requireRow` / `requireRowForm` (`$lib/remote/require.server`): they fetch the row and hand it to the permission predicate, so the check's subject is always stored data, never request input. Do not hand-roll `findFirst` + 404 + `can*` in a handler. The one exception is a writer of `regions.settings`, which must load its row under a lock `requireRow` cannot express; converting one back silently removes the lock.
 - Every write to `regions.settings` goes through `entities/region/settings.server.ts` and nothing else: it is one
   jsonb blob with two independently edited keys, so every write locks the row, proves the key read
@@ -176,9 +184,12 @@ This project uses:
   test covers a handler needing both tables, and it throws `42P09 table reference "users" is
 ambiguous` the first time a person triggers it. Reach for the alias whenever a query wants an address or login record alongside a profile;
   `adminRecipients.server.ts` is the shortest correct example.
-- A deploy is not atomic on the client: the server updates instantly, the service worker within the hour, and an open document only when it reloads. Three things break already-loaded tabs across that gap, all of them silently, with no build or type error:
+- A deploy is not atomic on the client: the server updates instantly, the service worker within the hour, and an open document only when it reloads. These break already-loaded tabs across that gap, all of them silently, with no build or type error:
   - **Moving a `.remote.ts` file or renaming an exported remote function.** The endpoint id is `hash(module path) + '/' + exportName`, a path hash, so any move 404s every call an open tab makes. Reorganising entity modules is the usual way to trip this. `src/lib/state/serviceWorker.ts` gets stale tabs reloaded eventually, but not instantly.
   - **Changing `manifest.id` in `vite.config.ts`.** It is pinned to `/` (1.0's `start_url`, frozen as an identifier) and must never move: an id a browser does not recognise is a different application, so every installed home-screen app is orphaned beside a new one. Because it is pinned, `start_url` itself is free to change.
+  - **Renaming a mutator or tightening its arguments.** An open tab keeps sending the old name and
+    shape until it reloads, so within one release a mutator's arguments only widen, and a removed
+    remote function or mutator stays deployed for one more release. Deploy zero-cache, then the app.
   - **Deleting or reshaping a route.** Bookmarks, shared links, push targets and history live outside the database and cannot be migrated. Prefer id-based URLs (`/routes/<id>`); they cost nothing to keep forever, while a slug-based one dies with the column it resolved against.
 - Verify changes by driving the running app, not just typechecking. Drive a UI change at BOTH
   375x667 and 1280x800: an interaction gated on hover (which a touch device never gets) and a

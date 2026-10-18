@@ -38,7 +38,7 @@ services:
 
   zero-prod:
     # Must move in lockstep with `@rocicorp/zero` in package.json, server deployed first.
-    image: rocicorp/zero:1.9.0
+    image: rocicorp/zero:1.11.0
     container_name: zero-server-prod
     expose:
       - '4848'
@@ -54,6 +54,8 @@ services:
     # either side alone. FORWARD_COOKIES stays because it is a correctness requirement rather than a
     # preference: zero-cache has to forward the browser cookie for the get-queries endpoint to
     # authenticate at all (see `auth.server.ts`), so it is true in every environment or none.
+    # CRUD_MUTATIONS likewise: writes go through `ZERO_MUTATE_URL` only, so zero-cache's own CRUD path is
+    # shut in every environment.
     #
     # Tunables are NOT here. ZERO_CVR_MAX_CONNS, ZERO_UPSTREAM_MAX_CONNS and ZERO_NUM_SYNC_WORKERS
     # come from the project through `.env.prod`.
@@ -61,6 +63,7 @@ services:
       - ZERO_REPLICA_FILE=/data/sync-replica.db
       - ZERO_SCHEMA_PATH=/opt/app/zero-schema.ts
       - ZERO_GET_QUERIES_FORWARD_COOKIES=true
+      - ZERO_ENABLE_CRUD_MUTATIONS=false
     volumes:
       # Under /opt/app, the image's WORKDIR, because the gen file imports `@rocicorp/zero` for
       # real and only /opt/app/node_modules resolves it. Both files, because zero-schema.ts
