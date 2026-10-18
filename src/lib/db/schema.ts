@@ -2162,7 +2162,7 @@ export const favorites = table(
       .on(table.routeFk)
       .where(sql`route_fk is not null`),
     index('favorites_user_fk_idx').on(table.userFk),
-    // Saving something twice is not a thing a person can mean, and `toggleFavorite` reads before it
+    // Saving something twice is not a thing a person can mean, and `setFavorite` reads before it
     // writes, so two devices tapping Save at the same moment used to leave two rows: the count said
     // two, and the next tap deleted one of them and left the button stuck on saved. Partial so each
     // index only covers the rows that carry that key.
