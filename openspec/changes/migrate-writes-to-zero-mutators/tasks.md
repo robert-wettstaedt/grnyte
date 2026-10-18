@@ -58,10 +58,10 @@ the test failed, and the edit was reverted.
 
 ## 9. Files and topos
 
-- [ ] 9.1 Verify `removeFileStorage` treats an already-missing object as done (a test that deletes twice), and fix it if it does not
-- [ ] 9.2 Move `setFileVisibility` (optimistic toggle), `setVideoSource` and `deleteFile` and add their mutators; port their cases from the file tests, seen red
-- [ ] 9.3 Move `createTopo` (returns `{ id }`, keeps its advisory lock), `deleteTopo`, `replaceTopoImage`, `reorderTopos`, `saveTopoLines` (with its `known` fingerprint) and add their mutators; port `topos.remote.test.ts` and `lines.remote.test.ts`, each guard seen red
-- [ ] 9.4 Switch the media and topo editor callers; drive a visibility toggle, a topo create, line save, image replace and delete at both widths, and time the delete path's answer against its remote-function baseline
+- [x] 9.1 Verify `removeFileStorage` treats an already-missing object as done (a test that deletes twice), and fix it if it does not
+- [x] 9.2 Move `setFileVisibility` (optimistic toggle), `setVideoSource` and `deleteFile` and add their mutators; port their cases from the file tests, seen red
+- [x] 9.3 Move `createTopo` (returns `{ id }`, keeps its advisory lock), `deleteTopo`, `replaceTopoImage`, `reorderTopos`, `saveTopoLines` (with its `known` fingerprint) and add their mutators; port `topos.remote.test.ts` and `lines.remote.test.ts`, each guard seen red
+- [x] 9.4 Switch the media and topo editor callers; drive a visibility toggle, a topo create, line save, image replace and delete at both widths, and time the delete path's answer against its remote-function baseline
 
 ## 10. Reactions and comments
 

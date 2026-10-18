@@ -47,6 +47,11 @@ import { describe, expect, it } from 'vitest'
  *   `canAddBlock` and an undelete on `canDeleteBlock`; `reorderBlocksRow` loads the area through `requireRow`
  * - `createAscentRow` checks `canLogAscent` on the stored route; `updateAscentRow` loads the ascent through
  *   `requireRowForm` with `canEditAscent`, and `deleteAscentRow` through `requireRow` with the same
+ * - `deleteMediaFileRow` checks `canDeleteFile` on the stored file; `setFileVisibilityRow` and `setVideoSourceRow`
+ *   load it through `requireEditableFile`
+ * - `createTopoRow` and `reorderToposRow` load the block through `requireEditableTopoBlock`; `deleteTopoRow` and
+ *   `replaceTopoImageRow` load the topo through `requireEditableTopoWithFile`, `saveTopoLinesRow` through
+ *   `requireEditableTopo`
  * - `createRouteRow` checks `canAddRoute` on the stored block
  * - `deleteRouteRow` loads the route through `requireRow` with `canDeleteRoute`
  * - `restoreRouteRow` gates a recreate on `canAddRoute` and an undelete on `canDeleteRoute`, both on stored rows
@@ -86,13 +91,18 @@ const GATES = new Set([
   'createAscentRow',
   'createBlockRow',
   'createRouteRow',
+  'createTopoRow',
   'deleteAreaRow',
   'deleteAscentRow',
   'deleteBlockRow',
+  'deleteMediaFileRow',
   'deleteParkingRow',
   'deleteRouteRow',
+  'deleteTopoRow',
   'estimateBlockLocationRow',
   'reorderBlocksRow',
+  'reorderToposRow',
+  'replaceTopoImageRow',
   'requireEditableArea',
   'requireEditableFile',
   'requireEditableTopo',
@@ -108,8 +118,11 @@ const GATES = new Set([
   'restoreParkingRow',
   'restoreRouteRow',
   'revokeInvitation',
+  'saveTopoLinesRow',
   'setBlockLocationRow',
   'setFavorite',
+  'setFileVisibilityRow',
+  'setVideoSourceRow',
   'updateAreaRow',
   'updateAscentRow',
   'updateBlockRow',

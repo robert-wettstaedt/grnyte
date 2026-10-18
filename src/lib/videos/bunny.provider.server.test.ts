@@ -58,3 +58,19 @@ describe('the two enums collide', () => {
     expect(provider.readinessFromApi(4)).toBe('ready')
   })
 })
+
+// A retried delete (a second afterCommit drain, two rows on one video) finds it already gone.
+describe('remove', () => {
+  it('treats a 404 as already removed, and rejects anything else', async () => {
+    const fetch = vi.fn(async () => new Response(null, { status: 404 }))
+    vi.stubGlobal('fetch', fetch)
+    try {
+      await expect(provider.remove('gone')).resolves.toBeUndefined()
+
+      fetch.mockResolvedValue(new Response(null, { status: 500 }))
+      await expect(provider.remove('broken')).rejects.toMatchObject({ status: 502 })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+})

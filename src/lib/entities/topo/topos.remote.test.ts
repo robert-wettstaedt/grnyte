@@ -113,7 +113,8 @@ describe.skipIf(!reachable)('topo images', () => {
   it('creates a topo from the block s own image', async () => {
     const result = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: ownFileId }))
 
-    expect(result?.data?.fileFk).toBe(ownFileId)
+    const [stored] = await sql<{ file_fk: string }[]>`select file_fk from public.topos where id = ${result!.data!.id}`
+    expect(stored?.file_fk).toBe(ownFileId)
   })
 
   it('refuses to create a topo pointing at a file that is not the block s', async () => {

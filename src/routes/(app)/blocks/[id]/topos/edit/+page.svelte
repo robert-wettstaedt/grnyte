@@ -30,13 +30,7 @@
   import { canEditPoints, normalizePoints } from '$lib/entities/topo/path'
   import { canEditTopo } from '$lib/entities/topo/permissions'
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
-  import {
-    createTopo,
-    deleteTopo,
-    reorderTopos,
-    replaceTopoImage,
-    saveTopoLines,
-  } from '$lib/entities/topo/topos.remote'
+  import { createTopo, deleteTopo, reorderTopos, replaceTopoImage, saveTopoLines } from '$lib/entities/topo/writes'
   import { noEditPermission } from '$lib/forms/gate'
   import { reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages.js'
@@ -294,9 +288,9 @@
           upload.start()
           const row = await upload.finalize({ id: block.data.id, type: 'block' })
           if (replaceTargetId != null) {
-            await replaceTopoImage({ fileId: row.id, topoId: replaceTargetId })
+            await replaceTopoImage(replaceTargetId, row.id)
           } else {
-            const result = await createTopo({ blockId: block.data.id, fileId: row.id })
+            const result = await createTopo(block.data.id, row.id)
             if (result?.data != null) editor.topoId = result.data.id
           }
         } catch (cause) {
@@ -360,7 +354,7 @@
     const id = currentTopo.id
     const remaining = topos.data.find((topo) => topo.id !== id)
     try {
-      await deleteTopo({ id })
+      await deleteTopo(id)
       // Drop the deleted topo's local doc too, or its dirty leftovers would make Save 404.
       editor.forget(id)
       editor.topoId = remaining?.id
