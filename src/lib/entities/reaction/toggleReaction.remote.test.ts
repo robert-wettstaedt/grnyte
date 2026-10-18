@@ -41,11 +41,12 @@ describe.skipIf(!reachable)('toggleReaction', () => {
   it('lands two concurrent taps as one live reaction', async () => {
     const tap = () => asRequest(reactor.authId, () => toggleReaction({ emoji: '👍', eventId }))
 
-    await expect(Promise.all([tap(), tap()])).resolves.toBeDefined()
+    const answers = (await Promise.all([tap(), tap()])).map((r) => r?.data)
 
     const rows = await sql`
       select 1 from public.reactions
       where event_fk = ${eventId} and user_fk = ${reactor.userId} and deleted_at is null`
-    expect(rows.length).toBe(1)
+    // Taps that serialise are a toggle on then off; only overlapping ones both answer "reacted".
+    expect(rows.length).toBe(answers.every(Boolean) ? 1 : 0)
   })
 })
