@@ -1,5 +1,7 @@
 import type { DisplayName } from '$lib/entities/displayName'
 import type { MediaFile } from '$lib/entities/file/dto'
+import { formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 
 /** Full ascent shape for the edit form. */
 export interface AscentDetail extends Omit<RouteAscent, 'authorName'> {
@@ -44,3 +46,31 @@ export interface UserAscentDetail extends RouteAscent {
   routeGradeFk: number | undefined
   routeName: string
 }
+
+/** The add/edit-ascent form's fields, shared by the remote forms and the `ascents` mutators. */
+export const ascentActionSchema = z.object({
+  dateTime: z.iso.date({ error: formError('form_required') }),
+  gradeFk: stringToIntOptional,
+  humidity: z.pipe(
+    stringToIntOptional,
+    z.optional(z.int().check(z.gte(0, formError('form_numInvalid')), z.lte(100, formError('form_numInvalid')))),
+  ),
+  id: stringToIntOptional,
+  notes: z._default(z.optional(z.string()), ''),
+  // 1–3 stars; the field is absent when unrated (same convention as the route form).
+  rating: z.pipe(stringToIntOptional, z.optional(z.int().check(z.gte(1), z.lte(3)))),
+  routeId: stringToInt,
+  temperature: z.pipe(
+    stringToIntOptional,
+    z.optional(z.int().check(z.gte(-30, formError('form_numInvalid')), z.lte(50, formError('form_numInvalid')))),
+  ),
+  // Not `ascentTypeEnum`: a value import from the drizzle schema would ship it to the client.
+  type: z.enum(['flash', 'redpoint', 'repeat', 'attempt'] satisfies AscentType[], {
+    error: formError('form_required'),
+  }),
+})
+
+/** Field shape the shared add/edit-ascent form binds to, `id` is set only when editing. */
+export type AscentFormInput = z.input<typeof ascentActionSchema>
+
+export type AscentFormValue = z.output<typeof ascentActionSchema>

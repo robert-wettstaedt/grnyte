@@ -53,8 +53,8 @@ the test failed, and the edit was reverted.
 
 ## 8. Ascents
 
-- [ ] 8.1 Move `createAscent` (returns `{ id }` for upload finalize), `updateAscent` and `deleteAscent` (its after-commit `notify` and storage teardown moved into `afterCommit`) and add their mutators; add harness tests for each, since the module has none, each seen red
-- [ ] 8.2 Switch the ascent forms (keeping the date and the five other component-state fields in the store) and the delete caller; drive log, edit and delete of an ascent with a photo at both widths, and confirm the photo's storage is gone
+- [x] 8.1 Move `createAscent` (returns `{ id }` for upload finalize), `updateAscent` and `deleteAscent` (its after-commit `notify` and storage teardown moved into `afterCommit`) and add their mutators; add harness tests for each, since the module has none, each seen red
+- [x] 8.2 Switch the ascent forms (keeping the date and the five other component-state fields in the store) and the delete caller; drive log, edit and delete of an ascent with a photo at both widths, and confirm the photo's storage is gone
 
 ## 9. Files and topos
 

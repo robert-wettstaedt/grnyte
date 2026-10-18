@@ -19,31 +19,29 @@
   import FormHint from '$lib/forms/FormHint.svelte'
   import OptionalBadge from '$lib/forms/OptionalBadge.svelte'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
+  import type { FormStore } from '$lib/forms/store.svelte'
   import { localIsoDay } from '$lib/i18n/relativeTime'
   import { formatConditions, formatHumidity, temperatureField } from '$lib/i18n/units.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { summaryOf } from '$lib/zero/resource.svelte'
-  import type { RemoteForm } from '@sveltejs/kit'
-  import type { AscentFormInput } from './ascents.remote'
   import AscentType from './AscentType.svelte'
   import AscentTypeInput from './AscentTypeInput.svelte'
   import ConditionPicker from './ConditionPicker.svelte'
-  import type { AscentDetail } from './dto'
+  import type { AscentDetail, AscentFormInput } from './dto'
   import { routeAscentList } from './resources.svelte'
 
   // Shared body for the add/edit ascent forms. Field order follows the moment of
   // logging: the judgment cluster while it's fresh (type, grade, rating), then the
   // confirm-only date, low-priority conditions collapsed, free text, attachments.
-  // Most custom inputs render their own hidden inputs; the two conditions are the exception,
-  // submitted from outside the disclosure that can unmount them. Mirrors RouteFormFields.
+  // The custom inputs keep their values in component state, which an effect writes into the store.
   interface Props {
     /** When editing: the ascent, to seed the non-text fields once on mount. */
     ascent?: AscentDetail
     /** The route's block, framing the form (breadcrumb). */
     block: BlockDetail
-    form: RemoteForm<AscentFormInput, unknown>
+    form: FormStore<AscentFormInput, unknown>
     /** The route being climbed. */
     route: RouteDetail
     /** Media picked in the add form, uploading in the background while the user types.
@@ -84,6 +82,18 @@
   // svelte-ignore state_referenced_locally
   let date = $state(ascent?.dateTime == null ? today : new Date(ascent.dateTime).toISOString().slice(0, 10))
 
+  // The store sends what it holds, not the hidden inputs, so everything not typed writes into it.
+  $effect(() => {
+    form.fields.routeId.set(String(route.id))
+    if (ascent != null) form.fields.id.set(String(ascent.id))
+    if (type != null) form.fields.type.set(type)
+    form.fields.gradeFk.set(gradeFk == null ? '' : String(gradeFk))
+    form.fields.rating.set(rating ? String(rating) : '')
+    form.fields.dateTime.set(date)
+    form.fields.temperature.set(temperature == null ? '' : String(temperature))
+    form.fields.humidity.set(humidity == null ? '' : String(humidity))
+  })
+
   const breadcrumbArea = $derived(blockBreadcrumbArea(block))
   /** The native date input is the segment holding the selection (vs Today/Yesterday). */
   const customDate = $derived(date !== today && date !== yesterday)
@@ -116,14 +126,6 @@
     form.fields.notes.set(current === '' ? notes : `${current}\n\n${notes}`)
   }
 </script>
-
-<!-- Submitted values not typed directly: the route the ascent belongs to. -->
-<input name="routeId" type="hidden" value={route.id} />
-
-<!-- Present only when editing, the create form leaves `id` unset. -->
-{#if ascent != null}
-  <input name="id" type="hidden" value={ascent.id} />
-{/if}
 
 <div class="flex items-center gap-2 whitespace-nowrap">
   <Breadcrumb area={breadcrumbArea} userRegions={global.userRegions} />
@@ -215,11 +217,6 @@
     </div>
   {/snippet}
 </RemoteFormInputWrapper>
-
-<!-- Outside the disclosure: collapsing it unmounts the panel, and a hidden input in there would
-     stop submitting, clearing both columns on save. -->
-<input name="temperature" type="hidden" value={temperature ?? ''} />
-<input name="humidity" type="hidden" value={humidity ?? ''} />
 
 <Disclosure panelClass="mt-3 space-y-3" summaryClass="flex w-full items-center gap-2" bind:open={conditionsOpen}>
   {#snippet summary(open)}

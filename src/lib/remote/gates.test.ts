@@ -45,6 +45,8 @@ import { describe, expect, it } from 'vitest'
  *   with `canEditBlock`, and the pin writers through `requireRow` with the same
  * - `deleteBlockRow` loads the block through `requireRow` with `canDeleteBlock`; `restoreBlockRow` gates a recreate on
  *   `canAddBlock` and an undelete on `canDeleteBlock`; `reorderBlocksRow` loads the area through `requireRow`
+ * - `createAscentRow` checks `canLogAscent` on the stored route; `updateAscentRow` loads the ascent through
+ *   `requireRowForm` with `canEditAscent`, and `deleteAscentRow` through `requireRow` with the same
  * - `createRouteRow` checks `canAddRoute` on the stored block
  * - `deleteRouteRow` loads the route through `requireRow` with `canDeleteRoute`
  * - `restoreRouteRow` gates a recreate on `canAddRoute` and an undelete on `canDeleteRoute`, both on stored rows
@@ -81,9 +83,11 @@ const GATES = new Set([
   'canReadRegion',
   'checkRegionPermission',
   'createAreaRow',
+  'createAscentRow',
   'createBlockRow',
   'createRouteRow',
   'deleteAreaRow',
+  'deleteAscentRow',
   'deleteBlockRow',
   'deleteParkingRow',
   'deleteRouteRow',
@@ -107,6 +111,7 @@ const GATES = new Set([
   'setBlockLocationRow',
   'setFavorite',
   'updateAreaRow',
+  'updateAscentRow',
   'updateBlockRow',
   'updateRouteRow',
   'verifyUpload',
