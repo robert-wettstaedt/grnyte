@@ -5,14 +5,17 @@
   import { canAddBlock } from '$lib/entities/area/permissions'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import BlockForm from '$lib/entities/block/BlockForm.svelte'
-  import { createBlock } from '$lib/entities/block/blocks.remote'
+  import { blockActionSchema } from '$lib/entities/block/dto'
+  import { createBlock } from '$lib/entities/block/writes'
   import { entityHref } from '$lib/entities/href'
   import FormGate from '$lib/forms/FormGate.svelte'
   import { noEditPermission } from '$lib/forms/gate'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { coordsFromParams } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
+  const store = createFormStore(blockActionSchema)
   const global = getGlobalState()
   const area = areaDetail(() => Number(page.params.id))
   // Location handed over by the quick-create map flow, landing the form pre-located.
@@ -42,7 +45,7 @@
   action={{ label: m.common_add() }}
   cancelTo={areaHref}
   {denied}
-  seed={{ form: createBlock, values: () => ({}) }}
+  seed={{ form: { element: null, fields: store.fields }, values: () => ({}) }}
   title={m.blocks_addBlock()}
   waitFor={[{ notFound: m.areas_notFound(), resource: area, whole: false }]}
 >
@@ -51,7 +54,8 @@
          `<form>` it owns is never destroyed and rebuilt under the remote form object. -->
     <BlockForm
       {area}
-      form={createBlock}
+      {store}
+      submit={createBlock}
       {initialLocation}
       cancelTo={areaHref}
       seedKey={area.id}

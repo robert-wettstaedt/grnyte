@@ -2,17 +2,18 @@
   import type { AreaDetail } from '$lib/entities/area/dto'
   import Form from '$lib/forms/Form.svelte'
   import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import type { FormStore } from '$lib/forms/store.svelte'
   import { createAreaPickerMapData } from '$lib/map/exploreData.svelte'
   import { userLocation } from '$lib/map/geolocation.svelte'
   import LocationPickerScreen from '$lib/map/LocationPickerScreen.svelte'
   import { m } from '$lib/paraglide/messages'
+  import type { MutationResult } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
-  import type { RemoteForm } from '@sveltejs/kit'
   import BlockFormFields from './BlockFormFields.svelte'
   import BlockLocationConfirm from './BlockLocationConfirm.svelte'
-  import type { BlockFormInput } from './blocks.remote'
+  import type { BlockFormInput } from './dto'
   import { blockPinFingerprint } from './fingerprint'
 
   type Coords = { lat: number; long: number }
@@ -32,7 +33,6 @@
     cancelTo: string
     /** Editing an existing block: switches the no-location confirm to "Save …" wording. */
     editing?: boolean
-    form: RemoteForm<BlockFormInput, unknown>
     /** Pre-fill the "rough guess" toggle from the block's existing pin when editing. */
     initialEstimated?: boolean
     /** Pre-fill the location, e.g. the block's existing pin when editing. */
@@ -45,6 +45,10 @@
     /** The entity this form is about: the area when adding, the block when editing. Required,
      *  because an absent key never seeds and the previous entity's values would survive. */
     seedKey: number | string
+    /** The fields; the pin, its rough-guess flag and `known` are written into it from here. */
+    store: FormStore<BlockFormInput, unknown>
+    /** The write, given the validated values. */
+    submit: (values: BlockFormInput) => Promise<MutationResult<unknown>>
     submitLabel: string
     title: string
   }
@@ -53,12 +57,13 @@
     area,
     cancelTo,
     editing = false,
-    form,
     initialEstimated = false,
     initialLocation = null,
     initialStep = 'form',
     onLocationCommit,
     seedKey,
+    store,
+    submit,
     submitLabel,
     title,
   }: Props = $props()
@@ -97,6 +102,15 @@
       locating = false
     },
   )
+  // The pin lives in this component's state; the store sends what it holds, so it is written in.
+  $effect(() => {
+    store.fields.areaId.set(String(area.id))
+    store.fields.lat.set(committed == null ? '' : String(committed.lat))
+    store.fields.long.set(committed == null ? '' : String(committed.long))
+    store.fields.estimated.set(committed != null && estimated ? 'true' : '')
+    store.fields.known.set(known)
+  })
+
   let confirmOpen = $state(false)
   // Resolves the held submit (see beforeSubmit) once the user answers the confirm dialog.
   let confirmResolve: ((saveAnyway: boolean) => void) | undefined
@@ -156,13 +170,10 @@
     }}
   />
 {:else}
-  <Form {cancelTo} {form} onBeforeSubmit={beforeSubmit} {submitLabel} {title}>
-    <!-- Only rendered fields are submitted, so the staleness proof needs an input of its own. -->
-    <input name="known" type="hidden" value={known} />
-
+  <Form {cancelTo} onBeforeSubmit={beforeSubmit} {store} {submit} {submitLabel} {title}>
     <BlockFormFields
       {area}
-      {form}
+      form={store}
       {locating}
       {estimated}
       location={committed}

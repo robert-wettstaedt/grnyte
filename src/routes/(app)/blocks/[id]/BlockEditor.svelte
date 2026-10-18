@@ -3,12 +3,14 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import BlockForm from '$lib/entities/block/BlockForm.svelte'
-  import { setBlockLocation, updateBlock } from '$lib/entities/block/blocks.remote'
+  import { blockActionSchema } from '$lib/entities/block/dto'
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
+  import { setBlockLocation, updateBlock } from '$lib/entities/block/writes'
   import { entityHref } from '$lib/entities/href'
   import FormGate from '$lib/forms/FormGate.svelte'
   import { noEditPermission } from '$lib/forms/gate'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -25,6 +27,7 @@
   const { initialStep = 'form', title }: Props = $props()
 
   const global = getGlobalState()
+  const store = createFormStore(blockActionSchema)
   const block = blockDetail(() => Number(page.params.id))
   // The block's immediate area (last crumb) is the sector the form frames against.
   const area = areaDetail(() => block.data?.areas.at(-1)?.id ?? -1)
@@ -50,7 +53,7 @@
   {denied}
   fill={initialStep === 'pin'}
   seed={{
-    form: updateBlock,
+    form: { element: null, fields: store.fields },
     values: ([block]) => ({ description: block.description, id: String(block.id), name: block.rawName }),
   }}
   title={initialStep === 'pin' ? m.blocks_add_setLocationTitle() : title}
@@ -67,7 +70,8 @@
       seedKey={detail.id}
       {area}
       editing
-      form={updateBlock}
+      {store}
+      submit={updateBlock}
       {initialStep}
       initialLocation={detail.geolocation == null
         ? null

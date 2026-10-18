@@ -1,4 +1,5 @@
 import { areasMutatorDefs } from '$lib/entities/area/mutators'
+import { blocksMutatorDefs } from '$lib/entities/block/mutators'
 import { favoritesMutatorDefs } from '$lib/entities/favorite/mutators'
 import { routesMutatorDefs } from '$lib/entities/route/mutators'
 import { defineMutators } from '@rocicorp/zero'
@@ -7,6 +8,7 @@ import { defineMutators } from '@rocicorp/zero'
  *  `mutators.server.ts` is a separate registry of the authoritative writes. */
 export const mutators = defineMutators({
   ...areasMutatorDefs,
+  ...blocksMutatorDefs,
   ...favoritesMutatorDefs,
   ...routesMutatorDefs,
 })

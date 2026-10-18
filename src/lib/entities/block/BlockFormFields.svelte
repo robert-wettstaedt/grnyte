@@ -3,12 +3,13 @@
   import MarkdownEditor from '$lib/components/MarkdownEditor/MarkdownEditor.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
+  import type { FormStore } from '$lib/forms/store.svelte'
   import type { MapData } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import type { RemoteForm } from '@sveltejs/kit'
   import BlockLocationField from './BlockLocationField.svelte'
-  import type { BlockFormInput } from './blocks.remote'
+  import type { BlockFormInput } from './dto'
 
   type Coords = { lat: number; long: number }
 
@@ -20,7 +21,7 @@
     area: AreaDetail
     /** The pin is a rough guess ("?" on the map), not a confirmed spot. */
     estimated: boolean
-    form: RemoteForm<BlockFormInput, unknown>
+    form: FormStore<BlockFormInput, unknown> | RemoteForm<BlockFormInput, unknown>
     locating: boolean
     location: Coords | null
     mapData: MapData

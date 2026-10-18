@@ -9,6 +9,7 @@ import type { BlockDetail, BlockListItem } from './dto'
 
 /** What `toBlockDetail` reads: satisfied by both the list and the single-block query. */
 interface BlockDetailRow extends BlockRow {
+  readonly areaFk: number
   readonly createdAt: null | number
   readonly createdBy: number
   readonly description: null | string
@@ -51,6 +52,7 @@ export function blockName(name: string, order: number, locale?: Locale): Display
 export function toBlockDetail(row: BlockDetailRow): BlockDetail {
   return {
     ...toBlockListItem(row),
+    areaFk: row.areaFk,
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
     createdBy: row.createdBy,
     description: row.description ?? '',
