@@ -30,7 +30,7 @@ the test failed, and the edit was reverted.
 
 ## 4. Favorites
 
-- [ ] 4.1 Point `ProfileFavorites` and every remaining `toggleFavorite` caller at `favorite/writes.ts`; verify by grepping for `toggleFavorite(` outside `favorites.remote.ts`, and by driving a save and unsave at both widths
+- [x] 4.1 Point `ProfileFavorites` and every remaining `toggleFavorite` caller at `favorite/writes.ts`; verify by grepping for `toggleFavorite(` outside `favorites.remote.ts`, and by driving a save and unsave at both widths
 
 ## 5. Routes
 

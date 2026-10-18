@@ -11,8 +11,8 @@
   import type { AscentType } from '$lib/entities/ascent/dto'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { blockList } from '$lib/entities/block/resources.svelte'
-  import { toggleFavorite } from '$lib/entities/favorite/favorites.remote'
   import { userAllFavoriteList } from '$lib/entities/favorite/resources.svelte'
+  import { saveFavorite } from '$lib/entities/favorite/writes'
   import { routesByIds } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { notifyError } from '$lib/state/toast'
@@ -59,20 +59,22 @@
   const hasBlocks = $derived(favBlockIds.length > 0 && !(favBlocks.phase.kind === 'answered' && favBlocks.phase.empty))
   const hasAreas = $derived(favAreaIds.length > 0 && !(favAreas.phase.kind === 'answered' && favAreas.phase.empty))
 
-  // Removing a favorite. Zero re-syncs the list, so the row drops out on its own once the write
-  // lands.
-  // Caught rather than left to the window listener: nothing moves until the write syncs back, so a
-  // failure is indistinguishable from a row that simply has not arrived yet.
+  // Removing a favorite: the row drops out at once and comes back if the server refuses, which is
+  // why the refusal is toasted here rather than left to the window listener.
   const removeFavorite = async (entityType: 'area' | 'block' | 'route', entityId: number): Promise<void> => {
     try {
-      await toggleFavorite({ entityId, entityType })
+      await saveFavorite({ entityId, entityType, saved: false, userId })
     } catch (cause) {
       notifyError(cause)
     }
   }
   const removeAllFavorites = async (): Promise<void> => {
     try {
-      await Promise.all(favorites.data.map((f) => toggleFavorite({ entityId: f.entityId, entityType: f.entityType })))
+      await Promise.all(
+        favorites.data.map((f) =>
+          saveFavorite({ entityId: f.entityId, entityType: f.entityType, saved: false, userId }),
+        ),
+      )
     } catch (cause) {
       notifyError(cause)
     }
