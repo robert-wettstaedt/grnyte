@@ -4,8 +4,8 @@
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
   import ShareButton from '$lib/components/ShareButton/ShareButton.svelte'
-  import { deleteParking, restoreParking } from '$lib/entities/area/areas.remote'
   import { canDeleteParking } from '$lib/entities/area/permissions'
+  import { deleteParking, restoreParking } from '$lib/entities/area/writes'
   import type { ParkingDetail } from '$lib/entities/geolocation/dto'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
@@ -27,7 +27,10 @@
   const canDelete = $derived(canDeleteParking(global.userRegions, parking))
 
   const onDelete = () =>
-    withUndo(deleteParking({ id: parking.id }), { message: m.parking_deleted(), onUndo: restoreParking })
+    withUndo(deleteParking(parking), {
+      message: m.parking_deleted(),
+      onUndo: restoreParking,
+    })
 </script>
 
 <div>

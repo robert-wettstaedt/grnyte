@@ -4,10 +4,10 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
-  import { deleteArea, restoreArea } from '$lib/entities/area/areas.remote'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { canAddArea, canAddBlock, canAddParking, canDeleteArea, canEditArea } from '$lib/entities/area/permissions'
   import { waitForArea } from '$lib/entities/area/resources.svelte'
+  import { deleteArea, restoreArea } from '$lib/entities/area/writes'
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
@@ -57,7 +57,7 @@
   })
 
   const onDelete = () =>
-    withUndo(deleteArea({ id: area.id }), {
+    withUndo(deleteArea(area), {
       message: m.areas_deleted(),
       onUndo: restoreArea,
       waitFor: (data) => waitForArea(data.areaId),

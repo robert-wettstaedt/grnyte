@@ -3,15 +3,18 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import AreaFormFields from '$lib/entities/area/AreaFormFields.svelte'
-  import { createArea } from '$lib/entities/area/areas.remote'
+  import { areaActionSchema } from '$lib/entities/area/dto'
   import { canAddArea } from '$lib/entities/area/permissions'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
+  import { createArea } from '$lib/entities/area/writes'
   import { entityHref } from '$lib/entities/href'
   import Form from '$lib/forms/Form.svelte'
   import { noEditPermission } from '$lib/forms/gate'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
+  const store = createFormStore(areaActionSchema)
   const global = getGlobalState()
   const parent = areaDetail(() => Number(page.params.id))
 
@@ -37,13 +40,14 @@
 <Form
   cancelTo={areaHref}
   {denied}
-  form={createArea}
+  {store}
+  submit={createArea}
   seed={([parent]) => ({ parentFk: parent.id.toString(), regionFk: parent.regionFk.toString() })}
   submitLabel={m.common_add()}
   title={parent.data == null ? m.areas_addArea() : m.areas_newAreaIn({ name: parent.data.name })}
   waitFor={[{ notFound: m.areas_notFound(), resource: parent, whole: false }]}
 >
   {#snippet fields([parent])}
-    <AreaFormFields area={parent} form={createArea} />
+    <AreaFormFields area={parent} form={store} />
   {/snippet}
 </Form>

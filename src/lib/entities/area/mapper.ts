@@ -22,6 +22,7 @@ export interface AreaDetailRow extends AreaAncestor {
   readonly createdBy: number
   readonly description: null | string
   readonly geoPaths: null | readonly string[]
+  readonly parentFk: null | number
   readonly parkingLocations: readonly Row<'geolocations'>[]
   readonly regionFk: number
 }
@@ -56,6 +57,7 @@ export function toAreaDetail(row: AreaDetailRow): AreaDetail {
     createdBy: row.createdBy,
     description: row.description ?? '',
     geoPaths: row.geoPaths == null ? [] : [...row.geoPaths],
+    parentFk: row.parentFk ?? undefined,
     parkingLocations: row.parkingLocations.map(toGeolocation),
     regionFk: row.regionFk,
   }

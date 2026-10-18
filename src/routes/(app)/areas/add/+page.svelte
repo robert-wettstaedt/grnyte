@@ -4,11 +4,13 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import AreaFormFields from '$lib/entities/area/AreaFormFields.svelte'
-  import { createArea } from '$lib/entities/area/areas.remote'
+  import { areaActionSchema } from '$lib/entities/area/dto'
   import { canAddArea } from '$lib/entities/area/permissions'
+  import { createArea } from '$lib/entities/area/writes'
   import { regionDisplayName } from '$lib/entities/region/mapper'
   import Form from '$lib/forms/Form.svelte'
   import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
@@ -17,6 +19,9 @@
   // needs a second of. Same form, same mutation - `AreaFormFields` renders its region select when
   // `parentFk` is absent and there is more than one region to pick from.
   const global = getGlobalState()
+  // Per mount and top-level: no `parentFk` from another screen can nest this area.
+  const store = createFormStore(areaActionSchema)
+  store.fields.set({ parentFk: '' })
 
   const regions = $derived(
     global.userRegions.filter((region) => canAddArea(global.userRegions, { regionFk: region.regionFk, type: 'area' })),
@@ -44,14 +49,8 @@
   // being typed. Not free: memberships blinking down to one and back still rewrite the select.
   seedOnKeyChange(
     () => preselected ?? '',
-    () => createArea.fields.regionFk.set(preselected == null ? '' : String(preselected)),
+    () => store.fields.regionFk.set(preselected == null ? '' : String(preselected)),
   )
-
-  // The fields outlive the component, so a `parentFk` left by `/areas/[id]/add` would nest this
-  // top-level area. No reactive reads, so it clears once, on the way in.
-  $effect(() => {
-    createArea.fields.parentFk.set('')
-  })
 
   // Names the region, not the level: "top-level" describes the data, not a place. The fallback is
   // the cold arrival, with no region to name.
@@ -70,7 +69,7 @@
        explore empty state's CTA if the region's roles change between render and click. -->
   <ErrorState type="generic" title={m.form_noPermissionTitle()} description={m.areas_noAddableRegion()} />
 {:else}
-  <Form form={createArea} cancelTo={resolve('/explore')} submitLabel={m.common_add()} {title}>
-    <AreaFormFields form={createArea} />
+  <Form cancelTo={resolve('/explore')} {store} submit={createArea} submitLabel={m.common_add()} {title}>
+    <AreaFormFields form={store} />
   </Form>
 {/if}

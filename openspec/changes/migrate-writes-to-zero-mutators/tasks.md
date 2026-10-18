@@ -39,9 +39,9 @@ the test failed, and the edit was reverted.
 
 ## 6. Areas and parking
 
-- [ ] 6.1 Move `createArea`, `updateArea`, `deleteArea`, `restoreArea` bodies and add their mutators; port `areas.remote.test.ts` and `softRestore.remote.test.ts`, each guard seen red
-- [ ] 6.2 Move `addParking`, `deleteParking`, `restoreParking` and add their mutators; port their cases, seen red
-- [ ] 6.3 Switch the area add and edit forms and the parking form to the store mode and the delete callers to the adapters; drive create, edit, delete and undo at both widths
+- [x] 6.1 Move `createArea`, `updateArea`, `deleteArea`, `restoreArea` bodies to `area/save.server.ts` and `area/lifecycle.server.ts` and add their mutators; add `area/mutators.server.test.ts`, each guard seen red
+- [x] 6.2 Move `addParking`, `deleteParking`, `restoreParking` to `area/parking.server.ts` and add their mutators; cover the round trip in the same test, seen red
+- [x] 6.3 Switch the area add and edit forms and the parking form to the store mode and the delete callers to the adapters; drive create, edit, delete and undo at both widths
 
 ## 7. Blocks
 
