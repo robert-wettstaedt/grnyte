@@ -158,6 +158,14 @@ const NO_GATE: Record<string, string> = {
     'New row only; createdBy from session, and `requireAuthed` for the gate: 401 signed out, 503 when a backend is down.',
   'lib/entities/file/files.remote.ts#createBunnyVideo':
     "Takes no id at all: it mints an empty video object in the caller's own host collection, and the region gate runs at finalizeVideo, which is where an entity to attach to is finally named.",
+  'lib/entities/notification/mutators.server.ts#notifications.markFeedSeen':
+    "Moves the caller's own feed watermark, the same body as `markEventFeedSeen`: the settings row is addressed by the session user, and `userId` only steers the client's optimistic write.",
+  'lib/entities/notification/mutators.server.ts#notifications.markRead':
+    "Marks only the session user's unread rows, the same body as `markNotificationsRead`; `userId` only steers the client's optimistic write.",
+  'lib/entities/notification/mutators.server.ts#notifications.subscribePush':
+    "Privileged, because the endpoint may be another account's row: the same body as `subscribeToPush`, with every owner column from the session and the takeover refused by the keys and `setWhere`.",
+  'lib/entities/notification/mutators.server.ts#notifications.unsubscribePush':
+    "Deletes by endpoint AND the session user's id, the same body as `unsubscribeFromPush`.",
   'lib/entities/notification/notifications.remote.ts#markEventFeedSeen':
     "Moves the caller's own feed watermark: the settings row is addressed by the session user through the shared writer, and the only client value is the timestamp it is compared against.",
   'lib/entities/notification/notifications.remote.ts#markNotificationsRead':

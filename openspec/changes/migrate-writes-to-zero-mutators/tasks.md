@@ -70,8 +70,8 @@ the test failed, and the edit was reverted.
 
 ## 11. Notifications and push
 
-- [ ] 11.1 Move `markNotificationsRead` and `markEventFeedSeen` (both optimistic), `unsubscribeFromPush`, and `subscribeToPush` (as `asPrivileged`) and add their mutators; port `notifications.remote.test.ts`, seen red
-- [ ] 11.2 Switch their callers; drive opening the inbox and the feed, and a push subscribe and unsubscribe, at both widths
+- [x] 11.1 Move `markNotificationsRead` and `markEventFeedSeen` (both optimistic), `unsubscribeFromPush`, and `subscribeToPush` (as `asPrivileged`) and add their mutators; port `notifications.remote.test.ts`, seen red
+- [x] 11.2 Switch their callers; drive opening the inbox and the feed, and a push subscribe and unsubscribe, at both widths
 
 ## 12. Users
 

@@ -1,5 +1,5 @@
 import type { EventEntityRef } from '$lib/entities/event/entity'
-import { markEventFeedSeen } from '$lib/entities/notification/notifications.remote'
+import { markEventFeedSeen } from '$lib/entities/notification/writes'
 import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
 import { reportIfOnline } from '$lib/logging/report'
 import { getGlobalState } from '$lib/state/global.svelte'
@@ -106,7 +106,7 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
     if (seen != null && isGlobal(filter())) {
       // Recorded: a watermark that never moves is a digest repeating what has been read, and
       // nothing else would show it.
-      void markEventFeedSeen({ seenAt: Math.round(seen.createdAt) }).catch(reportIfOnline)
+      void markEventFeedSeen(Math.round(seen.createdAt), global.user?.id).catch(reportIfOnline)
     }
   }
 

@@ -1,7 +1,7 @@
 import { browser } from '$app/environment'
 import { env as publicEnv } from '$env/dynamic/public'
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-import { subscribeToPush, unsubscribeFromPush } from '$lib/entities/notification/notifications.remote'
+import { subscribeToPush, unsubscribeFromPush } from '$lib/entities/notification/writes'
 import { storage } from '$lib/state/storage'
 
 /**
@@ -79,7 +79,7 @@ export async function disablePush(): Promise<void> {
   await subscription?.unsubscribe()
 
   if (known != null) {
-    await unsubscribeFromPush({ endpoint: known })
+    await unsubscribeFromPush(known)
   }
 
   endpoint = undefined
@@ -173,7 +173,7 @@ export async function syncPushSubscription(): Promise<void> {
   // browser lost the old handle instead of swapping it. After `register`, so a failure here costs
   // a stale row until the first 403/404/410 prunes it, rather than costing the repair.
   if (known != null && known !== subscription.endpoint) {
-    await unsubscribeFromPush({ endpoint: known })
+    await unsubscribeFromPush(known)
   }
 }
 
