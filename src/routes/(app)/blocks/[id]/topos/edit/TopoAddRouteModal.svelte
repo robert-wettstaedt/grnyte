@@ -5,18 +5,16 @@
   import type { BlockDetail } from '$lib/entities/block/dto'
   import type { FaClimber } from '$lib/entities/firstAscensionist/FirstAscentField.svelte'
   import { gradeLabel } from '$lib/entities/grade/label'
-  import type { RouteListItem } from '$lib/entities/route/dto'
+  import { routeActionSchema, type RouteListItem } from '$lib/entities/route/dto'
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
-  import { createRoute } from '$lib/entities/route/routes.remote'
+  import { createRoute } from '$lib/entities/route/writes'
   import FormError from '$lib/forms/FormError.svelte'
-  import { submitForm } from '$lib/forms/submit'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
   import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast'
-  import { tick } from 'svelte'
   import { flip } from 'svelte/animate'
-  import type { Attachment } from 'svelte/attachments'
   import { fade, slide } from 'svelte/transition'
 
   /** The block-route-list shape (a subset of RouteListItem): enough for the picker rows. */
@@ -39,9 +37,12 @@
   let query = $state('')
   let newRouteOpen = $state(false)
 
-  // Held here, not in RouteFormFields: stepping Back unmounts it, and these four are not Kit form
-  // fields, so they would not survive on the singleton the way name and description do. Losing
-  // only some of them on the way back is a half-reset that creates a gradeless route.
+  // One store per open, so nothing from the last open survives, and it outlives the two steps' forms.
+  let store = $state.raw(createFormStore(routeActionSchema))
+  let submitting = $state(false)
+
+  // Held here, not in RouteFormFields: stepping Back unmounts it, and these four live in component
+  // state. Losing only some of them on the way back is a half-reset that creates a gradeless route.
   let firstAscents = $state<FaClimber[]>()
   let gradeFk = $state<number>()
   let rating = $state<number>()
@@ -62,41 +63,10 @@
     gradeFk = undefined
     rating = undefined
     tags = undefined
-    resetForOpen = false
+    store = createFormStore(routeActionSchema)
+    store.fields.set({ blockId: String(block.id) })
     open = true
   }
-
-  /** Whether this open has already had its reset. See `clearForOpen`. */
-  let resetForOpen = false
-
-  /**
-   * Clear the form once per open. A real reset event, because `fields.set({})` blanks values but
-   * not Kit's issues, and the fields live on a singleton that outlives this component.
-   *
-   * Per OPEN, not per mount: step 1 and step 2 each mount their own form, and clearing on every
-   * mount would blank what was typed on the way between them.
-   */
-  const clearForOpen = (node: HTMLFormElement) => {
-    if (resetForOpen) {
-      return
-    }
-    resetForOpen = true
-    HTMLFormElement.prototype.reset.call(node)
-  }
-
-  const resetOnMount: Attachment<HTMLFormElement> = (node) => clearForOpen(node)
-
-  // Mobile mounts the sheet body on open, so the attachment gets there first; a desktop panel
-  // keeps its body mounted, so only this fires. `isConnected` keeps it off a detached form.
-  $effect(() => {
-    if (!open) {
-      return
-    }
-    const form = createRoute.element
-    if (form?.isConnected === true) {
-      clearForOpen(form)
-    }
-  })
 
   // Close before delegating: `onAdd` selects the route, which unmounts the sheet this one is
   // nested in, and a dialog torn down while a nested one deactivates throws out of focus-trap.
@@ -117,39 +87,35 @@
     newRouteOpen = next
   }
 
-  // Both "Quick line" (step 1) and the new-route form (step 2) submit createRoute; the
-  // new-route fields only exist in the DOM on step 2, so a quick line posts only blockId
-  // (empty name, no grade). Only one of the two forms is ever mounted at a time.
-  // A toast rather than letting a dead network reach the error boundary, which would replace the
-  // editor and take the unsaved lines with it. Same rule as the edit form next door.
-  const submit = createRoute.enhance(async ({ element, submit }) => {
-    const outcome = await submitForm(submit, async () => {
-      // Passing our own enhance callback replaced Kit's, which is what left the typed name behind.
-      // Reset while the form is still mounted, so the listener sees the event.
-      await tick()
-      HTMLFormElement.prototype.reset.call(element)
-
-      const id = createRoute.result?.data?.id
+  // Both "Quick line" (step 1) and the new-route form (step 2) create a route; a quick line sends
+  // only the block (empty name, no grade), whatever step 2 holds. A toast rather than letting a dead
+  // network reach the error boundary, which would replace the editor and take the unsaved lines.
+  async function add(event: SubmitEvent, quick: boolean) {
+    event.preventDefault()
+    if (submitting) return
+    submitting = true
+    try {
+      const outcome = await store.submit((values) => createRoute(quick ? { blockId: values.blockId } : values))
+      if (outcome.kind === 'offline') {
+        toaster.create({ duration: FAILURE_TOAST_MS, title: m.error_offline_title(), type: 'warning' })
+      }
+      const id = outcome.kind === 'done' ? outcome.result.data?.id : undefined
       if (id != null) {
         open = false
         onAdd(id)
       }
-    })
-
-    if (outcome === 'offline') {
-      toaster.create({ duration: FAILURE_TOAST_MS, title: m.error_offline_title(), type: 'warning' })
+    } finally {
+      submitting = false
     }
-  })
+  }
 </script>
 
 <!-- Declared out here (not inside <Modal>) so `footer` can reference it conditionally without
      Svelte implicitly binding it as a Modal prop or using it before declaration. -->
 {#snippet stepOneFooter()}
   <!-- Pinned as the sheet footer so it stays reachable without scrolling past the route list. -->
-  <form {...submit} {@attach resetOnMount} class="w-full space-y-3">
-    <input type="hidden" name="blockId" value={block.id} />
-
-    <FormError form={createRoute} />
+  <form class="w-full space-y-3" onsubmit={(event) => add(event, true)}>
+    <FormError form={store} />
 
     <p class="text-surface-600-400 text-center text-xs font-bold tracking-wide uppercase">{m.topo_orCreateNew()}</p>
 
@@ -157,7 +123,7 @@
       <button
         class="preset-tonal-surface border-surface-200-800 rounded-xl border p-3 text-left"
         type="submit"
-        disabled={createRoute.pending > 0}
+        disabled={submitting}
       >
         <span class="block text-sm font-bold">{m.topo_quickLine()}</span>
         <span class="text-surface-600-400 mt-0.5 block text-xs">{m.topo_quickLineSub()}</span>
@@ -194,7 +160,7 @@
     type="submit"
     form="topo-new-route-form"
     aria-label={m.common_add()}
-    disabled={createRoute.pending > 0}
+    disabled={submitting}
   >
     <Icon name="check" />
   </button>
@@ -227,18 +193,16 @@
   {#if newRouteOpen}
     <!-- Step 2: the full new-route form fills the sheet. Same fields as everywhere else, minus the
          media picker: this screen already owns a photo upload of its own. -->
-    <form {...submit} {@attach resetOnMount} id="topo-new-route-form" class="space-y-4" in:fade={{ duration }}>
-      <FormError form={createRoute} />
+    <form
+      id="topo-new-route-form"
+      class="space-y-4"
+      oninput={store.capture}
+      onsubmit={(event) => add(event, false)}
+      in:fade={{ duration }}
+    >
+      <FormError form={store} />
 
-      <RouteFormFields
-        allowMedia={false}
-        {block}
-        bind:firstAscents
-        form={createRoute}
-        bind:gradeFk
-        bind:rating
-        bind:tags
-      />
+      <RouteFormFields allowMedia={false} {block} bind:firstAscents form={store} bind:gradeFk bind:rating bind:tags />
     </form>
   {:else}
     <!-- Step 1: pick an existing route to draw on this photo. -->

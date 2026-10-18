@@ -35,6 +35,9 @@ import { describe, expect, it } from 'vitest'
  * - `resendInvitation`, `restoreInvitation` and `revokeInvitation` all reach `canEditRegion` through
  *   `loadEditable` in invite.server.ts, which loads the row and checks the STORED `regionFk`
  * - `resolveAttachRegion` returns the region a file may attach to, or refuses
+ * - `createRouteRow` checks `canAddRoute` on the stored block
+ * - `deleteRouteRow` loads the route through `requireRow` with `canDeleteRoute`
+ * - `restoreRouteRow` gates a recreate on `canAddRoute` and an undelete on `canDeleteRoute`, both on stored rows
  * - `setFavorite` 404s unless the stored entity is in a region the caller may read (`checkRegionPermission`)
  * - `updateRouteRow` loads the route through `requireRowForm` with `canEditRoute`
  * - `verifyUpload` proves ownership of the host-side video object
@@ -66,6 +69,8 @@ const GATES = new Set([
   'canLogAscent',
   'canReadRegion',
   'checkRegionPermission',
+  'createRouteRow',
+  'deleteRouteRow',
   'requireEditableArea',
   'requireEditableFile',
   'requireEditableTopo',
@@ -76,6 +81,7 @@ const GATES = new Set([
   'resendInvitation',
   'resolveAttachRegion',
   'restoreInvitation',
+  'restoreRouteRow',
   'revokeInvitation',
   'setFavorite',
   'updateRouteRow',

@@ -2,7 +2,7 @@
 
 Every group is one commit on `feature/zero-mutators`. An entity group moves each handler body into
 `<entity>/*.server.ts` (design 2), adds the client and server mutator defs (design 1), adds the entity's `writes.ts` functions and
-switches the callers to them (design 10), and ports that entity's `*.remote.test.ts` cases to the mutate harness (design 9). The
+switches the callers to them (design 10), and adds tests of its mutator path through `zeroClient` (design 9). The
 remote functions stay as one-line callers. "Seen red" means the named production edit was made,
 the test failed, and the edit was reverted.
 
@@ -34,8 +34,8 @@ the test failed, and the edit was reverted.
 
 ## 5. Routes
 
-- [ ] 5.1 Move `createRoute`, `deleteRoute` and `restoreRoute` bodies to `route/*.server.ts` and add `routes.create` (returns `{ id }`), `routes.delete` (returns the snapshot) and `routes.restore`; port `routes.remote.test.ts` and the route cases of `restoreSnapshots.remote.test.ts` / `restoreFidelity.remote.test.ts`, each guard seen red
-- [ ] 5.2 Switch the route add form to the store mode and the delete and restore callers (including the topo editor's manual `result.data` read) to the adapters; drive add, delete and undo at both widths
+- [x] 5.1 Move `createRoute`, `deleteRoute` and `restoreRoute` bodies to `route/save.server.ts` and `route/lifecycle.server.ts` and add `routes.create` (returns `{ id }`), `routes.delete` (returns the snapshot) and `routes.restore`; add `route/mutators.server.test.ts` through the shared `zeroClient` harness, each guard seen red
+- [x] 5.2 Switch the route add form, `TopoAddRouteModal` and `TopoEditRouteForm` to the store (`store.submit`) and the delete and restore callers (`RouteActions`, the topo editor) to `route/writes.ts`; drive add, delete and undo, and the topo editor's new route, quick line, edit and delete with undo
 
 ## 6. Areas and parking
 
@@ -102,6 +102,8 @@ the test failed, and the edit was reverted.
 - [ ] 15.5 Verification sweep over the touched paths: `npx prettier --write`, `npx eslint`, `npx vitest run --project server` and `--project browser`, `svelte-check`, `npm run lint:duplication`, `npm run lint:unused`, and drive the favorite toggle, the route edit form and one delete with undo at 375x667 and 1280x800; close the pages opened
 
 ## Workflow follow-up
+
+- Before deleting the remote functions, port each remaining `*.remote.test.ts` case to the `zeroClient` harness, so no body loses its coverage.
 
 - Release order: zero-cache 1.11 with the new env, then `migrate`, then the app.
 - In the next ordinary release, delete the migrated remote functions and their `*.remote.test.ts` files.

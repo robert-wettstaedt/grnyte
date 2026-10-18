@@ -23,10 +23,14 @@ import { SUPABASE_JWT_SECRET } from '$env/static/private'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { db } from '$lib/db/db.server'
 import { getUserPermissions, loadSessionUser } from '$lib/hooks/auth.server'
+import { handleMutate } from '$lib/zero/mutate.server'
 import { with_request_store } from '@sveltejs/kit/internal/server'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
 import { SignJWT } from 'jose'
+
+/** What a pushed mutation answers: `data` on success, or Zero's error kind with our message. */
+export type PushedResult = { data?: unknown; details?: unknown; error?: string; message?: string }
 
 /**
  * Runs `fn` as a signed-out visitor, the caller of the auth forms. `supabase` is whatever fake the
@@ -144,6 +148,41 @@ export async function statusOf(run: () => Promise<unknown>): Promise<number | un
     return undefined
   } catch (thrown) {
     return (thrown as { status?: number })?.status
+  }
+}
+
+/**
+ * One Zero client for `authUserId`, pushing custom mutations through the real mutate endpoint, so
+ * a test drives the server mutator, its RLS transaction and Zero's bookkeeping together.
+ */
+export function zeroClient(authUserId: string) {
+  const clientGroupID = `test-${crypto.randomUUID()}`
+  const clientID = `client-${crypto.randomUUID()}`
+  let nextId = 1
+
+  return {
+    /** Drops the client rows Zero wrote, which no region cleanup reaches. */
+    cleanup: () =>
+      db.transaction(async (tx) => {
+        await tx.execute(sql`delete from zero_0.mutations where "clientGroupID" = ${clientGroupID}`)
+        await tx.execute(sql`delete from zero_0.clients where "clientGroupID" = ${clientGroupID}`)
+      }),
+    push: async (name: string, args: unknown): Promise<PushedResult> => {
+      const token = await signAccessToken(authUserId, undefined)
+      const request = new Request('http://localhost/api/zero/mutate?schema=zero_0&appID=zero', {
+        body: JSON.stringify({
+          clientGroupID,
+          mutations: [{ args: [args], clientID, id: nextId++, name, timestamp: Date.now(), type: 'custom' }],
+          pushVersion: 1,
+          requestID: crypto.randomUUID(),
+          timestamp: Date.now(),
+        }),
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        method: 'POST',
+      })
+      const json = (await (await handleMutate(request)).json()) as { mutations: { result: PushedResult }[] }
+      return json.mutations[0].result
+    },
   }
 }
 

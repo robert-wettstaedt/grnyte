@@ -1,16 +1,17 @@
-import { routes, routesToFirstAscensionists, routesToTags, type Route } from '$lib/db/schema'
+import { blocks, routes, routesToFirstAscensionists, routesToTags, type Route } from '$lib/db/schema'
 import { entityHref } from '$lib/entities/href'
 import { blank, formError, type FormMessage } from '$lib/forms/schemas'
 import type { Context } from '$lib/remote/authed.server'
 import { requireRowForm } from '$lib/remote/require.server'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
-import { createUpdateEvent } from '../event/event.server'
+import { areaAncestry } from '../area/area.server'
+import { createUpdateEvent, insertEvent } from '../event/event.server'
 import { notifyMentions } from '../notification/notification.server'
 import { regionTags } from '../region/tagVocabulary'
 import type { RouteFormValue } from './dto'
 import { routeListsFingerprint } from './fingerprint'
 import { resolveFirstAscensionists } from './firstAscensionist.server'
-import { canEditRoute } from './permissions'
+import { canAddRoute, canEditRoute } from './permissions'
 import { recalcUserGradeAndRating } from './user-grade.server'
 
 export type Refuse = (message: FormMessage, field?: 'name') => never
@@ -23,6 +24,84 @@ export type Refuse = (message: FormMessage, field?: 'name') => never
  * the route already carries.
  */
 export const allowedTags = (allowed: string[], submitted: string[]) => submitted.filter((tag) => allowed.includes(tag))
+
+/** Create a route under a block. Answers `{ id }`: the form needs it to finalize its uploads. */
+export async function createRouteRow(
+  value: RouteFormValue,
+  { afterCommit, db, user, userRegions }: Pick<Context, 'afterCommit' | 'db' | 'user' | 'userRegions'>,
+  refuse: Refuse,
+) {
+  const block = await db.query.blocks.findFirst({
+    where: and(eq(blocks.id, value.blockId), isNull(blocks.deletedAt)),
+  })
+
+  if (block == null) {
+    refuse(formError('blocks_notFound'))
+  }
+
+  if (!canAddRoute(userRegions, block)) {
+    refuse(formError('form_noPermission'))
+  }
+
+  const duplicate = await findDuplicateName(db, value, block.id)
+  if (duplicate != null) {
+    refuse(formError('routes_nameExists', { name: duplicate.name }), 'name')
+  }
+
+  const areaFks = await areaAncestry(db, block.areaFk)
+
+  const [route] = await db
+    .insert(routes)
+    .values({
+      areaFks,
+      areaIds: areaFks.map((id) => `^${id}$`).join(','),
+      blockFk: block.id,
+      createdBy: user.id,
+      description: blank(value.description),
+      firstAscentYear: value.firstAscentYear,
+      gradeFk: value.gradeFk,
+      name: value.name,
+      rating: value.rating,
+      regionFk: block.regionFk,
+    })
+    .returning()
+
+  // Seeds userGradeFk/userRating from the route's own grade (no ascent votes yet),
+  // through the same SQL every other write path uses.
+  await recalcUserGradeAndRating(db, route.id)
+
+  const tags = allowedTags(regionTags(userRegions, block.regionFk), value.tags)
+  if (tags.length > 0) {
+    await db.insert(routesToTags).values(tags.map((tagFk) => ({ regionFk: block.regionFk, routeFk: route.id, tagFk })))
+  }
+
+  const resolvedFa = await resolveFirstAscensionists(db, value.firstAscensionists, block.regionFk, user.id)
+  if (resolvedFa.length > 0) {
+    await db
+      .insert(routesToFirstAscensionists)
+      .values(resolvedFa.map((fa) => ({ firstAscensionistFk: fa.id, regionFk: block.regionFk, routeFk: route.id })))
+  }
+
+  // Neither the name nor the block is stored: both are reachable through `routes`, which is
+  // what real foreign keys buy over the polymorphic pair and its `parentEntity*` companion.
+  await insertEvent(db, {
+    actorFk: user.id,
+    object: { id: route.id, type: 'route' },
+    regionFk: block.regionFk,
+    verb: 'create',
+  })
+
+  afterCommit(() =>
+    notifyMentions({
+      actorFk: user.id,
+      body: value.description,
+      object: { id: route.id, type: 'route' },
+      regionFk: block.regionFk,
+    }),
+  )
+
+  return { data: { id: route.id } }
+}
 
 /** A duplicate route name on the same block (blank names are fine, they render as
  *  `common_unnamed`), mirroring the block form's per-area check. */
