@@ -1,3 +1,4 @@
+import type { WriteRejection } from '$lib/zero/write'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { RemoteFormIssue } from '@sveltejs/kit'
 import { untrack } from 'svelte'
@@ -13,6 +14,9 @@ export type FormStore<Input extends Values, Output = Input> = {
   }
   /** A refusal: on its field, or on the form when it names none the form holds. */
   setIssue(field: null | string | undefined, message: string): void
+  /** Validates, then runs `run` on a snapshot of the values; a `WriteRejection` lands on its field.
+   *  Any other throw is not a refusal and propagates. */
+  submit<T>(run: (values: Input) => Promise<T>): Promise<SubmitOutcome<T>>
   validate(): Promise<{ ok: false } | { ok: true; value: Output }>
 }
 
@@ -22,6 +26,9 @@ export interface StoreField<V> {
   set(value: V): void
   value(): undefined | V
 }
+
+/** How a submit ended: `invalid` and `refused` left issues on the form, `offline` wrote nothing. */
+export type SubmitOutcome<T> = { kind: 'done'; result: T } | { kind: 'invalid' | 'offline' | 'refused' }
 
 type Values = Record<string, unknown>
 
@@ -83,28 +90,47 @@ export function createFormStore<Input extends Values, Output = Input>(
     get: (target, key) => (typeof key === 'string' && !(key in target) ? field(key) : Reflect.get(target, key)),
   }) as unknown as FormStore<Input, Output>['fields']
 
+  const setIssue = (key: null | string | undefined, message: string) => {
+    issues = { ...issues, [home(key)]: [message] }
+  }
+
   return {
     capture: (event) => {
       const target = event.target as HTMLInputElement | null
       if (target?.name && !/[[.]/.test(target.name)) write(target.name, target.value)
     },
     fields,
-    setIssue: (key, message) => {
-      issues = { ...issues, [home(key)]: [message] }
-    },
-    validate: async () => {
-      const result = await schema['~standard'].validate(values)
-      if (result.issues == null) {
-        return { ok: true, value: result.value }
+    setIssue,
+    submit: async (run) => {
+      if (!(await validate()).ok) {
+        return { kind: 'invalid' }
       }
-      const next: Record<string, string[]> = {}
-      for (const issue of result.issues) {
-        const [head] = issue.path ?? []
-        const key = head == null ? '' : String(typeof head === 'object' ? head.key : head)
-        ;(next[home(key)] ??= []).push(issue.message)
+      try {
+        // A snapshot: Zero freezes a mutation's arguments, and a live proxy refuses that.
+        return { kind: 'done', result: await run($state.snapshot(values) as Input) }
+      } catch (cause) {
+        const rejection = cause as Partial<WriteRejection> | undefined
+        if (rejection?.body == null) throw cause
+        if (rejection.offline) return { kind: 'offline' }
+        setIssue(rejection.body.field, rejection.body.message)
+        return { kind: 'refused' }
       }
-      issues = next
-      return { ok: false }
     },
+    validate,
+  }
+
+  async function validate(): Promise<{ ok: false } | { ok: true; value: Output }> {
+    const result = await schema['~standard'].validate(values)
+    if (result.issues == null) {
+      return { ok: true, value: result.value }
+    }
+    const next: Record<string, string[]> = {}
+    for (const issue of result.issues) {
+      const [head] = issue.path ?? []
+      const key = head == null ? '' : String(typeof head === 'object' ? head.key : head)
+      ;(next[home(key)] ??= []).push(issue.message)
+    }
+    issues = next
+    return { ok: false }
   }
 }

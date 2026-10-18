@@ -23,7 +23,7 @@
   import { gradeLabel } from '$lib/entities/grade/label'
   import { entityHref } from '$lib/entities/href'
   import { canDeleteRoute, canEditRoute } from '$lib/entities/route/permissions'
-  import { deleteRoute, restoreRoute } from '$lib/entities/route/routes.remote'
+  import { deleteRoute, restoreRoute } from '$lib/entities/route/writes'
   import { TopoEditor } from '$lib/entities/topo/editor.svelte'
   import { selectTopoForRoute } from '$lib/entities/topo/mapper'
   import { anchorX } from '$lib/entities/topo/order'
@@ -236,17 +236,17 @@
     if (selectedRoute == null) return
     const id = selectedRoute.id
     try {
-      // Not runCommand/withUndo: deleteRoute's envelope redirects to the block page (right
-      // for the route screen, wrong here): stay in the editor, keep the undo snackbar.
-      const result = await deleteRoute({ id })
+      // Not runCommand/withUndo: deleteRoute names the block page (right for the route screen,
+      // wrong here): stay in the editor, keep the undo snackbar.
+      const result = await deleteRoute({ blockFk: blockId, id })
+      // No snapshot: a second tap while the first delete runs, which has committed nothing yet.
+      if (result?.data == null) return
       // Purge the route from every local doc and history only after the delete commits, so
       // neither Save nor undo can resurrect a line pointing at the deleted route, and a
       // failed delete leaves the drawn line intact instead of silently dropping it.
       editor.removeRouteEverywhere(id)
-      if (result?.data != null) {
-        const snapshot = result.data
-        notifyUndo({ message: m.routes_deleted(), onUndo: () => restoreRoute(snapshot) })
-      }
+      const snapshot = result.data
+      notifyUndo({ message: m.routes_deleted(), onUndo: () => restoreRoute(snapshot) })
     } catch (cause) {
       notifyError(cause)
     }

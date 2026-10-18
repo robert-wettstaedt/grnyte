@@ -7,7 +7,6 @@
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
-  import { updateRoute } from '$lib/entities/route/routes.remote'
   import { m } from '$lib/paraglide/messages'
   import { isOnline } from '$lib/state/online.svelte'
   import { toaster } from '$lib/state/toast'
@@ -26,6 +25,7 @@
   // Disabling on close resets `settled`, and a reopen usually settles in the same flush anyway
   // because the view is hash-cached and still complete. Either way it never seeds from a partial.
   const detail = $derived(route.phase.kind === 'answered' ? route.data : undefined)
+  let saving = $state(false)
 
   function onSaved() {
     open = false
@@ -56,7 +56,7 @@
     type="submit"
     form="topo-edit-route-form"
     aria-label={m.common_save()}
-    disabled={detail == null || updateRoute.pending > 0}
+    disabled={detail == null || saving}
   >
     <Icon name="check" />
   </button>
@@ -91,7 +91,7 @@
       {/if}
     {:else}
       {#key detail.id}
-        <TopoEditRouteForm {block} {onSaved} route={detail} />
+        <TopoEditRouteForm {block} {onSaved} bind:pending={saving} route={detail} />
       {/key}
     {/if}
   {/if}

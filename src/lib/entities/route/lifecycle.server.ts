@@ -1,4 +1,7 @@
 import {
+  ascents,
+  blocks,
+  files,
   firstAscensionists,
   routeExternalResource27crags,
   routeExternalResource8a,
@@ -7,49 +10,84 @@ import {
   routes,
   routesToFirstAscensionists,
   routesToTags,
+  topoRoutes,
   type Block,
   type Route,
 } from '$lib/db/schema'
-import * as z from '$lib/forms/zod'
+import { entityHref } from '$lib/entities/href'
+import { formError } from '$lib/forms/schemas'
+import type * as z from '$lib/forms/zod'
 import { type Context } from '$lib/remote/authed.server'
-import { and, eq, inArray } from 'drizzle-orm'
-import { areaAncestry, stampDeletedAt } from '../area/area.server'
+import type { MutationResult } from '$lib/remote/mutation'
+import { answerReplayedRestore, requireIssuedId, requireRow } from '$lib/remote/require.server'
+import { error } from '@sveltejs/kit'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { areaAncestry, blockIsStranded, stampDeletedAt } from '../area/area.server'
+import { canHardDelete, deleteEvent, insertEvent } from '../event/event.server'
+import { regionTags } from '../region/tagVocabulary'
+import { restoreRouteSchema, type DeleteRouteSnapshot } from './dto'
+import { canAddRoute, canDeleteRoute } from './permissions'
+import { allowedTags } from './save.server'
 import { recalcUserGradeAndRating } from './user-grade.server'
 
 /** Delete and restore writes for a route; the handlers in `routes.remote.ts` keep every gate. */
 
-/** What `restoreRoute` accepts. Placement and authorship are never in it: they come from the block. */
-export const restoreRouteSchema = z.discriminatedUnion('mode', [
-  z.object({
-    firstAscensionistFks: z.array(z.number()),
-    mode: z.literal('hard'),
-    route: z.object({
-      blockFk: z.number(),
-      description: z.nullable(z.string()),
-      // Bounded exactly as `routeActionSchema` bounds them: the snapshot round-trips through the
-      // client, `routes` has no CHECK on either column, and `rating` feeds `recalcUserGradeAndRating`.
-      firstAscentYear: z.nullable(z.int().check(z.gte(1900), z.lte(2100))),
-      gradeFk: z.nullable(z.number()),
-      name: z.string(),
-      // 1-3 stars, as on the form; unrated is null rather than 0.
-      rating: z.nullable(z.int().check(z.gte(1), z.lte(3))),
-    }),
-    routeId: z.number(),
-    tags: z.array(z.string()),
-  }),
-  z.object({ mode: z.literal('soft'), routeId: z.number() }),
-])
+type Caller = Pick<Context, 'db' | 'user' | 'userRegions'>
 
-/** Snapshot `deleteRoute` returns so `restoreRoute` can undo either delete path. */
-export type DeleteRouteSnapshot =
-  | {
-      firstAscensionistFks: number[]
-      mode: 'hard'
-      route: Pick<Route, 'blockFk' | 'description' | 'firstAscentYear' | 'gradeFk' | 'name' | 'rating'>
-      routeId: number
-      tags: string[]
-    }
-  | { mode: 'soft'; routeId: number }
+/** Delete a route. A bare route (no ascents, files or topo lines) is hard-deleted with a
+ *  snapshot; one with dependents is soft-deleted so undo restores them cleanly. */
+export async function deleteRouteRow(
+  { id }: { id: number },
+  { db, user, userRegions }: Caller,
+): Promise<MutationResult<DeleteRouteSnapshot>> {
+  const route = await requireRow(
+    () => db.query.routes.findFirst({ where: and(eq(routes.id, id), isNull(routes.deletedAt)) }),
+    (row) => canDeleteRoute(userRegions, user.id, row),
+    formError('routes_notFound'),
+  )
+
+  // Ascents/files/topo lines FK-reference the route; with any of them present the route
+  // is soft-deleted (and the hard delete never hits a FK constraint).
+  // Unfiltered: `ascents.route_fk` has no ON DELETE action, so a tombstoned ascent 23503s too.
+  const [ascent, file, topoRoute] = await Promise.all([
+    db.query.ascents.findFirst({
+      columns: { id: true },
+      where: eq(ascents.routeFk, id),
+    }),
+    db.query.files.findFirst({ columns: { id: true }, where: eq(files.routeFk, id) }),
+    db.query.topoRoutes.findFirst({ columns: { id: true }, where: eq(topoRoutes.routeFk, id) }),
+  ])
+
+  // Childless is necessary but no longer sufficient. `events.route_fk` cascades, so erasing a
+  // route that has been in the log for a while takes its whole history with it, and erasing one
+  // somebody has reacted to takes their words too. Both fall back to the soft path.
+  const erasable = await canHardDelete(db, {
+    childless: ascent == null && file == null && topoRoute == null,
+    createdAt: route.createdAt,
+    object: { id, type: 'route' },
+  })
+
+  const data = erasable ? await hardDeleteRoute(db, route) : await softDeleteRoute(db, route)
+
+  // Written on the soft path only, unlike an ascent's deletion which also depends on who did it:
+  // a route is shared, so its removal is news to the region regardless of who removed it, and the
+  // row survives the soft delete so the card can still name it. Nothing for a hard delete: the
+  // event would abort against the gone row or be cascaded away with it, and a mistake inside the
+  // grace window leaving no trace is the point of the window.
+  if (!erasable) {
+    await insertEvent(db, {
+      actorFk: user.id,
+      object: { id: route.id, type: 'route' },
+      regionFk: route.regionFk,
+      verb: 'delete',
+    })
+  }
+
+  return {
+    data,
+    redirectTo: entityHref('blocks', route.blockFk),
+  }
+}
 
 /** Hard-delete a bare route and return the snapshot {@link hardRestoreRoute} recreates it from. */
 export async function hardDeleteRoute(db: Context['db'], route: Route): Promise<DeleteRouteSnapshot> {
@@ -171,6 +209,74 @@ export async function hardRestoreRoute(
     )
   }
   return created
+}
+
+/** Undo a {@link deleteRouteRow}: recreate the hard-deleted route (with its tag and first-ascent
+ *  links) or clear the soft delete's `deletedAt`, erasing the delete event with it. */
+export async function restoreRouteRow(
+  snapshot: z.infer<typeof restoreRouteSchema>,
+  { db, user, userRegions }: Caller,
+): Promise<MutationResult<{ routeId: number }>> {
+  if (snapshot.mode === 'hard') {
+    // Client-supplied snapshot, so mirror createRoute rather than inserting it verbatim: derive the
+    // region/area chain from the actual block and override authorship, or a DELETE holder could
+    // restore a route with forged createdBy into another region's block.
+    const block = await db.query.blocks.findFirst({ where: eq(blocks.id, snapshot.route.blockFk) })
+    if (block == null) {
+      error(404, formError('blocks_notFound'))
+    }
+    // A hard restore inserts a brand new row, so it is a create and gates like one (see createRoute).
+    // Gating on canDeleteRoute instead would deny the undo to the EDITor who has now deleted their own
+    // route: the snapshot carries no `createdBy`, so that predicate's own-created branch can't fire.
+    if (!canAddRoute(userRegions, block)) {
+      error(403, formError('form_noPermission'))
+    }
+    // A hard restore is a create, and a create under a dead parent strands the row.
+    if (block.deletedAt != null) {
+      error(404, formError('blocks_notFound'))
+    }
+
+    await requireIssuedId(db, 'routes', snapshot.routeId, formError('routes_notFound'))
+    // Filtered before the insert: the restored row takes the block's region either way.
+    const restoredTags = allowedTags(regionTags(userRegions, block.regionFk), snapshot.tags)
+    const created = await hardRestoreRoute(db, block, snapshot, user.id, restoredTags)
+    if (created == null) {
+      const replayed = eq(routes.blockFk, block.id)
+      return {
+        data: { routeId: snapshot.routeId },
+        ...(await answerReplayedRestore(db, 'routes', snapshot.routeId, replayed, formError('routes_notFound'))),
+      }
+    }
+
+    // Nothing to move onto the new id: only a route inside the grace window is hard-deleted, and
+    // `events.route_fk on delete cascade` took its entire log with it. The route comes back with
+    // no history because it never had any worth keeping.
+    return { data: { routeId: created.id }, redirectTo: entityHref('routes', created.id) }
+  }
+
+  const route = await db.query.routes.findFirst({ where: eq(routes.id, snapshot.routeId) })
+
+  if (route == null || !canDeleteRoute(userRegions, user.id, route)) {
+    error(403, formError('form_noPermission'))
+  }
+
+  // Nothing to undo, as in restoreArea and restoreBlock: a replayed Undo lands on a live route.
+  if (route.deletedAt == null) {
+    return { data: { routeId: route.id }, redirectTo: entityHref('routes', route.id) }
+  }
+
+  // Refuse rather than strand it: restore the ancestor first, which brings this row with it.
+  if (await blockIsStranded(db, route.blockFk)) {
+    error(404, formError('blocks_notFound'))
+  }
+
+  // Unguarded by stamp, unlike `stampDeletedAt`: kept as it was, so this is not that helper.
+  await db.update(routes).set({ deletedAt: null }).where(eq(routes.id, route.id))
+  // The delete event and nothing else: the route's own create and every edit ever made to it
+  // still point at this id and stay live, exactly as they were before the delete.
+  await deleteEvent(db, { object: { id: route.id, type: 'route' }, verb: 'delete' })
+
+  return { data: { routeId: route.id }, redirectTo: entityHref('routes', route.id) }
 }
 
 /** Soft-delete a route that others hang off, so an undo brings them back with it. */

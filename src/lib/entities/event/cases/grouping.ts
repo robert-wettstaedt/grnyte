@@ -279,7 +279,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `burst` card, "You edited Nordblock", with a "12 edits" sub line. Four events, twelve edits: the count is change ROWS, because `eventLines` expands an update into one line per column and the card counts what it holds. All four routes are the shared parent of every event, so the headline names the block rather than any one route, and four rows fit with nothing left over.',
     id: 'GROUP-02a',
-    writer: 'update.server.ts:136',
+    writer: 'save.server.ts:135',
   },
   {
     action: 'Edit routes in two blocks alternately, one minute apart',
@@ -326,7 +326,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Two cards, though every event is a minute from the next: a KIND `burst` of 3 edits in Nordblock and a KIND `burst` of 2 edits in Südblock. The burst key carries the locality, so an editor working across two blocks gets one card per place rather than one card that can only headline one of them.',
     id: 'GROUP-02b',
-    writer: 'update.server.ts:136',
+    writer: 'save.server.ts:135',
   },
   {
     action: 'Edit two routes, walk off, come back 40 minutes later and edit a third',
@@ -351,7 +351,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       "A KIND `burst` card of the two edits three minutes apart, and a KIND `single` card for the one 42 minutes earlier. The window is measured against the group's oldest member so far rather than against its newest, so a burst can stretch as long as no gap inside it exceeds 30 minutes, and this gap does.",
     id: 'GROUP-02c',
-    writer: 'update.server.ts:136',
+    writer: 'save.server.ts:135',
   },
 
   {
@@ -376,7 +376,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'A KIND `burst` card headlined "You edited Nordblock", with TWO tombstone rows, each carrying the name its OWN rename stored: "Rissweg" and "Kante direkt", never the same name twice. The name a tombstone shows comes from the line that named that row, and a rename is the one shape that stores one (its entry declares the new value as the tombstone column), so a card holding two of them is where borrowing the first line\'s name would show. The block names the card even though neither route resolves, because the events carry it. Only reachable degraded, since a route soft deletes and keeps resolving; the backfill can leave an event whose route is gone.',
     id: 'GROUP-02d',
-    writer: 'update.server.ts:136',
+    writer: 'save.server.ts:135',
   },
 
   {
@@ -401,7 +401,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One card speaking the shared sentence, "You renamed Kante direkt", over a tombstone row of the same name and "2 edits" as the sub line. Two events because 20 minutes is past the fold, one subject, one key, so the card says what happened rather than "You edited Nordblock". The name comes from the newest rename\'s stored value, which is where a route that no longer resolves keeps the name it ended on; the block is the fallback only for an entry that stores no name at all, and a rename is the one that does. Only reachable degraded, the same as the two-tombstone burst above.',
     id: 'GROUP-02e',
-    writer: 'update.server.ts:136',
+    writer: 'save.server.ts:135',
   },
 
   {
@@ -427,7 +427,7 @@ export const GROUPING_CASES: EventCase[] = [
       eventAgo(300, { actorFk: ME, objectId: 500, verb: 'create' }),
     ],
     expected:
-      'One card, not two. `mergeCreatedWithMedia` folds the upload group into the group holding the create it landed on, and the merged group keeps the CREATE group\'s kind, which for a route created under a block is KIND `burst`. The create is moved to the front, so the headline is "You added the route Kante direkt" with a "2 photos" sub line, both photos above one route row. The create half is written by routes.remote.ts:163.',
+      'One card, not two. `mergeCreatedWithMedia` folds the upload group into the group holding the create it landed on, and the merged group keeps the CREATE group\'s kind, which for a route created under a block is KIND `burst`. The create is moved to the front, so the headline is "You added the route Kante direkt" with a "2 photos" sub line, both photos above one route row. The create half is written by save.server.ts:237.',
     id: 'GROUP-03a',
     writer: 'files.remote.ts:59',
   },
@@ -711,7 +711,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `removal` card, "You deleted entries", with a "3 deletions" sub line followed by "Nordblock". `deleteRoute` records no scale, so nothing is counted beyond the rows themselves. The routes soft delete once they are past the grace window, so each row still renders as the live route rather than as a tombstone.',
     id: 'GROUP-04a',
-    writer: 'routes.remote.ts:428',
+    writer: 'lifecycle.server.ts:217',
   },
   {
     action: 'Delete a route, rename the next one, delete a third, inside three minutes',
@@ -728,7 +728,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Two cards from three events a minute apart: a KIND `removal` of "2 deletions" in Nordblock, and a KIND `single` rename between them. `kindOf` sends a `delete` to its own kind before the burst rule can claim it, so a deletion is never something a reader has to find inside "made 3 edits in Nordblock".',
     id: 'GROUP-04b',
-    writer: 'routes.remote.ts:428',
+    writer: 'lifecycle.server.ts:217',
   },
 
   {
@@ -749,7 +749,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Two KIND `single` cards, "You renamed Kante direkt" and "Sofia Brandt changed the rating of Kante direkt". A route is a burst object, so both events are `burst` kind, and the burst key carries the actor: two people working on one route never share a card. Every other key carries it too now, so this is the rule rather than a property of bursts, and the next case is the one that used to break it.',
     id: 'GROUP-05a',
-    writer: 'update.server.ts:136',
+    writer: 'save.server.ts:135',
   },
   {
     action: 'You pull a photo off your ascent, a maintainer pulls another off the same one',
@@ -863,7 +863,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `burst` card, "You edited Nordblock", sub line "6 edits". Six subjects and MAX_ROWS is 4, so four route rows render and the card ends with "2 more" (`event_moreEntities`). The two rows behind that count carry no reaction bar of their own: a bar rides a rendered row, and only an event that already holds a reaction or a comment falls through to the footer.',
     id: 'GROUP-07a',
-    writer: 'update.server.ts:136',
+    writer: 'save.server.ts:135',
   },
 
   {
@@ -882,7 +882,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One card out of ONE event: inside the 15 minute server fold the second save joins the open event instead of writing a new one, so there is nothing for grouping to group. `groupEvents` calls it `single` and `card.ts` rewrites that to KIND `entity`, because the event expands to two change rows and a card that spoke one row\'s sentence would name whichever column sorts first. Headline "You edited Kante direkt", sub line "2 edits", and the Grade and Name lines behind the card\'s Show changes toggle. Not a Compare toggle: that one belongs to a prose line and counts its characters, and a grade and a name render their before/after pair inline.',
     id: 'GROUP-08a',
-    writer: 'update.server.ts:136',
+    writer: 'save.server.ts:135',
   },
   {
     action: 'Log an ascent, then correct its notes and rating three minutes later',

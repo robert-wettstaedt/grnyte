@@ -103,3 +103,52 @@ describe('createFormStore', () => {
     expect(form.fields.allIssues()).toEqual([])
   })
 })
+
+describe('createFormStore submit', () => {
+  const valid = () => {
+    const form = store()
+    form.fields.name.as('text')
+    form.fields.set({ blockId: '3', name: 'Odin' })
+    return form
+  }
+
+  it('runs the write on plain values and answers its result', async () => {
+    const form = valid()
+    let sent: unknown
+    const outcome = await form.submit(async (values) => {
+      sent = values
+      return 'saved'
+    })
+
+    expect(outcome).toEqual({ kind: 'done', result: 'saved' })
+    // Plain data, not the store's proxy: Zero freezes a mutation's arguments.
+    expect(() => Object.freeze(sent)).not.toThrow()
+  })
+
+  it('does not write when validation fails', async () => {
+    const form = valid()
+    form.fields.set({ blockId: 'three' })
+    let ran = false
+
+    expect(await form.submit(async () => (ran = true))).toEqual({ kind: 'invalid' })
+    expect(ran).toBe(false)
+  })
+
+  it('puts a refusal on its field', async () => {
+    const form = valid()
+    const outcome = await form.submit(() => Promise.reject({ body: { field: 'name', message: 'routes_nameExists' } }))
+
+    expect(outcome).toEqual({ kind: 'refused' })
+    expect(form.fields.name.issues()).toEqual([{ message: 'routes_nameExists', path: ['name'] }])
+  })
+
+  it('reports offline without an issue, and rethrows what is not a refusal', async () => {
+    const form = valid()
+
+    expect(await form.submit(() => Promise.reject({ body: { message: 'x' }, offline: true }))).toEqual({
+      kind: 'offline',
+    })
+    expect(form.fields.allIssues()).toEqual([])
+    await expect(form.submit(() => Promise.reject(new TypeError('boom')))).rejects.toThrow('boom')
+  })
+})

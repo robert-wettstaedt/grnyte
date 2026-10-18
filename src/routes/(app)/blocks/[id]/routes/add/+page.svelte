@@ -4,17 +4,19 @@
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { finalizeMediaUploads, type MediaUpload } from '$lib/entities/file/upload-manager.svelte'
   import { entityHref } from '$lib/entities/href'
+  import { routeActionSchema, type RouteFormInput } from '$lib/entities/route/dto'
   import { canAddRoute } from '$lib/entities/route/permissions'
   import { waitForRoute } from '$lib/entities/route/resources.svelte'
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
-  import { createRoute } from '$lib/entities/route/routes.remote'
+  import { createRoute } from '$lib/entities/route/writes'
   import Form from '$lib/forms/Form.svelte'
   import { noEditPermission } from '$lib/forms/gate'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { exit } from '$lib/state/navigation.svelte'
 
   const global = getGlobalState()
+  const store = createFormStore(routeActionSchema)
   const block = blockDetail(() => Number(page.params.id))
 
   const blockHref = $derived(entityHref('blocks', Number(page.params.id)))
@@ -27,29 +29,26 @@
 
   let uploads = $state<MediaUpload[]>([])
 
-  // Shares `createRoute`'s field singleton with the topo editor's sheet, so a name abandoned
-  // there would arrive here pre-filled.
   // `remove()` and not just dropping the array: only it aborts the transfer and deletes the
   // staged object, so media picked for one block cannot finalize against another.
-  const seed = () => {
+  const seed = ([block]: [{ id: number }]) => {
     for (const upload of uploads) {
       upload.remove()
     }
     uploads = []
-    return {}
+    return { blockId: String(block.id) }
   }
 
-  // Record-first media: the route is created on submit; pending uploads then finalize
-  // against it in the background while we move on to the new route's page (the wait is
-  // for Zero to sync the row, so the detail doesn't flash "not found").
-  const onSubmitted = async () => {
-    const id = createRoute.result?.data?.id
-    if (id == null) return
-    void finalizeMediaUploads(uploads, { id, type: 'route' })
-    await waitForRoute(id)
-    // This page leaves on its own, because the handler cannot declare a destination without
-    // discarding the id above. `exit`, so the finished form is retired rather than stacked.
-    await exit(entityHref('routes', id))
+  // Record-first media: the route is created on submit; pending uploads then finalize against it in
+  // the background while the form leaves for the new route, once Zero has synced its row.
+  const submit = async (values: RouteFormInput) => {
+    const created = await createRoute(values)
+    const id = created.data?.id
+    if (id != null) {
+      void finalizeMediaUploads(uploads, { id, type: 'route' })
+      await waitForRoute(id)
+    }
+    return created
   }
 </script>
 
@@ -60,14 +59,14 @@
 <Form
   cancelTo={blockHref}
   {denied}
-  form={createRoute}
-  {onSubmitted}
   {seed}
+  {store}
+  {submit}
   submitLabel={m.common_add()}
   title={m.routes_addRoute()}
   waitFor={[{ notFound: m.blocks_notFound(), resource: block, whole: false }]}
 >
   {#snippet fields([block])}
-    <RouteFormFields {block} form={createRoute} bind:uploads />
+    <RouteFormFields {block} form={store} bind:uploads />
   {/snippet}
 </Form>
