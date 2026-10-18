@@ -1,26 +1,17 @@
-import {
-  ascents,
-  blocks,
-  files,
-  routes,
-  routesToFirstAscensionists,
-  routesToTags,
-  topoRoutes,
-  type Route,
-} from '$lib/db/schema'
+import { ascents, blocks, files, routes, routesToFirstAscensionists, routesToTags, topoRoutes } from '$lib/db/schema'
 import { entityHref } from '$lib/entities/href'
-import { blank, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
+import { blank, formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
-import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
+import { authedCommand, authedForm } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
-import { answerReplayedRestore, requireIssuedId, requireRow, requireRowForm } from '$lib/remote/require.server'
+import { answerReplayedRestore, requireIssuedId, requireRow } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { areaAncestry, blockIsStranded } from '../area/area.server'
-import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
+import { canHardDelete, deleteEvent, insertEvent } from '../event/event.server'
 import { notifyMentions } from '../notification/notification.server'
 import { regionTags } from '../region/tagVocabulary'
-import { routeListsFingerprint } from './fingerprint'
+import { routeActionSchema } from './dto'
 import { resolveFirstAscensionists } from './firstAscensionist.server'
 import {
   hardDeleteRoute,
@@ -29,69 +20,11 @@ import {
   softDeleteRoute,
   type DeleteRouteSnapshot,
 } from './lifecycle.server'
-import { canAddRoute, canDeleteRoute, canEditRoute } from './permissions'
+import { canAddRoute, canDeleteRoute } from './permissions'
+import { allowedTags, findDuplicateName, updateRouteRow } from './update.server'
 import { recalcUserGradeAndRating } from './user-grade.server'
 
-const faClimberSchema = z.object({
-  name: z
-    .string({ error: formError('form_required') })
-    .check(z.trim(), z.minLength(1, { error: formError('form_required') })),
-  userFk: stringToIntOptional,
-})
-
-const routeActionSchema = z.object({
-  blockId: stringToInt,
-  description: z._default(z.optional(z.string()), ''),
-  firstAscensionists: z._default(z.optional(z.array(faClimberSchema)), []),
-  firstAscentYear: z.pipe(
-    stringToIntOptional,
-    z.optional(z.int().check(z.gte(1900, formError('form_numInvalid')), z.lte(2100, formError('form_numInvalid')))),
-  ),
-  gradeFk: stringToIntOptional,
-  id: stringToIntOptional,
-  /** Fingerprint of the tags and first ascensionists the form loaded. Optional because
-   *  `createRoute` shares this schema and replaces nothing; `updateRoute` insists on it. */
-  known: z.optional(z.string()),
-  name: z._default(z.optional(z.string().check(z.trim())), ''),
-  // 1–3 stars; the field is absent when unrated (0 stars → no rating, not "0 stars").
-  rating: z.pipe(stringToIntOptional, z.optional(z.int().check(z.gte(1), z.lte(3)))),
-  tags: z._default(z.optional(z.array(z.string())), []),
-})
-
-/**
- * Drop tags a submission may not write. `routes_to_tags.tag_fk` has no foreign key any more (a
- * region owns its own vocabulary, see `regions.settings.tags`) and `routeActionSchema.tags` is free
- * text, so this is the only thing standing between a forged submission and an unknown string on a
- * route. Callers decide what `allowed` is, because the edit path also has to let through whatever
- * the route already carries.
- */
-const allowedTags = (allowed: string[], submitted: string[]) => submitted.filter((tag) => allowed.includes(tag))
-
-/** Field shape the shared add/edit-route form binds to, `id` is set only when editing. */
-export type RouteFormInput = z.input<typeof routeActionSchema>
-type RouteFormValue = z.output<typeof routeActionSchema>
-
-/** A duplicate route name on the same block (blank names are fine, they render as
- *  `common_unnamed`), mirroring the block form's per-area check. */
-async function findDuplicateName(
-  db: Context['db'],
-  value: Pick<RouteFormValue, 'name'>,
-  blockFk: number,
-  excludeId?: number,
-): Promise<Route | undefined> {
-  if (value.name.length === 0) {
-    return undefined
-  }
-  return db.query.routes.findFirst({
-    where: (table, { and, eq, isNull, ne }) =>
-      and(
-        eq(table.name, value.name),
-        eq(table.blockFk, blockFk),
-        isNull(table.deletedAt),
-        ...(excludeId == null ? [] : [ne(table.id, excludeId)]),
-      ),
-  })
-}
+export type { RouteFormInput } from './dto'
 
 /** Create a route under a block. Returns `{ id }` and declares NO `redirectTo`: a redirect is a 303,
  *  and the server rebuilds that response from the location alone, discarding this return value. The
@@ -176,133 +109,8 @@ export const createRoute = authedForm(
 
 /** Edit a route. Reuses the create form (with `id` set). Any region member may edit the
  *  route itself; tag changes additionally need EDIT (their RLS is stricter). */
-export const updateRoute = authedForm(
-  routeActionSchema,
-  async ({ id, ...value }, { afterCommit, db, user, userRegions }, issue) => {
-    const route = await requireRowForm(
-      () =>
-        id == null
-          ? Promise.resolve(undefined)
-          : db.query.routes.findFirst({ where: and(eq(routes.id, id), isNull(routes.deletedAt)) }),
-      (row) => canEditRoute(userRegions, row),
-      formError('routes_notFound'),
-    )
-
-    const duplicate = await findDuplicateName(db, value, route.blockFk, route.id)
-    if (duplicate != null) {
-      invalid(issue.name(formError('routes_nameExists', { name: duplicate.name })))
-    }
-
-    const oldTagRows = await db.query.routesToTags.findMany({ where: eq(routesToTags.routeFk, route.id) })
-    const oldTags = oldTagRows.map((row) => row.tagFk).sort()
-    // `oldTags` joins the allowlist so an edit cannot strip a tag the region retired mid-session.
-    const allowed = [...regionTags(userRegions, route.regionFk), ...oldTags]
-    const newTags = [...new Set(allowedTags(allowed, value.tags))].sort()
-    const tagsChanged = oldTags.join(',') !== newTags.join(',')
-
-    const oldFaRows = await db.query.routesToFirstAscensionists.findMany({
-      where: eq(routesToFirstAscensionists.routeFk, route.id),
-      with: { firstAscensionist: true },
-    })
-
-    // A replacement, not a patch: both list diffs drop whatever the submit omits, so it has to
-    // prove which lists it replaces. Read before the first write.
-    const stored = routeListsFingerprint(
-      oldTags,
-      oldFaRows.map((row) => ({ name: row.firstAscensionist.name, userFk: row.firstAscensionist.userFk ?? undefined })),
-    )
-    if (value.known !== stored) {
-      invalid(formError('routes_listsStale'))
-    }
-
-    await db
-      .update(routes)
-      .set({
-        description: blank(value.description),
-        firstAscentYear: value.firstAscentYear ?? null,
-        gradeFk: value.gradeFk ?? null,
-        name: value.name,
-        rating: value.rating ?? null,
-      })
-      .where(eq(routes.id, route.id))
-
-    // The route's own grade/rating is one of the community votes.
-    await recalcUserGradeAndRating(db, route.id)
-
-    if (tagsChanged) {
-      const removed = oldTags.filter((tag) => !newTags.includes(tag))
-      const added = newTags.filter((tag) => !oldTags.includes(tag))
-      if (removed.length > 0) {
-        await db
-          .delete(routesToTags)
-          .where(and(eq(routesToTags.routeFk, route.id), inArray(routesToTags.tagFk, removed)))
-      }
-      if (added.length > 0) {
-        await db
-          .insert(routesToTags)
-          .values(added.map((tagFk) => ({ regionFk: route.regionFk, routeFk: route.id, tagFk })))
-      }
-    }
-
-    const newFaRows = await resolveFirstAscensionists(db, value.firstAscensionists, route.regionFk, user.id)
-    const removedFa = oldFaRows.filter((row) => !newFaRows.some((fa) => fa.id === row.firstAscensionistFk))
-    const addedFa = newFaRows.filter((fa) => !oldFaRows.some((row) => row.firstAscensionistFk === fa.id))
-    if (removedFa.length > 0) {
-      await db.delete(routesToFirstAscensionists).where(
-        inArray(
-          routesToFirstAscensionists.id,
-          removedFa.map((row) => row.id),
-        ),
-      )
-    }
-    if (addedFa.length > 0) {
-      await db
-        .insert(routesToFirstAscensionists)
-        .values(addedFa.map((fa) => ({ firstAscensionistFk: fa.id, regionFk: route.regionFk, routeFk: route.id })))
-    }
-
-    await createUpdateEvent(db, {
-      actorFk: user.id,
-      newEntity: {
-        description: value.description,
-        firstAscensionists: newFaRows
-          .map((fa) => fa.name)
-          .sort()
-          .join(','),
-        firstAscentYear: value.firstAscentYear,
-        gradeFk: value.gradeFk,
-        name: value.name,
-        rating: value.rating,
-        tags: newTags.join(','),
-      },
-      object: { id: route.id, type: 'route' },
-      oldEntity: {
-        description: route.description ?? '',
-        firstAscensionists: oldFaRows
-          .map((row) => row.firstAscensionist.name)
-          .sort()
-          .join(','),
-        firstAscentYear: route.firstAscentYear,
-        gradeFk: route.gradeFk,
-        name: route.name,
-        rating: route.rating,
-        tags: oldTags.join(','),
-      },
-      regionFk: route.regionFk,
-    })
-
-    afterCommit(() =>
-      notifyMentions({
-        actorFk: user.id,
-        body: value.description,
-        object: { id: route.id, type: 'route' },
-        previousBody: route.description,
-        regionFk: route.regionFk,
-      }),
-    )
-
-    return { data: { id: route.id }, redirectTo: entityHref('routes', route.id) }
-  },
+export const updateRoute = authedForm(routeActionSchema, (value, ctx, issue) =>
+  updateRouteRow(value, ctx, (message, field) => invalid(field == null ? message : issue[field](message))),
 )
 
 /** Delete a route. A bare route (no ascents, files or topo lines) is hard-deleted with a

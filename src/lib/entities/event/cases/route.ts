@@ -65,7 +65,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'One card, "You added the route Kante direkt", and NO grade line: `eventLines` expands change rows only for an `update`, so a create absorbs its own corrections and shows none of them. The card reads as if the route had been added at 11 all along.',
     id: 'ROUTE-01d',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: 'Add two routes to Nordblock in one sitting',
@@ -93,7 +93,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'Single card, "You renamed Kante direkt", naming the route as it stands now, with one change line: Kante to Kante direkt. No "the route" in this sentence: a rename names the thing alone, and an area rename renders the same bare sentence.',
     id: 'ROUTE-02a',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: '/routes/500/edit -> Grade -> Save',
@@ -110,7 +110,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'Single card, "You changed the grade of Kante direkt". The change line draws two grade chips, each coloured by its band and labelled through the reader\'s grading scale, so neither side shows the stored id.',
     id: 'ROUTE-02b',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: '/routes/500/edit -> Rating -> two stars -> Save (it had none)',
@@ -127,7 +127,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'Single card, "You changed the rating of Kante direkt", with two rows of stars: an empty one and a two-star one. The missing old value reads as zero stars rather than "Not set", because an unrated route and a route rated zero are the same thing to a reader.',
     id: 'ROUTE-02c',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: '/routes/500/edit -> Tags -> add benchmark, drop high -> Save',
@@ -144,7 +144,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'Single card, "You changed the tags of Kante direkt". The change line is the only one with no before/after pair: it lists "Added benchmark" and "Removed high" as two chips, and says nothing about SD, which did not move.',
     id: 'ROUTE-02d',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: '/routes/500/edit -> First ascensionists -> add Tomas -> Save',
@@ -167,7 +167,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'Single card, "You changed the first ascensionists of Kante direkt". Both sides render as chips, one per person, so the reader compares two lists rather than two comma-strings. Nothing marks WHICH name is the new one: Mara appears on both sides unchanged.',
     id: 'ROUTE-02e',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: '/routes/500/edit -> First ascent year -> 1987 -> Save (it had none)',
@@ -182,7 +182,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'Single card, "You changed the first ascent year of Kante direkt", with a plain text pair: an italic "Not set" chip against 1987.',
     id: 'ROUTE-02f',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: '/routes/500/edit -> First ascent year -> clear the field -> Save',
@@ -197,7 +197,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'Same sentence as setting it, "You changed the first ascent year of Kante direkt": the catalogue keys on the column, not on the direction. Only the change line says which way it went, 1987 against the italic "Not set".',
     id: 'ROUTE-02g',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: '/routes/500/edit -> Description -> Save',
@@ -218,7 +218,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'Single card, "You edited the description of Kante direkt". The change line is prose, so it collapses behind a toggle counting the new text\'s characters and expands to a word-level diff rather than two paragraphs side by side.',
     id: 'ROUTE-02h',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: '/routes/500/edit -> change every field -> Save (one call, seven columns)',
@@ -246,7 +246,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'ONE card, not seven. Each column has its own sentence, so there is no shared one to speak, and the headline drops to "You edited Kante direkt" with a "7 edits" sub line. Every line is still there behind the toggle, each in its own shape: grade chips, stars, tag chips, people chips, two text pairs and the prose toggle.',
     id: 'ROUTE-02i',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: 'Change the grade, then change it again within the 15-minute fold window',
@@ -264,7 +264,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'Still one card with one grade line, showing where the grade STARTED against where it ended. Two cards, or a line reading 9 to 11, would mean the fold is not working.',
     id: 'ROUTE-02j',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: 'Change the grade back to where it started inside the window',
@@ -273,7 +273,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'No card at all. The fold deletes a change row that returns to its old value, and an event left holding no changes deletes itself, so the earlier card disappears rather than gaining a second line.',
     id: 'ROUTE-02k',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
   {
     action: 'Open the edit form and save without touching anything',
@@ -282,7 +282,7 @@ export const ROUTE_CASES: EventCase[] = [
     expected:
       'No card, and no event either: the diff is empty, so `createUpdateEvent` returns before it writes anything. Reserialising a description in the editor does not count as an edit, which is what keeps merely opening a route off the feed.',
     id: 'ROUTE-02l',
-    writer: 'routes.remote.ts:257',
+    writer: 'update.server.ts:136',
   },
 
   {

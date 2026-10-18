@@ -1,6 +1,17 @@
 import { hasMessage, resolveMessage } from '$lib/i18n/message'
 import { m } from '$lib/paraglide/messages'
 
+/** Whether a message is one we wrote with `formError`. Anything else (Zero's own failures, a thrown
+ *  TypeError) can carry SQL or row values, so it is never shown. */
+export function isAuthoredMessage(message: string): boolean {
+  try {
+    const key = (JSON.parse(message) as { message?: unknown })?.message
+    return typeof key === 'string' && hasMessage(key)
+  } catch {
+    return false
+  }
+}
+
 /**
  * The same thing for a rejected command. `error(4xx, formError(...))` puts the key on
  * SvelteKit's `HttpError.body.message`; anything else (a network drop, a 500) has no key to

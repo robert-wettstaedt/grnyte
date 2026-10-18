@@ -31,6 +31,9 @@ export const favoriteEntityArgs = z.object({
   entityType: z.enum(FAVORITE_TYPES),
 })
 
+/** `userId` only shapes the optimistic row; the server reads the caller from the token. */
+export const favoriteSetArgs = z.extend(favoriteEntityArgs, { saved: z.boolean(), userId: z.int() })
+
 /** Minimal favorite shape used to derive a user's favorited routes. */
 export interface UserFavorite {
   routeId: number

@@ -95,6 +95,7 @@ project and nothing else. The app's own secrets stay off this box.
 - `ZERO_AUTH_SECRET` - JWT verification secret, shared with Supabase
 - `ZERO_ADMIN_PASSWORD` - Zero admin password
 - `ZERO_GET_QUERIES_URL` - The app's get-queries endpoint for this environment
+- `ZERO_MUTATE_URL` - The app's mutate endpoint for this environment (`/api/zero/mutate`)
 - `ZERO_CVR_DB` - Client view records, pointing at the `cvr-prod` container on this box (prod only)
 
 ### `ZERO_CVR_DB` is deliberately not backed up

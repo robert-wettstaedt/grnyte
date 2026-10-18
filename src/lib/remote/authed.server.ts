@@ -91,6 +91,21 @@ export async function authedRls(): Promise<{
   return { rls: createRlsClient(claims), supabase, user, userPermissions, userRegions }
 }
 
+/** Runs tasks deferred past a committed transaction, each free to take a connection of its own. */
+export async function drainAfterCommit(deferred: (() => Promise<void>)[]) {
+  for (const task of deferred) {
+    try {
+      await task()
+    } catch (e) {
+      // Logged, never rethrown: the transaction has committed, so a failed fan-out must not
+      // report a succeeded mutation as a failure. Recorded because of that: the caller was told
+      // the mutation succeeded, so nothing else carries this.
+      console.error('[remote] afterCommit task failed', e)
+      await logServerFailure('remote', `afterCommit task failed: ${stringifyError(e)}`)
+    }
+  }
+}
+
 /** The auth gate alone, for handlers that want neither the transaction nor the RLS client.
  *  `user == null` is either a downed backend or a half-completed sign-up; only the first is a 503. */
 export function requireAuthed(): {
@@ -128,18 +143,7 @@ async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
     throw e
   }
 
-  // Outside the transaction, so each task is free to take a connection of its own.
-  for (const task of deferred) {
-    try {
-      await task()
-    } catch (e) {
-      // Logged, never rethrown: the transaction has committed, so a failed fan-out must not
-      // report a succeeded mutation as a failure. Recorded because of that: the caller was told
-      // the mutation succeeded, so nothing else carries this.
-      console.error('[remote] afterCommit task failed', e)
-      await logServerFailure('remote', `afterCommit task failed: ${stringifyError(e)}`)
-    }
-  }
+  await drainAfterCommit(deferred)
 
   return returnValue
 }

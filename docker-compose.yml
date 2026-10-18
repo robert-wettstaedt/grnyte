@@ -26,7 +26,7 @@ services:
 
   zero:
     # Must move in lockstep with `@rocicorp/zero` in package.json, server deployed first.
-    image: rocicorp/zero:1.9.0
+    image: rocicorp/zero:1.11.0
     container_name: zero-server
     ports:
       - '4848:4848'
@@ -39,6 +39,9 @@ services:
       - ZERO_ADMIN_PASSWORD=${ZERO_ADMIN_PASSWORD}
       - ZERO_GET_QUERIES_URL=${ZERO_GET_QUERIES_URL:-http://localhost:3000/api/zero/get-queries}
       - ZERO_GET_QUERIES_FORWARD_COOKIES=${ZERO_GET_QUERIES_FORWARD_COOKIES}
+      - ZERO_MUTATE_URL=${ZERO_MUTATE_URL:-http://localhost:3000/api/zero/mutate}
+      # Writes go through the mutate endpoint only; zero-cache's own CRUD path stays shut.
+      - ZERO_ENABLE_CRUD_MUTATIONS=false
       - ZERO_CVR_DB=${ZERO_CVR_DB:-}
 
       # Additional Zero configuration
@@ -67,7 +70,7 @@ services:
   # Opt in with `docker compose --profile perf up -d zero-perf` after stopping `npm run dev:zero`.
   zero-perf:
     profiles: ['perf']
-    image: rocicorp/zero:1.9.0
+    image: rocicorp/zero:1.11.0
     container_name: zero-perf
     ports:
       - '4848:4848'
@@ -86,6 +89,8 @@ services:
       # A `.localhost` name: Vite's dev server 403s any other host, `host.docker.internal` included.
       - ZERO_GET_QUERIES_URL=http://app.localhost:3000/api/zero/get-queries
       - ZERO_GET_QUERIES_FORWARD_COOKIES=true
+      - ZERO_MUTATE_URL=http://app.localhost:3000/api/zero/mutate
+      - ZERO_ENABLE_CRUD_MUTATIONS=false
       - ZERO_REPLICA_FILE=/data/sync-replica.db
       - ZERO_SCHEMA_PATH=/opt/app/zero-schema.ts
     extra_hosts:

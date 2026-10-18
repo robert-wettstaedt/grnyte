@@ -1,5 +1,6 @@
-import { toggleFavorite } from './favorites.remote'
+import { notifyError } from '$lib/state/toast'
 import { isFavorited, saveCount } from './resources.svelte'
+import { saveFavorite } from './writes'
 
 export type SaveState = {
   readonly count: number
@@ -9,8 +10,8 @@ export type SaveState = {
 }
 
 /**
- * Live save state for one entity. The write is a remote command, not a Zero mutator, so it never
- * reflects optimistically: `override` pins the user's intent until the write syncs back.
+ * Live save state for one entity. The write is a Zero mutator, so the local store reflects it at
+ * once and Zero reverts it if the server refuses.
  */
 export function createSaveState(
   userId: () => number | undefined,
@@ -20,36 +21,32 @@ export function createSaveState(
   const favorited = isFavorited(userId, entityType, entityId)
   const count = saveCount(entityType, entityId)
 
-  let override = $state<boolean | undefined>(undefined)
-  const saved = $derived(override ?? favorited.data)
-
   return {
-    // The synced count already includes the user's own row, so only an unconverged override moves it.
     // 0 (no badge) until it is whole: your own preloaded row alone read as "1".
     get count() {
-      if (count.phase.kind !== 'answered') {
-        return 0
-      }
-      if (override == null || override === favorited.data) {
-        return count.data
-      }
-      return override ? count.data + 1 : count.data - 1
+      return count.phase.kind === 'answered' ? count.data : 0
     },
     /** Loading only, not unanswered: Zero clears `complete` on its own background-tab disconnect. */
     get pending() {
       return favorited.phase.kind === 'loading'
     },
     get saved() {
-      return saved
+      return favorited.data
     },
     toggle: async () => {
-      const next = !saved
-      override = next
+      const id = userId()
+      if (id == null) {
+        return
+      }
       try {
-        const result = await toggleFavorite({ entityId: entityId(), entityType: entityType() })
-        override = result?.data ?? next
-      } catch {
-        override = !next
+        await saveFavorite({
+          entityId: entityId(),
+          entityType: entityType(),
+          saved: !favorited.data,
+          userId: id,
+        })
+      } catch (cause) {
+        notifyError(cause)
       }
     },
   }

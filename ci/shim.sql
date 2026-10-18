@@ -85,3 +85,21 @@ create table if not exists storage.objects (
 create or replace function storage.foldername(name text) returns text[] language sql immutable as $$
   select string_to_array(name, '/')
 $$;
+
+-- Zero's push bookkeeping, which zero-cache creates on first connect and CI never runs. The mutator
+-- suites push through Zero's real processor, which writes both tables in every mutation's transaction.
+CREATE SCHEMA IF NOT EXISTS zero_0;
+CREATE TABLE IF NOT EXISTS zero_0.clients (
+  "clientGroupID" text NOT NULL,
+  "clientID" text NOT NULL,
+  "lastMutationID" bigint NOT NULL,
+  "userID" text,
+  PRIMARY KEY ("clientGroupID", "clientID")
+);
+CREATE TABLE IF NOT EXISTS zero_0.mutations (
+  "clientGroupID" text NOT NULL,
+  "clientID" text NOT NULL,
+  "mutationID" bigint NOT NULL,
+  result json NOT NULL,
+  PRIMARY KEY ("clientGroupID", "clientID", "mutationID")
+);

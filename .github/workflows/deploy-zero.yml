@@ -85,11 +85,11 @@ jobs:
               58b5ae86-d1fd-4f35-a2c4-b4b1008f77b3 > ZERO_AUTH_SECRET
               51211711-cad0-4fb0-8b1f-b4b1008ea602 > ZERO_ADMIN_PASSWORD
               400816f4-0057-445e-918e-b4b1008e2bb0 > ZERO_GET_QUERIES_URL
+              771a3ac5-99f8-443f-b067-b4e700b0af23 > ZERO_MUTATE_URL
               987da712-d3a3-4a2c-a2fb-b4cb014e9092 > ZERO_CVR_DB
               db33aff4-7994-4cfe-bc01-b4b1008ddc21 > ZERO_NUM_SYNC_WORKERS
               a6c1d4f6-a8b8-47bc-b3a0-b4b1008dd02d > ZERO_CVR_MAX_CONNS
               cc7bb4d8-6654-4b89-b306-b4b1008dd661 > ZERO_UPSTREAM_MAX_CONNS
-              01e61f9e-1b5c-4ab5-9f8c-b4b101597837 > ZERO_ENABLE_CRUD_MUTATIONS
               00050332-e579-440d-981b-b4b100937e3b > VPS_SSH_KEY
               1e8728fb-6dc4-436f-beeb-b4b10092ea48 > VPS_HOST
               3669b3d5-cdce-4964-84f1-b4b10092e14d > VPS_USER

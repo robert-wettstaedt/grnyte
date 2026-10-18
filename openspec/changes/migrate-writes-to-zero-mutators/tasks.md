@@ -1,36 +1,36 @@
 # Tasks
 
 Every group is one commit on `feature/zero-mutators`. An entity group moves each handler body into
-`<entity>/*.server.ts` (design 2), adds the client and server mutator defs (design 1), switches the
-callers, and ports that entity's `*.remote.test.ts` cases to the mutate harness (design 9). The
+`<entity>/*.server.ts` (design 2), adds the client and server mutator defs (design 1), adds the entity's `writes.ts` functions and
+switches the callers to them (design 10), and ports that entity's `*.remote.test.ts` cases to the mutate harness (design 9). The
 remote functions stay as one-line callers. "Seen red" means the named production edit was made,
 the test failed, and the edit was reverted.
 
 ## 1. Foundation
 
-- [ ] 1.1 Land the Zero 1.11 bump (`@rocicorp/zero`, the three `rocicorp/zero` image pins) and verify `npm ls @rocicorp/zero` shows one deduped copy and `mutate.server.test.ts` passes
-- [ ] 1.2 Split the spike registry into `favorite/mutators.ts`, `favorite/mutators.server.ts`, `route/mutators.ts`, `route/mutators.server.ts`, aggregated in `src/lib/zero/mutators.ts` / `mutators.server.ts` like `queries.ts`; verify the mutate tests still pass and `svelte-check` is clean
-- [ ] 1.3 Add `asPrivileged` beside `asCaller` (pinned `search_path`, no `applyRls`, same error mapping); verify with a harness test that a privileged write and `lastMutationID` commit together and roll back together, seen red by skipping the pin
-- [ ] 1.4 Pin the spike's per-mutation `afterCommit` handling (dropped for a mutation whose result is an error, the rest drained before answering) with a harness test that a refused mutation runs none of its deferred work, seen red by draining unconditionally
-- [ ] 1.5 Extend `src/lib/remote/gates.test.ts` to scan server mutator defs with the same `GATES` set, and to require every `asPrivileged` mutator to name a gate; verify it is seen red with a gate removed from `setFavorite`'s mutator
-- [ ] 1.6 Add `ZERO_MUTATE_URL` and `ZERO_ENABLE_CRUD_MUTATIONS=false` to `deployment/docker-compose.zero.yml`; verify `docker compose -f deployment/docker-compose.zero.yml config` renders both
-- [ ] 1.7 Replace "Never Zero mutators" in AGENTS.md and `openspec/config.yaml` with the mutator rules (toggles instant, everything else awaited, one body two callers, privileged mutators name a gate) and the deploy-skew rule (arguments only widen within a release; deploy zero-cache, then app); verify by reading both files back
+- [x] 1.1 Land the Zero 1.11 bump (`@rocicorp/zero`, the three `rocicorp/zero` image pins) and verify `npm ls @rocicorp/zero` shows one deduped copy and `mutate.server.test.ts` passes
+- [x] 1.2 Split the spike registry into `favorite/mutators.ts`, `favorite/mutators.server.ts`, `route/mutators.ts`, `route/mutators.server.ts`, aggregated in `src/lib/zero/mutators.ts` / `mutators.server.ts` like `queries.ts`; verify the mutate tests still pass and `svelte-check` is clean
+- [x] 1.3 Add `asPrivileged` beside `asCaller` (pinned `search_path`, no `applyRls`, same error mapping); verify with harness tests that a write RLS refuses as the caller commits privileged, and rolls back with its mutation while `lastMutationID` still advances, seen red by switching `asPrivileged` to `app_writer`
+- [x] 1.4 Pin the spike's per-mutation `afterCommit` handling (dropped for a mutation whose result is an error, the rest drained before answering) with a harness test that a refused mutation runs none of its deferred work, seen red by draining unconditionally
+- [x] 1.5 Extend `src/lib/remote/gates.test.ts` to scan server mutator defs (`mutators.server.ts`) with the same `GATES` set and written exemptions; verify it is seen red with the gate hidden in `favorites.set`
+- [x] 1.6 Add `ZERO_MUTATE_URL` and `ZERO_ENABLE_CRUD_MUTATIONS=false` to `deployment/docker-compose.zero.yml`; verify `docker compose -f deployment/docker-compose.zero.yml config` renders both
+- [x] 1.7 Replace "Never Zero mutators" in AGENTS.md and `openspec/config.yaml` with the mutator rules (toggles instant, everything else awaited, one body two callers, privileged mutators name a gate) and the deploy-skew rule (arguments only widen within a release; deploy zero-cache, then app); verify by reading both files back
 
 ## 2. Return values and the command adapters
 
-- [ ] 2.1 Make `routes.update` return `{ id }` and prove in the harness where Zero 1.11 stores the value and that it reaches the client result after `applyRls`; if `app_writer` is refused, add the grant in `setup-table-permissions.ts` and its case in `db/grants.test.ts`
-- [ ] 2.2 Let `withUndo` (`src/lib/state/toast.ts`) take a mutation's `.server` result; verify with unit tests for success, an `app` refusal (toast with our message) and a `zero` error (offline message, never Zero's text)
+- [x] 2.1 Make `routes.update` return `{ id }` and prove in the harness where Zero 1.11 stores the value (its shard `mutations` table, inside the transaction, refused to `app_writer`): switch the role back after the body, and scrub every unauthored error message in `handleMutate`; both seen red
+- [x] 2.2 Add `write(mutation, { redirectTo? })` in `src/lib/zero/write.ts`, answering in the remote-command envelope so `runCommand` and `withUndo` take it unchanged, and use it in the favorite toggle; verify with unit tests for success, an `app` refusal with its field, a `zero` error (offline message, never Zero's text) and offline, each seen red
 
 ## 3. Form store and the route edit pilot
 
-- [ ] 3.1 Add `createFormStore(schema, initial)` in `src/lib/forms/` (values in `$state`, zod validation, field issues, `setIssue(field | null, message)`, reset); verify with browser unit tests for validation, a field refusal, a form-level refusal and reset
-- [ ] 3.2 Remove the spike's `convert_formdata` import, `mutate` prop and `FormError` `message` prop, then give `Form.svelte` a store mode with a `submit(values)` prop, keeping `waitFor`, `seed`, `{#key seeded}`, the offline overlay and `FormError`; unmigrated screens keep the remote-form path until group 15 deletes it; verify `FormGate.svelte.test.ts` passes
-- [ ] 3.3 Move the route form's component-state fields (grade, rating, tags, first ascensionists) to write into the store instead of posting hidden inputs; verify with a browser test that the submitted value includes each of them
-- [ ] 3.4 Switch `routes/[id]/edit` to the store mode; verify by driving at 375x667 and 1280x800 that changing only the year keeps grade, rating, tags and first ascensionists (DB check, then revert), and that a duplicate name shows on the name field
+- [x] 3.1 Add `createFormStore(schema)` in `src/lib/forms/` (values in `$state`, zod validation, field issues, `setIssue(field | null, message)`, seeded and reset through `fields.set`); verify with browser unit tests for validation, a field refusal, a form-level refusal and reset
+- [x] 3.2 Remove the spike's `convert_formdata` import, `mutate` prop and `FormError` `message` prop, then give `Form.svelte` a store mode with a `submit(values)` prop, keeping `waitFor`, `seed`, `{#key seeded}`, the offline overlay and `FormError`; unmigrated screens keep the remote-form path until group 15 deletes it; verify `FormGate.svelte.test.ts` passes
+- [x] 3.3 Move the route form's component-state fields (grade, rating, tags, first ascensionists) to write into the store instead of posting hidden inputs; verify with a browser test that the submitted value includes each of them
+- [x] 3.4 Switch `routes/[id]/edit` to the store mode; verify by driving at 375x667 and 1280x800 that changing only the year keeps grade, rating, tags and first ascensionists (DB check, then revert), and that a duplicate name shows on the name field
 
 ## 4. Favorites
 
-- [ ] 4.1 Point `ProfileFavorites` and every remaining `toggleFavorite` caller at `favorites.set`; verify by grepping for `toggleFavorite(` outside `favorites.remote.ts`, and by driving a save and unsave at both widths
+- [ ] 4.1 Point `ProfileFavorites` and every remaining `toggleFavorite` caller at `favorite/writes.ts`; verify by grepping for `toggleFavorite(` outside `favorites.remote.ts`, and by driving a save and unsave at both widths
 
 ## 5. Routes
 
@@ -94,7 +94,7 @@ the test failed, and the edit was reverted.
 
 ## 15. Removal and integration
 
-- [ ] 15.1 Delete what no caller uses any more: `runCommand` (`src/lib/remote/mutation.ts`) and the client `MutationResult` imports, `Form.svelte`'s remote-form path, `src/lib/forms/seed.svelte.ts`, `submit.ts`, `offlineFailure.ts` and their tests, and `RemoteFormInputWrapper` from every entity `*FormFields`; verify each with a grep showing no importer outside `AuthField`, then `svelte-check` and `lint:unused`
+- [ ] 15.1 Delete what no caller uses any more: `Form.svelte`'s remote-form path, `src/lib/forms/seed.svelte.ts`, `submit.ts`, `offlineFailure.ts` and their tests, and `RemoteFormInputWrapper` from every entity `*FormFields`; verify each with a grep showing no importer outside `AuthField`, then `svelte-check` and `lint:unused`
 - [ ] 15.2 Cut the remote-form conventions from AGENTS.md (clearing in the `enhance` callback, `seedForm` versus a DOM reset, `form.for(key)`) and keep the rest of each paragraph that still applies; verify no AGENTS.md line names a deleted helper
 
 - [ ] 15.3 Verify no migrated caller still imports a migrated remote function (grep each export name outside its `*.remote.ts`), and that every remaining `*.remote.ts` export is in the proposal's out-of-scope list
