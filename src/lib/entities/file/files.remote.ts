@@ -1,8 +1,7 @@
 import { command } from '$app/server'
 import * as schema from '$lib/db/schema'
-import { bunnyStreams, files, type BunnyStream, type File } from '$lib/db/schema'
-import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
-import { mediaWord } from '$lib/entities/file/dto'
+import { bunnyStreams, files, type File } from '$lib/db/schema'
+import { insertEvent } from '$lib/entities/event/event.server'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
@@ -18,20 +17,10 @@ import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import heicConvert from 'heic-convert'
 import sharp from 'sharp'
-import { deleteFileRows, removeFileStorage } from './cleanup.server'
-import { requireEditableFile, resolveAttachRegion } from './guards.server'
-import { fileParent } from './mapper'
-import { canDeleteFile } from './permissions'
+import { deleteFileSchema, fileVisibilitySchema, sourceUrl, videoSourceSchema } from './dto'
+import { deleteMediaFileRow, setFileVisibilityRow, setVideoSourceRow } from './edit.server'
+import { resolveAttachRegion } from './guards.server'
 import { extensionOf, fileEntityTypes, isHeic, isImageFileName, STAGING_BUCKET, type FileEntityType } from './upload'
-
-/**
- * A credit URL. The scheme filter is the point: a bare `z.url()` takes `javascript:` and `data:`,
- * and this value ends up in an `href`. The client gate lives in a component, so a direct command
- * call would otherwise walk straight past it.
- */
-const sourceUrl = z
-  .url({ error: formError('form_urlInvalid'), protocol: /^https?$/ })
-  .check(z.maxLength(500, { error: formError('form_charsMax', { count: 500 }) }))
 
 /** The FK column linking a `files` row to its target entity: mirrors the columns on `files`. */
 const entityFks = (type: FileEntityType, id: number) => ({
@@ -233,137 +222,15 @@ export const createBunnyVideo = command(async () => {
   return getVideoProvider().createUpload(user.authUserFk)
 })
 
-/**
- * Flip a file between public and private. RLS is the gate: the update only
- * touches a row the caller can edit (the files UPDATE policy, mirrored by
- * canEditFile), so a swallowed update surfaces as a 403 rather than silently
- * doing nothing.
- */
-export const setFileVisibility = authedCommand(
-  z.object({ fileId: z.string().check(z.minLength(1)), visibility: z.enum(['public', 'private']) }),
-  async ({ fileId, visibility }, { db, user, userRegions }): Promise<MutationResult<File>> => {
-    await requireEditableFile(db, userRegions, user.id, fileId)
+// The bodies live in `edit.server.ts`, shared with the file mutators. The `/f` share page keeps
+// `setFileVisibility` and `deleteFile`: it renders outside `(app)`, with no Zero client.
 
-    const [updated] = await db.update(files).set({ visibility }).where(eq(files.id, fileId)).returning()
-    if (updated == null) {
-      error(403, formError('form_noPermission'))
-    }
-    return { data: updated }
-  },
-)
+export const setFileVisibility = authedCommand(fileVisibilitySchema, (args, ctx) => setFileVisibilityRow(args, ctx))
 
-/**
- * Change the origin URL credited on a video after the fact. It used to be fixed at
- * finalize, so a typo or a missing credit was unfixable. Same gate as the visibility
- * flip (`requireEditableFile`, stricter than the bunny_streams UPDATE RLS for ascent
- * media); RLS is still the enforcement, so a swallowed update surfaces as a 403.
- *
- * The event's object is the FILE, the same way an upload's is: the card then draws the clip
- * the credit is about, and what it hangs on is reachable through the file's own foreign keys.
- */
-export const setVideoSource = authedCommand(
-  z.object({ fileId: z.string().check(z.minLength(1)), source: z.nullable(sourceUrl) }),
-  async ({ fileId, source }, { db, user, userRegions }): Promise<MutationResult<BunnyStream>> => {
-    const file = await requireEditableFile(db, userRegions, user.id, fileId)
-    if (file.bunnyStreamFk == null) {
-      error(400, formError('media_sourceVideoOnly'))
-    }
+/** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
+export const setVideoSource = authedCommand(videoSourceSchema, (args, ctx) => setVideoSourceRow(args, ctx))
 
-    // Read before writing: the diff needs the value being replaced, and `returning()` can
-    // only hand back the one that lands.
-    const before = await db.query.bunnyStreams.findFirst({
-      columns: { source: true },
-      where: eq(bunnyStreams.id, file.bunnyStreamFk),
-    })
-
-    const [updated] = await db
-      .update(bunnyStreams)
-      .set({ source })
-      .where(eq(bunnyStreams.id, file.bunnyStreamFk))
-      .returning()
-    if (updated == null) {
-      error(403, formError('form_noPermission'))
-    }
-
-    await createUpdateEvent(db, {
-      actorFk: user.id,
-      newEntity: { source },
-      object: { id: file.id, type: 'file' },
-      oldEntity: { source: before?.source ?? null },
-      regionFk: file.regionFk,
-    })
-
-    return { data: updated }
-  },
-)
-
-/**
- * Delete one file (its DB row, its Nextcloud images, its Bunny video) from the media
- * viewer. Hand-wired like finalizeImage rather than authedCommand: the irreversible
- * storage removal must run only AFTER the DB delete commits, so a mid-transaction
- * failure can never resurrect a row whose bytes are already gone.
- *
- * The server gate (canDeleteFile) is deliberately stricter than the files DELETE RLS,
- * so it pre-checks up front; RLS is still the enforcement (deleteFileRows only removes
- * rows the caller can delete), and an empty result means the row survived, so we report
- * a real 403 instead of a phantom success.
- */
-export const deleteFile = command(
-  z.object({ id: z.string().check(z.minLength(1)) }),
-  async ({ id }): Promise<MutationResult<{ id: string }>> => {
-    const { rls, user, userRegions } = await authedRls()
-
-    const storage = await rls(async (db) => {
-      const file = await db.query.files.findFirst({
-        where: eq(files.id, id),
-        with: { ascent: { columns: { createdBy: true } } },
-      })
-      if (file == null) {
-        error(404, formError('files_notFound'))
-      }
-
-      const canDelete = canDeleteFile(userRegions, user.id, {
-        ascentCreatedBy: file.ascent?.createdBy ?? undefined,
-        regionFk: file.regionFk,
-      })
-      if (!canDelete) {
-        error(403, formError('form_noPermission'))
-      }
-
-      const storage = await deleteFileRows(db, [file])
-      if (storage.length === 0) {
-        // Pre-gate passed but RLS still kept the row (policy drift): fail loudly
-        // rather than log a deletion event and toast success for a live file.
-        error(403, formError('form_noPermission'))
-      }
-
-      // On the PARENT, not the file: the file row is gone by now, and its own upload event went
-      // with it through the cascade, so an event naming it would have nothing to point at.
-      //
-      // Photo or video in `metadata` for the same reason it used to be in `oldValue`: the row
-      // that could answer it no longer exists. It also scopes the fold, so clearing three photos
-      // off one route in one sitting joins one event rather than stacking three cards that a
-      // reader cannot tell apart.
-      const parent = fileParent(file)
-      if (parent != null) {
-        await insertEvent(db, {
-          actorFk: user.id,
-          metadata: mediaWord(file),
-          object: parent,
-          regionFk: file.regionFk,
-          verb: 'remove',
-        })
-      }
-
-      return storage
-    })
-
-    // Only now that the row deletion has committed: destroy the backing bytes.
-    await removeFileStorage(storage)
-
-    return { data: { id } }
-  },
-)
+export const deleteFile = authedCommand(deleteFileSchema, (args, ctx) => deleteMediaFileRow(args, ctx))
 
 const finalizeVideoSchema = z.object({
   entityId: z.number(),

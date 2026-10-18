@@ -14,8 +14,8 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { isNavKeyExempt } from '$lib/components/SiblingNav/siblingNav'
   import type { MediaFile } from '$lib/entities/file/dto'
-  import { deleteFile } from '$lib/entities/file/files.remote'
   import { canDeleteFile, canEditFile } from '$lib/entities/file/permissions'
+  import { deleteFile } from '$lib/entities/file/writes'
   import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -98,7 +98,7 @@
   // currentIndex can't safely track, and the grid behind reflects it.
   const onDelete = async () => {
     try {
-      await deleteFile({ id: currentFile.id })
+      await deleteFile(currentFile.id)
     } catch (cause) {
       notifyError(cause)
       return

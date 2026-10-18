@@ -429,7 +429,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One card, not two. `mergeCreatedWithMedia` folds the upload group into the group holding the create it landed on, and the merged group keeps the CREATE group\'s kind, which for a route created under a block is KIND `burst`. The create is moved to the front, so the headline is "You added the route Kante direkt" with a "2 photos" sub line, both photos above one route row. The create half is written by save.server.ts:237.',
     id: 'GROUP-03a',
-    writer: 'files.remote.ts:59',
+    writer: 'files.remote.ts:55',
   },
   {
     action: '/routes/500 -> Log ascent -> attach a clip -> Save',
@@ -448,7 +448,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `session` card holding the create and the upload: the same merge, into a session group this time, because a lone ascent create is a session of one. The headline is the create\'s own sentence, "You flashed Rampe", with a "1 video" sub line, not "You logged a session". The create half is written by save.server.ts:54.',
     id: 'GROUP-03b',
-    writer: 'files.remote.ts:59',
+    writer: 'files.remote.ts:55',
   },
   {
     action: 'You add a route, somebody else photographs it a minute later',
@@ -475,7 +475,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Two cards, the newer one on top: a KIND `upload`, "Sofia Brandt added photos to Kante direkt" with a "2 photos" sub line, above a KIND `single` create, "You added the route Kante direkt". The merge looks up the create by actor as well as by object, so somebody else\'s photos never disappear into your create.',
     id: 'GROUP-03c',
-    writer: 'files.remote.ts:59',
+    writer: 'files.remote.ts:55',
   },
   {
     action: 'Add a route, come back half an hour later and upload the photos',
@@ -502,7 +502,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Two cards again, this time on the clock: the two groups are 36 minutes apart and `withinBurst` compares their newest events against the same 30 minutes the rest of grouping uses. A KIND `upload` of "2 photos" on top, "You added photos to Kante direkt", and the KIND `single` create below it.',
     id: 'GROUP-03d',
-    writer: 'files.remote.ts:59',
+    writer: 'files.remote.ts:55',
   },
   {
     action: 'Log three ascents, hang a clip on one of them',
@@ -544,7 +544,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'ONE KIND `session` card, "You logged a session", sub line "3 ascents · 1 video", the clip in the thumbnail strip and all three climbs as rows. A session takes several creates as a merge target where an edit burst does not: the clip belongs to the sitting the card reports, and leaving it on a card of its own put "You added a video to your ascent of Riss" between the reader and the session it came from. Nothing moves to the front, unlike a lone create: the card speaks for the afternoon rather than for any one climb, so the headline stays the session\'s and the count stays 3 ascents rather than becoming 1 video.',
     id: 'GROUP-03e',
-    writer: 'files.remote.ts:59',
+    writer: 'files.remote.ts:55',
   },
   {
     action: 'Log two ascents and hang a clip on each of them',
@@ -586,7 +586,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Still ONE KIND `session` card, "2 ascents · 2 videos": two upload groups, each keyed on the ascent it landed on, both folding into the same session. Two rows, not four, because an upload names the thing it landed on rather than the file, and both clips in one thumbnail strip. The card counts the climbs off the rows rather than off its subjects, since a file is a subject too and counting those read "4 ascents".',
     id: 'GROUP-03f',
-    writer: 'files.remote.ts:59',
+    writer: 'files.remote.ts:55',
   },
 
   {
@@ -621,7 +621,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `session` card, "You logged a session", sub line "2 ascents · 1 video". The card holds a CREATE at the front, since a file finalizes after the entity it hangs on and the next climb was logged after that, but it is not a create that speaks for the card: only a group holding exactly ONE create is that, and this one holds two. Without that guard the card read "You redpointed Riss" over two ascent rows and counted the video instead of the climbs.',
     id: 'GROUP-03g',
-    writer: 'files.remote.ts:59',
+    writer: 'files.remote.ts:55',
   },
   {
     action: 'Work a project: three goes on one route in a session, with a clip of the last',
@@ -663,7 +663,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `session` card, sub line "3 ascents · Rampe · 1 video": every ascent hangs off the same route, so the session names the place, and the clip does not take that away. A card names a place only when its whole window agrees on one, and an upload hangs off the ASCENT rather than the route, so it used to count as a disagreement and a session on one project lost its name the moment somebody filmed a go. A line that borrows its parent\'s row says nothing about the place when that parent is already on the card.',
     id: 'GROUP-03h',
-    writer: 'files.remote.ts:59',
+    writer: 'files.remote.ts:55',
   },
   {
     action: 'Film a go on a route you photographed last week',
@@ -697,7 +697,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Sub line "2 ascents · 1 video", not "1 media". The count and the word both come off the upload rows themselves; reading the card-wide media word instead asked a different question, since that one reads every file hanging off every entity on the card, and the older photo still on that ascent made the two disagree. Both files show in the thumbnail strip, which is the card saying what it holds rather than what happened.',
     id: 'GROUP-03i',
-    writer: 'files.remote.ts:59',
+    writer: 'files.remote.ts:55',
   },
 
   {
@@ -761,7 +761,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'TWO KIND `single` cards, "You removed a photo from your ascent of Rampe" and "Sofia Brandt removed a photo from Ada Rossi’s ascent of Rampe". A file removal logs on the PARENT (the file row is gone by then), so it arrives as `ascent` + `remove` and `kindOf` keeps it out of the session; the entity key carries the actor, so the two removals no longer share a card. Under the old key they did, and the card said "You removed photos" over work two people did, since the file-only branch of the headline ran before the multi-actor one could: it read as one person pulling two photos.',
     id: 'GROUP-05b',
-    writer: 'files.remote.ts:344',
+    writer: 'edit.server.ts:54',
   },
 
   {
@@ -911,7 +911,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `single` card, "You removed a photo from Kante direkt". Three files but one event: the fold key is (actor, object, region, metadata) and every one of these writes the same `photo`, so the second and third join the first. The sentence stays singular and nothing on the card counts three, which is the trade the fold makes for one card a reader can tell apart from two identical ones.',
     id: 'GROUP-08c',
-    writer: 'files.remote.ts:344',
+    writer: 'edit.server.ts:54',
   },
   {
     action: 'Delete a photo and a video off one route, two minutes apart',
@@ -923,6 +923,6 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `burst` card of two events: `metadata` scopes the server fold, so a photo and a video stay apart there and then group on the client as guidebook edits under Nordblock. Both rows resolve the same sentence, so the card speaks it rather than a group verb, with the mixed media word: "You removed media from Kante direkt", sub line "2 files".',
     id: 'GROUP-08d',
-    writer: 'files.remote.ts:344',
+    writer: 'edit.server.ts:54',
   },
 ]
