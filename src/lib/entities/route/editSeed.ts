@@ -1,6 +1,6 @@
 import type { RouteDetail } from './dto'
 import { routeListsFingerprint } from './fingerprint'
-import type { RouteFormInput } from './routes.remote'
+import type { RouteFormInput } from './dto'
 
 /** One copy, because `known` is a correctness guard: a second seed covering different lists would
  *  make one surface refuse every save. `satisfies` keeps the excess-property check a call-site

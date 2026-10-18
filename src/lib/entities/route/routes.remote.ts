@@ -24,8 +24,6 @@ import { canAddRoute, canDeleteRoute } from './permissions'
 import { allowedTags, findDuplicateName, updateRouteRow } from './update.server'
 import { recalcUserGradeAndRating } from './user-grade.server'
 
-export type { RouteFormInput } from './dto'
-
 /** Create a route under a block. Returns `{ id }` and declares NO `redirectTo`: a redirect is a 303,
  *  and the server rebuilds that response from the location alone, discarding this return value. The
  *  form needs the id to finalize its uploads, so it leaves through `exit` itself. */
