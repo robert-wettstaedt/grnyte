@@ -9,7 +9,7 @@
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { COMMENT_MAX_LENGTH } from '$lib/entities/reaction/dto'
-  import { postComment } from '$lib/entities/reaction/reactions.remote'
+  import { postComment } from '$lib/entities/reaction/writes'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
