@@ -10,12 +10,13 @@
   import GradePicker from '$lib/entities/grade/GradePicker.svelte'
   import { regionTags } from '$lib/entities/region/tagVocabulary'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
+  import type { FormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import type { RemoteForm } from '@sveltejs/kit'
   import type { RouteDetail } from './dto'
   import RouteRatingInput from './RouteRatingInput.svelte'
-  import type { RouteFormInput } from './routes.remote'
+  import type { RouteFormInput } from './dto'
   import RouteTagsInput from './RouteTagsInput.svelte'
 
   // Shared body for the add/edit route forms. Every field is optional (one note up top says so
@@ -32,7 +33,7 @@
      *  two-step sheet) binds them to keep them; everyone else leaves them alone. `undefined` means
      *  "not seeded yet", so an unbound caller behaves exactly as before. */
     firstAscents?: FaClimber[]
-    form: RemoteForm<RouteFormInput, unknown>
+    form: FormStore<RouteFormInput, unknown> | RemoteForm<RouteFormInput, unknown>
     gradeFk?: number
     rating?: number
     /** When editing: the route, to seed the non-text fields once on mount. */
@@ -66,6 +67,17 @@
   if (rating === undefined) rating = seed?.rawRating ?? 0
   if (tags === undefined) tags = [...(seed?.tags ?? [])]
   if (firstAscents === undefined) firstAscents = seed?.firstAscents.map((fa) => ({ ...fa })) ?? []
+
+  // A remote form posts these from their hidden inputs; a store sends what it holds, so they write into it.
+  $effect(() => {
+    if (!('capture' in form)) return
+    form.fields.gradeFk.set(gradeFk == null ? '' : String(gradeFk))
+    form.fields.rating.set(rating ? String(rating) : '')
+    form.fields.tags.set([...(tags ?? [])])
+    form.fields.firstAscensionists.set(
+      (firstAscents ?? []).map(({ name, userFk }) => ({ name, userFk: userFk == null ? '' : String(userFk) })),
+    )
+  })
 
   // The Breadcrumb wants an area-shaped object; the block's `areas` is already the
   // full containment chain, and the block itself joins as the final label below.
