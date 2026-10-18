@@ -3,11 +3,11 @@
   import MarkdownEditor from '$lib/components/MarkdownEditor/MarkdownEditor.svelte'
   import { regionDisplayName } from '$lib/entities/region/mapper'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
+  import type { FormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import type { RemoteForm } from '@sveltejs/kit'
-  import type { AreaFormInput } from './areas.remote'
-  import type { AreaDetail } from './dto'
+  import type { AreaDetail, AreaFormInput } from './dto'
   import { canAddArea } from './permissions'
 
   // Shared field set for the create and edit area forms; the surrounding chrome lives in FormScaffold.
@@ -16,7 +16,7 @@
      *  Absent when creating a top-level area, which has no parent to sit under, so the region
      *  select below is the whole of its placement. */
     area?: AreaDetail
-    form: RemoteForm<AreaFormInput, unknown>
+    form: FormStore<AreaFormInput, unknown> | RemoteForm<AreaFormInput, unknown>
   }
 
   const { area, form }: Props = $props()

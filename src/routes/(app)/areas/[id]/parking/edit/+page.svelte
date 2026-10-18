@@ -2,12 +2,14 @@
   import { beforeNavigate } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { addParking } from '$lib/entities/area/areas.remote'
+  import { addParkingSchema } from '$lib/entities/area/dto'
   import { canAddParking } from '$lib/entities/area/permissions'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
+  import { addParking } from '$lib/entities/area/writes'
   import { entityHref } from '$lib/entities/href'
   import Form from '$lib/forms/Form.svelte'
   import { noEditPermission } from '$lib/forms/gate'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { createAreaPickerMapData } from '$lib/map/exploreData.svelte'
   import LocationPicker from '$lib/map/LocationPicker.svelte'
   import { coordsFromParams } from '$lib/map/map'
@@ -68,6 +70,17 @@
   // area opens on the last step with nothing placed and Save posts empty coordinates.
   let step = $state(0)
 
+  // Every value lives in component state above, so the store copies it rather than reading inputs.
+  const store = createFormStore(addParkingSchema)
+  $effect(() => {
+    store.fields.set({
+      areaId: String(areaId),
+      lat: picked == null ? '' : String(picked.lat),
+      long: picked == null ? '' : String(picked.long),
+      path: encodedPath,
+    })
+  })
+
   // The steps are local state, not history entries, so the platform's back gesture leaves the whole
   // wizard where the header's control only steps back one. Confirm rather than discard silently.
   const dirty = $derived(touched || pathPoints.length > 0)
@@ -81,7 +94,7 @@
   // `onSubmitted`. A submit that FAILS clears `pending` without setting `saved`, so the guard
   // re-arms on its own rather than staying disabled for the rest of the session.
   beforeNavigate((navigation) => {
-    if (saved || addParking.pending > 0) return
+    if (saved) return
     if (dirty && !confirm(m.form_leaveConfirm())) {
       navigation.cancel()
     }
@@ -133,7 +146,8 @@
   bind:step
   cancelTo={areaHref}
   {denied}
-  form={addParking}
+  {store}
+  submit={addParking}
   {seed}
   submitLabel={m.common_save()}
   title={m.areas_addParkingLocation()}
@@ -144,10 +158,6 @@
   waitFor={[{ notFound: m.areas_notFound(), resource: area, whole: false }]}
 >
   <!-- The submitted parking + optional path, mirrored from state into the form. -->
-  <input name="areaId" type="hidden" value={areaId} />
-  <input name="lat" type="hidden" value={picked?.lat ?? ''} />
-  <input name="long" type="hidden" value={picked?.long ?? ''} />
-  <input name="path" type="hidden" value={encodedPath} />
 </Form>
 
 {#snippet placeStep()}

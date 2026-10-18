@@ -35,6 +35,12 @@ import { describe, expect, it } from 'vitest'
  * - `resendInvitation`, `restoreInvitation` and `revokeInvitation` all reach `canEditRegion` through
  *   `loadEditable` in invite.server.ts, which loads the row and checks the STORED `regionFk`
  * - `resolveAttachRegion` returns the region a file may attach to, or refuses
+ * - `addParkingRow` and `restoreParkingRow` check `canAddParking` on the stored area; `deleteParkingRow` checks
+ *   `canDeleteParking` on the stored geolocation
+ * - `createAreaRow` checks `canAddArea` on the region and the stored parent; `updateAreaRow` loads it through
+ *   `requireEditableArea`
+ * - `deleteAreaRow` loads the area through `requireRow` with `canDeleteArea`; `restoreAreaRow` gates a recreate on
+ *   `canAddArea` and an undelete on `canDeleteArea`, both on stored rows
  * - `createRouteRow` checks `canAddRoute` on the stored block
  * - `deleteRouteRow` loads the route through `requireRow` with `canDeleteRoute`
  * - `restoreRouteRow` gates a recreate on `canAddRoute` and an undelete on `canDeleteRoute`, both on stored rows
@@ -47,6 +53,7 @@ import { describe, expect, it } from 'vitest'
  */
 const GATES = new Set([
   'acceptInvitation',
+  'addParkingRow',
   'assertCanEdit',
   'assertIsMember',
   'canAddArea',
@@ -69,7 +76,10 @@ const GATES = new Set([
   'canLogAscent',
   'canReadRegion',
   'checkRegionPermission',
+  'createAreaRow',
   'createRouteRow',
+  'deleteAreaRow',
+  'deleteParkingRow',
   'deleteRouteRow',
   'requireEditableArea',
   'requireEditableFile',
@@ -80,10 +90,13 @@ const GATES = new Set([
   'requireRowForm',
   'resendInvitation',
   'resolveAttachRegion',
+  'restoreAreaRow',
   'restoreInvitation',
+  'restoreParkingRow',
   'restoreRouteRow',
   'revokeInvitation',
   'setFavorite',
+  'updateAreaRow',
   'updateRouteRow',
   'verifyUpload',
 ])

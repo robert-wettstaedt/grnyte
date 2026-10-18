@@ -2,15 +2,18 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AreaFormFields from '$lib/entities/area/AreaFormFields.svelte'
-  import { updateArea } from '$lib/entities/area/areas.remote'
+  import { areaActionSchema } from '$lib/entities/area/dto'
   import { canEditArea } from '$lib/entities/area/permissions'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
+  import { updateArea } from '$lib/entities/area/writes'
   import { entityHref } from '$lib/entities/href'
   import Form from '$lib/forms/Form.svelte'
   import { noEditPermission } from '$lib/forms/gate'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
+  const store = createFormStore(areaActionSchema)
   const global = getGlobalState()
   const area = areaDetail(() => Number(page.params.id))
 
@@ -30,7 +33,8 @@
 <Form
   cancelTo={areaHref}
   {denied}
-  form={updateArea}
+  {store}
+  submit={updateArea}
   seed={([area]) => ({
     description: area.description,
     id: area.id.toString(),
@@ -43,6 +47,6 @@
   waitFor={[{ notFound: m.areas_notFound(), resource: area, whole: false }]}
 >
   {#snippet fields([area])}
-    <AreaFormFields {area} form={updateArea} />
+    <AreaFormFields {area} form={store} />
   {/snippet}
 </Form>

@@ -6,7 +6,7 @@ import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
 import type { MutationResult } from '$lib/remote/mutation'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { error, type InvalidField, type RemoteForm, type RemoteFormInput } from '@sveltejs/kit'
+import { error, invalid, type InvalidField, type RemoteForm, type RemoteFormInput } from '@sveltejs/kit'
 
 /** Injected into every wrapped handler. Add shared per-call deps here. */
 export interface Context {
@@ -147,3 +147,9 @@ async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
 
   return returnValue
 }
+
+/** A shared handler body's refusal, as a remote form raises it: on the field when it names one. */
+export const refuseVia =
+  <Field extends string>(issue: Record<Field, (message: string) => Parameters<typeof invalid>[0]>) =>
+  (message: string, field?: Field): never =>
+    invalid(field == null ? message : issue[field](message))

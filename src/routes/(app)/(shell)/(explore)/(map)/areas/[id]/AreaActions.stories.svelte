@@ -17,6 +17,7 @@
     geoPaths: [],
     id: 1,
     name: toDisplayName('Roche aux Sabots'),
+    parentFk: undefined,
     parkingLocations: [],
     regionFk: 1,
     type: 'sector',
