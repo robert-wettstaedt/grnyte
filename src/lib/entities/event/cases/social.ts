@@ -44,7 +44,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'Single card, "Sofia Brandt redpointed Kante". The bar is still there under the route row: an empty comment button (no count) and the add-reaction button. Nothing falls to the footer, and with no change lines to toggle the footer is not rendered at all.',
     id: 'SOCIAL-01a',
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
   {
     action: "Feed -> somebody else's card -> add a reaction -> 💪",
@@ -61,7 +61,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'One chip, "💪 1", on the row the ascent named. Not pressed: the reader is not one of the reactors, so it reads as an outline rather than the primary fill. A hold on it lists Tomas Kessler.',
     id: 'SOCIAL-01b',
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
   {
     action: 'Three people each send a different emoji to one card',
@@ -80,7 +80,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'Three chips of one each, in the order they arrived: 👍, 💪, 🔥. One bar, one row, wrapping to a second line on a narrow phone rather than widening the card.',
     id: 'SOCIAL-01c',
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
   {
     action: 'Tap 🔥 on a card two other people have already reacted to',
@@ -97,7 +97,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       '"🔥 2" pressed (primary fill, aria-pressed) because the reader is one of the two, and "💪 1" unpressed beside it. Tapping the pressed one clears it, which is the same call that set it.',
     id: 'SOCIAL-01d',
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
   {
     action: 'Your own card, four people have reacted to it',
@@ -114,7 +114,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       '"You added the route Kante direkt" with "🔥 4" to read and nothing to add: the bar is read-only on your own event, so the add button is gone and the chip does not toggle. The comment button stays, which is the point of keeping the bar at all.',
     id: 'SOCIAL-01e',
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
   {
     action: 'The same card, read by one of the four reactors',
@@ -132,7 +132,7 @@ export const SOCIAL_CASES: EventCase[] = [
       'Same card, "Ada Rossi added the route Kante direkt", read by Tomas: the bar is NOT read-only, so the add button is back and "🔥 4" is pressed because he is one of the four. A hold on the chip opens the popover, which lists all four names in arrival order.',
     id: 'SOCIAL-01f',
     reader: 2,
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
   {
     action: 'A session of two ascents, and you react to only one of them',
@@ -159,7 +159,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'ONE card, "Sofia Brandt logged a session", "2 ascents", with two rows. The 💪 sits under the Kante row alone and the Dach row carries an empty bar of its own. This is what per-event bars buy: the reaction names the send, not the afternoon.',
     id: 'SOCIAL-01g',
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
   {
     action: 'React to a card that renders no rows at all (a member removal)',
@@ -176,7 +176,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       '"Sofia Brandt removed Mara Lindqvist from the region" with no row under it: the catalogue entry declares `row: none`, since a profile link for somebody out of the region is a dead end. The bar has nowhere to ride, so it falls to the footer, which is the only reason there is a footer here at all.',
     id: 'SOCIAL-01h',
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
   {
     action: 'React to the newer of two edits that folded into one card',
@@ -199,7 +199,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'One card, "Sofia Brandt edited Kante direkt", "2 edits", with ONE row for the route. The row bar belongs to the OLDER event (the rename), so the 👍 has no row to sit on and renders in the footer instead. Two bars on one card, which is the leftover rule keeping a reaction somewhere the reader can see it and take it back.',
     id: 'SOCIAL-01i',
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
   {
     action: 'A card that has been reacted to and talked under',
@@ -217,7 +217,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'One bar carrying both: "🔥 2", "👍 1", and a comment button reading 2. The emoji arrive with the card and the two sentences do not: the count comes off `events.comment_count`, and the thread is fetched when the button opens it. Both halves post back to the same event id.',
     id: 'SOCIAL-01j',
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
   {
     action: 'React to an upload whose file resolves to no entity',
@@ -238,7 +238,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       '"Sofia Brandt added media to Unnamed", in the italic placeholder, with no thumbnail and no row. The bar falls to the footer under the no-rows rule, so the reaction is still readable and still revocable on a card that can say almost nothing about itself.',
     id: 'SOCIAL-01k',
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
   {
     action: 'Hold a chip whose reactors include somebody whose user row has not synced',
@@ -256,7 +256,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'The chip counts "🔥 3", because the count is of rows rather than of names. The popover lists two names and one blank line, which is what an unsynced reactor renders as: the list has no loading state of its own.',
     id: 'SOCIAL-01l',
-    writer: 'reactions.remote.ts:71',
+    writer: 'edit.server.ts:230',
   },
 
   {
@@ -273,7 +273,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'The chip is gone and the card is not: unlike an event undo, taking back a reaction removes a row on `reactions` and leaves what it was about alone. The bar stays under the route row, back to the comment and add buttons alone.',
     id: 'SOCIAL-02a',
-    writer: 'reactions.remote.ts:48',
+    writer: 'edit.server.ts:230',
   },
   {
     action: 'Take back the reaction that was the only thing on a leftover bar',
@@ -295,7 +295,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'SOCIAL-01i with the 👍 cleared. The footer bar disappears entirely, because a leftover with no chips and no comments is filtered out, and the card has a row so the no-rows rule does not save it. The footer is still drawn, holding the Show changes toggle on its own.',
     id: 'SOCIAL-02b',
-    writer: 'reactions.remote.ts:48',
+    writer: 'edit.server.ts:230',
   },
 
   {
@@ -313,7 +313,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       "The comment button reads 1 and nothing under it has loaded: the number is a column on the event, and the thread is a query the button fires. Opened, it is a sheet on a phone and a right-hand aside on a desktop, with one line by Tomas Kessler, his avatar, a relative time, a Reply control, no delete control (it is not the reader's), and the composer pinned at the bottom.",
     id: 'SOCIAL-03a',
-    writer: 'reactions.remote.ts:118',
+    writer: 'edit.server.ts:85',
   },
   {
     action: 'Three people answer each other under one card',
@@ -330,7 +330,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'Button reads 3. The thread renders oldest first, three avatars and three names. A reply to any of them indents under it against a rule, one level and no deeper: answering a reply files under the same comment, so the shape stays a list of comments with a flat list of answers. No delete control on any of these, none being the reader s.',
     id: 'SOCIAL-03b',
-    writer: 'reactions.remote.ts:118',
+    writer: 'edit.server.ts:85',
   },
   {
     action: 'Answer somebody under a card, then look at your own line',
@@ -347,7 +347,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'Two lines, and only the second carries the trash control: `mine` is filled in per comment from the author against the reader, so the delete offer follows the line rather than the card. Every line carries Reply, own lines included.',
     id: 'SOCIAL-03c',
-    writer: 'reactions.remote.ts:118',
+    writer: 'edit.server.ts:85',
   },
   {
     action: 'Somebody comments on YOUR card, and you answer',
@@ -364,7 +364,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       '"You flashed Rampe" with a read-only bar: no add button, since nobody applauds their own event, but the comment button is there reading 1 and opens the thread with its composer. Being the person a card is about is the most likely reason to have something to say under it.',
     id: 'SOCIAL-03d',
-    writer: 'reactions.remote.ts:118',
+    writer: 'edit.server.ts:85',
   },
   {
     action: 'Open a thread whose author has not synced yet',
@@ -382,7 +382,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       'The body is readable and the name is not: a blank name line and a pulsing avatar, which is the loading state `Avatar` takes for an empty name. The count on the button is 1 either way, since it counts rows rather than resolved people.',
     id: 'SOCIAL-03e',
-    writer: 'reactions.remote.ts:118',
+    writer: 'edit.server.ts:85',
   },
 
   {
@@ -400,7 +400,7 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       "The reader's line is gone and the button drops by one. Soft on the server, but a soft-deleted row does not sync, so the thread is simply shorter, and the count follows because the trigger on `reactions` decrements the card as the row leaves. The card itself is untouched, exactly as a cleared reaction leaves it.",
     id: 'SOCIAL-04a',
-    writer: 'reactions.remote.ts:155',
+    writer: 'edit.server.ts:85',
   },
   {
     action: 'Delete the only comment on a card that has no rows',
@@ -416,6 +416,6 @@ export const SOCIAL_CASES: EventCase[] = [
     expected:
       "SOCIAL-01h with everything cleared off it. The footer bar STAYS, empty: a card with no rows always keeps its first bar, or there would be nothing on the entity's own page to react to or comment under. The mirror of SOCIAL-02b, where the same empty bar is dropped because the card has a row.",
     id: 'SOCIAL-04b',
-    writer: 'reactions.remote.ts:155',
+    writer: 'edit.server.ts:85',
   },
 ]

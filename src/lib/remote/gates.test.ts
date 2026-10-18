@@ -52,6 +52,8 @@ import { describe, expect, it } from 'vitest'
  * - `createTopoRow` and `reorderToposRow` load the block through `requireEditableTopoBlock`; `deleteTopoRow` and
  *   `replaceTopoImageRow` load the topo through `requireEditableTopoWithFile`, `saveTopoLinesRow` through
  *   `requireEditableTopo`
+ * - `toggleReactionRow`, `postCommentRow`, `deleteCommentRow` and `restoreCommentRow` load the event or the
+ *   comment through `requireRow`, checked against the stored row
  * - `createRouteRow` checks `canAddRoute` on the stored block
  * - `deleteRouteRow` loads the route through `requireRow` with `canDeleteRoute`
  * - `restoreRouteRow` gates a recreate on `canAddRoute` and an undelete on `canDeleteRoute`, both on stored rows
@@ -95,11 +97,13 @@ const GATES = new Set([
   'deleteAreaRow',
   'deleteAscentRow',
   'deleteBlockRow',
+  'deleteCommentRow',
   'deleteMediaFileRow',
   'deleteParkingRow',
   'deleteRouteRow',
   'deleteTopoRow',
   'estimateBlockLocationRow',
+  'postCommentRow',
   'reorderBlocksRow',
   'reorderToposRow',
   'replaceTopoImageRow',
@@ -114,6 +118,7 @@ const GATES = new Set([
   'resolveAttachRegion',
   'restoreAreaRow',
   'restoreBlockRow',
+  'restoreCommentRow',
   'restoreInvitation',
   'restoreParkingRow',
   'restoreRouteRow',
@@ -123,6 +128,7 @@ const GATES = new Set([
   'setFavorite',
   'setFileVisibilityRow',
   'setVideoSourceRow',
+  'toggleReactionRow',
   'updateAreaRow',
   'updateAscentRow',
   'updateBlockRow',

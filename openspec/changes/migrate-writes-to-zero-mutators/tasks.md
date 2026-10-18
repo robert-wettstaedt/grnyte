@@ -65,8 +65,8 @@ the test failed, and the edit was reverted.
 
 ## 10. Reactions and comments
 
-- [ ] 10.1 Move `toggleReaction` (optimistic), `postComment`, `deleteComment`, `restoreComment` and add their mutators, keeping each `afterCommit` notification; port `toggleReaction.remote.test.ts`, seen red
-- [ ] 10.2 Switch the reaction and comment callers; drive react, unreact, comment, delete and undo at both widths, and confirm one notification per action in `notifications`
+- [x] 10.1 Move `toggleReaction` (optimistic), `postComment`, `deleteComment`, `restoreComment` and add their mutators, keeping each `afterCommit` notification; port `toggleReaction.remote.test.ts`, seen red
+- [x] 10.2 Switch the reaction and comment callers; drive react, unreact, comment, delete and undo at both widths, and confirm one notification per action in `notifications`
 
 ## 11. Notifications and push
 
