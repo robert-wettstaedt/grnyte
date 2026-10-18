@@ -17,7 +17,7 @@
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import type { CommentListItem } from '$lib/entities/reaction/dto'
-  import { deleteComment, restoreComment } from '$lib/entities/reaction/reactions.remote'
+  import { deleteComment, restoreComment } from '$lib/entities/reaction/writes'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -54,9 +54,9 @@
    * about, because it covers it.
    */
   const remove = (commentId: number) =>
-    void withUndo(deleteComment({ commentId }), {
+    void withUndo(deleteComment(commentId), {
       message: m.comments_deleted(),
-      onUndo: (id) => restoreComment({ commentId: id }),
+      onUndo: (id) => restoreComment(id),
     })
 </script>
 

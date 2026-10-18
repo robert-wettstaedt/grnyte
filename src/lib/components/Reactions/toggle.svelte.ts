@@ -1,4 +1,5 @@
-import { toggleReaction } from '$lib/entities/reaction/reactions.remote'
+import { toggleReaction } from '$lib/entities/reaction/writes'
+import { getGlobalState } from '$lib/state/global.svelte'
 
 /** What a reaction hangs off: an event, or one comment under it. */
 export interface ReactionTarget {
@@ -15,10 +16,11 @@ export interface ReactionTarget {
  * two emoji tapped in quick succession are two handlers racing over one slot, and a per-emoji guard
  * would let that race through (both find nothing to clear, both insert, the second hits the index).
  *
- * The failure is swallowed because nothing changed: a chip is drawn from synced rows, so a refused
- * toggle leaves the bar exactly as the reader found it. Rethrowing would only reach `window.onerror`.
+ * The failure is swallowed because nothing changed: Zero rolls a refused toggle's local flip back,
+ * so the bar is left exactly as the reader found it. Rethrowing would only reach `window.onerror`.
  */
 export function createReactionToggle(target: () => ReactionTarget) {
+  const global = getGlobalState()
   let busy = $state(false)
 
   return {
@@ -31,13 +33,12 @@ export function createReactionToggle(target: () => ReactionTarget) {
         return
       }
 
-      // No optimistic write: the chip arrives back through Zero like every other read in the app,
-      // and reconciling a local guess against that sync is more machinery than one round trip is
-      // worth. Disabling the bar meanwhile is what stops it reading as broken.
+      // The chip flips locally at once; the bar stays disabled until the server answers, so a
+      // second tap cannot race the first over the one slot.
       busy = true
 
       try {
-        await toggleReaction({ ...target(), emoji })
+        await toggleReaction({ ...target(), emoji, userId: global.user?.id })
       } catch {
         // See above: the bar is unchanged, so there is nothing to tell the reader about.
       } finally {

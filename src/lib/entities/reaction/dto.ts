@@ -1,3 +1,6 @@
+import { formError } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
+
 /**
  * One emoji chip on an event: the emoji, how many people sent it, and whether you are one of them.
  *
@@ -96,3 +99,29 @@ export function isEmoji(value: string): boolean {
 export function normalizeEmoji(value: string): string {
   return value.replaceAll(/(\p{Emoji_Presentation})\uFE0F/gu, '$1')
 }
+
+export const toggleReactionSchema = z.object({
+  /** A comment on that event, when the reaction is on what somebody SAID rather than on the card. */
+  commentId: z.optional(z.int().check(z.positive())),
+  // Normalised BEFORE validating, because most of the picker's emoji arrive carrying a variation
+  // selector the character does not need, which RGI does not match. See `normalizeEmoji`.
+  emoji: z.pipe(z.string(), z.transform(normalizeEmoji)).check(z.refine(isEmoji, 'not a single emoji')),
+  eventId: z.int().check(z.positive()),
+  /** The reactor, for the optimistic row only: the server reads its own caller. */
+  userId: z.optional(z.int()),
+})
+
+export const postCommentSchema = z.object({
+  body: z
+    .string({ error: formError('form_required') })
+    .check(
+      z.trim(),
+      z.minLength(1, { error: formError('form_required') }),
+      z.maxLength(COMMENT_MAX_LENGTH, { error: formError('form_charsMax', { count: COMMENT_MAX_LENGTH }) }),
+    ),
+  eventId: z.int().check(z.positive()),
+  /** The comment being answered. Absent for a new top-level comment. */
+  parentId: z.optional(z.int().check(z.positive())),
+})
+
+export const commentIdSchema = z.object({ commentId: z.int().check(z.positive()) })
