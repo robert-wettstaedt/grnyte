@@ -1,4 +1,5 @@
 import type * as z from '$lib/forms/zod'
+import { whileDeleting } from '$lib/zero/deleting.svelte'
 import { mutators } from '$lib/zero/mutators'
 import { write } from '$lib/zero/write'
 import { entityHref } from '../href'
@@ -23,9 +24,11 @@ export const reorderBlocks = (areaId: number, orderedIds: number[]) =>
 
 /** Leaves for the block's area. */
 export const deleteBlock = (block: { areaFk: number; id: number }) =>
-  write<DeleteBlockSnapshot>(mutators.blocks.delete({ id: block.id }), {
-    redirectTo: entityHref('areas', block.areaFk),
-  })
+  whileDeleting('blocks', block.id, () =>
+    write<DeleteBlockSnapshot>(mutators.blocks.delete({ id: block.id }), {
+      redirectTo: entityHref('areas', block.areaFk),
+    }),
+  )
 
 export const restoreBlock = (snapshot: z.input<typeof restoreBlockSchema>) =>
   write<{ blockId: number }>(mutators.blocks.restore(snapshot), {

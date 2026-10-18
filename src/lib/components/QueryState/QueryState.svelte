@@ -1,9 +1,11 @@
 <script lang="ts" generics="TOut">
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { motion } from '$lib/state/motion.svelte'
+  import type { HeldResource } from '$lib/zero/deleting.svelte'
   import type { QueryPhase, QueryResource } from '$lib/zero/resource.svelte'
   import type { Snippet } from 'svelte'
   import { fade } from 'svelte/transition'
@@ -83,6 +85,15 @@
   {:else}
     <SkeletonRows class="py-2" />
   {/if}
+{:else if (resource as Partial<HeldResource<TOut>>).deleting}
+  <p
+    class="text-surface-600-400 flex items-center justify-center gap-2 py-8"
+    role="status"
+    in:fade={{ duration: motion(150) }}
+  >
+    <LoadingIndicator />
+    {m.common_deleting()}
+  </p>
 {:else}
   <!-- `in` only: an out transition would keep the leaving skeleton in flow. Arriving rows show here
        too; the app's one pill says more are expected. -->

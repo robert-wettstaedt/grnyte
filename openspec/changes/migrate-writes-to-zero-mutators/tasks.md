@@ -49,6 +49,8 @@ the test failed, and the edit was reverted.
 - [x] 7.2 Move `deleteBlock`, `restoreBlock` to `block/lifecycle.server.ts` and `reorderBlocks` to `block/order.server.ts`, and add their mutators; cover them in the same test, seen red
 - [x] 7.3 Switch `BlockForm` (inside its `FormGate`), the location picker and the reorder and delete callers; drive create, edit with a pin, reorder, delete and undo at both widths
 
+- [x] 7.4 Pending deletes: `writes.ts` marks an entity while its delete runs; route, block, area and parking detail resources keep their last content under their own pending delete and show a generic "Deleting…" (`common_deleting`, en + de) after the skeleton delay; unit-test the resource (vanish under a pending delete holds, another vanish does not, first-load absence does not), seen red, and drive a delete with the frame recorder showing no "not found" frame
+
 ## 8. Ascents
 
 - [ ] 8.1 Move `createAscent` (returns `{ id }` for upload finalize), `updateAscent` and `deleteAscent` (its after-commit `notify` and storage teardown moved into `afterCommit`) and add their mutators; add harness tests for each, since the module has none, each seen red

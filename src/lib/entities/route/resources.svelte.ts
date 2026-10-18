@@ -1,3 +1,4 @@
+import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
 import { queries } from '$lib/zero/queries'
 import { createResource, waitForRow } from '$lib/zero/resource.svelte'
 import { toRouteDetail, toRouteListItem } from './mapper'
@@ -28,11 +29,12 @@ export interface RouteListFilter {
 }
 
 export function routeDetail(id: () => number, opts?: { enabled?: () => boolean }) {
-  return createResource(
+  const route = createResource(
     () => queries.listRoutes({ routeId: id() }),
     (rows) => (rows[0] == null ? undefined : toRouteDetail(rows[0])),
     opts,
   )
+  return holdWhileDeleting(route, 'routes', id)
 }
 
 export function routeList(filter: () => RouteListFilter = () => ({}), opts?: { enabled?: () => boolean }) {

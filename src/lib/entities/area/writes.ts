@@ -1,5 +1,6 @@
 import { resolve } from '$app/paths'
 import type * as z from '$lib/forms/zod'
+import { whileDeleting } from '$lib/zero/deleting.svelte'
 import { mutators } from '$lib/zero/mutators'
 import { write } from '$lib/zero/write'
 import { entityHref } from '../href'
@@ -19,9 +20,11 @@ export const updateArea = (values: AreaFormInput) =>
 
 /** Leaves for the parent, or the map for a top-level area. */
 export const deleteArea = (area: { id: number; parentFk: null | number | undefined }) =>
-  write<DeleteAreaSnapshot>(mutators.areas.delete({ id: area.id }), {
-    redirectTo: area.parentFk == null ? resolve('/explore') : entityHref('areas', area.parentFk),
-  })
+  whileDeleting('areas', area.id, () =>
+    write<DeleteAreaSnapshot>(mutators.areas.delete({ id: area.id }), {
+      redirectTo: area.parentFk == null ? resolve('/explore') : entityHref('areas', area.parentFk),
+    }),
+  )
 
 export const restoreArea = (snapshot: z.input<typeof restoreAreaSchema>) =>
   write<{ areaId: number }>(mutators.areas.restore(snapshot), {
@@ -32,9 +35,11 @@ export const addParking = (values: z.input<typeof addParkingSchema>) =>
   write(mutators.areas.addParking(values), { redirectTo: entityHref('areas', Number(values.areaId)) })
 
 export const deleteParking = (parking: { areaFk: number | undefined; id: number }) =>
-  write<z.output<typeof restoreParkingSchema>>(mutators.areas.deleteParking({ id: parking.id }), {
-    redirectTo: parking.areaFk == null ? undefined : entityHref('areas', parking.areaFk),
-  })
+  whileDeleting('parking', parking.id, () =>
+    write<z.output<typeof restoreParkingSchema>>(mutators.areas.deleteParking({ id: parking.id }), {
+      redirectTo: parking.areaFk == null ? undefined : entityHref('areas', parking.areaFk),
+    }),
+  )
 
 export const restoreParking = (snapshot: z.input<typeof restoreParkingSchema>) =>
   write(mutators.areas.restoreParking(snapshot))
