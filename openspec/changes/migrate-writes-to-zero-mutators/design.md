@@ -103,16 +103,23 @@ and Zero's text is never shown; `type: 'app'` carries our message.
 Creates return `{ id }`, deletes return their undo snapshot, through Zero 1.11 return values. A
 server mutator never returns `redirectTo`: the client knows the destination (`entityHref`) and
 navigates after `.server` resolves, through the same `exit` / `waitFor*` helpers as now.
-`withUndo` (`src/lib/state/toast.ts`) takes a mutation instead of a remote call: every caller
-migrates in this branch, so there is no second path to keep. `runCommand`
-(`src/lib/remote/mutation.ts`) exists to apply a server-side `redirectTo`, which mutators never
-return, so it is deleted once its last caller moves, and the client `MutationResult` import goes
-with it. During the branch, an entity's commit switches its own callers.
+One helper, `write(mutation, { redirectTo? })` in `src/lib/zero/write.ts`, runs a mutation and answers
+in the envelope remote commands used: `{ data, redirectTo }` on success, a Kit-shaped rejection
+(`body.message`, plus `body.field`) on a refusal, the offline message for a `zero` error or while
+offline. `runCommand` and `withUndo` therefore stay as they are: `runCommand` still navigates and
+waits for the row to sync, now to a destination the client names. Callers swap `deleteRoute(x)` for
+`write(mutators.routes.delete(x), { redirectTo })`.
 
-Not yet proven: where 1.11 stores a return value and whether the `app_writer` role may write it
-after `applyRls`. The first returning mutator (task 2.1) proves it in the test harness; if the write
-is refused, the fix is a grant on Zero's shard table in `setup-table-permissions.ts`, not a
-different design.
+Proven in the harness: 1.11 writes a return value into Zero's shard table (`<app>_0.mutations`)
+inside the same transaction, after the mutator returns. `app_writer` may not write it, so the
+wrappers switch the role back (`set_config('role', 'none', true)`) once the body succeeds, which
+leaves Zero's bookkeeping on the login role it already uses before the mutator. No grant, and
+nothing tied to the shard schema's name, which differs per app id.
+
+The same run showed Zero reporting a failure of its own query as the mutation's message, SQL and
+parameters included, outside the wrappers' error mapping. `handleMutate` therefore replaces every
+error message that is not an authored `formError` with the generic one before answering, and logs
+the original. That covers the native client too.
 
 ### 6. Side effects run after commit, once per mutation
 
@@ -172,8 +179,9 @@ and the `details.field` refusal shape are what the native app shares, not the fo
 ### 8. The permission ratchet covers mutators
 
 `src/lib/remote/gates.test.ts` scans `*.remote.ts` exports today. It also scans every server
-mutator def, with the same `GATES` set and a written reason for each exemption, and requires every
-`asPrivileged` mutator to name a gate.
+mutator def (`mutators.server.ts`), with the same `GATES` set and a written reason for each
+exemption. Privileged mutators get no stricter rule: `createRegion` and `subscribeToPush` are
+privileged and already carry a reasoned exemption.
 
 ### 9. Tests run through the mutate endpoint
 
@@ -181,6 +189,19 @@ mutator def, with the same `GATES` set and a written reason for each exemption, 
 `handleMutate`. Each entity's `*.remote.test.ts` is ported to that harness in the entity's own
 commit, and its guards are seen red. The remote function tests go with the remote functions in the
 later release.
+
+### 10. Callers write through the entity's `writes.ts`, as they read through its resources
+
+Each entity gets `writes.ts` with one plain function per write, named like the remote function it
+replaces (`updateRoute(values)`), returning the `write()` envelope. Components import those and
+never `mutators` or `write`, the way nothing outside entity modules imports `$lib/zero/queries`.
+The function also owns the destination (`entityHref`), so a call site never builds one. Writes that
+stay endpoints get the same kind of function, so a caller cannot tell a mutator from a remote
+call, and moving one write to another transport is a one-line change in its entity module. Timing is
+the part no signature hides: a toggle is instant because its mutator writes locally first.
+
+Alternative: callers name the mutator, as the pilot first did. That leaks the transport into every
+component, the thing the read side was built to avoid.
 
 ## Risks / Trade-offs
 

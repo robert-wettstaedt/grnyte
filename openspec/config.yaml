@@ -17,8 +17,8 @@ context: |
   - Hierarchy: region > area (nests via parentFk) > block > route > ascent. Every level
     also carries regionFk directly, for RLS.
   - Reads are Zero queries from entity modules in src/lib/entities/<name>/.
-  - Writes are SvelteKit remote functions (command / authedCommand), RLS-gated.
-    Never Zero mutators. A write against an existing row gates through
+  - Writes are Zero custom mutators (entity mutators.ts / mutators.server.ts), RLS-gated
+    through asCaller. A write against an existing row gates through
     requireRow / requireRowForm, so the permission check reads stored data.
   - Schema changes run the pipeline: edit schema.ts, generate:drizzle, append backfill
     SQL, generate:zero, migrate. A column is never added in isolation.
@@ -40,7 +40,7 @@ rules:
   design:
     - Name the existing component, entity module or helper each piece extends before
       proposing a new one. Reuse and refactor beats a parallel copy.
-    - State which reads are Zero queries and which writes are remote functions.
+    - State which reads are Zero queries, which writes are mutators, and which stay remote functions.
     - Call out every schema change and the backfill it needs.
   tasks:
     - Keep each task to one reviewable edit.

@@ -7,6 +7,7 @@ import { forgetSynced, markStoreLoaded, markSynced, trackSyncFor } from '$lib/st
 import type { Session } from '@supabase/supabase-js'
 import { Z } from 'zero-svelte'
 import type { ConnectionName } from './connection'
+import { mutators } from './mutators'
 import { FIELD_STAGES, KEPT, type KeepContext, type KeepStage } from './offline'
 import { queries } from './queries'
 import { schema, type Schema } from './zero-schema'
@@ -446,6 +447,7 @@ function zeroOptions(session: null | Session | undefined, storageKey?: string) {
   return {
     auth: session?.access_token,
     context: session == null ? undefined : { authUserId: session.user.id },
+    mutators,
     // Zero's own signal that the local sync state is gone: garbage collected after a long absence,
     // or rejected by zero-cache. Dropping the stamp is what lets the layout tell a wiped store from
     // a first visit.

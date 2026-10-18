@@ -119,6 +119,22 @@ export async function redirectOf(run: () => Promise<unknown>): Promise<string | 
 }
 
 /**
+ * A genuinely signed access token for `authUserId`, shaped like the one GoTrue issues.
+ *
+ * No `iss`: this stack's GoTrue sets no `GOTRUE_JWT_ISSUER`, so real local tokens carry none and a
+ * fabricated one would diverge from production the moment `SUPABASE_JWT_ISSUER` is set anywhere.
+ */
+export function signAccessToken(authUserId: string, email: string | undefined): Promise<string> {
+  return new SignJWT({ email, role: 'authenticated' })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setAudience('authenticated')
+    .setSubject(authUserId)
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(new TextEncoder().encode(SUPABASE_JWT_SECRET))
+}
+
+/**
  * The status `run` rejected with, or `undefined` when it resolved. Kit throws a plain `HttpError`,
  * not an `Error`, so `rejects.toThrow()` cannot read it, and the status is the real assertion.
  */
@@ -163,20 +179,4 @@ function inRequestStore<T>(locals: object, fn: () => Promise<T> | T): Promise<T>
   const url = new URL('http://localhost/')
 
   return with_request_store({ event: { locals, request, url }, state } as never, fn) as Promise<T>
-}
-
-/**
- * A genuinely signed access token for `authUserId`, shaped like the one GoTrue issues.
- *
- * No `iss`: this stack's GoTrue sets no `GOTRUE_JWT_ISSUER`, so real local tokens carry none and a
- * fabricated one would diverge from production the moment `SUPABASE_JWT_ISSUER` is set anywhere.
- */
-function signAccessToken(authUserId: string, email: string | undefined): Promise<string> {
-  return new SignJWT({ email, role: 'authenticated' })
-    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
-    .setAudience('authenticated')
-    .setSubject(authUserId)
-    .setIssuedAt()
-    .setExpirationTime('1h')
-    .sign(new TextEncoder().encode(SUPABASE_JWT_SECRET))
 }

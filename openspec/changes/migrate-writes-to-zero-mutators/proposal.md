@@ -27,7 +27,7 @@ hold our fields or show a mutator's field errors, so the form layer has to move 
   the post-invite toast choosing between sent and not sent.
 - A store-backed form layer replaces Kit remote forms on every migrated form: values in component
   state, validation from the entity's zod schema, field issues set from the server's refusal.
-- Removed once the last caller moves: `runCommand`, `Form.svelte`'s remote-form path,
+- Removed once the last caller moves: `Form.svelte`'s remote-form path,
   `seedForm` / `seedOnKeyChange`, `submitForm`, `isOfflineFailure`, the entity forms' use of
   `RemoteFormInputWrapper`, and the remote-form conventions in AGENTS.md. Kit remote forms remain
   only on the auth pages.

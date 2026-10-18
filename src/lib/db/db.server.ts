@@ -26,6 +26,39 @@ export const db = drizzle(postgres, { schema })
  *  role. Bare `public` would drop the `extensions` schema the default path reaches. */
 export const PINNED_SEARCH_PATH = 'public, extensions'
 
+/** Switches an open transaction to the request's role and claims, for a transaction someone else
+ *  opened (Zero's mutate endpoint). */
+export async function applyRls(tx: Pick<PostgresJsDatabase<typeof schema>, 'execute'>, token: VerifiedClaims) {
+  // Supabase exposes auth.uid() and auth.jwt()
+  // https://supabase.com/docs/guides/database/postgres/row-level-security#helper-functions
+  //
+  // Bound parameters, not interpolation. The token is signed, but its contents are not
+  // trustworthy: `user_metadata` is part of the access token and any account can put what it
+  // likes in there (`PUT /auth/v1/user`). `JSON.stringify` escapes double quotes and not
+  // single ones, so a claim carrying an apostrophe used to close the SQL literal it was
+  // pasted into, on the connection that holds every write privilege in the schema.
+  //
+  // One statement, three settings: parameters travel on the extended protocol, which refuses
+  // multi-statement strings, and `set_config('role', ..., true)` is what `SET LOCAL ROLE` is
+  // underneath, so the role travels as a parameter too rather than as interpolated text.
+  //
+  // Nothing resets them afterwards. `true` is the is_local flag, so all three end with the
+  // transaction whichever way it ends, and there is no path out of here that is neither a
+  // COMMIT nor a ROLLBACK. The reset that used to sit in a `finally` cost a round-trip on
+  // every remote call to undo what the next statement undoes for free, and had to swallow its
+  // own errors: on an aborted transaction it failed with 25P02 and hid the 42501 the caller
+  // needed to see.
+  //
+  // `search_path` rides along free as a fourth setting. The transaction pooler runs no reset
+  // query, so a value left by another client is inherited and every unqualified name 42P01s.
+  await tx.execute(
+    sql`select set_config('request.jwt.claims', ${JSON.stringify(token)}, true),
+               set_config('request.jwt.claim.sub', ${token.sub}, true),
+               set_config('role', ${roleFor(token)}, true),
+               set_config('search_path', ${PINNED_SEARCH_PATH}, true)`,
+  )
+}
+
 export function createDrizzle<
   Database extends PostgresJsDatabase<typeof schema>,
   Token extends VerifiedClaims = VerifiedClaims,
@@ -33,34 +66,7 @@ export function createDrizzle<
   return (async (transaction, ...rest) => {
     return await db.transaction(
       async (tx) => {
-        // Supabase exposes auth.uid() and auth.jwt()
-        // https://supabase.com/docs/guides/database/postgres/row-level-security#helper-functions
-        //
-        // Bound parameters, not interpolation. The token is signed, but its contents are not
-        // trustworthy: `user_metadata` is part of the access token and any account can put what it
-        // likes in there (`PUT /auth/v1/user`). `JSON.stringify` escapes double quotes and not
-        // single ones, so a claim carrying an apostrophe used to close the SQL literal it was
-        // pasted into, on the connection that holds every write privilege in the schema.
-        //
-        // One statement, three settings: parameters travel on the extended protocol, which refuses
-        // multi-statement strings, and `set_config('role', ..., true)` is what `SET LOCAL ROLE` is
-        // underneath, so the role travels as a parameter too rather than as interpolated text.
-        //
-        // Nothing resets them afterwards. `true` is the is_local flag, so all three end with the
-        // transaction whichever way it ends, and there is no path out of here that is neither a
-        // COMMIT nor a ROLLBACK. The reset that used to sit in a `finally` cost a round-trip on
-        // every remote call to undo what the next statement undoes for free, and had to swallow its
-        // own errors: on an aborted transaction it failed with 25P02 and hid the 42501 the caller
-        // needed to see.
-        //
-        // `search_path` rides along free as a fourth setting. The transaction pooler runs no reset
-        // query, so a value left by another client is inherited and every unqualified name 42P01s.
-        await tx.execute(
-          sql`select set_config('request.jwt.claims', ${JSON.stringify(token)}, true),
-                     set_config('request.jwt.claim.sub', ${token.sub}, true),
-                     set_config('role', ${roleFor(token)}, true),
-                     set_config('search_path', ${PINNED_SEARCH_PATH}, true)`,
-        )
+        await applyRls(tx, token)
         return await transaction(tx)
       },
       ...rest,

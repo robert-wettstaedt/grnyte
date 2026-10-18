@@ -35,6 +35,8 @@ import { describe, expect, it } from 'vitest'
  * - `resendInvitation`, `restoreInvitation` and `revokeInvitation` all reach `canEditRegion` through
  *   `loadEditable` in invite.server.ts, which loads the row and checks the STORED `regionFk`
  * - `resolveAttachRegion` returns the region a file may attach to, or refuses
+ * - `setFavorite` 404s unless the stored entity is in a region the caller may read (`checkRegionPermission`)
+ * - `updateRouteRow` loads the route through `requireRowForm` with `canEditRoute`
  * - `verifyUpload` proves ownership of the host-side video object
  *
  * Adding a name here that does NOT gate would quietly defeat the whole check, which is why the list
@@ -75,11 +77,14 @@ const GATES = new Set([
   'resolveAttachRegion',
   'restoreInvitation',
   'revokeInvitation',
+  'setFavorite',
+  'updateRouteRow',
   'verifyUpload',
 ])
 
-/** The wrappers that make an export a remote function. */
+/** The wrappers that make an export a remote function, or a nested property a server mutator. */
 const WRAPPERS = new Set(['authedCommand', 'authedForm', 'authedQuery', 'command', 'form', 'query'])
+const MUTATOR_WRAPPERS = new Set(['defineServerMutator'])
 
 /**
  * Handlers that legitimately name no gate, each with the reason.
@@ -178,6 +183,34 @@ function parseHandlers(file: string): Handler[] {
   })
 
   const handlers: Handler[] = []
+  const add = (name: string, init: ts.Node) => {
+    const direct = callees(init, new Set<string>())
+    // One hop: pull in what each same-file helper this handler calls itself calls.
+    for (const called of [...direct]) {
+      const helper = helpers.get(called)
+      if (helper != null) callees(helper, direct)
+    }
+    handlers.push({
+      calls: direct,
+      file: file.replace(/^src\//, ''),
+      key: `${file.replace(/^src\//, '')}#${name}`,
+      name,
+    })
+  }
+  // Server mutators sit in nested object literals: `{ routes: { update: defineServerMutator(...) } }`.
+  const mutatorsIn = (node: ts.Node, path: string[]) => {
+    if (!ts.isObjectLiteralExpression(node)) return
+    for (const property of node.properties) {
+      if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) continue
+      const init = property.initializer
+      const at = [...path, property.name.text]
+      if (ts.isCallExpression(init) && ts.isIdentifier(init.expression) && MUTATOR_WRAPPERS.has(init.expression.text)) {
+        add(at.join('.'), init)
+      } else {
+        mutatorsIn(init, at)
+      }
+    }
+  }
 
   ts.forEachChild(source, (node) => {
     if (!ts.isVariableStatement(node)) return
@@ -186,23 +219,12 @@ function parseHandlers(file: string): Handler[] {
 
     for (const decl of node.declarationList.declarations) {
       const init = decl.initializer
-      if (init == null || !ts.isCallExpression(init) || !ts.isIdentifier(init.expression)) continue
-      if (!WRAPPERS.has(init.expression.text)) continue
-      if (!ts.isIdentifier(decl.name)) continue
-
-      const direct = callees(init, new Set<string>())
-      // One hop: pull in what each same-file helper this handler calls itself calls.
-      for (const called of [...direct]) {
-        const helper = helpers.get(called)
-        if (helper != null) callees(helper, direct)
+      if (init == null || !ts.isIdentifier(decl.name)) continue
+      if (ts.isCallExpression(init) && ts.isIdentifier(init.expression) && WRAPPERS.has(init.expression.text)) {
+        add(decl.name.text, init)
+      } else {
+        mutatorsIn(init, [])
       }
-
-      handlers.push({
-        calls: direct,
-        file: file.replace(/^src\//, ''),
-        key: `${file.replace(/^src\//, '')}#${decl.name.text}`,
-        name: decl.name.text,
-      })
     }
   })
 
@@ -213,7 +235,7 @@ function remoteFiles(dir: string, found: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name)
     if (entry.isDirectory()) remoteFiles(path, found)
-    else if (entry.name.endsWith('.remote.ts')) found.push(path)
+    else if (entry.name.endsWith('.remote.ts') || entry.name === 'mutators.server.ts') found.push(path)
   }
   return found
 }
@@ -221,7 +243,12 @@ function remoteFiles(dir: string, found: string[] = []): string[] {
 const handlers = remoteFiles('src').flatMap(parseHandlers)
 const ungated = handlers.filter((handler) => ![...handler.calls].some((call) => GATES.has(call)))
 
-describe('remote handlers', () => {
+describe('remote handlers and server mutators', () => {
+  it('parses server mutators too', () => {
+    // The same vacuity guard for the nested shape: a walk that misses it would pass every mutator.
+    expect(handlers.some((handler) => handler.key === 'lib/entities/route/mutators.server.ts#routes.update')).toBe(true)
+  })
+
   it('parses a plausible number of them', () => {
     // A guard on the parser itself. If a Kit change or a refactor moves how these are declared, the
     // walk finds nothing and every assertion below passes vacuously.
