@@ -1,3 +1,4 @@
+import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
 import { guidebookReadRegistrations, guidebookReads } from '$lib/zero/guidebook'
 import { queries } from '$lib/zero/queries'
 import { createResource, waitForRow } from '$lib/zero/resource.svelte'
@@ -16,10 +17,11 @@ export interface AreaListFilter {
 }
 
 export function areaDetail(id: () => number) {
-  return createResource(
+  const area = createResource(
     () => queries.area({ id: id() }),
     (row) => (row == null ? undefined : toAreaDetail(row)),
   )
+  return holdWhileDeleting(area, 'areas', id)
 }
 
 export function areaList(filter: () => AreaListFilter = () => ({}), opts?: { enabled?: () => boolean }) {

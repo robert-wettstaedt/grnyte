@@ -1,4 +1,5 @@
 import { toDisplayName } from '$lib/entities/displayName'
+import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
 import { guidebookReadRegistrations, guidebookReads } from '$lib/zero/guidebook'
 import { queries } from '$lib/zero/queries'
 import { createResource, waitForRow } from '$lib/zero/resource.svelte'
@@ -16,10 +17,11 @@ export interface BlockListFilter {
 }
 
 export function blockDetail(id: () => number) {
-  return createResource(
+  const block = createResource(
     () => queries.block({ blockId: id() }),
     (row) => (row == null ? undefined : toBlockDetail(row)),
   )
+  return holdWhileDeleting(block, 'blocks', id)
 }
 
 export function blockList(filter: () => BlockListFilter = () => ({}), opts?: { enabled?: () => boolean }) {

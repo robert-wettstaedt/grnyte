@@ -205,10 +205,12 @@ component, the thing the read side was built to avoid.
 
 ## Risks / Trade-offs
 
-- [A delete's sync removes the row before `.server` resolves, so a detail screen shows "not found"
-  for about 65 ms before it leaves] → open: either leave before the server answers, or give a
-  vanished row a short grace before the not-found state; decided at the batch review.
-
+- [A delete's sync removes the row before `.server` resolves, so a detail screen showed "not found"
+  for about 65 ms before it left] → decided: `writes.ts` marks the entity as being deleted for the
+  length of the write; a detail resource whose row vanishes under its own pending delete keeps its
+  last content, and after the skeleton delay (~250 ms) the screen shows a generic "Deleting…"
+  (`common_deleting`). A refusal clears the mark and leaves the content; another client's delete
+  still shows "not found" at once.
 - [After-commit work runs before the answer, so slow storage teardown delays the next write in the
   same client group] → teardown already ran before the response under remote functions; measure
   the delete path in task 9.4 and move teardown to a background task only if it is measurably slow.
