@@ -10,7 +10,7 @@ const CURRENT_KEY = 'Y3VycmVudC12YXBpZC1rZXk'
 
 const subscribeToPush = vi.fn()
 const unsubscribeFromPush = vi.fn()
-vi.mock('$lib/entities/notification/notifications.remote', () => ({ subscribeToPush, unsubscribeFromPush }))
+vi.mock('$lib/entities/notification/writes', () => ({ subscribeToPush, unsubscribeFromPush }))
 vi.mock('$env/dynamic/public', () => ({ env: { PUBLIC_VAPID_KEY: CURRENT_KEY } }))
 // The remembered-endpoint key is built from this, so the test owns it rather than guessing it.
 vi.mock('$env/static/public', () => ({ PUBLIC_APPLICATION_NAME: 'grnyte' }))
@@ -61,7 +61,7 @@ describe('syncPushSubscription', () => {
     expect(subscribe).toHaveBeenCalled()
     expect(subscribeToPush).toHaveBeenCalledWith(expect.objectContaining({ endpoint: 'https://push.example/new' }))
     // The row under the retired endpoint is a corpse once the new one is registered.
-    expect(unsubscribeFromPush).toHaveBeenCalledWith({ endpoint: 'https://push.example/old' })
+    expect(unsubscribeFromPush).toHaveBeenCalledWith('https://push.example/old')
     expect(pushEndpoint()).toBe('https://push.example/new')
   })
 

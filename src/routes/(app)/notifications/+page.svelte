@@ -14,8 +14,8 @@
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import NotificationRow from '$lib/entities/notification/NotificationRow.svelte'
-  import { markNotificationsRead } from '$lib/entities/notification/notifications.remote'
   import { notificationList } from '$lib/entities/notification/resources.svelte'
+  import { markNotificationsRead } from '$lib/entities/notification/writes'
   import { calendarDay, formatDay } from '$lib/i18n/relativeTime'
   import { reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages'
@@ -68,7 +68,7 @@
   // Not shown to the reader, who has nothing to do about it, but recorded: a badge that will not
   // clear is otherwise a report with nothing behind it.
   onMount(() => {
-    void markNotificationsRead().catch(reportIfOnline)
+    void markNotificationsRead(global.user?.id).catch(reportIfOnline)
   })
 </script>
 
