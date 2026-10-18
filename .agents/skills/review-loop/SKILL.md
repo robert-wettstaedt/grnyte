@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: Run the review loop on a finished implementation from the implementing session. Background reviewer subagents (code, app driving plus design, security on demand, thermo-nuclear on request) review a pinned snapshot; the implementer waits for all of them, rules on each finding, fixes, and re-requests until clean. Use when the user says "/review-loop", "start the review loop", "get this reviewed", or "review and fix until clean". Args: [base] [+security] [-drive] [+thermo].
+description: Run the review loop on a finished implementation from the implementing session. Background reviewer subagents (code, app driving plus design, security on demand, thermo-nuclear on request) review a pinned snapshot; the implementer waits for all of them, rules on each finding, fixes, and re-requests until clean. Use when the user says "/review-loop", "start the review loop", "get this reviewed", or "review and fix until clean". Args: [base] [+security] [-drive] [-simplify] [+thermo].
 ---
 
 # Review loop
@@ -21,11 +21,14 @@ drives the live dev server, which serves the working tree, so an early edit chan
   `src/hooks*`, `src/lib/auth/`, `src/lib/hooks/`, `*.remote.ts`, `*.server.ts`, `+server.ts`,
   `src/lib/db/schema.ts` or `drizzle/`.
 - `-drive`: skip the driving reviewer (docs, tests or server-only change with no screen).
+- `-simplify`: skip the `/ce-simplify-code` pre-pass in Setup (a tiny or prose-only change).
 - `+thermo`: run round 0 (below). Off by default.
 
 ## Setup
 
 1. List the paths YOU changed for this task (never `git add -A` scope: other agents share the checkout).
+   Unless `-simplify`, run `/ce-simplify-code mode:pipeline <your paths> proof-test:<each test proving
+   the change>` once; it edits, so it never runs again in later rounds.
    Run the AGENTS.md hand-back checks over them first; reviewers should not find what prettier, eslint,
    vitest or svelte-check would.
 2. Create the findings file `<scratchpad>/review-loop/findings.md`: one row per finding, numbered across
