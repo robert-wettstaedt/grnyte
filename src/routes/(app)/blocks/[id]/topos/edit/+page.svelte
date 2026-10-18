@@ -13,9 +13,9 @@
   import Topo from '$lib/components/Topo/Topo.svelte'
   import TopoEditorStage from '$lib/components/Topo/TopoEditorStage.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
-  import { estimateBlockLocationFromPhoto } from '$lib/entities/block/blocks.remote'
   import { locateFromPhotos } from '$lib/entities/block/pin'
   import { blockDetail, blockRouteList } from '$lib/entities/block/resources.svelte'
+  import { estimateBlockLocation } from '$lib/entities/block/writes'
   import { imageRejectionMessage } from '$lib/entities/file/rejection'
   import { imageRejection } from '$lib/entities/file/upload'
   import { ImageUpload } from '$lib/entities/file/upload-manager.svelte'
@@ -345,7 +345,7 @@
       // ifd0 rides along because exifr's types do not let it be disabled; only `gps` is read.
       read: (file) => exifr.parse(file, { exif: false, gps: { pick: [1, 2, 3, 4] }, mergeOutput: false }),
       report: reportIfOnline,
-      save: ({ lat, long }) => estimateBlockLocationFromPhoto({ id: blockId, lat, long }),
+      save: ({ lat, long }) => estimateBlockLocation({ id: blockId, lat, long }),
     })
 
     if (outcome === 'none') {

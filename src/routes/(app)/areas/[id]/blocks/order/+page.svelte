@@ -5,11 +5,11 @@
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
-  import { reorderBlocks } from '$lib/entities/block/blocks.remote'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { blockName } from '$lib/entities/block/mapper'
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockList } from '$lib/entities/block/resources.svelte'
+  import { reorderBlocks } from '$lib/entities/block/writes'
   import { entityHref } from '$lib/entities/href'
   import FormGate from '$lib/forms/FormGate.svelte'
   import { noEditPermission } from '$lib/forms/gate'
@@ -180,7 +180,12 @@
   const save = async () => {
     saving = true
     try {
-      await runCommand(reorderBlocks({ areaId, orderedIds: ordered.map((block) => block.id) }))
+      await runCommand(
+        reorderBlocks(
+          areaId,
+          ordered.map((block) => block.id),
+        ),
+      )
     } finally {
       saving = false
     }

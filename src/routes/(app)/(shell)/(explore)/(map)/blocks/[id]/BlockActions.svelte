@@ -4,11 +4,11 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
-  import { deleteBlock, restoreBlock } from '$lib/entities/block/blocks.remote'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { canDeleteBlock, canEditBlock } from '$lib/entities/block/permissions'
   import { blockPin, blockRepairHref } from '$lib/entities/block/pin'
   import { waitForBlock } from '$lib/entities/block/resources.svelte'
+  import { deleteBlock, restoreBlock } from '$lib/entities/block/writes'
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
@@ -47,7 +47,7 @@
   const repairHref = $derived(blockRepairHref(block, canEdit))
 
   const onDelete = () =>
-    withUndo(deleteBlock({ id: block.id }), {
+    withUndo(deleteBlock(block), {
       message: m.blocks_deleted(),
       onUndo: restoreBlock,
       waitFor: (data) => waitForBlock(data.blockId),

@@ -11,6 +11,7 @@
   // so nothing here needs Zero. A sector's worth of geolocated blocks plus a parking spot is enough
   // for the map to draw markers underneath the pin.
   const block = (id: number, name: string, lat: number, long: number): BlockDetail => ({
+    areaFk: 1,
     areas: [
       { areas: [], id: 1, name: toDisplayName('Trois Pignons'), type: 'area' },
       { areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'sector' },

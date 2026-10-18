@@ -17,6 +17,7 @@
   const topo = { height: 1000, id: 1, path: 'topo-sample.svg', width: 800 }
 
   const block = (id: number, name: string, overrides: Partial<BlockDetail> = {}): BlockDetail => ({
+    areaFk: 1,
     areas: [{ areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'sector' }],
     createdAt: undefined,
     createdBy: 1,
