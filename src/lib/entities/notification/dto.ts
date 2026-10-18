@@ -1,5 +1,6 @@
 import type { EventObjectType } from '$lib/entities/event/dto'
 import type { EventEntity } from '$lib/entities/event/entity'
+import * as z from '$lib/forms/zod'
 import type { Notification } from '$lib/zero/zero-schema.gen'
 
 /**
@@ -46,3 +47,18 @@ export interface NotificationListItem {
 
 /** What a notification is about. Derived from `notifications.source_type`. */
 export type NotificationSourceType = Notification['sourceType']
+
+/** What `PushManager.subscribe` hands back, narrowed to what a send needs. */
+export const subscriptionSchema = z.object({
+  auth: z.string().check(z.minLength(1)),
+  endpoint: z.string().check(z.minLength(1)),
+  expirationTime: z.optional(z.nullable(z.number())),
+  p256dh: z.string().check(z.minLength(1)),
+})
+
+export const endpointSchema = z.object({ endpoint: z.string().check(z.minLength(1)) })
+
+/** `userId` is for the optimistic write only: the server marks its own caller's rows. */
+export const markReadSchema = z.object({ userId: z.optional(z.int()) })
+
+export const markFeedSeenSchema = z.object({ seenAt: z.int().check(z.positive()), userId: z.optional(z.int()) })
