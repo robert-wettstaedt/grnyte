@@ -11,6 +11,7 @@
 
   // A full page rather than a sheet, but the same 375px phone, so the row has the same budget.
   const block: BlockDetail = {
+    areaFk: 1,
     areas: [{ areas: [], id: 2, name: toDisplayName('Roche aux Sabots'), type: 'sector' }],
     createdAt: undefined,
     createdBy: 1,

@@ -45,9 +45,9 @@ the test failed, and the edit was reverted.
 
 ## 7. Blocks
 
-- [ ] 7.1 Move `createBlock`, `updateBlock` (with its `known` pin fingerprint and `lockLiveBlock`), `setBlockLocation`, `estimateBlockLocationFromPhoto` and add their mutators; port `blocks.remote.test.ts` and `pin.remote.test.ts`, each guard seen red, including the stale-pin refusal
-- [ ] 7.2 Move `deleteBlock`, `restoreBlock`, `reorderBlocks` and add their mutators; port `reorder.remote.test.ts` and the block restore cases, seen red
-- [ ] 7.3 Switch `BlockForm` (inside its `FormGate`), the location picker and the reorder and delete callers; drive create, edit with a pin, reorder, delete and undo at both widths
+- [x] 7.1 Move `createBlock`, `updateBlock` (with its `known` pin fingerprint and `lockLiveBlock`) to `block/save.server.ts` and `setBlockLocation`, `estimateBlockLocationFromPhoto` to `block/pin.server.ts`, and add their mutators; add `block/mutators.server.test.ts`, each guard seen red, including the stale-pin refusal
+- [x] 7.2 Move `deleteBlock`, `restoreBlock` to `block/lifecycle.server.ts` and `reorderBlocks` to `block/order.server.ts`, and add their mutators; cover them in the same test, seen red
+- [x] 7.3 Switch `BlockForm` (inside its `FormGate`), the location picker and the reorder and delete callers; drive create, edit with a pin, reorder, delete and undo at both widths
 
 ## 8. Ascents
 
