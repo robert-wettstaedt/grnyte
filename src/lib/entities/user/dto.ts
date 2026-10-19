@@ -1,3 +1,7 @@
+import { usernameSchema } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
+import { locales } from '$lib/paraglide/runtime'
+
 export type GradingScale = 'FB' | 'V'
 export type UnitSystem = 'imperial' | 'metric'
 
@@ -39,3 +43,23 @@ export interface UserSettings {
   /** Explicit metric/imperial override; null follows the runtime locale. */
   unitSystem: null | UnitSystem
 }
+
+export const updateUsernameSchema = z.object({ username: usernameSchema })
+
+export const userSettingsSchema = z.object({
+  // Written from EXPLICIT picks only (the settings language row), never from an auto-detected
+  // browser language: one visit on a colleague's German laptop must not silently switch which
+  // language we mail somebody in.
+  contactLocale: z.optional(z.enum(locales)),
+  gradingScale: z.optional(z.enum(['FB', 'V'])),
+  // The six push switches. They govern push and nothing else: what lands in the inbox and what
+  // lands in the feed is not affected by any of them.
+  notifyAscents: z.optional(z.boolean()),
+  notifyComments: z.optional(z.boolean()),
+  notifyCommunity: z.optional(z.boolean()),
+  notifyDirected: z.optional(z.boolean()),
+  notifyGuidebookEdits: z.optional(z.boolean()),
+  notifyReactions: z.optional(z.boolean()),
+  // null follows the locale.
+  unitSystem: z.optional(z.nullable(z.enum(['metric', 'imperial']))),
+})

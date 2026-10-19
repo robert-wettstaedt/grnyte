@@ -1,6 +1,7 @@
 <script lang="ts">
   import FormHint from '$lib/forms/FormHint.svelte'
   import { isSeeding } from '$lib/forms/seed.svelte'
+  import type { StoreField } from '$lib/forms/store.svelte'
   import type { RemoteFormField } from '@sveltejs/kit'
   import type { Snippet } from 'svelte'
   import type { HTMLInputAttributes } from 'svelte/elements'
@@ -16,7 +17,7 @@
     autofocus?: boolean
     /** Mobile keyboard's enter-key label: 'next' for non-final fields, 'go'/'done' for the last. */
     enterkeyhint?: HTMLInputAttributes['enterkeyhint']
-    field: RemoteFormField<string>
+    field: RemoteFormField<string> | StoreField<string>
     label: string
     /** Omit on pre-filled fields, where it only ever repeats the label. */
     placeholder?: string

@@ -21,7 +21,12 @@ export type FormStore<Input extends Values, Output = Input> = {
 }
 
 export interface StoreField<V> {
-  as(type: 'hidden' | 'select' | 'text'): { 'aria-invalid'?: 'true'; name: string; value: string }
+  as(type: 'email' | 'hidden' | 'password' | 'select' | 'text'): {
+    'aria-invalid'?: 'true'
+    name: string
+    type?: 'email' | 'hidden' | 'password' | 'text'
+    value: string
+  }
   issues(): RemoteFormIssue[] | undefined
   set(value: V): void
   value(): undefined | V
@@ -63,8 +68,9 @@ export function createFormStore<Input extends Values, Output = Input>(
   const field = (key: string): StoreField<unknown> => {
     rendered.add(key)
     return {
-      as: () => ({
+      as: (type) => ({
         ...(issues[key] == null ? {} : { 'aria-invalid': 'true' as const }),
+        ...(type === 'select' ? {} : { type }),
         name: key,
         value: values[key] == null ? '' : String(values[key]),
       }),

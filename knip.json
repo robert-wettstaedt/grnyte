@@ -6,6 +6,7 @@
     "src/lib/db/scripts/*.ts",
     "src/lib/email/push-templates.ts",
     "src/lib/email/test-send.ts",
+    "src/lib/entities/user/users.remote.ts",
     "deployment/announce.ts",
     "memlab/*.cjs",
     "stryker/vitest.config.ts"

@@ -3,17 +3,22 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AuthField from '$lib/forms/AuthField.svelte'
+  import { submitCommand } from '$lib/forms/command'
   import Form from '$lib/forms/Form.svelte'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { back } from '$lib/state/navigation.svelte'
-  import { updateEmail } from '../account.remote'
+  import { updateEmailCommand } from '../account.remote'
+  import { updateEmailSchema } from '../schemas'
 
-  // Fields live on the module-level remote singleton and would otherwise keep an address typed on
-  // an earlier visit for the rest of the session. See the password page for the same reset.
-  const initial = { email: '' }
+  const store = createFormStore(updateEmailSchema)
+  let sentTo = $state<string>()
+
+  const submit = async (values: { email: string }) => {
+    sentTo = (await submitCommand(() => updateEmailCommand(values))).email
+  }
 
   const currentEmail = $derived(page.data.session?.user.email)
-  const sentTo = $derived(updateEmail.result?.email)
 
   const goBack = () => back(resolve('/settings'))
 </script>
@@ -34,14 +39,15 @@
   </div>
 {:else}
   <Form
-    form={updateEmail}
-    {initial}
+    stayOnSubmit
+    {store}
+    {submit}
     cancelTo={resolve('/settings')}
     submitLabel={m.common_save()}
     title={m.settings_changeEmail()}
   >
     <AuthField
-      field={updateEmail.fields.email}
+      field={store.fields.email}
       label={m.settings_emailNew()}
       type="email"
       placeholder={currentEmail ?? 'you@example.com'}

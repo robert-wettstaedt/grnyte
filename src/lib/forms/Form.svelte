@@ -64,6 +64,8 @@
     /** With `waitFor`: the values to seed from its rows, once per set of row ids, before `fields`
      *  mount. Written through `seedForm`, so an earlier open's issues never survive the seed. */
     seed?: (rows: Waited<W>) => Parameters<RemoteForm<Input, unknown>['fields']['set']>[0]
+    /** With `store`: stay after a successful submit, for a screen that answers in place. */
+    stayOnSubmit?: boolean
     /** Current step index (0-based), bindable so callers can read/seed it. */
     step?: number
     /** Provide to render a multi-step form. The default `children` snippet is then used for
@@ -95,6 +97,7 @@
     onBeforeSubmit,
     onSubmitted,
     seed,
+    stayOnSubmit = false,
     step = $bindable(0),
     steps,
     store,
@@ -158,7 +161,7 @@
         element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
       } else {
         await onSubmitted?.()
-        await exit(outcome.result?.redirectTo ?? cancelTo)
+        if (!stayOnSubmit) await exit(outcome.result?.redirectTo ?? cancelTo)
       }
     } finally {
       submitting = false
