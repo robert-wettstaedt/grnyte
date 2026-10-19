@@ -2,6 +2,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import type { RegionInvitationItem } from '$lib/entities/region/dto'
+  import { invitationDelivery } from '$lib/entities/region/mapper'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -28,9 +29,14 @@
   // 60s "in the future" and would read as "sent in 15 seconds". Every other caller of this
   // formatter shows something at least a minute old, which is why it has not come up before.
   const sentAt = $derived.by(() => {
-    if (invitation.lastSentAt == null) return m.region_invitePending()
+    // `Date.now()` beside the minute tick, so a refetch settles "sending" without waiting for it.
+    const clock = Math.max(now(), Date.now())
+    const delivery = invitationDelivery(invitation, clock)
+    if (invitation.lastSentAt == null || delivery === 'pending') return m.region_invitePending()
+    if (delivery === 'sending') return m.region_inviteSending()
+    // The latest attempt never reached the provider: say so, and the sheet offers Resend.
+    if (delivery === 'failed') return m.region_inviteNotDelivered()
 
-    const clock = now()
     return m.region_inviteSentAt({
       time: formatUploadedAt(Math.min(invitation.lastSentAt.getTime(), clock), clock, getLocale()),
     })

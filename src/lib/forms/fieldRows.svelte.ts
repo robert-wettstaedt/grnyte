@@ -42,9 +42,11 @@ export function fieldRows<T extends Record<string, string>>(options: {
   }
 
   return {
+    // Written as blanks, so a row nobody typed in is submitted (and refused) rather than a hole.
     add() {
       keys = [...keys, nextKey]
       nextKey += 1
+      options.write(snapshot())
     },
 
     get keys() {

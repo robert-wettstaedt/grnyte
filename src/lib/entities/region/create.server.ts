@@ -1,10 +1,20 @@
 import { pinnedTx } from '$lib/db/pinned.server'
+import type * as schema from '$lib/db/schema'
 import { regionMembers, regions } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
 import { LOCK, lockKey } from '$lib/remote/lock.server'
 import { error } from '@sveltejs/kit'
 import { count, eq } from 'drizzle-orm'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { MAX_OWNED_REGIONS, type OwnedRegion } from './dto'
+
+type Db = PostgresJsDatabase<typeof schema>
+
+interface Founder {
+  authUserId: string
+  name: string
+  userId: number
+}
 
 /**
  * Found a region and put its creator in it as `region_admin`, in one transaction.
@@ -17,38 +27,33 @@ import { MAX_OWNED_REGIONS, type OwnedRegion } from './dto'
  * Atomic on purpose. A region with no members is unreachable garbage: the `regions` select policy
  * is membership-scoped, so nobody, including its creator, could ever see it again.
  */
-export async function createRegionForUser({
-  authUserId,
-  name,
-  userId,
-}: {
-  authUserId: string
-  name: string
-  userId: number
-}): Promise<{ id: number }> {
-  return pinnedTx(async (tx) => {
-    // Re-checked inside the transaction rather than trusting the handler's check: two tabs
-    // submitting at once both pass that one and would leave the account over the cap.
-    await lockKey(tx, LOCK.regionOwner, userId)
-    const [{ owned }] = await tx.select({ owned: count() }).from(regions).where(eq(regions.createdBy, userId))
+export function createRegionForUser(founder: Founder): Promise<{ id: number }> {
+  return pinnedTx((tx) => createRegionIn(tx, founder))
+}
 
-    if (owned >= MAX_OWNED_REGIONS) {
-      error(409, formError('region_capReached', { count: MAX_OWNED_REGIONS }))
-    }
+/** {@link createRegionForUser} on a privileged handle the caller already holds. */
+export async function createRegionIn(tx: Db, { authUserId, name, userId }: Founder): Promise<{ id: number }> {
+  // Re-checked inside the transaction rather than trusting the handler's check: two tabs
+  // submitting at once both pass that one and would leave the account over the cap.
+  await lockKey(tx, LOCK.regionOwner, userId)
+  const [{ owned }] = await tx.select({ owned: count() }).from(regions).where(eq(regions.createdBy, userId))
 
-    const [region] = await tx.insert(regions).values({ createdBy: userId, name }).returning({ id: regions.id })
+  if (owned >= MAX_OWNED_REGIONS) {
+    error(409, formError('region_capReached', { count: MAX_OWNED_REGIONS }))
+  }
 
-    // No `invitedByFk`: a null inviter is what marks the founder, the way the member list reads it.
-    await tx.insert(regionMembers).values({
-      authUserFk: authUserId,
-      isActive: true,
-      regionFk: region.id,
-      role: 'region_admin',
-      userFk: userId,
-    })
+  const [region] = await tx.insert(regions).values({ createdBy: userId, name }).returning({ id: regions.id })
 
-    return { id: region.id }
+  // No `invitedByFk`: a null inviter is what marks the founder, the way the member list reads it.
+  await tx.insert(regionMembers).values({
+    authUserFk: authUserId,
+    isActive: true,
+    regionFk: region.id,
+    role: 'region_admin',
+    userFk: userId,
   })
+
+  return { id: region.id }
 }
 
 /** The regions this account has founded, oldest first. Over the base `db`, so one the founder

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RegionMemberRow } from './mapper'
-import { seatState, toRegionMembership } from './mapper'
+import { invitationDelivery, INVITE_SENDING_MS, seatState, toRegionMembership } from './mapper'
 import { DEFAULT_TAGS } from './tagVocabulary'
 
 describe('seatState', () => {
@@ -178,5 +178,23 @@ describe('toRegionMembership', () => {
       // seven writable tags the region never had.
       expect(membership.settings.tags).toEqual([])
     }
+  })
+})
+
+describe('invitationDelivery', () => {
+  const sent = new Date(1_000_000)
+
+  it('is delivered once a send was accepted at or after the latest attempt', () => {
+    expect(invitationDelivery({ lastDeliveredAt: sent, lastSentAt: sent }, sent.getTime() + 99_999)).toBe('delivered')
+  })
+
+  it('is sending while the after-commit send may still be running, then failed', () => {
+    const attempt = { lastDeliveredAt: new Date(0), lastSentAt: sent }
+    expect(invitationDelivery(attempt, sent.getTime() + INVITE_SENDING_MS - 1)).toBe('sending')
+    expect(invitationDelivery(attempt, sent.getTime() + INVITE_SENDING_MS)).toBe('failed')
+  })
+
+  it('is pending before any attempt', () => {
+    expect(invitationDelivery({ lastDeliveredAt: undefined, lastSentAt: undefined }, 0)).toBe('pending')
   })
 })

@@ -8,26 +8,27 @@
   import SettingLink from '$lib/components/Setting/SettingLink.svelte'
   import SettingSection from '$lib/components/Setting/SettingSection.svelte'
   import { MEMBERSHIP_UNDO_MS } from '$lib/entities/notification/push'
-  import type { RegionInvitationItem, RegionMemberItem } from '$lib/entities/region/dto'
-  import { regionDisplayName } from '$lib/entities/region/mapper'
-  import { seatState } from '$lib/entities/region/mapper'
+  import { inviteMemberSchema, type RegionInvitationItem, type RegionMemberItem } from '$lib/entities/region/dto'
+  import { invitationDelivery, INVITE_SENDING_MS, regionDisplayName, seatState } from '$lib/entities/region/mapper'
   import { canEditRegion, isLastAdmin } from '$lib/entities/region/permissions'
+  import { listRegionInvitations } from '$lib/entities/region/regions.remote'
+  import { regionDetail, regionMemberList } from '$lib/entities/region/resources.svelte'
+  import { regionTags } from '$lib/entities/region/tagVocabulary'
   import {
     inviteRegionMember,
     leaveRegion,
-    listRegionInvitations,
     removeRegionMember,
     resendRegionInvitation,
     restoreRegionInvitation,
     restoreRegionMember,
     revokeRegionInvitation,
     updateRegionMemberRole,
-  } from '$lib/entities/region/regions.remote'
-  import { regionDetail, regionMemberList } from '$lib/entities/region/resources.svelte'
-  import { regionTags } from '$lib/entities/region/tagVocabulary'
+  } from '$lib/entities/region/writes'
   import type { AppRole, AssignableRole } from '$lib/entities/rolePermission/dto'
   import { resolveIssueMessage } from '$lib/forms/issue'
-  import { seedForm, seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { formError } from '$lib/forms/schemas'
+  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -35,7 +36,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { notifyError, notifySend, toaster, withUndo } from '$lib/state/toast'
+  import { notifyError, toaster, withUndo } from '$lib/state/toast'
   import InvitationRow from './InvitationRow.svelte'
   import MemberRow from './MemberRow.svelte'
 
@@ -51,11 +52,12 @@
   // lower seat count than the admin sitting next to them. Only the list below is admin-only.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 
-  // The invite fields live on a module-level singleton, so an abandoned address follows the
-  // reader into the next region's invite box.
+  // Cleared per region, so an abandoned address never follows the reader into the next one's box.
+  const inviteStore = createFormStore(inviteMemberSchema)
+  let inviting = $state(false)
   seedOnKeyChange(
     () => regionId,
-    () => void seedForm(inviteRegionMember, { email: '' }),
+    () => inviteStore.fields.set({ email: '', regionFk: String(regionId) }),
   )
 
   // From the membership rather than `regionDetail`: settings ride along on the synced region row
@@ -70,6 +72,7 @@
   const invitations = $derived(listRegionInvitations({ regionFk: regionId }))
 
   const pending = $derived(invitations.current ?? [])
+  const inviteIssues = $derived(inviteStore.fields.allIssues() ?? [])
   const used = $derived((members.data?.length ?? 0) + pending.length)
   const seats = $derived(seatState(used, region.data?.maxMembers ?? 0))
 
@@ -91,7 +94,7 @@
   }
 
   const onRemove = async (member: RegionMemberItem) => {
-    await withUndo(removeRegionMember({ regionFk: regionId, userFk: member.userId }), {
+    await withUndo(removeRegionMember(regionId, member.userId), {
       // Bounded on purpose: the removal queues a notice, and undoing inside the window takes
       // it back before it goes out. See MEMBERSHIP_UNDO_MS.
       duration: MEMBERSHIP_UNDO_MS,
@@ -106,7 +109,7 @@
     const leaving = name
 
     try {
-      await runCommand(leaveRegion({ regionFk: regionId }))
+      await runCommand(leaveRegion(regionId))
       toaster.create({
         title: leaving == null ? m.region_leftUnnamed() : m.region_left({ name: leaving }),
         type: 'info',
@@ -122,31 +125,63 @@
   // does not carry these rows (they hold the join token).
   const refreshInvitations = () => listRegionInvitations({ regionFk: regionId }).refresh()
 
-  const invite = inviteRegionMember.enhance(async ({ submit }) => {
-    try {
-      await submit()
-      const result = inviteRegionMember.result?.data
-      if (result == null) return
-
-      await refreshInvitations()
-      notifySend(result.sent, m.region_inviteSent({ email: result.email }), m.region_inviteSentNoMail())
-      inviteRegionMember.fields.set({ email: '' })
-    } catch (cause) {
-      // A refusal the schema cannot express (seats full, already a member, role lost since load)
-      // comes back as an HttpError, which the form has no field to attach to.
-      notifyError(cause)
-    }
+  // The mail goes out after commit, so a fresh row reads "sending"; refetched until it settles.
+  // A newer send, a region change or leaving the page retires the running loop.
+  let settleRun = 0
+  $effect(() => {
+    void regionId
+    return () => settleRun++
   })
+  // Only the row just written, and sent-but-unstamped at time zero so the local clock plays no part.
+  const unsettled = (email: string) =>
+    pending.some((invitation) => invitation.email === email && invitationDelivery(invitation, 0) === 'sending')
+  const settleInvitations = async (email: string) => {
+    const run = ++settleRun
+    // One past the sending window, so the last refetch classifies a failed send as failed.
+    for (let attempt = 0; attempt <= INVITE_SENDING_MS / 1000 && unsettled(email); attempt++) {
+      await new Promise((done) => setTimeout(done, 1000))
+      if (run !== settleRun) return
+      await refreshInvitations()
+    }
+  }
+
+  const afterInviteSaved = async (email: string, title = m.region_inviteSaved({ email })) => {
+    toaster.create({ title, type: 'success' })
+    await refreshInvitations()
+    void settleInvitations(email)
+  }
+
+  // "Saved", not "sent": the mail goes out after commit, and the row below says whether it arrived.
+  // A refusal (seats full, already a member) lands under the field, and the address stays typed.
+  const invite = async (event: SubmitEvent) => {
+    event.preventDefault()
+    if (inviting) return
+    inviting = true
+    try {
+      const outcome = await inviteStore.submit(inviteRegionMember)
+      if (outcome.kind === 'offline') {
+        inviteStore.setIssue(null, formError('error_offline_title'))
+      } else if (outcome.kind === 'done' && outcome.result.data != null) {
+        inviteStore.fields.set({ email: '', regionFk: String(regionId) })
+        await afterInviteSaved(outcome.result.data.email)
+      }
+    } catch (cause) {
+      notifyError(cause)
+    } finally {
+      inviting = false
+    }
+  }
+
+  // A form-level refusal ("already a member") is about the address, so typing a new one clears it.
+  const onInviteInput = (event: Event) => {
+    inviteStore.capture(event)
+    if (inviteIssues.length > 0) inviteStore.fields.set({ ...inviteStore.fields.value() })
+  }
 
   const onResend = async (invitation: RegionInvitationItem) => {
     try {
-      const result = await resendRegionInvitation({ invitationFk: invitation.id })
-      await refreshInvitations()
-      notifySend(
-        result?.data?.sent ?? false,
-        m.region_inviteResent({ email: invitation.email }),
-        m.region_inviteSentNoMail(),
-      )
+      await resendRegionInvitation(invitation.id)
+      await afterInviteSaved(invitation.email, m.region_inviteResending({ email: invitation.email }))
     } catch (cause) {
       notifyError(cause)
     }
@@ -154,7 +189,7 @@
 
   const onRevoke = async (invitation: RegionInvitationItem) => {
     // No catch: `withUndo` reports the failure itself. The refresh runs either way.
-    await withUndo(revokeRegionInvitation({ invitationFk: invitation.id }), {
+    await withUndo(revokeRegionInvitation(invitation.id), {
       message: m.region_inviteRevoked({ email: invitation.email }),
       onUndo: async (snapshot) => {
         const result = await restoreRegionInvitation(snapshot)
@@ -304,27 +339,20 @@
                    happened to sit below an input, not as the field's action. The section heading is
                    the group's visible label, so the input carries an aria-label instead of its own.
                    min-h-11 keeps both halves at the 44px touch minimum. -->
-            <form {...invite}>
-              <!-- The hidden field sits outside the group: input-group rounds its :first-child,
-                     and a hidden input still counts as one, which left the email field square and
-                     with a stray divider border. -->
-              <input type="hidden" name="regionFk" value={regionId} />
-
+            <form oninput={onInviteInput} onsubmit={invite}>
               <div class="input-group min-h-11 grid-cols-[1fr_auto]">
                 <input
-                  {...inviteRegionMember.fields.email.as('email')}
+                  {...inviteStore.fields.email.as('email')}
+                  aria-describedby="invite-issues"
+                  aria-invalid={inviteIssues.length > 0 || undefined}
                   class="ig-input"
                   aria-label={m.region_inviteEmail()}
                   autocomplete="email"
                   placeholder={m.region_inviteEmail()}
                   required
-                  disabled={seats === 'full' || inviteRegionMember.pending > 0}
+                  disabled={seats === 'full' || inviting}
                 />
-                <button
-                  type="submit"
-                  class="ig-btn preset-filled-primary-500"
-                  disabled={seats === 'full' || inviteRegionMember.pending > 0}
-                >
+                <button type="submit" class="ig-btn preset-filled-primary-500" disabled={seats === 'full' || inviting}>
                   {m.region_invite()}
                 </button>
               </div>
@@ -332,9 +360,11 @@
 
             <!-- The address stays in the field when the server refuses (seats full, already a
                    member), so a rejected invite never costs the admin the typing. -->
-            {#each inviteRegionMember.fields.email.issues() as issue (issue.message)}
-              <p class="text-error-600-400 text-sm" role="alert">{resolveIssueMessage(issue.message)}</p>
-            {/each}
+            <div id="invite-issues">
+              {#each inviteIssues as issue (issue.message)}
+                <p class="text-error-600-400 text-sm" role="alert">{resolveIssueMessage(issue.message)}</p>
+              {/each}
+            </div>
 
             <!-- Below the form, which renders at once: the list comes from the server, later. -->
             {#if pending.length > 0}

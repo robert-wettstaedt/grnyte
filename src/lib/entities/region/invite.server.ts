@@ -25,6 +25,7 @@ import type { EmailLocale } from '$lib/email/shell'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { baseLocale, isLocale } from '$lib/paraglide/runtime'
+import { drainAfterCommit } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
 import { and, count, eq, gt, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -59,6 +60,12 @@ export interface CreateInvitationInput {
   email: string
   invitedByFk: number
   regionFk: number
+}
+
+/** Filled in by the delivery: inline, before {@link sendInvitationEmail} returns; deferred, once
+ *  the after-commit task has run, which a remote function drains before it answers. */
+export interface DeliveryReport {
+  sent: boolean
 }
 
 /** What the accept page needs to render every state without ever seeing the token again. */
@@ -112,118 +119,122 @@ export interface MailContext {
  * validated right here. An RLS insert policy keyed on a matching invitation would be a migration
  * that buys nothing while remote functions are the only write path.
  */
-export async function acceptInvitation({ authUserId, email, token }: AcceptInvitationInput): Promise<{
-  regionFk: number
-  regionName: string
-}> {
-  const address = normalizeEmail(email)
+export async function acceptInvitation(
+  input: AcceptInvitationInput,
+): Promise<{ regionFk: number; regionName: string }> {
+  const deferred: (() => Promise<void>)[] = []
+  const accepted = await pinnedTx((tx) => acceptInvitationIn(tx, input, (task) => void deferred.push(task)))
 
-  /** Set only when this call is the one that actually added the membership, so a reopened link
-   *  or a double tap does not tell the inviter twice. Notified after the commit, since the
-   *  fan-out runs on its own connection and must not announce a join that then rolls back. */
-  let joined: undefined | { invitedByFk: number; regionFk: number; userFk: number }
-
-  const accepted = await pinnedTx(async (tx) => {
-    const invitation = await tx.query.regionInvitations.findFirst({
-      where: eq(regionInvitations.token, token),
-      with: { region: { columns: { maxMembers: true, name: true } } },
-    })
-
-    if (invitation == null) {
-      error(404, formError('invite_notFound'))
-    }
-
-    // The region is gone: nothing left to join, and the row survives because `region_fk` has no
-    // cascade. Reads as "not valid", which is the only useful thing to tell the invitee.
-    if (invitation.region == null) {
-      error(404, formError('invite_notFound'))
-    }
-
-    if (invitation.status !== 'pending' || invitation.expiresAt.getTime() <= Date.now()) {
-      error(410, formError('invite_alreadyUsed'))
-    }
-
-    // An invitation is addressed, not a share link. This is also what makes a forwarded mail
-    // useless to whoever received it.
-    if (invitation.email !== address) {
-      error(403, formError('invite_notFound'))
-    }
-
-    const user = await tx.query.users.findFirst({
-      columns: { id: true },
-      where: eq(users.authUserFk, authUserId),
-    })
-
-    if (user == null) {
-      error(404, formError('users_notFound'))
-    }
-
-    // Before the membership and seat reads, so a double tap or two joiners cannot both pass them.
-    await lockRegionMembers(tx, invitation.regionFk)
-
-    const existing = await tx.query.regionMembers.findFirst({
-      where: and(eq(regionMembers.regionFk, invitation.regionFk), eq(regionMembers.userFk, user.id)),
-    })
-
-    // Already in: a reopened link or a double tap marks the invitation used and returns, rather
-    // than adding a second membership.
-    if (existing == null) {
-      // Active members only, NOT the seat count `createInvitation` uses: this invitation is being
-      // consumed, so it must not count against itself. Two invitations racing into the last seat
-      // both exist, and this is what refuses the second joiner: leaving their invitation valid so
-      // it still works once a seat frees.
-      const [{ members }] = await tx
-        .select({ members: count() })
-        .from(regionMembers)
-        .where(and(eq(regionMembers.regionFk, invitation.regionFk), eq(regionMembers.isActive, true)))
-
-      if (members >= invitation.region.maxMembers) {
-        error(409, formError('region_seatsFull', { total: invitation.region.maxMembers }))
-      }
-
-      await tx.insert(regionMembers).values({
-        authUserFk: authUserId,
-        invitedByFk: invitation.invitedByFk,
-        isActive: true,
-        regionFk: invitation.regionFk,
-        role: 'region_user',
-        userFk: user.id,
-      })
-
-      // So the join shows up in the region's audit log, the same shape `removeRegionMember` logs.
-      // Subject and actor are the same person, and that is not a bug: accepting an invitation
-      // is something you do to your own membership.
-      await insertEvent(tx, {
-        actorFk: user.id,
-        object: { id: user.id, type: 'user' },
-        regionFk: invitation.regionFk,
-        verb: 'accept',
-      })
-
-      joined = { invitedByFk: invitation.invitedByFk, regionFk: invitation.regionFk, userFk: user.id }
-    }
-
-    await tx
-      .update(regionInvitations)
-      .set({ acceptedAt: new Date(), acceptedByFk: user.id, status: 'accepted' })
-      .where(eq(regionInvitations.id, invitation.id))
-
-    return { regionFk: invitation.regionFk, regionName: invitation.region.name }
-  })
-
-  if (joined != null) {
-    // The one directed event whose recipient is not its subject: the inviter is told, and the row
-    // points at the person who joined.
-    await notify({
-      actorFk: joined.userFk,
-      object: { id: joined.userFk, type: 'user' },
-      regionFk: joined.regionFk,
-      sourceType: 'invite_accepted',
-      userFks: [joined.invitedByFk],
-    })
-  }
+  await drainAfterCommit(deferred)
 
   return accepted
+}
+
+/** {@link acceptInvitation} on a privileged handle the caller holds; the inviter's notice goes to
+ *  `defer`, because it fans out on its own connection and must not announce a join that rolls back. */
+export async function acceptInvitationIn(
+  tx: Db,
+  { authUserId, email, token }: AcceptInvitationInput,
+  defer: Defer,
+): Promise<{ regionFk: number; regionName: string }> {
+  const address = normalizeEmail(email)
+
+  const invitation = await tx.query.regionInvitations.findFirst({
+    where: eq(regionInvitations.token, token),
+    with: { region: { columns: { maxMembers: true, name: true } } },
+  })
+
+  if (invitation == null) {
+    error(404, formError('invite_notFound'))
+  }
+
+  // The region is gone: nothing left to join, and the row survives because `region_fk` has no
+  // cascade. Reads as "not valid", which is the only useful thing to tell the invitee.
+  if (invitation.region == null) {
+    error(404, formError('invite_notFound'))
+  }
+
+  if (invitation.status !== 'pending' || invitation.expiresAt.getTime() <= Date.now()) {
+    error(410, formError('invite_alreadyUsed'))
+  }
+
+  // An invitation is addressed, not a share link. This is also what makes a forwarded mail
+  // useless to whoever received it.
+  if (invitation.email !== address) {
+    error(403, formError('invite_notFound'))
+  }
+
+  const user = await tx.query.users.findFirst({
+    columns: { id: true },
+    where: eq(users.authUserFk, authUserId),
+  })
+
+  if (user == null) {
+    error(404, formError('users_notFound'))
+  }
+
+  // Before the membership and seat reads, so a double tap or two joiners cannot both pass them.
+  await lockRegionMembers(tx, invitation.regionFk)
+
+  const existing = await tx.query.regionMembers.findFirst({
+    where: and(eq(regionMembers.regionFk, invitation.regionFk), eq(regionMembers.userFk, user.id)),
+  })
+
+  // Already in: a reopened link or a double tap marks the invitation used and returns, rather
+  // than adding a second membership.
+  if (existing == null) {
+    // Active members only, NOT the seat count `createInvitation` uses: this invitation is being
+    // consumed, so it must not count against itself. Two invitations racing into the last seat
+    // both exist, and this is what refuses the second joiner: leaving their invitation valid so
+    // it still works once a seat frees.
+    const [{ members }] = await tx
+      .select({ members: count() })
+      .from(regionMembers)
+      .where(and(eq(regionMembers.regionFk, invitation.regionFk), eq(regionMembers.isActive, true)))
+
+    if (members >= invitation.region.maxMembers) {
+      error(409, formError('region_seatsFull', { total: invitation.region.maxMembers }))
+    }
+
+    await tx.insert(regionMembers).values({
+      authUserFk: authUserId,
+      invitedByFk: invitation.invitedByFk,
+      isActive: true,
+      regionFk: invitation.regionFk,
+      role: 'region_user',
+      userFk: user.id,
+    })
+
+    // So the join shows up in the region's audit log, the same shape `removeRegionMember` logs.
+    // Subject and actor are the same person, and that is not a bug: accepting an invitation
+    // is something you do to your own membership.
+    await insertEvent(tx, {
+      actorFk: user.id,
+      object: { id: user.id, type: 'user' },
+      regionFk: invitation.regionFk,
+      verb: 'accept',
+    })
+
+    // Only when this call added the membership, so a reopened link or a double tap does not
+    // tell the inviter twice. The one directed event whose recipient is not its subject.
+    const joined = { invitedByFk: invitation.invitedByFk, regionFk: invitation.regionFk, userFk: user.id }
+    defer(() =>
+      notify({
+        actorFk: joined.userFk,
+        object: { id: joined.userFk, type: 'user' },
+        regionFk: joined.regionFk,
+        sourceType: 'invite_accepted',
+        userFks: [joined.invitedByFk],
+      }),
+    )
+  }
+
+  await tx
+    .update(regionInvitations)
+    .set({ acceptedAt: new Date(), acceptedByFk: user.id, status: 'accepted' })
+    .where(eq(regionInvitations.id, invitation.id))
+
+  return { regionFk: invitation.regionFk, regionName: invitation.region.name }
 }
 
 /** Throws 429 when the last send is too recent. Split out so a test can drive it without a clock. */
@@ -431,7 +442,7 @@ export async function resendInvitation(
   }: { invitationFk: number; inviter: string; inviterFk?: number; userRegions: UserRegion[] },
   mail: MailContext,
   defer?: Defer,
-): Promise<{ email: string; sent: boolean }> {
+): Promise<{ email: string; report: DeliveryReport }> {
   const invitation = await loadEditable(db, invitationFk, userRegions)
 
   if (invitation.region == null) {
@@ -445,30 +456,16 @@ export async function resendInvitation(
     .set({ expiresAt: expiry(), status: 'pending' })
     .where(eq(regionInvitations.id, invitationFk))
 
-  const sent = await sendInvitationEmail(
-    db,
-    {
-      actorFk: inviterFk,
-      email: invitation.email,
-      id: invitationFk,
-      // The throttle already caps this at one a minute, so the clock is fine as the varying part.
-      idempotencyKey: `invitation-${invitationFk}-${Date.now()}`,
-      inviter,
-      regionFk: invitation.regionFk,
-      regionName: invitation.region.name,
-      token: invitation.token,
-    },
-    mail,
-    defer,
-  )
+  const report: DeliveryReport = { sent: false }
 
   // Logged only when the region has no record of this address being invited (the first send may
   // have failed) and under whoever pressed Resend, not the original inviter: relying on
   // insertEvent's fold by reusing the original inviter's id bumped the open event's timestamp on
   // every resend, re-dating and resurfacing somebody else's card in their name, and outside the
   // 15-minute join window logged a duplicate invitation instead. A resend is not a new invitation.
-  if (sent && inviterFk != null) {
-    const [logged] = await db
+  const logInvitation = async (handle: Db) => {
+    if (inviterFk == null) return
+    const [logged] = await handle
       .select({ id: events.id })
       .from(events)
       .where(
@@ -477,7 +474,7 @@ export async function resendInvitation(
       .limit(1)
 
     if (logged == null) {
-      await insertEvent(db, {
+      await insertEvent(handle, {
         actorFk: inviterFk,
         metadata: invitation.email,
         object: { id: inviterFk, type: 'user' },
@@ -487,7 +484,25 @@ export async function resendInvitation(
     }
   }
 
-  return { email: invitation.email, sent }
+  await sendInvitationEmail(
+    db,
+    {
+      actorFk: inviterFk,
+      email: invitation.email,
+      id: invitationFk,
+      idempotencyKey: (sentAt) => `invitation-${invitationFk}-${sentAt.getTime()}`,
+      inviter,
+      onDelivered: logInvitation,
+      regionFk: invitation.regionFk,
+      regionName: invitation.region.name,
+      report,
+      token: invitation.token,
+    },
+    mail,
+    defer,
+  )
+
+  return { email: invitation.email, report }
 }
 
 /**
@@ -628,11 +643,9 @@ export async function revokeInvitation(
 }
 
 /**
- * Send the invitation mail for `id`, and record that we did.
- *
- * Shared by the invite form and {@link resendInvitation} so the two can never build a different URL
- * or pick a different locale. `sendEmail` returns false instead of throwing, so the caller gets the
- * outcome and can say "invitation saved, mail did not go out" rather than losing the row.
+ * Send the invitation mail for `id`, shared by invite and {@link resendInvitation}. The attempt
+ * (`last_sent_at`) is written on the caller's transaction; the send runs after commit (inline
+ * without `defer`) and stamps `last_delivered_at` only when the mail went out.
  */
 export async function sendInvitationEmail(
   db: Db,
@@ -646,69 +659,82 @@ export async function sendInvitationEmail(
     email,
     id,
     /**
-     * Stable (`invitation-<id>`) for an invite, so a double submit that slips past the disabled
-     * button sends one mail. Varying for a resend, which is a deliberate second send that Resend
-     * would otherwise swallow as a duplicate.
+     * From the attempt time this transaction writes, so a retried mutation reuses its key: stable
+     * (`invitation-<id>`) for an invite, per attempt for a resend, which is a deliberate second send.
      */
     idempotencyKey,
     inviter,
+    /** Runs on the delivery's handle once the mail went out, e.g. to log the invitation. */
+    onDelivered,
     regionFk,
     regionName,
+    report,
     token,
   }: {
     actorFk?: number
     email: string
     id: number
-    idempotencyKey: string
+    idempotencyKey: (sentAt: Date) => string
     inviter: string
+    onDelivered?: (db: Db) => Promise<unknown>
     regionFk?: number
     regionName: string
+    report?: DeliveryReport
     token: string
   },
   { ambientLocale, origin }: MailContext,
   defer?: Defer,
-): Promise<boolean> {
+): Promise<void> {
   const locale = await resolveContactLocale(db, regionFk, email, ambientLocale)
+  const invitee = actorFk == null || regionFk == null ? undefined : await accountIdForEmail(db, regionFk, email)
   const sentAt = new Date()
 
-  const sent = await sendEmail({
-    ...inviteEmailContent({ inviter, locale, regionName, url: `${origin}${acceptPath(token)}` }),
-    idempotencyKey,
-    locale,
-    origin,
-    template: 'invite',
-    to: email,
-  })
+  // Recorded even when the send fails: the throttle exists to stop a loop, and a failing provider
+  // is the one case where a loop is most likely.
+  await db.update(regionInvitations).set({ lastSentAt: sentAt }).where(eq(regionInvitations.id, id))
 
-  // A buzz for the invitee, when the address already has an account. A push and NOT a second
-  // email: the mail above carries the token and is the only channel that reaches an address with
-  // no account. Queued whether or not it went out, because a failed send is when a second channel
-  // is worth the most.
-  if (actorFk != null && regionFk != null) {
-    const invitee = await accountIdForEmail(db, regionFk, email)
-
-    if (invitee != null && invitee !== actorFk) {
+  const send = () =>
+    sendEmail({
+      ...inviteEmailContent({ inviter, locale, regionName, url: `${origin}${acceptPath(token)}` }),
+      idempotencyKey: idempotencyKey(sentAt),
+      locale,
+      origin,
+      template: 'invite',
+      to: email,
+    })
+  const stamp = async (handle: Db) => {
+    await handle.update(regionInvitations).set({ lastDeliveredAt: sentAt }).where(eq(regionInvitations.id, id))
+    await onDelivered?.(handle)
+  }
+  const push = async () => {
+    // A buzz for the invitee, when the address already has an account. A push and NOT a second
+    // email: the mail above carries the token and is the only channel that reaches an address with
+    // no account. Queued whether or not it went out, because a failed send is when a second channel
+    // is worth the most.
+    if (invitee != null && invitee !== actorFk && actorFk != null && regionFk != null) {
       // Cleared first, because `actor_fk` is in the unique key: a resend by a different admin
       // misses the existing row's conflict target and inserts a second one, buzzing twice for one
       // invitation. Only pending rows go, so nothing already delivered is erased.
-      const queue = async () => {
-        await retractOutOfBand({ regionFk, sourceType: 'invitation_received', userFk: invitee })
-        await notifyOutOfBand({ actorFk, regionFk, sourceType: 'invitation_received', userFk: invitee })
-      }
-
-      if (defer == null) {
-        await queue()
-      } else {
-        defer(queue)
-      }
+      await retractOutOfBand({ regionFk, sourceType: 'invitation_received', userFk: invitee })
+      await notifyOutOfBand({ actorFk, regionFk, sourceType: 'invitation_received', userFk: invitee })
     }
   }
 
-  // Recorded even when the send failed: the throttle exists to stop a loop, and a failing
-  // provider is the one case where a loop is most likely.
-  await db.update(regionInvitations).set({ lastSentAt: sentAt }).where(eq(regionInvitations.id, id))
+  // The push opens its own connection, so it runs after the stamp's transaction, never inside it.
+  const deliver = async (onHandle: (write: typeof stamp) => Promise<unknown>) => {
+    const sent = await send()
+    if (report != null) report.sent = sent
+    if (sent) await onHandle(stamp)
+    await push()
+  }
 
-  return sent
+  if (defer == null) {
+    await deliver((write) => write(db))
+  } else {
+    // Privileged: the caller's transaction has committed, and the event and the delivery stamp it
+    // writes are this invitation's, already authorized above.
+    defer(() => deliver(pinnedTx))
+  }
 }
 
 /** The app id of the account on this address, or `undefined` when nobody has one yet. `regionFk`

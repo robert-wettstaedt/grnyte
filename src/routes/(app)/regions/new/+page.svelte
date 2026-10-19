@@ -4,18 +4,20 @@
   import { signOut } from '$lib/auth/session.remote'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { entityHref } from '$lib/entities/href'
-  import { MAX_OWNED_REGIONS } from '$lib/entities/region/dto'
-  import { createRegion } from '$lib/entities/region/regions.remote'
+  import { MAX_OWNED_REGIONS, regionCreateSchema } from '$lib/entities/region/dto'
+  import { createRegion } from '$lib/entities/region/writes'
   import Form from '$lib/forms/Form.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
-  import { seedForm } from '$lib/forms/seed.svelte'
+  import { formError } from '$lib/forms/schemas'
+  import { createFormStore } from '$lib/forms/store.svelte'
+  import type * as z from '$lib/forms/zod'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
+  import { notifyError } from '$lib/state/toast'
   import { wipeAndLeave } from '$lib/state/wipe'
-  import { onMount } from 'svelte'
   import { slide } from 'svelte/transition'
   import type { PageProps } from './$types'
 
@@ -26,7 +28,9 @@
   const { data }: PageProps = $props()
   const global = getGlobalState()
 
-  const welcome = $derived(global.userRegions.length === 0)
+  // Held from the submit on: the new membership syncs in before the write answers and the reload.
+  let welcomeAtSubmit = $state<boolean>()
+  const welcome = $derived(welcomeAtSubmit ?? global.userRegions.length === 0)
   const capped = $derived(data.owned.length >= MAX_OWNED_REGIONS)
 
   // Only the founded regions they can still open. `data.owned` counts by `regions.created_by`,
@@ -38,11 +42,9 @@
 
   let doorOpen = $state(false)
 
-  // Fields live on the module-level remote singleton, so a value typed on an earlier visit
-  // would still be here for the rest of the session. Same reset as the settings pages; the
-  // ids this form needs are static hidden inputs, and submitting reads those from the DOM.
-  // Both branches below bind `createRegion`, so this seeds whichever one rendered.
-  onMount(() => void seedForm(createRegion, {}))
+  // One store per visit, bound by whichever branch below rendered.
+  const store = createFormStore(regionCreateSchema)
+  let pending = $state(false)
 
   /** The reveal is the animation, so somebody who asked for less motion gets the cut. */
   const duration = $derived(motion(150))
@@ -54,14 +56,26 @@
    * `userRegions` at init, so a client-side navigation would land on a map that has never heard of
    * the region. Same reason the invite-accept screen reloads.
    */
-  const onSubmitted = () => {
-    const regionId = createRegion.result?.data?.regionId
+  const submit = async (values: z.input<typeof regionCreateSchema>) => {
+    welcomeAtSubmit = welcome
+    const created = await createRegion(values)
+    const regionId = created.data?.regionId
+    if (regionId != null) location.href = welcome ? resolve('/explore') : entityHref('regions', regionId)
+    return created
+  }
 
-    if (regionId == null) {
-      return
+  // The welcome screen's own form, without `Form`'s offline overlay: an offline submit says so in place.
+  const submitWelcome = async (event: SubmitEvent) => {
+    event.preventDefault()
+    if (pending) return
+    pending = true
+    try {
+      if ((await store.submit(submit)).kind === 'offline') store.setIssue(null, formError('error_offline_title'))
+    } catch (cause) {
+      notifyError(cause)
+    } finally {
+      pending = false
     }
-
-    location.href = welcome ? resolve('/explore') : entityHref('regions', regionId)
   }
 </script>
 
@@ -90,7 +104,7 @@
 {#snippet nameField()}
   <RemoteFormInputWrapper
     class="space-y-2"
-    field={createRegion.fields.name}
+    field={store.fields.name}
     hint={m.onboarding_nameHint()}
     id="region-name"
     label={m.settings_regionName()}
@@ -98,7 +112,7 @@
   >
     {#snippet children(props)}
       <input
-        {...createRegion.fields.name.as('text')}
+        {...store.fields.name.as('text')}
         {...props}
         {@attach (node) => node.focus()}
         autocapitalize="words"
@@ -161,22 +175,15 @@
       <h1 class="text-[25px] font-bold tracking-tight">{m.onboarding_title()}</h1>
       <p class="text-surface-600-400 mt-1.5 text-[14.5px] leading-snug">{m.onboarding_subtitle()}</p>
 
-      <form
-        class="mt-7 flex flex-col gap-4"
-        {...createRegion.enhance(async ({ submit }) => {
-          if (await submit()) {
-            onSubmitted()
-          }
-        })}
-      >
-        <FormError form={createRegion} />
+      <form class="mt-7 flex flex-col gap-4" oninput={store.capture} onsubmit={submitWelcome}>
+        <FormError form={store} />
 
         {@render nameField()}
 
         <button
           type="submit"
           class="btn preset-filled-primary-500 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)] disabled:opacity-60"
-          disabled={createRegion.pending > 0}
+          disabled={pending}
         >
           {m.common_add()}
         </button>
@@ -229,9 +236,10 @@
   </div>
 {:else}
   <Form
-    form={createRegion}
     cancelTo={resolve('/settings')}
-    {onSubmitted}
+    stayOnSubmit
+    {store}
+    {submit}
     submitLabel={m.common_add()}
     title={m.region_new()}
   >

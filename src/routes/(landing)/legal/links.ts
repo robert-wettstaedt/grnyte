@@ -1,6 +1,7 @@
 import { resolve } from '$app/paths'
 import { PUBLIC_APPLICATION_NAME, PUBLIC_REPORT_EMAIL, PUBLIC_TOPO_EMAIL } from '$env/static/public'
-import { DEFAULT_MAX_MEMBERS, MAX_OWNED_REGIONS } from '$lib/entities/region/dto'
+import { MAX_OWNED_REGIONS } from '$lib/entities/region/dto'
+import { DEFAULT_MAX_MEMBERS } from '$lib/entities/region/limits'
 import { m } from '$lib/paraglide/messages'
 
 /**

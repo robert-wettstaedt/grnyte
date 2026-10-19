@@ -4,19 +4,22 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { entityHref } from '$lib/entities/href'
   import { regionAdminScreen } from '$lib/entities/region/adminScreen.svelte'
-  import { updateRegionMapLayers } from '$lib/entities/region/regions.remote'
+  import { regionMapLayersSchema } from '$lib/entities/region/dto'
   import { mapLayersFingerprint, toLayerForm } from '$lib/entities/region/settings'
+  import { updateRegionMapLayers } from '$lib/entities/region/writes'
   import { fieldRows } from '$lib/forms/fieldRows.svelte'
   import Form from '$lib/forms/Form.svelte'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
-  import { seedForm, seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { toaster } from '$lib/state/toast'
   import RegionAdminRequired from '../RegionAdminRequired.svelte'
   import RegionScreen from '../RegionScreen.svelte'
 
   const screen = regionAdminScreen()
-  const fields = updateRegionMapLayers.fields
+  const store = createFormStore(regionMapLayersSchema)
+  const fields = store.fields
 
   // From the memberships the shell already has. No async load, so `Form` stays the route's direct
   // child: a wrapper between them breaks its sticky header.
@@ -38,7 +41,7 @@
   seedOnKeyChange(
     () => (screen.membership?.synced === true && screen.membership.layersComplete ? screen.regionId : undefined),
     () => {
-      void seedForm(updateRegionMapLayers, {
+      fields.set({
         id: String(screen.regionId),
         known: mapLayersFingerprint(stored),
         mapLayers: stored.map(toLayerForm),
@@ -77,17 +80,13 @@
   </RegionScreen>
 {:else}
   <Form
-    form={updateRegionMapLayers}
+    {store}
+    submit={updateRegionMapLayers}
     cancelTo={entityHref('regions', screen.regionId)}
     {onSubmitted}
     submitLabel={m.common_save()}
     title={m.region_mapLayers()}
   >
-    <!-- Only rendered fields are submitted, so the id needs an input of its own: seeding it via
-       `fields.set` alone leaves it out of the form data. -->
-    <input type="hidden" {...fields.id.as('text')} />
-    <input type="hidden" {...fields.known.as('text')} />
-
     {#if rows.keys.length === 0}
       <p class="text-surface-600-400 text-sm">{m.region_mapLayersEmpty()}</p>
     {/if}

@@ -153,9 +153,10 @@ export async function statusOf(run: () => Promise<unknown>): Promise<number | un
 
 /**
  * One Zero client for `authUserId`, pushing custom mutations through the real mutate endpoint, so
- * a test drives the server mutator, its RLS transaction and Zero's bookkeeping together.
+ * a test drives the server mutator, its RLS transaction and Zero's bookkeeping together. `email`
+ * lands in the token, for a mutator that reads the address the way a real session carries it.
  */
-export function zeroClient(authUserId: string) {
+export function zeroClient(authUserId: string, email?: string) {
   const clientGroupID = `test-${crypto.randomUUID()}`
   const clientID = `client-${crypto.randomUUID()}`
   let nextId = 1
@@ -168,7 +169,7 @@ export function zeroClient(authUserId: string) {
         await tx.execute(sql`delete from zero_0.clients where "clientGroupID" = ${clientGroupID}`)
       }),
     push: async (name: string, args: unknown): Promise<PushedResult> => {
-      const token = await signAccessToken(authUserId, undefined)
+      const token = await signAccessToken(authUserId, email)
       const request = new Request('http://localhost/api/zero/mutate?schema=zero_0&appID=zero', {
         body: JSON.stringify({
           clientGroupID,
