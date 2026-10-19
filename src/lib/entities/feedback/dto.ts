@@ -1,3 +1,6 @@
+import { formError } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
+
 /**
  * Kinds in the order the form offers them. `regression` is separate because only the author can
  * tell "this worked in the old app" from a bug in something new.
@@ -36,3 +39,22 @@ export interface FeedbackItem {
 }
 
 export type FeedbackStatus = (typeof feedbackStatus)[number]
+
+const BODY_MIN = 10
+export const BODY_MAX = 5000
+
+export const feedbackSchema = z.object({
+  body: z
+    .string({ error: formError('form_required') })
+    .check(
+      z.trim(),
+      z.minLength(BODY_MIN, { error: formError('form_charsMin', { count: BODY_MIN }) }),
+      z.maxLength(BODY_MAX, { error: formError('form_charsMax', { count: BODY_MAX }) }),
+    ),
+  kind: z.enum(feedbackKind, { error: formError('form_required') }),
+  // Captured by the page, so a missing value is not an error.
+  locale: z._default(z.optional(z.string().check(z.maxLength(16))), ''),
+  pathname: z._default(z.optional(z.string().check(z.maxLength(2048))), ''),
+  /** The browser's own, since a mutator's request is zero-cache's. Informational only. */
+  userAgent: z.optional(z.string().check(z.maxLength(512))),
+})

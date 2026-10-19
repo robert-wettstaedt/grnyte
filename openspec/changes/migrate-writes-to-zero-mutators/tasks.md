@@ -81,8 +81,8 @@ the test failed, and the edit was reverted.
 
 ## 13. Feedback
 
-- [ ] 13.1 Move `submitFeedback` as `asPrivileged` with `notifyAdminsOfFeedback` in `afterCommit` (its existing `feedback-<id>-<admin>` key); port its cases from `feedback.remote.test.ts`, seen red
-- [ ] 13.2 Switch the feedback form to the store mode; drive a submission at both widths and confirm one admin notification
+- [x] 13.1 Move `submitFeedback` as `asPrivileged` with `notifyAdminsOfFeedback` in `afterCommit` (its existing `feedback-<id>-<admin>` key); port its cases from `feedback.remote.test.ts`, seen red
+- [x] 13.2 Switch the feedback form to the store mode; drive a submission at both widths and confirm one admin notification
 
 ## 14. Regions
 
