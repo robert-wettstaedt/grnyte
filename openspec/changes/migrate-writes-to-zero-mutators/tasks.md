@@ -96,17 +96,17 @@ the test failed, and the edit was reverted.
 
 ## 15. Removal and integration
 
-- [ ] 15.1 Delete what no caller uses any more: `Form.svelte`'s remote-form path, `src/lib/forms/seed.svelte.ts`, `submit.ts`, `offlineFailure.ts` and their tests, and `RemoteFormInputWrapper` from every entity `*FormFields`; verify each with a grep showing no importer outside `AuthField`, then `svelte-check` and `lint:unused`
-- [ ] 15.2 Cut the remote-form conventions from AGENTS.md (clearing in the `enhance` callback, `seedForm` versus a DOM reset, `form.for(key)`) and keep the rest of each paragraph that still applies; verify no AGENTS.md line names a deleted helper
+- [x] 15.1 Delete what no caller uses any more: `Form.svelte`'s remote-form path, `seedForm` and `isSeeding` (`seedOnKeyChange` stays), `submit.ts`, `offlineFailure.ts` and their tests; `RemoteFormInputWrapper` becomes `FieldWrapper`; verify each with a grep showing no importer outside `AuthField`, then `svelte-check` and `lint:unused`
+- [x] 15.2 Cut the remote-form conventions from AGENTS.md (clearing in the `enhance` callback, `seedForm` versus a DOM reset, `form.for(key)`) and keep the rest of each paragraph that still applies; verify no AGENTS.md line names a deleted helper
 
-- [ ] 15.3 Verify no migrated caller still imports a migrated remote function (grep each export name outside its `*.remote.ts`), and that every remaining `*.remote.ts` export is in the proposal's out-of-scope list
-- [ ] 15.4 Run `npm run test:e2e` against the dev stack and fix what it finds
-- [ ] 15.5 Verification sweep over the touched paths: `npx prettier --write`, `npx eslint`, `npx vitest run --project server` and `--project browser`, `svelte-check`, `npm run lint:duplication`, `npm run lint:unused`, and drive the favorite toggle, the route edit form and one delete with undo at 375x667 and 1280x800; close the pages opened
+- [x] 15.3 Verify no migrated caller still imports a migrated remote function (grep each export name outside its `*.remote.ts`), and that every remaining `*.remote.ts` export is in the proposal's out-of-scope list
+- [x] 15.4 Run `npm run test:e2e` against the dev stack and fix what it finds
+- [x] 15.5 Verification sweep over the touched paths: `npx prettier --write`, `npx eslint`, `npx vitest run --project server` and `--project browser`, `svelte-check`, `npm run lint:duplication`, `npm run lint:unused`, and drive the favorite toggle, the route edit form and one delete with undo at 375x667 and 1280x800; close the pages opened
 
 ## Workflow follow-up
 
 - Before deleting the remote functions, port each remaining `*.remote.test.ts` case to the `zeroClient` harness, so no body loses its coverage.
 
 - Release order: zero-cache 1.11 with the new env, then `migrate`, then the app.
-- In the next ordinary release, delete the migrated remote functions and their `*.remote.test.ts` files.
+- In the next ordinary release, delete the migrated remote functions and their `*.remote.test.ts` files. Then strip `redirectTo` from the shared `*.server.ts` bodies: only those remote callers read it, and every server mutator already drops it.
 - Archive the change after that release and the review loop.

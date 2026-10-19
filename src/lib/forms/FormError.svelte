@@ -1,18 +1,15 @@
 <script lang="ts">
   import type { RemoteFormIssue } from '@sveltejs/kit'
   import { resolveIssueMessage } from './issue'
-  import { isSeeding } from './seed.svelte'
 
-  // Renders form-level issues: those raised by `invalid('msg')` in a handler, which carry an
-  // empty `path`. Field-tied issues (`invalid(issue.name(...))`) keep rendering inline via FormHint.
+  // Form-level issues only (an empty `path`); field-tied ones render inline via FormHint.
   interface Props {
     form: { fields: { allIssues(): RemoteFormIssue[] | undefined } }
   }
 
   const { form }: Props = $props()
 
-  // Held back while a seed clears the previous open's issues, or a reopen renders a stale alert.
-  const issues = $derived(isSeeding() ? [] : (form.fields.allIssues() ?? []).filter((issue) => issue.path.length === 0))
+  const issues = $derived((form.fields.allIssues() ?? []).filter((issue) => issue.path.length === 0))
 </script>
 
 {#if issues.length > 0}

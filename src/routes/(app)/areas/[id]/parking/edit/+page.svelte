@@ -62,7 +62,7 @@
   let placedCenter = $state<[number, number] | null>(prefill == null ? null : [prefill.lat, prefill.long])
 
   // Step 2: the walking path as [lat, lng] points, starting at the parking. The path is
-  // optional (save works with none); the encoded form is mirrored into the hidden input.
+  // optional (save works with none); the encoded form is mirrored into the store.
   let pathPoints = $state<[number, number][]>([])
   const encodedPath = $derived(pathPoints.length >= 2 ? encodePath(pathPoints) : '')
 
@@ -100,8 +100,7 @@
     }
   })
 
-  // Otherwise the hidden `areaId` follows the reader, saving one area's parking at another's
-  // coordinates.
+  // Per area, or one area's placed pin follows the reader to the next area's form.
   const seed = () => {
     saved = false
     step = 0
@@ -157,7 +156,10 @@
   ]}
   waitFor={[{ notFound: m.areas_notFound(), resource: area, whole: false }]}
 >
-  <!-- The submitted parking + optional path, mirrored from state into the form. -->
+  <!-- What the store submits, rendered so the seed is observable. -->
+  <input {...store.fields.areaId.as('hidden')} />
+  <input {...store.fields.lat.as('hidden')} />
+  <input {...store.fields.long.as('hidden')} />
 </Form>
 
 {#snippet placeStep()}

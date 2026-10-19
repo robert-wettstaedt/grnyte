@@ -7,9 +7,10 @@
   import { regionMapLayersSchema } from '$lib/entities/region/dto'
   import { mapLayersFingerprint, toLayerForm } from '$lib/entities/region/settings'
   import { updateRegionMapLayers } from '$lib/entities/region/writes'
+  import EditKeys from '$lib/forms/EditKeys.svelte'
   import { fieldRows } from '$lib/forms/fieldRows.svelte'
+  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
   import Form from '$lib/forms/Form.svelte'
-  import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import { seedOnKeyChange } from '$lib/forms/seed.svelte'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -87,6 +88,8 @@
     submitLabel={m.common_save()}
     title={m.region_mapLayers()}
   >
+    <EditKeys id={fields.id} known={fields.known} />
+
     {#if rows.keys.length === 0}
       <p class="text-surface-600-400 text-sm">{m.region_mapLayersEmpty()}</p>
     {/if}
@@ -110,13 +113,13 @@
           </button>
         </div>
 
-        <RemoteFormInputWrapper field={layer.name} id="layer-{key}-name" label={m.region_mapLayerName()} required>
+        <FieldWrapper field={layer.name} id="layer-{key}-name" label={m.region_mapLayerName()} required>
           {#snippet children(props)}
             <input {...layer.name.as('text')} {...props} autocomplete="off" class="input" />
           {/snippet}
-        </RemoteFormInputWrapper>
+        </FieldWrapper>
 
-        <RemoteFormInputWrapper
+        <FieldWrapper
           field={layer.url}
           hint={m.region_mapLayerUrlHint()}
           id="layer-{key}-url"
@@ -135,10 +138,10 @@
               spellcheck="false"
             />
           {/snippet}
-        </RemoteFormInputWrapper>
+        </FieldWrapper>
 
         <div class="grid gap-5 sm:grid-cols-2">
-          <RemoteFormInputWrapper field={layer.opacity} id="layer-{key}-opacity" label={m.region_mapLayerOpacity()}>
+          <FieldWrapper field={layer.opacity} id="layer-{key}-opacity" label={m.region_mapLayerOpacity()}>
             {#snippet children(props)}
               <input
                 {...layer.opacity.as('text')}
@@ -149,9 +152,9 @@
                 placeholder="1"
               />
             {/snippet}
-          </RemoteFormInputWrapper>
+          </FieldWrapper>
 
-          <RemoteFormInputWrapper field={layer.minZoom} id="layer-{key}-minZoom" label={m.region_mapLayerMinZoom()}>
+          <FieldWrapper field={layer.minZoom} id="layer-{key}-minZoom" label={m.region_mapLayerMinZoom()}>
             {#snippet children(props)}
               <input
                 {...layer.minZoom.as('text')}
@@ -162,10 +165,10 @@
                 placeholder="0"
               />
             {/snippet}
-          </RemoteFormInputWrapper>
+          </FieldWrapper>
         </div>
 
-        <RemoteFormInputWrapper
+        <FieldWrapper
           field={layer.attributions}
           hint={m.region_mapLayerAttributionsHint()}
           id="layer-{key}-attributions"
@@ -174,7 +177,7 @@
           {#snippet children(props)}
             <textarea {...layer.attributions.as('text')} {...props} class="textarea" rows="3"></textarea>
           {/snippet}
-        </RemoteFormInputWrapper>
+        </FieldWrapper>
       </div>
     {/each}
 

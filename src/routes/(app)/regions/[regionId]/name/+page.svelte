@@ -49,6 +49,7 @@
     submitLabel={m.common_save()}
     title={m.settings_changeRegionName()}
   >
+    <input {...store.fields.id.as('hidden')} />
     <AuthField
       field={store.fields.name}
       label={m.settings_regionName()}

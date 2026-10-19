@@ -164,9 +164,10 @@ working, and `seed` writes the store. The two `Form` screens that stay remote fu
 which stay deployed one release for open tabs like every other replaced export.
 
 That leaves nothing that needs Kit's remote-form machinery outside the auth pages (`AuthField`):
-`seed.svelte.ts` (`seedForm`, `seedOnKeyChange`), `submit.ts` and `offlineFailure.ts` are deleted
-with their tests once the last form moves, and the entity `*FormFields` components stop using
-`RemoteFormInputWrapper`, which stays for `AuthField` only. Fields that live in component state
+`seedForm`, `submit.ts` and `offlineFailure.ts` are deleted with their tests once the last form
+moves, and `RemoteFormInputWrapper` becomes `FieldWrapper`, without the hide-on-change workaround
+for Kit's uncleared issues (the store clears a field's issue when it is written). `seedOnKeyChange`
+stays in `seed.svelte.ts`, since a store form on a parameterised route still keys its seed on it. Fields that live in component state
 today (grade, rating, tags, first ascensionists, pins) write into the store instead of posting
 hidden inputs, so a submit reads exactly what the store holds and nothing is lost the way the
 spike lost route 115's grade.

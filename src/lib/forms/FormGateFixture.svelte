@@ -14,10 +14,7 @@
 <FormGate
   action={{ label: 'Save' }}
   cancelTo="/"
-  seed={{
-    form: { element: null, fields: { allIssues: () => undefined, set: () => undefined } },
-    values: ([row]) => void log.push(`seed:${row.id}`),
-  }}
+  seed={([row]) => void log.push(`seed:${row.id}`)}
   title="Edit"
   waitFor={[wait]}
 >

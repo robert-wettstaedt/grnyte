@@ -16,9 +16,10 @@
   import type { RouteDetail } from '$lib/entities/route/dto'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRatingInput from '$lib/entities/route/RouteRatingInput.svelte'
+  import EditKeys from '$lib/forms/EditKeys.svelte'
+  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
   import FormHint from '$lib/forms/FormHint.svelte'
   import OptionalBadge from '$lib/forms/OptionalBadge.svelte'
-  import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import type { FormStore } from '$lib/forms/store.svelte'
   import { localIsoDay } from '$lib/i18n/relativeTime'
   import { formatConditions, formatHumidity, temperatureField } from '$lib/i18n/units.svelte'
@@ -82,7 +83,7 @@
   // svelte-ignore state_referenced_locally
   let date = $state(ascent?.dateTime == null ? today : new Date(ascent.dateTime).toISOString().slice(0, 10))
 
-  // The store sends what it holds, not the hidden inputs, so everything not typed writes into it.
+  // The store sends what it holds, so everything not typed writes into it.
   $effect(() => {
     form.fields.routeId.set(String(route.id))
     if (ascent != null) form.fields.id.set(String(ascent.id))
@@ -138,6 +139,9 @@
   </a>
 </div>
 
+<input {...form.fields.routeId.as('hidden')} />
+<EditKeys id={form.fields.id} />
+
 <!-- The route being logged, so the form never loses its subject. -->
 <a
   class="border-surface-200-800 bg-surface-50-950 hover:bg-surface-100-900 flex items-center gap-3 rounded-2xl border px-3.5 py-3"
@@ -150,17 +154,11 @@
   <span class="min-w-0 truncate text-sm font-semibold">{route.name}</span>
 </a>
 
-<RemoteFormInputWrapper
-  class="space-y-2.5"
-  field={form.fields.type}
-  id="ascent-type"
-  label={m.ascents_form_typeLabel()}
-  required
->
+<FieldWrapper class="space-y-2.5" field={form.fields.type} id="ascent-type" label={m.ascents_form_typeLabel()} required>
   <AscentTypeInput name="type" bind:value={type} />
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
-<RemoteFormInputWrapper
+<FieldWrapper
   class="space-y-2.5"
   field={form.fields.gradeFk}
   hint={m.ascents_form_gradeHint()}
@@ -168,18 +166,13 @@
   label={m.ascents_form_gradeLabel()}
 >
   <GradePicker grades={global.grades} gradingScale={global.gradingScale} name="gradeFk" bind:value={gradeFk} />
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
-<RemoteFormInputWrapper
-  class="space-y-2.5"
-  field={form.fields.rating}
-  id="ascent-rating"
-  label={m.ascents_form_ratingLabel()}
->
+<FieldWrapper class="space-y-2.5" field={form.fields.rating} id="ascent-rating" label={m.ascents_form_ratingLabel()}>
   <RouteRatingInput name="rating" bind:value={rating} />
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
-<RemoteFormInputWrapper
+<FieldWrapper
   class="space-y-2.5"
   field={form.fields.dateTime}
   id="ascent-date"
@@ -216,7 +209,7 @@
       />
     </div>
   {/snippet}
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
 <Disclosure panelClass="mt-3 space-y-3" summaryClass="flex w-full items-center gap-2" bind:open={conditionsOpen}>
   {#snippet summary(open)}
@@ -252,12 +245,12 @@
   <p class="text-surface-600-400 pt-1 text-sm">{m.ascents_form_conditionsHint()}</p>
 </Disclosure>
 
-<!-- Outside for the same reason as the hidden inputs: a validation error rendered into the panel
-     would be unreachable while it is collapsed, so a submit could fail with no message anywhere. -->
+<!-- Outside the disclosure: an error rendered into the panel would be unreachable while it is
+     collapsed, so a submit could fail with no message anywhere. -->
 <FormHint id="ascent-temperature" issues={form.fields.temperature.issues()} />
 <FormHint id="ascent-humidity" issues={form.fields.humidity.issues()} />
 
-<RemoteFormInputWrapper
+<FieldWrapper
   class="space-y-2.5"
   field={form.fields.notes}
   hint={m.ascents_form_notesHint()}
@@ -304,7 +297,7 @@
       </Disclosure>
     {/if}
   {/snippet}
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
 <div class="space-y-2.5">
   <span class="text-surface-700-300 text-sm font-semibold">{m.routes_form_mediaLabel()}</span>

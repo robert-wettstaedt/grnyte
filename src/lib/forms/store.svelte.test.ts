@@ -21,7 +21,7 @@ describe('createFormStore', () => {
 
   it('keeps a failed validation on the field it concerns', async () => {
     const form = store()
-    form.fields.gradeFk.as('hidden')
+    form.fields.gradeFk.as('select')
     form.fields.set({ blockId: '3', gradeFk: 'six' })
 
     expect((await form.validate()).ok).toBe(false)
@@ -41,6 +41,15 @@ describe('createFormStore', () => {
     ])
   })
 
+  it('sends an issue on a hidden field to the form, where it is visible', () => {
+    const form = store()
+    form.fields.gradeFk.as('hidden')
+
+    form.setIssue('gradeFk', 'grades_unknown')
+
+    expect(form.fields.allIssues()).toEqual([{ message: 'grades_unknown', path: [] }])
+  })
+
   it('gives an input its type, so a password never renders as text', () => {
     expect(store().fields.name.as('password').type).toBe('password')
   })
@@ -57,7 +66,7 @@ describe('createFormStore', () => {
 
   it('keeps a refusal while an effect mirrors the unchanged value into the store', () => {
     const form = store()
-    form.fields.gradeFk.as('hidden')
+    form.fields.gradeFk.as('select')
     const stop = $effect.root(() => {
       $effect(() => form.fields.gradeFk.set('6'))
     })
@@ -72,7 +81,7 @@ describe('createFormStore', () => {
 
   it('keeps a refusal on a list the mirror rebuilds with the same items', () => {
     const form = store()
-    form.fields.tags.as('hidden')
+    form.fields.tags.as('text')
     form.fields.tags.set(['SD'])
     form.setIssue('tags', 'routes_tagUnknown')
 
