@@ -27,10 +27,11 @@ hold our fields or show a mutator's field errors, so the form layer has to move 
   the post-invite toast choosing between sent and not sent.
 - A store-backed form layer replaces Kit remote forms on every migrated form: values in component
   state, validation from the entity's zod schema, field issues set from the server's refusal.
-- Removed once the last caller moves: `Form.svelte`'s remote-form path,
-  `seedForm` / `seedOnKeyChange`, `submitForm`, `isOfflineFailure`, the entity forms' use of
-  `RemoteFormInputWrapper`, and the remote-form conventions in AGENTS.md. Kit remote forms remain
-  only on the auth pages.
+- Removed once the last caller moves: `Form.svelte`'s remote-form path, `seedForm`, `submitForm`,
+  `isOfflineFailure`, and the remote-form conventions in AGENTS.md. `RemoteFormInputWrapper`
+  becomes `FieldWrapper`, without its Kit workaround. `seedOnKeyChange` stays: store forms on a
+  parameterised route still key their seed on it. Kit remote forms remain only on the auth pages,
+  invite accept and sign-out.
 - Writes are refused while Zero is not connected, as today; nothing is queued offline.
 - The `/f/<id>` share page keeps `setFileVisibility` and `deleteFile` as remote functions for good:
   it renders outside the `(app)` layout, so it has no Zero client to write through.

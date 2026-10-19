@@ -8,8 +8,8 @@
  *
  * The invite mail DOES go out for real. `@grnyte.rocks` is a catch-all, so the per-run address
  * lands in a real inbox with a localhost link in it, which is exactly what you want when checking
- * a template. What the spec asserts instead of reading it is the "invitation sent" toast, which is
- * driven by `sendEmail`'s return value and so only appears when Resend accepted the message.
+ * a template. What the spec asserts instead of reading it is the row's "Sent" line, which only
+ * appears once `last_delivered_at` is stamped, that is, once Resend accepted the message.
  *
  * The GoTrue confirmation mail is read for real from the local mail catcher, because
  * ENABLE_EMAIL_AUTOCONFIRM is false locally and that leg is otherwise untested.
@@ -128,11 +128,10 @@ test('an invited address signs up from the link and joins the region', async ({ 
   await adminPage.getByLabel('Email address').fill(invitee)
   await adminPage.getByRole('button', { exact: true, name: 'Invite' }).click()
 
-  // Driven by sendEmail's return value, so it is the proof Resend accepted the message. The
-  // generous timeout is the Resend round trip: the toast only renders once the send resolves,
-  // and it auto-dismisses, so this has to be polling before it appears.
-  await expect(adminPage.getByText(`Invitation sent to ${invitee}`)).toBeVisible({ timeout: 20_000 })
-  await expect(rowFor(adminPage, invitee)).toBeVisible()
+  await expect(adminPage.getByText(`Invitation saved for ${invitee}`)).toBeVisible()
+  // "Sent …" only once `last_delivered_at` is stamped, which is the proof Resend accepted the
+  // message; "Sending…" until then. Generous for the after-commit send and the page's refetch.
+  await expect(rowFor(adminPage, invitee)).toContainText(/Sent /, { timeout: 20_000 })
 
   // Same URL the mail carries, built by the same function; the vitest suite is what pins that.
   const [{ token }] = await sql<{ token: string }[]>`

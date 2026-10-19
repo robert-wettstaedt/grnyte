@@ -4,8 +4,8 @@
   import { feedbackKind, feedbackSchema } from '$lib/entities/feedback/dto'
   import { FEEDBACK_KIND_KEYS } from '$lib/entities/feedback/mapper'
   import { submitFeedback } from '$lib/entities/feedback/writes'
+  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
   import Form from '$lib/forms/Form.svelte'
-  import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { resolveMessage } from '$lib/i18n/message'
   import { m } from '$lib/paraglide/messages'
@@ -40,13 +40,7 @@
   submitLabel={m.feedback_send()}
   title={m.feedback_title()}
 >
-  <RemoteFormInputWrapper
-    class="space-y-2"
-    field={store.fields.kind}
-    id="feedback-kind"
-    label={m.feedback_kind()}
-    required
-  >
+  <FieldWrapper class="space-y-2" field={store.fields.kind} id="feedback-kind" label={m.feedback_kind()} required>
     {#snippet children(props)}
       <!-- `value` after the spread: an unset field hands the select `undefined`, so it renders empty
            instead of the prompt. -->
@@ -64,9 +58,9 @@
         {/each}
       </select>
     {/snippet}
-  </RemoteFormInputWrapper>
+  </FieldWrapper>
 
-  <RemoteFormInputWrapper
+  <FieldWrapper
     class="space-y-2"
     field={store.fields.body}
     hint={m.feedback_bodyHint()}
@@ -83,7 +77,7 @@
         rows="8"
       ></textarea>
     {/snippet}
-  </RemoteFormInputWrapper>
+  </FieldWrapper>
 
   <!-- A step below the field hint: at the same size the two muted asides read as one block. -->
   <p class="text-surface-600-400 text-xs">

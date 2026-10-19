@@ -77,8 +77,7 @@
     () => global.user?.id,
   )
 
-  // Re-seeded here rather than by a `{#key}` from outside, which would rebuild the `<form>`:
-  // a remote form object accepts exactly one form element and throws on a second.
+  // Re-seeded here rather than by a `{#key}` from outside, which would rebuild the form and its map.
   // svelte-ignore state_referenced_locally
   let step = $state<'form' | 'pin'>(initialStep)
   // svelte-ignore state_referenced_locally

@@ -54,7 +54,7 @@ const pathOf = (name: string): Path =>
 /**
  * A form's fields held in one store, so a submit sends exactly what the store holds, including
  * values kept outside text inputs, and a server refusal can land on its field. The field methods
- * mirror a remote form's, so field components take either.
+ * mirror a Kit remote form's, so `AuthField` takes either.
  */
 export function createFormStore<Input extends Values, Output = Input>(
   schema: StandardSchemaV1<Input, Output>,
@@ -97,7 +97,8 @@ export function createFormStore<Input extends Values, Output = Input>(
     const key = keyOf(path)
     const own: StoreField<unknown> = {
       as: (type) => {
-        rendered.add(key)
+        // A hidden input is no place for an issue nobody can see; it falls through to the form.
+        if (type !== 'hidden') rendered.add(key)
         return {
           ...(issues[key] == null ? {} : { 'aria-invalid': 'true' as const }),
           ...(type === 'select' ? {} : { type }),

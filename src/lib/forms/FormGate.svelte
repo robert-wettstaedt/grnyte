@@ -1,6 +1,6 @@
 <!-- A form screen's chrome until its rows are here: the ready screen's header with its action
      disabled, over one skeleton or state. `Form` renders through it when given `waitFor`. -->
-<script lang="ts" generics="W extends FormWaits, V">
+<script lang="ts" generics="W extends FormWaits">
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
@@ -14,7 +14,6 @@
   import type { ClassValue } from 'svelte/elements'
   import FormSteps from './FormSteps.svelte'
   import { waitedRows, type FormWaits, type Waited } from './gate'
-  import { seedForm, type SeedTarget } from './seed.svelte'
 
   interface Props {
     /** The trailing action as the ready screen labels it, disabled until then. */
@@ -30,9 +29,8 @@
     denied?: ComponentProps<typeof ErrorState>
     /** The ready screen fills the viewport (a map) rather than the padded field column. */
     fill?: boolean
-    /** Once per set of row ids, before the children first mount: `values` written into `form`
-     *  through `seedForm`, so an earlier open's issues never survive the seed. */
-    seed?: { form: SeedTarget<V>; values: (rows: Waited<W>) => V }
+    /** Once per set of row ids, before the children first mount. */
+    seed?: (rows: Waited<W>) => void
     /** A wizard's step labels, so the indicator is there from the start. */
     steps?: string[]
     title: string
@@ -75,9 +73,7 @@
     const { key, rows } = waited
     if (key !== applied) {
       applied = key
-      untrack(() => {
-        if (seed != null) void seedForm(seed.form, seed.values(rows))
-      })
+      untrack(() => seed?.(rows))
     }
     seeded = key
   })

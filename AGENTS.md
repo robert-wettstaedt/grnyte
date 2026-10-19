@@ -55,21 +55,16 @@ This project uses:
   with, so locking buys nothing. It types the blob as `RegionSettings` instead, which is the half
   that matters: an `attributions` written as a string where the schema wants `string[]` is dropped
   on read, the form then refuses to seed, and nothing fails until a browser renders it.
-- A remote form clears itself after a successful submit, but `<form {...myForm.enhance(cb)}>`
-  **replaces** the callback that does it, so `cb` has to clear it, and a surface that reopens rather
-  than navigating away clears on open too. Fields live on a module-level singleton outliving the
-  component, so whatever you skip leaks into every screen bound to that function. `fields.set({})`
-  clears values but not Kit's issues. A real DOM reset clears both, which is wrong mid-edit because
-  it blanks work in progress; `seedForm` (beside `seedOnKeyChange`) seeds and drops stale issues
-  without one. `Form.svelte` and `TopoAddRouteModal` say why.
+- A form's fields live in a `createFormStore` (`$lib/forms/store.svelte`) made per mount, so
+  nothing leaks between screens or opens. Only the auth pages, invite accept and sign-out still
+  use Kit remote forms.
 - Every add or edit form on a parameterised route seeds per entity: `/areas/1/blocks/add` and
   `/areas/2/blocks/add` are one route, so anything seeded once follows the reader to the next
   entity. A form that waits on rows does it through `Form`'s (or `FormGate`'s) `waitFor` and
   `seed`: the gate runs `seed` once per set of row ids before the fields mount, and `Form` re-keys
   its `fields` snippet after each seed, so child state seeded from props starts over too. `Form`'s
-  `seed` returns the values and `Form` writes them through `seedForm`, so no caller can pick the
-  writer that leaks issues; `initial` does the same for a form with nothing to wait for. Never
-  `form.for(key)`, which posts the key as an `id` field. A form that seeds from RELATED rows (tags,
+  `seed` returns the values and `Form` writes them into the store; `initial` does the same for a
+  form with nothing to wait for. A form that seeds from RELATED rows (tags,
   first ascensionists, a pin) marks that wait `whole: true`, because "loaded" is not one event: the
   row is local while its relations are still in flight, and `updateRoute` deletes what the submit
   leaves out, so an unloaded list is silent data loss, not a blank field (`routes/[id]/edit` is the

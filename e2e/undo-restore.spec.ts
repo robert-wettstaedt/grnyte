@@ -112,7 +112,7 @@ test('a deleted route with an ascent is restored in place', async () => {
   expect(row.name).toBe('Alpha Route')
 })
 
-test('a deleted bare route is erased and comes back under a new id', async () => {
+test('a deleted bare route is erased and comes back under its old id', async () => {
   const bare = async () => sql<{ id: number }[]>`
     select id from public.routes
     where block_fk = ${fixture.alphaBlockId} and name = 'Bare Route' and deleted_at is null`
@@ -126,9 +126,9 @@ test('a deleted bare route is erased and comes back under a new id', async () =>
   await undo(page)
   await expect.poll(async () => (await bare()).length, { timeout: 15_000 }).toBe(1)
 
-  // Undo rebuilds the route, so every link to the old id is dead afterwards.
+  // Rebuilt under the original id, so a replayed Undo is a no-op and old links still resolve.
   const [restored] = await bare()
-  expect(restored.id).not.toBe(fixture.bareRouteId)
+  expect(restored.id).toBe(fixture.bareRouteId)
 })
 
 test('deleting an area cascades, and undo restores only what that delete marked', async () => {

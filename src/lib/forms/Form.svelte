@@ -11,25 +11,22 @@
   }
 </script>
 
-<script lang="ts" generics="Input extends RemoteFormInput, W extends FormWaits = FormWaits">
+<script lang="ts" generics="Input extends Record<string, unknown>, W extends FormWaits = FormWaits">
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
-  import { submitForm } from '$lib/forms/submit'
   import { m } from '$lib/paraglide/messages'
   import type { MutationResult } from '$lib/remote/mutation'
   import { back, exit } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
-  import type { RemoteForm, RemoteFormInput } from '@sveltejs/kit'
   import { untrack, type ComponentProps } from 'svelte'
   import FormError from './FormError.svelte'
   import FormGate from './FormGate.svelte'
   import FormSteps from './FormSteps.svelte'
   import type { FormWaits, Waited } from './gate'
-  import { seedForm } from './seed.svelte'
   import type { FormStore } from './store.svelte'
 
-  // Generic chrome for a full-screen remote form: sticky Cancel · title · Submit header,
+  // Generic chrome for a full-screen store form: sticky Cancel · title · Submit header,
   // form-level error banner, and a centered column for the caller's fields. Pass `steps`
   // to turn it into a multi-step wizard (stepper indicator + per-step body, with the
   // primary button advancing through steps before submitting on the last one).
@@ -47,35 +44,30 @@
      *  default scrolling, padded field column. Fills as a flex item (not `h-full`), so it
      *  still chains height through QueryState's `min-h-full` wrapper. */
     fill?: boolean
-    /** The remote form holding and posting the fields, for a screen not on a `store` yet. */
-    form?: RemoteForm<Input, unknown>
-    /** Without `waitFor`: the values the screen opens with, written through `seedForm` as it mounts so
-     *  an earlier visit's values and issues are gone. */
-    initial?: Parameters<RemoteForm<Input, unknown>['fields']['set']>[0]
+    /** Without `waitFor`: the values the screen opens with. */
+    initial?: Partial<Input>
     /** Label for the advance button on non-final steps. */
     nextLabel?: string
     /** Run just before the form submits; return `false` to cancel it (e.g. to surface a
      *  confirmation first, then resubmit). Not called when advancing through wizard steps. */
     onBeforeSubmit?: () => boolean | Promise<boolean>
-    /** Run after a successful submit, before leaving. Act on `form.result` here, and do any work
-     *  the destination depends on (finalizing uploads, waiting for a row to sync). Never navigate:
-     *  the handler's `redirectTo` is the destination and this component applies it. */
+    /** Run after a successful submit, before leaving: work the destination depends on (finalizing
+     *  uploads, waiting for a row to sync). Never navigate: `redirectTo` is applied here. */
     onSubmitted?: () => Promise<void> | void
-    /** With `waitFor`: the values to seed from its rows, once per set of row ids, before `fields`
-     *  mount. Written through `seedForm`, so an earlier open's issues never survive the seed. */
-    seed?: (rows: Waited<W>) => Parameters<RemoteForm<Input, unknown>['fields']['set']>[0]
-    /** With `store`: stay after a successful submit, for a screen that answers in place. */
+    /** With `waitFor`: the values to seed from its rows, once per set of row ids, before `fields` mount. */
+    seed?: (rows: Waited<W>) => Partial<Input>
+    /** Stay after a successful submit, for a screen that answers in place. */
     stayOnSubmit?: boolean
     /** Current step index (0-based), bindable so callers can read/seed it. */
     step?: number
     /** Provide to render a multi-step form. The default `children` snippet is then used for
-     *  form-wide content (e.g. hidden inputs), rendered on every step. */
+     *  form-wide content, rendered on every step. */
     steps?: FormStep[]
-    /** The fields, validated here before `submit`. Takes the place of `form`. */
-    store?: FormStore<Input, unknown>
-    /** With `store`: the write, given the validated values. A rejection shaped like
-     *  `WriteRejection` lands on its field; `redirectTo` is where the form leaves for. */
-    submit?: (values: Input) => Promise<MutationResult<unknown> | void>
+    /** The fields, validated here before `submit`. */
+    store: FormStore<Input, unknown>
+    /** The write, given the validated values. A rejection shaped like `WriteRejection` lands on
+     *  its field; `redirectTo` is where the form leaves for. */
+    submit: (values: Input) => Promise<MutationResult<unknown> | void>
     /** Gate submit on a caller precondition, on top of the built-in pending state. */
     submitDisabled?: boolean
     submitLabel: string
@@ -91,7 +83,6 @@
     denied,
     fields,
     fill = false,
-    form,
     initial,
     nextLabel = m.common_next(),
     onBeforeSubmit,
@@ -108,13 +99,8 @@
     waitFor,
   }: Props = $props()
 
-  // What seeding writes to. A store has no element for `seedForm` to reset, and needs none.
-  const target = $derived(store == null ? form! : { element: null, fields: store.fields })
-
-  // At init, not mount: `seedForm` waits for the form itself and holds issue renderers back until
-  // then, so a previous visit's issue never reaches the DOM.
   untrack(() => {
-    if (initial != null) void seedForm(target, initial)
+    if (initial != null) store.fields.set(initial)
   })
 
   const stepped = $derived(steps != null && steps.length > 0)
@@ -129,25 +115,14 @@
     step += 1
   }
 
-  /** Where the handler said to go next. `exit` below, never a push: a finished form must not be
-   *  reachable by going back. */
-  const declaredDestination = (): string | undefined =>
-    // `form.result` is typed `unknown` here because not every caller's handler is an `authedForm`.
-    (form?.result as undefined | { redirectTo?: string })?.redirectTo
-
-  // A submit that throws while we have no connection is an offline failure: swap the form for the
-  // offline state and rethrow anything else, so real server errors still surface as form issues.
-  //
-  // Missing this branch rethrows, `+error.svelte` replaces the page, and everything typed is lost,
-  // which is why `isOfflineFailure` reads the error rather than the connection alone.
+  // An offline submit puts the offline state over the form, which stays mounted with what was typed.
   let offline = $state(false)
   let submitting = $state(false)
-  const pending = $derived((form?.pending ?? 0) > 0 || submitting)
 
-  async function submitStore(event: SubmitEvent) {
+  async function onsubmit(event: SubmitEvent) {
     event.preventDefault()
     const element = event.currentTarget as HTMLFormElement
-    if (store == null || submit == null || submitting) return
+    if (submitting) return
     if (onBeforeSubmit != null && !(await onBeforeSubmit())) return
 
     submitting = true
@@ -161,6 +136,7 @@
         element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
       } else {
         await onSubmitted?.()
+        // `exit`, never a push: a finished form must not be reachable by going back.
         if (!stayOnSubmit) await exit(outcome.result?.redirectTo ?? cancelTo)
       }
     } finally {
@@ -169,9 +145,7 @@
   }
 
   // Back online → restore the form. Everything typed survives because the form is never unmounted:
-  // the offline state renders over it, see the note above the markup. The remote form's own module
-  // state was never the whole story: the fields a caller passes in keep their visible state in
-  // component `$state`, and that is what renders.
+  // the offline state renders over it, see the note above the markup.
   //
   // An `$effect` on `isOnline()` rather than the `online` window event, which was the trigger
   // before. That event fires when the *browser* decides the network returned, which is a different
@@ -200,7 +174,7 @@
     {cancelTo}
     {denied}
     {fill}
-    seed={seed && { form: target, values: seed }}
+    seed={seed && ((rows) => store.fields.set(seed(rows)))}
     steps={stepLabels}
     {title}
     {waitFor}
@@ -215,7 +189,7 @@
   <!-- The offline state goes *over* the form, never instead of it.
 
      Swapping the two unmounts the whole subtree, and the fields a caller passes as children keep
-     their visible state in component `$state` rather than in the remote form: `AscentFormFields`
+     their visible state in component `$state` rather than in the store: `AscentFormFields`
      alone has six, including the date. Remounting reset every one of them, and the date reset to
      *today* - which does not look empty, it looks filled in. Somebody logging yesterday's session at
      a crag got the form back, saw a plausible date and submitted the wrong day into their logbook.
@@ -231,37 +205,8 @@
   {/if}
 
   <form
-    {...store == null
-      ? form!.enhance(async ({ element, submit }) => {
-          if (onBeforeSubmit != null && !(await onBeforeSubmit())) {
-            return
-          }
-          const outcome = await submitForm(submit, async () => {
-            // Our callback replaced Kit's clear-on-success. `fields.set({})`, not a DOM reset, which
-            // blanks the visible fields (`resetBlanks.test.ts`); after `onSubmitted`, and in `finally`.
-            try {
-              await onSubmitted?.()
-            } finally {
-              form!.fields.set({})
-            }
-
-            // Last, so `onSubmitted` has finished whatever the destination depends on.
-            const destination = declaredDestination()
-
-            if (destination != null) {
-              await exit(destination)
-            }
-          })
-
-          if (outcome === 'offline') {
-            offline = true
-          } else if (outcome === 'rejected') {
-            // Only on a rejection: `fields.set({})` clears values but not Kit's issues, so a success can
-            // still have an alert from an earlier rejected submit in the DOM, and scrolling to it is wrong.
-            element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
-          }
-        })
-      : { oninput: store.capture, onsubmit: submitStore }}
+    oninput={store.capture}
+    {onsubmit}
     class={['flex w-full flex-col', fill ? 'min-h-0 flex-1' : 'min-h-full', offline && 'hidden']}
     inert={offline}
   >
@@ -278,9 +223,9 @@
           <PageHeaderAction disabled={!canContinue} icon="arrow-right" iconAfter label={nextLabel} onclick={advance} />
         {:else}
           <PageHeaderAction
-            disabled={pending || submitDisabled || !canContinue}
+            disabled={submitting || submitDisabled || !canContinue}
             label={submitLabel}
-            {pending}
+            pending={submitting}
             type="submit"
           />
         {/if}
@@ -292,7 +237,7 @@
     {/if}
 
     <div class={fill ? 'flex min-h-0 flex-1 flex-col' : 'mx-auto flex w-full max-w-screen-sm flex-col gap-7 px-4 py-6'}>
-      <FormError form={store ?? form!} />
+      <FormError form={store} />
 
       {#if stepped}
         {@render current!.body()}
@@ -306,7 +251,7 @@
       {/if}
     </div>
 
-    <!-- Multi-step: form-wide content (hidden inputs) that must submit from any step. -->
+    <!-- Multi-step: form-wide content, rendered on every step. -->
     {#if stepped}
       {@render children?.()}
     {/if}

@@ -2,11 +2,11 @@
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import MarkdownEditor from '$lib/components/MarkdownEditor/MarkdownEditor.svelte'
   import { regionDisplayName } from '$lib/entities/region/mapper'
-  import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
+  import EditKeys from '$lib/forms/EditKeys.svelte'
+  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
   import type { FormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import type { RemoteForm } from '@sveltejs/kit'
   import type { AreaDetail, AreaFormInput } from './dto'
   import { canAddArea } from './permissions'
 
@@ -16,7 +16,7 @@
      *  Absent when creating a top-level area, which has no parent to sit under, so the region
      *  select below is the whole of its placement. */
     area?: AreaDetail
-    form: FormStore<AreaFormInput, unknown> | RemoteForm<AreaFormInput, unknown>
+    form: FormStore<AreaFormInput, unknown>
   }
 
   const { area, form }: Props = $props()
@@ -27,8 +27,7 @@
   // only means the reference search finds nothing yet.
   const regionFk = $derived(area?.regionFk ?? Number(form.fields.regionFk.value() ?? 0))
 
-  // `''` counts as absent too: a top-level area's hidden `parentFk` submits an empty string, and
-  // testing only for null hid the region field.
+  // `''` counts as absent too: a top-level area's `parentFk` is seeded as an empty string.
   const isNewTopLevel = $derived(form.fields.id.value() == null && (form.fields.parentFk.value() ?? '') === '')
 
   // Read off the field, not the membership list, so what is shown and what is submitted agree:
@@ -49,11 +48,9 @@
   <Breadcrumb {area} includeSelf userRegions={global.userRegions} />
 {/if}
 
-{#if form.fields.id.value() != null}
-  <input type="hidden" {...form.fields.id.as('text')} />
-{/if}
+<EditKeys id={form.fields.id} />
 
-<RemoteFormInputWrapper
+<FieldWrapper
   class="space-y-2"
   field={form.fields.name}
   hint={m.areas_nameHint()}
@@ -73,7 +70,7 @@
       placeholder={m.areas_namePlaceholder()}
     />
   {/snippet}
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
 {#if showRegionSelect}
   <!-- Creating a top-level area, and only then. `required`, or the wrapper badges it "optional": a
@@ -89,13 +86,7 @@
        top-level) and offered a region move that was then dropped on the floor, answered with the
        same redirect a real edit gets. Moving an area between regions is not a rename: it would have
        to carry the subtree and gate on both regions. -->
-  <RemoteFormInputWrapper
-    class="space-y-2"
-    field={form.fields.regionFk}
-    id="area-region"
-    label={m.region_title()}
-    required
-  >
+  <FieldWrapper class="space-y-2" field={form.fields.regionFk} id="area-region" label={m.region_title()} required>
     {#snippet children(props)}
       <!-- Sized to match the name input above it, not the default `select` metrics: on the
            top-level form these two sit directly under each other and the mismatch shows. -->
@@ -118,13 +109,12 @@
         {/each}
       </select>
     {/snippet}
-  </RemoteFormInputWrapper>
+  </FieldWrapper>
 {:else}
   {#if isNewTopLevel}
-    <!-- One region, already chosen: shown rather than offered. The hidden field alone never told
-         the reader where the area was going. Through the same wrapper as every other field so the
-         label metrics cannot drift apart, and so an issue raised on `regionFk` still surfaces. -->
-    <RemoteFormInputWrapper class="space-y-2" field={form.fields.regionFk} label={m.region_title()} required>
+    <!-- One region, already chosen: shown rather than offered. Through the same wrapper as every
+         other field so an issue raised on `regionFk` still surfaces. -->
+    <FieldWrapper class="space-y-2" field={form.fields.regionFk} label={m.region_title()} required>
       <!-- Deliberately not boxed like the inputs around it: there is nothing to choose here, and a
            field's border reads as an invitation to type. -->
       <!-- Narrowed rather than asserted: `showRegionSelect` sends the null case to the select
@@ -132,14 +122,14 @@
       {#if selectedRegion != null}
         <p class="text-base">{regionDisplayName(selectedRegion)}</p>
       {/if}
-    </RemoteFormInputWrapper>
+    </FieldWrapper>
   {/if}
 
-  <input type="hidden" {...form.fields.parentFk.as('text')} />
-  <input type="hidden" {...form.fields.regionFk.as('text')} />
+  <input {...form.fields.parentFk.as('hidden')} />
+  <input {...form.fields.regionFk.as('hidden')} />
 {/if}
 
-<RemoteFormInputWrapper
+<FieldWrapper
   class="space-y-2"
   field={form.fields.description}
   hint={m.editor_descriptionHint()}
@@ -154,4 +144,4 @@
       {regionFk}
     />
   {/snippet}
-</RemoteFormInputWrapper>
+</FieldWrapper>
