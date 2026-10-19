@@ -9,31 +9,28 @@
   import FirstAscentField, { type FaClimber } from '$lib/entities/firstAscensionist/FirstAscentField.svelte'
   import GradePicker from '$lib/entities/grade/GradePicker.svelte'
   import { regionTags } from '$lib/entities/region/tagVocabulary'
-  import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
+  import EditKeys from '$lib/forms/EditKeys.svelte'
+  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
   import type { FormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import type { RemoteForm } from '@sveltejs/kit'
   import type { RouteDetail } from './dto'
-  import RouteRatingInput from './RouteRatingInput.svelte'
   import type { RouteFormInput } from './dto'
+  import RouteRatingInput from './RouteRatingInput.svelte'
   import RouteTagsInput from './RouteTagsInput.svelte'
 
   // Shared body for the add/edit route forms. Every field is optional (one note up top says so
-  // instead of per-field badges, hence `required` on each wrapper); the custom inputs are
-  // self-sufficient (they render their own hidden inputs). Mirrors BlockFormFields.
+  // instead of per-field badges, hence `required` on each wrapper). Mirrors BlockFormFields.
   interface Props {
     /** Off in the topo editor, which owns its own photo upload: two pickers on one surface
      *  would mean a photo of the rock and a photo of the climb look like the same thing. */
     allowMedia?: boolean
     /** The block the route lives on. */
     block: BlockDetail
-    /** The four fields below are not Kit form fields, so they die with this component rather than
-     *  surviving on the remote singleton. A caller that unmounts it mid-edit (the topo editor's
-     *  two-step sheet) binds them to keep them; everyone else leaves them alone. `undefined` means
-     *  "not seeded yet", so an unbound caller behaves exactly as before. */
+    /** The four fields below live in this component and die with it. A caller that unmounts it
+     *  mid-edit (the topo editor's two-step sheet) binds them to keep them; `undefined` means "not seeded yet". */
     firstAscents?: FaClimber[]
-    form: FormStore<RouteFormInput, unknown> | RemoteForm<RouteFormInput, unknown>
+    form: FormStore<RouteFormInput, unknown>
     gradeFk?: number
     rating?: number
     /** When editing: the route, to seed the non-text fields once on mount. */
@@ -68,9 +65,8 @@
   if (tags === undefined) tags = [...(seed?.tags ?? [])]
   if (firstAscents === undefined) firstAscents = seed?.firstAscents.map((fa) => ({ ...fa })) ?? []
 
-  // A remote form posts these from their hidden inputs; a store sends what it holds, so they write into it.
+  // Component state, not inputs, so the store gets these written into it.
   $effect(() => {
-    if (!('capture' in form)) return
     form.fields.gradeFk.set(gradeFk == null ? '' : String(gradeFk))
     form.fields.rating.set(rating ? String(rating) : '')
     form.fields.tags.set([...(tags ?? [])])
@@ -103,13 +99,9 @@
   ]
 </script>
 
-<!-- Submitted values not typed directly: the block the route belongs to. -->
-<input name="blockId" type="hidden" value={block.id} />
+<input {...form.fields.blockId.as('hidden')} />
 
-<!-- Present only when editing, the create form leaves `id` unset. -->
-{#if form.fields.id.value() != null}
-  <input type="hidden" {...form.fields.id.as('text')} />
-{/if}
+<EditKeys id={form.fields.id} known={form.fields.known} />
 
 <div class="flex items-center gap-2 whitespace-nowrap">
   <Breadcrumb area={breadcrumbArea} userRegions={global.userRegions} />
@@ -122,7 +114,7 @@
   {m.routes_form_optionalNote()}
 </p>
 
-<RemoteFormInputWrapper
+<FieldWrapper
   class="space-y-2.5"
   field={form.fields.name}
   hint={m.routes_form_nameHint()}
@@ -141,9 +133,9 @@
       placeholder={m.routes_form_namePlaceholder()}
     />
   {/snippet}
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
-<RemoteFormInputWrapper
+<FieldWrapper
   class="space-y-2.5"
   field={form.fields.gradeFk}
   hint={m.routes_form_gradeHint()}
@@ -152,9 +144,9 @@
   required
 >
   <GradePicker grades={global.grades} gradingScale={global.gradingScale} name="gradeFk" bind:value={gradeFk} />
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
-<RemoteFormInputWrapper
+<FieldWrapper
   class="space-y-2.5"
   field={form.fields.rating}
   id="route-rating"
@@ -182,19 +174,13 @@
       </p>
     {/each}
   </Disclosure>
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
-<RemoteFormInputWrapper
-  class="space-y-1"
-  field={form.fields.tags}
-  id="route-tags"
-  label={m.routes_form_tagsLabel()}
-  required
->
+<FieldWrapper class="space-y-1" field={form.fields.tags} id="route-tags" label={m.routes_form_tagsLabel()} required>
   <RouteTagsInput name="tags" tags={regionTags(global.userRegions, block.regionFk)} bind:value={tags} />
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
-<RemoteFormInputWrapper
+<FieldWrapper
   class="space-y-2.5"
   field={form.fields.description}
   hint={m.routes_form_descriptionHint()}
@@ -210,12 +196,12 @@
       regionFk={block.regionFk}
     />
   {/snippet}
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
 <div class="space-y-4">
   <span class="text-surface-700-300 text-sm font-semibold">{m.routes_form_faLabel()}</span>
 
-  <RemoteFormInputWrapper
+  <FieldWrapper
     class="space-y-2.5"
     field={form.fields.firstAscentYear}
     hint={m.routes_form_faYearHint()}
@@ -236,9 +222,9 @@
         {/each}
       </select>
     {/snippet}
-  </RemoteFormInputWrapper>
+  </FieldWrapper>
 
-  <RemoteFormInputWrapper
+  <FieldWrapper
     class="space-y-2.5"
     field={form.fields.firstAscensionists}
     hint={m.routes_form_faHint()}
@@ -247,7 +233,7 @@
     required
   >
     <FirstAscentField regionFk={block.regionFk} bind:value={firstAscents} />
-  </RemoteFormInputWrapper>
+  </FieldWrapper>
 </div>
 
 <!-- Add only: an existing route takes new media on its detail page, where the media lives. -->

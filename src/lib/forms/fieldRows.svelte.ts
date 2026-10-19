@@ -1,7 +1,7 @@
 /**
- * Row identities for a repeatable remote-form field.
+ * Row identities for a repeatable form field.
  *
- * A remote form addresses its values by path (`mapLayers[2].url`), so the row list is positional:
+ * A form store addresses its values by path (`mapLayers[2].url`), so the row list is positional:
  * dropping a row from the middle shifts every row below it onto its neighbour's values unless the
  * whole list is re-seeded. This owns that, and the stable keys an `{#each}` needs to keep a removed
  * row's inputs from sliding up with it.

@@ -45,13 +45,12 @@
   action={{ label: m.common_add() }}
   cancelTo={areaHref}
   {denied}
-  seed={{ form: { element: null, fields: store.fields }, values: () => ({}) }}
+  seed={() => store.fields.set({})}
   title={m.blocks_addBlock()}
   waitFor={[{ notFound: m.areas_notFound(), resource: area, whole: false }]}
 >
   {#snippet children([area])}
-    <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the area changes, so the
-         `<form>` it owns is never destroyed and rebuilt under the remote form object. -->
+    <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the area changes. -->
     <BlockForm
       {area}
       {store}

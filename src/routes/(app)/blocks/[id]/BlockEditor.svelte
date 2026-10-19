@@ -52,10 +52,7 @@
   cancelTo={blockHref}
   {denied}
   fill={initialStep === 'pin'}
-  seed={{
-    form: { element: null, fields: store.fields },
-    values: ([block]) => ({ description: block.description, id: String(block.id), name: block.rawName }),
-  }}
+  seed={([block]) => store.fields.set({ description: block.description, id: String(block.id), name: block.rawName })}
   title={initialStep === 'pin' ? m.blocks_add_setLocationTitle() : title}
   waitFor={[
     { notFound: m.blocks_notFound(), resource: block, whole: true },
@@ -63,9 +60,7 @@
   ]}
 >
   {#snippet children([detail, area])}
-    <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the id changes, so the `<form>`
-         it owns is never destroyed and rebuilt under the remote form object, which accepts only one
-         element at a time. -->
+    <!-- `seedKey` and not `{#key}`: BlockForm re-seeds its own pin when the id changes. -->
     <BlockForm
       seedKey={detail.id}
       {area}

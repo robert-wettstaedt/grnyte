@@ -6,9 +6,9 @@
   import { entityHref } from '$lib/entities/href'
   import { MAX_OWNED_REGIONS, regionCreateSchema } from '$lib/entities/region/dto'
   import { createRegion } from '$lib/entities/region/writes'
+  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
   import Form from '$lib/forms/Form.svelte'
   import FormError from '$lib/forms/FormError.svelte'
-  import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import { formError } from '$lib/forms/schemas'
   import { createFormStore } from '$lib/forms/store.svelte'
   import type * as z from '$lib/forms/zod'
@@ -102,7 +102,7 @@
 {/snippet}
 
 {#snippet nameField()}
-  <RemoteFormInputWrapper
+  <FieldWrapper
     class="space-y-2"
     field={store.fields.name}
     hint={m.onboarding_nameHint()}
@@ -122,7 +122,7 @@
         placeholder={m.onboarding_namePlaceholder()}
       />
     {/snippet}
-  </RemoteFormInputWrapper>
+  </FieldWrapper>
 {/snippet}
 
 {#if capped}

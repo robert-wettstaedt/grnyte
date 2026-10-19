@@ -37,8 +37,8 @@ export async function assertLocalStack(dbReachable: boolean, password: string, e
 }
 
 /** Fail unless the page is still the document {@link markDocument} stamped. A full page load
- *  rebuilds the module singleton under test, so reaching the second entity with `goto` would make
- *  every assertion pass whether or not the bug is there. */
+ *  starts every form over, so reaching the second entity with `goto` would make every assertion
+ *  pass whether or not the bug is there. */
 export async function assertSameDocument(page: Page, hop: string) {
   const survived = await page.evaluate(() => (window as unknown as { __e2eDoc?: boolean }).__e2eDoc === true)
 
@@ -100,7 +100,8 @@ export async function markDocument(page: Page) {
 }
 
 export async function reachableUrl(url: string): Promise<boolean> {
-  return fetch(url, { signal: AbortSignal.timeout(3000) }).then(
+  // Generous: the first request of a run waits on the dev server's cold SSR compile.
+  return fetch(url, { signal: AbortSignal.timeout(15_000) }).then(
     () => true,
     () => false,
   )

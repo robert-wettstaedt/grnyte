@@ -2,12 +2,12 @@
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import MarkdownEditor from '$lib/components/MarkdownEditor/MarkdownEditor.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
-  import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
+  import EditKeys from '$lib/forms/EditKeys.svelte'
+  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
   import type { FormStore } from '$lib/forms/store.svelte'
   import type { MapData } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import type { RemoteForm } from '@sveltejs/kit'
   import BlockLocationField from './BlockLocationField.svelte'
   import type { BlockFormInput } from './dto'
 
@@ -21,7 +21,7 @@
     area: AreaDetail
     /** The pin is a rough guess ("?" on the map), not a confirmed spot. */
     estimated: boolean
-    form: FormStore<BlockFormInput, unknown> | RemoteForm<BlockFormInput, unknown>
+    form: FormStore<BlockFormInput, unknown>
     locating: boolean
     location: Coords | null
     mapData: MapData
@@ -47,20 +47,16 @@
   const global = getGlobalState()
 </script>
 
-<!-- Submitted values not typed directly: the area and the picked location. -->
-<input name="areaId" type="hidden" value={area.id} />
-<input name="lat" type="hidden" value={location?.lat ?? ''} />
-<input name="long" type="hidden" value={location?.long ?? ''} />
-<input name="estimated" type="hidden" value={location != null && estimated ? 'true' : ''} />
+<input {...form.fields.areaId.as('hidden')} />
+<input {...form.fields.lat.as('hidden')} />
+<input {...form.fields.long.as('hidden')} />
+<input {...form.fields.estimated.as('hidden')} />
 
-<!-- Present only when editing: the create form leaves `id` unset. -->
-{#if form.fields.id.value() != null}
-  <input type="hidden" {...form.fields.id.as('text')} />
-{/if}
+<EditKeys id={form.fields.id} known={form.fields.known} />
 
 <Breadcrumb {area} includeSelf userRegions={global.userRegions} />
 
-<RemoteFormInputWrapper
+<FieldWrapper
   class="space-y-2.5"
   field={form.fields.name}
   hint={m.blocks_add_nameHint()}
@@ -78,7 +74,7 @@
       placeholder={m.blocks_add_namePlaceholder()}
     />
   {/snippet}
-</RemoteFormInputWrapper>
+</FieldWrapper>
 
 <BlockLocationField
   {location}
@@ -93,7 +89,7 @@
 
 <!-- `regionFk` scopes the entity-reference picker. A block always hangs off a sector, so it comes
      straight off the area rather than through AreaFormFields' top-level-area fallback. -->
-<RemoteFormInputWrapper
+<FieldWrapper
   class="space-y-2.5"
   field={form.fields.description}
   hint={m.editor_descriptionHint()}
@@ -108,4 +104,4 @@
       regionFk={area.regionFk}
     />
   {/snippet}
-</RemoteFormInputWrapper>
+</FieldWrapper>

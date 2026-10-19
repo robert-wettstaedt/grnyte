@@ -1,7 +1,6 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
-  import { isSeeding } from '$lib/forms/seed.svelte'
   import Map from '$lib/map/Map.svelte'
   import type { MapData } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
@@ -44,7 +43,7 @@
 
 <div class="space-y-2.5">
   <!-- Not a labelable input, so this mirrors the real field label from
-       RemoteFormInputWrapper (semibold) instead of inventing its own style. -->
+       FieldWrapper (semibold) instead of inventing its own style. -->
   <div class="text-surface-700-300 flex items-center gap-2 text-sm font-semibold">
     {m.common_location()}
 
@@ -141,10 +140,7 @@
       <Switch
         checked={estimated}
         class="border-surface-200-800 flex w-full justify-between gap-3 border-t px-3 py-3"
-        onCheckedChange={(details) => {
-          // A seed resets the form, and zag answers a reset by unchecking: not the reader's choice.
-          if (!isSeeding()) onEstimatedChange(details.checked)
-        }}
+        onCheckedChange={(details) => onEstimatedChange(details.checked)}
       >
         <Switch.Label class="min-w-0">
           <span class="block text-sm font-semibold">{m.blocks_add_estimatedLabel()}</span>
