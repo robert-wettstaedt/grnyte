@@ -156,6 +156,8 @@ const NO_GATE: Record<string, string> = {
   'lib/entities/feedback/feedback.remote.ts#replyToFeedback': 'Same app.admin gate; recipient from the stored row.',
   'lib/entities/feedback/feedback.remote.ts#submitFeedback':
     'New row only; createdBy from session, and `requireAuthed` for the gate: 401 signed out, 503 when a backend is down.',
+  'lib/entities/feedback/mutators.server.ts#feedback.submit':
+    "Privileged, as `submitFeedback`: a new row only, `createdBy` from the session, and the mutate endpoint's verified token is the gate.",
   'lib/entities/file/files.remote.ts#createBunnyVideo':
     "Takes no id at all: it mints an empty video object in the caller's own host collection, and the region gate runs at finalizeVideo, which is where an entity to attach to is finally named.",
   'lib/entities/notification/mutators.server.ts#notifications.markFeedSeen':

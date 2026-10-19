@@ -1,20 +1,21 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { feedbackKind } from '$lib/entities/feedback/dto'
-  import { submitFeedback } from '$lib/entities/feedback/feedback.remote'
+  import { feedbackKind, feedbackSchema } from '$lib/entities/feedback/dto'
   import { FEEDBACK_KIND_KEYS } from '$lib/entities/feedback/mapper'
+  import { submitFeedback } from '$lib/entities/feedback/writes'
   import Form from '$lib/forms/Form.svelte'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { resolveMessage } from '$lib/i18n/message'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { lastAppRoute } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
 
-  // Reset, not merge: fields live on the module-level remote singleton, so the last report typed
-  // this session would reappear. `pathname` is the last non-settings screen, since this form is
-  // reached through settings. No `kind`: the inbox triages by it and only the writer can answer it.
+  // A store per visit. `pathname` is the last non-settings screen, since this form is reached
+  // through settings. No `kind`: the inbox triages by it and only the writer can answer it.
+  const store = createFormStore(feedbackSchema)
   const initial = {
     body: '',
     locale: getLocale(),
@@ -31,20 +32,17 @@
 </svelte:head>
 
 <Form
-  form={submitFeedback}
   {initial}
+  {store}
+  submit={submitFeedback}
   cancelTo={resolve('/settings')}
   {onSubmitted}
   submitLabel={m.feedback_send()}
   title={m.feedback_title()}
 >
-  <!-- Only rendered fields are submitted. -->
-  <input type="hidden" {...submitFeedback.fields.locale.as('text')} />
-  <input type="hidden" {...submitFeedback.fields.pathname.as('text')} />
-
   <RemoteFormInputWrapper
     class="space-y-2"
-    field={submitFeedback.fields.kind}
+    field={store.fields.kind}
     id="feedback-kind"
     label={m.feedback_kind()}
     required
@@ -54,9 +52,9 @@
            instead of the prompt. -->
       <select
         class="select min-h-12 w-full"
-        {...submitFeedback.fields.kind.as('select')}
+        {...store.fields.kind.as('select')}
         {...props}
-        value={submitFeedback.fields.kind.value() ?? ''}
+        value={store.fields.kind.value() ?? ''}
       >
         <!-- Not `disabled`: nothing is preselected, so it would render empty. A blank submit is
              refused by `z.enum`. -->
@@ -70,7 +68,7 @@
 
   <RemoteFormInputWrapper
     class="space-y-2"
-    field={submitFeedback.fields.body}
+    field={store.fields.body}
     hint={m.feedback_bodyHint()}
     id="feedback-body"
     label={m.feedback_body()}
@@ -78,7 +76,7 @@
   >
     {#snippet children(props)}
       <textarea
-        {...submitFeedback.fields.body.as('text')}
+        {...store.fields.body.as('text')}
         {...props}
         class="textarea"
         placeholder={m.feedback_bodyPlaceholder()}

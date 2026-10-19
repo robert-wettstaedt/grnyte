@@ -1,82 +1,41 @@
-import { resolve } from '$app/paths'
 import { command, form, getRequestEvent, query } from '$app/server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { feedback, users, userSettings } from '$lib/db/schema'
 import { feedbackReplyEmailContent } from '$lib/email/feedback'
 import { sendEmailOutcome } from '$lib/email/send.server'
-import { blank, formError } from '$lib/forms/schemas'
+import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { contactLocale } from '$lib/i18n/message'
-import { requireAuthed } from '$lib/remote/authed.server'
+import { drainAfterCommit, requireAuthed } from '$lib/remote/authed.server'
 import { requireAppAdmin } from '$lib/remote/require.server'
 import { error as httpError } from '@sveltejs/kit'
 import { and, desc, eq } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { authUsers } from 'drizzle-orm/supabase'
 import { createHash } from 'node:crypto'
-import { feedbackKind, type FeedbackItem } from './dto'
-import { feedbackExcerpt } from './mapper'
-import { notifyAdminsOfFeedback } from './notify.server'
+import { BODY_MAX, feedbackSchema, type FeedbackItem } from './dto'
+import { submitFeedbackRow } from './submit.server'
 
 // `auth.users` and `public.users` are both named "users": joining them unaliased fails only at
 // runtime (42P09), invisible to the typechecker. Same alias as `notify.server.ts`/`signup.server.ts`.
 const authUser = alias(authUsers, 'auth_user')
 
-const BODY_MIN = 10
-const BODY_MAX = 5000
-
-const feedbackSchema = z.object({
-  body: z
-    .string({ error: formError('form_required') })
-    .check(
-      z.trim(),
-      z.minLength(BODY_MIN, { error: formError('form_charsMin', { count: BODY_MIN }) }),
-      z.maxLength(BODY_MAX, { error: formError('form_charsMax', { count: BODY_MAX }) }),
-    ),
-  kind: z.enum(feedbackKind, { error: formError('form_required') }),
-  // Captured by the page, so a missing value is not an error.
-  locale: z._default(z.optional(z.string().check(z.maxLength(16))), ''),
-  pathname: z._default(z.optional(z.string().check(z.maxLength(2048))), ''),
-})
-
-/**
- * Record a piece of feedback and tell the admins.
- *
- * Plain `form`, not `authedForm`: the table has RLS on with no policies, so the write runs on the
- * privileged handle and `requireAuthed` is the gate. `createdBy` and `user_agent` come from the
- * session and the request, never from the payload.
- */
-export const submitFeedback = form(feedbackSchema, async (value) => {
+/** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
+export const submitFeedback = form(feedbackSchema, (value) => {
   const { request, url } = getRequestEvent()
   const { user } = requireAuthed()
+  const deferred: (() => Promise<void>)[] = []
 
-  const [created] = await pinnedTx((tx) =>
-    tx
-      .insert(feedback)
-      .values({
-        body: value.body,
-        createdBy: user.id,
-        kind: value.kind,
-        locale: blank(value.locale),
-        pathname: blank(value.pathname),
-        userAgent: request.headers.get('user-agent'),
-      })
-      .returning({ id: feedback.id }),
-  )
-
-  // Last, after the row exists, and never throws: a dead push or mail host cannot fail a report
-  // that is already recorded.
-  await notifyAdminsOfFeedback({
-    excerpt: feedbackExcerpt(value.body),
-    feedbackFk: created.id,
-    kind: value.kind,
-    origin: url.origin,
-    pathname: value.pathname,
-    username: user.username,
+  return pinnedTx((db) =>
+    submitFeedbackRow(
+      { ...value, userAgent: request.headers.get('user-agent') ?? undefined },
+      { afterCommit: (task) => void deferred.push(task), db, user },
+      url.origin,
+    ),
+  ).then(async (result) => {
+    await drainAfterCommit(deferred)
+    return result
   })
-
-  // A plain `form`, so this is read off the result rather than becoming a 303.
-  return { redirectTo: resolve('/(app)/settings') }
 })
 
 /**
