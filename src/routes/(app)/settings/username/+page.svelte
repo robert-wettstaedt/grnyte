@@ -1,14 +1,17 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { updateUsername } from '$lib/entities/user/users.remote'
+  import { updateUsernameSchema } from '$lib/entities/user/dto'
+  import { updateUsername } from '$lib/entities/user/writes'
   import AuthField from '$lib/forms/AuthField.svelte'
   import Form from '$lib/forms/Form.svelte'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'
 
   const global = getGlobalState()
+  const store = createFormStore(updateUsernameSchema)
 
   // Seeded once as the page opens (the app shell gates rendering until the user has loaded), so a failed
   // submit keeps what was typed instead of snapping back to the stored name.
@@ -24,15 +27,16 @@
 </svelte:head>
 
 <Form
-  form={updateUsername}
   {initial}
+  {store}
+  submit={updateUsername}
   cancelTo={resolve('/settings')}
   {onSubmitted}
   submitLabel={m.common_save()}
   title={m.settings_changeUsername()}
 >
   <AuthField
-    field={updateUsername.fields.username}
+    field={store.fields.username}
     label={m.auth_username()}
     type="text"
     placeholder={m.auth_usernamePlaceholder()}

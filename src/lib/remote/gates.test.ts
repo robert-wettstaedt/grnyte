@@ -184,6 +184,10 @@ const NO_GATE: Record<string, string> = {
     "Takes no input and reads only the invitations addressed to the session's own email, an address the client cannot name.",
   'lib/entities/region/stats.remote.ts#listAllRegions':
     'Not region scoped: it lists every region for the operator, so there is no region to gate in. Gated on locals.userPermissions holding app.admin before it touches the privileged client, like listErrorLogs and listFeedback.',
+  'lib/entities/user/mutators.server.ts#users.updateSettings':
+    "The same body as `updateUserSettings`: the session user's own settings row, through the shared writer, from a preference allowlist that takes no id.",
+  'lib/entities/user/mutators.server.ts#users.updateUsername':
+    "The same body as `updateUsername`: only the session user's own row, with the collision scope from the caller's own memberships.",
   'lib/entities/user/users.remote.ts#updateUsername':
     "Writes only the username of the session user's own row, and the collision scope comes from the caller's own memberships rather than from the request.",
   'lib/entities/user/users.remote.ts#updateUserSettings':
@@ -194,8 +198,12 @@ const NO_GATE: Record<string, string> = {
     'Errors happen signed out, so this is open on purpose: it names no id, writes only into the global client_error_logs, and takes createdBy from the session rather than the payload.',
   'routes/(app)/settings/account.remote.ts#updateEmail':
     "Supabase applies the change to the session's own auth user, so the session cookie authorizes it and the double confirmation mail is what makes the new address prove itself.",
+  'routes/(app)/settings/account.remote.ts#updateEmailCommand':
+    'The same body as `updateEmail`: the session cookie authorizes it and the double confirmation mail proves the new address.',
   'routes/(app)/settings/account.remote.ts#updatePassword':
     "Authorized by the session cookie plus a re-entry of the current password, checked against the session's own email; it names no account.",
+  'routes/(app)/settings/account.remote.ts#updatePasswordCommand':
+    'The same body as `updatePassword`: the session cookie plus a re-entry of the current password, against the session email.',
   'routes/(landing)/auth/(tabs)/signin/signin.remote.ts#signIn':
     'Runs before authentication because it is the authentication, and the only path it takes back is validated same-origin.',
   'routes/(landing)/auth/(tabs)/signup/signup.remote.ts#signUp':

@@ -12,7 +12,11 @@ declare global {
   const __APP_REPO__: string
 
   namespace App {
-    // interface Error {}
+    interface Error {
+      /** The form field a refusal concerns, for a store form reading a command's `HttpError`. */
+      field?: null | string
+      message: string
+    }
     interface Locals extends SafeSession {
       /** A backend this request needs was unreachable, so `claims`/`user`/`userRegions` are missing
        *  because they could not be read, not because the caller lacks them. */

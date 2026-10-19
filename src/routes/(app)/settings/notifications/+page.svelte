@@ -5,7 +5,7 @@
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import SettingSection from '$lib/components/Setting/SettingSection.svelte'
   import { sendTestPush } from '$lib/entities/notification/notifications.remote'
-  import { updateUserSettings } from '$lib/entities/user/users.remote'
+  import { updateUserSettings } from '$lib/entities/user/writes'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'

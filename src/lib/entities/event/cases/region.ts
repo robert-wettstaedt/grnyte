@@ -382,7 +382,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Single card, "Mara Lindqvist changed their name", with one change line labelled Username reading mara.l to Mara Lindqvist. The headline has no name slot, and the actor name is always the CURRENT one, so a reader who only knew the old name has to read the change line to connect the two.',
     id: 'REGION-07a',
-    writer: 'users.remote.ts:58',
+    writer: 'profile.server.ts:63',
   },
   {
     action: 'The same rename by somebody who belongs to three regions',
@@ -412,7 +412,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Three identical cards, one per region, because the feed is region-scoped and a rename is news in each. A reader who shares two of those regions sees the same sentence twice, since nothing on a card says which region it belongs to. Worth deciding: this is the case that argues for a region label.',
     id: 'REGION-07b',
-    writer: 'users.remote.ts:57',
+    writer: 'profile.server.ts:63',
   },
   {
     action: 'Rename yourself while belonging to no region at all',
@@ -421,7 +421,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'No card anywhere. The loop has nothing to run over, so the users row is renamed and the feed says nothing, which is correct: there is nobody the name was news to.',
     id: 'REGION-07c',
-    writer: 'users.remote.ts:57',
+    writer: 'profile.server.ts:63',
   },
   {
     action: 'Rename twice inside the 15-minute window, mara to mara.l to Mara Lindqvist',
@@ -437,7 +437,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'One card with one line, mara to Mara Lindqvist. The same per-column fold the role change gets, and renaming back to the starting name inside the window would leave no card at all.',
     id: 'REGION-07d',
-    writer: 'users.remote.ts:58',
+    writer: 'profile.server.ts:63',
   },
   {
     action: 'An admin changes your role, and you rename yourself within half an hour',
@@ -459,7 +459,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Two cards, one per actor: "Mara Lindqvist changed their name" over the Username line, and "You changed the role of Mara Lindqvist" over the Role line, each with her profile row. Two people did two unrelated things to one person, and one card could say neither: it read "Mara Lindqvist and others edited Mara Lindqvist" with a "2 edits, 2 people" sub line, which names an actor who did half of it. The entity key carries the actor now, and it was the last key that did not.',
     id: 'REGION-07e',
-    writer: 'users.remote.ts:58',
+    writer: 'profile.server.ts:63',
   },
 
   {
