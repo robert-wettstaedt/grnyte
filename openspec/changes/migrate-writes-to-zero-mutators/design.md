@@ -125,8 +125,11 @@ the original. That covers the native client too.
 
 `afterCommit` keeps its meaning. The mutate handler collects deferred work per mutation, drops it
 when that mutation's result is an error (its transaction rolled back), and drains the rest before
-answering, so `.server` resolving means the side effects have run. Exactly-once comes from three
-existing mechanisms, not a new table:
+answering the HTTP push. That answer is not what the browser waits on: Zero writes the mutation
+result inside the transaction and pokes it down, so `.server` can resolve as soon as the write
+commits, while its side effects are still running. Side effects are best-effort, a failure is
+logged and never shown, and any outcome a screen reports is read from data, never inferred from
+`.server` resolving. Exactly-once comes from three existing mechanisms, not a new table:
 
 - Zero never re-runs a mutation whose id is at or below `lastMutationID`, and that bump commits
   with the write.
@@ -144,8 +147,10 @@ The invitation email moves from inside the transaction to after commit. `sendInv
 keeps writing `last_sent_at` (the attempt, which feeds the throttle) and now also writes
 `last_delivered_at` when `sendEmail` returns true. `InvitationRow` reads both: delivered shows the
 existing "sent ..." line, an attempt newer than the last delivery shows "not delivered" with the
-resend action. The region page already calls `refreshInvitations()` after an invite, and because
-side effects drain before the answer, the refreshed row is already true.
+resend action. Because the send may still be running when the write answers, an attempt younger
+than `INVITE_SENDING_MS` with no delivery reads "sending", and the region page refetches the list
+until it settles. A screen that branches on synced state across a write reads it before the write,
+since the change can sync in before the write answers (the welcome screen of `/regions/new`).
 
 ### 7. A store-backed form layer beside `Form.svelte`
 

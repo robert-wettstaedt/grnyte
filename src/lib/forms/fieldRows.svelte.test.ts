@@ -36,6 +36,12 @@ describe('fieldRows', () => {
     expect(rows.keys).toEqual([0, 1])
   })
 
+  it('writes an added row as blanks, so the list never has a hole', () => {
+    const { rows, written } = form([{ name: 'a', url: 'u' }])
+    rows.add()
+    expect(written.at(-1)).toEqual([{ name: 'a', url: 'u' }, BLANK])
+  })
+
   it('gives an added row a key of its own', () => {
     const { rows } = form([])
     rows.add()

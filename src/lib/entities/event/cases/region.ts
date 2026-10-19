@@ -56,7 +56,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Single card, "You invited lea.hofer@example.com". The address is read off the row rather than off an entity, so no profile row is drawn and there is no change line: the headline already is the address.',
     id: 'REGION-01a',
-    writer: 'regions.remote.ts:274',
+    writer: 'invitations.server.ts:101',
   },
   {
     action: 'The same invite, with Resend failing to accept the mail',
@@ -65,7 +65,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'No card. The event is written only inside `if (sent)`, so a failed send leaves a live invitation and a silent log rather than announcing a mail nobody received.',
     id: 'REGION-01b',
-    writer: 'regions.remote.ts:270',
+    writer: 'invitations.server.ts:101',
   },
   {
     action: 'Invite the same address again within 15 minutes (a second Invite on a live invitation)',
@@ -83,7 +83,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Still one card, not two. The fold key is the actor, the region, the object and the metadata, and `invite` joins its own kind, so the open event is re-dated to now and keeps its id. Two cards here would mean the repeat collapse is not working.',
     id: 'REGION-01c',
-    writer: 'regions.remote.ts:274',
+    writer: 'invitations.server.ts:101',
   },
   {
     action: 'Invite two different addresses minutes apart',
@@ -109,7 +109,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Two cards, minutes apart and never one. Both events name the same subject (the inviter), so only the metadata keeps them apart, and the group key carries it for exactly this reason: one card could headline one address only.',
     id: 'REGION-01d',
-    writer: 'regions.remote.ts:274',
+    writer: 'invitations.server.ts:101',
   },
   {
     action: 'The first send failed, so somebody else presses Resend on the pending invitation row',
@@ -128,7 +128,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Single card, "Sofia Brandt invited lea.hofer@example.com", logged in the name of the person who pressed Resend rather than the original inviter. Same sentence as REGION-01a, and no change line.',
     id: 'REGION-01e',
-    writer: 'invite.server.ts:461',
+    writer: 'invite.server.ts:478',
   },
   {
     action: 'Resend an invitation the region has already logged',
@@ -137,7 +137,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       "No card, and nothing moves. A resend is not a new invitation, so the write is skipped rather than left to the fold: joining the open event would re-date somebody else's card to now and float it back to the top, and past the window it would log a second invitation instead.",
     id: 'REGION-01f',
-    writer: 'invite.server.ts:460',
+    writer: 'invite.server.ts:478',
   },
 
   {
@@ -156,7 +156,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Single card, "You revoked the invite for lea.hofer@example.com". A `remove` hands its metadata to `oldValue`, and the stored-name rule reads `newValue ?? oldValue`, so the address still lands in the headline. No row and no change line.',
     id: 'REGION-02a',
-    writer: 'regions.remote.ts:313',
+    writer: 'invitations.server.ts:158',
   },
   {
     action: 'Invite an address, then revoke it a few minutes later',
@@ -182,7 +182,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'TWO cards, "You revoked the invite for lea.hofer@example.com" over "You invited lea.hofer@example.com". Two events on the server (a `remove` does not join an open `invite`), and the client keeps them apart because the group key carries the verb: without that they shared the key (same subject, same address) and neither sentence survived, so the card read "You edited lea.hofer@example.com, 2 edits", asserting an edit to an email address.',
     id: 'REGION-02b',
-    writer: 'regions.remote.ts:313',
+    writer: 'invitations.server.ts:158',
   },
   {
     action: 'Sofia invites the address, then Mara revokes it from the same screen',
@@ -208,7 +208,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Two cards, "Mara Lindqvist revoked the invite for lea.hofer@example.com" over "Sofia Brandt invited lea.hofer@example.com". Two reasons here rather than one: the subject is the ACTOR on both, so the keys differ by actor, and the verb is in the key as well. REGION-02b is the same pair by one person, and stays two cards on the verb alone.',
     id: 'REGION-02c',
-    writer: 'regions.remote.ts:313',
+    writer: 'invitations.server.ts:158',
   },
   {
     action: 'Revoke an invitation, then Undo from the toast',
@@ -217,7 +217,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'No card, and the revoke card disappears. The filter is the address, the region and the verb but not the actor, so any admin undoing it erases the record; the invitation card survives, carrying a different verb.',
     id: 'REGION-02d',
-    writer: 'regions.remote.ts:335',
+    writer: 'invitations.server.ts:146',
   },
 
   {
@@ -227,7 +227,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Single card, "Mara Lindqvist joined". No change line, and no profile row either: the sentence lives on the invitation entry, which declares `names: stored`, so the joiner is kept out of the card refs even though the event resolves her perfectly well. Worth deciding, since this is the one membership card whose subject is still there to link to.',
     id: 'REGION-03a',
-    writer: 'invite.server.ts:188',
+    writer: 'invite.server.ts:212',
   },
   {
     action: 'Reopen the accept link, or double tap Join, while already an active member',
@@ -236,7 +236,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'No card. The membership insert and the event share the `existing == null` branch, so a reopened link marks the invitation used and writes nothing.',
     id: 'REGION-03b',
-    writer: 'invite.server.ts:162',
+    writer: 'invite.server.ts:180',
   },
 
   {
@@ -253,7 +253,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Single card, "You changed the role of Mara Lindqvist", with one change line labelled Role reading User to Maintainer. The stored values are the enum members, and the role formatter is what makes the chips read like the member list. The subject is somebody else and is still in the region, so her profile row is drawn under it.',
     id: 'REGION-04a',
-    writer: 'regions.remote.ts:414',
+    writer: 'members.server.ts:147',
   },
   {
     action: 'Change the same member from User to Maintainer, then to Admin, inside the 15-minute window',
@@ -271,7 +271,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Still one card with one line, User to Admin. The intermediate Maintainer is erased, which is the point: it was never a role she was left holding.',
     id: 'REGION-04b',
-    writer: 'regions.remote.ts:414',
+    writer: 'members.server.ts:147',
   },
   {
     action: 'Change a role, then change it back inside the window',
@@ -280,7 +280,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'No card at all. The change row that returned to its old value is deleted, and an update left with no changes deletes itself.',
     id: 'REGION-04c',
-    writer: 'regions.remote.ts:414',
+    writer: 'members.server.ts:147',
   },
   {
     action: "Change the same person's role in one region, then in a second region, inside the window",
@@ -303,7 +303,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Two cards, one per region. Both the write fold and the group key carry the region, which they have to: a person holds a different role in each, and one card could report only one of them. Nothing on either card says WHICH region, so they read alike apart from the roles.',
     id: 'REGION-04d',
-    writer: 'regions.remote.ts:414',
+    writer: 'members.server.ts:147',
   },
 
   {
@@ -313,7 +313,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Single card, "You removed Mara Lindqvist from the region". The headline names her off the resolved subject, and no profile row is drawn: she is out of the region, so the link would be a dead end. No change line either, deliberately, since the removal stores no old and new pair.',
     id: 'REGION-05a',
-    writer: 'regions.remote.ts:466',
+    writer: 'members.server.ts:66',
   },
   {
     action: 'Remove one member, then remove a second one minutes later',
@@ -325,7 +325,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Two cards, never one "deleted entries" card. A membership ends with `remove`, not `delete`, so neither event is grouped as a removal, and the key is per person: the reader is told each name rather than a count.',
     id: 'REGION-05b',
-    writer: 'regions.remote.ts:466',
+    writer: 'members.server.ts:66',
   },
   {
     action: 'Remove a member, then Undo from the toast',
@@ -334,7 +334,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'No card, and the removal card goes with it. The filter demands `metadata: null`, which is what keeps it off a revoked invitation on the same subject, and it is scoped to the region, so a removal from a second region survives.',
     id: 'REGION-05c',
-    writer: 'regions.remote.ts:515',
+    writer: 'members.server.ts:111',
   },
 
   {
@@ -344,7 +344,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Single card, "Mara Lindqvist left the region". The sentence names only the actor, who is also the subject, so there is no name slot to fill, no row and no change line. Leaving has its own verb precisely so this does not read as "Mara removed Mara".',
     id: 'REGION-06a',
-    writer: 'regions.remote.ts:541',
+    writer: 'members.server.ts:43',
   },
   {
     action: "Leave a region you are the sole remaining admin of (the row is not rendered, so this is the API's answer)",
@@ -353,7 +353,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'No card. The last-admin check runs before the event, and both statements share the transaction, so nothing is logged for an attempt that cannot succeed.',
     id: 'REGION-06b',
-    writer: 'regions.remote.ts:532',
+    writer: 'members.server.ts:34',
   },
   {
     action: 'Leave a region, get invited back, and accept within half an hour',
@@ -365,7 +365,7 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'Two cards, "Mara Lindqvist joined" over "Mara Lindqvist left the region", each with its own sentence. Neither event carries metadata, so the verb is the only thing keeping them apart: without it in the group key they merged and the card read "Mara Lindqvist edited Mara Lindqvist, 2 edits", naming neither the departure nor the return.',
     id: 'REGION-06c',
-    writer: 'regions.remote.ts:541',
+    writer: 'members.server.ts:43',
   },
 
   {
@@ -541,6 +541,6 @@ export const REGION_CASES: EventCase[] = [
     expected:
       'The honest degraded state: the card keeps the sentence and loses the name, "You removed ... from the region" with the unnamed placeholder in the slot. A removal stores no name of its own, because metadata is exactly what tells it apart from a revoked invitation and so has to stay null. Reachable when a departed member falls outside what the reader may sync.',
     id: 'REGION-10a',
-    writer: 'regions.remote.ts:466',
+    writer: 'members.server.ts:66',
   },
 ]

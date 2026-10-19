@@ -34,6 +34,8 @@ hold our fields or show a mutator's field errors, so the form layer has to move 
 - Writes are refused while Zero is not connected, as today; nothing is queued offline.
 - The `/f/<id>` share page keeps `setFileVisibility` and `deleteFile` as remote functions for good:
   it renders outside the `(app)` layout, so it has no Zero client to write through.
+- `acceptRegionInvitation` stays a remote function for good, for the same reason: `/invite/accept`
+  renders outside `(app)`. The in-app accept on the settings page moves to a mutator.
 - The remote functions stay deployed, unused, for one release, then are deleted with the next
   ordinary release. **BREAKING** for that later release only: a tab still running a client older
   than this change loses its write endpoints once they are deleted.

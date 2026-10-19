@@ -5,8 +5,9 @@
   import SettingSection from '$lib/components/Setting/SettingSection.svelte'
   import { entityHref } from '$lib/entities/href'
   import { regionAdminScreen } from '$lib/entities/region/adminScreen.svelte'
-  import { addRegionTag, regionTagUsage, removeRegionTag, renameRegionTag } from '$lib/entities/region/regions.remote'
+  import { regionTagUsage } from '$lib/entities/region/regions.remote'
   import { MAX_TAGS, regionTags, tagNameSchema } from '$lib/entities/region/tagVocabulary'
+  import { addRegionTag, removeRegionTag, renameRegionTag } from '$lib/entities/region/writes'
   import { resolveIssueMessage } from '$lib/forms/issue'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -57,7 +58,7 @@
     adding = true
 
     try {
-      await addRegionTag({ name, regionFk: screen.regionId })
+      await addRegionTag(screen.regionId, name)
       // Cleared but never blurred: adding several tags in a row is one field and one Return each.
       // Only if the field still holds what was sent, so a fast typist does not lose the next word.
       if (draft.trim() === name) draft = ''
@@ -71,7 +72,7 @@
 
   const onRename = async (from: string, to: string) => {
     try {
-      await renameRegionTag({ from, regionFk: screen.regionId, to })
+      await renameRegionTag(screen.regionId, from, to)
       await refreshUsage()
       toaster.create({ title: m.region_tagRenamed({ from, to }), type: 'success' })
     } catch (cause) {
@@ -84,7 +85,7 @@
   // confirm is the safeguard instead, which is the better place for it anyway.
   const onRemove = async (name: string) => {
     try {
-      await removeRegionTag({ name, regionFk: screen.regionId })
+      await removeRegionTag(screen.regionId, name)
       await refreshUsage()
       toaster.create({ title: m.region_tagRemoved({ name }), type: 'info' })
     } catch (cause) {

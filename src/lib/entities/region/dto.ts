@@ -1,6 +1,10 @@
 import type { Pathname } from '$app/types'
-import type { AppRole, Permission } from '$lib/entities/rolePermission/dto'
-import type { RegionSettings } from './settings'
+import { assignableRoles, type AppRole, type AssignableRole, type Permission } from '$lib/entities/rolePermission/dto'
+import { formError, nameSchema, stringToInt } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
+import { locales } from '$lib/paraglide/runtime'
+import { mapLayerSchema, type RegionSettings } from './settings'
+import { tagNameSchema } from './tagVocabulary'
 
 /** The invitation screen, without its `token`. Typed as a {@link Pathname} so a moved route is a
  *  compile error rather than a dead link in an email that has already gone out. */
@@ -10,12 +14,6 @@ const INVITE_ACCEPT_PATH: Pathname = '/invite/accept'
  *  is open to authenticated users), so this is what keeps that from being unbounded. Counted over
  *  `regions.created_by`, which does not shrink when the founder leaves. */
 export const MAX_OWNED_REGIONS = 3
-
-/** The seat cap a new region starts with, and the `regions.max_members` column default. Per region,
- *  so it is raised for one region without moving anybody else. Lives here rather than as a literal
- *  in `schema.ts` because /help/faq publishes it: a number that drifts from the column is a public lie,
- *  not a typo. */
-export const DEFAULT_MAX_MEMBERS = 10
 
 /**
  * Where a user with no region is bounced from: the post-sign-in landing page and the map, the two
@@ -54,6 +52,8 @@ export interface RegionInvitationItem {
   email: string
   id: number
   invitedBy: string | undefined
+  /** When a send was last accepted. Older than `lastSentAt` means the latest attempt failed. */
+  lastDeliveredAt: Date | undefined
   /** When the mail last went out, so the row can say "sent 5 minutes ago" and an admin can tell
    *  "give it a moment" from "resend it". */
   lastSentAt: Date | undefined
@@ -117,4 +117,52 @@ export interface UserRegion extends RegionMembership {
  */
 export function acceptPath(token: string): string {
   return `${INVITE_ACCEPT_PATH}?token=${encodeURIComponent(token)}`
+}
+
+export const assignableRoleSchema = z.enum(assignableRoles)
+
+export const regionCreateSchema = z.object({ name: nameSchema })
+
+export const regionActionSchema = z.object({ id: stringToInt, name: nameSchema })
+
+export const regionMapLayersSchema = z.object({
+  id: stringToInt,
+  /** Fingerprint of the layers the form was seeded with, so a save proves what it replaces.
+   *  Defaulted, so a tab loaded before this deployed lands on the stale refusal rather than
+   *  an unrenderable invalid_type issue. */
+  known: z._default(z.optional(z.string()), ''),
+  mapLayers: z._default(z.optional(z.array(mapLayerSchema)), []),
+})
+
+export const regionTagSchema = z.object({ name: tagNameSchema, regionFk: z.number() })
+
+export const renameRegionTagSchema = z.object({ from: z.string(), regionFk: z.number(), to: tagNameSchema })
+
+export const removeRegionTagSchema = z.object({ name: z.string(), regionFk: z.number() })
+
+/** `locale` is the sender's, the mail's fallback language: a mutator's request is zero-cache's. */
+export const inviteMemberSchema = z.object({
+  email: z.email({ error: formError('auth_emailInvalid') }),
+  locale: z.optional(z.enum(locales)),
+  regionFk: stringToInt,
+})
+
+export const invitationSchema = z.object({ invitationFk: z.number(), locale: z.optional(z.enum(locales)) })
+
+export const memberSchema = z.object({ regionFk: z.number(), userFk: z.number() })
+
+export const memberRoleSchema = z.object({ regionFk: z.number(), role: assignableRoleSchema, userFk: z.number() })
+
+export const regionFkSchema = z.object({ regionFk: z.number() })
+
+export interface RemovedMemberSnapshot {
+  regionFk: number
+  /** Not `AppRole`: undo may only put a member back on a role the app can assign in the first
+   *  place, so `app_admin` cannot be smuggled in through the snapshot. */
+  role: AssignableRole
+  userFk: number
+}
+
+export interface RevokedInvitationSnapshot {
+  invitationFk: number
 }
