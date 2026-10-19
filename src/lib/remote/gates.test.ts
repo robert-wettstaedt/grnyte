@@ -54,6 +54,9 @@ import { describe, expect, it } from 'vitest'
  *   `requireEditableTopo`
  * - `toggleReactionRow`, `postCommentRow`, `deleteCommentRow` and `restoreCommentRow` load the event or the
  *   comment through `requireRow`, checked against the stored row
+ * - the region bodies in `edit.server.ts`, `invitations.server.ts` and `members.server.ts` each start with
+ *   `canEditRegion` / `assertCanEdit` on the submitted region, or load the invitation through
+ *   `loadEditable`; `acceptMyInvitationRow` matches the invitation to the session's own address
  * - `createRouteRow` checks `canAddRoute` on the stored block
  * - `deleteRouteRow` loads the route through `requireRow` with `canDeleteRoute`
  * - `restoreRouteRow` gates a recreate on `canAddRoute` and an undelete on `canDeleteRoute`, both on stored rows
@@ -66,7 +69,9 @@ import { describe, expect, it } from 'vitest'
  */
 const GATES = new Set([
   'acceptInvitation',
+  'acceptMyInvitationRow',
   'addParkingRow',
+  'addRegionTagRow',
   'assertCanEdit',
   'assertIsMember',
   'canAddArea',
@@ -103,7 +108,11 @@ const GATES = new Set([
   'deleteRouteRow',
   'deleteTopoRow',
   'estimateBlockLocationRow',
+  'inviteRegionMemberRow',
   'postCommentRow',
+  'removeRegionMemberRow',
+  'removeRegionTagRow',
+  'renameRegionTagRow',
   'reorderBlocksRow',
   'reorderToposRow',
   'replaceTopoImageRow',
@@ -115,14 +124,18 @@ const GATES = new Set([
   'requireRow',
   'requireRowForm',
   'resendInvitation',
+  'resendRegionInvitationRow',
   'resolveAttachRegion',
   'restoreAreaRow',
   'restoreBlockRow',
   'restoreCommentRow',
   'restoreInvitation',
   'restoreParkingRow',
+  'restoreRegionInvitationRow',
+  'restoreRegionMemberRow',
   'restoreRouteRow',
   'revokeInvitation',
+  'revokeRegionInvitationRow',
   'saveTopoLinesRow',
   'setBlockLocationRow',
   'setFavorite',
@@ -132,6 +145,9 @@ const GATES = new Set([
   'updateAreaRow',
   'updateAscentRow',
   'updateBlockRow',
+  'updateRegionMapLayersRow',
+  'updateRegionMemberRoleRow',
+  'updateRegionRow',
   'updateRouteRow',
   'verifyUpload',
 ])
@@ -178,6 +194,10 @@ const NO_GATE: Record<string, string> = {
     "Registers the caller's own device: every owner column comes from the session, and the endpoint from the payload carries its own inline ownership check rather than a region gate.",
   'lib/entities/notification/notifications.remote.ts#unsubscribeFromPush':
     "Deletes by endpoint AND the session user's id, so a caller who names somebody else's device deletes nothing.",
+  'lib/entities/region/mutators.server.ts#regions.create':
+    'Privileged, as `createRegion`: a new region only, its founder from the session, the cap checked under the founder lock.',
+  'lib/entities/region/mutators.server.ts#regions.leave':
+    "The same body as `leaveRegion`: only the caller's own membership, found by regionFk plus ctx.user.id.",
   'lib/entities/region/regions.remote.ts#createRegion':
     "Founds a new region, so there is no region to scope to yet: it takes a name only, and the founder's membership row is written from ctx.user rather than from the request.",
   'lib/entities/region/regions.remote.ts#leaveRegion':

@@ -10,7 +10,8 @@
   import SettingSection from '$lib/components/Setting/SettingSection.svelte'
   import type { UserInvitationItem } from '$lib/entities/region/dto'
   import { regionDisplayName } from '$lib/entities/region/mapper'
-  import { acceptMyInvitation, listMyInvitations } from '$lib/entities/region/regions.remote'
+  import { listMyInvitations } from '$lib/entities/region/regions.remote'
+  import { acceptMyInvitation } from '$lib/entities/region/writes'
   import { roleLabel } from '$lib/entities/rolePermission/mapper'
   import type { GradingScale, UnitSystem } from '$lib/entities/user/dto'
   import { updateUserSettings } from '$lib/entities/user/writes'
@@ -54,7 +55,7 @@
     joining = invitation.id
 
     try {
-      await acceptMyInvitation({ invitationFk: invitation.id })
+      await acceptMyInvitation(invitation.id)
       // A full page navigation, not `goto`: the Zero client is session scoped and preloads
       // userRegions at init, so a client-side navigation would sync nothing of the new region.
       location.href = resolve('/explore')

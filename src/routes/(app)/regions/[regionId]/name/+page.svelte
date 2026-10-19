@@ -2,16 +2,19 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { entityHref } from '$lib/entities/href'
   import { regionAdminScreen } from '$lib/entities/region/adminScreen.svelte'
-  import { updateRegion } from '$lib/entities/region/regions.remote'
+  import { regionActionSchema } from '$lib/entities/region/dto'
+  import { updateRegion } from '$lib/entities/region/writes'
   import AuthField from '$lib/forms/AuthField.svelte'
   import Form from '$lib/forms/Form.svelte'
-  import { seedForm, seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { toaster } from '$lib/state/toast'
   import RegionAdminRequired from '../RegionAdminRequired.svelte'
   import RegionScreen from '../RegionScreen.svelte'
 
   const screen = regionAdminScreen()
+  const store = createFormStore(regionActionSchema)
 
   // Keyed on `synced`: a membership can land before the region it names, seeding '' under a
   // field the schema rejects. `Form` stays the route's direct child, or its sticky header breaks.
@@ -20,7 +23,7 @@
     () => {
       // Narrowing only: the key above is undefined whenever the membership is.
       if (screen.membership == null) return
-      void seedForm(updateRegion, { id: String(screen.regionId), name: screen.membership.name })
+      store.fields.set({ id: String(screen.regionId), name: screen.membership.name })
     },
   )
 
@@ -39,19 +42,15 @@
   </RegionScreen>
 {:else}
   <Form
-    form={updateRegion}
+    {store}
+    submit={updateRegion}
     cancelTo={entityHref('regions', screen.regionId)}
     {onSubmitted}
     submitLabel={m.common_save()}
     title={m.settings_changeRegionName()}
   >
-    <!-- Only rendered fields are submitted, so the id needs an input of its own: seeding it via
-       `fields.set` alone leaves it out of the form data, and the schema then fails on a field
-       with nothing to attach the error to. -->
-    <input type="hidden" {...updateRegion.fields.id.as('text')} />
-
     <AuthField
-      field={updateRegion.fields.name}
+      field={store.fields.name}
       label={m.settings_regionName()}
       type="text"
       autocomplete="off"

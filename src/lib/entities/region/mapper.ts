@@ -2,7 +2,7 @@ import { alreadyDisplayable, toDisplayName, type DisplayName } from '$lib/entiti
 import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
-import type { RegionDetail, RegionMemberItem, RegionMembership, SeatState } from './dto'
+import type { RegionDetail, RegionInvitationItem, RegionMemberItem, RegionMembership, SeatState } from './dto'
 import { readRegionSettings, unknownRegionSettings } from './settings'
 
 export type RegionDetailRow = NonNullable<QueryRow<typeof queries.region>>
@@ -31,6 +31,20 @@ export function regionDisplayName(region: Pick<RegionMembership, 'name' | 'synce
     return alreadyDisplayable(m.common_syncing())
   }
   return toDisplayName(region.name)
+}
+
+/** How long an undelivered attempt reads as still sending: the mail goes out after the write commits,
+ *  and the provider answers within a second or two. */
+export const INVITE_SENDING_MS = 10_000
+
+/** Where an invitation's mail stands: `sending` until the after-commit send has had its chance. */
+export function invitationDelivery(
+  { lastDeliveredAt, lastSentAt }: Pick<RegionInvitationItem, 'lastDeliveredAt' | 'lastSentAt'>,
+  now: number,
+): 'delivered' | 'failed' | 'pending' | 'sending' {
+  if (lastSentAt == null) return 'pending'
+  if ((lastDeliveredAt?.getTime() ?? 0) >= lastSentAt.getTime()) return 'delivered'
+  return now - lastSentAt.getTime() < INVITE_SENDING_MS ? 'sending' : 'failed'
 }
 
 /**

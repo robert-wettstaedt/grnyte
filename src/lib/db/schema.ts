@@ -7,7 +7,7 @@ import {
 } from '$lib/auth'
 import { feedbackKind, feedbackStatus } from '$lib/entities/feedback/dto'
 import { videoReadiness } from '$lib/entities/file/dto'
-import { DEFAULT_MAX_MEMBERS } from '$lib/entities/region/dto'
+import { DEFAULT_MAX_MEMBERS } from '$lib/entities/region/limits'
 import type { RegionSettings } from '$lib/entities/region/settings'
 import type * as z from '$lib/forms/zod'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
@@ -457,6 +457,9 @@ export const regionInvitations = table(
     invitedByFk: integer('invited_by')
       .notNull()
       .references((): AnyColumn => users.id),
+    /** When the mail provider last ACCEPTED one. Older than `lastSentAt` means the latest attempt
+     *  failed, which the invitation row shows as "not delivered". */
+    lastDeliveredAt: timestamp('last_delivered_at', { withTimezone: true }),
     /** When the mail last went out. Feeds the resend throttle and the "sent 3 days ago" line.
      *  `baseFields` has no `updatedAt`, and inferring recency from a refreshed `expiresAt` is the
      *  kind of cleverness that reads as a bug later. */

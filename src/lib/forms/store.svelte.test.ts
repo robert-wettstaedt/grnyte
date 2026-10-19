@@ -2,6 +2,7 @@ import { routeActionSchema } from '$lib/entities/route/dto'
 import { flushSync } from 'svelte'
 import { describe, expect, it } from 'vitest'
 import { createFormStore } from './store.svelte'
+import * as z from './zod'
 
 const store = () => createFormStore(routeActionSchema)
 
@@ -154,5 +155,50 @@ describe('createFormStore submit', () => {
     })
     expect(form.fields.allIssues()).toEqual([])
     await expect(form.submit(() => Promise.reject(new TypeError('boom')))).rejects.toThrow('boom')
+  })
+})
+
+describe('createFormStore, nested fields', () => {
+  const layers = () =>
+    createFormStore(z.object({ mapLayers: z.array(z.object({ name: z.string(), url: z.url({ error: 'bad url' }) })) }))
+
+  it('names, captures and validates a field inside a list the way a remote form does', async () => {
+    const form = layers()
+    form.fields.set({
+      mapLayers: [
+        { name: 'Ortho', url: 'https://ok.example' },
+        { name: 'Relief', url: '' },
+      ],
+    })
+    const url = form.fields.mapLayers[1].url
+    expect(url.as('text').name).toBe('mapLayers[1].url')
+
+    const input = Object.assign(document.createElement('input'), { name: 'mapLayers[1].url', value: 'nope' })
+    form.capture({ target: input } as unknown as Event)
+    expect(form.fields.mapLayers.value()?.[1]).toEqual({ name: 'Relief', url: 'nope' })
+
+    expect((await form.validate()).ok).toBe(false)
+    expect(url.issues()?.map((issue) => issue.message)).toEqual(['bad url'])
+    expect(form.fields.mapLayers[0].url.issues()).toBeUndefined()
+  })
+
+  it('puts an issue on a row nothing renders on the form, not on the row', async () => {
+    const form = layers()
+    form.fields.set({ mapLayers: [{ name: 'Ortho', url: 'https://ok.example' }, undefined as never] })
+    void form.fields.mapLayers[1]
+    form.fields.mapLayers[0].url.as('text')
+
+    expect((await form.validate()).ok).toBe(false)
+    expect(form.fields.allIssues()?.filter((issue) => issue.path.length === 0)).toHaveLength(1)
+  })
+
+  it('leaves a bracketed name alone when no store field rendered it', () => {
+    const form = layers()
+    form.fields.set({ mapLayers: [{ name: 'Ortho', url: 'https://ok.example' }] })
+
+    const input = Object.assign(document.createElement('input'), { name: 'mapLayers[0].name', value: 'typed' })
+    form.capture({ target: input } as unknown as Event)
+
+    expect(form.fields.mapLayers.value()?.[0]).toEqual({ name: 'Ortho', url: 'https://ok.example' })
   })
 })

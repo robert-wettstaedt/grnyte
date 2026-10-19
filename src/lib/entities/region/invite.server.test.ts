@@ -41,7 +41,7 @@ import {
 import { stallsOnLock } from './testLock'
 
 /**
- * The one mock in this file. `.env` carries a live `RESEND_API_KEY` (the Playwright spec needs
+ * The mail mock. `.env` carries a live `RESEND_API_KEY` (the Playwright spec needs
  * one), so an unmocked `resendInvitation` would mail a real person on every `npm test`. Capturing
  * the payload is the point anyway: it is what makes the accept URL, the recipient and the
  * idempotency key assertable without an inbox.
@@ -54,6 +54,20 @@ vi.mock('$lib/email/send.server', () => ({
     return mail.result
   },
 }))
+
+// A push that fails after the mail went out, to prove it cannot take the delivery stamp with it.
+const push = vi.hoisted(() => ({ fail: false }))
+
+vi.mock('../notification/notification.server', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../notification/notification.server')>()
+  return {
+    ...real,
+    notifyOutOfBand: async (...args: Parameters<typeof real.notifyOutOfBand>) => {
+      if (push.fail) throw new Error('push down')
+      return real.notifyOutOfBand(...args)
+    },
+  }
+})
 
 const REGION = '__invite_region__'
 
@@ -167,6 +181,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   mail.sent.length = 0
   mail.result = true
+  push.fail = false
   if (reachable) await reset()
 })
 
@@ -494,7 +509,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
 
     await expect(resendById(id)).resolves.toEqual({
       email: EMAILS.invitee,
-      sent: true,
+      report: { sent: true },
     })
 
     expect(mail.sent).toHaveLength(1)
@@ -504,9 +519,33 @@ describe.skipIf(!reachable)('resendInvitation', () => {
     // Varying, or Resend swallows the second send of a deliberate resend as a duplicate.
     expect(mail.sent[0].idempotencyKey).toMatch(new RegExp(`^invitation-${id}-\\d+$`))
 
-    const [row] = await sql<{ lastSentAt: Date | null }[]>`
-      select last_sent_at as "lastSentAt" from public.region_invitations where id = ${id}`
+    const [row] = await sql<{ lastDeliveredAt: Date | null; lastSentAt: Date | null }[]>`
+      select last_sent_at as "lastSentAt", last_delivered_at as "lastDeliveredAt"
+      from public.region_invitations where id = ${id}`
     expect(row.lastSentAt).not.toBeNull()
+    // Accepted by the provider, so the row says delivered: the stamp is the attempt's own.
+    expect(row.lastDeliveredAt).toEqual(row.lastSentAt)
+  })
+
+  it('keeps the delivery stamp when the push after a deferred send fails', async () => {
+    const { id } = await invite()
+    push.fail = true
+    const deferred: (() => Promise<void>)[] = []
+
+    await asAdmin((tx) =>
+      resendInvitation(
+        tx,
+        { invitationFk: id, inviter: 'ada', inviterFk: users.admin.userId, userRegions: adminOf() },
+        MAIL,
+        (task) => void deferred.push(task),
+      ),
+    )
+    await expect(deferred[0]()).rejects.toThrow('push down')
+
+    const [row] = await sql<{ lastDeliveredAt: Date | null; lastSentAt: Date | null }[]>`
+      select last_sent_at as "lastSentAt", last_delivered_at as "lastDeliveredAt"
+      from public.region_invitations where id = ${id}`
+    expect(row.lastDeliveredAt).toEqual(row.lastSentAt)
   })
 
   it('refreshes the expiry, so a resend buys the invitee the full window again', async () => {
@@ -524,9 +563,10 @@ describe.skipIf(!reachable)('resendInvitation', () => {
     const { id } = await invite()
     mail.result = false
 
-    await expect(resendById(id)).resolves.toMatchObject({
-      sent: false,
-    })
+    await expect(resendById(id)).resolves.toMatchObject({ report: { sent: false } })
+    const [row] = await sql<{ lastDeliveredAt: Date | null }[]>`
+      select last_delivered_at as "lastDeliveredAt" from public.region_invitations where id = ${id}`
+    expect(row.lastDeliveredAt).toBeNull()
 
     // The throttle is now armed, which is exactly the case a retry loop would exploit.
     expect(await statusOf(() => resendById(id))).toBe(429)
