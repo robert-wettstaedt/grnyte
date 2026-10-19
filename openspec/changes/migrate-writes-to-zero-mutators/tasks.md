@@ -75,9 +75,9 @@ the test failed, and the edit was reverted.
 
 ## 12. Users
 
-- [ ] 12.1 Move `updateUsername` and `updateUserSettings` (optimistic) and add their mutators; add harness tests, since the module has none, seen red
-- [ ] 12.2 Switch the username form to the store mode and the settings toggles; drive both at both widths
-- [ ] 12.3 Add `command` exports beside `updateEmail` and `updatePassword` in `settings/account.remote.ts` (the `form` exports stay one release) and switch `settings/email` and `settings/password` to the store mode calling them; drive an email change request and a password change at both widths
+- [x] 12.1 Move `updateUsername` and `updateUserSettings` (optimistic) and add their mutators; add harness tests, since the module has none, seen red
+- [x] 12.2 Switch the username form to the store mode and the settings toggles; drive both at both widths
+- [x] 12.3 Add `command` exports beside `updateEmail` and `updatePassword` in `settings/account.remote.ts` (the `form` exports stay one release) and switch `settings/email` and `settings/password` to the store mode calling them; drive an email change request and a password change at both widths
 
 ## 13. Feedback
 

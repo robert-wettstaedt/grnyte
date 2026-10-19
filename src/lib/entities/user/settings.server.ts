@@ -29,8 +29,8 @@ export async function writeUserSettings(
   // no-drizzle-mass-assignment is exempted for both `.set(values)` in this function, deliberately.
   // The rule exists because a spread lets the CALLER choose which columns move; here the parameter
   // is typed to `InsertUserSettings`, so the column set is the table's and the choice of which
-  // subset to write belongs to each caller. Every caller passes a literal except `updateUserSettings`
-  // (users.remote.ts), whose zod schema is the allowlist: six preference fields, all owned by the
+  // subset to write belongs to each caller. Every caller passes a literal except `updateUserSettingsRow`
+  // (profile.server.ts), whose zod schema (`userSettingsSchema`) is the allowlist: preference fields, all owned by the
   // account writing them, and not a schema shared with any create path.
   // eslint-disable-next-line no-restricted-syntax
   const [updated] = await db

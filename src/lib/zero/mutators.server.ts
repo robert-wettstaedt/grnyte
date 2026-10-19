@@ -7,10 +7,12 @@ import { notificationsServerMutatorDefs } from '$lib/entities/notification/mutat
 import { reactionsServerMutatorDefs } from '$lib/entities/reaction/mutators.server'
 import { routesServerMutatorDefs } from '$lib/entities/route/mutators.server'
 import { toposServerMutatorDefs } from '$lib/entities/topo/mutators.server'
+import { usersServerMutatorDefs } from '$lib/entities/user/mutators.server'
 import { defineMutators } from '@rocicorp/zero'
 
 // Not merged over the client registry: an unmatched name must fail, not run its client half here.
 export const serverMutators = defineMutators({
+  ...usersServerMutatorDefs,
   ...notificationsServerMutatorDefs,
   ...reactionsServerMutatorDefs,
   ...toposServerMutatorDefs,

@@ -20,7 +20,7 @@ export async function write<T = void>(
   opts?: { redirectTo?: ((data: T) => string) | string },
 ): Promise<MutationResult<T>> {
   if (!isOnline()) {
-    throw { ...rejection(formError('error_offline_title')), offline: true }
+    throw offlineRejection
   }
 
   const result = await getZ().mutate(mutation).server
@@ -28,7 +28,7 @@ export async function write<T = void>(
   if (result.type === 'error') {
     // A `zero` error is the connection; its text is Zero's, never shown.
     if (result.error.type !== 'app') {
-      throw { ...rejection(formError('error_offline_title')), offline: true }
+      throw offlineRejection
     }
     const field = (result.error.details as null | undefined | { field?: null | string })?.field
     // The client half can throw too, and its text is a TypeError's, not ours.
@@ -43,3 +43,6 @@ export async function write<T = void>(
 }
 
 const rejection = (message: string, field?: null | string): WriteRejection => ({ body: { field, message } })
+
+/** What any write throws when it never reached the server. */
+export const offlineRejection: WriteRejection = { ...rejection(formError('error_offline_title')), offline: true }

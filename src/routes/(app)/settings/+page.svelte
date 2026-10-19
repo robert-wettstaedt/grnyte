@@ -13,7 +13,7 @@
   import { acceptMyInvitation, listMyInvitations } from '$lib/entities/region/regions.remote'
   import { roleLabel } from '$lib/entities/rolePermission/mapper'
   import type { GradingScale, UnitSystem } from '$lib/entities/user/dto'
-  import { updateUserSettings } from '$lib/entities/user/users.remote'
+  import { updateUserSettings } from '$lib/entities/user/writes'
   import { reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages'
   import { getLocale, setLocale, type Locale } from '$lib/paraglide/runtime'
@@ -64,9 +64,8 @@
     }
   }
 
-  // Optimistic write of a single field: the command is RLS-gated with no Zero optimism, so on
-  // failure we revert the select and toast. Writing one field at a time means a change never
-  // clobbers the other with a stale value.
+  // One field at a time, so a change never clobbers another with a stale value. Zero rolls back its
+  // own optimistic row on a refusal; the select's local value is ours to revert.
   const onGradingScale = async (value: GradingScale) => {
     const previous = gradingScale
     gradingScale = value

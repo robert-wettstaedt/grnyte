@@ -40,6 +40,10 @@ describe('createFormStore', () => {
     ])
   })
 
+  it('gives an input its type, so a password never renders as text', () => {
+    expect(store().fields.name.as('password').type).toBe('password')
+  })
+
   it('clears a field issue when that field is written', () => {
     const form = store()
     form.fields.name.as('text')
