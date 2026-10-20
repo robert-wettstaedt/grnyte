@@ -54,11 +54,13 @@
 
   const me = $derived(global.user)
   const needle = $derived(query.trim().toLowerCase())
+  // The localized word the placeholder offers ("Ich" in German), not the English "me".
+  const meWord = $derived(m.common_me().toLowerCase())
 
   const showMe = $derived(
     me != null &&
       !value.some((climber) => climber.userFk === me.id) &&
-      (needle === '' || 'me'.startsWith(needle) || me.username.toLowerCase().includes(needle)),
+      (needle === '' || meWord.startsWith(needle) || me.username.toLowerCase().includes(needle)),
   )
 
   const suggestions = $derived(
@@ -100,6 +102,22 @@
     blurTimer = setTimeout(() => (open = false), 150)
   }
   const keepFocus = (event: MouseEvent) => event.preventDefault()
+
+  // Enter adds what was typed: the browser would otherwise submit the form and drop the name.
+  const onKeydown = (event: KeyboardEvent) => {
+    if (event.key !== 'Enter' || event.isComposing || needle === '') return
+    event.preventDefault()
+    const existing =
+      ascensionists.data.find((fa) => fa.name.toLowerCase() === needle) ??
+      ascensionists.data.find((fa) => fa.username?.toLowerCase() === needle)
+    if (me != null && (needle === meWord || needle === me.username.toLowerCase())) {
+      pick({ name: me.username, userFk: me.id })
+    } else if (existing != null) {
+      pick({ name: existing.name, userFk: existing.userFk })
+    } else if (showNew) {
+      pick({ name: query.trim() })
+    }
+  }
 </script>
 
 {#each value as climber, index (climber.name)}
@@ -142,6 +160,7 @@
     class="h-8.5 min-w-32 flex-1 border-none bg-transparent px-1 text-sm focus:ring-0 focus:outline-none"
     onblur={onBlur}
     onfocus={onFocus}
+    onkeydown={onKeydown}
     placeholder={value.length > 0 ? m.routes_form_faPlaceholderMore() : m.routes_form_faPlaceholder()}
     type="text"
   />
