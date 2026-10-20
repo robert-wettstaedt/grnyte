@@ -31,7 +31,7 @@ import { createClient } from '@supabase/supabase-js'
 // Relative, not `$lib`: the Playwright process has no vite aliases. `testAccounts`, not `testDb`,
 // which opens a pool of its own at import.
 import { connect, deleteAccountRows } from '../src/lib/db/testAccounts'
-import { REGION_CREATE_PATH } from '../src/lib/entities/region/dto'
+import { REGION_CREATE_PATH } from '../src/lib/entities/region/paths'
 import { reachableUrl, visit } from './support'
 
 // Playwright does not read `.env`; CI passes the real values as environment variables instead,

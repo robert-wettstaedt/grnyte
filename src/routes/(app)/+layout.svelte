@@ -10,7 +10,7 @@
   import PillHost from '$lib/components/StatusPill/PillHost.svelte'
   import Toaster from '$lib/components/Toaster/Toaster.svelte'
   import { UNREAD_CAP } from '$lib/entities/notification/resources.svelte'
-  import { REGIONLESS_PATHS } from '$lib/entities/region/dto'
+  import { REGIONLESS_PATHS } from '$lib/entities/region/paths'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { reportClientError, reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages.js'

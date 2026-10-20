@@ -31,8 +31,9 @@ import { and, count, eq, gt, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { insertEvent } from '../event/event.server'
 import { notify, notifyOutOfBand, retractOutOfBand } from '../notification/notification.server'
-import { acceptPath, type UserInvitationItem, type UserRegion } from './dto'
+import type { UserInvitationItem, UserRegion } from './dto'
 import { lockRegionMembers } from './guards.server'
+import { acceptPath } from './paths'
 import { canEditRegion } from './permissions'
 
 type Db = PostgresJsDatabase<typeof schema>

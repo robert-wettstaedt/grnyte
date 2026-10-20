@@ -1,4 +1,3 @@
-import type { Pathname } from '$app/types'
 import { assignableRoles, type AppRole, type AssignableRole, type Permission } from '$lib/entities/rolePermission/dto'
 import { formError, nameSchema, stringToInt } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -6,28 +5,10 @@ import { locales } from '$lib/paraglide/runtime'
 import { mapLayerSchema, type RegionSettings } from './settings'
 import { tagNameSchema } from './tagVocabulary'
 
-/** The invitation screen, without its `token`. Typed as a {@link Pathname} so a moved route is a
- *  compile error rather than a dead link in an email that has already gone out. */
-const INVITE_ACCEPT_PATH: Pathname = '/invite/accept'
-
 /** How many regions one account may found. Anyone may start a region (the `regions` insert policy
  *  is open to authenticated users), so this is what keeps that from being unbounded. Counted over
  *  `regions.created_by`, which does not shrink when the founder leaves. */
 export const MAX_OWNED_REGIONS = 3
-
-/**
- * Where a user with no region is bounced from: the post-sign-in landing page and the map, the two
- * places the app puts somebody who has nowhere to go.
- *
- * Shared because the bounce is enforced twice and the two halves must not drift: `authGuard` has
- * it for document loads, the `(app)` layout for in-app navigation (that group is `ssr = false`
- * with no server loads, so the hook never sees one). '/' is the (landing) group's, which is why
- * only the hook ever matches it.
- */
-export const REGIONLESS_PATHS: Pathname[] = ['/', '/explore']
-
-/** Where {@link REGIONLESS_PATHS} bounces to, and the one path the bounce must not fire on. */
-export const REGION_CREATE_PATH: Pathname = '/regions/new'
 
 /** A region the signed-in user founded, for the create screen's cap state. */
 export interface OwnedRegion {
@@ -106,17 +87,6 @@ export interface UserInvitationItem {
 /** A region membership enriched with the permissions its role grants. */
 export interface UserRegion extends RegionMembership {
   permissions: Permission[]
-}
-
-/**
- * The one accept link, relative.
- *
- * Lives here rather than in `invite.server.ts` because the accept page needs it on the client, and
- * that module imports the database. The invitation mail is the only caller that prefixes an
- * origin, since it is the only one that leaves the app.
- */
-export function acceptPath(token: string): string {
-  return `${INVITE_ACCEPT_PATH}?token=${encodeURIComponent(token)}`
 }
 
 export const assignableRoleSchema = z.enum(assignableRoles)

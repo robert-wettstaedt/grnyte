@@ -1,5 +1,5 @@
 import { APP_HOME_PATH } from '$lib/auth'
-import { acceptPath, REGION_CREATE_PATH } from '$lib/entities/region/dto'
+import { acceptPath, REGION_CREATE_PATH } from '$lib/entities/region/paths'
 import { isRedirect, type RequestEvent } from '@sveltejs/kit'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
