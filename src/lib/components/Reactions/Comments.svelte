@@ -21,10 +21,12 @@
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
-  import { prefersStill } from '$lib/state/motion.svelte'
+  import { runCommand } from '$lib/remote/mutation'
+  import { motion, prefersStill } from '$lib/state/motion.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { withUndo } from '$lib/state/toast'
+  import { notifyError } from '$lib/state/toast'
   import { untrack } from 'svelte'
+  import { fade } from 'svelte/transition'
   import CommentReactions from './CommentReactions.svelte'
   import type { CommentThread } from './thread.svelte'
 
@@ -47,20 +49,92 @@
     node.scrollIntoView({ behavior: untrack(prefersStill) ? 'auto' : 'smooth', block: 'center' })
   }
 
-  /**
-   * Undo rather than a confirmation dialog: the row is soft-deleted, so restoring it is one column
-   * and the replies/reactions under it never left. A prompt in front of every delete taxes the many
-   * people who meant it to protect the few who didn't, and can't be answered on the thread it is
-   * about, because it covers it.
-   */
-  const remove = (commentId: number) =>
-    void withUndo(deleteComment(commentId), {
-      message: m.comments_deleted(),
-      onUndo: (id) => restoreComment(id),
-    })
+  // Undo in place, not in a toast the sheet's focus trap hides. An entry outlives its restore until
+  // the row syncs back, so the thread never shows neither.
+  type Gone = { comment: CommentListItem; eventId: number; parentId: null | number; restoring: boolean }
+  let gone = $state<Gone[]>([])
+  // Which button takes focus when it mounts: the undo a press made, or the comment it restored.
+  let focusTarget: null | string = null
+  const live = $derived(new Set(thread.comments.data.flatMap((c) => [c.id, ...c.replies.map((r) => r.id)])))
+  // The event page keeps this component across events, so a tombstone is filed under its own.
+  const tombstones = $derived(gone.filter((entry) => entry.eventId === thread.eventId && !live.has(entry.comment.id)))
+
+  type Row = { comment: CommentListItem; gone?: Gone }
+  const merged = (comments: CommentListItem[], parentId: null | number): Row[] =>
+    [
+      ...comments.map((comment) => ({ comment })),
+      ...tombstones
+        .filter((entry) => entry.parentId === parentId)
+        .map((entry) => ({ comment: entry.comment, gone: entry })),
+    ].sort((a, b) => a.comment.createdAt - b.comment.createdAt || a.comment.id - b.comment.id)
+
+  const remove = async (comment: CommentListItem, parentId: null | number) => {
+    // A second tap before the row leaves would be refused and take the first tap's Undo with it.
+    if (gone.some((entry) => entry.comment.id === comment.id && !entry.restoring)) return
+    gone = [
+      ...gone.filter((entry) => entry.comment.id !== comment.id),
+      { comment, eventId: thread.eventId, parentId, restoring: false },
+    ]
+    focusTarget = `undo-${comment.id}`
+    try {
+      await runCommand(deleteComment(comment.id))
+    } catch (cause) {
+      gone = gone.filter((entry) => entry.comment.id !== comment.id)
+      notifyError(cause)
+    }
+  }
+
+  // Once a restore has synced back the entry is spent; kept, a later delete elsewhere would revive it.
+  $effect(() => {
+    if (gone.some((entry) => entry.restoring && live.has(entry.comment.id))) {
+      gone = gone.filter((entry) => !(entry.restoring && live.has(entry.comment.id)))
+    }
+  })
+
+  const undo = async (entry: Gone) => {
+    if (entry.restoring) return
+    entry.restoring = true
+    // Set first: the row can sync back before the mutation answers.
+    focusTarget = `delete-${entry.comment.id}`
+    try {
+      await runCommand(restoreComment(entry.comment.id))
+    } catch (cause) {
+      entry.restoring = false
+      notifyError(cause)
+    }
+  }
+
+  // Focus follows the swap both ways, or it falls to the body when the pressed button unmounts.
+  const focusIf = (key: string) => (node: HTMLElement) => {
+    if (focusTarget !== key) return
+    node.focus()
+    focusTarget = null
+  }
 </script>
 
-{#snippet line(comment: CommentListItem, size: number)}
+{#snippet tombstone(entry: Gone)}
+  <!-- A fade in and no outro: the row swaps in place for the comment, so sliding would stack both. -->
+  <div
+    class="text-surface-600-400 flex items-center gap-2 py-1 ps-1 text-sm"
+    role="status"
+    in:fade={{ duration: motion(150) }}
+  >
+    <Icon name="trash" size={14} />
+    <span class="flex-1" id="comment-gone-{entry.comment.id}">{m.comments_deleted()}</span>
+    <button
+      type="button"
+      class="text-primary-600-400 flex h-9 min-w-9 items-center justify-center px-2 text-xs font-semibold"
+      aria-describedby="comment-gone-{entry.comment.id}"
+      aria-disabled={entry.restoring}
+      onclick={() => undo(entry)}
+      {@attach focusIf(`undo-${entry.comment.id}`)}
+    >
+      {m.common_undo()}
+    </button>
+  </div>
+{/snippet}
+
+{#snippet line(comment: CommentListItem, size: number, parentId: null | number)}
   <article
     class={[
       'flex gap-2 rounded-lg py-1 pe-1 transition-colors duration-1000',
@@ -112,7 +186,8 @@
             type="button"
             class="text-surface-600-400 hover:text-error-500 flex h-9 min-w-9 items-center justify-center px-2 text-xs"
             aria-label={m.comments_delete()}
-            onclick={() => remove(comment.id)}
+            onclick={() => remove(comment, parentId)}
+            {@attach focusIf(`delete-${comment.id}`)}
           >
             <Icon name="trash" size={14} />
           </button>
@@ -135,34 +210,54 @@
         </button>
       {/if}
 
-      {#each thread.comments.data as comment (comment.id)}
-        <div class="flex flex-col gap-2">
-          {@render line(comment, 28)}
+      {#each merged(thread.comments.data, null) as { comment, gone: entry } (comment.id)}
+        {#if entry != null}
+          {@render tombstone(entry)}
+        {:else}
+          {@const replies = merged(comment.replies, comment.id)}
+          <div class="flex flex-col gap-2">
+            {@render line(comment, 28, null)}
 
-          {#if comment.replies.length > 0}
-            <!-- Indented under the comment they answer, with a rule rather than a second avatar
+            {#if replies.length > 0}
+              <!-- Indented under the comment they answer, with a rule rather than a second avatar
                  column: at this width the indent is what says "these belong to that", and the rule
                  is what keeps it readable once two threads sit next to each other. -->
-            <div class="border-surface-200-800 ms-4 flex flex-col gap-2 border-s ps-3">
-              {#each comment.replies as reply (reply.id)}
-                {@render line(reply, 22)}
-              {/each}
-            </div>
-          {/if}
-        </div>
+              <div class="border-surface-200-800 ms-4 flex flex-col gap-2 border-s ps-3">
+                {#each replies as { comment: reply, gone: replyGone } (reply.id)}
+                  {#if replyGone != null}
+                    {@render tombstone(replyGone)}
+                  {:else}
+                    {@render line(reply, 22, comment.id)}
+                  {/if}
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
       {/each}
     </div>
   {/snippet}
 
   {#snippet empty()}
-    <!-- An empty thread is an invitation, not a failure, so it says what to do with it. -->
-    <div class="space-y-1 py-10 text-center">
-      <span class="bg-surface-200-800 text-surface-600-400 mx-auto mb-3 grid size-14 place-items-center rounded-2xl">
-        <Icon name="messageCircle" size={24} />
-      </span>
+    <!-- Deleting the last comment must not take its undo with it. Top level only: a reply cannot be
+         restored while its comment is gone. -->
+    {@const roots = tombstones.filter((entry) => entry.parentId === null)}
+    {#if roots.length > 0}
+      <div class="flex flex-col gap-3">
+        {#each roots as entry (entry.comment.id)}
+          {@render tombstone(entry)}
+        {/each}
+      </div>
+    {:else}
+      <!-- An empty thread is an invitation, not a failure, so it says what to do with it. -->
+      <div class="space-y-1 py-10 text-center">
+        <span class="bg-surface-200-800 text-surface-600-400 mx-auto mb-3 grid size-14 place-items-center rounded-2xl">
+          <Icon name="messageCircle" size={24} />
+        </span>
 
-      <p class="text-surface-950-50 font-semibold">{m.comments_empty()}</p>
-      <p class="text-surface-600-400 text-sm">{m.comments_emptyBody()}</p>
-    </div>
+        <p class="text-surface-950-50 font-semibold">{m.comments_empty()}</p>
+        <p class="text-surface-600-400 text-sm">{m.comments_emptyBody()}</p>
+      </div>
+    {/if}
   {/snippet}
 </QueryState>
