@@ -4,7 +4,7 @@ import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/publi
 import { authError, formError } from '$lib/forms/schemas'
 import { refuseVia } from '$lib/remote/authed.server'
 import { createClient } from '@supabase/supabase-js'
-import { error, invalid } from '@sveltejs/kit'
+import { error } from '@sveltejs/kit'
 import { updateEmailSchema, updatePasswordSchema } from './schemas'
 
 /** A refusal as a command raises it: the field rides in the `HttpError` body for the store form. */
@@ -15,7 +15,7 @@ const refuseCommand = (message: string, field?: string): never => error(400, { f
  * both the current and the new address and applies the change only once both are opened, so a
  * stolen session can't complete it without the old inbox either way.
  */
-async function changeEmail(email: string, refuse: (message: string) => never) {
+async function changeEmail(email: string, refuse: (message: string, field?: 'email') => never) {
   const {
     locals: { claims, supabase },
     url,
@@ -25,6 +25,11 @@ async function changeEmail(email: string, refuse: (message: string) => never) {
   // account whose sign-up half-completed must still be able to fix its address.
   if (claims == null) {
     error(401, formError('auth_notSignedIn'))
+  }
+
+  // Supabase accepts the current address without error and sends nothing, so the screen would claim a link.
+  if (email.trim().toLowerCase() === claims.email?.toLowerCase()) {
+    refuse(formError('settings_emailUnchanged'), 'email')
   }
 
   const { error: updateError } = await supabase.auth.updateUser(
@@ -59,7 +64,7 @@ async function verifyPassword(email: string, password: string): Promise<boolean>
 }
 
 /** @public Unused since the store forms; deployed one more release for tabs loaded before them. */
-export const updateEmail = form(updateEmailSchema, ({ email }) => changeEmail(email, invalid))
+export const updateEmail = form(updateEmailSchema, ({ email }, issue) => changeEmail(email, refuseVia(issue)))
 
 export const updateEmailCommand = command(updateEmailSchema, ({ email }) => changeEmail(email, refuseCommand))
 
