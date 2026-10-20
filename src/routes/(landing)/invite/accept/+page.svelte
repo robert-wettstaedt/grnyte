@@ -7,7 +7,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
-  import { acceptPath } from '$lib/entities/region/dto'
+  import { acceptPath } from '$lib/entities/region/paths'
   import { acceptRegionInvitation } from '$lib/entities/region/regions.remote'
   import { resolveErrorMessage } from '$lib/forms/issue'
   import { m } from '$lib/paraglide/messages'
