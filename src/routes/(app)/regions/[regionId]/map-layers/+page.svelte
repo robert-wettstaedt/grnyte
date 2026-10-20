@@ -11,7 +11,7 @@
   import { fieldRows } from '$lib/forms/fieldRows.svelte'
   import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
   import Form from '$lib/forms/Form.svelte'
-  import { seedOnKeyChange } from '$lib/forms/seed.svelte'
+  import { seedFollowingRows } from '$lib/forms/seed.svelte'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { toaster } from '$lib/state/toast'
@@ -38,9 +38,12 @@
 
   // Keyed on `synced`, not the id: a membership can arrive without its region row, and seeding
   // then submits an empty list, which the handler reads as "remove them all".
-  // `layersComplete` too: a half-read blob holds fewer layers than are stored.
-  seedOnKeyChange(
+  // `layersComplete` too: a half-read blob holds fewer layers than are stored. Following the rows
+  // matters after a reload, where the local replica answers before the server's newer layers sync.
+  seedFollowingRows(
     () => (screen.membership?.synced === true && screen.membership.layersComplete ? screen.regionId : undefined),
+    () => mapLayersFingerprint(stored),
+    () => fields.value(),
     () => {
       fields.set({
         id: String(screen.regionId),
