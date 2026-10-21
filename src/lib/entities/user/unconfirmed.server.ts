@@ -1,35 +1,44 @@
 import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
-import { users, userSettings } from '$lib/db/schema'
+import { users } from '$lib/db/schema'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { DAY_MS } from '$lib/i18n/relativeTime'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
-import { and, eq, isNull, lt } from 'drizzle-orm'
+import { and, eq, isNull, lt, or } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import { authUsers } from 'drizzle-orm/supabase'
+import { deleteAccountData } from './delete.server'
 
 /** Unconfirmed accounts older than 7 days, as the confirmation link has long expired. */
 export const UNCONFIRMED_MAX_AGE_MS = 7 * DAY_MS
 
+/** Sign-up creates the sign-in record a moment before the profile, so a younger lone one may be mid-sign-up. */
+const LONE_MIN_AGE_MS = 60 * 60 * 1000
+
+const authUser = alias(authUsers, 'auth_user')
+
 /**
- * Delete accounts created before `before` that never confirmed their email, with their profile.
- * An unconfirmed account cannot sign in, so those two rows are all it can own; one that owns more
- * fails its delete, is logged and is left alone.
+ * Delete accounts created before `before` that never confirmed their email, and sign-in records
+ * whose profile is gone, which is what an account deletion leaves when GoTrue failed after commit.
  */
 export async function sweepUnconfirmedAccounts(before: Date): Promise<number> {
   const stale = await db
-    .select({ id: authUsers.id })
-    .from(authUsers)
-    .where(and(isNull(authUsers.emailConfirmedAt), lt(authUsers.createdAt, before)))
+    .select({ id: authUser.id, userFk: users.id })
+    .from(authUser)
+    .leftJoin(users, eq(users.authUserFk, authUser.id))
+    .where(
+      or(
+        and(isNull(authUser.emailConfirmedAt), lt(authUser.createdAt, before)),
+        and(isNull(users.id), lt(authUser.createdAt, new Date(Date.now() - LONE_MIN_AGE_MS))),
+      ),
+    )
 
   let removed = 0
-  for (const { id } of stale) {
+  for (const { id, userFk } of stale) {
     try {
-      await pinnedTx(async (tx) => {
-        await tx.update(users).set({ userSettingsFk: null }).where(eq(users.authUserFk, id))
-        await tx.delete(userSettings).where(eq(userSettings.authUserFk, id))
-        await tx.delete(users).where(eq(users.authUserFk, id))
-      })
+      // An unconfirmed account cannot sign in, so it owns no region to classify.
+      if (userFk != null) await pinnedTx((tx) => deleteAccountData(tx, { authUserFk: id, id: userFk }, []))
       const { error } = await supabaseAdmin().auth.admin.deleteUser(id)
       if (error != null) throw error
       removed += 1

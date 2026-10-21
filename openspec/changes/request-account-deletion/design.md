@@ -22,7 +22,7 @@ See proposal.md for why, and `specs/auth/account-deletion/spec.md` for the behav
 
 **Non-Goals:**
 
-- A second or third copy of the delete order. The test teardown `deleteAccountRows` and `sweepUnconfirmedAccounts` both call `deleteAccountData`, and the sweep's query widens to cover a lone `auth.users` row instead of adding a new sweep.
+- A second copy of the delete order in production code. `sweepUnconfirmedAccounts` calls `deleteAccountData`, and its query widens to cover a lone `auth.users` row instead of adding a new sweep. The test teardown `deleteAccountRows` stays narrower on purpose: the production sign-up canary uses it, and it fails rather than touch content tables.
 - Soft-deleting the account or keeping a tombstone `users` row.
 
 ## Decisions
