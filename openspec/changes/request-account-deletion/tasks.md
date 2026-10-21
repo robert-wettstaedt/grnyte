@@ -15,12 +15,12 @@
 
 ## 3. Account removal
 
-- [ ] 3.1 Add `classifyRegions(tx, user)` in `src/lib/entities/user/delete.server.ts`, under `lockRegionMembers`, returning blocking, sole-member and shared regions; verify with server tests for sole admin with members (blocking), second admin (shared), only member (sole) and inactive-only members (sole), each seen red
-- [ ] 3.2 Add `deleteAccountData(tx, user)` applying the design's table plan (delete, unlink, region whole) and returning storage targets and affected route ids; verify with a server test that seeds every referencing table for the person and a second user, then asserts the person's rows are gone or unlinked and every row of the second user is untouched (seen red)
-- [ ] 3.3 Verify in the same test file that a person with a comment thread root, an emoji reaction, a first ascent link and a member they invited leaves the thread, reaction, first ascent name and member in place with null links, and the invitation itself gone
-- [ ] 3.4 Add `deleteAccount(user, password)` running password check, `pinnedTx` with refusal before the first write, then `recalcUserGradeAndRating`, `auth.admin.deleteUser` and `removeFileStorage` after commit; verify with server tests that a wrong password and a blocking region change nothing, and that a route's community grade recomputes without the deleted ascent (seen red)
-- [ ] 3.5 Widen `sweepUnconfirmedAccounts` so its query also takes confirmed `auth.users` rows with no `public.users` row older than an hour, and replace its hand-written deletes with `deleteAccountData`; verify with a server test that a lone auth row is deleted and one with a profile is not (seen red)
-- [ ] 3.6 Replace the hand-written delete order in `db/testAccounts.ts` `deleteAccountRows` with `deleteAccountData`, and verify the server suites that use it still pass
+- [x] 3.1 (tested through `deleteAccount`, the agreed seam) Add `classifyRegions(tx, user)` in `src/lib/entities/user/delete.server.ts`, under `lockRegionMembers`, returning blocking, sole-member and shared regions; verify with server tests for sole admin with members (blocking), second admin (shared), only member (sole) and inactive-only members (sole), each seen red
+- [x] 3.2 Add `deleteAccountData(tx, user)` applying the design's table plan (delete, unlink, region whole) and returning storage targets and affected route ids; verify with a server test that seeds every referencing table for the person and a second user, then asserts the person's rows are gone or unlinked and every row of the second user is untouched (seen red)
+- [x] 3.3 Verify in the same test file that a person with a comment thread root, an emoji reaction, a first ascent link and a member they invited leaves the thread, reaction, first ascent name and member in place with null links, and the invitation itself gone
+- [x] 3.4 Add `deleteAccount(user, password)` running password check, `pinnedTx` with refusal before the first write, then `recalcUserGradeAndRating`, `auth.admin.deleteUser` and `removeFileStorage` after commit; verify with server tests that a wrong password and a blocking region change nothing, and that a route's community grade recomputes without the deleted ascent (seen red)
+- [x] 3.5 Widen `sweepUnconfirmedAccounts` so its query also takes confirmed `auth.users` rows with no `public.users` row older than an hour, and replace its hand-written deletes with `deleteAccountData`; verify with a server test that a lone auth row is deleted and one with a profile is not (seen red)
+- Dropped 3.6 (replace `deleteAccountRows` with `deleteAccountData`): the teardown also serves the production sign-up canary and deliberately fails 23503 rather than touch content tables, and Playwright specs import it outside Kit, so it stays a separate, narrower copy.
 
 ## 4. Remote command
 
@@ -45,4 +45,5 @@
 ## Workflow follow-up
 
 - Ship the migration before the app in the release, deploying zero-cache first.
+- Before deploying, count confirmed `auth.users` rows with no `public.users` row in production: the widened cleanup sweep deletes them on its first run, so any that exist for another reason must be resolved first.
 - Archive the change once the release is live and the legal text is approved.
