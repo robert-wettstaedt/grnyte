@@ -11,7 +11,7 @@
 
 ## 2. Region removal
 
-- [ ] 2.1 Add `deleteRegionRows(tx, regionFk)` in `src/lib/entities/region/` deleting every row of a region bottom up, routing `files` through `deleteFileRows` and returning the storage targets; verify with a server test against a seeded region that no row with its `region_fk` survives and the targets list every file (seen red)
+- [x] 2.1 Add `deleteRegionRows(tx, regionFk)` in `src/lib/entities/region/` deleting every row of a region bottom up, routing `files` through `deleteFileRows` and returning the storage targets; verify with a server test against a seeded region that no row with its `region_fk` survives and the targets list every file (seen red)
 
 ## 3. Account removal
 
