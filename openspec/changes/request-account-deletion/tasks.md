@@ -24,7 +24,7 @@
 
 ## 4. Remote command
 
-- [ ] 4.1 Add a `deleteAccountSchema` (one `password` field) to `src/routes/(app)/settings/schemas.ts` and a `deleteAccountCommand` to `account.remote.ts` calling `deleteAccount`, refusing a wrong password on the `password` field and a blocking region with `settings_deleteAccountBlocked` plus the region names; verify in `account.remote.test.ts` both refusals and a success through `asRequest` (seen red)
+- [x] 4.1 Add a `deleteAccountSchema` (one `password` field) to `src/routes/(app)/settings/schemas.ts` and a `deleteAccountCommand` to `account.remote.ts` calling `deleteAccount`, refusing a wrong password on the `password` field and a blocking region with `settings_deleteAccountBlocked` plus the region names; verify in `account.remote.test.ts` both refusals and a success through `asRequest` (seen red)
 
 ## 5. Screen
 

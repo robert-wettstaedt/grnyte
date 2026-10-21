@@ -1845,6 +1845,7 @@
   "settings_changeRegionName": "Change region name",
   "settings_changeUsername": "Change username",
   "settings_currentPassword": "Current password",
+  "settings_deleteAccountBlocked": "You are the only admin of {regions}. Make someone else an admin there first.",
   "settings_emailChangeHint": "You’ll get a link at your current address and at the new one. Open both to complete the change.",
   "settings_emailChangeSent": "Confirm the change",
   "settings_emailChangeSentBody": "We sent a link to {email} and to your current address. Open both links to complete the change.",
