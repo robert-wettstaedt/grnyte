@@ -1,10 +1,11 @@
 import { resolve } from '$app/paths'
 import { command, form, getRequestEvent } from '$app/server'
+import { deleteAccount } from '$lib/entities/user/delete.server'
 import { verifyPassword } from '$lib/entities/user/password.server'
 import { authError, formError } from '$lib/forms/schemas'
-import { refuseVia } from '$lib/remote/authed.server'
+import { refuseVia, requireAuthed } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
-import { updateEmailSchema, updatePasswordSchema } from './schemas'
+import { deleteAccountSchema, updateEmailSchema, updatePasswordSchema } from './schemas'
 
 /** A refusal as a command raises it: the field rides in the `HttpError` body for the store form. */
 const refuseCommand = (message: string, field?: string): never => error(400, { field, message })
@@ -88,3 +89,25 @@ async function changePassword(
 export const updatePassword = form(updatePasswordSchema, (value, issue) => changePassword(value, refuseVia(issue)))
 
 export const updatePasswordCommand = command(updatePasswordSchema, (value) => changePassword(value, refuseCommand))
+
+/**
+ * Delete the caller's own account. The address comes from the verified token, as in
+ * `changePassword`, so the password check cannot be pointed at somebody else's account.
+ */
+export const deleteAccountCommand = command(deleteAccountSchema, async ({ password }) => {
+  const { claims, user } = requireAuthed()
+  if (claims.email == null) {
+    error(401, formError('auth_notSignedIn'))
+  }
+
+  const result = await deleteAccount({ authUserFk: user.authUserFk, email: claims.email, id: user.id }, password)
+
+  if (result.kind === 'wrongPassword') {
+    refuseCommand(formError('settings_passwordIncorrect'), 'password')
+  }
+  if (result.kind === 'blocked') {
+    refuseCommand(formError('settings_deleteAccountBlocked', { regions: result.regions.join(', ') }))
+  }
+
+  return { success: true }
+})

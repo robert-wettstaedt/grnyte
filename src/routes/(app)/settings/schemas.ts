@@ -12,3 +12,5 @@ export const updatePasswordSchema = z
     password: passwordSchema,
   })
   .check(passwordsMatch)
+
+export const deleteAccountSchema = z.object({ password: z.string({ error: formError('form_required') }) })
