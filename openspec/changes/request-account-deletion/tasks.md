@@ -28,9 +28,9 @@
 
 ## 5. Screen
 
-- [ ] 5.1 Add i18n keys for the screen (title, what goes, what stays, regions that block, regions that will be deleted, password label, submit, success, blocked refusal) to both `messages/en.json` and `messages/de.json`, sorted, with no em-dashes; copy through `/writing-guidelines`
-- [ ] 5.2 Add `src/routes/(app)/settings/account/delete/+page.svelte` with `PageHeader`, the three region lists from Zero queries, and a `Form` over the command; on success run the sign-out wipe (`src/lib/state/wipe.ts`) and go to the landing page with a confirmation toast; verify with a component test that a blocking region disables submit (seen red)
-- [ ] 5.3 Add the "Delete account" row to the account section of `src/routes/(app)/settings/+page.svelte`, using `resolve()` for the parameterless route, and verify it navigates there
+- [x] 5.1 Add i18n keys for the screen (title, what goes, what stays, regions that block, regions that will be deleted, password label, submit, success, blocked refusal) to both `messages/en.json` and `messages/de.json`, sorted, with no em-dashes; copy through `/writing-guidelines`
+- [x] 5.2 Add `src/routes/(app)/settings/account/delete/+page.svelte` with `PageHeader`, the three region lists from Zero queries, and a `Form` over the command; on success run the sign-out wipe (`src/lib/state/wipe.ts`) and go to the landing page with a confirmation toast; verify with a component test that a blocking region disables submit (seen red)
+- [x] 5.3 Add the "Delete account" row to the account section of `src/routes/(app)/settings/+page.svelte`, using `resolve()` for the parameterless route, and verify it navigates there
 
 ## 6. Legal
 

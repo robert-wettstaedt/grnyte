@@ -41,8 +41,9 @@ describe.skipIf(!reachable)('updateEmailCommand', () => {
 })
 
 describe.skipIf(!reachable)('deleteAccountCommand', () => {
+  const signOut = vi.fn(async () => ({ error: null }))
   const remove = (password: string) =>
-    asRequest(user.authId, () => deleteAccountCommand({ password })).then(
+    asRequest(user.authId, () => deleteAccountCommand({ password }), { auth: { signOut } }).then(
       (done) => done,
       (cause: { body?: unknown }) => cause.body,
     )
@@ -64,10 +65,12 @@ describe.skipIf(!reachable)('deleteAccountCommand', () => {
   it('deletes the signed-in account, by the address the verified token carries', async () => {
     deletion.deleteAccount.mockResolvedValue({ kind: 'deleted' })
 
-    expect(await remove('pw')).toEqual({ success: true })
+    expect(await remove('pw')).toBeUndefined()
     expect(deletion.deleteAccount).toHaveBeenLastCalledWith(
       { authUserFk: user.authId, email: 'user@grnyte.rocks', id: user.userId },
       'pw',
     )
+    // This browser leaves signed out; GoTrue already revoked every other session with the account.
+    expect(signOut).toHaveBeenCalledWith({ scope: 'local' })
   })
 })

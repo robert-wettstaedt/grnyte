@@ -139,6 +139,7 @@
       <SettingLink href={resolve('/settings/username')} label={m.auth_username()} value={global.user?.username} />
       <SettingLink href={resolve('/settings/email')} label={m.auth_email()} value={email} />
       <SettingLink href={resolve('/settings/password')} label={m.auth_password()} value="••••••••" />
+      <SettingLink href={resolve('/settings/account/delete')} label={m.settings_deleteAccount()} />
     </div>
   </SettingSection>
 

@@ -37,6 +37,8 @@
     children?: Snippet
     /** With `waitFor`: the reader may not use this screen. Shown in the form's chrome instead. */
     denied?: ComponentProps<typeof ErrorState>
+    /** The submit cannot be undone, so its button wears the destructive tone. */
+    destructive?: boolean
     /** With `waitFor`: the fields, given its rows. Remounted after each seed, since fields seed
      *  their own state once at mount. */
     fields?: Snippet<[Waited<W>]>
@@ -81,6 +83,7 @@
     cancelTo,
     children,
     denied,
+    destructive = false,
     fields,
     fill = false,
     initial,
@@ -223,6 +226,7 @@
           <PageHeaderAction disabled={!canContinue} icon="arrow-right" iconAfter label={nextLabel} onclick={advance} />
         {:else}
           <PageHeaderAction
+            {destructive}
             disabled={submitting || submitDisabled || !canContinue}
             label={submitLabel}
             pending={submitting}
