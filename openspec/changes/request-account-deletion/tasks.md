@@ -34,13 +34,13 @@
 
 ## 6. Legal
 
-- [ ] 6.1 Draft the terms clause 19 edit in `terms.en.html` and `terms.de.html` (comments, reactions and guidebook media stay anonymised; ascents and their media go; deletion is self-serve and immediate) and hand it to the user for review
-- [ ] 6.2 Draft the privacy section 7 edit and remove the "no self-serve button" sentence in `privacy.en.html` and `privacy.de.html`, and hand it to the user for review
+- [x] 6.1 Draft the terms clause 19 edit in `terms.en.html` and `terms.de.html` (comments, reactions and guidebook media stay anonymised; ascents and their media go; deletion is self-serve and immediate) and hand it to the user for review
+- [x] 6.2 Draft the privacy section 7 edit and remove the "no self-serve button" sentence in `privacy.en.html` and `privacy.de.html`, and hand it to the user for review
 
 ## 7. Verification
 
-- [ ] 7.1 Drive the flow in the running app at 375x667 and 1280x800, en and de, light and dark, with throwaway accounts: a shared-region member (content stays as "Deleted user", ascents gone, second device's token reads nothing), a sole admin with members (refused, regions named), and a sole member (region gone, files removed from storage); clean up every fixture
-- [ ] 7.2 Run the AGENTS.md sweep over the touched paths: prettier, eslint, `vitest --project server` and `--project browser`, svelte-check, `lint:duplication` and `lint:unused`
+- [x] 7.1 Drive the flow in the running app at 375x667 and 1280x800, en and de, light and dark, with throwaway accounts: a shared-region member (content stays as "Deleted user", ascents gone, second device's token reads nothing), a sole admin with members (refused, regions named), and a sole member (region gone, files removed from storage); clean up every fixture
+- [x] 7.2 Run the AGENTS.md sweep over the touched paths: prettier, eslint, `vitest --project server` and `--project browser`, svelte-check, `lint:duplication` and `lint:unused`
 
 ## Workflow follow-up
 
