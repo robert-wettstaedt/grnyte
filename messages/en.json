@@ -2015,5 +2015,6 @@
   "upload_tooMany": "Too many files (max. {count} at a time)",
   "upload_unreadableImage": "Could not read that image",
   "upload_videoSheetBody": "Grabbed it from YouTube or Instagram? Say where it’s from. The route page credits the source.",
+  "users_deleted": "Deleted user",
   "users_notFound": "User not found"
 }

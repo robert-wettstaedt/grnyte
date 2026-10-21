@@ -106,7 +106,7 @@ export async function postCommentRow(
       actorFk: user.id,
       body,
       event,
-      parentAuthorFk: parent?.userFk,
+      parentAuthorFk: parent?.userFk ?? undefined,
       reactionFk: row.id,
     }),
   )

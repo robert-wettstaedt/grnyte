@@ -12,6 +12,7 @@
   import Row from '$lib/components/EntityRow/Row.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import { authorName } from '$lib/entities/displayName'
   import type { EventObjectType } from '$lib/entities/event/dto'
   import { eventLines } from '$lib/entities/event/line'
   import { metaLine } from '$lib/entities/event/meta'
@@ -35,7 +36,7 @@
     /** The entity's own creation stamp, off its DTO. */
     createdAt: Date | undefined
     /** The entity's own creator, off its DTO. Resolved to a name only when the log is empty. */
-    createdBy: number
+    createdBy: null | number
     /** Whether the log mounts the media viewer. Off where the host page already has one. */
     lightbox?: boolean
     /** Whether the log is up, for a host that has to stand down while it is (see the route page). */
@@ -74,7 +75,7 @@
   // Only ever needed when the log came back empty, which is the one case the row cannot answer
   // from a row's own `user` relation. An empty id list is how a resource is switched off here.
   const creator = quietly(() =>
-    usersByIds(() => (latest.phase.kind === 'answered' && latest.phase.empty ? [createdBy] : [])),
+    usersByIds(() => (latest.phase.kind === 'answered' && latest.phase.empty && createdBy != null ? [createdBy] : [])),
   )
 
   // Held back until the log has answered. Deciding early would read the entity's own stamp,
@@ -82,7 +83,7 @@
   const line = $derived(
     latest.phase.kind !== 'answered'
       ? undefined
-      : metaLine({ createdAt, creatorName: creator.data[0]?.username, latest: latestRow, now: now() }),
+      : metaLine({ createdAt, creatorName: authorName(createdBy, creator.data[0]), latest: latestRow, now: now() }),
   )
 
   const label = $derived(

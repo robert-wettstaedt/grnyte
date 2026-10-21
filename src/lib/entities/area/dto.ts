@@ -13,7 +13,8 @@ import * as z from '$lib/forms/zod'
 
 export interface AreaDetail extends AreaListItem {
   createdAt: Date | undefined
-  createdBy: number
+  /** Null once the author deleted their account. */
+  createdBy: null | number
   description: string
   geoPaths: string[]
   /** The stored parent, which a delete leaves for; absent on a top-level area. */

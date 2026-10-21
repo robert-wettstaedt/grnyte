@@ -11,7 +11,7 @@ import type { BlockDetail, BlockListItem } from './dto'
 interface BlockDetailRow extends BlockRow {
   readonly areaFk: number
   readonly createdAt: null | number
-  readonly createdBy: number
+  readonly createdBy: null | number
   readonly description: null | string
   readonly geolocation?: Row<'geolocations'> | undefined
   readonly topos?: readonly {

@@ -19,7 +19,7 @@ export interface AreaAncestor {
 /** What `toAreaDetail` reads: satisfied by both the list and the single-area query. */
 export interface AreaDetailRow extends AreaAncestor {
   readonly createdAt: null | number
-  readonly createdBy: number
+  readonly createdBy: null | number
   readonly description: null | string
   readonly geoPaths: null | readonly string[]
   readonly parentFk: null | number

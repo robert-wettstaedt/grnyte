@@ -1,3 +1,4 @@
+import { authorName } from '../displayName'
 import type { CommentListItem, ReactionChip, ReactionListItem } from './dto'
 
 /** A reaction as Zero syncs it: the row plus the joined author. */
@@ -9,7 +10,7 @@ export interface ReactionRow {
   id: number
   type: string
   user?: undefined | { username: string }
-  userFk: number
+  userFk: null | number
 }
 
 /**
@@ -50,7 +51,7 @@ export function toComment(row: ReactionRow, currentUserFk: number | undefined): 
 
   return {
     authorFk: row.userFk,
-    authorName: row.user?.username ?? '',
+    authorName: authorName(row.userFk, row.user),
     body: row.body,
     createdAt: row.createdAt ?? 0,
     id: row.id,
@@ -66,6 +67,6 @@ export function toReaction(row: ReactionRow): ReactionListItem {
   return {
     emoji: row.body,
     userFk: row.userFk,
-    userName: row.user?.username ?? '',
+    userName: authorName(row.userFk, row.user),
   }
 }

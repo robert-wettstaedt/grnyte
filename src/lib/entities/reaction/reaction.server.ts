@@ -51,6 +51,8 @@ export async function dropComment(input: { actorFk: number; eventFk: number; rea
   // row is keyed on who wrote the line, so a reply by somebody else re-points against what that
   // person still has standing, not against the person who deleted the thread.
   for (const gone of [{ id: input.reactionFk, userFk: input.actorFk }, ...replies]) {
+    // A deleted author's reply left no inbox rows behind: theirs went with the account.
+    if (gone.userFk == null) continue
     await dropCommentNotification({ actorFk: gone.userFk, eventFk: input.eventFk, reactionFk: gone.id })
   }
 }
@@ -232,7 +234,9 @@ export async function notifyComment(input: {
   )
 
   const spoken = new Set([...answered, ...getReferences(input.body).users])
-  const userFks = [input.event.actorFk, ...authors.map((row) => row.userFk)].filter((userFk) => !spoken.has(userFk))
+  const userFks = [input.event.actorFk, ...authors.flatMap((row) => (row.userFk == null ? [] : [row.userFk]))].filter(
+    (userFk) => !spoken.has(userFk),
+  )
 
   if (userFks.length === 0) {
     return
@@ -250,9 +254,14 @@ export async function notifyComment(input: {
 export async function notifyReaction(input: {
   actorFk: number
   /** The comment reacted to, when it was a comment rather than the card. */
-  comment?: { id: number; userFk: number }
+  comment?: { id: number; userFk: null | number }
   event: EventRow
 }): Promise<void> {
+  // A comment whose author deleted their account has nobody to tell.
+  if (input.comment != null && input.comment.userFk == null) {
+    return
+  }
+
   const subject = await eventSubject(input.event)
 
   if (subject == null) {

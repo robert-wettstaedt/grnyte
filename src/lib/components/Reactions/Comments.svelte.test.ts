@@ -141,3 +141,12 @@ it('forgets a restored comment, so a later delete elsewhere leaves no dead undo'
   flushSync()
   expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull()
 })
+
+it('names a comment whose author deleted their account, without linking a profile', () => {
+  const { value } = thread([{ ...comment(1, 10), authorFk: null, authorName: 'Deleted user' }])
+  const { container } = render(Comments, { thread: value })
+
+  const article = container.querySelector('article')!
+  expect(article.textContent).toContain('Deleted user')
+  expect(article.querySelector('a[href*="/users/"]')).toBeNull()
+})
