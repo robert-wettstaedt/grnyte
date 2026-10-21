@@ -3,7 +3,7 @@ import { db } from '$lib/db/db.server'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { deleteRegionRows } from '../region/delete.server'
-import { deleteAccount } from './delete.server'
+import { deleteAccount, previewAccountDeletion } from './delete.server'
 
 const auth = vi.hoisted(() => ({ deleteUser: vi.fn(async () => ({ error: null })), password: vi.fn(async () => true) }))
 const storage = vi.hoisted(() => ({ remove: vi.fn(async () => {}) }))
@@ -194,11 +194,15 @@ describe.skipIf(!reachable)('deleteAccount', () => {
     await sql`update public.region_members set role = 'region_admin' where region_fk = ${shared} and user_fk = ${person.userId}`
     await sql`update public.region_members set role = 'region_user' where region_fk = ${shared} and user_fk = ${other.userId}`
 
+    const preview = await previewAccountDeletion(person.userId)
     const result = await deleteAccount(account(), 'pw')
 
     await sql`update public.region_members set role = 'region_maintainer' where region_fk = ${shared} and user_fk = ${person.userId}`
     await sql`update public.region_members set role = 'region_admin' where region_fk = ${shared} and user_fk = ${other.userId}`
     expect(result).toEqual({ kind: 'blocked', regions: [PREFIX + 'shared'] })
+    // The screen warns from the same rule, and names each region by id, since names repeat.
+    expect(preview.blocks).toEqual([{ id: shared, name: PREFIX + 'shared' }])
+    expect(preview.deletes).toEqual([{ id: sole, name: PREFIX + 'sole' }])
     expect(await references(person)).toContain('users')
   })
 

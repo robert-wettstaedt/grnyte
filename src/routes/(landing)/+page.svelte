@@ -1,5 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_ORIGIN, PUBLIC_STATUS_URL, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
   import { APP_HOME_PATH } from '$lib/auth'
@@ -17,6 +18,8 @@
   const { data } = $props()
   // SSR-resolved (see +page.server.ts) so the header CTA renders correctly without a flash.
   const signedIn = $derived(data.signedIn)
+  // Set by the account deletion screen on its way out.
+  const accountDeleted = $derived(page.url.searchParams.has('accountDeleted'))
 
   const github = __APP_REPO__
   const contact = `mailto:${PUBLIC_TOPO_EMAIL}`
@@ -263,6 +266,12 @@
       </nav>
     </div>
   </header>
+
+  {#if accountDeleted}
+    <p class="card preset-tonal-success mx-4 mt-4 px-4 py-3 text-center text-sm sm:mx-auto sm:max-w-md" role="status">
+      {m.settings_deleteAccountDone()}
+    </p>
+  {/if}
 
   <!-- ===== hero ===== -->
   <section data-hero class="relative overflow-clip">

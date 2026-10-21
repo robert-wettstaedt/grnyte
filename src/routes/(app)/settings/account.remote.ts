@@ -1,6 +1,6 @@
 import { resolve } from '$app/paths'
-import { command, form, getRequestEvent } from '$app/server'
-import { deleteAccount } from '$lib/entities/user/delete.server'
+import { command, form, getRequestEvent, query } from '$app/server'
+import { deleteAccount, previewAccountDeletion } from '$lib/entities/user/delete.server'
 import { verifyPassword } from '$lib/entities/user/password.server'
 import { authError, formError } from '$lib/forms/schemas'
 import { refuseVia, requireAuthed } from '$lib/remote/authed.server'
@@ -109,5 +109,13 @@ export const deleteAccountCommand = command(deleteAccountSchema, async ({ passwo
     refuseCommand(formError('settings_deleteAccountBlocked', { regions: result.regions.join(', ') }))
   }
 
-  return { success: true }
+  // Clears this browser's session cookies; GoTrue revoked every other session with the account.
+  await getRequestEvent().locals.supabase.auth.signOut({ scope: 'local' })
+})
+
+/** What deleting the caller's account would do to their regions, for the screen's warnings. A
+ *  server read, so it is the same rule the deletion applies and never a half-synced member list. */
+export const accountDeletionPreview = query(async () => {
+  const { user } = requireAuthed()
+  return previewAccountDeletion(user.id)
 })

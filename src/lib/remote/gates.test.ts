@@ -218,6 +218,8 @@ const NO_GATE: Record<string, string> = {
     'Not region scoped: client_error_logs is global, and the handler gates itself on locals.userPermissions holding app.admin before it touches the privileged client.',
   'lib/logging/errors.remote.ts#logClientError':
     'Errors happen signed out, so this is open on purpose: it names no id, writes only into the global client_error_logs, and takes createdBy from the session rather than the payload.',
+  'routes/(app)/settings/account.remote.ts#accountDeletionPreview':
+    "Reads only the session's own memberships and their regions' member counts, by the session's id; it names no other account.",
   'routes/(app)/settings/account.remote.ts#deleteAccountCommand':
     "Acts only on the session's own account: the ids come from the verified session, the password is re-entered against the token's email, and it names no other account or region.",
   'routes/(app)/settings/account.remote.ts#updateEmail':

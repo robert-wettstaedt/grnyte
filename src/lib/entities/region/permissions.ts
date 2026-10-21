@@ -1,6 +1,17 @@
 import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_READ } from '$lib/auth'
 import type { UserRegion } from './dto'
 
+/** What deleting `userFk`'s account does to a region, given its ACTIVE members: one rule, read
+ *  by the server that decides and by the screen that warns. */
+export function accountDeletionEffect(
+  members: readonly { role: string; userFk: number }[],
+  userFk: number,
+): 'blocks' | 'deletes' | 'keeps' {
+  if (!members.some((member) => member.userFk !== userFk)) return 'deletes'
+  const admins = members.filter((member) => member.role === 'region_admin').map((member) => member.userFk)
+  return isLastAdmin(admins, userFk) ? 'blocks' : 'keeps'
+}
+
 /**
  * Whether the signed-in user may administer a region: rename it, change member roles,
  * remove members and invite people.

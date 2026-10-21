@@ -24,13 +24,16 @@ import {
   userSettings,
 } from '$lib/db/schema'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
+import { toDisplayName, type DisplayName } from '$lib/entities/displayName'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
+import { getLocale } from '$lib/paraglide/runtime'
 import { and, eq, inArray, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../file/cleanup.server'
 import { deleteRegionRows } from '../region/delete.server'
 import { lockRegionMembers } from '../region/guards.server'
+import { accountDeletionEffect } from '../region/permissions'
 import { recalcUserGradeAndRating } from '../route/user-grade.server'
 import { verifyPassword } from './password.server'
 
@@ -39,6 +42,9 @@ export type Account = { authUserFk: string; email: string; id: number }
 
 export type DeleteAccountResult =
   { kind: 'blocked'; regions: string[] } | { kind: 'deleted' } | { kind: 'wrongPassword' }
+
+/** A region named for the screen and the refusal. */
+export type RegionRef = { id: number; name: DisplayName }
 
 type Db = PostgresJsDatabase<typeof schema>
 
@@ -53,8 +59,9 @@ export async function deleteAccount(account: Account, password: string): Promise
   }
 
   const outcome = await pinnedTx(async (tx) => {
-    const { blocking, sole } = await classifyRegions(tx, account.id)
-    if (blocking.length > 0) return { kind: 'blocked', regions: blocking } as const
+    const { blocks, deletes } = await classifyRegions(tx, account.id, true)
+    if (blocks.length > 0) return { kind: 'blocked', regions: blocks.map((region) => region.name) } as const
+    const sole = deletes.map((region) => region.id)
     return { kind: 'deleted', targets: await deleteAccountData(tx, account, sole) } as const
   })
 
@@ -147,31 +154,37 @@ export async function deleteAccountData(
   return targets
 }
 
+/** What deleting the account would do to each of the person's regions, read without locks: what
+ *  the screen warns about before the password is typed. The deletion decides again under lock. */
+export function previewAccountDeletion(userFk: number): Promise<{ blocks: RegionRef[]; deletes: RegionRef[] }> {
+  return pinnedTx((tx) => classifyRegions(tx, userFk, false))
+}
+
 /**
  * Which of the person's regions block the deletion (they are its only active admin and others still
- * use it) and which nobody else uses. Takes each region's member lock, held until the transaction ends.
+ * use it) and which nobody else uses. With `lock`, each region's member lock is held until the
+ * transaction ends.
  */
-async function classifyRegions(tx: Db, userFk: number): Promise<{ blocking: string[]; sole: number[] }> {
+async function classifyRegions(tx: Db, userFk: number, lock: boolean) {
   const mine = await tx.query.regionMembers.findMany({
     columns: { regionFk: true },
     where: and(eq(regionMembers.userFk, userFk), eq(regionMembers.isActive, true)),
     with: { region: { columns: { name: true } } },
   })
 
-  const blocking: string[] = []
-  const sole: number[] = []
+  const blocks: RegionRef[] = []
+  const deletes: RegionRef[] = []
   for (const { region, regionFk } of mine) {
-    await lockRegionMembers(tx, regionFk)
+    if (lock) await lockRegionMembers(tx, regionFk)
     const members = await tx.query.regionMembers.findMany({
       columns: { role: true, userFk: true },
       where: and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.isActive, true)),
     })
-    const others = members.filter((member) => member.userFk !== userFk)
-    const amAdmin = members.some((member) => member.userFk === userFk && member.role === 'region_admin')
-
-    if (others.length === 0) sole.push(regionFk)
-    else if (amAdmin && !others.some((member) => member.role === 'region_admin')) blocking.push(region?.name ?? '')
+    const ref = { id: regionFk, name: toDisplayName(region?.name ?? '', getLocale()) }
+    const effect = accountDeletionEffect(members, userFk)
+    if (effect === 'deletes') deletes.push(ref)
+    if (effect === 'blocks') blocks.push(ref)
   }
 
-  return { blocking, sole }
+  return { blocks, deletes }
 }
