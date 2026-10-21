@@ -25,8 +25,9 @@ export const COMMENT_MAX_LENGTH = 5000
 
 /** One comment under a card, ready to render. */
 export interface CommentListItem {
-  authorFk: number
-  /** The author's username; empty while the user row has not synced. */
+  /** Null once the author deleted their account. */
+  authorFk: null | number
+  /** The author's username, empty while syncing, "Deleted user" once they are gone. */
   authorName: string
   /** Markdown, with the same `!type:id!` references every description carries. */
   body: string
@@ -55,7 +56,7 @@ export interface CommentListItem {
 /** One person's one emoji on one event. */
 export interface ReactionListItem {
   emoji: string
-  userFk: number
+  userFk: null | number
   /** The reactor's username; empty while the user row has not synced. */
   userName: string
 }

@@ -2015,5 +2015,6 @@
   "upload_tooMany": "Zu viele Dateien (max. {count} auf einmal)",
   "upload_unreadableImage": "Das Bild konnte nicht gelesen werden",
   "upload_videoSheetBody": "Von YouTube oder Instagram? Sag, woher es stammt. Die Quelle wird auf der Routenseite genannt.",
+  "users_deleted": "Gelöschtes Konto",
   "users_notFound": "Benutzer nicht gefunden"
 }

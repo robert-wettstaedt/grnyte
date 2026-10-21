@@ -71,9 +71,8 @@ const baseFields = {
  * Nothing underneath will catch you if it does not.
  */
 const baseContentFields = {
-  createdBy: integer('created_by')
-    .notNull()
-    .references((): AnyColumn => users.id),
+  /** Null once the author deleted their account: the content stays, unattributed. */
+  createdBy: integer('created_by').references((): AnyColumn => users.id),
   name: text('name').notNull(),
 }
 
@@ -960,7 +959,10 @@ export const ascents = table(
      * window slid: the claim means "as of the day they sent it", which stays true forever.
      */
     accolade: text('accolade'),
-    createdBy: baseContentFields.createdBy,
+    // Ascents go with their climber, so they are never left without an author.
+    createdBy: integer('created_by')
+      .notNull()
+      .references((): AnyColumn => users.id),
 
     dateTime: date('date_time').notNull().defaultNow(),
     gradeFk: integer('grade_fk').references((): AnyColumn => grades.id),
@@ -1404,9 +1406,7 @@ export const activities = table(
     parentEntityId: text('parent_entity_id'),
     parentEntityType: text('parent_entity_type', { enum: activityParentEntityType }),
     type: pgEnum('activity_type', activityType)('type').notNull(),
-    userFk: integer('user_fk')
-      .notNull()
-      .references((): AnyColumn => users.id),
+    userFk: integer('user_fk').references((): AnyColumn => users.id),
   },
   (table) => [
     index('activities_created_at_idx').on(table.createdAt),
@@ -1791,9 +1791,7 @@ export const reactions = table(
     ...softDeleteFields,
 
     /** What the own-entry policy compares. `user_fk` is what the app joins on, as `favorites` does. */
-    authUserFk: uuid('auth_user_fk')
-      .notNull()
-      .references((): AnyColumn => authUsers.id),
+    authUserFk: uuid('auth_user_fk').references((): AnyColumn => authUsers.id),
     /** The emoji, or the comment text. One column because both payloads are strings; a future type
      *  carrying a number would want its own rather than a stringified one. */
     body: text('body').notNull(),
@@ -1806,9 +1804,7 @@ export const reactions = table(
     parentFk: integer('parent_fk').references((): AnyColumn => reactions.id, { onDelete: 'cascade' }),
     type: text('type', { enum: reactionType }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }),
-    userFk: integer('user_fk')
-      .notNull()
-      .references((): AnyColumn => users.id),
+    userFk: integer('user_fk').references((): AnyColumn => users.id),
   },
   (table) => [
     index('reactions_event_fk_idx').on(table.eventFk),

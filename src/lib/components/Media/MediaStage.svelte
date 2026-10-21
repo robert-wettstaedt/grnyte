@@ -261,9 +261,9 @@
       {#if file.uploader}
         <div class="flex items-center gap-2">
           <svelte:element
-            this={signedIn ? 'a' : 'div'}
-            href={signedIn ? entityHref('users', file.uploader.id) : undefined}
-            class={['flex items-center gap-2', signedIn && 'hover:opacity-80']}
+            this={signedIn && file.uploader.id != null ? 'a' : 'div'}
+            href={signedIn && file.uploader.id != null ? entityHref('users', file.uploader.id) : undefined}
+            class={['flex items-center gap-2', signedIn && file.uploader.id != null && 'hover:opacity-80']}
           >
             <Avatar name={file.uploader.username} size={28} solid />
             <span class="text-sm font-semibold">{file.uploader.username}</span>

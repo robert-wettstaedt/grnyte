@@ -89,7 +89,8 @@ export interface RouteListItem {
   /** Name of the route's block, for a breadcrumb (search results). */
   blockName?: DisplayName
   createdAt: Date | undefined
-  createdBy: number
+  /** Null once the author deleted their account. */
+  createdBy: null | number
   description: string
   firstAscentYear: number | undefined
   /** Community grade (`userGradeFk`): the route's own grade averaged with one vote per

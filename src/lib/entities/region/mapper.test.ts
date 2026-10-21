@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { RegionMemberRow } from './mapper'
-import { invitationDelivery, INVITE_SENDING_MS, seatState, toRegionMembership } from './mapper'
+import type { RegionDetailRow, RegionMemberRow } from './mapper'
+import { invitationDelivery, INVITE_SENDING_MS, seatState, toRegionDetail, toRegionMembership } from './mapper'
 import { DEFAULT_TAGS } from './tagVocabulary'
 
 describe('seatState', () => {
@@ -196,5 +196,19 @@ describe('invitationDelivery', () => {
 
   it('is pending before any attempt', () => {
     expect(invitationDelivery({ lastDeliveredAt: undefined, lastSentAt: undefined }, 0)).toBe('pending')
+  })
+})
+
+describe('toRegionDetail', () => {
+  const detail = { createdAt: 1, maxMembers: 10, name: 'Elbsandstein' }
+
+  it('names a creator who deleted their account', () => {
+    const row = { ...detail, author: undefined, createdBy: null } as unknown as RegionDetailRow
+    expect(toRegionDetail(row).createdBy).toBe('Deleted user')
+  })
+
+  it('names a live creator once their row is here', () => {
+    const row = { ...detail, author: { username: 'ada' }, createdBy: 4 } as unknown as RegionDetailRow
+    expect(toRegionDetail(row).createdBy).toBe('ada')
   })
 })

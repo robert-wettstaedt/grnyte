@@ -302,6 +302,17 @@ describe.skipIf(!reachable)('notifyComment', () => {
   })
 })
 
+describe.skipIf(!reachable)('notifyReaction', () => {
+  it('tells nobody about a reaction on a comment whose author deleted their account', async () => {
+    const id = await comment('second')
+
+    await notifyReaction({ actorFk: users.first.userId, comment: { id, userFk: null }, event: event() })
+
+    // Not the card's author either, which is who a missing comment author would fall back to.
+    expect(await told()).toEqual([])
+  })
+})
+
 describe.skipIf(!reachable)('dropReactionNotification', () => {
   it('takes the inbox row back with the last reaction behind it', async () => {
     await emoji('first')
