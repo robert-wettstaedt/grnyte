@@ -259,13 +259,14 @@
   <footer class="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 bg-linear-to-t from-black/70 to-transparent p-3">
     <div class="flex flex-col gap-1.5">
       {#if file.uploader}
+        {@const profile = signedIn && file.uploader.id != null ? entityHref('users', file.uploader.id) : undefined}
         <div class="flex items-center gap-2">
           <svelte:element
-            this={signedIn && file.uploader.id != null ? 'a' : 'div'}
-            href={signedIn && file.uploader.id != null ? entityHref('users', file.uploader.id) : undefined}
-            class={['flex items-center gap-2', signedIn && file.uploader.id != null && 'hover:opacity-80']}
+            this={profile == null ? 'div' : 'a'}
+            href={profile}
+            class={['flex items-center gap-2', profile != null && 'hover:opacity-80']}
           >
-            <Avatar name={file.uploader.username} size={28} solid />
+            <Avatar deleted={file.uploader.id === null} name={file.uploader.username} size={28} solid />
             <span class="text-sm font-semibold">{file.uploader.username}</span>
           </svelte:element>
           <span class="opacity-50">·</span>

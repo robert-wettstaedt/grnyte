@@ -29,6 +29,7 @@ export const load = (async ({ locals, params }) => {
         blockFk: true,
         bunnyStreamFk: true,
         createdAt: true,
+        createdBy: true,
         height: true,
         id: true,
         path: true,

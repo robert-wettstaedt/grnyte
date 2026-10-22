@@ -10,6 +10,7 @@ import {
   files,
   firstAscensionists,
   geolocations,
+  notifications,
   regionInvitations,
   regionMembers,
   regions,
@@ -34,10 +35,11 @@ type Db = PostgresJsDatabase<typeof schema>
  * Delete a region and every row that belongs to it, leaves first. Returns the storage targets of
  * its files, for {@link removeFileStorage} once the caller's transaction has committed.
  * Every foreign key here is NO ACTION, so the order is the delete; events cascade their
- * reactions, changes and notifications.
+ * reactions, changes and notifications; membership notices have no event and go by region.
  */
 export async function deleteRegionRows(tx: Db, regionFk: number): Promise<FileStorageTarget[]> {
   await tx.delete(events).where(eq(events.regionFk, regionFk))
+  await tx.delete(notifications).where(eq(notifications.regionFk, regionFk))
   await tx.delete(favorites).where(eq(favorites.regionFk, regionFk))
   await tx.delete(activities).where(eq(activities.regionFk, regionFk))
 

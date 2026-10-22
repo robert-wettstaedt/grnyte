@@ -115,8 +115,9 @@ export const replyToFeedback = command(
           locale: userSettings.contactLocale,
         })
         .from(feedback)
-        .innerJoin(users, eq(users.id, feedback.createdBy))
-        .innerJoin(authUser, eq(authUser.id, users.authUserFk))
+        // LEFT: a deleted author leaves a report that still closes, with nobody to mail.
+        .leftJoin(users, eq(users.id, feedback.createdBy))
+        .leftJoin(authUser, eq(authUser.id, users.authUserFk))
         // LEFT: an author with no settings row is still answered, in the default language.
         .leftJoin(userSettings, eq(userSettings.userFk, users.id))
         .where(eq(feedback.id, id))
@@ -145,7 +146,7 @@ export const replyToFeedback = command(
     // No address to answer: the row is still closed and the text stored, but do not let the inbox
     // report a delivery that was never attempted.
     if (row.email == null) {
-      return { delivered: false }
+      return { delivered: false, noRecipient: true }
     }
 
     const locale = contactLocale(row.locale)

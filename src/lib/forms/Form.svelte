@@ -37,7 +37,6 @@
     children?: Snippet
     /** With `waitFor`: the reader may not use this screen. Shown in the form's chrome instead. */
     denied?: ComponentProps<typeof ErrorState>
-    /** The submit cannot be undone, so its button wears the destructive tone. */
     destructive?: boolean
     /** With `waitFor`: the fields, given its rows. Remounted after each seed, since fields seed
      *  their own state once at mount. */

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'
@@ -16,17 +17,15 @@
   import { deleteAccountSchema } from '../../schemas'
 
   const store = createFormStore(deleteAccountSchema)
-  // A server read, the rule the deletion itself applies: a synced member list can be half there.
   const preview = remoteResource(accountDeletionPreview())
 
   const blocks = $derived(preview.data?.blocks ?? [])
   const deletes = $derived(preview.data?.deletes ?? [])
-  // Held until the preview answers, so nobody deletes past a warning that has not arrived yet.
+  // Held until the preview answers: the server re-checks the block, but nothing confirms a region that goes.
   const held = $derived(preview.phase.kind !== 'answered' || blocks.length > 0)
 
   const submit = (values: z.input<typeof deleteAccountSchema>) => submitCommand(() => deleteAccountCommand(values))
 
-  // The server already cleared the session cookies; this releases the device and leaves signed out.
   const onSubmitted = async () => {
     await disablePush().catch(() => undefined)
     await wipeAndLeave(`${resolve('/')}?accountDeleted`)
@@ -81,6 +80,9 @@
   />
 
   <!-- Below the field: the regions arrive from a query, and must never push the field down. -->
+  {#if preview.phase.kind === 'error'}
+    <QueryError />
+  {/if}
   {#if blocks.length > 0}
     {@render regionList(m.settings_deleteAccountBlockedList(), blocks, 'preset-tonal-error')}
   {/if}

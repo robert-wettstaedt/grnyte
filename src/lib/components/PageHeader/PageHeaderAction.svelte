@@ -7,7 +7,6 @@
   // markup each caller repeats, because the three screens that hand-rolled it drifted into three
   // different buttons: label-only, icon-only, and icon plus label.
   interface Props {
-    /** An irreversible action: the error tone and a trash icon, so it never reads as a save. */
     destructive?: boolean
     disabled?: boolean
     icon?: IconName
