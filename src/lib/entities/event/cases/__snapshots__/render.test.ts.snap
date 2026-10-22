@@ -4803,10 +4803,10 @@ exports[`the case catalogue renders what it claims > REGION-06a: /regions/{id} -
 }
 `;
 
-exports[`the case catalogue renders what it claims > REGION-06b: Leave a region you are the sole remaining admin of (the row is not rendered, so this is the API's answer) 1`] = `
+exports[`the case catalogue renders what it claims > REGION-06b: Leave a region you own (the row is not rendered, so this is the API's answer) 1`] = `
 {
   "cards": [],
-  "expected": "No card. The last-admin check runs before the event, and both statements share the transaction, so nothing is logged for an attempt that cannot succeed.",
+  "expected": "No card. The owner check runs before the event, and both statements share the transaction, so nothing is logged for an attempt that cannot succeed.",
 }
 `;
 

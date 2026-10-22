@@ -10,7 +10,7 @@
   import { MEMBERSHIP_UNDO_MS } from '$lib/entities/notification/push'
   import { inviteMemberSchema, type RegionInvitationItem, type RegionMemberItem } from '$lib/entities/region/dto'
   import { invitationDelivery, INVITE_SENDING_MS, regionDisplayName, seatState } from '$lib/entities/region/mapper'
-  import { canEditRegion, isLastAdmin } from '$lib/entities/region/permissions'
+  import { canEditRegion } from '$lib/entities/region/permissions'
   import { listRegionInvitations } from '$lib/entities/region/regions.remote'
   import { regionDetail, regionMemberList } from '$lib/entities/region/resources.svelte'
   import { regionTags } from '$lib/entities/region/tagVocabulary'
@@ -199,16 +199,6 @@
     })
     await refreshInvitations()
   }
-
-  // Leaving must not orphan the region, so the sole remaining admin cannot. The server refuses
-  // it too; this only keeps the button from offering something that always fails, and it asks
-  // the same helper the server asks so the two can never disagree.
-  const isSoleAdmin = $derived(
-    isLastAdmin(
-      (members.data ?? []).filter((member) => displayRole(member) === 'region_admin').map((member) => member.userId),
-      global.user?.id ?? -1,
-    ),
-  )
 </script>
 
 <svelte:head>
@@ -242,8 +232,8 @@
               />
             {/if}
 
-            <!-- Always there: every region had a creator, and the name is a relation that lands after the row. -->
-            <SettingLink label={m.region_createdBy()} value={detail.createdBy ?? ''} />
+            <!-- Always there: every region has an owner, and the name is a relation that lands after the row. -->
+            <SettingLink label={m.roles_owner()} value={detail.createdBy ?? ''} />
 
             <!-- No count beside it: the seat counter above is live from Zero and a second,
                  snapshot number would drift within one tap. -->
@@ -267,6 +257,13 @@
                 href={resolve('/(app)/regions/[regionId]/tags', { regionId: String(regionId) })}
                 label={m.region_tags()}
                 value={String(tagCount)}
+              />
+            {/if}
+
+            {#if detail.ownerFk === global.user?.id}
+              <SettingLink
+                href={resolve('/(app)/regions/[regionId]/delete', { regionId: String(regionId) })}
+                label={m.region_delete()}
               />
             {/if}
           </div>
@@ -312,10 +309,17 @@
                   {@const self = member.userId === global.user?.id}
 
                   <MemberRow
-                    canLeave={!isSoleAdmin}
-                    canManage={isAdmin && !self}
+                    canLeave={detail.ownerFk !== global.user?.id}
+                    canManage={isAdmin && !self && member.userId !== detail.ownerFk}
+                    makeOwnerHref={detail.ownerFk === global.user?.id && displayRole(member) === 'region_admin' && !self
+                      ? resolve('/(app)/regions/[regionId]/owner/[userId]', {
+                          regionId: String(regionId),
+                          userId: String(member.userId),
+                        })
+                      : undefined}
                     {member}
                     {onLeave}
+                    owner={member.userId === detail.ownerFk}
                     onRemove={() => onRemove(member)}
                     onRole={(role) => onRole(member, role)}
                     regionName={name ?? detail.name}

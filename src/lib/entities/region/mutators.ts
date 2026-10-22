@@ -14,7 +14,7 @@ import {
 } from './dto'
 
 // Validate and write nothing: every one of these is a form, a create, a delete, or a write whose
-// rules (locks, seats, the last admin) only the server can apply.
+// rules (locks, seats, the owner) only the server can apply.
 const waitForServer = async () => {}
 
 export const regionsMutatorDefs = {

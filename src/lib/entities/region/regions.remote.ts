@@ -1,14 +1,25 @@
+import { resolve } from '$app/paths'
 import { command, form, getRequestEvent, query } from '$app/server'
 import { regionInvitations } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { getLocale } from '$lib/paraglide/runtime'
-import { authedCommand, authedForm, authedQuery, authedRls, requireAuthed } from '$lib/remote/authed.server'
+import {
+  authedCommand,
+  authedForm,
+  authedQuery,
+  authedRls,
+  refuseCommand,
+  requireAuthed,
+} from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import { createRegionForUser, listOwnedRegions } from './create.server'
+import { deleteRegion, previewRegionDeletion } from './delete.server'
 import {
+  deleteRegionSchema,
+  handOverSchema,
   invitationSchema,
   inviteMemberSchema,
   MAX_OWNED_REGIONS,
@@ -52,6 +63,7 @@ import {
   restoreRegionMemberRow,
   updateRegionMemberRoleRow,
 } from './members.server'
+import { transferRegionOwnership } from './ownership.server'
 import { tagUsage } from './tags.server'
 
 // The write bodies live in `edit.server.ts`, `invitations.server.ts` and `members.server.ts`,
@@ -231,3 +243,28 @@ export const restoreRegionMember = authedCommand(memberRoleSchema, (args, ctx) =
 
 /** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
 export const leaveRegion = authedCommand(regionFkSchema, (args, ctx) => leaveRegionRow(args, ctx))
+
+/** Hand the region to another admin. The address comes from the verified token, as in
+ *  `deleteAccountCommand`, so the password check cannot be pointed at another account. */
+export const transferRegionOwnershipCommand = command(handOverSchema, async ({ password, ...target }) => {
+  const { claims, user } = requireAuthed()
+  if (claims.email == null) error(401, formError('auth_notSignedIn'))
+
+  const result = await transferRegionOwnership({ email: claims.email, id: user.id }, target, password)
+  if (result.kind === 'wrongPassword') refuseCommand(formError('settings_passwordIncorrect'), 'password')
+})
+
+export const regionDeletionPreview = query(regionFkSchema, ({ regionFk }) =>
+  previewRegionDeletion(regionFk, requireAuthed().user.id),
+)
+
+export const deleteRegionCommand = command(deleteRegionSchema, async ({ name, password, regionFk }) => {
+  const { claims, user } = requireAuthed()
+  if (claims.email == null) error(401, formError('auth_notSignedIn'))
+
+  const owner = { email: claims.email, id: user.id }
+  const result = await deleteRegion(owner, { name, regionFk }, password, getRequestEvent().url.origin)
+  if (result.kind === 'wrongName') refuseCommand(formError('region_deleteWrongName'), 'name')
+  if (result.kind === 'wrongPassword') refuseCommand(formError('settings_passwordIncorrect'), 'password')
+  return { redirectTo: resolve('/(app)/settings') }
+})

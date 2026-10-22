@@ -9,7 +9,7 @@ import { assignableRoleSchema, type memberRoleSchema, type RemovedMemberSnapshot
 import { assertCanEdit } from './edit.server'
 import {
   assertMemberChangeAllowed,
-  assertNotLastAdmin,
+  assertNotOwner,
   findActiveMember,
   lockRegionMembers,
   resolveRestore,
@@ -20,13 +20,12 @@ type Caller = Pick<Context, 'afterCommit' | 'db' | 'user' | 'userRegions'>
 
 /**
  * Leave a region. Not admin-gated, any member may leave, which is what the own-row DELETE
- * policy on `region_members` exists for. A region's sole admin is refused, so a region can
- * never end up with nobody able to administer it.
+ * policy on `region_members` exists for.
  */
 export async function leaveRegionRow({ regionFk }: { regionFk: number }, { db, user }: Pick<Context, 'db' | 'user'>) {
   const member = await findActiveMember(db, regionFk, user.id)
 
-  await assertNotLastAdmin(db, regionFk, user.id)
+  await assertNotOwner(db, regionFk, user.id)
 
   // Logged BEFORE the membership goes: inserting into `events` is gated on
   // authorize_in_region, which reads region_members and so is already false inside this

@@ -49,6 +49,15 @@ describe('notificationView', () => {
     expect(view.params.role).toBe('Maintainer')
   })
 
+  it('names a handover as becoming the owner', () => {
+    const view = notificationView(
+      notification({ metadata: 'owner', object: { id: 5, type: 'user' }, sourceType: 'role_changed' }),
+    )
+
+    expect(view.key).toBe('notifications_roleChanged')
+    expect(view.params.role).toBe('Owner')
+  })
+
   /**
    * The reason this goes through `roleLabelFor`. The plain label answers "Admin" for anything it
    * does not recognise, so a role that was retired since the row was written would read as a

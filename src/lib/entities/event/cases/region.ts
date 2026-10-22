@@ -347,11 +347,11 @@ export const REGION_CASES: EventCase[] = [
     writer: 'members.server.ts:43',
   },
   {
-    action: "Leave a region you are the sole remaining admin of (the row is not rendered, so this is the API's answer)",
+    action: "Leave a region you own (the row is not rendered, so this is the API's answer)",
     domain: 'region',
     events: [],
     expected:
-      'No card. The last-admin check runs before the event, and both statements share the transaction, so nothing is logged for an attempt that cannot succeed.',
+      'No card. The owner check runs before the event, and both statements share the transaction, so nothing is logged for an attempt that cannot succeed.',
     id: 'REGION-06b',
     writer: 'members.server.ts:34',
   },

@@ -3,12 +3,9 @@ import { command, form, getRequestEvent, query } from '$app/server'
 import { deleteAccount, previewAccountDeletion } from '$lib/entities/user/delete.server'
 import { verifyPassword } from '$lib/entities/user/password.server'
 import { authError, formError } from '$lib/forms/schemas'
-import { refuseVia, requireAuthed } from '$lib/remote/authed.server'
+import { refuseCommand, refuseVia, requireAuthed } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
 import { deleteAccountSchema, updateEmailSchema, updatePasswordSchema } from './schemas'
-
-/** A refusal as a command raises it: the field rides in the `HttpError` body for the store form. */
-const refuseCommand = (message: string, field?: string): never => error(400, { field, message })
 
 /**
  * Start an email change. No password prompt here: Supabase's secure email change mails a link to

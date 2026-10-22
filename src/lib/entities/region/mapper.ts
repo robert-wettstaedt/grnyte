@@ -62,8 +62,10 @@ export function toRegionDetail(row: RegionDetailRow): RegionDetail {
   return {
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
     createdBy: authorName(row.createdBy, row.author),
+    id: row.id,
     maxMembers: row.maxMembers ?? 0,
     name: row.name,
+    ownerFk: row.createdBy ?? undefined,
   }
 }
 
