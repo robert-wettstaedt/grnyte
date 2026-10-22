@@ -16,7 +16,9 @@ const EXPIRED = `__unconfirmed_expired_${RUN}__@example.test`
 const RECENT = `__unconfirmed_recent_${RUN}__@example.test`
 const CONFIRMED = `__unconfirmed_confirmed_${RUN}__@example.test`
 const SIGNED_UP = `__unconfirmed_signed_up_${RUN}__@example.test`
-const EMAILS = [EXPIRED, RECENT, CONFIRMED, SIGNED_UP]
+const LONE = `__unconfirmed_lone_${RUN}__@example.test`
+const LONE_FRESH = `__unconfirmed_lone_fresh_${RUN}__@example.test`
+const EMAILS = [EXPIRED, RECENT, CONFIRMED, SIGNED_UP, LONE, LONE_FRESH]
 
 const deleted: string[] = []
 let keptIds: string[] = []
@@ -122,5 +124,23 @@ describe.skipIf(!reachable)('an expired sign-up', () => {
       union all select 1 from public.users where auth_user_fk = ${id}
       union all select 1 from public.user_settings where auth_user_fk = ${id}`
     expect(left).toHaveLength(0)
+  })
+})
+
+// What an account deletion leaves behind when GoTrue failed after the rows were gone.
+describe.skipIf(!reachable)('a sign-in record with no profile', () => {
+  it('is deleted once it is an hour old, and left alone while a sign-up may still be writing it', async () => {
+    const [lone] = await sql<{ id: string }[]>`
+      insert into auth.users (id, email, created_at, email_confirmed_at)
+      values (gen_random_uuid(), ${LONE}, now() - interval '2 hours', now()) returning id`
+    const [fresh] = await sql<{ id: string }[]>`
+      insert into auth.users (id, email, created_at, email_confirmed_at)
+      values (gen_random_uuid(), ${LONE_FRESH}, now(), now()) returning id`
+
+    await sweepUnconfirmedAccounts(new Date(Date.now() - UNCONFIRMED_MAX_AGE_MS))
+
+    expect(deleted).toContain(lone.id)
+    expect(deleted).not.toContain(fresh.id)
+    expect(deleted).not.toContain(keptIds[1])
   })
 })

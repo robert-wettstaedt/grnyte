@@ -1,5 +1,5 @@
 import { blockName } from '$lib/entities/block/mapper'
-import { toDisplayName } from '$lib/entities/displayName'
+import { authorName, toDisplayName } from '$lib/entities/displayName'
 /**
  * The one sector every case points at, and the builders that write events about it.
  *
@@ -136,7 +136,7 @@ export function eventAgo(
   const parent = 'parent' in partial ? partial.parent : parentOf(objectType, objectId)
 
   return {
-    actorName: PEOPLE[partial.actorFk] ?? '',
+    actorName: partial.actorFk == null ? authorName(null, undefined) : (PEOPLE[partial.actorFk] ?? ''),
     changes: [],
     commentCount: 0,
     createdAt: base - minutesAgo * 60_000,

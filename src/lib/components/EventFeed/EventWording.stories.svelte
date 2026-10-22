@@ -60,7 +60,7 @@
       event.entity.climberFk == null
         ? undefined
         : owner === 'self'
-          ? event.actorFk
+          ? (event.actorFk ?? undefined)
           : // Anybody but the actor, since "other" is decided by that comparison alone.
             event.actorFk === 5
             ? 3
@@ -96,7 +96,7 @@
 
     return EVENT_CASES.flatMap((entry) =>
       groupEvents(entry.events.map((event) => bare(event, owner)))
-        .map((group) => eventCard(group, yours ? group.actorFk : STRANGER, entry.topos))
+        .map((group) => eventCard(group, yours ? (group.actorFk ?? undefined) : STRANGER, entry.topos))
         .filter((card) => {
           if (seen.includes(card.headline.key)) {
             return false

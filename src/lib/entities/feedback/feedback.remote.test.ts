@@ -6,7 +6,7 @@ import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { sendEmailOutcome } from '$lib/email/send.server'
 import { asRequest } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { replyToFeedback } from './feedback.remote'
+import { listFeedback, replyToFeedback } from './feedback.remote'
 
 vi.mock('$lib/email/send.server', () => ({ sendEmailOutcome: vi.fn() }))
 
@@ -77,5 +77,25 @@ describe.skipIf(!reachable)('replyToFeedback', () => {
     vi.mocked(sendEmailOutcome).mockResolvedValueOnce('sent')
     await asRequest(admin.authId, () => replyToFeedback({ id: feedbackId, reply: 'done' }))
     expect(await rowNow()).toEqual({ reply: 'done', status: 'closed' })
+  })
+
+  it('closes a report whose author deleted their account, with no mail to send', async () => {
+    await sql`update public.feedback set created_by = null where id = ${feedbackId}`
+
+    const reply = await asRequest(admin.authId, () => replyToFeedback({ id: feedbackId, reply: 'noted' }))
+
+    expect(reply).toEqual({ delivered: false, noRecipient: true })
+    expect(sendEmailOutcome).not.toHaveBeenCalled()
+    expect(await rowNow()).toEqual({ reply: 'noted', status: 'closed' })
+  })
+})
+
+describe.skipIf(!reachable)('listFeedback', () => {
+  it('keeps a report whose author deleted their account, credited to nobody', async () => {
+    await sql`update public.feedback set created_by = null where id = ${feedbackId}`
+
+    const rows = await asRequest(admin.authId, () => listFeedback())
+
+    expect(rows.find((row) => row.id === feedbackId)?.authorName).toBe('Deleted user')
   })
 })

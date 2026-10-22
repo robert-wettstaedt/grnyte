@@ -19,6 +19,17 @@ export function alreadyDisplayable(name: string): DisplayName {
   return name as DisplayName
 }
 
+/** An author's name by foreign key: null is an author who deleted their account, a missing row is
+ *  one still syncing, which stays empty because the loading avatar keys on that. */
+export function authorName(
+  fk: null | number | undefined,
+  author: null | undefined | { username: string },
+  locale?: Locale,
+): string {
+  if (fk == null) return m.users_deleted({}, { locale })
+  return author?.username ?? ''
+}
+
 /** Mint one. For mappers and the server digest; a renderer calling this holds a second opinion
  *  about what a nameless thing is called. Trimmed, because legacy rows are not. */
 export function mintDisplayName(name: string, fallback: () => string): DisplayName {

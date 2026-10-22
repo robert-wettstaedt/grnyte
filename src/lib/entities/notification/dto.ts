@@ -10,9 +10,9 @@ import type { Notification } from '$lib/zero/zero-schema.gen'
  * about arrives nested with the row and no second pass joins anything.
  */
 export interface NotificationListItem {
-  /** Who caused it. Never the recipient: self-authored events are dropped at fan-out. */
-  actorFk: number
-  /** The actor's username; empty while the user row has not synced. */
+  /** Who caused it, null once they deleted their account. Never the recipient. */
+  actorFk: null | number
+  /** The actor's username; empty while the user row has not synced, "Deleted user" once they are gone. */
   actorName: string
   createdAt: number
   /**

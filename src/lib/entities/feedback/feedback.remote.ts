@@ -3,6 +3,7 @@ import { pinnedTx } from '$lib/db/pinned.server'
 import { feedback, users, userSettings } from '$lib/db/schema'
 import { feedbackReplyEmailContent } from '$lib/email/feedback'
 import { sendEmailOutcome } from '$lib/email/send.server'
+import { authorName } from '$lib/entities/displayName'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { contactLocale } from '$lib/i18n/message'
@@ -63,7 +64,8 @@ export const listFeedback = query(async (): Promise<FeedbackItem[]> => {
         userAgent: feedback.userAgent,
       })
       .from(feedback)
-      .innerJoin(users, eq(users.id, feedback.createdBy))
+      // LEFT: a report outlives its author for the retention period, credited to nobody.
+      .leftJoin(users, eq(users.id, feedback.createdBy))
       // `'closed' < 'open'` lexicographically, so DESC puts unanswered rows on top, then newest.
       .orderBy(desc(feedback.status), desc(feedback.createdAt))
       // ponytail: newest 200, no paging. The sort above is what makes that safe: only closed rows
@@ -73,6 +75,7 @@ export const listFeedback = query(async (): Promise<FeedbackItem[]> => {
 
   return rows.map((row) => ({
     ...row,
+    authorName: row.authorName ?? authorName(null, undefined),
     createdAt: row.createdAt.getTime(),
     locale: row.locale ?? '',
     pathname: row.pathname ?? '',
@@ -112,8 +115,9 @@ export const replyToFeedback = command(
           locale: userSettings.contactLocale,
         })
         .from(feedback)
-        .innerJoin(users, eq(users.id, feedback.createdBy))
-        .innerJoin(authUser, eq(authUser.id, users.authUserFk))
+        // LEFT: a deleted author leaves a report that still closes, with nobody to mail.
+        .leftJoin(users, eq(users.id, feedback.createdBy))
+        .leftJoin(authUser, eq(authUser.id, users.authUserFk))
         // LEFT: an author with no settings row is still answered, in the default language.
         .leftJoin(userSettings, eq(userSettings.userFk, users.id))
         .where(eq(feedback.id, id))
@@ -142,7 +146,7 @@ export const replyToFeedback = command(
     // No address to answer: the row is still closed and the text stored, but do not let the inbox
     // report a delivery that was never attempted.
     if (row.email == null) {
-      return { delivered: false }
+      return { delivered: false, noRecipient: true }
     }
 
     const locale = contactLocale(row.locale)

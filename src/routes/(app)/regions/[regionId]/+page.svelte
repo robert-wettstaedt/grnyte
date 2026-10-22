@@ -242,11 +242,8 @@
               />
             {/if}
 
-            <!-- On the creator's id, not their name: the name is a relation that lands after the row,
-                 and a row appearing then pushes everything below it down. -->
-            {#if detail.createdByFk != null}
-              <SettingLink label={m.region_createdBy()} value={detail.createdBy ?? ''} />
-            {/if}
+            <!-- Always there: every region had a creator, and the name is a relation that lands after the row. -->
+            <SettingLink label={m.region_createdBy()} value={detail.createdBy ?? ''} />
 
             <!-- No count beside it: the seat counter above is live from Zero and a second,
                  snapshot number would drift within one tap. -->

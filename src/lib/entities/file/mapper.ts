@@ -1,3 +1,4 @@
+import { authorName } from '../displayName'
 import type { MediaFile, VideoReadiness } from './dto'
 
 /** What a file hangs off. Route beats ascent beats block beats area, and at most one is ever set. */
@@ -12,6 +13,8 @@ interface FileRow {
   bunnyStreamFk: null | string
   /** Nullable in the Zero row (DB default), never null in practice; coerced below. */
   createdAt: null | number
+  /** Null once the uploader deleted their account. */
+  createdBy: null | number
   height: null | number
   id: string
   path: string
@@ -56,8 +59,13 @@ export function toMediaFile(row: FileRow): MediaFile {
     readiness: row.bunnyStream?.readiness ?? undefined,
     regionFk: row.regionFk,
     source: row.bunnyStream?.source ?? undefined,
-    uploader: row.author ? { id: row.author.id, username: row.author.username } : undefined,
+    uploader: toUploader(row),
     visibility: row.visibility ?? undefined,
     width: row.width ?? undefined,
   }
+}
+
+function toUploader(row: FileRow): MediaFile['uploader'] {
+  if (row.createdBy === null) return { id: null, username: authorName(null, undefined) }
+  return row.author ? { id: row.author.id, username: row.author.username } : undefined
 }

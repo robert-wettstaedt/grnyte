@@ -1,11 +1,11 @@
 import { resolve } from '$app/paths'
-import { command, form, getRequestEvent } from '$app/server'
-import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
+import { command, form, getRequestEvent, query } from '$app/server'
+import { deleteAccount, previewAccountDeletion } from '$lib/entities/user/delete.server'
+import { verifyPassword } from '$lib/entities/user/password.server'
 import { authError, formError } from '$lib/forms/schemas'
-import { refuseVia } from '$lib/remote/authed.server'
-import { createClient } from '@supabase/supabase-js'
+import { refuseVia, requireAuthed } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
-import { updateEmailSchema, updatePasswordSchema } from './schemas'
+import { deleteAccountSchema, updateEmailSchema, updatePasswordSchema } from './schemas'
 
 /** A refusal as a command raises it: the field rides in the `HttpError` body for the store form. */
 const refuseCommand = (message: string, field?: string): never => error(400, { field, message })
@@ -42,25 +42,6 @@ async function changeEmail(email: string, refuse: (message: string, field?: 'ema
   }
 
   return { email, success: true }
-}
-
-/**
- * Check `password` against the account without disturbing the caller's session. `locals.supabase`
- * writes auth cookies, so signing in through it would swap the live session out from under the
- * user; this throwaway client persists nothing and its own session is revoked right after.
- *
- * `scope: 'local'` matters: the default ('global') would revoke every refresh token the user has,
- * signing them out of all their devices only for typing their password.
- */
-async function verifyPassword(email: string, password: string): Promise<boolean> {
-  const client = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  const { error: signInError } = await client.auth.signInWithPassword({ email, password })
-  await client.auth.signOut({ scope: 'local' })
-
-  return signInError == null
 }
 
 /** @public Unused since the store forms; deployed one more release for tabs loaded before them. */
@@ -108,3 +89,33 @@ async function changePassword(
 export const updatePassword = form(updatePasswordSchema, (value, issue) => changePassword(value, refuseVia(issue)))
 
 export const updatePasswordCommand = command(updatePasswordSchema, (value) => changePassword(value, refuseCommand))
+
+/**
+ * Delete the caller's own account. The address comes from the verified token, as in
+ * `changePassword`, so the password check cannot be pointed at somebody else's account.
+ */
+export const deleteAccountCommand = command(deleteAccountSchema, async ({ password }) => {
+  const { claims, user } = requireAuthed()
+  if (claims.email == null) {
+    error(401, formError('auth_notSignedIn'))
+  }
+
+  const result = await deleteAccount({ authUserFk: user.authUserFk, email: claims.email, id: user.id }, password)
+
+  if (result.kind === 'wrongPassword') {
+    refuseCommand(formError('settings_passwordIncorrect'), 'password')
+  }
+  if (result.kind === 'blocked') {
+    refuseCommand(formError('settings_deleteAccountBlocked', { regions: result.regions.join(', ') }))
+  }
+
+  // Clears this browser's session cookies; GoTrue revoked every other session with the account.
+  await getRequestEvent().locals.supabase.auth.signOut({ scope: 'local' })
+})
+
+/** What deleting the caller's account would do to their regions, for the screen's warnings. A
+ *  server read, so it is the same rule the deletion applies and never a half-synced member list. */
+export const accountDeletionPreview = query(async () => {
+  const { user } = requireAuthed()
+  return previewAccountDeletion(user.id)
+})

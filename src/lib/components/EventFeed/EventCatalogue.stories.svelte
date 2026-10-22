@@ -100,6 +100,9 @@
 <!-- Reactions and comments, which are part of every card now: chips, your own event, a thread. -->
 <Story name="Reactions and comments" args={{ cases: byDomain('social') }} {template} />
 
+<!-- What a reader finds after a member deleted their account: the card stays, credited to nobody. -->
+<Story name="Deleted accounts" args={{ cases: byDomain('account') }} {template} />
+
 <!-- The actions that write nothing, on their own: the ones most likely to be a real bug, since a
      reader performed an action and the feed said nothing. -->
 <Story name="Silent actions" args={{ cases: EVENT_CASES.filter((entry) => entry.events.length === 0) }} {template} />

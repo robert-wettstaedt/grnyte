@@ -4,7 +4,7 @@ import { eventParentRef } from '$lib/entities/event/mapper'
 import { contactLocale } from '$lib/i18n/message'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
-import { and, eq, gt, inArray, lte, max, ne, sql } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNull, lte, max, ne, or, sql } from 'drizzle-orm'
 import { toMs, unreadCounts } from './delivery.server'
 import { digestCopy } from './digest.server'
 import { categoryEnabled, inBatches, safeMark } from './dispatch'
@@ -145,8 +145,8 @@ export async function sendDigests(nowMs: number): Promise<number> {
             // over something still in flight. See `DIGEST_COMMIT_LAG_MS`.
             lte(events.createdAt, new Date(nowMs - DIGEST_COMMIT_LAG_MS)),
             inArray(events.regionFk, regions),
-            // Nobody is told about their own edit.
-            ne(events.actorFk, subscriber.userFk),
+            // Nobody is told about their own edit; a deleted actor's still counts.
+            or(isNull(events.actorFk), ne(events.actorFk, subscriber.userFk)),
           ),
         )
         .orderBy(events.createdAt, events.id)
@@ -208,7 +208,7 @@ export async function sendDigests(nowMs: number): Promise<number> {
       return false
     }
 
-    const actorNames = await namesOf(enabled.map((event) => event.actorFk))
+    const actorNames = await namesOf(enabled.flatMap((event) => (event.actorFk == null ? [] : [event.actorFk])))
     const copy = await digestCopy(enabled, actorNames, contactLocale(subscriber.contactLocale))
     if (copy == null) {
       return false

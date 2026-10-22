@@ -17,7 +17,7 @@ import { decodeMetadata, type EventMetadata } from './metadata'
  * so the card reads them there.
  */
 export interface CardLine {
-  actorFk: number
+  actorFk: null | number
   /** The actor's username; empty while the user row has not synced. */
   actorName: string
   /** Whether this line's column ended up empty, which two sentences differ on. */

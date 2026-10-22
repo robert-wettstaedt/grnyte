@@ -7,6 +7,7 @@
   // markup each caller repeats, because the three screens that hand-rolled it drifted into three
   // different buttons: label-only, icon-only, and icon plus label.
   interface Props {
+    destructive?: boolean
     disabled?: boolean
     icon?: IconName
     /** Put the icon after the label. For "next", which points forward. */
@@ -19,8 +20,9 @@
   }
 
   const {
+    destructive = false,
     disabled = false,
-    icon = 'check',
+    icon = destructive ? 'trash' : 'check',
     iconAfter = false,
     label,
     onclick,
@@ -32,7 +34,10 @@
 <!-- Icon-only below sm, icon plus label from sm up, matching the back chip opposite it: German
      labels ("Abbrechen", "Speichern") ate so much of a phone-width bar that the title truncated. -->
 <button
-  class="btn preset-filled-primary-500 size-8 flex-none px-0 sm:size-auto sm:px-4"
+  class={[
+    'btn size-8 flex-none px-0 sm:size-auto sm:px-4',
+    destructive ? 'preset-filled-error-500' : 'preset-filled-primary-500',
+  ]}
   {disabled}
   {onclick}
   {type}
