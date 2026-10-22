@@ -11,6 +11,7 @@ import {
   authedRls,
   refuseCommand,
   requireAuthed,
+  requireVerifiedEmail,
 } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error, invalid } from '@sveltejs/kit'
@@ -244,13 +245,9 @@ export const restoreRegionMember = authedCommand(memberRoleSchema, (args, ctx) =
 /** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
 export const leaveRegion = authedCommand(regionFkSchema, (args, ctx) => leaveRegionRow(args, ctx))
 
-/** Hand the region to another admin. The address comes from the verified token, as in
- *  `deleteAccountCommand`, so the password check cannot be pointed at another account. */
 export const transferRegionOwnershipCommand = command(handOverSchema, async ({ password, ...target }) => {
-  const { claims, user } = requireAuthed()
-  if (claims.email == null) error(401, formError('auth_notSignedIn'))
-
-  const result = await transferRegionOwnership({ email: claims.email, id: user.id }, target, password)
+  const { email, user } = requireVerifiedEmail()
+  const result = await transferRegionOwnership({ email, id: user.id }, target, password)
   if (result.kind === 'wrongPassword') refuseCommand(formError('settings_passwordIncorrect'), 'password')
 })
 
@@ -259,11 +256,8 @@ export const regionDeletionPreview = query(regionFkSchema, ({ regionFk }) =>
 )
 
 export const deleteRegionCommand = command(deleteRegionSchema, async ({ name, password, regionFk }) => {
-  const { claims, user } = requireAuthed()
-  if (claims.email == null) error(401, formError('auth_notSignedIn'))
-
-  const owner = { email: claims.email, id: user.id }
-  const result = await deleteRegion(owner, { name, regionFk }, password, getRequestEvent().url.origin)
+  const { email, user } = requireVerifiedEmail()
+  const result = await deleteRegion({ email, id: user.id }, { name, regionFk }, password, getRequestEvent().url.origin)
   if (result.kind === 'wrongName') refuseCommand(formError('region_deleteWrongName'), 'name')
   if (result.kind === 'wrongPassword') refuseCommand(formError('settings_passwordIncorrect'), 'password')
   return { redirectTo: resolve('/(app)/settings') }

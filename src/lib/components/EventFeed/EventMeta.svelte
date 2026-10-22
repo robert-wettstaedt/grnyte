@@ -83,11 +83,14 @@
   const line = $derived(
     latest.phase.kind !== 'answered'
       ? undefined
-      : metaLine({ createdAt, creatorName: authorName(createdBy, creator.data[0]), latest: latestRow, now: now() }),
+      : metaLine({
+          createdAt,
+          creatorDeleted: createdBy == null,
+          creatorName: authorName(createdBy, creator.data[0]),
+          latest: latestRow,
+          now: now(),
+        }),
   )
-
-  // Whoever the line names: the latest event's actor, or the creator when nothing was logged.
-  const actorDeleted = $derived(latestRow == null ? createdBy == null : latestRow.actorFk == null)
 
   const label = $derived(
     line == null
@@ -129,7 +132,7 @@
       <Row title={label} onclick={() => (open = true)} {rightContent}>
         <!-- `loading` rather than the "?" initials: an unknown actor is one the sentence has
              already dropped, so the avatar must not assert a person either. -->
-        <Avatar deleted={actorDeleted} loading={line.actor === ''} name={line.actor} size={40} solid />
+        <Avatar deleted={line.actorDeleted} loading={line.actor === ''} name={line.actor} size={40} solid />
       </Row>
     {/snippet}
 
