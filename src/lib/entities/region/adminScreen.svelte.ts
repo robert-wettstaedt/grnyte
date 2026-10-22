@@ -6,10 +6,10 @@ import type { RegionDetail } from './dto'
 import { canEditRegion } from './permissions'
 
 /** `Form`'s `denied` on a region settings screen, leading back to the region. */
-export const regionDenied = (regionId: number, description: string) => ({
+export const regionDenied = (regionId: number, description: string, title: string = m.form_noPermissionTitle()) => ({
   description,
   primaryAction: { href: entityHref('regions', regionId), label: m.region_viewRegion() },
-  title: m.form_noPermissionTitle(),
+  title,
   type: 'generic' as const,
 })
 

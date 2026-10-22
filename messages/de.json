@@ -1681,6 +1681,7 @@
   "region_mapLayersStale": "Die Kartenebenen haben sich geändert, während diese Seite offen war. Öffne sie erneut und nimm die Änderung noch einmal vor.",
   "region_mapLayersUnreadableBody": "Diese Version der App kann nicht alle Kartenebenen dieser Region lesen, und ein Speichern würde die unlesbaren entfernen. Ein Update der App hilft womöglich.",
   "region_mapLayersUnreadableTitle": "Einige dieser Kartenebenen sind nicht lesbar",
+  "region_memberGone": "Die Person ist nicht mehr in dieser Region, oder der Link ist veraltet.",
   "region_memberNotFound": "Mitglied nicht gefunden",
   "region_memberRemoved": "{name} entfernt",
   "region_members": "Mitglieder",

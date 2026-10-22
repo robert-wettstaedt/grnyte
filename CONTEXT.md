@@ -85,6 +85,13 @@ evidence about anybody's ceiling.
 **community**
 The people in a region. Never crew, team or squad.
 
+**owner**
+The one admin of a region who can hand it to another admin or delete it: `regions.created_by`, the
+founder until a handover. Not a role: the owner is a `region_admin` like the others, so RLS and Zero
+see nothing new, and the owner can never be demoted, removed or leave, which is what keeps every
+region with members administrable. Copy says "Owner" ("Inhaber:in"), never "creator" or "founder".
+In code, `regions.created_by` is read as the owner; anywhere else `createdBy` still means author.
+
 **feedback**
 What somebody sends about the app itself: a regression, a bug, an idea. Not about the rock
 and not about another person, which is what keeps it separate from a **report**. Its kinds

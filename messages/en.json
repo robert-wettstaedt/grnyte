@@ -1681,6 +1681,7 @@
   "region_mapLayersStale": "The map layers changed while this page was open. Reopen it and make the change again.",
   "region_mapLayersUnreadableBody": "This version of the app can’t read all of this region’s map layers, and saving here would remove the ones it can’t. Updating the app may help.",
   "region_mapLayersUnreadableTitle": "Some of these map layers can’t be read",
+  "region_memberGone": "They aren’t in this region anymore, or the link is out of date.",
   "region_memberNotFound": "Member not found",
   "region_memberRemoved": "{name} removed",
   "region_members": "Members",
