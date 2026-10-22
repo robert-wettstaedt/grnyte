@@ -251,13 +251,18 @@
       <!-- The face is a link to the person, on your own rows too: it is the one part of a card that
          is about WHO rather than what, and a reader who wants somebody's logbook aims at their
          face. The headline stays plain text, so the sentence keeps reading as a sentence. -->
-      <a class="flex-none" href={resolve('/(app)/users/[id]', { id: String(view.actorFk) })}>
-        {#if view.mine}
-          <Avatar size={34} solid>{m.common_me()}</Avatar>
-        {:else}
-          <Avatar name={view.actorName} size={34} solid loading={view.actorName.length === 0} />
-        {/if}
-      </a>
+      {#if view.actorFk == null}
+        <!-- A deleted account has no profile to lead to. -->
+        <Avatar deleted size={34} />
+      {:else}
+        <a class="flex-none" href={resolve('/(app)/users/[id]', { id: String(view.actorFk) })}>
+          {#if view.mine}
+            <Avatar size={34} solid>{m.common_me()}</Avatar>
+          {:else}
+            <Avatar name={view.actorName} size={34} solid loading={view.actorName.length === 0} />
+          {/if}
+        </a>
+      {/if}
 
       <div class="min-w-0 flex-1">
         <p class="text-surface-950-50 text-sm/snug">

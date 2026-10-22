@@ -3,6 +3,7 @@ import { notifications, regions, users, userSettings } from '$lib/db/schema'
 import { membershipRemovedEmailContent, roleChangedEmailContent } from '$lib/email/membership'
 import { sendEmailOutcome, type SendOutcome } from '$lib/email/send.server'
 import type { EmailContent } from '$lib/email/shell'
+import { authorName } from '$lib/entities/displayName'
 import { objectOf } from '$lib/entities/event/dto'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import { contactLocale, resolveMessage } from '$lib/i18n/message'
@@ -83,9 +84,10 @@ export async function sendDirected(nowMs: number, origin: string, pushConfigured
   // carries the name), so the actor side needs an alias of its own.
   const actor = alias(users, 'actor')
 
-  const dispatchable = await pinnedTx((tx) =>
+  const scanned = await pinnedTx((tx) =>
     tx
       .select({
+        actorFk: notifications.actorFk,
         actorName: actor.username,
         areaFk: notifications.areaFk,
         ascentFk: notifications.ascentFk,
@@ -114,7 +116,8 @@ export async function sendDirected(nowMs: number, origin: string, pushConfigured
         userFk: notifications.userFk,
       })
       .from(notifications)
-      .innerJoin(actor, eq(actor.id, notifications.actorFk))
+      // LEFT: an actor who deleted their account still caused the row, which goes out as "Deleted user".
+      .leftJoin(actor, eq(actor.id, notifications.actorFk))
       .innerJoin(regions, eq(regions.id, notifications.regionFk))
       .leftJoin(authUsers, eq(authUsers.id, notifications.authUserFk))
       .leftJoin(userSettings, eq(userSettings.userFk, notifications.userFk))
@@ -131,6 +134,14 @@ export async function sendDirected(nowMs: number, origin: string, pushConfigured
       .orderBy(asc(notifications.createdAt), asc(notifications.id))
       .limit(DIRECTED_SCAN_LIMIT),
   )
+  const dispatchable = scanned.map((row) => ({
+    ...row,
+    actorName: authorName(
+      row.actorFk,
+      row.actorName == null ? undefined : { username: row.actorName },
+      contactLocale(row.contactLocale),
+    ),
+  }))
 
   if (dispatchable.length === 0) {
     return 0

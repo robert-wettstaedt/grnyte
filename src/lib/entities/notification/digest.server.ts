@@ -2,7 +2,7 @@ import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { areas, ascents, blocks, routes, users } from '$lib/db/schema'
 import { blockName } from '$lib/entities/block/mapper'
-import { toDisplayName } from '$lib/entities/displayName'
+import { authorName, toDisplayName } from '$lib/entities/displayName'
 import { alreadyDisplayable, type DisplayName } from '$lib/entities/displayName'
 import { headlineEntityName } from '$lib/entities/event/cardView'
 import { objectOf, type EventObjectType } from '$lib/entities/event/dto'
@@ -121,7 +121,11 @@ export async function digestCopy(
   const title = resolveMessage(
     verbKey(lead),
     {
-      actor: actorNames.get(lead.actorFk) ?? '',
+      actor: authorName(
+        lead.actorFk,
+        lead.actorFk == null ? undefined : { username: actorNames.get(lead.actorFk) ?? '' },
+        locale,
+      ),
       climber: climber?.climberName ?? '',
       media: 'none',
       name: name ?? m.common_unnamed({}, { locale }),

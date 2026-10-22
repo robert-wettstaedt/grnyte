@@ -442,6 +442,13 @@
       "when": 1792574483607,
       "tag": "0137_long_amphibian",
       "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1792661033176,
+      "tag": "0138_giant_bloodscream",
+      "breakpoints": true
     }
   ]
 }

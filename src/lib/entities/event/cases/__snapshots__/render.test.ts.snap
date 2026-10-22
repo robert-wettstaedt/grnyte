@@ -1,5 +1,90 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`the case catalogue renders what it claims > ACCOUNT-01a: A member adds a route, then deletes their account 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "Deleted user added the route Kante direkt",
+      "mine": false,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Kante direkt",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "Deleted user added the route Kante direkt", with a grey person icon in place of a face and no link to a profile.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ACCOUNT-01b: A member renames a route, others comment, then the member deletes their account 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "Kante direkt",
+          "before": "Kante",
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Name",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "Deleted user renamed Kante direkt",
+      "mine": false,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Kante direkt",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "Deleted user renamed Kante direkt", with its change line and the two comments the others left, which stay with the card.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ACCOUNT-01c: A member changes another member's role, then deletes their account 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "region_maintainer",
+          "before": "region_user",
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Role",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "Deleted user changed the role of Mara Lindqvist",
+      "mine": false,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Mara Lindqvist",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "Deleted user changed the role of Mara Lindqvist", with the role line: it is Mara's history in the region, so it stays.",
+}
+`;
+
 exports[`the case catalogue renders what it claims > AREA-01a: /explore -> + -> New area in {Region} -> /areas/add -> name -> Create area 1`] = `
 {
   "cards": [

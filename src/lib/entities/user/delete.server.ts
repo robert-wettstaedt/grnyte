@@ -28,39 +28,38 @@ import { toDisplayName, type DisplayName } from '$lib/entities/displayName'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
 import { getLocale } from '$lib/paraglide/runtime'
-import { and, eq, inArray, or } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, or, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../file/cleanup.server'
+import { NOTIFICATION_CONFLICT_TARGET } from '../notification/notification.server'
 import { deleteRegionRows } from '../region/delete.server'
 import { lockRegionMembers } from '../region/guards.server'
 import { accountDeletionEffect } from '../region/permissions'
 import { recalcUserGradeAndRating } from '../route/user-grade.server'
 import { verifyPassword } from './password.server'
 
-/** The signed-in person, as the session carries them. */
 export type Account = { authUserFk: string; email: string; id: number }
 
 export type DeleteAccountResult =
   { kind: 'blocked'; regions: string[] } | { kind: 'deleted' } | { kind: 'wrongPassword' }
 
-/** A region named for the screen and the refusal. */
 export type RegionRef = { id: number; name: DisplayName }
 
 type Db = PostgresJsDatabase<typeof schema>
 
-/**
- * Delete the caller's own account. Every refusal is decided before the first write; the rows go in
- * one privileged transaction (it crosses regions and other people's content), and only then the
- * GoTrue record and the stored files, neither of which can be rolled back.
- */
+/** What a deleted comment's words become: `reactions_body_fits_type` refuses an empty comment. */
+export const ERASED_COMMENT = '…'
+
+// Refusals come before the first write; rows go in one privileged tx (it crosses regions), then the
+// GoTrue record and stored files, neither of which can roll back.
 export async function deleteAccount(account: Account, password: string): Promise<DeleteAccountResult> {
   if (!(await verifyPassword(account.email, password))) {
     return { kind: 'wrongPassword' }
   }
 
   const outcome = await pinnedTx(async (tx) => {
-    const { blocks, deletes } = await classifyRegions(tx, account.id, true)
-    if (blocks.length > 0) return { kind: 'blocked', regions: blocks.map((region) => region.name) } as const
+    const { blocks: blocking, deletes } = await classifyRegions(tx, account.id)
+    if (blocking.length > 0) return { kind: 'blocked', regions: blocking.map((region) => region.name) } as const
     const sole = deletes.map((region) => region.id)
     return { kind: 'deleted', targets: await deleteAccountData(tx, account, sole) } as const
   })
@@ -81,8 +80,6 @@ export async function deleteAccount(account: Account, password: string): Promise
   return { kind: 'deleted' }
 }
 
-/** Everything the spec says goes, goes; everything that stays loses its link. Returns storage targets.
- *  Shared with the cleanup sweep and the test teardown, so the delete order exists once. */
 export async function deleteAccountData(
   tx: Db,
   { authUserFk, id }: Pick<Account, 'authUserFk' | 'id'>,
@@ -109,25 +106,39 @@ export async function deleteAccountData(
     targets.push(...(await deleteFileRows(tx, media)))
   }
 
-  // Feed events about them cascade their reactions, changes and inbox rows.
-  await tx.delete(events).where(or(eq(events.actorFk, id), eq(events.subjectFk, id)))
+  // Feed events about them cascade their reactions, changes and inbox rows; what they did stays.
+  await tx.delete(events).where(eq(events.subjectFk, id))
+  await tx.update(events).set({ actorFk: null }).where(eq(events.actorFk, id))
   await tx.delete(changes).where(eq(changes.subjectFk, id))
   await tx
     .delete(notifications)
-    .where(
-      or(
-        eq(notifications.userFk, id),
-        eq(notifications.actorFk, id),
-        eq(notifications.subjectFk, id),
-        eq(notifications.authUserFk, authUserFk),
+    .where(or(eq(notifications.userFk, id), eq(notifications.subjectFk, id), eq(notifications.authUserFk, authUserFk)))
+  // `notifications_source_idx` is NULLS NOT DISTINCT, so a row whose twin already lost its actor (an
+  // earlier deletion) would collide once this one does; the twin says the same.
+  const key = (alias: string) =>
+    sql.join(
+      NOTIFICATION_CONFLICT_TARGET.filter((column) => column !== notifications.actorFk).map(
+        (column) => sql`${sql.identifier(alias)}.${sql.identifier(column.name)}`,
       ),
+      sql`, `,
     )
+  await tx.execute(sql`
+    delete from ${notifications} mine
+    where mine.actor_fk = ${id} and exists (
+      select 1 from ${notifications} twin
+      where twin.actor_fk is null and (${key('twin')}) is not distinct from (${key('mine')}))`)
+  await tx.update(notifications).set({ actorFk: null }).where(eq(notifications.actorFk, id))
   await tx.delete(ascents).where(eq(ascents.createdBy, id))
   for (const routeFk of new Set(logged.map((ascent) => ascent.routeFk))) {
     await recalcUserGradeAndRating(tx, routeFk)
   }
 
   // What the region relies on stays, credited to nobody.
+  // A comment they deleted keeps its row (replies hang off it) but not its words.
+  await tx
+    .update(reactions)
+    .set({ body: ERASED_COMMENT })
+    .where(and(eq(reactions.userFk, id), eq(reactions.type, 'comment'), isNotNull(reactions.deletedAt)))
   await tx.update(reactions).set({ authUserFk: null, userFk: null }).where(eq(reactions.userFk, id))
   await tx.update(regions).set({ createdBy: null }).where(eq(regions.createdBy, id))
   await tx.update(areas).set({ createdBy: null }).where(eq(areas.createdBy, id))
@@ -154,28 +165,25 @@ export async function deleteAccountData(
   return targets
 }
 
-/** What deleting the account would do to each of the person's regions, read without locks: what
- *  the screen warns about before the password is typed. The deletion decides again under lock. */
+/** What deleting the account would do to each of the person's regions, for the screen
+ *  before the password is typed. The deletion decides again in its own transaction. */
 export function previewAccountDeletion(userFk: number): Promise<{ blocks: RegionRef[]; deletes: RegionRef[] }> {
-  return pinnedTx((tx) => classifyRegions(tx, userFk, false))
+  return pinnedTx((tx) => classifyRegions(tx, userFk))
 }
 
-/**
- * Which of the person's regions block the deletion (they are its only active admin and others still
- * use it) and which nobody else uses. With `lock`, each region's member lock is held until the
- * transaction ends.
- */
-async function classifyRegions(tx: Db, userFk: number, lock: boolean) {
+// Locks in id order, so two deletions sharing regions cannot deadlock.
+async function classifyRegions(tx: Db, userFk: number) {
   const mine = await tx.query.regionMembers.findMany({
     columns: { regionFk: true },
+    orderBy: regionMembers.regionFk,
     where: and(eq(regionMembers.userFk, userFk), eq(regionMembers.isActive, true)),
     with: { region: { columns: { name: true } } },
   })
 
-  const blocks: RegionRef[] = []
+  const blocking: RegionRef[] = []
   const deletes: RegionRef[] = []
   for (const { region, regionFk } of mine) {
-    if (lock) await lockRegionMembers(tx, regionFk)
+    await lockRegionMembers(tx, regionFk)
     const members = await tx.query.regionMembers.findMany({
       columns: { role: true, userFk: true },
       where: and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.isActive, true)),
@@ -183,8 +191,8 @@ async function classifyRegions(tx: Db, userFk: number, lock: boolean) {
     const ref = { id: regionFk, name: toDisplayName(region?.name ?? '', getLocale()) }
     const effect = accountDeletionEffect(members, userFk)
     if (effect === 'deletes') deletes.push(ref)
-    if (effect === 'blocks') blocks.push(ref)
+    if (effect === 'blocks') blocking.push(ref)
   }
 
-  return { blocks, deletes }
+  return { blocks: blocking, deletes }
 }

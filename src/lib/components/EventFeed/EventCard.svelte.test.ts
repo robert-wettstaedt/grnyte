@@ -26,3 +26,17 @@ it('opens its changes without an onToggle', async () => {
 
   expect(toggle.getAttribute('aria-expanded')).toBe('true')
 })
+
+// Someone else's card, so the headline names its actor rather than saying "You".
+const theirs = EVENT_CASES.flatMap((entry) =>
+  groupEvents(entry.events).map((group) => eventCard(group, entry.reader ?? ME, entry.topos)),
+).find((card) => !card.mine)
+
+it('credits a deleted actor without a face or a link to lead to', () => {
+  const { container, getByText } = render(EventCard, {
+    view: { ...theirs!, actorFk: null, actorName: 'Deleted user' },
+  })
+
+  expect(getByText('Deleted user')).toBeTruthy()
+  expect(container.querySelector('a[href^="/users/"]')).toBeNull()
+})

@@ -98,7 +98,13 @@
     {#if media != null}
       <MediaTile class="h-[34px] min-w-[34px]" compact file={media} />
     {:else}
-      <Avatar name={notification.actorName} size={34} solid loading={notification.actorName.length === 0} />
+      <Avatar
+        deleted={notification.actorFk == null}
+        name={notification.actorName}
+        size={34}
+        solid
+        loading={notification.actorName.length === 0}
+      />
     {/if}
 
     <div class="min-w-0 flex-1">
