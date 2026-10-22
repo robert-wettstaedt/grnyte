@@ -1,4 +1,3 @@
-import { resolve } from '$app/paths'
 import { command, form, getRequestEvent, query } from '$app/server'
 import { regionInvitations } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
@@ -260,5 +259,4 @@ export const deleteRegionCommand = command(deleteRegionSchema, async ({ name, pa
   const result = await deleteRegion({ email, id: user.id }, { name, regionFk }, password, getRequestEvent().url.origin)
   if (result.kind === 'wrongName') refuseCommand(formError('region_deleteWrongName'), 'name')
   if (result.kind === 'wrongPassword') refuseCommand(formError('settings_passwordIncorrect'), 'password')
-  return { redirectTo: resolve('/(app)/settings') }
 })

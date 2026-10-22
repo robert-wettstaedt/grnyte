@@ -233,7 +233,7 @@
             {/if}
 
             <!-- Always there: every region has an owner, and the name is a relation that lands after the row. -->
-            <SettingLink label={m.roles_owner()} value={detail.createdBy ?? ''} />
+            <SettingLink label={m.roles_owner()} value={detail.owner.name} />
 
             <!-- No count beside it: the seat counter above is live from Zero and a second,
                  snapshot number would drift within one tap. -->
@@ -260,7 +260,7 @@
               />
             {/if}
 
-            {#if detail.ownerFk === global.user?.id}
+            {#if detail.owner.id === global.user?.id}
               <SettingLink
                 href={resolve('/(app)/regions/[regionId]/delete', { regionId: String(regionId) })}
                 label={m.region_delete()}
@@ -309,9 +309,11 @@
                   {@const self = member.userId === global.user?.id}
 
                   <MemberRow
-                    canLeave={detail.ownerFk !== global.user?.id}
-                    canManage={isAdmin && !self && member.userId !== detail.ownerFk}
-                    makeOwnerHref={detail.ownerFk === global.user?.id && displayRole(member) === 'region_admin' && !self
+                    canLeave={detail.owner.id !== global.user?.id}
+                    canManage={isAdmin && !self && member.userId !== detail.owner.id}
+                    makeOwnerHref={detail.owner.id === global.user?.id &&
+                    displayRole(member) === 'region_admin' &&
+                    !self
                       ? resolve('/(app)/regions/[regionId]/owner/[userId]', {
                           regionId: String(regionId),
                           userId: String(member.userId),
@@ -319,7 +321,7 @@
                       : undefined}
                     {member}
                     {onLeave}
-                    owner={member.userId === detail.ownerFk}
+                    owner={member.userId === detail.owner.id}
                     onRemove={() => onRemove(member)}
                     onRole={(role) => onRole(member, role)}
                     regionName={name ?? detail.name}

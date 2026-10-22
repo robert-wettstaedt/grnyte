@@ -9,7 +9,7 @@ const RECENT = new Date(2026, 2, 4, 17).getTime()
 const OLD = new Date(2026, 0, 12, 9)
 
 /** An entity whose log has been read and came back empty. */
-const imported = { createdAt: OLD, creatorDeleted: false, creatorName: 'ada', latest: undefined, now: NOW }
+const imported = { createdAt: OLD, creator: { id: 2, name: 'ada' }, latest: undefined, now: NOW }
 
 describe('metaLine', () => {
   it('reads the newest row as an update', () => {
@@ -18,13 +18,12 @@ describe('metaLine', () => {
         ...imported,
         latest: line({ actorName: 'mara', columnName: 'gradeFk', createdAt: RECENT, verb: 'update' }),
       }),
-    ).toEqual({ actor: 'mara', actorDeleted: false, key: 'event_metaUpdated', timestamp: RECENT })
+    ).toEqual({ actor: { id: 1, name: 'mara' }, key: 'event_metaUpdated', timestamp: RECENT })
   })
 
   it('reads the entity s own creation row as a creation', () => {
     expect(metaLine({ ...imported, latest: line({ actorName: 'mara', createdAt: RECENT, verb: 'create' }) })).toEqual({
-      actor: 'mara',
-      actorDeleted: false,
+      actor: { id: 1, name: 'mara' },
       key: 'event_metaCreated',
       timestamp: RECENT,
     })
@@ -65,26 +64,25 @@ describe('metaLine', () => {
   })
 
   it('takes the preposition on a dated creation with no actor', () => {
-    expect(metaLine({ ...imported, creatorName: undefined })?.key).toBe('event_metaCreatedOnUnknown')
+    expect(metaLine({ ...imported, creator: { id: 2, name: '' } })?.key).toBe('event_metaCreatedOnUnknown')
   })
 
   it('falls back to the entity s own stamp when nothing is logged', () => {
     expect(metaLine(imported)).toEqual({
-      actor: 'ada',
-      actorDeleted: false,
+      actor: { id: 2, name: 'ada' },
       key: 'event_metaCreatedOn',
       timestamp: OLD.getTime(),
     })
   })
 
-  it('marks the actor deleted from whichever source the line names', () => {
-    const gone = { ...imported, creatorDeleted: true }
-    expect(metaLine(gone)?.actorDeleted).toBe(true)
-    expect(metaLine({ ...gone, latest: line({ actorName: 'mara', createdAt: RECENT }) })?.actorDeleted).toBe(false)
+  it('names a deleted actor from whichever source the line picks', () => {
+    const gone = { ...imported, creator: { id: null, name: 'Deleted user' } }
+    expect(metaLine(gone)?.actor.id).toBeNull()
+    expect(metaLine({ ...gone, latest: line({ actorName: 'mara', createdAt: RECENT }) })?.actor.id).toBe(1)
     expect(
       metaLine({ ...imported, latest: { ...line({ actorName: 'Deleted user', createdAt: RECENT }), actorFk: null } })
-        ?.actorDeleted,
-    ).toBe(true)
+        ?.actor.id,
+    ).toBeNull()
   })
 
   it('drops the actor from the sentence while the row s user has not synced', () => {

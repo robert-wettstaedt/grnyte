@@ -1,16 +1,17 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import type { Author } from '$lib/entities/displayName'
   import type { Snippet } from 'svelte'
 
   // Round initials avatar. Solid fill marks a registered user, tinted a plain name.
   interface Props {
+    /** A person who made something: a neutral face once deleted, a placeholder while syncing. */
+    author?: Author
     /** Replaces the derived initials (e.g. a "Me" label or an icon). */
     children?: Snippet
-    /** A deleted account: a neutral face, so it never reads as a person. */
-    deleted?: boolean
     /** Show a pulsing placeholder instead of initials while the name is still loading. */
     loading?: boolean
-    /** Display name. Initials come from the first two words. */
+    /** Display name, when there is no `author`. Initials come from the first two words. */
     name?: string
     /** Diameter in px. */
     size?: number
@@ -18,7 +19,18 @@
     solid?: boolean
   }
 
-  let { children, deleted = false, loading = false, name = '', size = 30, solid = false }: Props = $props()
+  let {
+    author,
+    children,
+    loading: nameLoading = false,
+    name: plainName = '',
+    size = 30,
+    solid = false,
+  }: Props = $props()
+
+  const deleted = $derived(author?.id === null)
+  const name = $derived(author?.name ?? plainName)
+  const loading = $derived(nameLoading || author?.name === '')
 
   const initials = $derived.by(() => {
     const parts = name.trim().split(/\s+/)

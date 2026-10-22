@@ -18,4 +18,4 @@
 <Story name="Loading" args={{ loading: true }} />
 
 <!-- A deleted account: a neutral face, so it never reads as a person. -->
-<Story name="Deleted account" args={{ deleted: true, name: 'Deleted user' }} />
+<Story name="Deleted account" args={{ author: { id: null, name: 'Deleted user' } }} />

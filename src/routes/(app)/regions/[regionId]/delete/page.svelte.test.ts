@@ -14,7 +14,7 @@ vi.mock('$app/state', () => ({
 }))
 vi.mock('$lib/entities/region/resources.svelte', () => ({
   regionDetail: () => ({
-    data: { createdAt: undefined, createdBy: 'ada', id: 1, maxMembers: 10, name: 'Harz', ownerFk: state.ownerFk },
+    data: { createdAt: undefined, id: 1, maxMembers: 10, name: 'Harz', owner: { id: state.ownerFk, name: 'ada' } },
     phase: { kind: 'answered' },
   }),
 }))

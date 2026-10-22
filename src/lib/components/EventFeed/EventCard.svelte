@@ -7,7 +7,6 @@
   relative clock, and the grade labels that need `globalState`.
 -->
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import HydratedRow from '$lib/components/EntityRow/HydratedRow.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -17,11 +16,13 @@
   import Reactions from '$lib/components/Reactions/Reactions.svelte'
   import AscentTypeBadge from '$lib/entities/ascent/AscentType.svelte'
   import ConditionsPill from '$lib/entities/ascent/ConditionsPill.svelte'
+  import { toAuthor } from '$lib/entities/displayName'
   import type { EventCardView } from '$lib/entities/event/card'
   import type { CardAscent } from '$lib/entities/event/cardView'
   import { eventEntityKey } from '$lib/entities/event/entity'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { authorHref } from '$lib/entities/href'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { resolveMessage } from '$lib/i18n/message'
@@ -54,6 +55,9 @@
   const { commentsInline = false, initiallyExpanded = false, onToggle, view }: Props = $props()
 
   const global = getGlobalState()
+
+  const actor = $derived(toAuthor(view.actorFk, view.actorName))
+  const profile = $derived(authorHref(actor))
 
   // The climb date joins the sub line rather than the headline or the clock: the clock says
   // when it was logged, which is what sorts the feed, and both facts are true at once. Absolute
@@ -251,18 +255,13 @@
       <!-- The face is a link to the person, on your own rows too: it is the one part of a card that
          is about WHO rather than what, and a reader who wants somebody's logbook aims at their
          face. The headline stays plain text, so the sentence keeps reading as a sentence. -->
-      {#if view.actorFk == null}
-        <!-- A deleted account has no profile to lead to. -->
-        <Avatar deleted size={34} />
-      {:else}
-        <a class="flex-none" href={resolve('/(app)/users/[id]', { id: String(view.actorFk) })}>
-          {#if view.mine}
-            <Avatar size={34} solid>{m.common_me()}</Avatar>
-          {:else}
-            <Avatar name={view.actorName} size={34} solid loading={view.actorName.length === 0} />
-          {/if}
-        </a>
-      {/if}
+      <svelte:element this={profile == null ? 'span' : 'a'} class="flex-none" href={profile}>
+        {#if view.mine}
+          <Avatar size={34} solid>{m.common_me()}</Avatar>
+        {:else}
+          <Avatar author={actor} size={34} solid />
+        {/if}
+      </svelte:element>
 
       <div class="min-w-0 flex-1">
         <p class="text-surface-950-50 text-sm/snug">

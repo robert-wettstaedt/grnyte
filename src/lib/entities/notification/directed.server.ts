@@ -3,7 +3,7 @@ import { notifications, regions, users, userSettings } from '$lib/db/schema'
 import { membershipRemovedEmailContent, roleChangedEmailContent } from '$lib/email/membership'
 import { sendEmailOutcome, type SendOutcome } from '$lib/email/send.server'
 import type { EmailContent } from '$lib/email/shell'
-import { authorName } from '$lib/entities/displayName'
+import { toAuthor } from '$lib/entities/displayName'
 import { objectOf } from '$lib/entities/event/dto'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import { contactLocale, resolveMessage } from '$lib/i18n/message'
@@ -136,11 +136,7 @@ export async function sendDirected(nowMs: number, origin: string, pushConfigured
   )
   const dispatchable = scanned.map((row) => ({
     ...row,
-    actorName: authorName(
-      row.actorFk,
-      row.actorName == null ? undefined : { username: row.actorName },
-      contactLocale(row.contactLocale),
-    ),
+    actorName: toAuthor(row.actorFk, row.actorName, contactLocale(row.contactLocale)).name,
   }))
 
   if (dispatchable.length === 0) {

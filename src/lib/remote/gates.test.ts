@@ -57,6 +57,9 @@ import { describe, expect, it } from 'vitest'
  * - the region bodies in `edit.server.ts`, `invitations.server.ts` and `members.server.ts` each start with
  *   `canEditRegion` / `assertCanEdit` on the submitted region, or load the invitation through
  *   `loadEditable`; `acceptMyInvitationRow` matches the invitation to the session's own address
+ * - `transferRegionOwnership`, `deleteRegion` and `previewRegionDeletion` start with `requireOwner`, which
+ *   compares the stored `regions.created_by` with the session's user; the two writers ask again under the
+ *   members lock before they write
  * - `createRouteRow` checks `canAddRoute` on the stored block
  * - `deleteRouteRow` loads the route through `requireRow` with `canDeleteRoute`
  * - `restoreRouteRow` gates a recreate on `canAddRoute` and an undelete on `canDeleteRoute`, both on stored rows
@@ -105,11 +108,13 @@ const GATES = new Set([
   'deleteCommentRow',
   'deleteMediaFileRow',
   'deleteParkingRow',
+  'deleteRegion',
   'deleteRouteRow',
   'deleteTopoRow',
   'estimateBlockLocationRow',
   'inviteRegionMemberRow',
   'postCommentRow',
+  'previewRegionDeletion',
   'removeRegionMemberRow',
   'removeRegionTagRow',
   'renameRegionTagRow',
@@ -142,6 +147,7 @@ const GATES = new Set([
   'setFileVisibilityRow',
   'setVideoSourceRow',
   'toggleReactionRow',
+  'transferRegionOwnership',
   'updateAreaRow',
   'updateAscentRow',
   'updateBlockRow',

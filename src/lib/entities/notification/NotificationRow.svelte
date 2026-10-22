@@ -10,6 +10,7 @@
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import HydratedRow from '$lib/components/EntityRow/HydratedRow.svelte'
   import MediaTile from '$lib/components/Media/MediaTile.svelte'
+  import { toAuthor } from '$lib/entities/displayName'
   import type { CardRow } from '$lib/entities/event/cardView'
   import type { EventEntityRef } from '$lib/entities/event/entity'
   import { regionCrumb } from '$lib/entities/region/mapper'
@@ -98,13 +99,7 @@
     {#if media != null}
       <MediaTile class="h-[34px] min-w-[34px]" compact file={media} />
     {:else}
-      <Avatar
-        deleted={notification.actorFk == null}
-        name={notification.actorName}
-        size={34}
-        solid
-        loading={notification.actorName.length === 0}
-      />
+      <Avatar author={toAuthor(notification.actorFk, notification.actorName)} size={34} solid />
     {/if}
 
     <div class="min-w-0 flex-1">
