@@ -89,7 +89,6 @@ export interface RouteListItem {
   /** Name of the route's block, for a breadcrumb (search results). */
   blockName?: DisplayName
   createdAt: Date | undefined
-  /** Null once the author deleted their account. */
   createdBy: null | number
   description: string
   firstAscentYear: number | undefined

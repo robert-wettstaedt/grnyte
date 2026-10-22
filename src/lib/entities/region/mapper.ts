@@ -61,8 +61,7 @@ export function seatState(used: number, max: number): SeatState {
 export function toRegionDetail(row: RegionDetailRow): RegionDetail {
   return {
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
-    createdBy: row.createdBy == null ? authorName(null, undefined) : row.author?.username,
-    createdByFk: row.createdBy ?? undefined,
+    createdBy: authorName(row.createdBy, row.author),
     maxMembers: row.maxMembers ?? 0,
     name: row.name,
   }

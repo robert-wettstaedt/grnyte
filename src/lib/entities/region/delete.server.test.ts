@@ -99,6 +99,10 @@ beforeAll(async () => {
   await sql`
     insert into public.reactions (event_fk, body, type, region_fk, auth_user_fk, user_fk)
     values (${eventId}, 'nice', 'comment', ${regionId}, ${owner.authId}, ${owner.userId})`
+  // No event behind it, so nothing cascades it away.
+  await sql`
+    insert into public.notifications (region_fk, actor_fk, auth_user_fk, user_fk, subject_fk, source_type)
+    values (${regionId}, ${outsider.userId}, ${owner.authId}, ${owner.userId}, ${outsider.userId}, 'invite_accepted')`
   await sql`
     insert into public.favorites (region_fk, auth_user_fk, user_fk, route_fk)
     values (${regionId}, ${owner.authId}, ${owner.userId}, ${routeId})`

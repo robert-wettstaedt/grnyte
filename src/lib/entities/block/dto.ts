@@ -9,7 +9,6 @@ export type BlockDetail = BlockListItem & {
   /** The stored parent, which a delete leaves for: never read off the `areas` trail, which may lag. */
   areaFk: number
   createdAt: Date | undefined
-  /** Null once the author deleted their account. */
   createdBy: null | number
   /** Markdown, with entity references and user mentions. '' when unset, never null. */
   description: string

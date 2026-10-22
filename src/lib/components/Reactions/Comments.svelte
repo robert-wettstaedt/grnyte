@@ -148,9 +148,14 @@
     <!-- Both halves of the byline lead to the person: an avatar is the thing readers aim at, and a
          name that is not a link when the same name IS one inside the body ("@ada") is the kind of
          inconsistency people read as a bug. -->
-    <!-- A deleted author has no profile to lead to, so both halves render as plain text. -->
     <svelte:element this={profile == null ? 'span' : 'a'} class="flex-none" href={profile}>
-      <Avatar name={comment.authorName} {size} solid loading={comment.authorName.length === 0} />
+      <Avatar
+        deleted={comment.authorFk == null}
+        name={comment.authorName}
+        {size}
+        solid
+        loading={comment.authorName.length === 0}
+      />
     </svelte:element>
 
     <div class="min-w-0 flex-1">

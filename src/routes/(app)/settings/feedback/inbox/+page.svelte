@@ -43,11 +43,14 @@
 
     try {
       // An undelivered reply reopens the row, so the draft stays for another try.
-      const { delivered } = await replyToFeedback({ id, reply })
-      if (delivered) {
+      // A deleted author's report closes with nobody to mail, which is done, not a failed send.
+      const outcome = await replyToFeedback({ id, reply })
+      const done = outcome.delivered || 'noRecipient' in outcome
+      if (done) {
         drafts = { ...drafts, [id]: '' }
       }
-      notifySend(delivered, m.feedback_replySent(), m.feedback_replyNoMail())
+      const doneTitle = 'noRecipient' in outcome ? m.feedback_replyNoRecipient() : m.feedback_replySent()
+      notifySend(done, doneTitle, m.feedback_replyNoMail())
       await feedback.refresh()
 
       await tick()

@@ -13,8 +13,8 @@ interface FileRow {
   bunnyStreamFk: null | string
   /** Nullable in the Zero row (DB default), never null in practice; coerced below. */
   createdAt: null | number
-  /** Null once the uploader deleted their account; absent where a test row leaves it out. */
-  createdBy?: null | number
+  /** Null once the uploader deleted their account. */
+  createdBy: null | number
   height: null | number
   id: string
   path: string
@@ -65,7 +65,6 @@ export function toMediaFile(row: FileRow): MediaFile {
   }
 }
 
-/** A deleted uploader still gets a byline, with no profile behind it. */
 function toUploader(row: FileRow): MediaFile['uploader'] {
   if (row.createdBy === null) return { id: null, username: authorName(null, undefined) }
   return row.author ? { id: row.author.id, username: row.author.username } : undefined

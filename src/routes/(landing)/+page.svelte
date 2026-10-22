@@ -9,7 +9,7 @@
   import { m } from '$lib/paraglide/messages'
   import { isInstalled } from '$lib/state/device.svelte'
   import { prefersStill } from '$lib/state/motion.svelte'
-  import { replaceUrl } from '$lib/state/navigation.svelte'
+  import { replaceUrl, syncSearchParams } from '$lib/state/navigation.svelte'
   import { onMount } from 'svelte'
   import { SvelteSet } from 'svelte/reactivity'
   import BoulderThree from './BoulderThree.svelte'
@@ -18,8 +18,14 @@
   const { data } = $props()
   // SSR-resolved (see +page.server.ts) so the header CTA renders correctly without a flash.
   const signedIn = $derived(data.signedIn)
-  // Set by the account deletion screen on its way out.
-  const accountDeleted = $derived(page.url.searchParams.has('accountDeleted'))
+  // Read once and dropped from the URL, so a reload or a shared link does not say it again.
+  const accountDeleted = page.url.searchParams.has('accountDeleted')
+  // A task later: on a hydrating load, onMount and afterNavigate both run before the router can replaceState.
+  onMount(() => {
+    if (!accountDeleted) return
+    const timer = setTimeout(() => syncSearchParams({ accountDeleted: undefined }))
+    return () => clearTimeout(timer)
+  })
 
   const github = __APP_REPO__
   const contact = `mailto:${PUBLIC_TOPO_EMAIL}`

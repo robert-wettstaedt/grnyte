@@ -78,6 +78,16 @@ describe.skipIf(!reachable)('replyToFeedback', () => {
     await asRequest(admin.authId, () => replyToFeedback({ id: feedbackId, reply: 'done' }))
     expect(await rowNow()).toEqual({ reply: 'done', status: 'closed' })
   })
+
+  it('closes a report whose author deleted their account, with no mail to send', async () => {
+    await sql`update public.feedback set created_by = null where id = ${feedbackId}`
+
+    const reply = await asRequest(admin.authId, () => replyToFeedback({ id: feedbackId, reply: 'noted' }))
+
+    expect(reply).toEqual({ delivered: false, noRecipient: true })
+    expect(sendEmailOutcome).not.toHaveBeenCalled()
+    expect(await rowNow()).toEqual({ reply: 'noted', status: 'closed' })
+  })
 })
 
 describe.skipIf(!reachable)('listFeedback', () => {

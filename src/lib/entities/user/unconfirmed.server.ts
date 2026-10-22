@@ -8,6 +8,7 @@ import { stringifyError } from '$lib/logging/stringify'
 import { and, eq, isNull, lt, or } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { authUsers } from 'drizzle-orm/supabase'
+import { removeFileStorage } from '../file/cleanup.server'
 import { deleteAccountData } from './delete.server'
 
 /** Unconfirmed accounts older than 7 days, as the confirmation link has long expired. */
@@ -37,8 +38,9 @@ export async function sweepUnconfirmedAccounts(before: Date): Promise<number> {
   let removed = 0
   for (const { id, userFk } of stale) {
     try {
-      // An unconfirmed account cannot sign in, so it owns no region to classify.
-      if (userFk != null) await pinnedTx((tx) => deleteAccountData(tx, { authUserFk: id, id: userFk }, []))
+      const targets =
+        userFk == null ? [] : await pinnedTx((tx) => deleteAccountData(tx, { authUserFk: id, id: userFk }, []))
+      await removeFileStorage(targets)
       const { error } = await supabaseAdmin().auth.admin.deleteUser(id)
       if (error != null) throw error
       removed += 1
