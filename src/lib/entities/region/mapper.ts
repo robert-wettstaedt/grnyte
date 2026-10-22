@@ -1,4 +1,4 @@
-import { alreadyDisplayable, authorName, toDisplayName, type DisplayName } from '$lib/entities/displayName'
+import { alreadyDisplayable, toAuthor, toDisplayName, type DisplayName } from '$lib/entities/displayName'
 import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
@@ -61,9 +61,10 @@ export function seatState(used: number, max: number): SeatState {
 export function toRegionDetail(row: RegionDetailRow): RegionDetail {
   return {
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
-    createdBy: authorName(row.createdBy, row.author),
+    id: row.id,
     maxMembers: row.maxMembers ?? 0,
     name: row.name,
+    owner: toAuthor(row.createdBy, row.author?.username),
   }
 }
 

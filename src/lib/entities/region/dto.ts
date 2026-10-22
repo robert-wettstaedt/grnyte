@@ -1,3 +1,4 @@
+import type { Author } from '$lib/entities/displayName'
 import { assignableRoles, type AppRole, type AssignableRole, type Permission } from '$lib/entities/rolePermission/dto'
 import { formError, nameSchema, stringToInt } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -19,10 +20,11 @@ export interface OwnedRegion {
 /** A region's own record, as shown on its settings screen. */
 export interface RegionDetail {
   createdAt: Date | undefined
-  /** Username of whoever created the region. */
-  createdBy: string | undefined
+  id: number
   maxMembers: number
   name: string
+  /** `regions.created_by`: the one admin who can hand the region over or delete it. */
+  owner: Author
 }
 
 /** A pending invitation, as listed on a region's settings screen. Deliberately without
@@ -122,6 +124,12 @@ export const memberSchema = z.object({ regionFk: z.number(), userFk: z.number() 
 export const memberRoleSchema = z.object({ regionFk: z.number(), role: assignableRoleSchema, userFk: z.number() })
 
 export const regionFkSchema = z.object({ regionFk: z.number() })
+
+const requiredText = () => z.string({ error: formError('form_required') })
+
+export const handOverSchema = z.object({ ...memberSchema.shape, password: requiredText() })
+
+export const deleteRegionSchema = z.object({ ...regionFkSchema.shape, name: requiredText(), password: requiredText() })
 
 export interface RemovedMemberSnapshot {
   regionFk: number

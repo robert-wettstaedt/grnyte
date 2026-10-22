@@ -13,12 +13,12 @@ const row = {
 }
 
 it('credits a photo whose uploader deleted their account, with no profile to link', () => {
-  expect(toMediaFile({ ...row, createdBy: null }).uploader).toEqual({ id: null, username: 'Deleted user' })
+  expect(toMediaFile({ ...row, createdBy: null }).uploader).toEqual({ id: null, name: 'Deleted user' })
 })
 
 it('credits a live uploader by name', () => {
   expect(toMediaFile({ ...row, author: { id: 4, username: 'ada' }, createdBy: 4 }).uploader).toEqual({
     id: 4,
-    username: 'ada',
+    name: 'ada',
   })
 })

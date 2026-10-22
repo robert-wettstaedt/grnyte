@@ -3,12 +3,23 @@ import { regionInvitations } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { getLocale } from '$lib/paraglide/runtime'
-import { authedCommand, authedForm, authedQuery, authedRls, requireAuthed } from '$lib/remote/authed.server'
+import {
+  authedCommand,
+  authedForm,
+  authedQuery,
+  authedRls,
+  refuseCommand,
+  requireAuthed,
+  requireVerifiedEmail,
+} from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import { createRegionForUser, listOwnedRegions } from './create.server'
+import { deleteRegion, previewRegionDeletion } from './delete.server'
 import {
+  deleteRegionSchema,
+  handOverSchema,
   invitationSchema,
   inviteMemberSchema,
   MAX_OWNED_REGIONS,
@@ -52,6 +63,7 @@ import {
   restoreRegionMemberRow,
   updateRegionMemberRoleRow,
 } from './members.server'
+import { transferRegionOwnership } from './ownership.server'
 import { tagUsage } from './tags.server'
 
 // The write bodies live in `edit.server.ts`, `invitations.server.ts` and `members.server.ts`,
@@ -231,3 +243,20 @@ export const restoreRegionMember = authedCommand(memberRoleSchema, (args, ctx) =
 
 /** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
 export const leaveRegion = authedCommand(regionFkSchema, (args, ctx) => leaveRegionRow(args, ctx))
+
+export const transferRegionOwnershipCommand = command(handOverSchema, async ({ password, ...target }) => {
+  const { email, user } = requireVerifiedEmail()
+  const result = await transferRegionOwnership({ email, id: user.id }, target, password)
+  if (result.kind === 'wrongPassword') refuseCommand(formError('settings_passwordIncorrect'), 'password')
+})
+
+export const regionDeletionPreview = query(regionFkSchema, ({ regionFk }) =>
+  previewRegionDeletion(regionFk, requireAuthed().user.id),
+)
+
+export const deleteRegionCommand = command(deleteRegionSchema, async ({ name, password, regionFk }) => {
+  const { email, user } = requireVerifiedEmail()
+  const result = await deleteRegion({ email, id: user.id }, { name, regionFk }, password, getRequestEvent().url.origin)
+  if (result.kind === 'wrongName') refuseCommand(formError('region_deleteWrongName'), 'name')
+  if (result.kind === 'wrongPassword') refuseCommand(formError('settings_passwordIncorrect'), 'password')
+})

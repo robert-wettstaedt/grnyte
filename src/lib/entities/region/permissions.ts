@@ -1,17 +1,6 @@
 import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_READ } from '$lib/auth'
 import type { UserRegion } from './dto'
 
-/** What deleting `userFk`'s account does to a region, given its ACTIVE members: one rule, read
- *  by the server that decides and by the screen that warns. */
-export function accountDeletionEffect(
-  members: readonly { role: string; userFk: number }[],
-  userFk: number,
-): 'blocks' | 'deletes' | 'keeps' {
-  if (!members.some((member) => member.userFk !== userFk)) return 'deletes'
-  const admins = members.filter((member) => member.role === 'region_admin').map((member) => member.userFk)
-  return isLastAdmin(admins, userFk) ? 'blocks' : 'keeps'
-}
-
 /**
  * Whether the signed-in user may administer a region: rename it, change member roles,
  * remove members and invite people.
@@ -41,17 +30,4 @@ export function canEditRegion(userRegions: UserRegion[], regionFk: number): bool
  */
 export function canReadRegion(userRegions: UserRegion[], regionFk: number): boolean {
   return checkRegionPermission(userRegions, [REGION_PERMISSION_READ], regionFk)
-}
-
-/**
- * Whether taking the admin role away from `userFk` (by demotion, removal or their own
- * departure) would leave the region with nobody able to administer it. Only an admin can
- * promote anyone, and no in-app path exists to rescue such a region (see {@link canEditRegion}
- * on why app admins are not one), so it would have to be fixed in the database.
- *
- * `adminUserFks` is every *active* admin of the region. Somebody who is not among them can
- * always go, which is what makes this safe to ask about any member.
- */
-export function isLastAdmin(adminUserFks: number[], userFk: number): boolean {
-  return adminUserFks.length <= 1 && adminUserFks.includes(userFk)
 }

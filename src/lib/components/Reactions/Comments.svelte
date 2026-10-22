@@ -15,7 +15,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import { entityHref } from '$lib/entities/href'
+  import { authorHref } from '$lib/entities/href'
   import type { CommentListItem } from '$lib/entities/reaction/dto'
   import { deleteComment, restoreComment } from '$lib/entities/reaction/writes'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
@@ -135,7 +135,7 @@
 {/snippet}
 
 {#snippet line(comment: CommentListItem, size: number, parentId: null | number)}
-  {@const profile = comment.authorFk == null ? undefined : entityHref('users', comment.authorFk)}
+  {@const profile = authorHref(comment.author)}
   <article
     class={[
       'flex gap-2 rounded-lg py-1 pe-1 transition-colors duration-1000',
@@ -149,19 +149,13 @@
          name that is not a link when the same name IS one inside the body ("@ada") is the kind of
          inconsistency people read as a bug. -->
     <svelte:element this={profile == null ? 'span' : 'a'} class="flex-none" href={profile}>
-      <Avatar
-        deleted={comment.authorFk == null}
-        name={comment.authorName}
-        {size}
-        solid
-        loading={comment.authorName.length === 0}
-      />
+      <Avatar author={comment.author} {size} solid />
     </svelte:element>
 
     <div class="min-w-0 flex-1">
       <p class="text-surface-600-400 flex items-baseline gap-1.5 text-xs">
         <svelte:element this={profile == null ? 'span' : 'a'} class="text-surface-950-50 font-semibold" href={profile}>
-          {comment.authorName}
+          {comment.author.name}
         </svelte:element>
 
         <time datetime={new Date(comment.createdAt).toISOString()}>

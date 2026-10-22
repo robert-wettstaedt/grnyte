@@ -1,3 +1,4 @@
+import type { Author } from '$lib/entities/displayName'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 
@@ -25,8 +26,7 @@ export const COMMENT_MAX_LENGTH = 5000
 
 /** One comment under a card, ready to render. */
 export interface CommentListItem {
-  authorFk: null | number
-  authorName: string
+  author: Author
   /** Markdown, with the same `!type:id!` references every description carries. */
   body: string
   createdAt: number

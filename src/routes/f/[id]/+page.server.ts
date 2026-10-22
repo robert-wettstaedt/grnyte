@@ -209,7 +209,8 @@ export const load = (async ({ locals, params }) => {
         ascentCreatedBy: undefined,
         regionFk: 0,
         route: file.route == null ? undefined : { ...file.route, id: 0 },
-        uploader: file.uploader == null ? undefined : { id: 0, username: file.uploader.username },
+        uploader:
+          file.uploader == null ? undefined : { id: file.uploader.id == null ? null : 0, name: file.uploader.name },
       }
 
   return { controls, file: clientFile, grades, gradingScale, user }

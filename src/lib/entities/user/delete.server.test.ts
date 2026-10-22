@@ -1,8 +1,10 @@
 // @vitest-environment node
 import { db } from '$lib/db/db.server'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
+import { sql as drizzleSql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { deleteRegionRows } from '../region/delete.server'
+import { lockRegionMembers } from '../region/guards.server'
 import { deleteAccount, deleteAccountData, ERASED_COMMENT, previewAccountDeletion } from './delete.server'
 
 const auth = vi.hoisted(() => ({ deleteUser: vi.fn(async () => ({ error: null })), password: vi.fn(async () => true) }))
@@ -84,9 +86,9 @@ async function seed() {
     insert into public.push_subscriptions (auth_user_fk, user_fk, endpoint, p256dh, auth)
     values (${person.authId}, ${person.userId}, 'https://push.test/' || gen_random_uuid(), 'k', 'a')`
 
-  // Shared: the person is a plain member, the other one its admin, invited by the person.
+  // Shared: the person is a plain member, the other one its admin and owner, invited by the person.
   ;[{ id: shared }] = await sql<{ id: number }[]>`
-    insert into public.regions (name, created_by) values (${PREFIX + 'shared'}, ${person.userId}) returning id`
+    insert into public.regions (name, created_by) values (${PREFIX + 'shared'}, ${other.userId}) returning id`
   await sql`
     insert into public.region_members (region_fk, user_fk, auth_user_fk, role, is_active, invited_by) values
       (${shared}, ${person.userId}, ${person.authId}, 'region_maintainer', true, null),
@@ -217,20 +219,45 @@ describe.skipIf(!reachable)('deleteAccount', () => {
     expect(auth.deleteUser).not.toHaveBeenCalled()
   })
 
-  it('refuses while the person is the last admin of a region others still use, and names it', async () => {
+  it('refuses while the person owns a region others still use, even beside a second admin, and names it', async () => {
     await sql`update public.region_members set role = 'region_admin' where region_fk = ${shared} and user_fk = ${person.userId}`
-    await sql`update public.region_members set role = 'region_user' where region_fk = ${shared} and user_fk = ${other.userId}`
+    await sql`update public.regions set created_by = ${person.userId} where id = ${shared}`
 
     const preview = await previewAccountDeletion(person.userId)
     const result = await deleteAccount(account(), 'pw')
 
+    await sql`update public.regions set created_by = ${other.userId} where id = ${shared}`
     await sql`update public.region_members set role = 'region_maintainer' where region_fk = ${shared} and user_fk = ${person.userId}`
-    await sql`update public.region_members set role = 'region_admin' where region_fk = ${shared} and user_fk = ${other.userId}`
     expect(result).toEqual({ kind: 'blocked', regions: [PREFIX + 'shared'] })
     // The screen warns from the same rule, and names each region by id, since names repeat.
     expect(preview.blocks).toEqual([{ id: shared, name: PREFIX + 'shared' }])
     expect(preview.deletes).toEqual([{ id: sole, name: PREFIX + 'sole' }])
     expect(await references(person)).toContain('users')
+  })
+
+  it('lets an admin who is not the owner go, even as the only admin besides the owner', async () => {
+    await sql`update public.region_members set role = 'region_admin' where region_fk = ${shared} and user_fk = ${person.userId}`
+    await sql`update public.region_members set role = 'region_user' where region_fk = ${shared} and user_fk = ${other.userId}`
+
+    const preview = await previewAccountDeletion(person.userId)
+
+    await sql`update public.region_members set role = 'region_maintainer' where region_fk = ${shared} and user_fk = ${person.userId}`
+    await sql`update public.region_members set role = 'region_admin' where region_fk = ${shared} and user_fk = ${other.userId}`
+    expect(preview.blocks).toEqual([])
+  })
+
+  it('sees a handover to the person that commits while it waits for the region lock', async () => {
+    const handover = db.transaction(async (tx) => {
+      await lockRegionMembers(tx, shared)
+      await tx.execute(drizzleSql`update public.regions set created_by = ${person.userId} where id = ${shared}`)
+      await new Promise((resolve) => setTimeout(resolve, 300))
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    const preview = await previewAccountDeletion(person.userId)
+    await handover
+
+    await sql`update public.regions set created_by = ${other.userId} where id = ${shared}`
+    expect(preview.blocks).toEqual([{ id: shared, name: PREFIX + 'shared' }])
   })
 
   it('removes every link to the person, keeps what the region relies on, and drops what was theirs alone', async () => {

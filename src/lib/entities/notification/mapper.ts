@@ -1,4 +1,4 @@
-import { authorName } from '$lib/entities/displayName'
+import { toAuthor } from '$lib/entities/displayName'
 import { objectOf } from '$lib/entities/event/dto'
 import type { EventEntity } from '$lib/entities/event/entity'
 import { toEventEntity } from '$lib/entities/event/mapper'
@@ -12,7 +12,7 @@ export type NotificationRow = QueryRow<typeof queries.listNotifications>
 export function toNotification(row: NotificationRow, userRegions: RegionMembership[]): NotificationListItem {
   return {
     actorFk: row.actorFk,
-    actorName: authorName(row.actorFk, row.actor),
+    actorName: toAuthor(row.actorFk, row.actor?.username).name,
     // `created_at` carries a DB default, which Zero types as nullable; it never is.
     createdAt: row.createdAt ?? 0,
     // The row the inbox draws, built by the function the feed's cards are built with, off the same

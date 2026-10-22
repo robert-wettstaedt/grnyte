@@ -17,7 +17,7 @@
   import { sourceHost } from '$lib/entities/file/upload'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
-  import { entityHref } from '$lib/entities/href'
+  import { authorHref, entityHref } from '$lib/entities/href'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
@@ -259,15 +259,15 @@
   <footer class="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 bg-linear-to-t from-black/70 to-transparent p-3">
     <div class="flex flex-col gap-1.5">
       {#if file.uploader}
-        {@const profile = signedIn && file.uploader.id != null ? entityHref('users', file.uploader.id) : undefined}
+        {@const profile = signedIn ? authorHref(file.uploader) : undefined}
         <div class="flex items-center gap-2">
           <svelte:element
             this={profile == null ? 'div' : 'a'}
             href={profile}
             class={['flex items-center gap-2', profile != null && 'hover:opacity-80']}
           >
-            <Avatar deleted={file.uploader.id === null} name={file.uploader.username} size={28} solid />
-            <span class="text-sm font-semibold">{file.uploader.username}</span>
+            <Avatar author={file.uploader} size={28} solid />
+            <span class="text-sm font-semibold">{file.uploader.name}</span>
           </svelte:element>
           <span class="opacity-50">·</span>
           <button
@@ -306,7 +306,7 @@
           panel={false}
           contentClass="w-96"
           title={m.common_details()}
-          subtitle={file.uploader?.username}
+          subtitle={file.uploader?.name}
         >
           {#snippet trigger(props)}
             <button

@@ -124,6 +124,16 @@ export function requireAuthed(): {
   return { claims, user }
 }
 
+/** {@link requireAuthed} plus the address from the verified token, never the request: what a
+ *  password check is pointed at, so it cannot be aimed at somebody else's account. */
+export function requireVerifiedEmail(): { email: string; user: NonNullable<App.Locals['user']> } {
+  const { claims, user } = requireAuthed()
+  if (claims.email == null) {
+    error(401, formError('auth_notSignedIn'))
+  }
+  return { email: claims.email, user }
+}
+
 /** before: auth-gate, open an RLS transaction, run the handler inside it; after: drain whatever the
  *  handler deferred to {@link Context.afterCommit}, then log failures. */
 async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
@@ -147,6 +157,9 @@ async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
 
   return returnValue
 }
+
+/** A refusal as a command raises it: the field rides in the `HttpError` body for the store form. */
+export const refuseCommand = (message: string, field?: string): never => error(400, { field, message })
 
 /** A shared handler body's refusal, as a remote form raises it: on the field when it names one. */
 export const refuseVia =

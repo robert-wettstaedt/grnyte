@@ -105,6 +105,19 @@
   }}
 />
 
+<Story
+  name="Made owner"
+  args={{
+    notification: notification('role_changed', {
+      entity: undefined,
+      eventFk: undefined,
+      metadata: 'owner',
+      object: undefined,
+    }),
+    unread: true,
+  }}
+/>
+
 <!-- No event and no object at all, so the row is a `<header>` rather than an anchor: nothing to
      open. Worth seeing, because it is the one row a reader can tap without anything happening. -->
 <Story

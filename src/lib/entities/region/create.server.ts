@@ -1,7 +1,7 @@
 import { pinnedTx } from '$lib/db/pinned.server'
 import type * as schema from '$lib/db/schema'
 import { regionMembers, regions } from '$lib/db/schema'
-import { formError } from '$lib/forms/schemas'
+import { formError, type FormMessage } from '$lib/forms/schemas'
 import { LOCK, lockKey } from '$lib/remote/lock.server'
 import { error } from '@sveltejs/kit'
 import { count, eq } from 'drizzle-orm'
@@ -14,6 +14,17 @@ interface Founder {
   authUserId: string
   name: string
   userId: number
+}
+
+export async function assertBelowOwnedCap(tx: Db, userId: number, refusal: FormMessage) {
+  // Re-checked inside the transaction rather than trusting the handler's check: two tabs
+  // submitting at once both pass that one and would leave the account over the cap.
+  await lockKey(tx, LOCK.regionOwner, userId)
+  const [{ owned }] = await tx.select({ owned: count() }).from(regions).where(eq(regions.createdBy, userId))
+
+  if (owned >= MAX_OWNED_REGIONS) {
+    error(409, refusal)
+  }
 }
 
 /**
@@ -33,14 +44,7 @@ export function createRegionForUser(founder: Founder): Promise<{ id: number }> {
 
 /** {@link createRegionForUser} on a privileged handle the caller already holds. */
 export async function createRegionIn(tx: Db, { authUserId, name, userId }: Founder): Promise<{ id: number }> {
-  // Re-checked inside the transaction rather than trusting the handler's check: two tabs
-  // submitting at once both pass that one and would leave the account over the cap.
-  await lockKey(tx, LOCK.regionOwner, userId)
-  const [{ owned }] = await tx.select({ owned: count() }).from(regions).where(eq(regions.createdBy, userId))
-
-  if (owned >= MAX_OWNED_REGIONS) {
-    error(409, formError('region_capReached', { count: MAX_OWNED_REGIONS }))
-  }
+  await assertBelowOwnedCap(tx, userId, formError('region_capReached', { count: MAX_OWNED_REGIONS }))
 
   const [region] = await tx.insert(regions).values({ createdBy: userId, name }).returning({ id: regions.id })
 

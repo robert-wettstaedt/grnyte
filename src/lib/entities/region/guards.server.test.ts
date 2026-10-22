@@ -5,8 +5,8 @@
  *
  * `regionPolicies.test.ts` covers what the database refuses; this covers what the mutations refuse
  * before the database is even asked. Both halves matter, because RLS happily lets a region admin
- * demote the last admin or add anybody they like - "do not orphan the region" and "an undo is not
- * an insert" are app rules, not policies.
+ * demote the owner or add anybody they like - "the owner stays" and "an undo is not an insert" are
+ * app rules, not policies.
  *
  * Real database, real fixtures: every guard here is a query, so a mock would test nothing. The
  * connection is the superuser one (RLS bypassed) because these functions run inside an already
@@ -15,25 +15,17 @@
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
 import { db } from '$lib/db/db.server'
-import { regionMembers } from '$lib/db/schema'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { LOCK } from '$lib/remote/lock.server'
-import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import {
-  activeAdminUserFks,
-  assertMemberChangeAllowed,
-  assertNotLastAdmin,
-  findActiveMember,
-  resolveRestore,
-} from './guards.server'
+import { assertMemberChangeAllowed, assertNotOwner, findActiveMember, resolveRestore } from './guards.server'
 import { stallsOnLock } from './testLock'
 
 const REGION = '__guards_region__'
 const OTHER_REGION = '__guards_other__'
 
 const EMAILS = {
-  /** Sole admin of the fixture region in the default fixture state. */
+  /** Owner and sole admin of the fixture region in the default fixture state. */
   admin: 'maintainer@grnyte.rocks',
   member: 'user@grnyte.rocks',
   /** Never a member of the fixture region: the "add anybody" target. */
@@ -100,16 +92,6 @@ afterAll(async () => {
   await sql.end()
 })
 
-describe.skipIf(!reachable)('activeAdminUserFks', () => {
-  it('counts only admins, only active ones, and only in the region asked about', async () => {
-    expect(await activeAdminUserFks(db, regionId)).toEqual([users.admin.userId])
-
-    // A deactivated admin is not an admin: counting them would let the last real one leave.
-    await sql`update public.region_members set is_active = false where region_fk = ${regionId} and user_fk = ${users.admin.userId}`
-    expect(await activeAdminUserFks(db, regionId)).toEqual([])
-  })
-})
-
 describe.skipIf(!reachable)('assertMemberChangeAllowed', () => {
   const change = (actor: Who, target: Who, nextRole: null | string) =>
     assertMemberChangeAllowed(db, users[actor].userId, {
@@ -118,30 +100,31 @@ describe.skipIf(!reachable)('assertMemberChangeAllowed', () => {
       userFk: users[target].userId,
     })
 
-  it('refuses to demote the last admin', async () => {
-    await expect(change('second', 'admin', 'region_user')).rejects.toMatchObject({ status: 409 })
+  const promoteSecond = () =>
+    sql`update public.region_members set role = 'region_admin' where region_fk = ${regionId} and user_fk = ${users.second.userId}`
+
+  it('refuses another admin demoting or removing the owner', async () => {
+    await promoteSecond()
+
+    // Told the owner is protected, not "You own this region", which is about somebody else.
+    const protectedOwner = { body: { message: expect.stringContaining('region_ownerProtected') }, status: 409 }
+    await expect(change('second', 'admin', 'region_user')).rejects.toMatchObject(protectedOwner)
+    await expect(change('second', 'admin', null)).rejects.toMatchObject(protectedOwner)
   })
 
-  it('refuses to remove the last admin', async () => {
-    // Same rule, and the one that matters more: removal is the path with an Undo behind it.
-    await expect(change('second', 'admin', null)).rejects.toMatchObject({ status: 409 })
+  it('lets the owner demote or remove the only other admin', async () => {
+    await promoteSecond()
+
+    await expect(change('admin', 'second', 'region_user')).resolves.toBeUndefined()
+    await expect(change('admin', 'second', null)).resolves.toBeUndefined()
   })
 
-  it('lets one of two admins be demoted or removed', async () => {
-    await sql`update public.region_members set role = 'region_admin' where region_fk = ${regionId} and user_fk = ${users.second.userId}`
-
-    await expect(change('second', 'admin', 'region_user')).resolves.toBeUndefined()
-    await expect(change('second', 'admin', null)).resolves.toBeUndefined()
-  })
-
-  it('always allows a promotion to admin, even of the last admin', async () => {
-    // Nothing is lost by adding an admin, so the last-admin rule must not block a no-op re-set.
+  it('always allows a promotion to admin, even a no-op one on the owner', async () => {
     await expect(change('second', 'admin', 'region_admin')).resolves.toBeUndefined()
   })
 
   it('refuses to change your own role, however senior you are', async () => {
-    // An accidental self-demotion locks you out of the screen you did it on. This one is checked
-    // before the last-admin rule, so it holds even when the region has admins to spare.
+    // An accidental self-demotion locks you out of the screen you did it on.
     await sql`update public.region_members set role = 'region_admin' where region_fk = ${regionId} and user_fk = ${users.second.userId}`
 
     await expect(change('admin', 'admin', 'region_user')).rejects.toThrow()
@@ -230,35 +213,13 @@ describe.skipIf(!reachable)('resolveRestore', () => {
   })
 })
 
-describe.skipIf(!reachable)('last-admin race', () => {
-  it('lets only one of two admins demote the other when they act at once', async () => {
-    await sql`update public.region_members set role = 'region_admin' where region_fk = ${regionId} and user_fk = ${users.second.userId}`
-
-    // Each transaction checks, pauses past the other's check, then writes: without the lock both
-    // checks see two admins and both writes land.
-    const demote = (actor: Who, target: Who) =>
-      db.transaction(async (tx) => {
-        await assertMemberChangeAllowed(tx, users[actor].userId, {
-          nextRole: 'region_user',
-          regionFk: regionId,
-          userFk: users[target].userId,
-        })
-        await new Promise((resolve) => setTimeout(resolve, 200))
-        await tx
-          .update(regionMembers)
-          .set({ role: 'region_user' })
-          .where(and(eq(regionMembers.regionFk, regionId), eq(regionMembers.userFk, users[target].userId)))
-      })
-
-    const settled = await Promise.allSettled([demote('admin', 'second'), demote('second', 'admin')])
-
-    expect(settled.map((result) => result.status).sort()).toEqual(['fulfilled', 'rejected'])
-    expect(await activeAdminUserFks(db, regionId)).toHaveLength(1)
+describe.skipIf(!reachable)('assertNotOwner', () => {
+  it('refuses the owner and nobody else', async () => {
+    await expect(assertNotOwner(db, regionId, users.admin.userId)).rejects.toMatchObject({ status: 409 })
+    await expect(assertNotOwner(db, regionId, users.second.userId)).resolves.toBeUndefined()
   })
 
-  it('takes the region lock before counting admins', async () => {
-    await expect(stallsOnLock(LOCK.regionMembers, regionId, () => assertNotLastAdmin(db, regionId, 0))).resolves.toBe(
-      true,
-    )
+  it('takes the region lock a handover takes before reading the owner', async () => {
+    await expect(stallsOnLock(LOCK.regionMembers, regionId, () => assertNotOwner(db, regionId, 0))).resolves.toBe(true)
   })
 })

@@ -34,7 +34,6 @@ import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../fi
 import { NOTIFICATION_CONFLICT_TARGET } from '../notification/notification.server'
 import { deleteRegionRows } from '../region/delete.server'
 import { lockRegionMembers } from '../region/guards.server'
-import { accountDeletionEffect } from '../region/permissions'
 import { recalcUserGradeAndRating } from '../route/user-grade.server'
 import { verifyPassword } from './password.server'
 
@@ -184,14 +183,16 @@ async function classifyRegions(tx: Db, userFk: number) {
   const deletes: RegionRef[] = []
   for (const { region, regionFk } of mine) {
     await lockRegionMembers(tx, regionFk)
+    // The owner too after the lock: a handover to this person may have committed while it waited.
+    const owner = await tx.query.regions.findFirst({ columns: { createdBy: true }, where: eq(regions.id, regionFk) })
     const members = await tx.query.regionMembers.findMany({
-      columns: { role: true, userFk: true },
+      columns: { userFk: true },
       where: and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.isActive, true)),
     })
     const ref = { id: regionFk, name: toDisplayName(region?.name ?? '', getLocale()) }
-    const effect = accountDeletionEffect(members, userFk)
-    if (effect === 'deletes') deletes.push(ref)
-    if (effect === 'blocks') blocking.push(ref)
+    // Nobody else active: the region goes with the account. Shared: its owner must hand it over.
+    if (!members.some((member) => member.userFk !== userFk)) deletes.push(ref)
+    else if (owner?.createdBy === userFk) blocking.push(ref)
   }
 
   return { blocks: blocking, deletes }

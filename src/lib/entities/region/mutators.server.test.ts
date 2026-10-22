@@ -195,15 +195,14 @@ describe.skipIf(!reachable)('region mutators: members and founding', () => {
     ).toHaveLength(1)
   })
 
-  it('refuses the sole admin leaving, and lets a member leave', async () => {
-    expect(messageOf(await adminClient.push('regions.leave', { regionFk: regionId }))).toMatch(/admin/i)
+  it('refuses the owner leaving beside a second admin, and lets that admin leave', async () => {
     await sql`
       insert into public.region_members (region_fk, user_fk, auth_user_fk, role, is_active)
-      select ${regionId}, ${invitee.userId}, ${invitee.authId}, 'region_user', true
+      select ${regionId}, ${invitee.userId}, ${invitee.authId}, 'region_admin', true
       where not exists (select 1 from public.region_members where region_fk = ${regionId} and user_fk = ${invitee.userId})`
 
-    const left = await inviteeClient.push('regions.leave', { regionFk: regionId })
-    expect(left).toEqual({})
+    expect(messageOf(await adminClient.push('regions.leave', { regionFk: regionId }))).toMatch(/hand/i)
+    expect(await inviteeClient.push('regions.leave', { regionFk: regionId })).toEqual({})
   })
 
   it('founds a region with its founder as admin, privileged', async () => {

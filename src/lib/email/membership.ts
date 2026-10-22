@@ -2,11 +2,11 @@ import { m } from '$lib/paraglide/messages'
 import type { EmailContent, EmailLocale } from './shell'
 
 /**
- * The two membership mails: your role in a region changed, and your access to one was removed.
+ * The membership mails: your role in a region changed, your access to one was removed, or it was deleted.
  * Localized per recipient like {@link inviteEmailContent}, unlike the GoTrue templates, because
  * the cron renders these itself and knows each recipient's `contactLocale`.
  *
- * Both name the region in the copy, which no in-app sentence does: an inbox row has a crumb drawn
+ * All name the region in the copy, which no in-app sentence does: an inbox row has a crumb drawn
  * from `region_fk` and an email has none.
  *
  * Unconditional, with no opt-out column and no `List-Unsubscribe` header, like the rest of
@@ -52,6 +52,20 @@ export function membershipRemovedEmailContent({ locale, regionName, url }: Membe
     preheader: m.email_membershipRemovedPreheader({ region: regionName }, at),
     subject: m.email_membershipRemovedSubject({ region: regionName }, at),
     title: m.email_membershipRemovedTitle({}, at),
+  }
+}
+
+export function regionDeletedEmailContent({ locale, regionName, url }: MembershipEmailInput): EmailContent {
+  const at = { locale }
+
+  return {
+    action: { label: m.email_openApp({}, at), url },
+    body: [m.email_regionDeletedBody1({ region: regionName }, at), m.email_regionDeletedBody2({}, at)],
+    footerReason: 'account',
+    meta: m.email_regionDeletedMeta({}, at),
+    preheader: m.email_regionDeletedPreheader({ region: regionName }, at),
+    subject: m.email_regionDeletedSubject({ region: regionName }, at),
+    title: m.email_regionDeletedTitle({}, at),
   }
 }
 

@@ -15,21 +15,34 @@
   // screen. The whole row opens the member's sheet (popover on desktop), which is where the
   // profile link and anything the viewer is allowed to change live.
   interface Props {
-    /** The sole remaining admin cannot leave; the server refuses it too. */
     canLeave: boolean
     /** Admin looking at somebody else: the role choices and Remove. */
     canManage: boolean
+    makeOwnerHref: string | undefined
     member: RegionMemberItem
     onLeave: () => void
     onRemove: () => void
     onRole: (role: AssignableRole) => void
+    owner: boolean
     regionName: string
     role: AppRole
     /** The signed-in user's own row. */
     self: boolean
   }
 
-  const { canLeave, canManage, member, onLeave, onRemove, onRole, regionName, role, self }: Props = $props()
+  const {
+    canLeave,
+    canManage,
+    makeOwnerHref,
+    member,
+    onLeave,
+    onRemove,
+    onRole,
+    owner,
+    regionName,
+    role,
+    self,
+  }: Props = $props()
 
   // Read, edit, everything: the icon says which of the three a role is without reading the label.
   const roleIcons: Record<AssignableRole, IconName> = {
@@ -44,7 +57,8 @@
   const close = () => (open = false)
 
   // "Manage" would promise something the sheet does not offer when all it holds is a profile link.
-  const subtitle = $derived(canManage || (self && canLeave) ? m.areas_manage() : roleLabel(role))
+  const roleText = $derived(owner ? m.roles_owner() : roleLabel(role))
+  const subtitle = $derived(canManage || (self && canLeave) ? m.areas_manage() : roleText)
 </script>
 
 <SettingsSheetRow bind:open class="gap-3" {subtitle} title={member.username}>
@@ -61,7 +75,7 @@
     </span>
 
     <span class="flex flex-none items-center gap-2">
-      <span class="text-surface-600-400 text-sm">{roleLabel(role)}</span>
+      <span class="text-surface-600-400 text-sm">{roleText}</span>
       <Icon name="chevron-right" class="text-surface-400-600" />
     </span>
   {/snippet}
@@ -92,6 +106,9 @@
 
     <!-- Ruled off: directly under the role choices it reads as a fourth role. -->
     <div class="border-surface-200-800 mt-2 border-t pt-2">
+      {#if makeOwnerHref != null}
+        <MenuRow href={makeOwnerHref} icon="crown" label={m.region_handOver()} onclick={close} />
+      {/if}
       <MenuRow
         destructive
         icon="trash"

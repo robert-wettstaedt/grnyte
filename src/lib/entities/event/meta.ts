@@ -1,3 +1,4 @@
+import { toAuthor, type Author } from '$lib/entities/displayName'
 import type { MessageKey } from '$lib/i18n/message'
 import { isDatedMoment } from '$lib/i18n/relativeTime'
 import type { CardLine } from './line'
@@ -11,8 +12,9 @@ import type { CardLine } from './line'
  */
 
 export interface MetaLine {
-  /** Empty when the actor is not known, which is what picks a key that does not name one. */
-  actor: string
+  /** Whoever the line names. An empty name is an actor not known yet, which picks a key that does
+   *  not name one. */
+  actor: Author
   key: MessageKey
   /** Epoch millis. The caller formats it against its own clock and locale. */
   timestamp: number
@@ -22,11 +24,9 @@ export interface MetaLine {
 export interface MetaSource {
   /** The entity's own creation stamp. Absent on rows written before the column existed. */
   createdAt: Date | undefined
-  /**
-   * Username behind the entity's `createdBy`. Only ever read when the log is empty, and absent
-   * until `usersByIds` answers.
-   */
-  creatorName: string | undefined
+  /** The entity's `createdBy`. Only ever read when the log is empty; its name is empty until
+   *  `usersByIds` answers. */
+  creator: Author
   /** The newest row in scope, or `undefined` when nothing has been logged about this entity. */
   latest: CardLine | undefined
   /**
@@ -53,12 +53,12 @@ const KEYS = {
   },
 } as const satisfies Record<string, Record<string, Record<string, MessageKey>>>
 
-export function metaLine({ createdAt, creatorName, latest, now }: MetaSource): MetaLine | undefined {
+export function metaLine({ createdAt, creator, latest, now }: MetaSource): MetaLine | undefined {
   if (latest != null) {
     // A create is the record appearing, not a change to it; every other verb in scope is a change.
     // The verb says so outright now, where the old shape had to read a column being absent.
     const created = latest.verb === 'create'
-    return line(created, latest.actorName, latest.createdAt, now)
+    return line(created, toAuthor(latest.actorFk, latest.actorName), latest.createdAt, now)
   }
 
   // Nothing logged at all: an entity imported before the log existed, so its own columns are all
@@ -67,13 +67,13 @@ export function metaLine({ createdAt, creatorName, latest, now }: MetaSource): M
     return undefined
   }
 
-  return line(true, creatorName, createdAt.getTime(), now)
+  return line(true, creator, createdAt.getTime(), now)
 }
 
-const line = (created: boolean, actor: string | undefined, timestamp: number, now: number): MetaLine => ({
-  actor: actor ?? '',
+const line = (created: boolean, actor: Author, timestamp: number, now: number): MetaLine => ({
+  actor,
   key: KEYS[created ? 'created' : 'updated'][isDatedMoment(timestamp, now) ? 'dated' : 'relative'][
-    actor == null || actor === '' ? 'unknown' : 'known'
+    actor.name === '' ? 'unknown' : 'known'
   ],
   timestamp,
 })

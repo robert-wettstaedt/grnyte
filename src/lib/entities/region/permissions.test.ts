@@ -7,7 +7,7 @@ import {
 import { describe, expect, it } from 'vitest'
 import type { UserRegion } from './dto'
 import { userRegion } from './fixture'
-import { canEditRegion, isLastAdmin } from './permissions'
+import { canEditRegion } from './permissions'
 
 const ADMIN_OF_1 = [userRegion(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT, REGION_PERMISSION_ADMIN)]
 const MAINTAINER_OF_1 = [userRegion(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT)]
@@ -44,26 +44,5 @@ describe('canEditRegion', () => {
 
     expect(canEditRegion(APP_ADMIN_MAINTAINER, 1)).toBe(false)
     expect(canEditRegion(APP_ADMIN_MAINTAINER, 99)).toBe(false)
-  })
-})
-
-describe('isLastAdmin', () => {
-  it('refuses the sole admin: demoting, removing or leaving would orphan the region', () => {
-    expect(isLastAdmin([7], 7)).toBe(true)
-  })
-
-  it('allows one of two admins to go', () => {
-    expect(isLastAdmin([7, 8], 7)).toBe(false)
-  })
-
-  it('allows a member who is not an admin to go, however few admins there are', () => {
-    expect(isLastAdmin([7], 9)).toBe(false)
-    expect(isLastAdmin([], 9)).toBe(false)
-  })
-
-  it('refuses nobody when the region already has no admin: there is nothing left to lose', () => {
-    // Reachable through the database (an app admin can delete the last membership directly),
-    // and blocking every departure would trap the remaining members.
-    expect(isLastAdmin([], 7)).toBe(false)
   })
 })

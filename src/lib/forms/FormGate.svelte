@@ -17,7 +17,7 @@
 
   interface Props {
     /** The trailing action as the ready screen labels it, disabled until then. */
-    action: { icon?: IconName; iconAfter?: boolean; label: string }
+    action: { destructive?: boolean; icon?: IconName; iconAfter?: boolean; label: string }
     /** The back chip as the ready screen labels it. */
     backLabel?: string
     cancelTo: string
@@ -84,7 +84,13 @@
 </script>
 
 {#snippet waiting()}
-  <PageHeaderAction disabled icon={action.icon} iconAfter={action.iconAfter} label={action.label} />
+  <PageHeaderAction
+    destructive={action.destructive}
+    disabled
+    icon={action.icon}
+    iconAfter={action.iconAfter}
+    label={action.label}
+  />
 {/snippet}
 
 <!-- The same flex column `QueryState` gave these screens, so a filling body still has a height. -->

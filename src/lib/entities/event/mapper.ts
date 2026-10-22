@@ -1,6 +1,6 @@
 import { parseAccolade } from '$lib/entities/ascent/accolade'
 import { blockName } from '$lib/entities/block/mapper'
-import { authorName, toDisplayName } from '$lib/entities/displayName'
+import { toAuthor, toDisplayName } from '$lib/entities/displayName'
 import type { DisplayName } from '$lib/entities/displayName'
 import type { EventEntity } from '$lib/entities/event/entity'
 import { fileParent, toMediaFile } from '$lib/entities/file/mapper'
@@ -105,7 +105,7 @@ export function toEvent(row: EventRow, userRegions: RegionMembership[]): EventLi
 
   return {
     actorFk: row.actorFk,
-    actorName: authorName(row.actorFk, row.actor),
+    actorName: toAuthor(row.actorFk, row.actor?.username).name,
     changes: (row.changes ?? []).map(toEventChange),
     // `?? 0` because a NOT NULL DEFAULT column arrives nullable in the generated Zero row type.
     commentCount: row.commentCount ?? 0,

@@ -202,13 +202,17 @@ describe('invitationDelivery', () => {
 describe('toRegionDetail', () => {
   const detail = { createdAt: 1, maxMembers: 10, name: 'Elbsandstein' }
 
-  it('names a creator who deleted their account', () => {
+  it('names an owner who deleted their account, with no id to match the reader', () => {
     const row = { ...detail, author: undefined, createdBy: null } as unknown as RegionDetailRow
-    expect(toRegionDetail(row).createdBy).toBe('Deleted user')
+    expect(toRegionDetail(row).owner).toEqual({ id: null, name: 'Deleted user' })
   })
 
-  it('names a live creator once their row is here', () => {
-    const row = { ...detail, author: { username: 'ada' }, createdBy: 4 } as unknown as RegionDetailRow
-    expect(toRegionDetail(row).createdBy).toBe('ada')
+  it('carries a live owner by id, and their name once their row is here', () => {
+    const row = { ...detail, author: undefined, createdBy: 4 } as unknown as RegionDetailRow
+    expect(toRegionDetail(row).owner).toEqual({ id: 4, name: '' })
+    expect(toRegionDetail({ ...row, author: { username: 'ada' } } as RegionDetailRow).owner).toEqual({
+      id: 4,
+      name: 'ada',
+    })
   })
 })
