@@ -23,6 +23,9 @@ export function roleLabel(role: AppRole, options?: MessageOptions): string {
   }
 }
 
+/** A handover's `role_changed` metadata: not an assignable role, but labelled like one. */
+export const HANDOVER_ROLE = 'owner'
+
 /**
  * The label for a role that came out of storage rather than out of the enum, or `undefined`
  * when it is not a role this app assigns.
@@ -33,6 +36,7 @@ export function roleLabel(role: AppRole, options?: MessageOptions): string {
  * fallback makes it necessary, rather than at each call site that handles stored values.
  */
 export function roleLabelFor(value: string | undefined, options?: MessageOptions): string | undefined {
+  if (value === HANDOVER_ROLE) return m.roles_owner({}, options)
   return value != null && (assignableRoles as readonly string[]).includes(value)
     ? roleLabel(value as AppRole, options)
     : undefined

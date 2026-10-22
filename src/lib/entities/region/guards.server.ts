@@ -6,13 +6,12 @@
  * administrable and its membership consensual, so they are the half worth testing.
  */
 import * as schema from '$lib/db/schema'
-import { events, regionInvitations, regionMembers, users } from '$lib/db/schema'
+import { events, regionInvitations, regionMembers, regions, users } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
 import { LOCK, lockKey } from '$lib/remote/lock.server'
 import { error } from '@sveltejs/kit'
 import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { isLastAdmin } from './permissions'
 
 type Db = PostgresJsDatabase<typeof schema>
 
@@ -33,22 +32,8 @@ const membershipEvents = (regionFk: number, userFk: number) =>
 /** The region's membership and seat counts: take this before reading them to decide a write. */
 export const lockRegionMembers = (db: Db, regionFk: number) => lockKey(db, LOCK.regionMembers, regionFk)
 
-/** The user ids of a region's active admins, which is all {@link isLastAdmin} needs. */
-export async function activeAdminUserFks(db: Db, regionFk: number): Promise<number[]> {
-  const admins = await db.query.regionMembers.findMany({
-    columns: { userFk: true },
-    where: and(
-      eq(regionMembers.regionFk, regionFk),
-      eq(regionMembers.role, 'region_admin'),
-      eq(regionMembers.isActive, true),
-    ),
-  })
-
-  return admins.map((admin) => admin.userFk)
-}
-
 /**
- * Guards a role change or removal: {@link assertNotLastAdmin}, plus the rule that nobody may
+ * Guards a role change or removal: {@link assertNotOwner}, plus the rule that nobody may
  * change their own role: an accidental self-demotion locks you out of the screen you did it on.
  * `leaveRegion` is the one path that asks for the first half only, since leaving is by definition
  * something you do to yourself.
@@ -68,20 +53,19 @@ export async function assertMemberChangeAllowed(
     return
   }
 
-  await assertNotLastAdmin(db, regionFk, userFk)
+  await assertNotOwner(db, regionFk, userFk, actorUserFk)
 }
 
 /**
- * A region must never lose its last admin: it would become unadministrable, since only an admin
- * can promote anyone. Asked on every path that takes the admin role away from somebody, whether
- * that is a demotion, a removal or their own departure.
+ * The owner (`regions.created_by`) cannot be demoted, removed or leave; only a handover moves the
+ * role. Since the owner always stays an admin, this is also what keeps a region administrable.
  */
-export async function assertNotLastAdmin(db: Db, regionFk: number, userFk: number) {
-  // Two admins demoting or removing each other would otherwise both count the other as spare.
+export async function assertNotOwner(db: Db, regionFk: number, userFk: number, actorFk = userFk) {
   await lockRegionMembers(db, regionFk)
 
-  if (isLastAdmin(await activeAdminUserFks(db, regionFk), userFk)) {
-    error(409, formError('region_lastAdmin'))
+  const region = await db.query.regions.findFirst({ columns: { createdBy: true }, where: eq(regions.id, regionFk) })
+  if (region?.createdBy === userFk) {
+    error(409, formError(actorFk === userFk ? 'region_ownerMustHandOver' : 'region_ownerProtected'))
   }
 }
 
@@ -103,6 +87,17 @@ export async function findActiveMember(db: Db, regionFk: number, userFk: number)
   }
 
   return member
+}
+
+export async function requireOwner(db: Db, regionFk: number, userFk: number) {
+  const region = await db.query.regions.findFirst({
+    columns: { createdBy: true, name: true },
+    where: eq(regions.id, regionFk),
+  })
+  if (region == null || region.createdBy !== userFk) {
+    error(403, formError('region_ownerOnly'))
+  }
+  return region
 }
 
 /**

@@ -19,10 +19,11 @@ export interface OwnedRegion {
 /** A region's own record, as shown on its settings screen. */
 export interface RegionDetail {
   createdAt: Date | undefined
-  /** Username of whoever created the region. */
   createdBy: string | undefined
+  id: number
   maxMembers: number
   name: string
+  ownerFk: number | undefined
 }
 
 /** A pending invitation, as listed on a region's settings screen. Deliberately without
@@ -122,6 +123,12 @@ export const memberSchema = z.object({ regionFk: z.number(), userFk: z.number() 
 export const memberRoleSchema = z.object({ regionFk: z.number(), role: assignableRoleSchema, userFk: z.number() })
 
 export const regionFkSchema = z.object({ regionFk: z.number() })
+
+const requiredText = () => z.string({ error: formError('form_required') })
+
+export const handOverSchema = z.object({ ...memberSchema.shape, password: requiredText() })
+
+export const deleteRegionSchema = z.object({ ...regionFkSchema.shape, name: requiredText(), password: requiredText() })
 
 export interface RemovedMemberSnapshot {
   regionFk: number

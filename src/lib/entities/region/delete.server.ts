@@ -1,3 +1,4 @@
+import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import {
   activities,
@@ -24,10 +25,18 @@ import {
   topoRoutes,
   topos,
   users,
+  userSettings,
 } from '$lib/db/schema'
-import { eq, inArray } from 'drizzle-orm'
+import { regionDeletedEmailContent } from '$lib/email/membership'
+import { sendEmailOutcome } from '$lib/email/send.server'
+import { contactLocale } from '$lib/i18n/message'
+import { and, count, eq, inArray, ne } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { deleteFileRows, type FileStorageTarget } from '../file/cleanup.server'
+import { authUsers } from 'drizzle-orm/supabase'
+import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../file/cleanup.server'
+import { verifyPassword } from '../user/password.server'
+import { lockRegionMembers, requireOwner } from './guards.server'
 
 type Db = PostgresJsDatabase<typeof schema>
 
@@ -90,4 +99,74 @@ export async function deleteRegionRows(tx: Db, regionFk: number): Promise<FileSt
   await tx.delete(regions).where(eq(regions.id, regionFk))
 
   return targets
+}
+
+/** `auth.users` is named `users` too: without the alias the join fails at runtime with 42P09. */
+const authUser = alias(authUsers, 'auth_user')
+
+export type DeleteRegionResult = { kind: 'deleted' } | { kind: 'wrongName' } | { kind: 'wrongPassword' }
+
+type Owner = { email: string; id: number }
+
+const RATE_LIMIT_PAUSE_MS = 1000
+
+/** The preview's count and the mail's recipients: they must agree. */
+const otherActiveMembers = (regionFk: number, ownerFk: number) =>
+  and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.isActive, true), ne(regionMembers.userFk, ownerFk))
+
+// Files and mail go after the commit: neither can roll back.
+export async function deleteRegion(
+  owner: Owner,
+  { name, regionFk }: { name: string; regionFk: number },
+  password: string,
+  origin: string,
+): Promise<DeleteRegionResult> {
+  const region = await pinnedTx((tx) => requireOwner(tx, regionFk, owner.id))
+  if (region.name.trim() !== name.trim()) return { kind: 'wrongName' }
+  if (!(await verifyPassword(owner.email, password))) return { kind: 'wrongPassword' }
+
+  const { recipients, targets } = await pinnedTx(async (tx) => {
+    await lockRegionMembers(tx, regionFk)
+    await requireOwner(tx, regionFk, owner.id)
+    // Read before the rows go: afterwards nothing says who was in it.
+    const recipients = await tx
+      .select({ email: authUser.email, locale: userSettings.contactLocale })
+      .from(regionMembers)
+      .innerJoin(authUser, eq(authUser.id, regionMembers.authUserFk))
+      .leftJoin(userSettings, eq(userSettings.userFk, regionMembers.userFk))
+      .where(otherActiveMembers(regionFk, owner.id))
+    return { recipients, targets: await deleteRegionRows(tx, regionFk) }
+  })
+
+  await removeFileStorage(targets)
+  // One at a time: Resend rate-limits a burst, and a rate-limited send gets one more try.
+  for (const { email, locale } of recipients) {
+    if (email == null) continue
+    const mail = {
+      ...regionDeletedEmailContent({ locale: contactLocale(locale), regionName: region.name, url: origin }),
+      idempotencyKey: `region-deleted-${regionFk}-${email}`,
+      template: 'region-deleted',
+      to: email,
+    }
+    if ((await sendEmailOutcome(mail, { quietRetry: true })) === 'retry') {
+      await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_PAUSE_MS))
+      await sendEmailOutcome(mail)
+    }
+  }
+
+  return { kind: 'deleted' }
+}
+
+export function previewRegionDeletion(regionFk: number, userFk: number): Promise<{ ascents: number; members: number }> {
+  return pinnedTx(async (tx) => {
+    await requireOwner(tx, regionFk, userFk)
+    const [[{ members }], [{ ascents: logged }]] = await Promise.all([
+      tx.select({ members: count() }).from(regionMembers).where(otherActiveMembers(regionFk, userFk)),
+      tx
+        .select({ ascents: count() })
+        .from(ascents)
+        .where(and(eq(ascents.regionFk, regionFk), ne(ascents.createdBy, userFk))),
+    ])
+    return { ascents: logged, members }
+  })
 }

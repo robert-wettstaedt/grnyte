@@ -365,6 +365,12 @@
   "email_membershipRemovedSubject": "You’re no longer in {region}",
   "email_membershipRemovedTitle": "Your access ended",
   "email_openApp": "Open grnyte",
+  "email_regionDeletedBody1": "The owner of {region} deleted it on grnyte.",
+  "email_regionDeletedBody2": "Its areas, topos and entries are gone. So are the ascents logged in it, yours too. Your account and your other regions stay as they are.",
+  "email_regionDeletedMeta": "MEMBERSHIP · REGION DELETED",
+  "email_regionDeletedPreheader": "{region} no longer exists.",
+  "email_regionDeletedSubject": "The owner deleted {region}",
+  "email_regionDeletedTitle": "A region you were in is gone",
   "email_roleChangedBody1": "{actor} made you {role} in {region}.",
   "email_roleChangedBody1Plain": "{actor} changed your role in {region}.",
   "email_roleChangedBody2": "What you can do in the region changed with it.",
@@ -1602,12 +1608,42 @@
   "region_capReached": "You can start at most {count} regions.",
   "region_capTitle": "You already own {count} regions",
   "region_createdAt": "Created",
-  "region_createdBy": "Created by",
+  "region_delete": "Delete region",
+  "region_deleteAscents": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Their {count} ascent goes too.",
+        "countPlural=other": "Their {count} ascents go too."
+      }
+    }
+  ],
+  "region_deleteIntro": "This deletes {region} and everything in it for every member: areas, blocks, routes, topos, media, comments and ascents. You can’t undo it.",
+  "region_deleteMembers": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} other member loses access and gets an email.",
+        "countPlural=other": "{count} other members lose access and get an email."
+      }
+    }
+  ],
+  "region_deleteNameLabel": "Type {region} to confirm",
+  "region_deleteSubmit": "Delete region",
+  "region_deleteWrongName": "That isn’t the region’s name",
+  "region_deleted": "You deleted {name}",
   "region_emptyBody": "Give it its first area, one named place to climb, like a patch of forest or a crag.",
   "region_emptyCta": "Add the first area",
   "region_emptyReadOnly": "Nobody has added an area to this region yet.",
   "region_emptyTitle": "{name} is empty",
   "region_emptyTitleAny": "No areas yet",
+  "region_handOver": "Make owner",
+  "region_handOverAdminOnly": "Only an admin can become the owner. Make them an admin first.",
+  "region_handOverCapReached": "They already own {count} regions. Nobody can own more.",
+  "region_handOverIntro": "{name} becomes the owner of {region}. Only the owner can delete the region or hand it over. You stay an admin.",
+  "region_handedOver": "{name} now owns this region",
   "region_invite": "Invite",
   "region_inviteAlreadyMember": "That address is already a member of this region",
   "region_inviteEmail": "Email address",
@@ -1623,7 +1659,6 @@
   "region_inviteSending": "Sending…",
   "region_inviteSentAt": "Sent {time}",
   "region_invitedBy": "Invited by {name}",
-  "region_lastAdmin": "A region needs at least one admin",
   "region_leave": "Leave region",
   "region_leaveConfirm": "Leave {name}? You lose access to everything in it until somebody invites you back.",
   "region_left": "You left {name}",
@@ -1654,6 +1689,9 @@
   "region_notMember": "You are not a member of this region. Ask someone in it for an invitation.",
   "region_nothingToRestore": "Nothing to restore",
   "region_ownedCount": "You own {owned} of {total} regions.",
+  "region_ownerMustHandOver": "You own this region. Hand it over to another admin first.",
+  "region_ownerOnly": "Only the owner of this region can do that.",
+  "region_ownerProtected": "The owner can’t be demoted or removed. Only they can hand the region over.",
   "region_removeMember": "Remove {name}",
   "region_role": "Role",
   "region_roleUpdated": "Role updated",
@@ -1737,6 +1775,7 @@
   "region_viewRegion": "View region",
   "roles_admin": "Admin",
   "roles_maintainer": "Maintainer",
+  "roles_owner": "Owner",
   "roles_user": "User",
   "routes_addRoute": "Add route",
   "routes_delete": "Delete route",
@@ -1847,8 +1886,8 @@
   "settings_changeUsername": "Change username",
   "settings_currentPassword": "Current password",
   "settings_deleteAccount": "Delete account",
-  "settings_deleteAccountBlocked": "You’re the only admin of {regions}. Make someone else an admin there first.",
-  "settings_deleteAccountBlockedList": "You’re the only admin of these regions. Make someone else an admin in each region before you delete your account:",
+  "settings_deleteAccountBlocked": "You own {regions}. Make another admin the owner there first.",
+  "settings_deleteAccountBlockedList": "You own these regions. Make another admin the owner of each one before you delete your account:",
   "settings_deleteAccountDone": "Your account is deleted",
   "settings_deleteAccountGoes": "Your profile, your ascents with their photos and videos, your favorites, settings and notifications.",
   "settings_deleteAccountGoesTitle": "What goes",

@@ -148,6 +148,9 @@ async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
   return returnValue
 }
 
+/** A refusal as a command raises it: the field rides in the `HttpError` body for the store form. */
+export const refuseCommand = (message: string, field?: string): never => error(400, { field, message })
+
 /** A shared handler body's refusal, as a remote form raises it: on the field when it names one. */
 export const refuseVia =
   <Field extends string>(issue: Record<Field, (message: string) => Parameters<typeof invalid>[0]>) =>

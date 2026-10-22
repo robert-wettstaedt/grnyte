@@ -211,4 +211,10 @@ describe('toRegionDetail', () => {
     const row = { ...detail, author: { username: 'ada' }, createdBy: 4 } as unknown as RegionDetailRow
     expect(toRegionDetail(row).createdBy).toBe('ada')
   })
+
+  it('carries the owner id, which the screen compares with the signed-in user', () => {
+    const row = { ...detail, author: undefined, createdBy: 4 } as unknown as RegionDetailRow
+    expect(toRegionDetail(row).ownerFk).toBe(4)
+    expect(toRegionDetail({ ...row, createdBy: null }).ownerFk).toBeUndefined()
+  })
 })

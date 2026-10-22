@@ -172,7 +172,9 @@
   {@render screen()}
 {:else}
   <FormGate
-    action={stepped && !isLast ? { icon: 'arrow-right', iconAfter: true, label: nextLabel } : { label: submitLabel }}
+    action={stepped && !isLast
+      ? { icon: 'arrow-right', iconAfter: true, label: nextLabel }
+      : { destructive, label: submitLabel }}
     {cancelTo}
     {denied}
     {fill}
