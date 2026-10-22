@@ -1,6 +1,6 @@
 import { parseAccolade } from '$lib/entities/ascent/accolade'
 import { blockName } from '$lib/entities/block/mapper'
-import { toDisplayName } from '$lib/entities/displayName'
+import { authorName, toDisplayName } from '$lib/entities/displayName'
 import type { DisplayName } from '$lib/entities/displayName'
 import type { EventEntity } from '$lib/entities/event/entity'
 import { fileParent, toMediaFile } from '$lib/entities/file/mapper'
@@ -32,8 +32,9 @@ export interface EventChangeItem {
  * `entityType` to look up, and no separate hydration result to marry to it.
  */
 export interface EventListItem {
-  actorFk: number
-  /** The actor's username; empty while the user row has not synced. */
+  /** Null once the actor deleted their account. */
+  actorFk: null | number
+  /** The actor's username; empty while the user row has not synced, "Deleted user" once they are gone. */
   actorName: string
   changes: EventChangeItem[]
   /**
@@ -104,7 +105,7 @@ export function toEvent(row: EventRow, userRegions: RegionMembership[]): EventLi
 
   return {
     actorFk: row.actorFk,
-    actorName: row.actor?.username ?? '',
+    actorName: authorName(row.actorFk, row.actor),
     changes: (row.changes ?? []).map(toEventChange),
     // `?? 0` because a NOT NULL DEFAULT column arrives nullable in the generated Zero row type.
     commentCount: row.commentCount ?? 0,

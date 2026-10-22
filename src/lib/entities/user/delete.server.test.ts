@@ -3,7 +3,7 @@ import { db } from '$lib/db/db.server'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { deleteRegionRows } from '../region/delete.server'
-import { deleteAccount, previewAccountDeletion } from './delete.server'
+import { deleteAccount, deleteAccountData, ERASED_COMMENT, previewAccountDeletion } from './delete.server'
 
 const auth = vi.hoisted(() => ({ deleteUser: vi.fn(async () => ({ error: null })), password: vi.fn(async () => true) }))
 const storage = vi.hoisted(() => ({ remove: vi.fn(async () => {}) }))
@@ -135,15 +135,42 @@ async function seed() {
   const [{ id: emoji }] = await sql<{ id: number }[]>`
     insert into public.reactions (event_fk, body, type, region_fk, auth_user_fk, user_fk)
     values (${card}, '👍', 'emoji', ${shared}, ${person.authId}, ${person.userId}) returning id`
-  Object.assign(ids, { card, emoji, reply, root })
+  // A comment they deleted earlier: hidden already, its words still stored.
+  const [{ id: retracted }] = await sql<{ id: number }[]>`
+    insert into public.reactions (event_fk, body, type, region_fk, auth_user_fk, user_fk, deleted_at)
+    values (${card}, 'Something I took back', 'comment', ${shared}, ${person.authId}, ${person.userId}, now())
+    returning id`
+  Object.assign(ids, { card, emoji, reply, retracted, root })
 
-  // A card about the person goes, and so does the inbox row it wrote.
+  // Their ascent's card goes with the ascent.
   const [{ id: sent }] = await sql<{ id: number }[]>`
     insert into public.events (verb, actor_fk, region_fk, ascent_fk) values ('create', ${person.userId}, ${shared}, ${ascent}) returning id`
-  await sql`
-    insert into public.notifications (region_fk, user_fk, auth_user_fk, actor_fk, event_fk, source_type)
-    values (${shared}, ${other.userId}, ${other.authId}, ${person.userId}, ${card}, 'comment')`
   ids.sent = sent
+
+  // Their edit of a shared route stays, with the other's comment and the change history under it.
+  const [{ id: edit }] = await sql<{ id: number }[]>`
+    insert into public.events (verb, actor_fk, region_fk, route_fk) values ('update', ${person.userId}, ${shared}, ${route}) returning id`
+  const [{ id: editComment }] = await sql<{ id: number }[]>`
+    insert into public.reactions (event_fk, body, type, region_fk, auth_user_fk, user_fk)
+    values (${edit}, 'Good catch', 'comment', ${shared}, ${other.authId}, ${other.userId}) returning id`
+  const [{ id: editChange }] = await sql<{ id: number }[]>`
+    insert into public.changes (event_fk, region_fk, column_name) values (${edit}, ${shared}, 'name') returning id`
+  // Changing the other's role stays as that member's history. An invite names the inviter as its
+  // subject (the invitee has no account), so it goes with them, as their join does.
+  const [{ id: promoted }] = await sql<{ id: number }[]>`
+    insert into public.events (verb, actor_fk, subject_fk, region_fk, metadata)
+    values ('update', ${person.userId}, ${other.userId}, ${shared}, 'region_admin') returning id`
+  const [{ id: invited }] = await sql<{ id: number }[]>`
+    insert into public.events (verb, actor_fk, subject_fk, region_fk, metadata)
+    values ('invite', ${person.userId}, ${person.userId}, ${shared}, 'friend@grnyte.test') returning id`
+  const [{ id: joined }] = await sql<{ id: number }[]>`
+    insert into public.events (verb, actor_fk, subject_fk, region_fk) values ('join', ${person.userId}, ${person.userId}, ${shared})
+    returning id`
+  // The other's inbox row about the person's comment stays.
+  const [{ id: nudge }] = await sql<{ id: number }[]>`
+    insert into public.notifications (region_fk, user_fk, auth_user_fk, actor_fk, event_fk, source_type)
+    values (${shared}, ${other.userId}, ${other.authId}, ${person.userId}, ${card}, 'comment') returning id`
+  Object.assign(ids, { edit, editChange, editComment, invited, joined, nudge, promoted })
 
   const [{ id: fa }] = await sql<{ id: number }[]>`
     insert into public.first_ascensionists (region_fk, name, user_fk) values (${shared}, 'Ada', ${person.userId}) returning id`
@@ -219,10 +246,29 @@ describe.skipIf(!reachable)('deleteAccount', () => {
     }
     expect(await exists('regions', shared)).toBe(true)
 
-    // The thread stays whole, and the emoji too; the card about the person goes.
-    for (const key of ['root', 'reply', 'emoji'] as const) expect(await exists('reactions', ids[key]), key).toBe(true)
+    // The thread stays whole, and the emoji too; the ascent's card and the join about them go.
+    for (const key of ['root', 'reply', 'emoji', 'editComment'] as const) {
+      expect(await exists('reactions', ids[key]), key).toBe(true)
+    }
     expect(await exists('events', ids.card)).toBe(true)
     expect(await exists('events', ids.sent)).toBe(false)
+    expect(await exists('events', ids.joined)).toBe(false)
+    expect(await exists('events', ids.invited)).toBe(false)
+    expect(await exists('changes', ids.editChange)).toBe(true)
+
+    // What they had deleted keeps no words; what they left standing keeps its own.
+    const bodies = await sql<{ body: string; id: number }[]>`
+      select id, body from public.reactions where id in (${ids.retracted}, ${ids.root}) order by id`
+    expect(bodies).toEqual([
+      { body: 'Beta: left foot first', id: ids.root },
+      { body: ERASED_COMMENT, id: ids.retracted },
+    ])
+
+    // What they did stays, credited to nobody.
+    const actors = await sql<{ actor_fk: null | number }[]>`
+      select actor_fk from public.events where id in (${ids.edit}, ${ids.promoted})
+      union all select actor_fk from public.notifications where id = ${ids.nudge}`
+    expect(actors).toEqual([{ actor_fk: null }, { actor_fk: null }, { actor_fk: null }])
 
     expect(await exists('first_ascensionists', ids.fa)).toBe(true)
     expect(await exists('feedback', ids.report)).toBe(true)
@@ -241,5 +287,38 @@ describe.skipIf(!reachable)('deleteAccount', () => {
       { grade: null | number }[]
     >`select user_grade_fk as grade from public.routes where id = ${ids.route}`
     expect(route.grade).toBe(10)
+  })
+})
+
+describe.skipIf(!reachable)('deleteAccountData', () => {
+  it('lets two people who reacted to the same card delete their accounts in turn', async () => {
+    const [reader, ada, ben] = await Promise.all(
+      ['delete_account_reader', 'delete_account_ada', 'delete_account_ben'].map((label) => createThrowawayUser(label)),
+    )
+    const [{ id: region }] = await sql<{ id: number }[]>`
+      insert into public.regions (name, created_by) values (${PREFIX + 'twins'}, ${reader.userId}) returning id`
+    const [{ id: area }] = await sql<{ id: number }[]>`
+      insert into public.areas (name, created_by, region_fk, type) values ('Wand', ${reader.userId}, ${region}, 'area') returning id`
+    const [{ id: card }] = await sql<{ id: number }[]>`
+      insert into public.events (verb, actor_fk, region_fk, area_fk) values ('create', ${reader.userId}, ${region}, ${area})
+      returning id`
+    // One inbox row per reactor; the unique key tells them apart only by the actor.
+    await sql`
+      insert into public.notifications (region_fk, user_fk, auth_user_fk, actor_fk, event_fk, source_type) values
+        (${region}, ${reader.userId}, ${reader.authId}, ${ada.userId}, ${card}, 'reaction'),
+        (${region}, ${reader.userId}, ${reader.authId}, ${ben.userId}, ${card}, 'reaction')`
+
+    try {
+      for (const user of [ada, ben]) {
+        await db.transaction((tx) => deleteAccountData(tx, { authUserFk: user.authId, id: user.userId }, []))
+      }
+      const rows = await sql<{ actor_fk: null | number }[]>`
+        select actor_fk from public.notifications where event_fk = ${card}`
+      expect(rows).toEqual([{ actor_fk: null }])
+    } finally {
+      await db.transaction((tx) => deleteRegionRows(tx, region))
+      await sql`delete from public.users where id in (${reader.userId}, ${ada.userId}, ${ben.userId})`
+      await sql`delete from auth.users where id in (${reader.authId}, ${ada.authId}, ${ben.authId})`
+    }
   })
 })

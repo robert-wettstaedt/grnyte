@@ -4,7 +4,7 @@ import type { EventListItem } from './mapper'
 
 export interface EventGroup {
   /** The actor. Every key carries one, so every event in the group shares it. */
-  actorFk: number
+  actorFk: null | number
   /** Epoch millis of the group's newest event: what the feed sorts and dates by. */
   createdAt: number
   /**
@@ -108,7 +108,7 @@ export function groupEvents(events: readonly EventListItem[]): EventGroup[] {
 
 const objectKey = (type: string, id: number | string) => `${type}:${id}`
 
-const createKey = (actorFk: number, type: string, id: number | string) => `${actorFk}:${objectKey(type, id)}`
+const createKey = (actorFk: null | number, type: string, id: number | string) => `${actorFk}:${objectKey(type, id)}`
 
 /** The climb day a session has settled on, or nothing while every member of it is unknown. */
 function climbDayOf(group: EventGroup): number | undefined {

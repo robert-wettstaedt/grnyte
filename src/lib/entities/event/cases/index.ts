@@ -8,6 +8,7 @@
  *
  * Storybook and tests only. Nothing in the app imports it.
  */
+import { ACCOUNT_CASES } from './account'
 import { AREA_CASES } from './area'
 import { ASCENT_CASES } from './ascent'
 import { BLOCK_CASES } from './block'
@@ -29,4 +30,5 @@ export const EVENT_CASES: EventCase[] = [
   ...REGION_CASES,
   ...GROUPING_CASES,
   ...SOCIAL_CASES,
+  ...ACCOUNT_CASES,
 ]

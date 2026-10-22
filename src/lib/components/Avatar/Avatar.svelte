@@ -1,10 +1,13 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon/Icon.svelte'
   import type { Snippet } from 'svelte'
 
   // Round initials avatar. Solid fill marks a registered user, tinted a plain name.
   interface Props {
     /** Replaces the derived initials (e.g. a "Me" label or an icon). */
     children?: Snippet
+    /** A deleted account: a neutral face, so it never reads as a person. */
+    deleted?: boolean
     /** Show a pulsing placeholder instead of initials while the name is still loading. */
     loading?: boolean
     /** Display name. Initials come from the first two words. */
@@ -15,7 +18,7 @@
     solid?: boolean
   }
 
-  let { children, loading = false, name = '', size = 30, solid = false }: Props = $props()
+  let { children, deleted = false, loading = false, name = '', size = 30, solid = false }: Props = $props()
 
   const initials = $derived.by(() => {
     const parts = name.trim().split(/\s+/)
@@ -29,6 +32,14 @@
     style:width="{size}px"
     style:height="{size}px"
   ></span>
+{:else if deleted}
+  <span
+    class="bg-surface-300-700 text-surface-600-400 flex flex-none items-center justify-center rounded-full"
+    style:width="{size}px"
+    style:height="{size}px"
+  >
+    <Icon name="user" size={Math.round(size * 0.55)} />
+  </span>
 {:else}
   <span
     class={[

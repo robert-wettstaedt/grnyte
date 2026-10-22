@@ -1,7 +1,8 @@
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { EventListItem } from '../mapper'
 
-export type CaseDomain = 'area' | 'ascent' | 'block' | 'file' | 'grouping' | 'region' | 'route' | 'social' | 'topo'
+export type CaseDomain =
+  'account' | 'area' | 'ascent' | 'block' | 'file' | 'grouping' | 'region' | 'route' | 'social' | 'topo'
 
 /**
  * One action the app can perform, and the card the feed answers with.

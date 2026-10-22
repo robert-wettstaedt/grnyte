@@ -18,8 +18,8 @@ import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { NotificationSourceType } from './dto'
 import { sourceTraits } from './sourceType'
 
-/** The columns of the `notifications_source_idx` constraint, in its order. Keep the two in step. */
-const NOTIFICATION_CONFLICT_TARGET = [
+/** The columns of the `notifications_source_idx` constraint, in its order. Keep the two in step; `deleteAccountData` matches twins on it. */
+export const NOTIFICATION_CONFLICT_TARGET = [
   notifications.userFk,
   notifications.sourceType,
   notifications.actorFk,

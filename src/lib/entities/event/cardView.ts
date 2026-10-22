@@ -21,7 +21,7 @@ import { verbEntry, verbKey } from './verbs'
 /** The lines one group of events produced. Built by `eventCard` from an `EventGroup`. */
 export interface CardGroup {
   /** The actor. Every group key carries one, so every line on a card shares it. */
-  actorFk: number
+  actorFk: null | number
   /** Epoch millis of the group's newest event: what the feed sorts and dates by. */
   createdAt: number
   /** Keying id for `{#each}`, carried through from the event group. */
@@ -92,7 +92,7 @@ export interface CardRow {
  */
 export interface CardView {
   /** Who acted, so the face beside the headline can lead to them. */
-  actorFk: number
+  actorFk: null | number
   /** The actor's username. Empty while the user row has not synced. */
   actorName: string
   /** The expanded half: one decided line per changed column. See `change.ts`. */

@@ -959,7 +959,6 @@ export const ascents = table(
      * window slid: the claim means "as of the day they sent it", which stays true forever.
      */
     accolade: text('accolade'),
-    // Ascents go with their climber, so they are never left without an author.
     createdBy: integer('created_by')
       .notNull()
       .references((): AnyColumn => users.id),
@@ -1552,10 +1551,8 @@ export const events = table(
     ...baseRegionFields,
     ...eventObjectFields,
 
-    /** AS2 actor. Exactly one per event, which is what makes "not your own" a single comparison. */
-    actorFk: integer('actor_fk')
-      .notNull()
-      .references((): AnyColumn => users.id),
+    /** AS2 actor, null once they deleted their account: the event and its thread stay. */
+    actorFk: integer('actor_fk').references((): AnyColumn => users.id),
     /**
      * How many live comments hang under this card, top level and replies alike.
      *
@@ -1968,9 +1965,7 @@ export const notifications = table(
     ...baseRegionFields,
 
     /** Who caused it. Never the recipient, except `video_ready`, which fan-out exempts by name. */
-    actorFk: integer('actor_fk')
-      .notNull()
-      .references((): AnyColumn => users.id),
+    actorFk: integer('actor_fk').references((): AnyColumn => users.id),
     // The recipient again, as auth sees them. `user_fk` is what the app joins on; this is what
     // the own-rows policy compares, exactly as `favorites` carries both.
     authUserFk: uuid('auth_user_fk')
