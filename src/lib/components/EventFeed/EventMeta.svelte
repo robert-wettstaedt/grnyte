@@ -12,7 +12,7 @@
   import Row from '$lib/components/EntityRow/Row.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
-  import { authorName } from '$lib/entities/displayName'
+  import { toAuthor } from '$lib/entities/displayName'
   import type { EventObjectType } from '$lib/entities/event/dto'
   import { eventLines } from '$lib/entities/event/line'
   import { metaLine } from '$lib/entities/event/meta'
@@ -85,8 +85,7 @@
       ? undefined
       : metaLine({
           createdAt,
-          creatorDeleted: createdBy == null,
-          creatorName: authorName(createdBy, creator.data[0]),
+          creator: toAuthor(createdBy, creator.data[0]?.username),
           latest: latestRow,
           now: now(),
         }),
@@ -96,7 +95,7 @@
     line == null
       ? undefined
       : resolveMessage(line.key, {
-          actor: line.actor,
+          actor: line.actor.name,
           time: formatUploadedAt(line.timestamp, now(), getLocale()),
         }),
   )
@@ -132,7 +131,7 @@
       <Row title={label} onclick={() => (open = true)} {rightContent}>
         <!-- `loading` rather than the "?" initials: an unknown actor is one the sentence has
              already dropped, so the avatar must not assert a person either. -->
-        <Avatar deleted={line.actorDeleted} loading={line.actor === ''} name={line.actor} size={40} solid />
+        <Avatar author={line.actor} size={40} solid />
       </Row>
     {/snippet}
 

@@ -71,7 +71,7 @@
        with no motion reads as the page glitching rather than as an answer being aimed. -->
   {#if thread.replyTo != null}
     <p class="text-surface-600-400 flex items-center gap-1.5 text-xs" transition:slide={{ duration: motion(130) }}>
-      <span class="min-w-0 truncate">{m.comments_replyingTo({ name: thread.replyTo.authorName })}</span>
+      <span class="min-w-0 truncate">{m.comments_replyingTo({ name: thread.replyTo.author.name })}</span>
 
       <button type="button" aria-label={m.comments_cancelReply()} onclick={() => (thread.replyTo = undefined)}>
         <Icon name="close" size={12} />

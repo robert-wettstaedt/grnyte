@@ -57,7 +57,7 @@
          whose beta each tile is; route-level files stay plain. -->
     {#if badged && file.ascent != null && file.uploader != null}
       <span class="pointer-events-none absolute bottom-1.5 left-1.5 rounded-full ring-2 ring-black/40">
-        <Avatar name={file.uploader.username} size={22} solid />
+        <Avatar author={file.uploader} size={22} solid />
       </span>
     {/if}
   </MediaTile>

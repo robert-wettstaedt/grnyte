@@ -1,3 +1,4 @@
+import type { Author } from '$lib/entities/displayName'
 import { assignableRoles, type AppRole, type AssignableRole, type Permission } from '$lib/entities/rolePermission/dto'
 import { formError, nameSchema, stringToInt } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -19,11 +20,11 @@ export interface OwnedRegion {
 /** A region's own record, as shown on its settings screen. */
 export interface RegionDetail {
   createdAt: Date | undefined
-  createdBy: string | undefined
   id: number
   maxMembers: number
   name: string
-  ownerFk: number | undefined
+  /** `regions.created_by`: the one admin who can hand the region over or delete it. */
+  owner: Author
 }
 
 /** A pending invitation, as listed on a region's settings screen. Deliberately without

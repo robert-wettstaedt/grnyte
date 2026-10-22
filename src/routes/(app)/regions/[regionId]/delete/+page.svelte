@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
@@ -26,7 +27,7 @@
   const store = createFormStore(deleteRegionSchema)
 
   const regionHref = $derived(entityHref('regions', regionId))
-  const isOwner = $derived(region.data?.ownerFk === global.user?.id)
+  const isOwner = $derived(region.data?.owner.id === global.user?.id)
   const preview = $derived(isOwner ? remoteResource(regionDeletionPreview({ regionFk: regionId })) : undefined)
   const counts = $derived(preview?.data)
 
@@ -35,8 +36,12 @@
   const shown = holdWhileDeleting(region, 'regions', () => regionId)
 
   const seed = () => ({ name: '', password: '', regionFk: regionId })
+  // The region is gone, so the form leaves for settings rather than its own `cancelTo`.
   const submit = (values: z.input<typeof deleteRegionSchema>) =>
-    whileDeleting('regions', regionId, () => submitCommand(() => deleteRegionCommand(values)))
+    whileDeleting('regions', regionId, async () => {
+      await submitCommand(() => deleteRegionCommand(values))
+      return { redirectTo: resolve('/settings') }
+    })
   const onSubmitted = () => {
     toaster.create({ title: m.region_deleted({ name: shown.data?.name ?? '' }), type: 'info' })
   }

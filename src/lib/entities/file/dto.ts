@@ -1,4 +1,5 @@
 import type { AscentType } from '$lib/entities/ascent/dto'
+import type { Author } from '$lib/entities/displayName'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 
@@ -53,7 +54,7 @@ export interface MediaFile {
   /** Origin URL of a Bunny video (credited in the viewer); `undefined` otherwise. */
   source: string | undefined
   /** Who uploaded the file (`createdBy` → users); `undefined` if the query omits the relation. */
-  uploader: undefined | { id: null | number; username: string }
+  uploader: Author | undefined
   /** Private unless EXPLICITLY 'public': `undefined`/NULL (the default on every row) is private. */
   visibility: 'private' | 'public' | undefined
   /** EXIF-oriented pixel size of the original image; aspect ratio only. */

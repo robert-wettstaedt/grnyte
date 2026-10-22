@@ -10,6 +10,13 @@ import type { Locale } from '$lib/paraglide/runtime'
 
 declare const brand: unique symbol
 
+/** Whoever made something. `id: null` is an author who deleted their account; `name` is empty
+ *  while a live author's row is still syncing, which is what the loading avatar keys on. */
+export interface Author {
+  id: null | number
+  name: string
+}
+
 /** A name safe to render: trimmed, never empty. Assignable to `string`, but not the reverse. */
 export type DisplayName = string & { readonly [brand]: 'display' }
 
@@ -19,15 +26,10 @@ export function alreadyDisplayable(name: string): DisplayName {
   return name as DisplayName
 }
 
-/** An author's name by foreign key: null is an author who deleted their account, a missing row is
- *  one still syncing, which stays empty because the loading avatar keys on that. */
-export function authorName(
-  fk: null | number | undefined,
-  author: null | undefined | { username: string },
-  locale?: Locale,
-): string {
-  if (fk == null) return deletedUserName(locale)
-  return author?.username ?? ''
+/** An author by foreign key and username, the one place a deleted author is decided. */
+export function toAuthor(fk: null | number | undefined, username: null | string | undefined, locale?: Locale): Author {
+  if (fk == null) return { id: null, name: deletedUserName(locale) }
+  return { id: fk, name: username ?? '' }
 }
 
 /** What every surface calls an author who deleted their account. */

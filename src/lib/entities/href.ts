@@ -7,6 +7,7 @@
  * on an `<a href>` or a variable traced to one, and nothing else.
  */
 import { resolve } from '$app/paths'
+import type { Author } from './displayName'
 
 /** Every entity with a detail screen. `EntityType` (the searchable ones) is a subset of this. */
 export type EntityKind = 'areas' | 'ascents' | 'blocks' | 'regions' | 'routes' | 'users'
@@ -30,3 +31,6 @@ export function entityHref(kind: EntityKind, id: number) {
       return resolve('/(app)/users/[id]', { id: String(id) })
   }
 }
+
+/** An author's profile, or none: a deleted account has no profile to lead to. */
+export const authorHref = (author: Author) => (author.id == null ? undefined : entityHref('users', author.id))

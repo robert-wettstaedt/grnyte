@@ -15,8 +15,7 @@ vi.mock('$lib/components/Markdown/Markdown.svelte', () => ({ default: () => {} }
 vi.mock('./CommentReactions.svelte', () => ({ default: () => {} }))
 
 const comment = (id: number, createdAt: number, replies: CommentListItem[] = []): CommentListItem => ({
-  authorFk: 1,
-  authorName: 'ada',
+  author: { id: 1, name: 'ada' },
   body: `comment ${id}`,
   createdAt,
   id,
@@ -143,7 +142,7 @@ it('forgets a restored comment, so a later delete elsewhere leaves no dead undo'
 })
 
 it('names a comment whose author deleted their account, without linking a profile', () => {
-  const { value } = thread([{ ...comment(1, 10), authorFk: null, authorName: 'Deleted user' }])
+  const { value } = thread([{ ...comment(1, 10), author: { id: null, name: 'Deleted user' } }])
   const { container } = render(Comments, { thread: value })
 
   const article = container.querySelector('article')!

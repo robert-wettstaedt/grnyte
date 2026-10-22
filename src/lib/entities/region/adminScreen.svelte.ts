@@ -14,7 +14,7 @@ export const regionDenied = (regionId: number, description: string) => ({
 })
 
 export function ownerOnlyDenied(region: RegionDetail | undefined, userId: number | undefined) {
-  if (region == null || region.ownerFk === userId) return undefined
+  if (region == null || region.owner.id === userId) return undefined
   return regionDenied(region.id, m.region_ownerOnly())
 }
 
