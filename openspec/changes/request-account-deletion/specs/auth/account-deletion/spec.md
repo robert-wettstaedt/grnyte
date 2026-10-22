@@ -83,7 +83,7 @@ When the person is the only active member of a region, deleting their account SH
 
 ### Requirement: Guidebook contributions in shared regions stay without their author
 
-In a region that keeps other active members, the person's areas, blocks, routes, topos, media on those, comments, emoji reactions and change history SHALL remain, with no link to the deleted account. Anywhere the app would show their name it SHALL show "Deleted user".
+In a region that keeps other active members, the person's areas, blocks, routes, topos, media on those, comments, emoji reactions and change history SHALL remain, with no link to the deleted account. So SHALL the feed events they caused, with their comments, and the notifications those sent to other members. Anywhere the app would show their name it SHALL show "Deleted user", with a neutral avatar.
 
 #### Scenario: A route they created
 
@@ -94,6 +94,21 @@ In a region that keeps other active members, the person's areas, blocks, routes,
 
 - **WHEN** the person wrote the first comment of a thread that has replies
 - **THEN** the comment and every reply remain, and the first comment's author shows as "Deleted user"
+
+#### Scenario: A route they edited, with comments
+
+- **WHEN** the person edited a route in a shared region and others commented on that feed card
+- **THEN** the card, its comments and its change history remain, with the actor shown as "Deleted user"
+
+#### Scenario: A role they changed, in the feed
+
+- **WHEN** the person changed another member's role
+- **THEN** that card remains, credited to "Deleted user"
+
+#### Scenario: An invitation they sent, in the feed
+
+- **WHEN** the person invited someone by email
+- **THEN** the invite card goes with the account, as the invitation itself does
 
 #### Scenario: Their profile
 
@@ -121,12 +136,17 @@ The person's ascents and every file attached to an ascent SHALL be deleted, incl
 
 ### Requirement: Personal records are deleted
 
-Deleting an account SHALL delete the person's favorites, settings, push subscriptions, app roles, region memberships, the notifications addressed to them, the feed events and notifications in which they are the actor or the subject, and the invitations they sent.
+Deleting an account SHALL delete the person's favorites, settings, push subscriptions, app roles, region memberships, the notifications addressed to them, the feed events and notifications in which they are the subject, and the invitations they sent.
 
 #### Scenario: A feed event about them
 
-- **WHEN** a feed event says the person sent a route
-- **THEN** that event is gone from every feed
+- **WHEN** a feed event says the person joined a region
+- **THEN** that event and its comments are gone from every feed
+
+#### Scenario: An ascent's card
+
+- **WHEN** the person logged an ascent that others commented on
+- **THEN** the ascent, its card and those comments are gone
 
 #### Scenario: A pending invitation they sent
 
