@@ -23,24 +23,27 @@
   const store = createFormStore(handOverSchema)
 
   const regionHref = $derived(entityHref('regions', regionId))
-  // The recipient as a row of its own, so the form waits for it like for the region.
+  // The recipient as a row of its own, so the form waits for it like for the region. Absent once the
+  // list has answered, it is refused below with a way back to the region, not the generic not-found.
   const recipient = {
     get data() {
       return members.data?.find((member) => member.userId === userId)
     },
     get phase() {
-      return members.phase.kind === 'answered' ? { empty: this.data == null, kind: 'answered' as const } : members.phase
+      if (this.data != null) return members.phase
+      return members.phase.kind === 'answered'
+        ? { empty: false, kind: 'answered' as const }
+        : { kind: 'loading' as const }
     },
   }
 
   const refusal = $derived.by(() => {
-    if (recipient.data == null) return undefined
-    if (userId === global.user?.id) return m.region_cannotChangeOwnRole()
-    return recipient.data.role === 'region_admin' ? undefined : m.region_handOverAdminOnly()
+    if (members.phase.kind !== 'answered') return undefined
+    if (recipient.data == null) return regionDenied(regionId, m.region_memberGone(), m.region_memberNotFound())
+    if (userId === global.user?.id) return regionDenied(regionId, m.region_cannotChangeOwnRole())
+    return recipient.data.role === 'region_admin' ? undefined : regionDenied(regionId, m.region_handOverAdminOnly())
   })
-  const denied = $derived(
-    ownerOnlyDenied(region.data, global.user?.id) ?? (refusal == null ? undefined : regionDenied(regionId, refusal)),
-  )
+  const denied = $derived(ownerOnlyDenied(region.data, global.user?.id) ?? refusal)
 
   let handingTo = ''
   const seed = () => ({ password: '', regionFk: regionId, userFk: userId })
