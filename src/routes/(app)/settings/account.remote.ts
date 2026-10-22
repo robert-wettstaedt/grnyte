@@ -3,7 +3,7 @@ import { command, form, getRequestEvent, query } from '$app/server'
 import { deleteAccount, previewAccountDeletion } from '$lib/entities/user/delete.server'
 import { verifyPassword } from '$lib/entities/user/password.server'
 import { authError, formError } from '$lib/forms/schemas'
-import { refuseCommand, refuseVia, requireAuthed } from '$lib/remote/authed.server'
+import { refuseCommand, refuseVia, requireAuthed, requireVerifiedEmail } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
 import { deleteAccountSchema, updateEmailSchema, updatePasswordSchema } from './schemas'
 
@@ -87,17 +87,10 @@ export const updatePassword = form(updatePasswordSchema, (value, issue) => chang
 
 export const updatePasswordCommand = command(updatePasswordSchema, (value) => changePassword(value, refuseCommand))
 
-/**
- * Delete the caller's own account. The address comes from the verified token, as in
- * `changePassword`, so the password check cannot be pointed at somebody else's account.
- */
+/** Delete the caller's own account. */
 export const deleteAccountCommand = command(deleteAccountSchema, async ({ password }) => {
-  const { claims, user } = requireAuthed()
-  if (claims.email == null) {
-    error(401, formError('auth_notSignedIn'))
-  }
-
-  const result = await deleteAccount({ authUserFk: user.authUserFk, email: claims.email, id: user.id }, password)
+  const { email, user } = requireVerifiedEmail()
+  const result = await deleteAccount({ authUserFk: user.authUserFk, email, id: user.id }, password)
 
   if (result.kind === 'wrongPassword') {
     refuseCommand(formError('settings_passwordIncorrect'), 'password')

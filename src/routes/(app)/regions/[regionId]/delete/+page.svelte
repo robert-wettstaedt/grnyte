@@ -5,7 +5,7 @@
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import { entityHref } from '$lib/entities/href'
   import { ownerOnlyDenied } from '$lib/entities/region/adminScreen.svelte'
-  import { deleteRegionSchema, type RegionDetail } from '$lib/entities/region/dto'
+  import { deleteRegionSchema } from '$lib/entities/region/dto'
   import { deleteRegionCommand, regionDeletionPreview } from '$lib/entities/region/regions.remote'
   import { regionDetail } from '$lib/entities/region/resources.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
@@ -17,6 +17,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
   import { toaster } from '$lib/state/toast'
+  import { holdWhileDeleting, whileDeleting } from '$lib/zero/deleting.svelte'
   import { slide } from 'svelte/transition'
 
   const global = getGlobalState()
@@ -31,31 +32,13 @@
 
   const denied = $derived(ownerOnlyDenied(region.data, global.user?.id))
 
+  const shown = holdWhileDeleting(region, 'regions', () => regionId)
+
   const seed = () => ({ name: '', password: '', regionFk: regionId })
-  // Sync takes the row away as soon as the delete commits, before the form leaves: keep the last
-  // one meanwhile, or the gate flashes "not found", and name the toast from what was typed.
-  let deleting = $state('')
-  let kept: undefined | { data: RegionDetail; phase: typeof region.phase }
-  const shown = {
-    get data() {
-      if (region.data != null) kept = { data: region.data, phase: region.phase }
-      return region.data ?? (deleting === '' ? undefined : kept?.data)
-    },
-    get phase() {
-      return region.data == null && deleting !== '' && kept != null ? kept.phase : region.phase
-    },
-  }
-  const submit = async (values: z.input<typeof deleteRegionSchema>) => {
-    deleting = values.name.trim()
-    try {
-      return await submitCommand(() => deleteRegionCommand(values))
-    } catch (cause) {
-      deleting = ''
-      throw cause
-    }
-  }
+  const submit = (values: z.input<typeof deleteRegionSchema>) =>
+    whileDeleting('regions', regionId, () => submitCommand(() => deleteRegionCommand(values)))
   const onSubmitted = () => {
-    toaster.create({ title: m.region_deleted({ name: deleting }), type: 'info' })
+    toaster.create({ title: m.region_deleted({ name: shown.data?.name ?? '' }), type: 'info' })
   }
 </script>
 

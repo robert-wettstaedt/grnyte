@@ -34,7 +34,6 @@ import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../fi
 import { NOTIFICATION_CONFLICT_TARGET } from '../notification/notification.server'
 import { deleteRegionRows } from '../region/delete.server'
 import { lockRegionMembers } from '../region/guards.server'
-import { accountDeletionEffect } from '../region/permissions'
 import { recalcUserGradeAndRating } from '../route/user-grade.server'
 import { verifyPassword } from './password.server'
 
@@ -191,9 +190,9 @@ async function classifyRegions(tx: Db, userFk: number) {
       where: and(eq(regionMembers.regionFk, regionFk), eq(regionMembers.isActive, true)),
     })
     const ref = { id: regionFk, name: toDisplayName(region?.name ?? '', getLocale()) }
-    const effect = accountDeletionEffect(members, userFk, owner?.createdBy ?? undefined)
-    if (effect === 'deletes') deletes.push(ref)
-    if (effect === 'blocks') blocking.push(ref)
+    // Nobody else active: the region goes with the account. Shared: its owner must hand it over.
+    if (!members.some((member) => member.userFk !== userFk)) deletes.push(ref)
+    else if (owner?.createdBy === userFk) blocking.push(ref)
   }
 
   return { blocks: blocking, deletes }

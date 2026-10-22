@@ -1,4 +1,4 @@
-import { authorName } from '../displayName'
+import { deletedUserName } from '../displayName'
 import type { MediaFile, VideoReadiness } from './dto'
 
 /** What a file hangs off. Route beats ascent beats block beats area, and at most one is ever set. */
@@ -66,6 +66,6 @@ export function toMediaFile(row: FileRow): MediaFile {
 }
 
 function toUploader(row: FileRow): MediaFile['uploader'] {
-  if (row.createdBy === null) return { id: null, username: authorName(null, undefined) }
+  if (row.createdBy === null) return { id: null, username: deletedUserName() }
   return row.author ? { id: row.author.id, username: row.author.username } : undefined
 }

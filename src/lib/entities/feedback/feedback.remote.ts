@@ -3,7 +3,7 @@ import { pinnedTx } from '$lib/db/pinned.server'
 import { feedback, users, userSettings } from '$lib/db/schema'
 import { feedbackReplyEmailContent } from '$lib/email/feedback'
 import { sendEmailOutcome } from '$lib/email/send.server'
-import { authorName } from '$lib/entities/displayName'
+import { deletedUserName } from '$lib/entities/displayName'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { contactLocale } from '$lib/i18n/message'
@@ -75,7 +75,7 @@ export const listFeedback = query(async (): Promise<FeedbackItem[]> => {
 
   return rows.map((row) => ({
     ...row,
-    authorName: row.authorName ?? authorName(null, undefined),
+    authorName: row.authorName ?? deletedUserName(),
     createdAt: row.createdAt.getTime(),
     locale: row.locale ?? '',
     pathname: row.pathname ?? '',

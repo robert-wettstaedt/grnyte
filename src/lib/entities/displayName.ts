@@ -26,9 +26,12 @@ export function authorName(
   author: null | undefined | { username: string },
   locale?: Locale,
 ): string {
-  if (fk == null) return m.users_deleted({}, { locale })
+  if (fk == null) return deletedUserName(locale)
   return author?.username ?? ''
 }
+
+/** What every surface calls an author who deleted their account. */
+export const deletedUserName = (locale?: Locale): string => m.users_deleted({}, { locale })
 
 /** Mint one. For mappers and the server digest; a renderer calling this holds a second opinion
  *  about what a nameless thing is called. Trimmed, because legacy rows are not. */
