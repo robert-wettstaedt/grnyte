@@ -29,7 +29,7 @@
 ## 5. Screen
 
 - [x] 5.1 Add i18n keys for the screen (title, what goes, what stays, regions that block, regions that will be deleted, password label, submit, success, blocked refusal) to both `messages/en.json` and `messages/de.json`, sorted, with no em-dashes; copy through `/writing-guidelines`
-- [x] 5.2 Add `src/routes/(app)/settings/account/delete/+page.svelte` with `PageHeader`, the three region lists from Zero queries, and a `Form` over the command; on success run the sign-out wipe (`src/lib/state/wipe.ts`) and go to the landing page with a confirmation toast; verify with a component test that a blocking region disables submit (seen red)
+- [x] 5.2 Add `src/routes/(app)/settings/account/delete/+page.svelte` with `PageHeader`, the region lists from the server preview query, and a `Form` over the command; on success run the sign-out wipe (`src/lib/state/wipe.ts`) and go to the landing page with a confirmation toast; verify with a component test that a blocking region disables submit (seen red)
 - [x] 5.3 Add the "Delete account" row to the account section of `src/routes/(app)/settings/+page.svelte`, using `resolve()` for the parameterless route, and verify it navigates there
 
 ## 6. Legal
@@ -41,6 +41,17 @@
 
 - [x] 7.1 Drive the flow in the running app at 375x667 and 1280x800, en and de, light and dark, with throwaway accounts: a shared-region member (content stays as "Deleted user", ascents gone, second device's token reads nothing), a sole admin with members (refused, regions named), and a sole member (region gone, files removed from storage); clean up every fixture
 - [x] 7.2 Run the AGENTS.md sweep over the touched paths: prettier, eslint, `vitest --project server` and `--project browser`, svelte-check, `lint:duplication` and `lint:unused`
+
+## 8. Kept feed activity
+
+- [x] 8.1 Make `events.actor_fk` and `notifications.actor_fk` nullable in `schema.ts`, in a new 0138 (kept separate from 0137 rather than editing an applied migration), then `generate:drizzle`, `generate:zero` and migrate the dev DB from the main checkout; verify with `\d`
+- [x] 8.2 Make `deleteAccountData` null the actor on events and notifications the person caused and delete only those about them; verify with a server test that another member's comment on the person's route-edit card and its `changes` rows survive with a null actor, and that a join event about them is gone (seen red)
+- [x] 8.3 Render a null actor as "Deleted user" on feed cards and in inbox captions; verify with component tests (seen red)
+- [x] 8.4 Add a neutral avatar for a null author in the shared avatar component, used by comments, the media viewer, meta lines, feed and inbox; verify with a component test (seen red)
+- [x] 8.5 Make "What stays" one conditional sentence that also names feed updates (en and de); the in-place "Nothing" variant was dropped because it moved the password field and was wrong for regions the person had left
+- [x] 8.6 Update the terms clause 19 and privacy section 7 drafts (en and de): feed activity stays anonymised, events about the person go; hand them to the user for review
+- [x] 8.7 Hand the user a read-only prod query counting unconfirmed `auth.users` rows older than 7 days whose profile owns anything; release only on zero rows
+- [x] 8.8 Drive at 375x667 and 1280x800, light and dark, en and de, and run the AGENTS.md sweep
 
 ## Workflow follow-up
 

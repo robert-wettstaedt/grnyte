@@ -5,6 +5,7 @@
 See proposal.md for why, and `specs/auth/account-deletion/spec.md` for the behaviour. The facts that shape the approach:
 
 - About 25 columns reference `public.users` or `auth.users`. All of them except `client_error_logs.created_by` are `ON DELETE NO ACTION`, so deleting a `users` row fails while anything still points at it. `users.user_settings_fk` and `user_settings.user_fk` point at each other, and so do `users.first_ascentionist_fk` and `first_ascensionists.user_fk`.
+- The foreign keys stay `NO ACTION` rather than gaining `ON DELETE SET NULL` or `CASCADE`: the sign-up canary and test teardown rely on a delete failing loudly over silently orphaning content, and the reference-enumeration test keeps the hand-written list in `deleteAccountData` complete.
 - Two partial deletes exist: `db/testAccounts.ts` (`deleteAccountRows`, a test teardown that works only for accounts that created nothing) and `user/unconfirmed.server.ts` (`sweepUnconfirmedAccounts`: rows in a `pinnedTx`, then `auth.admin.deleteUser` outside it).
 - File removal exists: `file/cleanup.server.ts` `deleteFileRows` deletes `files` and `bunny_streams` rows and returns storage targets, and `removeFileStorage` deletes them from storage after commit, best-effort.
 - Route grade and rating are stored, not computed: `routes.userGradeFk` and the rating, kept in step by `route/user-grade.server.ts` `recalcUserGradeAndRating`, which `ascent/lifecycle.server.ts` already calls after deleting one ascent.
@@ -50,7 +51,7 @@ A GoTrue failure is logged through `logServerFailure`, and `sweepUnconfirmedAcco
 Deleted (for the person, in every region):
 
 - `ascents` they created, with `files` attached to them (`deleteFileRows`); their `events` and `changes` cascade.
-- `events` and `changes` where they are the actor or the subject; `notifications` where they are the recipient, the actor or the subject.
+- `events` and `changes` where they are the subject; an `invite` (and an invitation revoke) names the inviter as its subject, so the invite cards they sent go too; `notifications` where they are the recipient or the subject.
 - `region_invitations` they sent, pending and accepted. An accepted one is history only: the membership row grants access, and nothing reads an accepted invitation's inviter.
 - `favorites`, `push_subscriptions`, `user_roles`, `region_members`.
 - `user_settings` (after clearing `users.user_settings_fk`), then `users`.
@@ -61,6 +62,7 @@ Unlinked (column set to null):
 - `regions`, `areas`, `blocks`, `routes`, `files`: `created_by`.
 - `reactions`: `user_fk` and `auth_user_fk`, for comments and emoji alike.
 - `activities.user_fk`, `feedback.created_by`.
+- `events.actor_fk`: the event is kept with its reactions and changes, which cascade from it. `notifications.actor_fk`: other members' inbox rows stay.
 - `first_ascensionists.user_fk` (after clearing `users.first_ascentionist_fk`), keeping `name`.
 - `region_members.invited_by`, and `region_invitations.accepted_by` on invitations other people sent them.
 
@@ -68,13 +70,13 @@ Region deleted whole: the region's rows bottom up, every `files` row through `de
 
 ### Schema: nullable authors
 
-One migration drops `NOT NULL` from `regions`, `areas`, `blocks`, `routes`, `files` and `feedback` `created_by` (through `baseContentFields` where it applies; `ascents.created_by` stays NOT NULL because ascents are deleted, not unlinked), `reactions.user_fk`, `reactions.auth_user_fk` and `activities.user_fk`. Pipeline: `schema.ts`, `generate:drizzle`, `generate:zero`, `migrate`. No backfill; existing rows keep their authors. RLS policies comparing `created_by` to the caller already evaluate to false for null, which is the right answer: nobody owns an orphaned row, and maintainers and admins keep their region-level rights.
+One migration drops `NOT NULL` from `regions`, `areas`, `blocks`, `routes`, `files` and `feedback` `created_by` (through `baseContentFields` where it applies; `ascents.created_by` stays NOT NULL because ascents are deleted, not unlinked), `reactions.user_fk`, `reactions.auth_user_fk`, `activities.user_fk`, `events.actor_fk` and `notifications.actor_fk` (a second migration, 0138; neither has shipped). Pipeline: `schema.ts`, `generate:drizzle`, `generate:zero`, `migrate`. No backfill; existing rows keep their authors. RLS policies comparing `created_by` to the caller already evaluate to false for null, which is the right answer: nobody owns an orphaned row, and maintainers and admins keep their region-level rights.
 
-Every reader of an author gets `null` handling: the `dto`, `mapper` and `permissions` of `area`, `block`, `route`, `file`, `region`, `ascent`, `feedback`, `reaction` and `event`. "Deleted user" comes from the display-name mapper (`entities/displayName.ts`), never an inline fallback, per AGENTS.md. `markdownReferences` already renders a missing `!users:id!` as `REFERENCE_TOMBSTONE`. The profile route `/users/[id]` reads a missing row as not found through `QueryState`.
+Every reader of an author gets `null` handling: the `dto`, `mapper` and `permissions` of `area`, `block`, `route`, `file`, `region`, `ascent`, `feedback`, `reaction` and `event`. "Deleted user" comes from the display-name mapper (`entities/displayName.ts`), never an inline fallback, per AGENTS.md. Feed and inbox captions read the actor through `authorName` too, and the shared avatar renders a neutral person icon for a null author. `markdownReferences` already renders a missing `!users:id!` as `REFERENCE_TOMBSTONE`. The profile route `/users/[id]` reads a missing row as not found through `QueryState`.
 
 ### The screen
 
-`src/routes/(app)/settings/account/delete/+page.svelte`, a full-screen settings route with `PageHeader`, the same as the username, email and password screens. Reads are Zero queries: the person's active memberships and each region's active members and admins, to show blocking regions before the password is entered (the server decides again under lock). Copy says what goes and what stays, in plain words. On success the client runs the existing sign-out wipe (`src/lib/state/wipe.ts`) so this device keeps no local Zero data, and navigates to the landing page with a confirmation.
+`src/routes/(app)/settings/account/delete/+page.svelte`, a full-screen settings route with `PageHeader`, the same as the username, email and password screens. The region lists come from a server preview query (`accountDeletionPreview`, the same `classifyRegions` the deletion runs) rather than Zero, because a half-synced member list would misclassify a region; the deletion decides again under lock. It lists the regions that block the deletion and the regions deleted with the account (where the person is the only active member), since losing a whole region without warning would be a surprise. Submit is held until the preview answers, and a failed preview shows the shared error card. Copy says what goes and what stays, in plain words; "What stays" is one conditional sentence ("if other members still use a region"), so it is true for every account and never changes height. On success the client runs the existing sign-out wipe (`src/lib/state/wipe.ts`) so this device keeps no local Zero data, and navigates to the landing page with a confirmation.
 
 ### Legal
 
@@ -86,11 +88,10 @@ The terms clause 19 and privacy section 7 edits, in `terms.{en,de}.html` and `pr
 - [The privileged transaction bypasses RLS] → It touches only rows selected by the person's own ids, and the refusals are checked first under lock. Tests cover a second user's rows surviving untouched.
 - [A long transaction for a heavy account, with a large sole-member region] → It runs once per account; deletes are by indexed foreign key. If it proves slow, the region half can move to its own transaction before the account half.
 - [Nullable authors ripple through every mapper and permission] → The type change makes each unhandled reader a compile error, and the permission tests gain a null-author case.
+- [A null actor ripples through feed and notification grouping and captions] → The same compile-error net, plus a feed test with a null actor.
 - [Adding a remote export across a deploy] → New export only, no move or rename, so open tabs are unaffected.
 - [`client_error_logs` loses a deleted person's rows, removing debugging context] → That is what the privacy policy promises.
 
 ## Migration Plan
 
 One release: migration (nullable columns), then the app with the route and the legal edits. Deploy order is the usual one: zero-cache, then the app. Rollback: the nullable migration is safe to leave in place; reverting the app removes the button. Re-adding NOT NULL is only possible while no account has been deleted.
-
-The screen also lists the regions that will be deleted with the account (the ones where the person is the only active member), since losing a whole region without warning would be a surprise. It is the same query as the blocking list, split three ways.
