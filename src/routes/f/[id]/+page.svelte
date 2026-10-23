@@ -131,7 +131,7 @@
       />
 
       {#if controls.canDelete}
-        <ConfirmDialog title={m.media_delete()} saveText={m.common_delete()} onsave={onDelete}>
+        <ConfirmDialog destructive title={m.media_delete()} saveText={m.common_delete()} onsave={onDelete}>
           {#snippet trigger(props)}
             <button {...props} type="button" class={[props.class, MEDIA_TOOL]} aria-label={m.common_delete()}>
               <Icon name="trash" size={20} />
