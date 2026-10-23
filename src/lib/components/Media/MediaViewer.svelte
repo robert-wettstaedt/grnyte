@@ -391,6 +391,7 @@
               <!-- Non-modal: the viewer is already a modal blocking the page, so a second
                    modal layer here only adds an aria-hidden stack that strands on teardown. -->
               <ConfirmDialog
+                destructive
                 open={confirmOpen}
                 onOpenChange={(event) => (confirmOpen = event.open)}
                 modal={false}

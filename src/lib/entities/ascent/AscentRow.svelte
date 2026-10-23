@@ -199,7 +199,7 @@
               <Icon name="edit" size={13} />
               {m.common_edit()}
             </a>
-            <Dialog title={m.ascents_delete()} saveText={m.ascents_delete()} onsave={onDelete}>
+            <Dialog destructive title={m.ascents_delete()} saveText={m.ascents_delete()} onsave={onDelete}>
               {#snippet trigger(props)}
                 <button {...props} type="button" class={[props.class, 'btn btn-sm preset-tonal-error']}>
                   <Icon name="trash" size={13} />

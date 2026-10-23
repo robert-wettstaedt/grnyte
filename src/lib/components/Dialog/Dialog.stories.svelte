@@ -106,6 +106,28 @@
 <!-- Default save label (`common_save`), which a caller that is not deleting anything keeps. -->
 <Story name="Default save label" args={{ onsave: noop, open: true, title: m.region_leave() }} template={leave} />
 
+<!-- Destructive: the main action in the error colour, Cancel left plain. -->
+<Story
+  name="Destructive"
+  args={{ destructive: true, onsave: noop, open: true, saveText: m.common_remove(), title: m.region_tagRemove() }}
+  template={confirm}
+/>
+
+<!-- Two actions: on mobile they stack main, second, Cancel from the top; on desktop Cancel,
+     second, main from the left. Long German labels have to fit on one line at full width. -->
+<Story
+  name="Two actions"
+  args={{
+    destructive: true,
+    onsave: noop,
+    open: true,
+    saveText: m.common_delete(),
+    secondary: { onclick: noop, text: m.common_edit() },
+    title: m.ascents_delete(),
+  }}
+  template={fromTrigger}
+/>
+
 <!-- No `onsave`: the whole footer is gone and the header close button is the only way out. -->
 <Story name="Message only" args={{ open: true, title: m.region_tagRemove() }} template={confirm} />
 

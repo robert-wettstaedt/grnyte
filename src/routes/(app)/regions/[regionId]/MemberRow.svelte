@@ -141,6 +141,7 @@
      the body on mount, so an unguarded one would do that for every member of the region. -->
 {#if self && canLeave}
   <Dialog
+    destructive
     open={leaveOpen}
     onOpenChange={(details) => (leaveOpen = details.open)}
     title={m.region_leave()}

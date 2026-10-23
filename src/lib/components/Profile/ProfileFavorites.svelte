@@ -126,7 +126,7 @@
 {/snippet}
 
 {#snippet removeAllAction()}
-  <Dialog title={m.profile_removeAll()} saveText={m.profile_removeAll()} onsave={removeAllFavorites}>
+  <Dialog destructive title={m.profile_removeAll()} saveText={m.profile_removeAll()} onsave={removeAllFavorites}>
     {#snippet trigger(props)}
       <button {...props} type="button" class={[props.class, 'btn btn-sm preset-tonal-surface']}>
         {m.profile_removeAll()}
