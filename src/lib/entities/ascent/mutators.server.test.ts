@@ -105,11 +105,10 @@ describe.skipIf(!reachable)('ascent mutators', () => {
     expect((await stored(id))?.type).toBe('flash')
   })
 
-  it('deletes an ascent, answers its route, and tells the climber after commit', async () => {
+  it('deletes an ascent and tells the climber after commit', async () => {
     const id = idOf(await log(climberClient))!
-    const result = await adminClient.push('ascents.delete', { id })
 
-    expect(result.data).toEqual({ routeFk: routeId })
+    expect(await adminClient.push('ascents.delete', { id })).toEqual({})
     expect(await stored(id)).toBeUndefined()
     const notices = await sql`
       select 1 from public.notifications

@@ -8,4 +8,4 @@ export const setFileVisibility = (fileId: string, visibility: FileVisibility) =>
 export const setVideoSource = (fileId: string, source: null | string) =>
   write(mutators.files.setVideoSource({ fileId, source }))
 
-export const deleteFile = (id: string) => write<{ id: string }>(mutators.files.delete({ id }))
+export const deleteFile = (id: string) => write(mutators.files.delete({ id }))

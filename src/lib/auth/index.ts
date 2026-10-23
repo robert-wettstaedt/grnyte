@@ -70,6 +70,19 @@ declare const verified: unique symbol
  */
 export type VerifiedClaims = SupabaseToken & { role: 'authenticated'; sub: string; readonly [verified]: true }
 
+export function canDeleteCreatedRow(
+  userRegions: UserRegion[],
+  userId: number | undefined,
+  row: { createdBy?: null | number; regionFk: number },
+): boolean {
+  return (
+    checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], row.regionFk) ||
+    (userId != null &&
+      row.createdBy === userId &&
+      checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], row.regionFk))
+  )
+}
+
 export function checkRegionPermission(
   userRegions: UserRegion[],
   requiredPermissions: RegionPermission[],

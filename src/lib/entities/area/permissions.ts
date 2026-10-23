@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
+import { canDeleteCreatedRow, checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
 import type { UserRegion } from '$lib/entities/region/dto'
 import type { AreaDetail } from './dto'
 
@@ -24,19 +24,7 @@ export function canAddParking(userRegions: UserRegion[], area: AreaPermissionTar
   return area.type === 'sector' && checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
 }
 
-/** Region DELETE, or an EDITor removing what they themselves created (mirrors v1). */
-export function canDeleteArea(
-  userRegions: UserRegion[],
-  userId: number | undefined,
-  area: { createdBy?: null | number; regionFk: number },
-): boolean {
-  return (
-    checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], area.regionFk) ||
-    (userId != null &&
-      area.createdBy === userId &&
-      checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk))
-  )
-}
+export const canDeleteArea = canDeleteCreatedRow
 
 export function canDeleteParking(userRegions: UserRegion[], area: ParkingPermissionTarget): boolean {
   return checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], area.regionFk)

@@ -1,7 +1,5 @@
-import * as z from '$lib/forms/zod'
 import { authedCommand, authedForm, refuseVia } from '$lib/remote/authed.server'
-import { blockActionSchema, blockPinSchema, reorderBlocksSchema, restoreBlockSchema } from './dto'
-import { deleteBlockRow, restoreBlockRow } from './lifecycle.server'
+import { blockActionSchema, blockPinSchema, reorderBlocksSchema } from './dto'
 import { reorderBlocksRow } from './order.server'
 import { estimateBlockLocationRow, setBlockLocationRow } from './pin.server'
 import { createBlockRow, updateBlockRow } from './save.server'
@@ -23,9 +21,5 @@ export const setBlockLocation = authedCommand(blockPinSchema, (value, ctx) => se
 export const estimateBlockLocationFromPhoto = authedCommand(blockPinSchema, (value, ctx) =>
   estimateBlockLocationRow(value, ctx),
 )
-
-export const deleteBlock = authedCommand(z.object({ id: z.number() }), (args, ctx) => deleteBlockRow(args, ctx))
-
-export const restoreBlock = authedCommand(restoreBlockSchema, (snapshot, ctx) => restoreBlockRow(snapshot, ctx))
 
 export const reorderBlocks = authedCommand(reorderBlocksSchema, (value, ctx) => reorderBlocksRow(value, ctx))

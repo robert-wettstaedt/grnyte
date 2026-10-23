@@ -11,8 +11,7 @@ export const ascentsServerMutatorDefs = {
       return data
     }),
     delete: defineServerMutator(z.object({ id: z.number() }), async ({ args, ctx, tx }) => {
-      const { data } = await asCaller(tx, ctx, (db) => deleteAscentRow(args, { ...ctx, db }))
-      return data
+      await asCaller(tx, ctx, (db) => deleteAscentRow(args, { ...ctx, db }))
     }),
     update: defineServerMutator(ascentActionSchema, async ({ args, ctx, tx }) => {
       const { data } = await asCaller(tx, ctx, (db) => updateAscentRow(args, { ...ctx, db }))

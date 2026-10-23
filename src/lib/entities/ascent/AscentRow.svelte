@@ -52,7 +52,7 @@
   const crumbText = $derived(Array.isArray(crumbs) ? crumbs.join(' · ') : crumbs)
 
   const canEdit = $derived(canEditAscent(global.userRegions, global.user?.id, ascent))
-  // A maintainer may delete anybody's ascent, so the confirmation has to say whose it is
+  // A region admin may delete anybody's ascent, so the confirmation has to say whose it is
   // rather than assuring them it is their own. Same actor/climber split the feed cards make.
   const ownAscent = $derived(global.user?.id != null && ascent.createdBy === global.user.id)
   // Empty until the author row syncs in (Zero loads the relation lazily): show a

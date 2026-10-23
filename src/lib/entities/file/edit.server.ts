@@ -61,8 +61,6 @@ export async function deleteMediaFileRow({ id }: { id: string }, { afterCommit, 
   }
 
   afterCommit(() => removeFileStorage(storage))
-
-  return { data: { id } }
 }
 
 /**

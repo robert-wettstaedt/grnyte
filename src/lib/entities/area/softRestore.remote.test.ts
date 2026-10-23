@@ -24,10 +24,9 @@
  * Skipped when DATABASE_URL is unreachable, like every other DB-backed suite here.
  */
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
+import { deleteArea, deleteBlock, restoreArea, restoreBlock } from '$lib/remote/testCommands'
 import { asRequest } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { deleteBlock, restoreBlock } from '../block/blocks.remote'
-import { deleteArea, restoreArea } from './areas.remote'
 
 /** One region holding one area -> sector -> block -> route chain: the smallest fixture that takes the
  *  soft path (a subtree with descendants) and still has a row in every table a restore writes. */

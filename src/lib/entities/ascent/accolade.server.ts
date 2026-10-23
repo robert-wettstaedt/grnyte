@@ -25,7 +25,7 @@ const HISTORY_DAYS = 366
  * never fails the log.
  *
  * The branch is the load-bearing part. `db` is the CALLER's RLS-scoped connection, so re-deriving
- * as anybody but the climber judges them against the regions the caller can see. A maintainer may
+ * as anybody but the climber judges them against the regions the caller can see. A region admin may
  * edit somebody else's ascent, so their branch clears instead: a missing banner is a claim not
  * made, where a stale one is a false claim about somebody's climbing. That rule used to be a
  * duplicated `createdBy === user.id` ternary at each call site, and a fourth mutation that forgot
@@ -70,7 +70,7 @@ export function toAccoladeAscent(row: {
 /**
  * Drop every stored claim of this climber's that the write could have falsified.
  *
- * What a maintainer's edit gets instead of a recompute, for the reason `recordAccolades` gives.
+ * What a region admin's edit gets instead of a recompute, for the reason `recordAccolades` gives.
  * Clearing is the safe direction: a missing banner is a claim not made, where a stale one is a
  * false claim about somebody's climbing. The climber's next write to the route derives it again.
  */
@@ -83,7 +83,7 @@ async function clearAccolades(db: Db, userFk: number, routeFk: number): Promise<
   }
 
   // Every claim the edit could have falsified, not only this route's. A ceiling is measured across
-  // the climber's routes, so a grade a maintainer changed here can make a banner false over there;
+  // the climber's routes, so a grade a region admin changed here can make a banner false over there;
   // clearing only the edited route left exactly the cross-route hole `loadTargets` exists to close.
   await db
     .update(ascents)

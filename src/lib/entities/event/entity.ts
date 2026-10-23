@@ -57,7 +57,7 @@ export interface EventEntity {
    */
   climbedAt?: number
   /**
-   * Whose ascent it is (`ascents.createdBy`). A region maintainer may edit anyone's, so the
+   * Whose ascent it is (`ascents.createdBy`). A region admin may edit anyone's, so the
    * headline has to say whether the actor edited their own or somebody else's; without
    * this it can only say "an ascent", which is what nobody could read.
    */

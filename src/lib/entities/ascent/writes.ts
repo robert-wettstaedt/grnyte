@@ -11,4 +11,4 @@ export const updateAscent = (values: AscentFormInput) =>
     redirectTo: ({ routeFk }) => entityHref('routes', routeFk),
   })
 
-export const deleteAscent = (id: number) => write<{ routeFk: number }>(mutators.ascents.delete({ id }))
+export const deleteAscent = (id: number) => write(mutators.ascents.delete({ id }))

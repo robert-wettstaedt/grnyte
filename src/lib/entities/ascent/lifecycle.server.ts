@@ -13,7 +13,7 @@ import { canEditAscent } from './permissions'
 
 /**
  * Delete an ascent and its attached media (rows plus Nextcloud images and Bunny
- * videos). Owner-only. No undo, which the row's confirmation dialog spells out.
+ * videos). No undo, which the row's confirmation dialog spells out.
  * The irreversible storage removal runs after commit, so a failed transaction can never
  * resurrect the ascent with its media already gone.
  */
@@ -74,8 +74,8 @@ export async function deleteAscentRow(
   // the logbook and the grade recalc. Saying nothing left that card standing as the only
   // account of a send that no longer exists.
   //
-  // Nothing at all is written for a mistake inside the grace window, because the cascade has already
-  // removed the event this would hang beside, which is what makes that path leave no trace.
+  // No event is written for a mistake inside the grace window, because the cascade has already
+  // removed the event this would hang beside. The climber's `ascent_deleted` notice below goes either way.
   if (!erasable) {
     // Whose ascent this was, in metadata: on a soft delete the row survives so the card could
     // read it, but the climber's NAME still cannot be read off an ascent, and the sentence
@@ -109,6 +109,4 @@ export async function deleteAscentRow(
     }),
   )
   afterCommit(() => removeFileStorage(storage))
-
-  return { data: { routeFk: ascent.routeFk } }
 }
