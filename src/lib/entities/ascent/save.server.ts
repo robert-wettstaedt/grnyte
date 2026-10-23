@@ -72,7 +72,7 @@ export async function createAscentRow(value: AscentFormValue, { afterCommit, db,
   return { data: { id: ascent.id } }
 }
 
-/** Edit an ascent. Reuses the create form (with `id` set). Owner-only (RLS mirrors this). */
+/** Edit an ascent. Reuses the create form (with `id` set). */
 export async function updateAscentRow(
   { id, ...value }: AscentFormValue,
   { afterCommit, db, user, userRegions }: SaveContext,
@@ -129,10 +129,10 @@ export async function updateAscentRow(
     regionFk: ascent.regionFk,
   })
 
-  // A maintainer may edit anybody's log, and the climber has no other way of finding out.
+  // A region admin may edit anybody's log, and the climber has no other way of finding out.
   // `notify` drops the actor from the recipients, so editing your own is silent.
   //
-  // Gated on the diff, not on the submit: a maintainer who opens somebody's ascent and saves it
+  // Gated on the diff, not on the submit: a region admin who opens somebody's ascent and saves it
   // untouched logs no event, and must not announce one either. Worse than the noise, the
   // unique index would keep that empty save as the row for this (actor, ascent, kind) pair and
   // swallow the real edit that followed it.

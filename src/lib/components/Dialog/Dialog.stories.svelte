@@ -23,6 +23,13 @@
   // the uncontrolled one you can actually open and close.
   const noop = () => {}
 
+  // The card is portalled to <body>, so the confirm is found on `document`, not in the canvas.
+  const pressConfirm = () => {
+    document
+      .querySelector<HTMLButtonElement>('[data-scope="dialog"][data-part="content"] footer .preset-filled')
+      ?.click()
+  }
+
   // Filler for the scrolling story, long enough to push the card past its 90vh cap.
   const paragraphs = Array.from({ length: 8 }, (_, index) => index + 1)
 </script>
@@ -88,10 +95,11 @@
 />
 
 <!-- Mid-save: the confirm button is disabled and carries the circular indicator beside its
-     label, so the button grows an inline child that is not an icon. -->
+     label, so the button grows an inline child that is not an icon. The save never settles. -->
 <Story
   name="Saving"
-  args={{ onsave: noop, open: true, pending: 1, saveText: m.common_remove(), title: m.region_tagRemove() }}
+  args={{ onsave: () => new Promise(() => {}), open: true, saveText: m.common_remove(), title: m.region_tagRemove() }}
+  play={pressConfirm}
   template={confirm}
 />
 

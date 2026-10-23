@@ -9,7 +9,7 @@ export const createTopo = (blockId: number, fileId: string) =>
 export const replaceTopoImage = (topoId: number, fileId: string) =>
   write<{ id: number }>(mutators.topos.replaceImage({ fileId, topoId }))
 
-export const deleteTopo = (id: number) => write<{ id: number }>(mutators.topos.delete({ id }))
+export const deleteTopo = (id: number) => write(mutators.topos.delete({ id }))
 
 export const reorderTopos = (args: z.input<typeof reorderToposSchema>) => write(mutators.topos.reorder(args))
 

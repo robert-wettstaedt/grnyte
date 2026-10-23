@@ -164,8 +164,6 @@ export async function deleteTopoRow(
   })
 
   afterCommit(() => removeFileStorage(storage))
-
-  return { data: { id } }
 }
 
 /** Persist a new photo order for a block (drag-reorder). Order = index in the given list. */

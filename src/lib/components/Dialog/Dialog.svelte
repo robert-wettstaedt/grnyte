@@ -10,14 +10,25 @@
   interface Props extends DialogRootProps {
     content?: Snippet
     onsave?: () => Promise<unknown> | void
-    pending?: number
     saveText?: string
     title?: string
     /** asChild: spread the given props onto your own focusable element so it becomes the trigger. */
     trigger?: Snippet<[HTMLButtonAttributes]>
   }
 
-  const { content, onsave, pending = 0, saveText = m.common_save(), title, trigger, ...props }: Props = $props()
+  const { content, onsave, saveText = m.common_save(), title, trigger, ...props }: Props = $props()
+
+  let saving = $state(false)
+  const save = async () => {
+    if (saving) return
+    saving = true
+    try {
+      await onsave?.()
+      props.onOpenChange?.({ open: false })
+    } finally {
+      saving = false
+    }
+  }
 </script>
 
 <Dialog {...props}>
@@ -53,16 +64,8 @@
               {m.common_cancel()}
             </Dialog.CloseTrigger>
 
-            <button
-              disabled={pending > 0}
-              type="button"
-              class="btn preset-filled"
-              onclick={async () => {
-                await onsave?.()
-                props.onOpenChange?.({ open: false })
-              }}
-            >
-              {#if pending > 0}
+            <button disabled={saving} type="button" class="btn preset-filled" onclick={save}>
+              {#if saving}
                 <LoadingIndicator />
               {/if}
 

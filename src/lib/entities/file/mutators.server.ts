@@ -5,8 +5,7 @@ import { deleteMediaFileRow, setFileVisibilityRow, setVideoSourceRow } from './e
 export const filesServerMutatorDefs = {
   files: {
     delete: defineServerMutator(deleteFileSchema, async ({ args, ctx, tx }) => {
-      const { data } = await asCaller(tx, ctx, (db) => deleteMediaFileRow(args, { ...ctx, db }))
-      return data
+      await asCaller(tx, ctx, (db) => deleteMediaFileRow(args, { ...ctx, db }))
     }),
     setVideoSource: defineServerMutator(videoSourceSchema, async ({ args, ctx, tx }) => {
       await asCaller(tx, ctx, (db) => setVideoSourceRow(args, { ...ctx, db }))

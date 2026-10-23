@@ -222,7 +222,7 @@ export function cardView(
   // No name is coming: an entity arrives with its event, so there is no second wave to wait for.
   const entityUnnamed = entityName == null
 
-  // Whose ascent the card is about, since a region maintainer may edit anyone's and "an ascent"
+  // Whose ascent the card is about, since a region admin may edit anyone's and "an ascent"
   // would leave the reader guessing. The parent is a candidate too: an upload points at the file,
   // so the ascent it landed on is only ever the parent.
   //

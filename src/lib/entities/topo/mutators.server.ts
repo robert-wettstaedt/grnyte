@@ -10,8 +10,7 @@ export const toposServerMutatorDefs = {
       return data
     }),
     delete: defineServerMutator(z.object({ id: z.number() }), async ({ args, ctx, tx }) => {
-      const { data } = await asCaller(tx, ctx, (db) => deleteTopoRow(args, { ...ctx, db }))
-      return data
+      await asCaller(tx, ctx, (db) => deleteTopoRow(args, { ...ctx, db }))
     }),
     reorder: defineServerMutator(reorderToposSchema, async ({ args, ctx, tx }) => {
       await asCaller(tx, ctx, (db) => reorderToposRow(args, { ...ctx, db }))
