@@ -2,6 +2,7 @@ import { page } from '$app/state'
 import { m } from '$lib/paraglide/messages'
 import { getGlobalState } from '$lib/state/global.svelte'
 import { entityHref } from '../href'
+import { canModerate } from '../moderation/permissions'
 import type { RegionDetail } from './dto'
 import { canEditRegion } from './permissions'
 
@@ -26,10 +27,14 @@ export function regionAdminScreen() {
   const global = getGlobalState()
   const regionId = $derived(Number(page.params.regionId))
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
+  const isModerator = $derived(canModerate(global.userRegions, regionId))
   const membership = $derived(global.userRegions.find((region) => region.regionFk === regionId))
   return {
     get isAdmin() {
       return isAdmin
+    },
+    get isModerator() {
+      return isModerator
     },
     get membership() {
       return membership

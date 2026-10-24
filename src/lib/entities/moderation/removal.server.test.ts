@@ -1,41 +1,61 @@
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { reverseById } from './admin.server'
+import { readDecisions } from './admin.server'
 
 let admin: SeedUser
 let ada: SeedUser
 let bo: SeedUser
 let maintainer: SeedUser
+let coAdmin: SeedUser
+let outsider: SeedUser
+let appAdmin: SeedUser
 let regionId = 0
+let otherRegionId = 0
 let adminClient: ReturnType<typeof zeroClient>
 let maintainerClient: ReturnType<typeof zeroClient>
+let coAdminClient: ReturnType<typeof zeroClient>
+let outsiderClient: ReturnType<typeof zeroClient>
+let appAdminClient: ReturnType<typeof zeroClient>
 
 const removal = { ground: 'spam', reason: 'Advertising a gym' } as const
 
 beforeAll(async () => {
   if (!reachable) return
-  ;[admin, ada, bo, maintainer] = await Promise.all(
-    ['admin', 'ada', 'bo', 'maintainer'].map((who) => createThrowawayUser(`removal_${who}`)),
+  ;[admin, ada, bo, maintainer, coAdmin, outsider, appAdmin] = await Promise.all(
+    ['admin', 'ada', 'bo', 'maintainer', 'coadmin', 'outsider', 'appadmin'].map((who) =>
+      createThrowawayUser(`removal_${who}`),
+    ),
   )
+  await sql`update public.users set username = 'Cy' where id = ${coAdmin.userId}`
   const [region] = await sql<{ id: number }[]>`
     insert into public.regions (name, created_by) values ('__moderation_removal__', ${admin.userId}) returning id`
   regionId = region.id
+  const [otherRegion] = await sql<{ id: number }[]>`
+    insert into public.regions (name, created_by) values ('__moderation_removal_other__', ${outsider.userId}) returning id`
+  otherRegionId = otherRegion.id
   await sql`
     insert into public.region_members (region_fk, user_fk, auth_user_fk, role, is_active) values
       (${regionId}, ${admin.userId}, ${admin.authId}, 'region_admin', true),
       (${regionId}, ${ada.userId}, ${ada.authId}, 'region_user', true),
       (${regionId}, ${bo.userId}, ${bo.authId}, 'region_user', true),
-      (${regionId}, ${maintainer.userId}, ${maintainer.authId}, 'region_maintainer', true)`
+      (${regionId}, ${maintainer.userId}, ${maintainer.authId}, 'region_maintainer', true),
+      (${regionId}, ${coAdmin.userId}, ${coAdmin.authId}, 'region_admin', true),
+      (${otherRegionId}, ${outsider.userId}, ${outsider.authId}, 'region_admin', true)`
+  await sql`insert into public.user_roles (auth_user_fk, role) values (${appAdmin.authId}, 'app_admin')`
   adminClient = zeroClient(admin.authId)
   maintainerClient = zeroClient(maintainer.authId)
+  coAdminClient = zeroClient(coAdmin.authId)
+  outsiderClient = zeroClient(outsider.authId)
+  appAdminClient = zeroClient(appAdmin.authId)
 })
 
 afterAll(async () => {
   if (!reachable) return
-  await adminClient.cleanup()
-  await maintainerClient.cleanup()
-  await sql`delete from public.moderation_decisions where region_fk = ${regionId}`
+  for (const client of [adminClient, maintainerClient, coAdminClient, outsiderClient, appAdminClient]) {
+    await client.cleanup()
+  }
+  await sql`delete from public.moderation_decisions where region_fk in (${regionId}, ${otherRegionId})`
   await sql`delete from public.notifications where region_fk = ${regionId}`
   await sql`delete from public.reactions where region_fk = ${regionId}`
   await sql`delete from public.events where region_fk = ${regionId}`
@@ -46,9 +66,10 @@ afterAll(async () => {
   await sql`delete from public.routes where region_fk = ${regionId}`
   await sql`delete from public.blocks where region_fk = ${regionId}`
   await sql`delete from public.areas where region_fk = ${regionId}`
-  await sql`delete from public.region_members where region_fk = ${regionId}`
-  await sql`delete from public.regions where id = ${regionId}`
-  for (const user of [admin, ada, bo, maintainer]) await dropThrowawayUser(user)
+  await sql`delete from public.region_members where region_fk in (${regionId}, ${otherRegionId})`
+  await sql`delete from public.regions where id in (${regionId}, ${otherRegionId})`
+  await sql`delete from public.user_roles where auth_user_fk = ${appAdmin.authId}`
+  for (const user of [admin, ada, bo, maintainer, coAdmin, outsider, appAdmin]) await dropThrowawayUser(user)
 })
 
 async function sector(name: string, routeAuthors: SeedUser[]) {
@@ -220,13 +241,57 @@ describe.skipIf(!reachable)('the undo after a removal', () => {
     ).toHaveLength(0)
   })
 
-  it('refuses anybody but the admin who removed it', async () => {
+  it.each([
+    ['another admin of the region', () => coAdminClient, () => coAdmin],
+    ['an app admin from outside it', () => appAdminClient, () => appAdmin],
+  ])('lets %s undo it, and records who did', async (_, client, who) => {
+    const id = await sector(`Undone by ${who().userId}`, [ada])
+    await adminClient.push('areas.delete', { id, removal })
+
+    expect(await client().push('moderation.undoRemoval', { id: String(id), kind: 'area' })).toEqual({})
+
+    expect(await sql`select deleted_at from public.areas where id = ${id}`).toEqual([{ deleted_at: null }])
+    expect(
+      await sql`select reversed_by_fk from public.moderation_decisions where object_type = 'area' and object_id = ${String(id)}`,
+    ).toEqual([{ reversed_by_fk: who().userId }])
+    const [{ username }] = await sql<
+      { username: string }[]
+    >`select username from public.users where id = ${who().userId}`
+    expect((await readDecisions(regionId)).find((row) => row.objectId === String(id))?.reversedByName).toBe(username)
+  })
+
+  // Two standing decisions on one object: a restore left the first one standing.
+  it('reverses the decision the log names, not the newest one on its object', async () => {
+    const id = await sector('Removed twice', [ada])
+    await adminClient.push('areas.delete', { id, removal })
+    await sql`update public.areas set deleted_at = null where id = ${id}`
+    await sql`update public.blocks set deleted_at = null where area_fk = ${id}`
+    await sql`update public.routes set deleted_at = null where block_fk in (select id from public.blocks where area_fk = ${id})`
+    await adminClient.push('areas.delete', { id, removal })
+    const [older, newer] = await sql<{ id: number }[]>`
+      select id from public.moderation_decisions where object_type = 'area' and object_id = ${String(id)} order by id`
+
+    expect(
+      await coAdminClient.push('moderation.undoRemoval', { decisionId: older.id, id: String(id), kind: 'area' }),
+    ).toEqual({})
+
+    expect(
+      await sql`select id, reversed_at is not null as reversed from public.moderation_decisions where id in (${older.id}, ${newer.id}) order by id`,
+    ).toEqual([
+      { id: older.id, reversed: true },
+      { id: newer.id, reversed: false },
+    ])
+  })
+
+  it('refuses a maintainer of the region and an admin of another', async () => {
     const id = await sector('Not yours', [ada])
     await adminClient.push('areas.delete', { id, removal })
 
-    expect(messageOf(await maintainerClient.push('moderation.undoRemoval', { id: String(id), kind: 'area' }))).toBe(
-      'form_noPermission',
-    )
+    for (const client of [maintainerClient, outsiderClient]) {
+      expect(messageOf(await client.push('moderation.undoRemoval', { id: String(id), kind: 'area' }))).toBe(
+        'form_noPermission',
+      )
+    }
     expect(await sql`select deleted_at is not null as gone from public.areas where id = ${id}`).toEqual([
       { gone: true },
     ])
@@ -234,17 +299,20 @@ describe.skipIf(!reachable)('the undo after a removal', () => {
 })
 
 describe.skipIf(!reachable)('an app admin reversing a decision', () => {
+  const undo = (kind: string, id: number | string) =>
+    appAdminClient.push('moderation.undoRemoval', { id: String(id), kind })
+
   it('brings a removed area back, marks the decision reversed, and takes back the unread notices', async () => {
     const id = await sector('Reversed', [ada])
     await adminClient.push('areas.delete', { id, removal })
     const [decision] = await sql<{ id: number }[]>`
       select id from public.moderation_decisions where object_type = 'area' and object_id = ${String(id)}`
 
-    await reverseById(decision.id, { id: bo.userId } as never)
+    await undo('area', id)
 
     expect(await sql`select deleted_at from public.areas where id = ${id}`).toEqual([{ deleted_at: null }])
     expect(await sql`select reversed_by_fk from public.moderation_decisions where id = ${decision.id}`).toEqual([
-      { reversed_by_fk: bo.userId },
+      { reversed_by_fk: appAdmin.userId },
     ])
     expect(await notices(ada)).not.toContainEqual({ decision_fk: decision.id })
   })
@@ -255,10 +323,8 @@ describe.skipIf(!reachable)('an app admin reversing a decision', () => {
     const [route] = await sql<{ id: number }[]>`
       select id from public.routes where region_fk = ${regionId} and name = 'Fresh 0'`
     await adminClient.push('routes.delete', { id: route.id, removal })
-    const [decision] = await sql<{ id: number }[]>`
-      select id from public.moderation_decisions where object_type = 'route' and object_id = ${String(route.id)}`
 
-    await reverseById(decision.id, { id: bo.userId } as never)
+    await undo('route', route.id)
 
     expect(await sql`select deleted_at from public.routes where id = ${route.id}`).toEqual([{ deleted_at: null }])
   })
@@ -276,8 +342,8 @@ describe.skipIf(!reachable)('an app admin reversing a decision', () => {
     // What account deletion leaves: the author's words gone from the decision.
     await sql`update public.moderation_decisions set removed_body = null where id = ${await decisionOf(erased)}`
 
-    await reverseById(await decisionOf(comment), { id: bo.userId } as never)
-    await reverseById(await decisionOf(erased), { id: bo.userId } as never)
+    await undo('comment', comment)
+    await undo('comment', erased)
 
     expect(await sql`select body, deleted_at from public.reactions where id = ${comment}`).toEqual([
       { body: 'ratchet', deleted_at: null },
@@ -293,10 +359,8 @@ describe.skipIf(!reachable)('an app admin reversing a decision', () => {
     await adminClient.push('ascents.delete', { id: ascent, removal })
     const card = () => sql`select 1 from public.events where ascent_fk = ${ascent} and verb = 'delete'`
     expect(await card()).toHaveLength(1)
-    const [decision] = await sql<{ id: number }[]>`
-      select id from public.moderation_decisions where object_type = 'ascent' and object_id = ${String(ascent)}`
 
-    await reverseById(decision.id, { id: bo.userId } as never)
+    await undo('ascent', ascent)
 
     expect(await sql`select deleted_at from public.ascents where id = ${ascent}`).toEqual([{ deleted_at: null }])
     expect(await card()).toHaveLength(0)
@@ -313,8 +377,7 @@ describe.skipIf(!reachable)('an app admin reversing a decision', () => {
       select id from public.moderation_decisions where object_type = 'ascent' and object_id = ${String(ascent)}`
     await sql`update public.notifications set read_at = now() where decision_fk = ${decision.id}`
 
-    // Not Bo: nobody is told about their own reversal.
-    await reverseById(decision.id, { id: maintainer.userId } as never)
+    await undo('ascent', ascent)
 
     // Bo's photo on it is gone for good, so Bo hears nothing.
     const restored = await sql<{ metadata: string; user_fk: number }[]>`
@@ -327,10 +390,26 @@ describe.skipIf(!reachable)('an app admin reversing a decision', () => {
   it('refuses to reverse a decision twice', async () => {
     const id = await sector('Twice', [ada])
     await adminClient.push('areas.delete', { id, removal })
-    const [decision] = await sql<{ id: number }[]>`
-      select id from public.moderation_decisions where object_type = 'area' and object_id = ${String(id)}`
-    await reverseById(decision.id, { id: bo.userId } as never)
+    await undo('area', id)
 
-    await expect(reverseById(decision.id, { id: bo.userId } as never)).rejects.toMatchObject({ status: 409 })
+    expect(messageOf(await undo('area', id))).toBe('moderation_alreadyReversed')
+  })
+})
+
+describe.skipIf(!reachable)('a region s moderation log', () => {
+  it('lists the decisions of every admin of the region, each named, and none from elsewhere', async () => {
+    const mine = await sector('Logged', [ada])
+    const theirs = await sector('Logged by Cy', [ada])
+    await adminClient.push('areas.delete', { id: mine, removal })
+    await coAdminClient.push('areas.delete', { id: theirs, removal })
+    await sql`
+      insert into public.moderation_decisions (actor_fk, ground, object_id, object_type, reason, region_fk)
+      values (${outsider.userId}, 'spam', '1', 'area', 'Elsewhere', ${otherRegionId})`
+
+    const rows = await readDecisions(regionId)
+
+    expect(rows.map((row) => row.reason)).not.toContain('Elsewhere')
+    expect(rows.find((row) => row.objectId === String(theirs))).toMatchObject({ actorName: 'Cy', objectType: 'area' })
+    expect(rows.find((row) => row.objectId === String(mine))).toBeDefined()
   })
 })

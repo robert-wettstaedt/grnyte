@@ -1,10 +1,10 @@
 import { defineMutator } from '@rocicorp/zero'
-import { removalTargetSchema } from './dto'
+import { undoRemovalSchema } from './dto'
 
 const waitForServer = async () => {}
 
 export const moderationMutatorDefs = {
   moderation: {
-    undoRemoval: defineMutator(removalTargetSchema, waitForServer),
+    undoRemoval: defineMutator(undoRemovalSchema, waitForServer),
   },
 }

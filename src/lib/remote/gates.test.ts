@@ -67,7 +67,7 @@ import { describe, expect, it } from 'vitest'
  * - `updateRouteRow` loads the route through `requireRowForm` with `canEditRoute`
  * - `verifyUpload` proves ownership of the host-side video object
  * - `previewRemoval` loads the row through `requireRow` and checks `region.delete` on its stored region
- * - `undoRemovalRow` loads the decision through `requireRow` and checks its stored actor and region
+ * - `undoRemovalRow` loads the decision through `requireRow` and checks `canModerate` on its stored region, or app admin
  * - `readStatement` 404s unless the session is a subject of the stored decision or an app admin
  *
  * Adding a name here that does NOT gate would quietly defeat the whole check, which is why the list
@@ -98,6 +98,7 @@ const GATES = new Set([
   'canEditTopo',
   'canHardDelete',
   'canLogAscent',
+  'canModerate',
   'canReadRegion',
   'checkRegionPermission',
   'createAreaRow',
@@ -190,8 +191,6 @@ const NO_GATE: Record<string, string> = {
     "Takes no id at all: it mints an empty video object in the caller's own host collection, and the region gate runs at finalizeVideo, which is where an entity to attach to is finally named.",
   'lib/entities/moderation/moderation.remote.ts#listDecisions':
     'Not region scoped: it lists the decisions of every region for the operator. Gated on app.admin through requireAppAdmin, like listErrorLogs.',
-  'lib/entities/moderation/moderation.remote.ts#reverseDecisionCommand':
-    'The same app.admin gate as listDecisions; the decision and its region are read from the stored row.',
   'lib/entities/notification/mutators.server.ts#notifications.markFeedSeen':
     "Moves the caller's own feed watermark, the same body as `markEventFeedSeen`: the settings row is addressed by the session user, and `userId` only steers the client's optimistic write.",
   'lib/entities/notification/mutators.server.ts#notifications.markRead':
