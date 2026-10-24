@@ -35,6 +35,7 @@
     actorFk: 2,
     actorName: PEOPLE[2],
     createdAt: Date.now() - 2 * HOUR,
+    decisionFk: undefined,
     entity: routeEntity('Rampe', 12),
     eventFk: 900,
     id: 1,

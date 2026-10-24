@@ -1,6 +1,9 @@
 import type { NotificationSourceType } from './dto'
 
 interface Traits {
+  /** Still reaches a recipient who left the region: a removal's statement is owed to whoever posted it,
+   *  and its row opens that statement, never the region. */
+  outlivesMembership: boolean
   /** Which push switch gates it. Only push: every row is in the inbox whatever the switches say. */
   push: 'comments' | 'directed' | 'reactions'
   /** Send-queue only: nothing renders it, its recipient cannot read the region it names, so it skips
@@ -15,28 +18,54 @@ interface Traits {
 /** The per-type traits the inbox, push and recipient filter read. A type added to the DB enum does
  *  not compile until it declares each one. */
 const TRAITS = {
-  ascent_deleted: { push: 'directed', queueOnly: false, row: false, selfAddressed: false },
-  ascent_edited: { push: 'directed', queueOnly: false, row: true, selfAddressed: false },
-  comment: { push: 'comments', queueOnly: false, row: true, selfAddressed: false },
-  comment_reaction: { push: 'directed', queueOnly: false, row: true, selfAddressed: false },
+  ascent_deleted: { outlivesMembership: false, push: 'directed', queueOnly: false, row: false, selfAddressed: false },
+  ascent_edited: { outlivesMembership: false, push: 'directed', queueOnly: false, row: true, selfAddressed: false },
+  comment: { outlivesMembership: false, push: 'comments', queueOnly: false, row: true, selfAddressed: false },
+  comment_reaction: { outlivesMembership: false, push: 'directed', queueOnly: false, row: true, selfAddressed: false },
   // A reply is a comment aimed at you, so it answers to the comment switch.
-  comment_reply: { push: 'comments', queueOnly: false, row: true, selfAddressed: false },
-  invitation_received: { push: 'directed', queueOnly: true, row: false, selfAddressed: false },
-  invite_accepted: { push: 'directed', queueOnly: false, row: false, selfAddressed: false },
-  membership_removed: { push: 'directed', queueOnly: true, row: false, selfAddressed: false },
-  mention: { push: 'directed', queueOnly: false, row: true, selfAddressed: false },
-  reaction: { push: 'reactions', queueOnly: false, row: true, selfAddressed: false },
-  role_changed: { push: 'directed', queueOnly: false, row: false, selfAddressed: false },
-  video_ready: { push: 'directed', queueOnly: false, row: true, selfAddressed: true },
+  comment_reply: { outlivesMembership: false, push: 'comments', queueOnly: false, row: true, selfAddressed: false },
+  // The item is gone (or back), so there is no row to draw; the row opens the statement instead.
+  content_removed: { outlivesMembership: true, push: 'directed', queueOnly: false, row: false, selfAddressed: false },
+  content_restored: { outlivesMembership: true, push: 'directed', queueOnly: false, row: false, selfAddressed: false },
+  invitation_received: {
+    outlivesMembership: false,
+    push: 'directed',
+    queueOnly: true,
+    row: false,
+    selfAddressed: false,
+  },
+  invite_accepted: { outlivesMembership: false, push: 'directed', queueOnly: false, row: false, selfAddressed: false },
+  membership_removed: {
+    outlivesMembership: false,
+    push: 'directed',
+    queueOnly: true,
+    row: false,
+    selfAddressed: false,
+  },
+  mention: { outlivesMembership: false, push: 'directed', queueOnly: false, row: true, selfAddressed: false },
+  reaction: { outlivesMembership: false, push: 'reactions', queueOnly: false, row: true, selfAddressed: false },
+  role_changed: { outlivesMembership: false, push: 'directed', queueOnly: false, row: false, selfAddressed: false },
+  video_ready: { outlivesMembership: false, push: 'directed', queueOnly: false, row: true, selfAddressed: true },
 } as const satisfies Record<NotificationSourceType, Traits>
 
 /** A type this build does not know yet (a tab older than the enum) behaves as an ordinary row. */
-const UNKNOWN: Readonly<Traits> = { push: 'directed', queueOnly: false, row: true, selfAddressed: false }
+const UNKNOWN: Readonly<Traits> = {
+  outlivesMembership: false,
+  push: 'directed',
+  queueOnly: false,
+  row: true,
+  selfAddressed: false,
+}
 
 export const sourceTraits = (sourceType: NotificationSourceType): Readonly<Traits> =>
   Object.hasOwn(TRAITS, sourceType) ? TRAITS[sourceType] : UNKNOWN
 
-/** Sorted, so the Zero query that excludes them keeps one stable hash. */
-export const QUEUE_ONLY: readonly NotificationSourceType[] = (Object.keys(TRAITS) as NotificationSourceType[])
-  .filter((type) => TRAITS[type].queueOnly)
-  .sort()
+// Sorted, so a Zero query naming the list keeps one stable hash.
+const typesWith = (trait: 'outlivesMembership' | 'queueOnly'): readonly NotificationSourceType[] =>
+  (Object.keys(TRAITS) as NotificationSourceType[]).filter((type) => TRAITS[type][trait]).sort()
+
+/** Excluded from the inbox queries. */
+export const QUEUE_ONLY = typesWith('queueOnly')
+
+/** Let past the inbox queries' region gate. */
+export const OUTLIVES_MEMBERSHIP = typesWith('outlivesMembership')

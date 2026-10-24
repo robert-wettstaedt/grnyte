@@ -1,4 +1,6 @@
 import { ascents, files, users } from '$lib/db/schema'
+import type { RemovalInput } from '$lib/entities/moderation/dto'
+import { planRemoval } from '$lib/entities/moderation/subjects.server'
 import { formError } from '$lib/forms/schemas'
 import type { Context } from '$lib/remote/authed.server'
 import { requireRow } from '$lib/remote/require.server'
@@ -18,7 +20,7 @@ import { canEditAscent } from './permissions'
  * resurrect the ascent with its media already gone.
  */
 export async function deleteAscentRow(
-  { id }: { id: number },
+  { id, removal }: { id: number; removal?: RemovalInput },
   { afterCommit, db, user, userRegions }: Pick<Context, 'afterCommit' | 'db' | 'user' | 'userRegions'>,
 ) {
   const ascent = await requireRow(
@@ -26,6 +28,10 @@ export async function deleteAscentRow(
     (row) => canEditAscent(userRegions, user.id, row),
     formError('ascents_notFound'),
   )
+  const planned = await planRemoval(db, { id, kind: 'ascent', regionFk: ascent.regionFk }, removal, {
+    user,
+    userRegions,
+  })
 
   const fileRows = await db.query.files.findMany({
     columns: { bunnyStreamFk: true, id: true, path: true },
@@ -45,11 +51,14 @@ export async function deleteAscentRow(
   // That depends on files being hard-deleted. If they are ever tombstoned instead, a
   // surviving `files.ascent_fk` pins this row and the delete below fails on it, so this
   // claim has to be revisited at the same time.
-  const erasable = await canHardDelete(db, {
-    childless: true,
-    createdAt: ascent.createdAt,
-    object: { id: ascent.id, type: 'ascent' },
-  })
+  // A removal is always soft, so a reversal on appeal has a row to bring back.
+  const erasable =
+    planned == null &&
+    (await canHardDelete(db, {
+      childless: true,
+      createdAt: ascent.createdAt,
+      object: { id: ascent.id, type: 'ascent' },
+    }))
 
   if (erasable) {
     await db.delete(ascents).where(eq(ascents.id, id))
@@ -99,14 +108,18 @@ export async function deleteAscentRow(
 
   // Points at the ROUTE: the ascent is gone by the time the inbox renders. Queued before the
   // teardown, and `drainAfterCommit` runs each on its own, so a failed fan-out never skips it.
-  afterCommit(() =>
-    notify({
-      actorFk: user.id,
-      object: { id: ascent.routeFk, type: 'route' },
-      regionFk: ascent.regionFk,
-      sourceType: 'ascent_deleted',
-      userFks: [ascent.createdBy],
-    }),
-  )
+  // A rule-breaking removal tells the climber through its own notice instead.
+  if (planned == null) {
+    afterCommit(() =>
+      notify({
+        actorFk: user.id,
+        object: { id: ascent.routeFk, type: 'route' },
+        regionFk: ascent.regionFk,
+        sourceType: 'ascent_deleted',
+        userFks: [ascent.createdBy],
+      }),
+    )
+  }
   afterCommit(() => removeFileStorage(storage))
+  return { removal: planned }
 }

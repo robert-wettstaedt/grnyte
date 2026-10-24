@@ -94,6 +94,7 @@ export async function sendDirected(nowMs: number, origin: string, pushConfigured
         blockFk: notifications.blockFk,
         contactLocale: userSettings.contactLocale,
         createdAt: notifications.createdAt,
+        decisionFk: notifications.decisionFk,
         // Where the mail goes. `auth.users` is the only place an address lives.
         email: authUsers.email,
         // Both only so the push can open where it happened rather than on the inbox. See
@@ -216,11 +217,13 @@ export async function sendDirected(nowMs: number, origin: string, pushConfigured
       // it: the row's own SELECT policy requires that permission, so it is hidden from the reader
       // it names.
       const regionsByUser = await readableRegions(wanted.map((row) => row.userFk))
-      // Exempt for the queue-only pair, whose recipient is outside the region by definition. Their
-      // sentence names it in the copy rather than linking into it.
+      // Exempt for the queue-only pair, whose recipient is outside the region by definition (their
+      // sentence names it rather than linking into it), and for a removal notice, owed either way.
       const readable = wanted.filter(
         (row) =>
-          sourceTraits(row.sourceType).queueOnly || regionsByUser.get(row.userFk)?.includes(row.regionFk) === true,
+          sourceTraits(row.sourceType).queueOnly ||
+          sourceTraits(row.sourceType).outlivesMembership ||
+          regionsByUser.get(row.userFk)?.includes(row.regionFk) === true,
       )
 
       const subscriptions = await subscriptionsFor(readable.map((row) => row.userFk))

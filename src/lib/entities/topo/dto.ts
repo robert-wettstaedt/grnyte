@@ -20,6 +20,8 @@ export interface TopoPoint {
 }
 
 export interface TopoView {
+  /** Who uploaded the photo. */
+  createdBy?: number
   /** `topos` row id. */
   id: number
   /** Stored EXIF-oriented pixel height; see {@link TopoView.imageWidth}. */

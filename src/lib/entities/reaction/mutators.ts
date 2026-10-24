@@ -1,13 +1,13 @@
 import type { QueryContext } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineMutator } from '@rocicorp/zero'
-import { commentIdSchema, postCommentSchema, toggleReactionSchema } from './dto'
+import { commentIdSchema, deleteCommentSchema, postCommentSchema, toggleReactionSchema } from './dto'
 
 const waitForServer = async () => {}
 
 export const reactionsMutatorDefs = {
   reactions: {
-    deleteComment: defineMutator(commentIdSchema, waitForServer),
+    deleteComment: defineMutator(deleteCommentSchema, waitForServer),
     postComment: defineMutator(postCommentSchema, waitForServer),
     restoreComment: defineMutator(commentIdSchema, waitForServer),
     // The chip flips locally: clear what this reader holds on the target, then add the new emoji

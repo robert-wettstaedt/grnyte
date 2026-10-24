@@ -15,6 +15,7 @@ export function toNotification(row: NotificationRow, userRegions: RegionMembersh
     actorName: toAuthor(row.actorFk, row.actor?.username).name,
     // `created_at` carries a DB default, which Zero types as nullable; it never is.
     createdAt: row.createdAt ?? 0,
+    decisionFk: row.decisionFk ?? undefined,
     // The row the inbox draws, built by the function the feed's cards are built with, off the same
     // six relations. A row whose object was already gone when the columns were backfilled carries
     // none, which reads as no row rather than as a tombstone: there is nothing left to name.

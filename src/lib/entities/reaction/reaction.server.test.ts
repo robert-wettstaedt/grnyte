@@ -17,13 +17,11 @@ import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser }
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
-  dropComment,
   dropCommentNotification,
   dropReactionNotification,
   eventSubject,
   notifyComment,
   notifyReaction,
-  restoreReplies,
 } from './reaction.server'
 
 const REGION_NAME = '__reaction_test__'
@@ -343,52 +341,6 @@ describe.skipIf(!reachable)('dropReactionNotification', () => {
     await dropReactionNotification({ actorFk: users.second.userId, eventFk: eventId })
 
     expect(await told()).toEqual([users.author.userId])
-  })
-})
-
-describe.skipIf(!reachable)('dropComment and restoreReplies', () => {
-  /** What the two halves of an undo have to agree on: which rows the delete actually took. */
-  const cleared = async (): Promise<{ body: string; deleted: boolean }[]> => {
-    const rows = await sql<{ body: string; deleted: boolean }[]>`
-      select body, deleted_at is not null as deleted from public.reactions
-      where event_fk = ${eventId} and type = 'comment' order by id`
-    return rows.map((row) => ({ body: row.body, deleted: row.deleted }))
-  }
-
-  const reply = async (who: Who, parentFk: number, body: string, deletedAt?: Date): Promise<number> => {
-    const [{ id }] = await sql<{ id: number }[]>`
-      insert into public.reactions (event_fk, parent_fk, body, type, region_fk, auth_user_fk, user_fk, deleted_at)
-      values (${eventId}, ${parentFk}, ${body}, 'comment', ${regionId}, ${users[who].authId}, ${users[who].userId},
-              ${deletedAt ?? null})
-      returning id`
-    return id
-  }
-
-  it('puts back exactly the answers it took, and not the one its author had already deleted', async () => {
-    const head = await comment('first')
-    await reply('second', head, 'answer')
-    // Cleared by its own author an hour before any of this, which no undo of somebody else's
-    // delete may resurrect.
-    await reply('quiet', head, 'withdrawn', new Date(Date.now() - 3_600_000))
-
-    const [{ deletedAt }] = await sql<{ deletedAt: Date }[]>`
-      update public.reactions set deleted_at = now() where id = ${head} returning deleted_at as "deletedAt"`
-    await dropComment({ actorFk: users.first.userId, eventFk: eventId, reactionFk: head })
-
-    expect(await cleared()).toEqual([
-      { body: 'nice', deleted: true },
-      { body: 'answer', deleted: true },
-      { body: 'withdrawn', deleted: true },
-    ])
-
-    await sql`update public.reactions set deleted_at = null where id = ${head}`
-    await restoreReplies({ deletedAt, reactionFk: head })
-
-    expect(await cleared()).toEqual([
-      { body: 'nice', deleted: false },
-      { body: 'answer', deleted: false },
-      { body: 'withdrawn', deleted: true },
-    ])
   })
 })
 

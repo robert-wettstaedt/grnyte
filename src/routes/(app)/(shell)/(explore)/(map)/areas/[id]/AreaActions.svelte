@@ -11,6 +11,8 @@
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
+  import { createRemovalChoice } from '$lib/entities/moderation/choice.svelte'
+  import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import type { Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -62,6 +64,8 @@
       onUndo: restoreArea,
       waitFor: (data) => waitForArea(data.areaId),
     })
+
+  const choice = createRemovalChoice(() => area.regionFk, onDelete)
 </script>
 
 <div>
@@ -147,7 +151,7 @@
               label={m.areas_delete()}
               onclick={() => {
                 close()
-                onDelete()
+                void choice.start()
               }}
             />
           {/if}
@@ -156,3 +160,5 @@
     {/if}
   </ActionBar>
 </div>
+
+<RemovalChoice bind:open={choice.open} id={area.id} kind="area" ontidy={onDelete} title={area.name} />

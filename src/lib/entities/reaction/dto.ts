@@ -1,4 +1,5 @@
 import type { Author } from '$lib/entities/displayName'
+import { removalSchema, type CommentRemover } from '$lib/entities/moderation/dto'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 
@@ -41,6 +42,8 @@ export interface CommentListItem {
    * one person holds one emoji per comment on top of the one they hold on the card.
    */
   reactions: ReactionChip[]
+  /** Set on a removed root kept for its live replies, which renders as a placeholder. */
+  removedBy?: CommentRemover
   /**
    * The answers to this comment, oldest first.
    *
@@ -124,3 +127,5 @@ export const postCommentSchema = z.object({
 })
 
 export const commentIdSchema = z.object({ commentId: z.int().check(z.positive()) })
+
+export const deleteCommentSchema = z.extend(commentIdSchema, { removal: z.optional(removalSchema) })

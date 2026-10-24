@@ -204,6 +204,23 @@ describe.skipIf(!reachable)('region content never crosses the tenancy boundary',
     expect(regionsIn(rows).filter((regionFk) => regionFk !== regionB)).toEqual([])
   })
 
+  // The one exception the inbox makes: the statement of reasons is owed to whoever posted the content.
+  it('syncs a removal notice from a region the reader is not in, and nothing else from it', async () => {
+    const outsider = users.outsider
+    await sql`
+      insert into public.notifications (auth_user_fk, user_fk, region_fk, source_type, metadata) values
+        (${outsider.authId}, ${outsider.userId}, ${regionA}, 'content_removed', '[]'),
+        (${outsider.authId}, ${outsider.userId}, ${regionA}, 'role_changed', null)`
+    try {
+      for (const name of ['listNotifications', 'countUnreadNotifications'] as const) {
+        const rows = await run<{ regionFk: number; sourceType: string }[]>(queries[name], {}, await ctxFor('outsider'))
+        expect(rows.filter((row) => row.regionFk === regionA).map((row) => row.sourceType)).toEqual(['content_removed'])
+      }
+    } finally {
+      await sql`delete from public.notifications where region_fk = ${regionA} and user_fk = ${outsider.userId}`
+    }
+  })
+
   it.each(Object.keys(guidebookQueryDefs))('never leaks a foreign region through %s', async (name) => {
     const rows = await run<{ file?: { regionFk: number }; regionFk: number }[]>(
       queries[name as keyof typeof guidebookQueryDefs],

@@ -11,18 +11,22 @@
   rendered through `Markdown` so a name that changes is right everywhere.
 -->
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { authorHref } from '$lib/entities/href'
+  import { canModerate } from '$lib/entities/moderation/permissions'
   import type { CommentListItem } from '$lib/entities/reaction/dto'
   import { deleteComment, restoreComment } from '$lib/entities/reaction/writes'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { runCommand } from '$lib/remote/mutation'
+  import { getGlobalState } from '$lib/state/global.svelte'
   import { motion, prefersStill } from '$lib/state/motion.svelte'
+  import { push } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
   import { notifyError } from '$lib/state/toast'
   import { untrack } from 'svelte'
@@ -38,6 +42,10 @@
   const { thread }: Props = $props()
 
   const highlightId = $derived(thread.highlightId)
+
+  const global = getGlobalState()
+  // Somebody else's comment comes down only as a rule-breaking removal, on its own page.
+  const canRemove = $derived(canModerate(global.userRegions, thread.regionFk))
 
   /**
    * Bring the linked comment into view once, when it arrives. An attachment rather than an effect
@@ -134,6 +142,36 @@
   </div>
 {/snippet}
 
+{#snippet placeholder(comment: CommentListItem)}
+  {@const entry = gone.find((candidate) => candidate.comment.id === comment.id && candidate.eventId === thread.eventId)}
+  <article class="flex items-center gap-2 py-1 ps-1 pe-1" in:fade={{ duration: motion(150) }}>
+    <span class="bg-surface-200-800 text-surface-600-400 grid size-7 flex-none place-items-center rounded-full">
+      <Icon name="trash" size={14} />
+    </span>
+
+    <p class="text-surface-600-400 flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5 text-sm">
+      <span id="comment-gone-{comment.id}">
+        {comment.removedBy === 'admin' ? m.comments_removedByAdmin() : m.comments_deletedByAuthor()}
+      </span>
+      <time class="text-xs" datetime={new Date(comment.createdAt).toISOString()}>
+        {formatUploadedAt(comment.createdAt, now(), getLocale())}
+      </time>
+    </p>
+
+    {#if entry != null && !entry.restoring}
+      <button
+        type="button"
+        class="text-primary-600-400 flex h-9 min-w-9 items-center justify-center px-2 text-xs font-semibold"
+        aria-describedby="comment-gone-{comment.id}"
+        onclick={() => undo(entry)}
+        {@attach focusIf(`undo-${comment.id}`)}
+      >
+        {m.common_undo()}
+      </button>
+    {/if}
+  </article>
+{/snippet}
+
 {#snippet line(comment: CommentListItem, size: number, parentId: null | number)}
   {@const profile = authorHref(comment.author)}
   <article
@@ -179,7 +217,17 @@
           {m.comments_reply()}
         </button>
 
-        {#if comment.mine}
+        {#if !comment.mine && canRemove}
+          <button
+            type="button"
+            class="text-surface-600-400 hover:text-error-500 flex h-9 min-w-9 items-center justify-center px-2 text-xs"
+            aria-label={m.comments_remove()}
+            onclick={() =>
+              push(resolve('/(app)/remove/[kind=removable]/[id]', { id: String(comment.id), kind: 'comment' }))}
+          >
+            <Icon name="trash" size={14} />
+          </button>
+        {:else if comment.mine}
           <button
             type="button"
             class="text-surface-600-400 hover:text-error-500 flex h-9 min-w-9 items-center justify-center px-2 text-xs"
@@ -214,7 +262,11 @@
         {:else}
           {@const replies = merged(comment.replies, comment.id)}
           <div class="flex flex-col gap-2">
-            {@render line(comment, 28, null)}
+            {#if comment.removedBy != null}
+              {@render placeholder(comment)}
+            {:else}
+              {@render line(comment, 28, null)}
+            {/if}
 
             {#if replies.length > 0}
               <!-- Indented under the comment they answer, with a rule rather than a second avatar

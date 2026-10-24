@@ -22,6 +22,8 @@
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { entityHref } from '$lib/entities/href'
+  import { offersRemovalChoice } from '$lib/entities/moderation/permissions'
+  import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import { canDeleteRoute, canEditRoute } from '$lib/entities/route/permissions'
   import { deleteRoute, restoreRoute } from '$lib/entities/route/writes'
   import { TopoEditor } from '$lib/entities/topo/editor.svelte'
@@ -226,9 +228,26 @@
     editor.pointType = 'start'
   }
 
+  let choice = $state<{ id: number; kind: 'route' | 'topo'; ontidy: () => Promise<void>; title: string }>()
+  let choosing = $state(false)
+  const choose = async (next: NonNullable<typeof choice>) => {
+    choice = next
+    await tick()
+    choosing = true
+  }
+  const offersChoice = (ownLeaf = false) =>
+    block.data != null && offersRemovalChoice(global.userRegions, block.data.regionFk, ownLeaf)
+
   async function deleteSelectedRoute() {
     if (selectedRoute == null) return
-    const id = selectedRoute.id
+    if (offersChoice()) {
+      const route = selectedRoute
+      return choose({ id: route.id, kind: 'route', ontidy: () => removeRoute(route.id), title: route.name })
+    }
+    await removeRoute(selectedRoute.id)
+  }
+
+  async function removeRoute(id: number) {
     try {
       // Not runCommand/withUndo: deleteRoute names the block page (right for the route screen,
       // wrong here): stay in the editor, keep the undo snackbar.
@@ -350,8 +369,16 @@
   }
 
   async function deleteCurrentTopo() {
-    if (currentTopo == null || !confirm(m.topo_deletePhotoConfirm())) return
-    const id = currentTopo.id
+    if (currentTopo == null) return
+    if (offersChoice(global.user?.id != null && currentTopo.createdBy === global.user.id)) {
+      const id = currentTopo.id
+      return choose({ id, kind: 'topo', ontidy: () => removeTopo(id), title: m.topo_deletePhotoConfirm() })
+    }
+    if (!confirm(m.topo_deletePhotoConfirm())) return
+    await removeTopo(currentTopo.id)
+  }
+
+  async function removeTopo(id: number) {
     const remaining = topos.data.find((topo) => topo.id !== id)
     try {
       await deleteTopo(id)
@@ -629,4 +656,8 @@
       <input bind:this={fileInput} type="file" accept="image/*" class="hidden" onchange={onFilePicked} />
     </div>
   {/if}
+{/if}
+
+{#if choice != null}
+  <RemovalChoice bind:open={choosing} id={choice.id} kind={choice.kind} ontidy={choice.ontidy} title={choice.title} />
 {/if}

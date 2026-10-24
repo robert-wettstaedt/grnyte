@@ -270,6 +270,7 @@
     <SettingSection title={m.settings_admin()}>
       <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
         <SettingLink href={resolve('/settings/feedback/inbox')} label={m.feedback_inbox()} />
+        <SettingLink href={resolve('/settings/moderation')} label={m.moderation_decisions()} />
         <SettingLink href={resolve('/(app)/regions')} label={m.region_statsAll()} />
         <SettingLink href={resolve('/settings/errors')} label={m.settings_errorLogs()} />
       </div>
