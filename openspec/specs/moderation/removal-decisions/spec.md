@@ -153,6 +153,35 @@ Undoing a rule-breaking removal SHALL restore the content, mark the decision rev
 - **WHEN** a maintainer of the region, or an admin of a different region, tries to undo the decision
 - **THEN** it is refused and the decision stays standing
 
+### Requirement: Removed content comes back only through Undo
+
+An area, block or route removed for breaking the rules SHALL come back only by undoing its decision. While the decision stands, any other restore of it by someone otherwise allowed to restore it SHALL be refused with the message that only a region admin can bring it back from the region's moderation log, and the decision SHALL stay standing. Anyone else SHALL get the same refusal as for any restore they may not make, so a refusal never reveals what was moderated.
+
+#### Scenario: The author restores their own removed sector
+
+- **WHEN** a maintainer whose sector a region admin removed for breaking the rules sends a restore of it
+- **THEN** it is refused, the sector stays removed, and the decision still reads in effect
+
+#### Scenario: An admin restores instead of undoing
+
+- **WHEN** a region admin sends a restore of a route another admin removed for breaking the rules
+- **THEN** it is refused, and the route comes back only once the decision is undone
+
+#### Scenario: Someone outside the region tries
+
+- **WHEN** an admin of another region sends a restore of a route removed for breaking the rules
+- **THEN** they get the ordinary permission refusal, which does not say it was removed
+
+#### Scenario: Undo still restores
+
+- **WHEN** an admin of the region undoes the removal of a block
+- **THEN** the block is back and the decision reads reversed
+
+#### Scenario: Tidying up is unaffected
+
+- **WHEN** an admin deletes a route as tidying up and restores it
+- **THEN** the route is back
+
 ### Requirement: Decisions are recorded and visible to app admins
 
 Every rule-breaking removal SHALL record a decision: what was removed, in which region, by which admin, the ground and reason, when, and whether it was reversed. App admins SHALL see every decision on a screen under settings and SHALL be able to reverse one there. A region's admins SHALL see the decisions made in that region, newest first, on a moderation screen reached from the region, each showing its status, ground, what kind of item it was, which admin acted, when, its reference, the reason, and the items removed, a comment as at most its first 80 characters. Maintainers and members SHALL NOT see that screen, and no member SHALL learn which admin acted.
