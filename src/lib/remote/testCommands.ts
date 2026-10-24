@@ -2,8 +2,6 @@ import { restoreAreaSchema } from '$lib/entities/area/dto'
 import { deleteAreaRow, restoreAreaRow } from '$lib/entities/area/lifecycle.server'
 import { restoreBlockSchema } from '$lib/entities/block/dto'
 import { deleteBlockRow, restoreBlockRow } from '$lib/entities/block/lifecycle.server'
-import { commentIdSchema } from '$lib/entities/reaction/dto'
-import { restoreCommentRow } from '$lib/entities/reaction/edit.server'
 import { restoreRouteSchema } from '$lib/entities/route/dto'
 import { deleteRouteRow, restoreRouteRow } from '$lib/entities/route/lifecycle.server'
 import * as z from '$lib/forms/zod'
@@ -19,4 +17,3 @@ export const deleteBlock = authedCommand(idArgs, (args, ctx) => deleteBlockRow(a
 export const restoreBlock = authedCommand(restoreBlockSchema, (snapshot, ctx) => restoreBlockRow(snapshot, ctx))
 export const deleteRoute = authedCommand(idArgs, (args, ctx) => deleteRouteRow(args, ctx))
 export const restoreRoute = authedCommand(restoreRouteSchema, (snapshot, ctx) => restoreRouteRow(snapshot, ctx))
-export const restoreComment = authedCommand(commentIdSchema, (args, ctx) => restoreCommentRow(args, ctx))

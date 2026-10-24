@@ -13,6 +13,12 @@ vi.mock('$lib/entities/reaction/writes', () => writes)
 vi.mock('$lib/state/motion.svelte', () => ({ motion: () => 0, prefersStill: () => true }))
 vi.mock('$lib/components/Markdown/Markdown.svelte', () => ({ default: () => {} }))
 vi.mock('./CommentReactions.svelte', () => ({ default: () => {} }))
+const viewer = vi.hoisted(() => ({ permissions: ['region.read'] as string[] }))
+vi.mock('$lib/state/global.svelte', () => ({
+  getGlobalState: () => ({ userRegions: [{ permissions: viewer.permissions, regionFk: 1 }] }),
+}))
+const nav = vi.hoisted(() => ({ goto: vi.fn() }))
+vi.mock('$lib/state/navigation.svelte', () => ({ push: nav.goto }))
 
 const comment = (id: number, createdAt: number, replies: CommentListItem[] = []): CommentListItem => ({
   author: { id: 1, name: 'ada' },
@@ -26,7 +32,13 @@ const comment = (id: number, createdAt: number, replies: CommentListItem[] = [])
 
 const thread = (data: CommentListItem[]) => {
   const comments = $state<{ data: CommentListItem[]; phase: unknown }>({ data, phase: { kind: 'answered' } })
-  const value = { comments, eventId: 1, hasEarlier: false, highlightId: undefined } as unknown as CommentThread
+  const value = {
+    comments,
+    eventId: 1,
+    hasEarlier: false,
+    highlightId: undefined,
+    regionFk: 1,
+  } as unknown as CommentThread
   return { comments, value }
 }
 
@@ -148,4 +160,61 @@ it('names a comment whose author deleted their account, without linking a profil
   const article = container.querySelector('article')!
   expect(article.textContent).toContain('Deleted user')
   expect(article.querySelector('a[href*="/users/"]')).toBeNull()
+})
+
+const placeholder = (removedBy: 'admin' | 'author', replies: CommentListItem[]): CommentListItem => ({
+  ...comment(1, 10, replies),
+  author: { id: 7, name: 'bo' },
+  body: '…',
+  mine: false,
+  removedBy,
+})
+
+it.each([
+  ['admin', 'Removed by a region admin'],
+  ['author', 'Deleted by its author'],
+] as const)('stands in for a root removed by its %s, without its author, keeping the replies', (removedBy, text) => {
+  const { container } = render(Comments, { thread: thread([placeholder(removedBy, [comment(2, 20)])]).value })
+
+  const [root, reply] = container.querySelectorAll('article')
+  expect(root.textContent).toContain(text)
+  expect(root.textContent).not.toContain('bo')
+  expect(root.querySelector('time')).not.toBeNull()
+  expect(root.querySelectorAll('button')).toHaveLength(0)
+  expect(reply.textContent).not.toContain(text)
+})
+
+it('keeps the undo on a root its author just deleted, now that its replies hold it in place', async () => {
+  const reply = { ...comment(2, 20), mine: false }
+  const { comments, value } = thread([comment(1, 10, [reply])])
+  render(Comments, { thread: value })
+
+  await fireEvent.click(screen.getByRole('button', { name: 'Delete comment' }))
+  comments.data = [{ ...comment(1, 10, [reply]), removedBy: 'author' }]
+  flushSync()
+
+  expect(screen.getAllByRole('button', { name: 'Undo' })).toHaveLength(1)
+  await fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+  expect(writes.restoreComment).toHaveBeenCalledWith(1)
+})
+
+const theirs = (id: number) => ({ ...comment(id, 10), author: { id: 7, name: 'bo' }, mine: false })
+
+it.each([
+  ['a maintainer', ['region.read', 'region.edit']],
+  ['a member', ['region.read']],
+])('offers %s no way to remove somebody else comment', (_, permissions) => {
+  viewer.permissions = permissions
+  render(Comments, { thread: thread([theirs(1)]).value })
+
+  expect(screen.queryByRole('button', { name: 'Remove comment' })).toBeNull()
+})
+
+it('sends a region admin from somebody else comment to its removal page', async () => {
+  viewer.permissions = ['region.read', 'region.edit', 'region.delete']
+  render(Comments, { thread: thread([theirs(4), comment(5, 20)]).value })
+
+  expect(screen.getAllByRole('button', { name: 'Remove comment' })).toHaveLength(1)
+  await fireEvent.click(screen.getByRole('button', { name: 'Remove comment' }))
+  expect(nav.goto).toHaveBeenCalledWith('/remove/comment/4')
 })

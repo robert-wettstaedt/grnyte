@@ -20,6 +20,7 @@
   import { deleteFile, setFileVisibility } from '$lib/entities/file/files.remote'
   import type { FileParent } from '$lib/entities/file/mapper'
   import { entityHref, type EntityKind } from '$lib/entities/href'
+  import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
@@ -27,6 +28,7 @@
   import { exit } from '$lib/state/navigation.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
   import { untrack } from 'svelte'
+  import type { HTMLButtonAttributes } from 'svelte/elements'
 
   const { data } = $props()
 
@@ -130,13 +132,27 @@
         persist={(fileId, visibility) => setFileVisibility({ fileId, visibility })}
       />
 
-      {#if controls.canDelete}
-        <ConfirmDialog destructive title={m.media_delete()} saveText={m.common_delete()} onsave={onDelete}>
-          {#snippet trigger(props)}
-            <button {...props} type="button" class={[props.class, MEDIA_TOOL]} aria-label={m.common_delete()}>
-              <Icon name="trash" size={20} />
-            </button>
-          {/snippet}
+      {#snippet deleteTrigger(props: HTMLButtonAttributes)}
+        <button {...props} type="button" class={[props.class, MEDIA_TOOL]} aria-label={m.common_delete()}>
+          <Icon name="trash" size={20} />
+        </button>
+      {/snippet}
+      {#if controls.canDelete && controls.choice}
+        <RemovalChoice
+          id={data.file.id}
+          kind="file"
+          ontidy={onDelete}
+          title={m.media_delete()}
+          trigger={deleteTrigger}
+        />
+      {:else if controls.canDelete}
+        <ConfirmDialog
+          destructive
+          title={m.media_delete()}
+          saveText={m.common_delete()}
+          onsave={onDelete}
+          trigger={deleteTrigger}
+        >
           {#snippet content()}
             {m.media_deleteConfirm()}
           {/snippet}

@@ -18,7 +18,7 @@ import {
   repointNotifications,
   retractNotifications,
 } from '$lib/entities/notification/notification.server'
-import { and, eq, gte, isNull } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 
 /** The event columns the fan-out reads. A row straight from the table satisfies it. */
 type EventRow = Pick<
@@ -28,33 +28,6 @@ type EventRow = Pick<
 
 /** The five kinds an inbox row can point at, as a set to test membership against. */
 const NOTIFIABLE = new Set<string>(['area', 'ascent', 'block', 'route', 'user'])
-
-/**
- * Take a comment out of the thread, and the answers under it with it.
- *
- * A reply is only reachable through the comment it answers, so an orphaned reply would render
- * nowhere while still counting towards `events.comment_count`. Soft, like the parent, so the rows
- * are still there for a moderator. Runs on the privileged handle because the answers belong to
- * other people, outside the caller's own-rows RLS. Emoji on the comment are left alone: they stay
- * as the record of who reacted, and a cleared comment already takes them off the screen.
- */
-export async function dropComment(input: { actorFk: number; eventFk: number; reactionFk: number }): Promise<void> {
-  const replies = await pinnedTx((tx) =>
-    tx
-      .update(reactions)
-      .set({ deletedAt: new Date() })
-      .where(and(eq(reactions.parentFk, input.reactionFk), eq(reactions.type, 'comment'), isNull(reactions.deletedAt)))
-      .returning({ id: reactions.id, userFk: reactions.userFk }),
-  )
-
-  // The comment itself first, then each answer, each cleaned up against ITS OWN author: an inbox
-  // row is keyed on who wrote the line, so a reply by somebody else re-points against what that
-  // person still has standing, not against the person who deleted the thread.
-  for (const gone of [{ id: input.reactionFk, userFk: input.actorFk }, ...replies]) {
-    if (gone.userFk == null) continue
-    await dropCommentNotification({ actorFk: gone.userFk, eventFk: input.eventFk, reactionFk: gone.id })
-  }
-}
 
 /**
  * Take back, or re-point, the inbox row a comment wrote once that comment is gone.
@@ -281,31 +254,4 @@ export async function notifyReaction(input: {
     sourceType: input.comment == null ? 'reaction' : 'comment_reaction',
     userFks: [recipient],
   })
-}
-
-/**
- * Put back the answers a delete took with it, for the Undo the delete offers.
- *
- * Privileged like {@link dropComment}, for the same reason: the replies belong to other people.
- * Scoped by WHEN rather than by "every deleted reply": a reply its own author had already deleted
- * carries an earlier `deleted_at` than the head, and undoing somebody else's delete must not
- * resurrect it. The cascade stamps its rows at or after the head's, so "cleared no earlier than the
- * head was" is exactly the set this took down, which is why the head's `deleted_at` must be read
- * before it is cleared. The inbox rows the cascade cleaned up are NOT rebuilt: undo happens seconds
- * later, and telling a thread twice about something it was already told is worse than one lost
- * notice.
- */
-export async function restoreReplies(input: { deletedAt: Date; reactionFk: number }): Promise<void> {
-  await pinnedTx((tx) =>
-    tx
-      .update(reactions)
-      .set({ deletedAt: null })
-      .where(
-        and(
-          eq(reactions.parentFk, input.reactionFk),
-          eq(reactions.type, 'comment'),
-          gte(reactions.deletedAt, input.deletedAt),
-        ),
-      ),
-  )
 }

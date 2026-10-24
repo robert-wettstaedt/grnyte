@@ -14,6 +14,8 @@
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
   import { entityHref } from '$lib/entities/href'
+  import { createRemovalChoice } from '$lib/entities/moderation/choice.svelte'
+  import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import type { RouteDetail } from '$lib/entities/route/dto'
   import { canDeleteRoute, canEditRoute } from '$lib/entities/route/permissions'
   import { waitForRoute } from '$lib/entities/route/resources.svelte'
@@ -64,6 +66,8 @@
       onUndo: restoreRoute,
       waitFor: (data) => waitForRoute(data.routeId),
     })
+
+  const choice = createRemovalChoice(() => route.regionFk, onDelete)
 </script>
 
 <div>
@@ -104,7 +108,7 @@
               label={m.routes_delete()}
               onclick={() => {
                 close()
-                onDelete()
+                void choice.start()
               }}
             />
           {/if}
@@ -113,3 +117,5 @@
     {/if}
   </ActionBar>
 </div>
+
+<RemovalChoice bind:open={choice.open} id={route.id} kind="route" ontidy={onDelete} title={route.name} />

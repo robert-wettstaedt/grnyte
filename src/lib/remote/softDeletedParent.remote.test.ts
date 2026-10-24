@@ -16,7 +16,7 @@ import { createBlock, reorderBlocks } from '$lib/entities/block/blocks.remote'
 import { toggleFavorite } from '$lib/entities/favorite/favorites.remote'
 import { createRoute } from '$lib/entities/route/routes.remote'
 import { createTopo } from '$lib/entities/topo/topos.remote'
-import { deleteRoute, restoreArea, restoreBlock, restoreComment, restoreRoute } from '$lib/remote/testCommands'
+import { deleteRoute, restoreArea, restoreBlock, restoreRoute } from '$lib/remote/testCommands'
 import { asRequest, callForm, redirectOf, statusOf } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -177,63 +177,6 @@ describe.skipIf(!reachable)('a restore refuses to strand the row', () => {
     const [row] = await sql<{ deleted_at: null | string }[]>`
       select deleted_at from public.routes where id = ${route.id}`
     expect(row?.deleted_at, 'an ordinary undo must still work').toBeNull()
-  })
-})
-
-describe.skipIf(!reachable)('a reply cannot come back under a cleared head', () => {
-  /** An event with a head comment and one reply under it, both live. */
-  async function thread(): Promise<{ eventId: number; headId: number; replyId: number }> {
-    const [event] = await sql<{ id: number }[]>`
-      insert into public.events (region_fk, actor_fk, verb, comment_count, block_fk)
-      values (${regionId}, ${maintainer.userId}, 'create', 2, ${blockId}) returning id`
-
-    const [head] = await sql<{ id: number }[]>`
-      insert into public.reactions (region_fk, auth_user_fk, user_fk, event_fk, type, body)
-      values (${regionId}, ${maintainer.authId}, ${maintainer.userId}, ${event.id}, 'comment', '__softdel_head__')
-      returning id`
-
-    const [reply] = await sql<{ id: number }[]>`
-      insert into public.reactions (region_fk, auth_user_fk, user_fk, event_fk, type, body, parent_fk)
-      values (${regionId}, ${maintainer.authId}, ${maintainer.userId}, ${event.id}, 'comment', '__softdel_reply__', ${head.id})
-      returning id`
-
-    return { eventId: event.id, headId: head.id, replyId: reply.id }
-  }
-
-  it('refuses the reply while its head is cleared, and leaves the count alone', async () => {
-    const { eventId, headId, replyId } = await thread()
-
-    // Reply first: `dropComment`'s cascade skips it, so its own undo is the only way back.
-    await sql`update public.reactions set deleted_at = now() where id = ${replyId}`
-    await sql`update public.reactions set deleted_at = now() where id = ${headId}`
-
-    const [before] = await sql<{ comment_count: number }[]>`
-      select comment_count from public.events where id = ${eventId}`
-
-    const status = await statusOf(() => asRequest(maintainer.authId, () => restoreComment({ commentId: replyId })))
-
-    expect(status, 'a reply under a cleared head should be refused').toBe(404)
-
-    const [row] = await sql<{ deleted_at: null | string }[]>`
-      select deleted_at from public.reactions where id = ${replyId}`
-    expect(row?.deleted_at, 'the reply must stay cleared').not.toBeNull()
-
-    // Nothing recomputes `events.comment_count`, so a stranded restore leaves it high forever.
-    const [after] = await sql<{ comment_count: number }[]>`
-      select comment_count from public.events where id = ${eventId}`
-    expect(after.comment_count, 'the count must not move').toBe(before.comment_count)
-  })
-
-  it('still restores a reply whose head is live', async () => {
-    const { replyId } = await thread()
-
-    await sql`update public.reactions set deleted_at = now() where id = ${replyId}`
-
-    await asRequest(maintainer.authId, () => restoreComment({ commentId: replyId }))
-
-    const [row] = await sql<{ deleted_at: null | string }[]>`
-      select deleted_at from public.reactions where id = ${replyId}`
-    expect(row?.deleted_at, 'an ordinary reply undo must still work').toBeNull()
   })
 })
 

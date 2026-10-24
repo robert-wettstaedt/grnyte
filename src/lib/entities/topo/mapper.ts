@@ -129,6 +129,7 @@ export function toTopoViews(block: Pick<BlockRow, 'routes' | 'topos'>): TopoView
 
     return [
       {
+        createdBy: topo.file?.createdBy ?? undefined,
         id: topo.id,
         imageHeight: topo.file?.height ?? undefined,
         imagePath,

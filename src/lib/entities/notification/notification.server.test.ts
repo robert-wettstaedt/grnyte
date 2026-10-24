@@ -277,6 +277,49 @@ describe.skipIf(!reachable)('notify', () => {
   })
 })
 
+describe.skipIf(!reachable)('notify, a removal notice', () => {
+  it('reaches the inbox of somebody whose directed push is off, once per decision', async () => {
+    await sql`
+      insert into public.user_settings (auth_user_fk, user_fk, notify_directed)
+      values (${users.member.authId}, ${users.member.userId}, false)`
+    const decisions = await sql<{ id: number }[]>`
+      insert into public.moderation_decisions (region_fk, ground, reason, object_type, object_id)
+      values (${regionId}, 'spam', 'x', 'route', 1), (${regionId}, 'spam', 'y', 'route', 2) returning id`
+
+    try {
+      for (const { id } of decisions) {
+        await notify({
+          actorFk: users.actor.userId,
+          decisionFk: id,
+          metadata: '[]',
+          regionFk: regionId,
+          sourceType: 'content_removed',
+          userFks: [users.member.userId],
+        })
+      }
+
+      const written = await sql<{ decision_fk: number }[]>`
+        select decision_fk from public.notifications where user_fk = ${users.member.userId} order by decision_fk`
+      expect(written).toEqual(decisions.map(({ id }) => ({ decision_fk: id })))
+    } finally {
+      await sql`delete from public.moderation_decisions where region_fk = ${regionId}`
+      await sql`delete from public.user_settings where user_fk = ${users.member.userId}`
+    }
+  })
+})
+
+describe.skipIf(!reachable)('notificationRecipients, a removal notice', () => {
+  // The statement of reasons is owed to whoever posted it, member or not; the row opens only that statement.
+  it('reaches somebody who left the region, but still not the actor', async () => {
+    const candidates = [users.inactive.userId, users.outsider.userId, users.actor.userId]
+    const recipients = await notificationRecipients(regionId, candidates, users.actor.userId, 'content_removed')
+
+    expect(recipients.map((recipient) => recipient.userFk).sort()).toEqual(
+      [users.inactive.userId, users.outsider.userId].sort(),
+    )
+  })
+})
+
 describe.skipIf(!reachable)('readableRegions', () => {
   /** The same rule as the recipient set, from the other end, and batched: both halves of the cron
    *  ask it of everybody they are about to push to. */

@@ -1,4 +1,5 @@
-import * as z from '$lib/forms/zod'
+import { removableIdArgs } from '$lib/entities/moderation/dto'
+import { recordPlanned } from '$lib/entities/moderation/record.server'
 import { asCaller, defineServerMutator, refuseWithField } from '$lib/zero/serverMutator.server'
 import { restoreRouteSchema, routeActionSchema } from './dto'
 import { deleteRouteRow, restoreRouteRow } from './lifecycle.server'
@@ -10,8 +11,9 @@ export const routesServerMutatorDefs = {
       const { data } = await asCaller(tx, ctx, (db) => createRouteRow(args, { ...ctx, db }, refuseWithField))
       return data
     }),
-    delete: defineServerMutator(z.object({ id: z.number() }), async ({ args, ctx, tx }) => {
-      const { data } = await asCaller(tx, ctx, (db) => deleteRouteRow(args, { ...ctx, db }))
+    delete: defineServerMutator(removableIdArgs, async ({ args, ctx, tx }) => {
+      const { data, removal } = await asCaller(tx, ctx, (db) => deleteRouteRow(args, { ...ctx, db }))
+      await recordPlanned(tx, ctx, removal)
       return data
     }),
     restore: defineServerMutator(restoreRouteSchema, async ({ args, ctx, tx }) => {

@@ -15,6 +15,7 @@ export interface NotificationListItem {
   /** The actor's username; empty while the user row has not synced, "Deleted user" once they are gone. */
   actorName: string
   createdAt: number
+  decisionFk: number | undefined
   /**
    * The thing this row is about, ready to draw. Absent when no object is set, which is what a row
    * backfilled from a pair pointing at something already deleted ends up as.

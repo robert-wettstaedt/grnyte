@@ -16,6 +16,8 @@
   import type { MediaFile } from '$lib/entities/file/dto'
   import { canDeleteFile, canEditFile } from '$lib/entities/file/permissions'
   import { deleteFile } from '$lib/entities/file/writes'
+  import { offersRemovalChoice } from '$lib/entities/moderation/permissions'
+  import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -24,6 +26,7 @@
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
   import { onDestroy } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
+  import type { HTMLButtonAttributes } from 'svelte/elements'
   import { MediaQuery, SvelteSet } from 'svelte/reactivity'
   import MediaStage from './MediaStage.svelte'
   import ShareSheet from './ShareSheet.svelte'
@@ -79,6 +82,7 @@
   // on their own beta media (region EDIT/DELETE alone would hide their controls).
   const canEdit = $derived(canEditFile(global.userRegions, global.user?.id, currentFile))
   const canDelete = $derived(canDeleteFile(global.userRegions, global.user?.id, currentFile))
+  const ownFile = $derived(currentFile.uploader?.id != null && currentFile.uploader.id === global.user?.id)
   // Only route videos carry a source (ascent clips are your own footage, and their picker
   // never asks for one). An unset `ascentCreatedBy` is what says "not ascent media".
   const canEditSource = $derived(canEdit && currentFile.bunnyStreamFk != null && currentFile.ascentCreatedBy == null)
@@ -387,7 +391,22 @@
 
             <ShareSheet file={currentFile} {canEdit} {shareText} bind:open={shareOpen} />
 
-            {#if canDelete}
+            {#snippet deleteTrigger(props: HTMLButtonAttributes)}
+              <button {...props} type="button" class={[props.class, MEDIA_TOOL]} aria-label={m.common_delete()}>
+                <Icon name="trash" size={20} />
+              </button>
+            {/snippet}
+            {#if canDelete && offersRemovalChoice(global.userRegions, currentFile.regionFk, ownFile)}
+              <RemovalChoice
+                bind:open={confirmOpen}
+                id={currentFile.id}
+                kind="file"
+                modal={false}
+                ontidy={onDelete}
+                title={m.media_delete()}
+                trigger={deleteTrigger}
+              />
+            {:else if canDelete}
               <!-- Non-modal: the viewer is already a modal blocking the page, so a second
                    modal layer here only adds an aria-hidden stack that strands on teardown. -->
               <ConfirmDialog
@@ -398,12 +417,8 @@
                 title={m.media_delete()}
                 saveText={m.common_delete()}
                 onsave={onDelete}
+                trigger={deleteTrigger}
               >
-                {#snippet trigger(props)}
-                  <button {...props} type="button" class={[props.class, MEDIA_TOOL]} aria-label={m.common_delete()}>
-                    <Icon name="trash" size={20} />
-                  </button>
-                {/snippet}
                 {#snippet content()}
                   {m.media_deleteConfirm()}
                 {/snippet}

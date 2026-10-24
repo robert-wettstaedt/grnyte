@@ -26,6 +26,7 @@ export const regionTables = [
   'files',
   'firstAscensionists',
   'geolocations',
+  'moderationDecisions',
   'notifications',
   'reactions',
   'regionInvitations',

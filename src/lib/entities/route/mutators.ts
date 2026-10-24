@@ -1,4 +1,4 @@
-import * as z from '$lib/forms/zod'
+import { removableIdArgs } from '$lib/entities/moderation/dto'
 import { defineMutator } from '@rocicorp/zero'
 import { restoreRouteSchema, routeActionSchema } from './dto'
 
@@ -9,7 +9,7 @@ const waitForServer = async () => {}
 export const routesMutatorDefs = {
   routes: {
     create: defineMutator(routeActionSchema, waitForServer),
-    delete: defineMutator(z.object({ id: z.number() }), waitForServer),
+    delete: defineMutator(removableIdArgs, waitForServer),
     restore: defineMutator(restoreRouteSchema, waitForServer),
     update: defineMutator(routeActionSchema, waitForServer),
   },

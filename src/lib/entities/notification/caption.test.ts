@@ -10,6 +10,7 @@ const notification = (over: Partial<Subject> = {}): Subject => ({
   actorFk: 2,
   actorName: 'Anna',
   createdAt: 0,
+  decisionFk: undefined,
   entity: undefined,
   eventFk: undefined,
   id: 1,
@@ -143,5 +144,47 @@ describe('notificationView', () => {
   // sentence rather than as "ready: " with nothing after the colon.
   it('falls back to the plain sentence when the name resolves empty', () => {
     expect(notificationView(video({ objectName: '' })).key).toBe('notifications_videoReady')
+  })
+
+  const removal = (sourceType: NotificationSourceType, names: string[]) =>
+    notificationView(
+      notification({
+        metadata: JSON.stringify(names.map((name) => ({ kind: 'route', name }))),
+        object: undefined,
+        sourceType,
+      }),
+    )
+
+  it('names the one item removed, and says a region admin did it', () => {
+    const view = removal('content_removed', ['Odin'])
+    const sentence = resolveMessage(view.key, view.params)
+
+    expect(sentence).toContain('Odin')
+    expect(sentence).toContain('region admin')
+    expect(sentence).not.toContain('Anna')
+    expect(view.ref).toBeUndefined()
+  })
+
+  // Passive: an app admin may have reversed it, so naming a region admin would be false.
+  it('names the one item restored, without saying who restored it', () => {
+    const view = removal('content_restored', ['Odin'])
+    const sentence = resolveMessage(view.key, view.params)
+
+    expect(sentence).toContain('Odin')
+    expect(sentence).toContain('restored')
+    expect(sentence).not.toContain('admin')
+  })
+
+  // A photo goes by the route it hangs on, so the sentence must not read as the route removed.
+  it('says a removed photo was a photo, and a reversed one was not restored', () => {
+    const photo = (sourceType: NotificationSourceType) => {
+      const view = notificationView(
+        notification({ metadata: JSON.stringify([{ kind: 'file', name: 'Odin' }]), object: undefined, sourceType }),
+      )
+      return resolveMessage(view.key, view.params)
+    }
+
+    expect(photo('content_removed')).toBe('A region admin removed your photo or video on “Odin”')
+    expect(photo('content_restored')).toBe('The removal of your photo or video on “Odin” was reversed')
   })
 })

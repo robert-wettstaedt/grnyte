@@ -1,4 +1,5 @@
 import { resolve } from '$app/paths'
+import type { RemovalInput } from '$lib/entities/moderation/dto'
 import type * as z from '$lib/forms/zod'
 import { whileDeleting } from '$lib/zero/deleting.svelte'
 import { mutators } from '$lib/zero/mutators'
@@ -19,9 +20,9 @@ export const updateArea = (values: AreaFormInput) =>
   write(mutators.areas.update(values), { redirectTo: entityHref('areas', Number(values.id)) })
 
 /** Leaves for the parent, or the map for a top-level area. */
-export const deleteArea = (area: { id: number; parentFk: null | number | undefined }) =>
+export const deleteArea = (area: { id: number; parentFk: null | number | undefined }, removal?: RemovalInput) =>
   whileDeleting('areas', area.id, () =>
-    write<DeleteAreaSnapshot>(mutators.areas.delete({ id: area.id }), {
+    write<DeleteAreaSnapshot>(mutators.areas.delete({ id: area.id, removal }), {
       redirectTo: area.parentFk == null ? resolve('/explore') : entityHref('areas', area.parentFk),
     }),
   )

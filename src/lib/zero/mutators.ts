@@ -4,6 +4,7 @@ import { blocksMutatorDefs } from '$lib/entities/block/mutators'
 import { favoritesMutatorDefs } from '$lib/entities/favorite/mutators'
 import { feedbackMutatorDefs } from '$lib/entities/feedback/mutators'
 import { filesMutatorDefs } from '$lib/entities/file/mutators'
+import { moderationMutatorDefs } from '$lib/entities/moderation/mutators'
 import { notificationsMutatorDefs } from '$lib/entities/notification/mutators'
 import { reactionsMutatorDefs } from '$lib/entities/reaction/mutators'
 import { regionsMutatorDefs } from '$lib/entities/region/mutators'
@@ -27,4 +28,5 @@ export const mutators = defineMutators({
   ...blocksMutatorDefs,
   ...favoritesMutatorDefs,
   ...routesMutatorDefs,
+  ...moderationMutatorDefs,
 })

@@ -49,7 +49,12 @@ export const reactionsQueryDefs = {
           .where('eventFk', args.eventId)
           .where('type', 'comment')
           .where('parentFk', 'IS', null)
-          .where('deletedAt', 'IS', null)
+          .where(({ cmp, exists, or }) =>
+            or(
+              cmp('deletedAt', 'IS', null),
+              exists('children', (q) => r(q).where('type', 'comment').where('deletedAt', 'IS', null)),
+            ),
+          )
           .related('user')
           .related('children', (q) =>
             r(q)

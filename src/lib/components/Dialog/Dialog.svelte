@@ -71,7 +71,9 @@
 
     <Dialog.Positioner class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <Dialog.Content
-        class="card bg-surface-100-900 max-h-[90vh] w-full space-y-4 overflow-y-auto p-4 shadow-xl md:w-md"
+        class="card bg-surface-100-900 max-h-[90vh] w-full space-y-4 overflow-y-auto p-4 shadow-xl {secondary == null
+          ? 'md:w-md'
+          : 'md:w-lg'}"
       >
         <header class="flex items-center justify-between">
           <Dialog.Title class="text-lg font-bold">{title}</Dialog.Title>

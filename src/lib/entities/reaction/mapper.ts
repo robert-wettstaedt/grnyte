@@ -1,3 +1,4 @@
+import type { CommentRemover } from '$lib/entities/moderation/dto'
 import { toAuthor } from '../displayName'
 import type { CommentListItem, ReactionChip, ReactionListItem } from './dto'
 
@@ -7,7 +8,9 @@ export interface ReactionRow {
   /** The answers, on a top-level comment. Absent on a reply and on every emoji row. */
   children?: readonly ReactionRow[]
   createdAt?: null | number
+  deletedAt?: null | number
   id: number
+  removedBy?: CommentRemover | null
   type: string
   user?: undefined | { username: string }
   userFk: null | number
@@ -59,6 +62,8 @@ export function toComment(row: ReactionRow, currentUserFk: number | undefined): 
     // in the query. See `listComments`.
     reactions: reactionChips(children.filter((child) => child.type === 'emoji').map(toReaction), currentUserFk),
     replies: children.filter((child) => child.type === 'comment').map((child) => toComment(child, currentUserFk)),
+    // Only a root still held by its replies arrives deleted. A row cascaded before placeholders has no marker.
+    ...(row.deletedAt != null && { body: '', removedBy: row.removedBy ?? 'author' }),
   }
 }
 

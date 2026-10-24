@@ -9,6 +9,7 @@
   import { resolve } from '$app/paths'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import HydratedRow from '$lib/components/EntityRow/HydratedRow.svelte'
+  import Icon from '$lib/components/Icon/Icon.svelte'
   import MediaTile from '$lib/components/Media/MediaTile.svelte'
   import { toAuthor } from '$lib/entities/displayName'
   import type { CardRow } from '$lib/entities/event/cardView'
@@ -49,6 +50,10 @@
    * mention or a role change names no event and stays plain text.
    */
   const href = $derived.by(() => {
+    if (notification.decisionFk != null) {
+      return resolve('/(app)/notices/[decisionId]', { decisionId: String(notification.decisionFk) })
+    }
+
     // The parent's page with the viewer open, not `/f/<id>`: that page is a share surface with no
     // nav, so a reader who arrives from the inbox has no way back into the app. A route page reads
     // `?media` for its own files and its ascents'; a block or area has no viewer and just opens.
@@ -98,6 +103,10 @@
          A minimum width keeps a portrait clip from rendering as a sliver. -->
     {#if media != null}
       <MediaTile class="h-[34px] min-w-[34px]" compact file={media} />
+    {:else if notification.decisionFk != null}
+      <span class="bg-surface-200-800 text-surface-700-300 grid size-[34px] flex-none place-items-center rounded-full">
+        <Icon name="trash" size={16} />
+      </span>
     {:else}
       <Avatar author={toAuthor(notification.actorFk, notification.actorName)} size={34} solid />
     {/if}
