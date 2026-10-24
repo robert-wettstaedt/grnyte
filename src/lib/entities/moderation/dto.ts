@@ -59,6 +59,23 @@ export const excerpt = (body: string) => (body.length > 80 ? `${body.slice(0, 79
 
 export const removalTargetSchema = z.object({ id: z.string().check(z.minLength(1)), kind: z.enum(removableKind) })
 
+/** Without `decisionId` (the toast), the newest standing decision on the object. */
+export const undoRemovalSchema = z.extend(removalTargetSchema, { decisionId: z.optional(z.int().check(z.positive())) })
+
+export interface DecisionRow {
+  actorName: string
+  createdAt: number
+  ground: ModerationGround
+  id: number
+  items: RemovedItem[]
+  objectId: string
+  objectType: RemovableKind
+  reason: string
+  regionName: string | undefined
+  reversedAt: number | undefined
+  reversedByName: string | undefined
+}
+
 export interface RemovalItem {
   body?: string
   byline?: string

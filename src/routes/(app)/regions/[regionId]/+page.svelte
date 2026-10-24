@@ -7,6 +7,7 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import SettingLink from '$lib/components/Setting/SettingLink.svelte'
   import SettingSection from '$lib/components/Setting/SettingSection.svelte'
+  import { canModerate } from '$lib/entities/moderation/permissions'
   import { MEMBERSHIP_UNDO_MS } from '$lib/entities/notification/push'
   import { inviteMemberSchema, type RegionInvitationItem, type RegionMemberItem } from '$lib/entities/region/dto'
   import { invitationDelivery, INVITE_SENDING_MS, regionDisplayName, seatState } from '$lib/entities/region/mapper'
@@ -257,6 +258,13 @@
                 href={resolve('/(app)/regions/[regionId]/tags', { regionId: String(regionId) })}
                 label={m.region_tags()}
                 value={String(tagCount)}
+              />
+            {/if}
+
+            {#if canModerate(global.userRegions, regionId)}
+              <SettingLink
+                href={resolve('/(app)/regions/[regionId]/moderation', { regionId: String(regionId) })}
+                label={m.moderation_log()}
               />
             {/if}
 
