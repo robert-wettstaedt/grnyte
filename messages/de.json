@@ -1494,6 +1494,7 @@
   "moderation_reasonHint": "Wer es hinzugefügt hat, liest das wörtlich. Sag, was falsch ist und wo.",
   "moderation_reasonHintTerms": "Wer es hinzugefügt hat, liest das wörtlich. Nenn den Abschnitt der Nutzungsbedingungen, gegen den es verstößt, und sag, was falsch ist und wo.",
   "moderation_removed": "Entfernt. Wer es hinzugefügt hat, erfährt warum.",
+  "moderation_restoreRefused": "Das wurde wegen Regelverstoß entfernt. Nur ein Admin der Region kann es über die Moderation der Region zurückholen.",
   "moderation_statusReversed": "Rückgängig gemacht",
   "moderation_statusStanding": "In Kraft",
   "moderation_submit": "Entfernen und benachrichtigen",

@@ -1,6 +1,7 @@
 import { removableIdArgs } from '$lib/entities/moderation/dto'
 import { recordPlanned } from '$lib/entities/moderation/record.server'
-import { asCaller, defineServerMutator, refuseWithField } from '$lib/zero/serverMutator.server'
+import { refuseWhileRemoved } from '$lib/entities/moderation/undo.server'
+import { asCaller, asPrivileged, defineServerMutator, refuseWithField } from '$lib/zero/serverMutator.server'
 import { blockActionSchema, blockPinSchema, reorderBlocksSchema, restoreBlockSchema } from './dto'
 import { deleteBlockRow, restoreBlockRow } from './lifecycle.server'
 import { reorderBlocksRow } from './order.server'
@@ -26,6 +27,7 @@ export const blocksServerMutatorDefs = {
     }),
     restore: defineServerMutator(restoreBlockSchema, async ({ args, ctx, tx }) => {
       const { data } = await asCaller(tx, ctx, (db) => restoreBlockRow(args, { ...ctx, db }))
+      if (args.mode === 'soft') await asPrivileged(tx, (db) => refuseWhileRemoved(db, 'block', args.blockId))
       return data
     }),
     setLocation: defineServerMutator(blockPinSchema, async ({ args, ctx, tx }) => {
