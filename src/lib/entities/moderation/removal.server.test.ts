@@ -413,3 +413,111 @@ describe.skipIf(!reachable)('a region s moderation log', () => {
     expect(rows.find((row) => row.objectId === String(mine))).toBeDefined()
   })
 })
+
+// The sector is the maintainer's own, so without the guard their ordinary restore would pass.
+async function maintainersSector() {
+  const [area] = await sql<{ id: number }[]>`
+    insert into public.areas (name, created_by, region_fk, type) values ('Own sector', ${maintainer.userId}, ${regionId}, 'sector')
+    returning id`
+  const [block] = await sql<{ id: number }[]>`
+    insert into public.blocks (name, created_by, region_fk, area_fk, "order")
+    values ('Own sector', ${maintainer.userId}, ${regionId}, ${area.id}, 0) returning id`
+  await sql`
+    insert into public.routes (name, created_by, region_fk, block_fk) values ('Ada s line', ${ada.userId}, ${regionId}, ${block.id})`
+  return area.id
+}
+
+const tableOf = { area: 'areas', block: 'blocks', route: 'routes' } as const
+
+describe.skipIf(!reachable)('a restore of content removed for breaking the rules', () => {
+  it.each([
+    [
+      'area',
+      'areas.delete',
+      'areas.restore',
+      () => maintainerClient,
+      maintainersSector,
+      (id: number) => ({ areaId: id, mode: 'soft' }),
+    ],
+    [
+      'block',
+      'blocks.delete',
+      'blocks.restore',
+      () => coAdminClient,
+      async () => (await adasRows()).block,
+      (id: number) => ({ blockId: id, mode: 'soft' }),
+    ],
+    [
+      'route',
+      'routes.delete',
+      'routes.restore',
+      () => coAdminClient,
+      async () => (await adasRows()).route,
+      (id: number) => ({ mode: 'soft', routeId: id }),
+    ],
+  ] as const)(
+    'is refused for the %s, which stays removed with its decision standing',
+    async (kind, remove, restore, client, setup, args) => {
+      const id = await setup()
+      await adminClient.push(remove, { id, removal })
+
+      expect(messageOf(await client().push(restore, args(id)))).toBe('moderation_restoreRefused')
+
+      expect(await sql`select 1 from ${sql(tableOf[kind])} where id = ${id} and deleted_at is not null`).toHaveLength(1)
+      expect(
+        await sql`select 1 from public.moderation_decisions where object_type = ${kind} and object_id = ${String(id)} and reversed_at is null`,
+      ).toHaveLength(1)
+    },
+  )
+
+  // Answered like any other refusal, so it does not tell an outsider what was moderated.
+  it('gives an admin of another region the ordinary refusal', async () => {
+    const { route } = await adasRows()
+    await adminClient.push('routes.delete', { id: route, removal })
+
+    expect(messageOf(await outsiderClient.push('routes.restore', { mode: 'soft', routeId: route }))).toBe(
+      'form_noPermission',
+    )
+  })
+
+  // A hard restore of an existing id only ever replays, so it must answer alike for both deletions.
+  it('answers a hard restore the same whether the route was tidied away or removed', async () => {
+    const tidied = await adasRows()
+    const removed = await adasRows()
+    await adminClient.push('routes.delete', { id: tidied.route })
+    await adminClient.push('routes.delete', { id: removed.route, removal })
+    const hard = ({ block, route }: { block: number; route: number }) => ({
+      firstAscensionistFks: [],
+      mode: 'hard',
+      route: { blockFk: block, description: null, firstAscentYear: null, gradeFk: null, name: 'Probe', rating: null },
+      routeId: route,
+      tags: [],
+    })
+
+    const outcome = (result: object) => ('error' in result ? result : 'replayed')
+
+    expect(outcome(await maintainerClient.push('routes.restore', hard(removed)))).toBe('replayed')
+    expect(outcome(await maintainerClient.push('routes.restore', hard(tidied)))).toBe('replayed')
+  })
+
+  it('lets Undo bring a removed block back', async () => {
+    const { block } = await adasRows()
+    await adminClient.push('blocks.delete', { id: block, removal })
+
+    expect(await coAdminClient.push('moderation.undoRemoval', { id: String(block), kind: 'block' })).toEqual({})
+
+    expect(await sql`select deleted_at from public.blocks where id = ${block}`).toEqual([{ deleted_at: null }])
+    expect(
+      await sql`select 1 from public.moderation_decisions where object_type = 'block' and object_id = ${String(block)} and reversed_at is not null`,
+    ).toHaveLength(1)
+  })
+
+  it('leaves a route deleted as tidying up restorable', async () => {
+    const { route } = await adasRows()
+    await adminClient.push('routes.delete', { id: route })
+
+    expect(await adminClient.push('routes.restore', { mode: 'soft', routeId: route })).not.toHaveProperty('error')
+
+    expect(await sql`select deleted_at from public.routes where id = ${route}`).toEqual([{ deleted_at: null }])
+  })
+})

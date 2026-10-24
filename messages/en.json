@@ -1494,6 +1494,7 @@
   "moderation_reasonHint": "Whoever added it reads this word for word. Say what is wrong and where.",
   "moderation_reasonHintTerms": "Whoever added it reads this word for word. Name the clause of the terms it breaks, and say what is wrong and where.",
   "moderation_removed": "Removed. Whoever added it was told why.",
+  "moderation_restoreRefused": "This was removed for breaking the rules. Only a region admin can bring it back, from the region’s moderation log.",
   "moderation_statusReversed": "Undone",
   "moderation_statusStanding": "In effect",
   "moderation_submit": "Remove and notify",
