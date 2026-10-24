@@ -1,3 +1,4 @@
+import { removableIdArgs } from '$lib/entities/moderation/dto'
 import * as z from '$lib/forms/zod'
 import { defineMutator } from '@rocicorp/zero'
 import { addParkingSchema, areaActionSchema, restoreAreaSchema, restoreParkingSchema } from './dto'
@@ -9,7 +10,7 @@ export const areasMutatorDefs = {
   areas: {
     addParking: defineMutator(addParkingSchema, waitForServer),
     create: defineMutator(areaActionSchema, waitForServer),
-    delete: defineMutator(z.object({ id: z.number() }), waitForServer),
+    delete: defineMutator(removableIdArgs, waitForServer),
     deleteParking: defineMutator(z.object({ id: z.number() }), waitForServer),
     restore: defineMutator(restoreAreaSchema, waitForServer),
     restoreParking: defineMutator(restoreParkingSchema, waitForServer),

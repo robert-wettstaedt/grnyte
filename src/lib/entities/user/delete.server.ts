@@ -12,6 +12,8 @@ import {
   feedback,
   files,
   firstAscensionists,
+  moderationDecisions,
+  moderationDecisionSubjects,
   notifications,
   pushSubscriptions,
   reactions,
@@ -28,7 +30,7 @@ import { toDisplayName, type DisplayName } from '$lib/entities/displayName'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
 import { getLocale } from '$lib/paraglide/runtime'
-import { and, eq, inArray, isNotNull, or, sql } from 'drizzle-orm'
+import { and, eq, inArray, or, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../file/cleanup.server'
 import { NOTIFICATION_CONFLICT_TARGET } from '../notification/notification.server'
@@ -133,11 +135,6 @@ export async function deleteAccountData(
   }
 
   // What the region relies on stays, credited to nobody.
-  // A comment they deleted keeps its row (replies hang off it) but not its words.
-  await tx
-    .update(reactions)
-    .set({ body: ERASED_COMMENT })
-    .where(and(eq(reactions.userFk, id), eq(reactions.type, 'comment'), isNotNull(reactions.deletedAt)))
   await tx.update(reactions).set({ authUserFk: null, userFk: null }).where(eq(reactions.userFk, id))
   await tx.update(regions).set({ createdBy: null }).where(eq(regions.createdBy, id))
   await tx.update(areas).set({ createdBy: null }).where(eq(areas.createdBy, id))
@@ -145,6 +142,32 @@ export async function deleteAccountData(
   await tx.update(routes).set({ createdBy: null }).where(eq(routes.createdBy, id))
   await tx.update(files).set({ createdBy: null }).where(eq(files.createdBy, id))
   await tx.update(feedback).set({ createdBy: null }).where(eq(feedback.createdBy, id))
+  await tx.update(moderationDecisions).set({ actorFk: null }).where(eq(moderationDecisions.actorFk, id))
+  await tx.update(moderationDecisions).set({ reversedByFk: null }).where(eq(moderationDecisions.reversedByFk, id))
+  // A comment of theirs an admin removed: nobody is left to appeal it, so its words go now.
+  await tx
+    .update(moderationDecisions)
+    .set({ removedBody: null })
+    .where(
+      inArray(
+        moderationDecisions.id,
+        tx
+          .select({ id: moderationDecisionSubjects.decisionFk })
+          .from(moderationDecisionSubjects)
+          .where(eq(moderationDecisionSubjects.userFk, id)),
+      ),
+    )
+  // The subject's excerpt of such a comment is its words too.
+  await tx
+    .update(moderationDecisionSubjects)
+    .set({
+      items: sql`(
+        select coalesce(jsonb_agg(case when item->>'kind' = 'comment'
+          then jsonb_set(item, '{name}', to_jsonb(${ERASED_COMMENT}::text)) else item end), '[]'::jsonb)
+        from jsonb_array_elements(${moderationDecisionSubjects.items}) as item)`,
+      userFk: null,
+    })
+    .where(eq(moderationDecisionSubjects.userFk, id))
   await tx.update(activities).set({ userFk: null }).where(eq(activities.userFk, id))
   await tx.update(firstAscensionists).set({ userFk: null }).where(eq(firstAscensionists.userFk, id))
   await tx.update(regionMembers).set({ invitedByFk: null }).where(eq(regionMembers.invitedByFk, id))

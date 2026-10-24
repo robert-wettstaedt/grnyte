@@ -102,6 +102,7 @@ export function parentNameIn(parent: ParentName | undefined, locale: Locale): st
  * a removed member has no destination inside the region at all, so they get the app.
  */
 export function pathnameFor(row: {
+  decisionFk?: null | number
   eventFk: null | number
   fileFk: null | string
   reactionFk: null | number
@@ -113,6 +114,10 @@ export function pathnameFor(row: {
 
   if (row.sourceType === 'membership_removed') {
     return '/'
+  }
+
+  if (row.decisionFk != null) {
+    return `/notices/${row.decisionFk}`
   }
 
   // Only when the parent could not be resolved. `/f/<id>` renders any file, but it is a share

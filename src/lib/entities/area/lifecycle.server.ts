@@ -1,6 +1,9 @@
 import { resolve } from '$app/paths'
 import { areas, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
 import { entityHref } from '$lib/entities/href'
+import type { RemovalInput } from '$lib/entities/moderation/dto'
+import type { Planned } from '$lib/entities/moderation/record.server'
+import { planRemoval } from '$lib/entities/moderation/subjects.server'
 import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import { type Context } from '$lib/remote/authed.server'
@@ -40,14 +43,17 @@ export async function collectAreaSubtreeIds(db: Context['db'], rootId: number): 
  *  with descendants is soft-deleted across the whole subtree. Answers the snapshot
  *  {@link restoreAreaRow} needs to undo either path. */
 export async function deleteAreaRow(
-  { id }: { id: number },
+  { id, removal }: { id: number; removal?: RemovalInput },
   { db, user, userRegions }: Caller,
-): Promise<MutationResult<DeleteAreaSnapshot>> {
+): Promise<Planned<DeleteAreaSnapshot>> {
   const area = await requireRow(
     () => db.query.areas.findFirst({ where: and(eq(areas.id, id), isNull(areas.deletedAt)) }),
     (row) => canDeleteArea(userRegions, user.id, row),
     formError('areas_notFound'),
   )
+
+  // Collected before anything is stamped, from the rows this delete is about to take.
+  const planned = await planRemoval(db, { id, kind: 'area', regionFk: area.regionFk }, removal, { user, userRegions })
 
   // Sub-areas and blocks are the spec's "children"; files are folded in because they
   // FK-reference the area and can't be recreated on undo: an area with files is
@@ -84,11 +90,14 @@ export async function deleteAreaRow(
   // Childless is necessary but no longer sufficient: `events.area_fk` cascades, so erasing an
   // area that has been in the log for a while takes its history, and one somebody has reacted
   // to takes their words.
-  const erasable = await canHardDelete(db, {
-    childless: areaIds.length === 1 && blockRows.length === 0 && file == null,
-    createdAt: area.createdAt,
-    object: { id, type: 'area' },
-  })
+  // A removal is always soft, so a reversal on appeal has a row to bring back.
+  const erasable =
+    planned == null &&
+    (await canHardDelete(db, {
+      childless: areaIds.length === 1 && blockRows.length === 0 && file == null,
+      createdAt: area.createdAt,
+      object: { id, type: 'area' },
+    }))
 
   const data = erasable ? await hardDeleteArea(db, area) : await softDeleteArea(db, area, areaIds, blockIds)
 
@@ -115,7 +124,7 @@ export async function deleteAreaRow(
 
   const redirectTo = area.parentFk == null ? resolve('/explore') : entityHref('areas', area.parentFk)
 
-  return { data, redirectTo }
+  return { data, redirectTo, removal: planned }
 }
 
 /** Hard-delete a leaf area. Its parking geolocations FK-block the row delete, so remove them

@@ -1,4 +1,4 @@
-import * as z from '$lib/forms/zod'
+import { removableIdArgs } from '$lib/entities/moderation/dto'
 import { defineMutator } from '@rocicorp/zero'
 import { ascentActionSchema } from './dto'
 
@@ -8,7 +8,7 @@ const waitForServer = async () => {}
 export const ascentsMutatorDefs = {
   ascents: {
     create: defineMutator(ascentActionSchema, waitForServer),
-    delete: defineMutator(z.object({ id: z.number() }), waitForServer),
+    delete: defineMutator(removableIdArgs, waitForServer),
     update: defineMutator(ascentActionSchema, waitForServer),
   },
 }

@@ -1,5 +1,8 @@
 import { bunnyStreams, files } from '$lib/db/schema'
 import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
+import type { RemovalInput } from '$lib/entities/moderation/dto'
+import type { Planned } from '$lib/entities/moderation/record.server'
+import { planRemoval } from '$lib/entities/moderation/subjects.server'
 import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import type { Context } from '$lib/remote/authed.server'
@@ -24,7 +27,10 @@ type FileContext = Pick<Context, 'afterCommit' | 'db' | 'user' | 'userRegions'>
  * rows the caller can delete), and an empty result means the row survived, so we report
  * a real 403 instead of a phantom success.
  */
-export async function deleteMediaFileRow({ id }: { id: string }, { afterCommit, db, user, userRegions }: FileContext) {
+export async function deleteMediaFileRow(
+  { id, removal }: { id: string; removal?: RemovalInput },
+  { afterCommit, db, user, userRegions }: FileContext,
+): Promise<Planned<void>> {
   const file = await requireRow(
     () => db.query.files.findFirst({ where: eq(files.id, id), with: { ascent: { columns: { createdBy: true } } } }),
     (row) =>
@@ -34,6 +40,7 @@ export async function deleteMediaFileRow({ id }: { id: string }, { afterCommit, 
       }),
     formError('files_notFound'),
   )
+  const planned = await planRemoval(db, { id, kind: 'file', regionFk: file.regionFk }, removal, { user, userRegions })
 
   const storage = await deleteFileRows(db, [file])
   if (storage.length === 0) {
@@ -61,8 +68,7 @@ export async function deleteMediaFileRow({ id }: { id: string }, { afterCommit, 
   }
 
   afterCommit(() => removeFileStorage(storage))
-
-  return { data: { id } }
+  return { removal: planned }
 }
 
 /**

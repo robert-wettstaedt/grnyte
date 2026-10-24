@@ -23,6 +23,13 @@
   // the uncontrolled one you can actually open and close.
   const noop = () => {}
 
+  // The card is portalled to <body>, so the confirm is found on `document`, not in the canvas.
+  const pressConfirm = () => {
+    document
+      .querySelector<HTMLButtonElement>('[data-scope="dialog"][data-part="content"] footer .preset-filled')
+      ?.click()
+  }
+
   // Filler for the scrolling story, long enough to push the card past its 90vh cap.
   const paragraphs = Array.from({ length: 8 }, (_, index) => index + 1)
 </script>
@@ -88,15 +95,38 @@
 />
 
 <!-- Mid-save: the confirm button is disabled and carries the circular indicator beside its
-     label, so the button grows an inline child that is not an icon. -->
+     label, so the button grows an inline child that is not an icon. The save never settles. -->
 <Story
   name="Saving"
-  args={{ onsave: noop, open: true, pending: 1, saveText: m.common_remove(), title: m.region_tagRemove() }}
+  args={{ onsave: () => new Promise(() => {}), open: true, saveText: m.common_remove(), title: m.region_tagRemove() }}
+  play={pressConfirm}
   template={confirm}
 />
 
 <!-- Default save label (`common_save`), which a caller that is not deleting anything keeps. -->
 <Story name="Default save label" args={{ onsave: noop, open: true, title: m.region_leave() }} template={leave} />
+
+<!-- Destructive: the main action in the error colour, Cancel left plain. -->
+<Story
+  name="Destructive"
+  args={{ destructive: true, onsave: noop, open: true, saveText: m.common_remove(), title: m.region_tagRemove() }}
+  template={confirm}
+/>
+
+<!-- Two actions: on mobile they stack main, second, Cancel from the top; on desktop Cancel,
+     second, main from the left. Long German labels have to fit on one line at full width. -->
+<Story
+  name="Two actions"
+  args={{
+    destructive: true,
+    onsave: noop,
+    open: true,
+    saveText: m.common_delete(),
+    secondary: { onclick: noop, text: m.common_edit() },
+    title: m.ascents_delete(),
+  }}
+  template={fromTrigger}
+/>
 
 <!-- No `onsave`: the whole footer is gone and the header close button is the only way out. -->
 <Story name="Message only" args={{ open: true, title: m.region_tagRemove() }} template={confirm} />

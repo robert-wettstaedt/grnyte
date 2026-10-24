@@ -31,6 +31,7 @@ export const NOTIFICATION_CONFLICT_TARGET = [
   notifications.fileFk,
   notifications.routeFk,
   notifications.subjectFk,
+  notifications.decisionFk,
 ]
 
 /** One recipient, in both the shapes a row needs: the app's id and the one RLS compares. */
@@ -44,6 +45,7 @@ export interface NotifyInput {
   /** Who caused it. Dropped from the recipients so nobody is told about their own edit, unless the
    *  source type is `selfAddressed` (see `sourceTraits`). */
   actorFk: number
+  decisionFk?: number
   /**
    * Which card, for the source types that are about one. Part of the idempotency key, so two
    * reactions on two events about the same route stay two rows.
@@ -52,12 +54,12 @@ export interface NotifyInput {
   /** Whatever the sentence needs that the entity cannot answer, e.g. the granted role. */
   metadata?: string
   /** What the row is about. Written into whichever of the six typed columns matches its type. */
-  object: EventObject
+  object?: EventObject
   /** Which comment, so the inbox can point at the row rather than at the card. */
   reactionFk?: number
   regionFk: number
   sourceType: NotificationSourceType
-  /** Candidate recipients, filtered down to the ones who can actually read the region. */
+  /** Candidate recipients, filtered down by {@link notificationRecipients}. */
   userFks: readonly number[]
 }
 
@@ -67,7 +69,8 @@ export interface NotifyInput {
  *
  * Mirrors the `events` SELECT policy exactly (`authorize_in_region('region.read', region_fk)`,
  * which resolves to an active `region_members` row whose role holds that permission), because
- * anything looser notifies somebody about a region they cannot open. Exported so the test can
+ * anything looser notifies somebody about a region they cannot open. The one exception is an
+ * `outlivesMembership` type, whose own SELECT policy lets it reach a former member. Exported so the test can
  * hold it against who can `SELECT` the row rather than trusting this to have got it right.
  */
 export async function notificationRecipients(
@@ -81,6 +84,13 @@ export async function notificationRecipients(
 
   if (candidates.length === 0) {
     return []
+  }
+
+  if (sourceType != null && sourceTraits(sourceType).outlivesMembership) {
+    const people = await pinnedTx((tx) =>
+      tx.select({ authUserFk: users.authUserFk, userFk: users.id }).from(users).where(inArray(users.id, candidates)),
+    )
+    return people.flatMap(({ authUserFk, userFk }) => (authUserFk == null ? [] : [{ authUserFk, userFk }]))
   }
 
   return pinnedTx((tx) =>
@@ -123,15 +133,17 @@ export async function notify(input: NotifyInput): Promise<void> {
       .insert(notifications)
       .values(
         recipients.map((recipient) => ({
-          actorFk: input.actorFk,
+          // A removal notice never names the admin, down to the row the reader's device syncs.
+          actorFk: input.decisionFk == null ? input.actorFk : null,
           authUserFk: recipient.authUserFk,
+          decisionFk: input.decisionFk,
           eventFk: input.eventFk,
           metadata: input.metadata,
           reactionFk: input.reactionFk,
           regionFk: input.regionFk,
           sourceType: input.sourceType,
           userFk: recipient.userFk,
-          ...objectColumns(input.object),
+          ...(input.object == null ? {} : objectColumns(input.object)),
         })),
       )
       // The unique index collapses the same event fired twice in a row, e.g. a double submit, or a

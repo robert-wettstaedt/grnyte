@@ -1,5 +1,7 @@
-import * as z from '$lib/forms/zod'
-import { asCaller, defineServerMutator, refuseWithField } from '$lib/zero/serverMutator.server'
+import { removableIdArgs } from '$lib/entities/moderation/dto'
+import { recordPlanned } from '$lib/entities/moderation/record.server'
+import { refuseWhileRemoved } from '$lib/entities/moderation/undo.server'
+import { asCaller, asPrivileged, defineServerMutator, refuseWithField } from '$lib/zero/serverMutator.server'
 import { blockActionSchema, blockPinSchema, reorderBlocksSchema, restoreBlockSchema } from './dto'
 import { deleteBlockRow, restoreBlockRow } from './lifecycle.server'
 import { reorderBlocksRow } from './order.server'
@@ -12,8 +14,9 @@ export const blocksServerMutatorDefs = {
       const { data } = await asCaller(tx, ctx, (db) => createBlockRow(args, { ...ctx, db }, refuseWithField))
       return data
     }),
-    delete: defineServerMutator(z.object({ id: z.number() }), async ({ args, ctx, tx }) => {
-      const { data } = await asCaller(tx, ctx, (db) => deleteBlockRow(args, { ...ctx, db }))
+    delete: defineServerMutator(removableIdArgs, async ({ args, ctx, tx }) => {
+      const { data, removal } = await asCaller(tx, ctx, (db) => deleteBlockRow(args, { ...ctx, db }))
+      await recordPlanned(tx, ctx, removal)
       return data
     }),
     estimateLocation: defineServerMutator(blockPinSchema, async ({ args, ctx, tx }) => {
@@ -24,6 +27,7 @@ export const blocksServerMutatorDefs = {
     }),
     restore: defineServerMutator(restoreBlockSchema, async ({ args, ctx, tx }) => {
       const { data } = await asCaller(tx, ctx, (db) => restoreBlockRow(args, { ...ctx, db }))
+      if (args.mode === 'soft') await asPrivileged(tx, (db) => refuseWhileRemoved(db, 'block', args.blockId))
       return data
     }),
     setLocation: defineServerMutator(blockPinSchema, async ({ args, ctx, tx }) => {

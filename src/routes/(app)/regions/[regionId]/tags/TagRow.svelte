@@ -119,6 +119,7 @@
      reason MemberRow guards its leave dialog. -->
 {#if confirming}
   <Dialog
+    destructive
     open
     onOpenChange={() => (confirming = false)}
     title={m.region_tagRemove()}

@@ -12,6 +12,8 @@
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
+  import { createRemovalChoice } from '$lib/entities/moderation/choice.svelte'
+  import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import { canAddRoute } from '$lib/entities/route/permissions'
   import { canEditTopo } from '$lib/entities/topo/permissions'
   import { m } from '$lib/paraglide/messages'
@@ -52,6 +54,8 @@
       onUndo: restoreBlock,
       waitFor: (data) => waitForBlock(data.blockId),
     })
+
+  const choice = createRemovalChoice(() => block.regionFk, onDelete)
 </script>
 
 <div>
@@ -107,7 +111,7 @@
               label={m.blocks_delete()}
               onclick={() => {
                 close()
-                onDelete()
+                void choice.start()
               }}
             />
           {/if}
@@ -116,3 +120,5 @@
     {/if}
   </ActionBar>
 </div>
+
+<RemovalChoice bind:open={choice.open} id={block.id} kind="block" ontidy={onDelete} title={block.name} />

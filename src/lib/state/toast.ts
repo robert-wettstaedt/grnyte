@@ -83,7 +83,7 @@ export function notifySend(sent: boolean, sentTitle: string, notSentTitle: strin
 
 /**
  * Low-level "<message> · Undo" snackbar. Prefer {@link withUndo} for the command +
- * undo flow; reach for this directly only when the undo isn't a remote command.
+ * undo flow; reach for this directly only when its redirect is wrong for the screen (the topo editor).
  *
  * The duration is generous on purpose: the action usually navigates away, so the
  * user needs time to spot the snackbar on the destination screen and catch a mis-tap.

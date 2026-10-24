@@ -1,3 +1,4 @@
+import type { RemovalInput } from '$lib/entities/moderation/dto'
 import type * as z from '$lib/forms/zod'
 import { whileDeleting } from '$lib/zero/deleting.svelte'
 import { mutators } from '$lib/zero/mutators'
@@ -23,9 +24,9 @@ export const reorderBlocks = (areaId: number, orderedIds: number[]) =>
   write(mutators.blocks.reorder({ areaId, orderedIds }), { redirectTo: entityHref('areas', areaId) })
 
 /** Leaves for the block's area. */
-export const deleteBlock = (block: { areaFk: number; id: number }) =>
+export const deleteBlock = (block: { areaFk: number; id: number }, removal?: RemovalInput) =>
   whileDeleting('blocks', block.id, () =>
-    write<DeleteBlockSnapshot>(mutators.blocks.delete({ id: block.id }), {
+    write<DeleteBlockSnapshot>(mutators.blocks.delete({ id: block.id, removal }), {
       redirectTo: entityHref('areas', block.areaFk),
     }),
   )

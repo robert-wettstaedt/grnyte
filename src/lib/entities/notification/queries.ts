@@ -1,12 +1,29 @@
 import { relatedFileTree, relatedRouteTree } from '$lib/entities/event/queries'
 import * as z from '$lib/forms/zod'
-import { authenticatedUserCan, relatedRegion } from '$lib/zero/permissions'
+import { authenticatedUserCan, relatedRegion, type QueryContext } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
-import { QUEUE_ONLY } from './sourceType'
+import { OUTLIVES_MEMBERSHIP, QUEUE_ONLY } from './sourceType'
 
 /** Sync window when a caller doesn't pick one: one screenful of inbox, newest first. */
 const DEFAULT_LIMIT = 50
+
+/** `relatedRegion` for the inbox row itself, except a removal notice also passes from a region the
+ *  reader left, as its RLS policy lets it (`outlivesMembership`). */
+function inboxRegion<Q extends ReturnType<typeof zql.notifications.where>>(ctx: QueryContext, q: Q): Q {
+  const regions = ctx.pageState?.userRegions
+  if (regions == null) return q
+  return q.where(({ cmp, or }) =>
+    or(
+      cmp(
+        'regionFk',
+        'IN',
+        regions.map((region) => region.regionFk),
+      ),
+      cmp('sourceType', 'IN', [...OUTLIVES_MEMBERSHIP]),
+    ),
+  ) as Q
+}
 
 export const notificationsQueryDefs = {
   /**
@@ -19,7 +36,8 @@ export const notificationsQueryDefs = {
   countUnreadNotifications: defineQuery(
     z.object({ limit: z.optional(z.number()) }),
     authenticatedUserCan(({ args, ctx }) =>
-      relatedRegion(ctx)(
+      inboxRegion(
+        ctx,
         zql.notifications
           .where('authUserFk', ctx.authUserId)
           .where('sourceType', 'NOT IN', QUEUE_ONLY)
@@ -35,8 +53,8 @@ export const notificationsQueryDefs = {
    * The signed-in user's inbox, newest first.
    *
    * Own rows only, on top of the region gate every list carries: `notifications` sits in
-   * `regionTables`, so a row whose region the reader has since left syncs to nobody. RLS
-   * re-checks the same thing server-side (`auth.uid() = auth_user_fk`).
+   * `regionTables`, so a row whose region the reader has since left syncs to nobody, except a
+   * removal notice (`inboxRegion`). RLS re-checks the same thing server-side.
    *
    * The object arrives nested, the way an event's does: a notification names it in the same six
    * typed columns, so the row it draws comes off the relation rather than out of a second pass
@@ -80,7 +98,7 @@ export const notificationsQueryDefs = {
         .related('subject')
 
       // Always bounded: an inbox nobody opens grows without limit.
-      return relatedRegion(ctx)(q.limit(DEFAULT_LIMIT))
+      return inboxRegion(ctx, q.limit(DEFAULT_LIMIT))
     }),
   ),
 }

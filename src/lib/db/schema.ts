@@ -7,6 +7,8 @@ import {
 } from '$lib/auth'
 import { feedbackKind, feedbackStatus } from '$lib/entities/feedback/dto'
 import { videoReadiness } from '$lib/entities/file/dto'
+import { commentRemover, moderationGround, removableKind, type RemovedItem } from '$lib/entities/moderation/dto'
+import { OUTLIVES_MEMBERSHIP } from '$lib/entities/notification/sourceType'
 import { DEFAULT_MAX_MEMBERS } from '$lib/entities/region/limits'
 import type { RegionSettings } from '$lib/entities/region/settings'
 import type * as z from '$lib/forms/zod'
@@ -1799,6 +1801,8 @@ export const reactions = table(
       .references((): AnyColumn => events.id, { onDelete: 'cascade' }),
     /** A reply, or a reaction on a comment. Null for anything hanging directly off the event. */
     parentFk: integer('parent_fk').references((): AnyColumn => reactions.id, { onDelete: 'cascade' }),
+    /** Who deleted a comment, for the placeholder a root with live replies leaves. */
+    removedBy: text('removed_by', { enum: commentRemover }),
     type: text('type', { enum: reactionType }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }),
     userFk: integer('user_fk').references((): AnyColumn => users.id),
@@ -1930,6 +1934,8 @@ export const notificationSourceType: [
   'comment_reply',
   'comment_reaction',
   'video_ready',
+  'content_removed',
+  'content_restored',
 ] = [
   'mention',
   'ascent_edited',
@@ -1943,6 +1949,8 @@ export const notificationSourceType: [
   'comment_reply',
   'comment_reaction',
   'video_ready',
+  'content_removed',
+  'content_restored',
 ]
 
 /**
@@ -1984,6 +1992,9 @@ export const notifications = table(
      * landed on, not about a file.
      */
     ...eventObjectFields,
+    /** The removal a `content_removed` row tells of. In the key, since the removed object is gone and
+     *  two removals by one admin of one author's content must stay two rows. */
+    decisionFk: integer('decision_fk').references((): AnyColumn => moderationDecisions.id, { onDelete: 'cascade' }),
     /**
      * Which card, for the two source types that are about one: a reaction and a comment.
      *
@@ -2052,6 +2063,7 @@ export const notifications = table(
         table.fileFk,
         table.routeFk,
         table.subjectFk,
+        table.decisionFk,
       )
       .nullsNotDistinct(),
     check('notifications_at_most_one_object', sql.raw(`num_nonnulls(${EVENT_OBJECT_COLUMNS}) <= 1`)),
@@ -2069,13 +2081,14 @@ export const notifications = table(
     // Own rows AND a region the reader can still open, which is what `activities` requires of the
     // events these are about. Without the second half a member who left a region keeps reading
     // its notifications straight off PostgREST, where none of the client's region filtering
-    // applies.
+    // applies. A removal notice is the exception (`outlivesMembership`): the statement of reasons is
+    // owed to whoever posted the content, and the row names only their own items.
     policy(
       `users can read own notifications`,
       getPolicyConfig(
         'select',
         sql.raw(
-          `(SELECT auth.uid()) = auth_user_fk AND (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))`,
+          `(SELECT auth.uid()) = auth_user_fk AND (source_type IN (${OUTLIVES_MEMBERSHIP.map((type) => `'${type}'`).join(', ')}) OR (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk)))`,
         ),
       ),
     ),
@@ -2250,3 +2263,68 @@ export const feedback = table('feedback', {
 
 export type Feedback = InferSelectModel<typeof feedback>
 export type InsertFeedback = InferInsertModel<typeof feedback>
+
+/**
+ * A rule-breaking removal: what a region admin removed, on which ground and why, kept three years so
+ * its authors can appeal. RLS on with no policies, like `feedback`: read on the privileged handle.
+ */
+export const moderationDecisions = table(
+  'moderation_decisions',
+  {
+    ...baseFields,
+    /** The admin. Nulled when they delete their account. */
+    actorFk: integer('actor_fk').references((): AnyColumn => users.id),
+    ground: text('ground', { enum: moderationGround }).notNull(),
+    /** Text, since a file's id is. */
+    objectId: text('object_id').notNull(),
+    objectType: text('object_type', { enum: removableKind }).notNull(),
+    reason: text('reason').notNull(),
+    /** Kept when the region goes, since the decision outlives it for appeals. */
+    regionFk: integer('region_fk').references((): AnyColumn => regions.id, { onDelete: 'set null' }),
+    /** A removed comment's text, moved here so the placeholder row that still syncs carries none. */
+    removedBody: text('removed_body'),
+    reversedAt: timestamp('reversed_at', { withTimezone: true }),
+    reversedByFk: integer('reversed_by_fk').references((): AnyColumn => users.id),
+  },
+  (table) => [index('moderation_decisions_created_at_idx').on(table.createdAt)],
+).enableRLS()
+
+export type ModerationDecision = InferSelectModel<typeof moderationDecisions>
+
+/** Each author a decision removed content of, and what of theirs went. */
+export const moderationDecisionSubjects = table(
+  'moderation_decision_subjects',
+  {
+    decisionFk: integer('decision_fk')
+      .notNull()
+      .references((): AnyColumn => moderationDecisions.id, { onDelete: 'cascade' }),
+    id: serial('id').notNull().primaryKey(),
+    items: jsonb('items').$type<RemovedItem[]>().notNull(),
+    /** Nulled when they delete their account; the decision stays. */
+    userFk: integer('user_fk').references((): AnyColumn => users.id),
+  },
+  (table) => [
+    index('moderation_decision_subjects_decision_fk_idx').on(table.decisionFk),
+    index('moderation_decision_subjects_user_fk_idx').on(table.userFk),
+  ],
+).enableRLS()
+
+/** A comment its author deleted, kept off the synced row for the day its Undo lasts: the row left
+ *  for its replies carries neither words nor author. No query names this table, so it never syncs. */
+export const deletedComments = table(
+  'deleted_comments',
+  {
+    body: text('body').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    reactionFk: integer('reaction_fk')
+      .primaryKey()
+      .references((): AnyColumn => reactions.id, { onDelete: 'cascade' }),
+    userFk: integer('user_fk')
+      .notNull()
+      .references((): AnyColumn => users.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    index('deleted_comments_created_at_idx').on(table.createdAt),
+    index('deleted_comments_user_fk_idx').on(table.userFk),
+  ],
+).enableRLS()

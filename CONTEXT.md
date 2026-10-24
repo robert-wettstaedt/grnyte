@@ -208,7 +208,7 @@ specific sentence they qualify for: answered, then named, then the plain thread 
 
 **actor** / **climber**
 The actor did the thing (`events.actorFk`). The climber is whose ascent it is
-(`ascents.createdBy`). A region maintainer may edit anyone's ascent, so a card has to say
+(`ascents.createdBy`). A region admin may edit anyone's ascent, so a card has to say
 which of the two it means: "Jonas edited Mara's ascent", never "Jonas edited an ascent".
 
 **group**

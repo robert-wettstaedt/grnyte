@@ -91,7 +91,7 @@ describe.skipIf(!reachable)('topo mutators', () => {
     const fileId = await blockImage()
 
     expect((await client.push('topos.replaceImage', { fileId, topoId: id })).data).toEqual({ id })
-    expect((await client.push('topos.delete', { id })).data).toEqual({ id })
+    expect(await client.push('topos.delete', { id })).toEqual({})
     expect(await sql`select 1 from public.topos where id = ${id}`).toHaveLength(0)
   })
 

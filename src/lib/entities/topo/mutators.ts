@@ -1,4 +1,4 @@
-import * as z from '$lib/forms/zod'
+import { removableIdArgs } from '$lib/entities/moderation/dto'
 import { defineMutator } from '@rocicorp/zero'
 import { createTopoSchema, reorderToposSchema, replaceTopoImageSchema, saveTopoLinesSchema } from './dto'
 
@@ -9,7 +9,7 @@ const waitForServer = async () => {}
 export const toposMutatorDefs = {
   topos: {
     create: defineMutator(createTopoSchema, waitForServer),
-    delete: defineMutator(z.object({ id: z.number() }), waitForServer),
+    delete: defineMutator(removableIdArgs, waitForServer),
     reorder: defineMutator(reorderToposSchema, waitForServer),
     replaceImage: defineMutator(replaceTopoImageSchema, waitForServer),
     saveLines: defineMutator(saveTopoLinesSchema, waitForServer),

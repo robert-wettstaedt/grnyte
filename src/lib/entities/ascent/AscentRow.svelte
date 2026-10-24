@@ -9,6 +9,8 @@
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { entityHref } from '$lib/entities/href'
+  import { offersRemovalChoice } from '$lib/entities/moderation/permissions'
+  import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { formatDay } from '$lib/i18n/relativeTime'
@@ -18,6 +20,7 @@
   import { openMedia } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
+  import type { HTMLButtonAttributes } from 'svelte/elements'
   import { slide } from 'svelte/transition'
   import AscentType from './AscentType.svelte'
   import type { RouteAscent } from './dto'
@@ -52,7 +55,7 @@
   const crumbText = $derived(Array.isArray(crumbs) ? crumbs.join(' · ') : crumbs)
 
   const canEdit = $derived(canEditAscent(global.userRegions, global.user?.id, ascent))
-  // A maintainer may delete anybody's ascent, so the confirmation has to say whose it is
+  // A region admin may delete anybody's ascent, so the confirmation has to say whose it is
   // rather than assuring them it is their own. Same actor/climber split the feed cards make.
   const ownAscent = $derived(global.user?.id != null && ascent.createdBy === global.user.id)
   // Empty until the author row syncs in (Zero loads the relation lazily): show a
@@ -199,21 +202,37 @@
               <Icon name="edit" size={13} />
               {m.common_edit()}
             </a>
-            <Dialog title={m.ascents_delete()} saveText={m.ascents_delete()} onsave={onDelete}>
-              {#snippet trigger(props)}
-                <button {...props} type="button" class={[props.class, 'btn btn-sm preset-tonal-error']}>
-                  <Icon name="trash" size={13} />
-                  {m.common_delete()}
-                </button>
-              {/snippet}
-              {#snippet content()}
-                {m.ascents_deleteConfirm({
-                  climber: ascent.authorName,
-                  name: routeName,
-                  owner: ownAscent ? 'self' : 'other',
-                })}
-              {/snippet}
-            </Dialog>
+            {#snippet deleteTrigger(props: HTMLButtonAttributes)}
+              <button {...props} type="button" class={[props.class, 'btn btn-sm preset-tonal-error']}>
+                <Icon name="trash" size={13} />
+                {m.common_delete()}
+              </button>
+            {/snippet}
+            {#if offersRemovalChoice(global.userRegions, ascent.regionFk, ownAscent)}
+              <RemovalChoice
+                id={ascent.id}
+                kind="ascent"
+                ontidy={onDelete}
+                title={m.ascents_deleteOf({ climber: ascent.authorName, name: routeName })}
+                trigger={deleteTrigger}
+              />
+            {:else}
+              <Dialog
+                destructive
+                title={m.ascents_delete()}
+                saveText={m.ascents_delete()}
+                onsave={onDelete}
+                trigger={deleteTrigger}
+              >
+                {#snippet content()}
+                  {m.ascents_deleteConfirm({
+                    climber: ascent.authorName,
+                    name: routeName,
+                    owner: ownAscent ? 'self' : 'other',
+                  })}
+                {/snippet}
+              </Dialog>
+            {/if}
           {/if}
         </div>
       {/if}

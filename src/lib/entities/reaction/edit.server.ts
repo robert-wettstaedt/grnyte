@@ -1,40 +1,51 @@
-import { events, reactions } from '$lib/db/schema'
+import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth'
+import { deletedComments, events, reactions, users, type Reaction } from '$lib/db/schema'
+import { canModerate } from '$lib/entities/moderation/permissions'
+import { recordRemoval, type Removal } from '$lib/entities/moderation/record.server'
+import { planRemoval } from '$lib/entities/moderation/subjects.server'
+import { ERASED_COMMENT } from '$lib/entities/user/delete.server'
 import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import type { Context } from '$lib/remote/authed.server'
 import { requireRow } from '$lib/remote/require.server'
+import { error } from '@sveltejs/kit'
 import { and, eq, isNull } from 'drizzle-orm'
-import type { commentIdSchema, postCommentSchema, toggleReactionSchema } from './dto'
-import { dropComment, dropReactionNotification, notifyComment, notifyReaction, restoreReplies } from './reaction.server'
+import type { commentIdSchema, deleteCommentSchema, postCommentSchema, toggleReactionSchema } from './dto'
+import { dropCommentNotification, dropReactionNotification, notifyComment, notifyReaction } from './reaction.server'
+
+/** A gated comment delete, for {@link writeCommentDelete}; `removal` when an admin removes another's. */
+export interface CommentDelete {
+  comment: Pick<Reaction, 'body' | 'eventFk' | 'id' | 'userFk'>
+  removal?: Removal
+}
 
 /**
- * Take back your own comment.
- *
- * Soft, like every other delete on this table: a reply that quotes it would otherwise lose what it
- * is answering, and the inbox row about it cascades on a hard delete only.
+ * Gates a soft delete, which keeps the row for its replies. {@link writeCommentDelete} writes it,
+ * since clearing the author off the row is past what RLS lets even the author do.
  */
 export async function deleteCommentRow(
-  { commentId }: z.output<typeof commentIdSchema>,
-  { afterCommit, db, user }: Pick<Context, 'afterCommit' | 'db' | 'user'>,
-) {
+  { commentId, removal }: z.output<typeof deleteCommentSchema>,
+  { db, user, userRegions }: Pick<Context, 'db' | 'user' | 'userRegions'>,
+): Promise<{ data: number; plan: CommentDelete }> {
   const comment = await requireRow(
     () => db.query.reactions.findFirst({ where: eq(reactions.id, commentId) }),
-    // Your own, still a comment, and still standing: the emoji half has its own path through
-    // `toggleReaction`, and re-stamping an already-cleared row would re-fire the notification
-    // drop for a comment that has been gone for a week.
-    (row) => row.userFk === user.id && row.type === 'comment' && row.deletedAt == null,
+    // Still a comment, and still standing: the emoji half has its own path through
+    // `toggleReaction`, and re-stamping an already-cleared row would re-fire the notification drop.
+    (row) =>
+      row.type === 'comment' &&
+      row.deletedAt == null &&
+      (row.userFk === user.id || (removal != null && canModerate(userRegions, row.regionFk))),
     formError('comments_notFound'),
   )
 
-  await db.update(reactions).set({ deletedAt: new Date() }).where(eq(reactions.id, commentId))
-
-  // The answers under it, and the inbox rows about all of them, which a soft delete cannot
-  // cascade away. On the privileged handle, so it needs a connection this handler is not
-  // holding: the answers belong to other people and RLS here is your own rows. See `dropComment`.
-  afterCommit(() => dropComment({ actorFk: user.id, eventFk: comment.eventFk, reactionFk: commentId }))
-
-  // The id back, so the caller can offer Undo. See `restoreComment`.
-  return { data: commentId }
+  if (comment.userFk !== user.id && removal != null) {
+    const planned = await planRemoval(db, { id: commentId, kind: 'comment', regionFk: comment.regionFk }, removal, {
+      user,
+      userRegions,
+    })
+    return { data: commentId, plan: { comment, removal: { ...planned, removedBody: comment.body } } }
+  }
+  return { data: commentId, plan: { comment } }
 }
 
 /**
@@ -117,8 +128,8 @@ export async function postCommentRow(
 /**
  * Put a comment back, for the Undo the delete offers.
  *
- * A soft delete is what makes this a one-line restore rather than a re-insert: the row, its id,
- * its replies and any reactions on it never left, so nothing that pointed at it has to be rebuilt.
+ * The row, its id, its replies and its reactions never left, so this only puts the words and the
+ * author back from `deleted_comments`; nothing that pointed at it has to be rebuilt.
  *
  * Deliberately silent: the thread is not re-notified. Undo happens seconds after a delete that
  * already took the inbox row back, and telling everybody a second time about a sentence they were
@@ -126,35 +137,35 @@ export async function postCommentRow(
  */
 export async function restoreCommentRow(
   { commentId }: z.output<typeof commentIdSchema>,
-  { afterCommit, db, user }: Pick<Context, 'afterCommit' | 'db' | 'user'>,
+  { db, user, userRegions }: Pick<Context, 'db' | 'user' | 'userRegions'>,
 ) {
-  const comment = await requireRow(
-    () => db.query.reactions.findFirst({ where: eq(reactions.id, commentId) }),
-    // Cleared, yours, and a comment. Restoring somebody else's, or a row that is not deleted, is
-    // not an undo of anything this person did.
-    (row) => row.userFk === user.id && row.type === 'comment' && row.deletedAt != null,
+  const { kept } = await requireRow(
+    async () => {
+      const row = await db.query.reactions.findFirst({ where: eq(reactions.id, commentId) })
+      const [kept] = await db
+        .select({ authUserFk: users.authUserFk, body: deletedComments.body, userFk: deletedComments.userFk })
+        .from(deletedComments)
+        .innerJoin(users, eq(users.id, deletedComments.userFk))
+        .where(eq(deletedComments.reactionFk, commentId))
+      return row && { ...row, kept }
+    },
+    // Your own delete, still inside its day, in a region you can still read: an admin's removal
+    // keeps no copy here, and the cleanup drops this one when the Undo runs out.
+    (row) =>
+      row.type === 'comment' &&
+      row.deletedAt != null &&
+      row.kept?.userFk === user.id &&
+      checkRegionPermission(userRegions, [REGION_PERMISSION_READ], row.regionFk),
     formError('comments_notFound'),
   )
+  // The gate already proved it; this narrows the type without hiding a gate bug.
+  if (kept == null) error(403, formError('form_noPermission'))
 
-  // A reply renders only through a live head, yet still counts toward `events.comment_count`.
-  if (comment.parentFk != null) {
-    const parentFk = comment.parentFk
-    await requireRow(
-      () => db.query.reactions.findFirst({ where: and(eq(reactions.id, parentFk), isNull(reactions.deletedAt)) }),
-      () => true,
-      formError('comments_notFound'),
-    )
-  }
-
-  await db.update(reactions).set({ deletedAt: null }).where(eq(reactions.id, commentId))
-
-  // And the answers the delete took with it. Without this, undo puts back a head whose thread is
-  // still cleared: `dropComment` soft-deletes the replies too, and they never come back on their
-  // own because their authors did not delete them and cannot see them to try.
-  //
-  // Privileged, for the same reason the cascade is: those rows belong to other people, and RLS
-  // on this connection is your own rows.
-  afterCommit(() => restoreReplies({ deletedAt: comment.deletedAt as Date, reactionFk: commentId }))
+  await db
+    .update(reactions)
+    .set({ authUserFk: kept.authUserFk, body: kept.body, deletedAt: null, removedBy: null, userFk: kept.userFk })
+    .where(eq(reactions.id, commentId))
+  await db.delete(deletedComments).where(eq(deletedComments.reactionFk, commentId))
 }
 
 /**
@@ -248,4 +259,38 @@ export async function toggleReactionRow(
 
     return { data: true }
   })
+}
+
+/**
+ * Writes a gated delete on the privileged handle. The synced row keeps neither words nor author:
+ * an admin's removal keeps them in its decision, an author's own delete in `deleted_comments` for its Undo.
+ */
+export async function writeCommentDelete(
+  db: Context['db'],
+  { comment, removal }: CommentDelete,
+  afterCommit: Context['afterCommit'],
+) {
+  // Still standing: a second delete that raced past its gate must not stamp the row again.
+  const [written] = await db
+    .update(reactions)
+    .set({
+      authUserFk: null,
+      body: ERASED_COMMENT,
+      deletedAt: new Date(),
+      removedBy: removal == null ? 'author' : 'admin',
+      userFk: null,
+    })
+    .where(and(eq(reactions.id, comment.id), isNull(reactions.deletedAt)))
+    .returning({ id: reactions.id })
+  if (written == null) error(404, formError('comments_notFound'))
+  if (removal == null && comment.userFk != null) {
+    await db.insert(deletedComments).values({ body: comment.body, reactionFk: comment.id, userFk: comment.userFk })
+  }
+  if (removal != null) await recordRemoval(db, removal, afterCommit)
+
+  // The inbox rows about this line go, which a soft delete cannot cascade.
+  const author = comment.userFk
+  if (author != null) {
+    afterCommit(() => dropCommentNotification({ actorFk: author, eventFk: comment.eventFk, reactionFk: comment.id }))
+  }
 }

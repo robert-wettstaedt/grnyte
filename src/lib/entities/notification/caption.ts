@@ -1,4 +1,5 @@
 import type { EventEntityRef } from '$lib/entities/event/entity'
+import type { RemovableKind, RemovedItem } from '$lib/entities/moderation/dto'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import type { MessageKey, MessageOptions } from '$lib/i18n/message'
 import type { NotificationListItem, NotificationSourceType } from './dto'
@@ -13,7 +14,7 @@ import { sourceTraits } from './sourceType'
  */
 export interface NotificationView {
   key: MessageKey
-  params: { actor: string; name?: string; region?: string; role?: string }
+  params: { actor: string; count?: number; name?: string; region?: string; role?: string }
   /**
    * What the row renders underneath the caption, for the shared hydration to resolve.
    *
@@ -39,6 +40,8 @@ const KEYS: Record<NotificationSourceType, MessageKey> = {
   comment: 'notifications_comment',
   comment_reaction: 'notifications_commentReaction',
   comment_reply: 'notifications_commentReply',
+  content_removed: 'notifications_contentRemoved',
+  content_restored: 'notifications_contentRestored',
   invitation_received: 'notifications_invitationReceived',
   invite_accepted: 'notifications_inviteAccepted',
   membership_removed: 'notifications_membershipRemoved',
@@ -74,15 +77,20 @@ export function notificationView(notification: NotificationSubject, options?: Me
   // says it in the title. Only the cron passes `objectName`, so only the push picks the key.
   const named = notification.sourceType === 'video_ready' && (notification.objectName ?? '').length > 0
 
+  const items = REMOVAL.has(notification.sourceType) ? removedItems(notification.metadata) : []
+
   return {
     key: named
       ? 'notifications_videoReadyNamed'
-      : role == null && notification.sourceType === 'role_changed'
-        ? 'notifications_roleChangedPlain'
-        : KEYS[notification.sourceType],
+      : REMOVAL.has(notification.sourceType)
+        ? removalKey(notification.sourceType, items)
+        : role == null && notification.sourceType === 'role_changed'
+          ? 'notifications_roleChangedPlain'
+          : KEYS[notification.sourceType],
     params: {
       actor: notification.actorName,
-      name: notification.objectName,
+      count: items.length,
+      name: items.length === 1 ? items[0].name : notification.objectName,
       region: notification.regionName,
       role,
     },
@@ -93,5 +101,35 @@ export function notificationView(notification: NotificationSubject, options?: Me
       !sourceTraits(notification.sourceType).row || notification.object == null
         ? undefined
         : { id: String(notification.object.id), type: notification.object.type },
+  }
+}
+
+const REMOVAL = new Set<NotificationSourceType>(['content_removed', 'content_restored'])
+
+// A leaf goes by what holds it, so its sentence names the kind; a reversed photo was not restored.
+const REMOVED_ONE: Partial<Record<RemovableKind, MessageKey>> = {
+  ascent: 'notifications_contentRemovedAscent',
+  file: 'notifications_contentRemovedFile',
+  topo: 'notifications_contentRemovedTopo',
+}
+const RESTORED_ONE: Partial<Record<RemovableKind, MessageKey>> = {
+  ascent: 'notifications_contentRestoredAscent',
+  file: 'notifications_contentReversedFile',
+  topo: 'notifications_contentReversedTopo',
+}
+
+function removalKey(sourceType: NotificationSourceType, items: RemovedItem[]): MessageKey {
+  const removed = sourceType === 'content_removed'
+  if (items.length > 1) return removed ? 'notifications_contentRemovedMany' : 'notifications_contentRestoredMany'
+  const kind = items[0]?.kind
+  return (kind && (removed ? REMOVED_ONE : RESTORED_ONE)[kind]) || KEYS[sourceType]
+}
+
+function removedItems(metadata: null | string | undefined): RemovedItem[] {
+  try {
+    const parsed: unknown = JSON.parse(metadata ?? '[]')
+    return Array.isArray(parsed) ? (parsed as RemovedItem[]) : []
+  } catch {
+    return []
   }
 }

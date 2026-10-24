@@ -1,3 +1,4 @@
+import type { RemovalInput } from '$lib/entities/moderation/dto'
 import type * as z from '$lib/forms/zod'
 import { whileDeleting } from '$lib/zero/deleting.svelte'
 import { mutators } from '$lib/zero/mutators'
@@ -11,9 +12,9 @@ export const createRoute = (values: RouteFormInput) =>
 export const updateRoute = (values: RouteFormInput) =>
   write(mutators.routes.update(values), { redirectTo: entityHref('routes', Number(values.id)) })
 
-export const deleteRoute = (route: { blockFk: number; id: number }) =>
+export const deleteRoute = (route: { blockFk: number; id: number }, removal?: RemovalInput) =>
   whileDeleting('routes', route.id, () =>
-    write<DeleteRouteSnapshot>(mutators.routes.delete({ id: route.id }), {
+    write<DeleteRouteSnapshot>(mutators.routes.delete({ id: route.id, removal }), {
       redirectTo: entityHref('blocks', route.blockFk),
     }),
   )

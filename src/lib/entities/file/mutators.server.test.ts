@@ -87,11 +87,10 @@ describe.skipIf(!reachable)('file mutators', () => {
     expect(messageOf(result)).toBe('media_sourceVideoOnly')
   })
 
-  it('deletes a file, answers its id, and records the removal on its route', async () => {
+  it('deletes a file and records the removal on its route', async () => {
     const id = await photo()
-    const result = await adminClient.push('files.delete', { id })
 
-    expect(result.data).toEqual({ id })
+    expect(await adminClient.push('files.delete', { id })).toEqual({})
     expect(await stored(id)).toBeUndefined()
     const events = await sql`select 1 from public.events where route_fk = ${routeId} and verb = 'remove'`
     expect(events.length).toBeGreaterThan(0)

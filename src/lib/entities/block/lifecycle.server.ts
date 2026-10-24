@@ -1,5 +1,8 @@
 import { areas, blocks, files, geolocations, routes, topos, type Area, type Block } from '$lib/db/schema'
 import { entityHref } from '$lib/entities/href'
+import type { RemovalInput } from '$lib/entities/moderation/dto'
+import type { Planned } from '$lib/entities/moderation/record.server'
+import { planRemoval } from '$lib/entities/moderation/subjects.server'
 import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import { type Context } from '$lib/remote/authed.server'
@@ -21,14 +24,17 @@ type Caller = Pick<Context, 'db' | 'user' | 'userRegions'>
  *  with descendants is soft-deleted. Either way the remaining siblings close the gap so their
  *  `order` stays contiguous. Answers the snapshot {@link restoreBlockRow} undoes from. */
 export async function deleteBlockRow(
-  { id }: { id: number },
+  { id, removal }: { id: number; removal?: RemovalInput },
   { db, user, userRegions }: Caller,
-): Promise<MutationResult<DeleteBlockSnapshot>> {
+): Promise<Planned<DeleteBlockSnapshot>> {
   const block = await requireRow(
     () => db.query.blocks.findFirst({ where: and(eq(blocks.id, id), isNull(blocks.deletedAt)) }),
     (row) => canDeleteBlock(userRegions, user.id, row),
     formError('blocks_notFound'),
   )
+
+  // Collected before anything is stamped, from the rows this delete is about to take.
+  const planned = await planRemoval(db, { id, kind: 'block', regionFk: block.regionFk }, removal, { user, userRegions })
 
   // Routes/topos/files FK-reference the block; a block with any of them is soft-deleted so
   // undo restores them cleanly (and so the hard delete never hits a FK constraint).
@@ -49,11 +55,14 @@ export async function deleteBlockRow(
   // Childless is necessary but no longer sufficient: `events.block_fk` cascades, so erasing a
   // block that has been logged for a while takes its history, and one somebody has reacted to
   // takes their words.
-  const erasable = await canHardDelete(db, {
-    childless: routeTotal.value === 0 && topo == null && file == null,
-    createdAt: block.createdAt,
-    object: { id, type: 'block' },
-  })
+  // A removal is always soft, so a reversal on appeal has a row to bring back.
+  const erasable =
+    planned == null &&
+    (await canHardDelete(db, {
+      childless: routeTotal.value === 0 && topo == null && file == null,
+      createdAt: block.createdAt,
+      object: { id, type: 'block' },
+    }))
 
   const data = erasable ? await hardDeleteBlock(db, block) : await softDeleteBlock(db, block)
 
@@ -77,7 +86,7 @@ export async function deleteBlockRow(
   }
   await refreshAreaType(db, block.areaFk)
 
-  return { data, redirectTo: entityHref('areas', block.areaFk) }
+  return { data, redirectTo: entityHref('areas', block.areaFk), removal: planned }
 }
 
 /** Hard-delete a bare block: drop its pin (FK-linked both ways) then the row. Returns the

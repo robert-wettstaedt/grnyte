@@ -15,6 +15,9 @@ import {
   type Route,
 } from '$lib/db/schema'
 import { entityHref } from '$lib/entities/href'
+import type { RemovalInput } from '$lib/entities/moderation/dto'
+import type { Planned } from '$lib/entities/moderation/record.server'
+import { planRemoval } from '$lib/entities/moderation/subjects.server'
 import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import { type Context } from '$lib/remote/authed.server'
@@ -37,14 +40,17 @@ type Caller = Pick<Context, 'db' | 'user' | 'userRegions'>
 /** Delete a route. A bare route (no ascents, files or topo lines) is hard-deleted with a
  *  snapshot; one with dependents is soft-deleted so undo restores them cleanly. */
 export async function deleteRouteRow(
-  { id }: { id: number },
+  { id, removal }: { id: number; removal?: RemovalInput },
   { db, user, userRegions }: Caller,
-): Promise<MutationResult<DeleteRouteSnapshot>> {
+): Promise<Planned<DeleteRouteSnapshot>> {
   const route = await requireRow(
     () => db.query.routes.findFirst({ where: and(eq(routes.id, id), isNull(routes.deletedAt)) }),
     (row) => canDeleteRoute(userRegions, user.id, row),
     formError('routes_notFound'),
   )
+
+  // Collected before anything is stamped, from the rows this delete is about to take.
+  const planned = await planRemoval(db, { id, kind: 'route', regionFk: route.regionFk }, removal, { user, userRegions })
 
   // Ascents/files/topo lines FK-reference the route; with any of them present the route
   // is soft-deleted (and the hard delete never hits a FK constraint).
@@ -61,11 +67,14 @@ export async function deleteRouteRow(
   // Childless is necessary but no longer sufficient. `events.route_fk` cascades, so erasing a
   // route that has been in the log for a while takes its whole history with it, and erasing one
   // somebody has reacted to takes their words too. Both fall back to the soft path.
-  const erasable = await canHardDelete(db, {
-    childless: ascent == null && file == null && topoRoute == null,
-    createdAt: route.createdAt,
-    object: { id, type: 'route' },
-  })
+  // A removal is always soft, so a reversal on appeal has a row to bring back.
+  const erasable =
+    planned == null &&
+    (await canHardDelete(db, {
+      childless: ascent == null && file == null && topoRoute == null,
+      createdAt: route.createdAt,
+      object: { id, type: 'route' },
+    }))
 
   const data = erasable ? await hardDeleteRoute(db, route) : await softDeleteRoute(db, route)
 
@@ -86,6 +95,7 @@ export async function deleteRouteRow(
   return {
     data,
     redirectTo: entityHref('blocks', route.blockFk),
+    removal: planned,
   }
 }
 

@@ -24,9 +24,7 @@
  * Skipped when DATABASE_URL is unreachable, like every other DB-backed suite here.
  */
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { deleteArea, restoreArea } from '$lib/entities/area/areas.remote'
-import { deleteBlock, restoreBlock } from '$lib/entities/block/blocks.remote'
-import { deleteRoute, restoreRoute } from '$lib/entities/route/routes.remote'
+import { deleteArea, deleteBlock, deleteRoute, restoreArea, restoreBlock, restoreRoute } from '$lib/remote/testCommands'
 import { asRequest } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 

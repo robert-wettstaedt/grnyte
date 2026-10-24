@@ -63,6 +63,7 @@ async function removeFixtures() {
   const regions = await sql<{ id: number }[]>`select id from public.regions where name like ${PREFIX + '%'}`
   for (const { id } of regions) await db.transaction((tx) => deleteRegionRows(tx, id))
   await sql`delete from public.feedback where body like ${PREFIX + '%'}`
+  await sql`delete from public.moderation_decisions where reason like ${PREFIX + '%'}`
   for (const user of [person, other]) {
     if (user == null) continue
     await sql`delete from public.user_roles where auth_user_fk = ${user.authId}`
@@ -137,12 +138,14 @@ async function seed() {
   const [{ id: emoji }] = await sql<{ id: number }[]>`
     insert into public.reactions (event_fk, body, type, region_fk, auth_user_fk, user_fk)
     values (${card}, '👍', 'emoji', ${shared}, ${person.authId}, ${person.userId}) returning id`
-  // A comment they deleted earlier: hidden already, its words still stored.
-  const [{ id: retracted }] = await sql<{ id: number }[]>`
-    insert into public.reactions (event_fk, body, type, region_fk, auth_user_fk, user_fk, deleted_at)
-    values (${card}, 'Something I took back', 'comment', ${shared}, ${person.authId}, ${person.userId}, now())
-    returning id`
-  Object.assign(ids, { card, emoji, reply, retracted, root })
+  // One deleted inside its undo day: a blank row, the words kept aside.
+  const [{ id: undoable }] = await sql<{ id: number }[]>`
+    insert into public.reactions (event_fk, body, type, region_fk, deleted_at, removed_by)
+    values (${card}, ${ERASED_COMMENT}, 'comment', ${shared}, now(), 'author') returning id`
+  await sql`
+    insert into public.deleted_comments (reaction_fk, body, user_fk)
+    values (${undoable}, 'Words I might undo', ${person.userId})`
+  Object.assign(ids, { card, emoji, reply, root, undoable })
 
   // Their ascent's card goes with the ascent.
   const [{ id: sent }] = await sql<{ id: number }[]>`
@@ -184,6 +187,17 @@ async function seed() {
   const [{ id: report }] = await sql<{ id: number }[]>`
     insert into public.feedback (body, kind, created_by) values (${PREFIX + 'report'}, 'idea', ${person.userId}) returning id`
   ids.report = report
+
+  const [{ id: decided }] = await sql<{ id: number }[]>`
+    insert into public.moderation_decisions (region_fk, actor_fk, reversed_by_fk, ground, reason, object_type, object_id)
+    values (${shared}, ${person.userId}, ${person.userId}, 'spam', ${PREFIX + 'made'}, 'route', ${route}) returning id`
+  const [{ id: removed }] = await sql<{ id: number }[]>`
+    insert into public.moderation_decisions (region_fk, actor_fk, ground, reason, object_type, object_id, removed_body)
+    values (${shared}, ${other.userId}, 'spam', ${PREFIX + 'took'}, 'comment', ${route}, 'Words of theirs') returning id`
+  await sql`
+    insert into public.moderation_decision_subjects (decision_fk, user_fk, items)
+    values (${removed}, ${person.userId}, '[{"kind":"comment","name":"Words of"},{"kind":"route","name":"Odin"}]')`
+  Object.assign(ids, { decided, removed })
 
   // Sole: the other one is only an inactive member, so nobody is left to use it.
   ;[{ id: sole }] = await sql<{ id: number }[]>`
@@ -284,12 +298,10 @@ describe.skipIf(!reachable)('deleteAccount', () => {
     expect(await exists('changes', ids.editChange)).toBe(true)
 
     // What they had deleted keeps no words; what they left standing keeps its own.
-    const bodies = await sql<{ body: string; id: number }[]>`
-      select id, body from public.reactions where id in (${ids.retracted}, ${ids.root}) order by id`
-    expect(bodies).toEqual([
-      { body: 'Beta: left foot first', id: ids.root },
-      { body: ERASED_COMMENT, id: ids.retracted },
+    expect(await sql`select body from public.reactions where id = ${ids.root}`).toEqual([
+      { body: 'Beta: left foot first' },
     ])
+    expect(await sql`select 1 from public.deleted_comments where reaction_fk = ${ids.undoable}`).toHaveLength(0)
 
     // What they did stays, credited to nobody.
     const actors = await sql<{ actor_fk: null | number }[]>`
@@ -299,6 +311,21 @@ describe.skipIf(!reachable)('deleteAccount', () => {
 
     expect(await exists('first_ascensionists', ids.fa)).toBe(true)
     expect(await exists('feedback', ids.report)).toBe(true)
+    expect(await exists('moderation_decisions', ids.decided)).toBe(true)
+    expect(await exists('moderation_decisions', ids.removed)).toBe(true)
+    expect(await sql`select removed_body from public.moderation_decisions where id = ${ids.removed}`).toEqual([
+      { removed_body: null },
+    ])
+    expect(await sql`select items from public.moderation_decision_subjects where decision_fk = ${ids.removed}`).toEqual(
+      [
+        {
+          items: [
+            { kind: 'comment', name: ERASED_COMMENT },
+            { kind: 'route', name: 'Odin' },
+          ],
+        },
+      ],
+    )
 
     // The other member stays, with no inviter.
     const [member] = await sql<{ invited_by: null | number }[]>`

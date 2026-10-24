@@ -1,6 +1,8 @@
 import * as schema from '$lib/db/schema'
 import { files, routes, topoRoutes, topos } from '$lib/db/schema'
 import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
+import type { RemovalInput } from '$lib/entities/moderation/dto'
+import { planRemoval } from '$lib/entities/moderation/subjects.server'
 import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import type { Context } from '$lib/remote/authed.server'
@@ -147,10 +149,11 @@ export async function createTopoRow(
  * runs after commit.
  */
 export async function deleteTopoRow(
-  { id }: { id: number },
+  { id, removal }: { id: number; removal?: RemovalInput },
   { afterCommit, db, user, userRegions }: Pick<Context, 'afterCommit' | 'db' | 'user' | 'userRegions'>,
 ) {
   const topo = await requireEditableTopoWithFile(db, userRegions, id)
+  const planned = await planRemoval(db, { id, kind: 'topo', regionFk: topo.regionFk }, removal, { user, userRegions })
 
   // topo_routes → topos → files: FK order matters (routes reference the topo, the topo the file).
   await db.delete(topoRoutes).where(eq(topoRoutes.topoFk, id))
@@ -164,8 +167,7 @@ export async function deleteTopoRow(
   })
 
   afterCommit(() => removeFileStorage(storage))
-
-  return { data: { id } }
+  return { removal: planned }
 }
 
 /** Persist a new photo order for a block (drag-reorder). Order = index in the given list. */

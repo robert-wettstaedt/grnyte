@@ -13,6 +13,7 @@ export type ServerMutatorContext = {
   afterCommit: (task: () => Promise<void>) => void
   claims: VerifiedClaims
   user: NonNullable<App.SafeSession['user']>
+  userPermissions: App.Locals['userPermissions']
   userRegions: UserRegion[]
 }
 

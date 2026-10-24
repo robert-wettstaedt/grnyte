@@ -74,6 +74,11 @@ describe('directedWanted', () => {
     }
   })
 
+  it('holds a removal notice to the directed switch, though its inbox row is written regardless', () => {
+    expect(directedWanted({ ...row, notifyDirected: false, sourceType: 'content_removed' })).toBe(false)
+    expect(directedWanted({ ...row, sourceType: 'content_removed' })).toBe(true)
+  })
+
   it('falls back to the directed switch', () => {
     expect(directedWanted({ ...row, notifyDirected: false })).toBe(false)
     expect(directedWanted({ ...row, notifyComments: false, notifyReactions: false })).toBe(true)
@@ -106,6 +111,10 @@ describe('pathnameFor', () => {
 
   it('prefers the bare file surface over the card', () => {
     expect(pathnameFor({ ...row, eventFk: 12, fileFk: 'abc' })).toBe('/f/abc')
+  })
+
+  it('opens a removal notice on its statement', () => {
+    expect(pathnameFor({ ...row, decisionFk: 7, sourceType: 'content_removed' })).toBe('/notices/7')
   })
 
   it('falls back to the inbox for a row that names no card', () => {

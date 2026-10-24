@@ -66,6 +66,9 @@ import { describe, expect, it } from 'vitest'
  * - `setFavorite` 404s unless the stored entity is in a region the caller may read (`checkRegionPermission`)
  * - `updateRouteRow` loads the route through `requireRowForm` with `canEditRoute`
  * - `verifyUpload` proves ownership of the host-side video object
+ * - `previewRemoval` loads the row through `requireRow` and checks `region.delete` on its stored region
+ * - `undoRemovalRow` loads the decision through `requireRow` and checks `canModerate` on its stored region, or app admin
+ * - `readStatement` 404s unless the session is a subject of the stored decision or an app admin
  *
  * Adding a name here that does NOT gate would quietly defeat the whole check, which is why the list
  * is short and why the reason is written down.
@@ -95,6 +98,7 @@ const GATES = new Set([
   'canEditTopo',
   'canHardDelete',
   'canLogAscent',
+  'canModerate',
   'canReadRegion',
   'checkRegionPermission',
   'createAreaRow',
@@ -115,6 +119,8 @@ const GATES = new Set([
   'inviteRegionMemberRow',
   'postCommentRow',
   'previewRegionDeletion',
+  'previewRemoval',
+  'readStatement',
   'removeRegionMemberRow',
   'removeRegionTagRow',
   'renameRegionTagRow',
@@ -148,6 +154,7 @@ const GATES = new Set([
   'setVideoSourceRow',
   'toggleReactionRow',
   'transferRegionOwnership',
+  'undoRemovalRow',
   'updateAreaRow',
   'updateAscentRow',
   'updateBlockRow',
@@ -182,6 +189,8 @@ const NO_GATE: Record<string, string> = {
     "Privileged, as `submitFeedback`: a new row only, `createdBy` from the session, and the mutate endpoint's verified token is the gate.",
   'lib/entities/file/files.remote.ts#createBunnyVideo':
     "Takes no id at all: it mints an empty video object in the caller's own host collection, and the region gate runs at finalizeVideo, which is where an entity to attach to is finally named.",
+  'lib/entities/moderation/moderation.remote.ts#listDecisions':
+    'Not region scoped: it lists the decisions of every region for the operator. Gated on app.admin through requireAppAdmin, like listErrorLogs.',
   'lib/entities/notification/mutators.server.ts#notifications.markFeedSeen':
     "Moves the caller's own feed watermark, the same body as `markEventFeedSeen`: the settings row is addressed by the session user, and `userId` only steers the client's optimistic write.",
   'lib/entities/notification/mutators.server.ts#notifications.markRead':

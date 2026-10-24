@@ -1,11 +1,19 @@
-import { asCaller, defineServerMutator } from '$lib/zero/serverMutator.server'
-import { commentIdSchema, postCommentSchema, toggleReactionSchema } from './dto'
-import { deleteCommentRow, postCommentRow, restoreCommentRow, toggleReactionRow } from './edit.server'
+import { asCaller, asPrivileged, defineServerMutator } from '$lib/zero/serverMutator.server'
+import { commentIdSchema, deleteCommentSchema, postCommentSchema, toggleReactionSchema } from './dto'
+import {
+  deleteCommentRow,
+  postCommentRow,
+  restoreCommentRow,
+  toggleReactionRow,
+  writeCommentDelete,
+} from './edit.server'
 
 export const reactionsServerMutatorDefs = {
   reactions: {
-    deleteComment: defineServerMutator(commentIdSchema, async ({ args, ctx, tx }) => {
-      const { data } = await asCaller(tx, ctx, (db) => deleteCommentRow(args, { ...ctx, db }))
+    deleteComment: defineServerMutator(deleteCommentSchema, async ({ args, ctx, tx }) => {
+      const { data, plan } = await asCaller(tx, ctx, (db) => deleteCommentRow(args, { ...ctx, db }))
+      // Gated above on the stored row; clearing its author is past RLS, so only the login role writes it.
+      await asPrivileged(tx, (db) => writeCommentDelete(db, plan, ctx.afterCommit))
       return data
     }),
     postComment: defineServerMutator(postCommentSchema, async ({ args, ctx, tx }) => {
@@ -13,7 +21,8 @@ export const reactionsServerMutatorDefs = {
       return data
     }),
     restoreComment: defineServerMutator(commentIdSchema, async ({ args, ctx, tx }) => {
-      await asCaller(tx, ctx, (db) => restoreCommentRow(args, { ...ctx, db }))
+      // Privileged: the kept copy is readable to nobody but the login role; the body gates on its author.
+      await asPrivileged(tx, (db) => restoreCommentRow(args, { ...ctx, db }))
     }),
     toggle: defineServerMutator(toggleReactionSchema, async ({ args, ctx, tx }) => {
       const { data } = await asCaller(tx, ctx, (db) => toggleReactionRow(args, { ...ctx, db }))

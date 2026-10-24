@@ -1,3 +1,4 @@
+import type { RemovalInput } from '$lib/entities/moderation/dto'
 import type * as z from '$lib/forms/zod'
 import { mutators } from '$lib/zero/mutators'
 import { write } from '$lib/zero/write'
@@ -9,7 +10,7 @@ export const createTopo = (blockId: number, fileId: string) =>
 export const replaceTopoImage = (topoId: number, fileId: string) =>
   write<{ id: number }>(mutators.topos.replaceImage({ fileId, topoId }))
 
-export const deleteTopo = (id: number) => write<{ id: number }>(mutators.topos.delete({ id }))
+export const deleteTopo = (id: number, removal?: RemovalInput) => write(mutators.topos.delete({ id, removal }))
 
 export const reorderTopos = (args: z.input<typeof reorderToposSchema>) => write(mutators.topos.reorder(args))
 

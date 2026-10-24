@@ -1,3 +1,4 @@
+import type { RemovalInput } from '$lib/entities/moderation/dto'
 import { mutators } from '$lib/zero/mutators'
 import { write } from '$lib/zero/write'
 import { entityHref } from '../href'
@@ -11,4 +12,4 @@ export const updateAscent = (values: AscentFormInput) =>
     redirectTo: ({ routeFk }) => entityHref('routes', routeFk),
   })
 
-export const deleteAscent = (id: number) => write<{ routeFk: number }>(mutators.ascents.delete({ id }))
+export const deleteAscent = (id: number, removal?: RemovalInput) => write(mutators.ascents.delete({ id, removal }))

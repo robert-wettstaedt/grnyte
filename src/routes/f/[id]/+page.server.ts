@@ -8,6 +8,7 @@ import { toMediaFile } from '$lib/entities/file/mapper'
 import { hasDeletedParent } from '$lib/entities/file/parentDeleted.server'
 import { canDeleteFile, canEditFile } from '$lib/entities/file/permissions'
 import { toGrade } from '$lib/entities/grade/mapper'
+import { offersRemovalChoice } from '$lib/entities/moderation/permissions'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -192,6 +193,7 @@ export const load = (async ({ locals, params }) => {
       : {
           canDelete: canDeleteFile(locals.userRegions, locals.user?.id, file),
           canEdit: canEditFile(locals.userRegions, locals.user?.id, file),
+          choice: offersRemovalChoice(locals.userRegions, row.regionFk, row.createdBy === locals.user?.id),
           // Only read after a delete, which a non-member cannot make, and an id like the ones below.
           parent: isMember ? parent : null,
           shareText: file.route?.name ?? '',

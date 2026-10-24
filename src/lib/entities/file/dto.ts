@@ -1,5 +1,6 @@
 import type { AscentType } from '$lib/entities/ascent/dto'
 import type { Author } from '$lib/entities/displayName'
+import { removalSchema } from '$lib/entities/moderation/dto'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 
@@ -90,5 +91,8 @@ export const fileVisibilitySchema = z.object({
 export const videoSourceSchema = z.object({ fileId: fileIdSchema, source: z.nullable(sourceUrl) })
 
 export const deleteFileSchema = z.object({ id: fileIdSchema })
+
+/** The `/f` command keeps the plain schema, since it cannot record a removal. */
+export const removeFileSchema = z.extend(deleteFileSchema, { removal: z.optional(removalSchema) })
 
 export type FileVisibility = z.output<typeof fileVisibilitySchema>['visibility']

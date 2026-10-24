@@ -1,3 +1,4 @@
+import type { RemovalInput } from '$lib/entities/moderation/dto'
 import type * as z from '$lib/forms/zod'
 import { mutators } from '$lib/zero/mutators'
 import { write } from '$lib/zero/write'
@@ -12,6 +13,7 @@ export const postComment = (args: z.input<typeof postCommentSchema>) =>
   write<number>(mutators.reactions.postComment(args))
 
 /** Answers the id back, which is what Undo restores. */
-export const deleteComment = (commentId: number) => write<number>(mutators.reactions.deleteComment({ commentId }))
+export const deleteComment = (commentId: number, removal?: RemovalInput) =>
+  write<number>(mutators.reactions.deleteComment({ commentId, removal }))
 
 export const restoreComment = (commentId: number) => write(mutators.reactions.restoreComment({ commentId }))

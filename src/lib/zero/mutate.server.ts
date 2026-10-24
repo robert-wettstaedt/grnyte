@@ -27,7 +27,7 @@ export async function handleMutate(request: Request, registry = serverMutators):
   if (!caller.ok || caller.extra == null) {
     error(401)
   }
-  const { claims, extra: user, userRegions } = caller
+  const { claims, extra: user, permissions, userRegions } = caller
   const authUserId = claims.sub
 
   const deferred: (() => Promise<void>)[] = []
@@ -40,6 +40,7 @@ export async function handleMutate(request: Request, registry = serverMutators):
         afterCommit: (task) => void mine.push(task),
         claims,
         user,
+        userPermissions: permissions.userPermissions,
         userRegions,
       }
       const response = await transact((tx, name, args) => {
