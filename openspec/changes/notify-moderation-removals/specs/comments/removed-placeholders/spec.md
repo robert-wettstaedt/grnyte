@@ -8,7 +8,7 @@ Keeps a comment thread readable when one of its comments goes: the replies other
 
 ### Requirement: A removed comment with replies leaves a placeholder
 
-When a comment that has replies is removed by a region admin or deleted by its author, it SHALL be replaced for every member by a placeholder, and its replies SHALL stay. The placeholder SHALL read "Removed by a region admin" or "Deleted by its author", SHALL keep the comment's time, and SHALL NOT show its author's name or avatar.
+When a comment that has replies is removed by a region admin or deleted by its author, it SHALL be replaced for every member by a placeholder, and its replies SHALL stay. The placeholder SHALL read "Removed by a region admin" or "Deleted by its author", SHALL keep the comment's time, and SHALL NOT show its author's name or avatar. The placeholder SHALL carry neither the comment's words nor its author to any member's device.
 
 #### Scenario: Admin removes a thread root
 

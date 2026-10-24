@@ -28,7 +28,7 @@ See proposal.md for why and the specs for the behaviour. Facts that shape the ap
 
 ### One table, written by one function
 
-`moderation_decisions`: `id`, `region_fk`, `actor_fk` (the admin, nullable for account deletion), `object_type` and `object_id` (what the admin picked), `ground` (enum of the six grounds), `reason` (text, required), `created_at`, `reversed_at`, `reversed_by_fk`. A child table `moderation_decision_subjects` lists each affected author (`decision_fk`, `user_fk` nullable, a short description of what of theirs went), because one area removal can reach several authors. A report table will reference `moderation_decisions` later.
+`moderation_decisions`: `id`, `region_fk`, `actor_fk` (the admin, nullable for account deletion), `object_type` and `object_id` (what the admin picked), `ground` (enum of the six grounds), `reason` (text, required), `removed_body` (a removed comment's text), `created_at`, `reversed_at`, `reversed_by_fk`. A child table `moderation_decision_subjects` lists each affected author (`decision_fk`, `user_fk` nullable, a short description of what of theirs went), because one area removal can reach several authors. A report table will reference `moderation_decisions` later.
 
 A new `moderation/record.server.ts` exports `recordRemoval(tx, { regionFk, actorFk, object, ground, reason, subjects })`, called inside each delete path's transaction before its first delete, so the subjects are collected from rows that still exist. It writes the decision and subjects and queues the notices with `afterCommit`. Each delete path gains an optional `{ ground, reason }` argument; absent means tidying up, and the path refuses it for a comment by another member.
 
@@ -40,7 +40,7 @@ The delete path collects, from the rows it is about to remove, every distinct no
 
 ### The notice bypasses settings for the inbox only
 
-A new source type `content_removed` (and `content_restored`) in `sourceType.ts` with `row: true` and the directed push category. `notify` gains a path that skips `notificationRecipients`' settings filter for inbox rows while still applying it to push, the one case where a notice is a legal statement rather than a nudge. The caption renders ground, reason, region and the clause 13 appeal line from the decision, joined at read time, so the notice row stays small.
+A new source type `content_removed` (and `content_restored`) in `sourceType.ts` with `row: true` and the directed push category. Settings already gate only push (`sendDirected` reads `notify_directed`), never the inbox row, so `notify` needs no new path; a test pins it for these types. The caption renders ground, reason, region and the clause 13 appeal line from the decision, joined at read time, so the notice row stays small.
 
 ### The notice is keyed by its decision
 
@@ -48,11 +48,15 @@ A new source type `content_removed` (and `content_restored`) in `sourceType.ts` 
 
 ### Undo and reversal
 
-Undo calls the restore path of the content type with the decision id: it sets `reversed_at`, deletes unread `content_removed` rows for the decision, and writes `content_restored` for read ones. Areas, blocks, routes, ascents and comments soft-delete (`deleted_at`); areas, blocks, routes and comments already offer Undo, and the app-admin reversal restores any of the five. Topos and media files hard-delete, so their reversal marks the decision reversed and tells the author, and clause 13 already says restoring is done where technically possible.
+Undo calls the restore path of the content type with the decision id: it sets `reversed_at`, deletes unread `content_removed` rows for the decision, and writes `content_restored` for read ones. Areas, blocks, routes, ascents and comments soft-delete (`deleted_at`), and a removal always does, even inside the grace window a tidy-up would hard-delete in, so the reversal has a row to restore; areas, blocks, routes and comments already offer Undo, and the app-admin reversal restores any of the five. Topos and media files hard-delete, so their reversal marks the decision reversed and tells the author, and clause 13 already says restoring is done where technically possible.
 
 ### Placeholders replace cascading reply deletes
 
-`deleteCommentRow` stops calling `dropComment` for replies when they belong to other people: the root is soft-deleted with a `removed_by` marker (`author` or `admin`), and the comment list keeps a soft-deleted root that still has live replies, rendered as a placeholder. A root with no live replies stays hidden as today. `restoreReplies` remains for rows already cascaded before this change.
+`deleteCommentRow` stops calling `dropComment` for replies when they belong to other people: the root is soft-deleted with a `removed_by` marker (`author` or `admin`), and the comment list keeps a soft-deleted root that still has live replies, rendered as a placeholder. A root with no live replies stays hidden as today. The reply cascade (`dropComment`, `restoreReplies`) is removed rather than kept beside it: a root deleted before the deploy and undone after it comes back without its replies, which was accepted. Restoring a reply no longer requires a live root, since a reply under a placeholder is visible.
+
+### A deleted comment's row keeps nothing of its author
+
+Zero syncs whole rows, and a deleted root with live replies syncs to every reader as its placeholder. So every comment delete, an author's or an admin's, blanks `reactions.body` and clears `user_fk` and `auth_user_fk` in the same transaction, on the privileged handle (RLS lets nobody clear the author, the author included). What Undo needs lives where no query reaches: an admin removal keeps the body in `moderation_decisions.removed_body` and the author in its subject, an author's own delete keeps both in `deleted_comments` for the one-day Undo. The cleanup cron drops `deleted_comments` rows older than a day, and an account deletion drops its owner's by cascade. Comment deletes undone server-side were rejected: an Undo that only cancels a send the client has not made yet loses the delete when the app is killed inside the window.
 
 ### Screens
 
@@ -80,8 +84,11 @@ The cleanup cron deletes decisions older than three years. `deleteAccountData` n
 - [The preview and the delete can disagree if content changes in between] → the delete recomputes the subjects in its transaction; the preview is only what the admin reads.
 - [Collecting subjects for a large area walks many rows] → only on the rule-breaking path, which is rare; tidying up skips it.
 - [Changing the author's own thread-root delete] → existing cascaded rows stay as they are; only new deletes keep replies.
+- [The statement says no report triggered the removal] → true while reports do not exist; the reporting change must make that line depend on whether a report is linked to the decision.
 - [Notice bypassing settings] → limited to `content_removed` and `content_restored`; a test pins that other types still honour settings.
+- [Notice reaching someone who left the region] → intended: the statement is owed to whoever posted the content. The `outlivesMembership` trait lets these two types past the recipient filter, the push re-check and the inbox's region gate, and the notifications SELECT policy is built from the same list (`OUTLIVES_MEMBERSHIP`), so the two cannot drift.
+- [Reversal hands the restores full region rights] → `restoreAreaRow`, `restoreBlockRow` and `restoreRouteRow` gate on the caller's region permissions, so reversal passes a synthesised full-rights entry for the decision's stored region. A later tightening of those gates changes reversal silently; splitting each into a gate and an ungated core is a follow-up change.
 
 ## Migration Plan
 
-One migration, 0139, for the two tables, the `removed_by` marker and `notifications.decision_fk`. Ships in the same release as account deletion, migration first, zero-cache, then the app, with one member email for the terms changes in both.
+One migration, 0139: the two decision tables, `deleted_comments`, the `removed_by` marker, `notifications.decision_fk`, the notifications SELECT policy widened for the two removal notice types, and a backfill that blanks the words and author of every comment already deleted. Ships in the same release as account deletion, migration first, zero-cache, then the app, with one member email for the terms changes in both.
