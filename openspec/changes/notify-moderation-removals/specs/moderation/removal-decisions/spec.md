@@ -93,7 +93,7 @@ A maintainer deleting another member's topo, as clause 15 allows, SHALL only be 
 
 ### Requirement: Every affected author is told
 
-A rule-breaking removal SHALL send each distinct author whose content it removed, including content removed with it, one in-app notice naming what of theirs was removed, the region, that a region admin removed it, the ground, the reason and how to appeal under terms clause 13. The notice SHALL reach the inbox regardless of notification settings; push SHALL follow them. A deleted account SHALL receive nothing.
+A rule-breaking removal SHALL send each distinct author whose content it removed, including content removed with it, one in-app notice naming what of theirs was removed, the region, that a region admin removed it, the ground, the reason and how to appeal under terms clause 13. The notice SHALL reach the inbox regardless of notification settings, and of whether the author is still a member of the region; push SHALL follow the settings. A deleted account SHALL receive nothing.
 
 #### Scenario: An area with two authors' routes
 
@@ -131,7 +131,7 @@ A removal notice SHALL name the removed item (for a comment, the start of its te
 
 ### Requirement: Undo reverses the decision
 
-Undoing a rule-breaking removal SHALL restore the content, mark the decision reversed and withdraw each unread notice. An author who already read the notice SHALL receive a short notice that the content was restored.
+Undoing a rule-breaking removal SHALL restore the content, mark the decision reversed and withdraw each unread notice. An author who already read the notice SHALL receive a short notice that the content was restored. The admin who made the decision SHALL be offered the Undo after removing an area, block, route, ascent or comment; a photo, video or topo removal SHALL offer none, since nothing could come back.
 
 #### Scenario: Undo before it is read
 
