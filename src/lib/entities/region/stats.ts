@@ -48,6 +48,10 @@ export interface RegionSummary {
   lastActivityAt: number | undefined
   members: number
   name: DisplayName
+  /** How long its open reports have waited, and how many there are. Never what they say. */
+  oldestReportAt: number | undefined
+  openReports: number
+  youngestReportAt: number | undefined
 }
 
 /**

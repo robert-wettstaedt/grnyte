@@ -187,4 +187,31 @@ describe('notificationView', () => {
     expect(photo('content_removed')).toBe('A region admin removed your photo or video on “Odin”')
     expect(photo('content_restored')).toBe('The removal of your photo or video on “Odin” was reversed')
   })
+
+  const report = (sourceType: NotificationSourceType, notice: object) =>
+    notificationView(notification({ metadata: JSON.stringify(notice), object: undefined, sourceType }))
+
+  it.each([
+    ['content_reported', { kind: 'route', name: 'Odin' }, 'notifications_contentReported'],
+    ['content_reported', { kind: 'comment' }, 'notifications_contentReportedComment'],
+    ['report_closed', { kind: 'route', name: 'Odin', outcome: 'acted_on' }, 'notifications_reportActedOn'],
+    ['report_closed', { kind: 'comment', outcome: 'acted_on' }, 'notifications_reportActedOnComment'],
+    ['report_closed', { kind: 'route', name: 'Odin', outcome: 'stays' }, 'notifications_reportStays'],
+    ['report_closed', { kind: 'comment', outcome: 'stays' }, 'notifications_reportStaysComment'],
+    // A leaf goes by what holds it, so the sentence names its kind, as a removal notice does.
+    ['content_reported', { kind: 'file', name: 'Odin' }, 'notifications_contentReportedFile'],
+    ['report_closed', { kind: 'ascent', name: 'Odin', outcome: 'acted_on' }, 'notifications_reportActedOnAscent'],
+    ['report_closed', { kind: 'topo', name: 'Block 3', outcome: 'stays' }, 'notifications_reportStaysTopo'],
+  ] as [NotificationSourceType, object, string][])('words a %s notice on %o as %s', (sourceType, notice, key) => {
+    expect(report(sourceType, notice).key).toBe(key)
+  })
+
+  it('names what was reported, and nobody involved', () => {
+    const view = report('report_closed', { kind: 'route', name: 'Odin', outcome: 'stays' })
+    const sentence = resolveMessage(view.key, view.params)
+
+    expect(sentence).toContain('Odin')
+    expect(sentence).not.toContain('Anna')
+    expect(view.ref).toBeUndefined()
+  })
 })

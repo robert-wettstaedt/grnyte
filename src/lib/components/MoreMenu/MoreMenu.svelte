@@ -8,13 +8,15 @@
   interface Props {
     /** Menu body; receives a `close` callback to dismiss the sheet after an action. */
     children: Snippet<[close: () => void]>
+    /** Subtitled "Manage" unless the reader can only report. */
+    manage?: boolean
     /** Desktop: the map-sheet side panel (default), or a trigger-anchored popover for standalone pages. */
     panel?: boolean
     /** Sheet title, usually the entity name. */
     title: string
   }
 
-  const { children, panel = true, title }: Props = $props()
+  const { children, manage = true, panel = true, title }: Props = $props()
 
   let open = $state(false)
 </script>
@@ -28,7 +30,7 @@
   {panel}
   panelClass={panel ? 'fixed inset-0 left-[31.25rem] z-60 flex items-start py-2 lg:left-[35.25rem]' : undefined}
   contentClass={panel ? 'max-h-[calc(100dvh-6rem)] w-80' : 'w-80'}
-  subtitle={m.areas_manage()}
+  subtitle={manage ? m.areas_manage() : undefined}
   {title}
 >
   {#snippet trigger(props)}

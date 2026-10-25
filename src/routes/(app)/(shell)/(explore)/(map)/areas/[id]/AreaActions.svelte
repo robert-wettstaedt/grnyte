@@ -13,6 +13,8 @@
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
   import { createRemovalChoice } from '$lib/entities/moderation/choice.svelte'
   import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
+  import { canReport } from '$lib/entities/report/permissions'
+  import ReportRow from '$lib/entities/report/ReportRow.svelte'
   import type { Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -33,6 +35,9 @@
 
   const { area, blockCount, destination, locating, location, save }: Props = $props()
   const global = getGlobalState()
+  const reportable = $derived(
+    canReport(global.userRegions, global.user?.id, { authorFk: area.createdBy, regionFk: area.regionFk }),
+  )
 
   const canEdit = $derived(canEditArea(global.userRegions, area))
   const canDelete = $derived(canDeleteArea(global.userRegions, global.user?.id, area))
@@ -91,8 +96,8 @@
 
     <EntityTools {destination} {save} shareText={area.name} />
 
-    {#if showAdd || canEdit || canDelete}
-      <MoreMenu title={area.name}>
+    {#if showAdd || canEdit || canDelete || reportable}
+      <MoreMenu manage={showAdd || canEdit || canDelete} title={area.name}>
         {#snippet children(close)}
           {#if showAdd}
             <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.common_add()}</h3>
@@ -154,6 +159,10 @@
                 void choice.start()
               }}
             />
+          {/if}
+
+          {#if reportable}
+            <ReportRow id={area.id} kind="area" onclick={close} />
           {/if}
         {/snippet}
       </MoreMenu>

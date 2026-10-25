@@ -115,6 +115,7 @@ describe('pathnameFor', () => {
 
   it('opens a removal notice on its statement', () => {
     expect(pathnameFor({ ...row, decisionFk: 7, sourceType: 'content_removed' })).toBe('/notices/7')
+    expect(pathnameFor({ ...row, regionFk: 3, sourceType: 'content_reported' })).toBe('/regions/3/moderation')
   })
 
   it('falls back to the inbox for a row that names no card', () => {

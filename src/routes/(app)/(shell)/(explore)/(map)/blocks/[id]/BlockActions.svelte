@@ -14,6 +14,8 @@
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
   import { createRemovalChoice } from '$lib/entities/moderation/choice.svelte'
   import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
+  import { canReport } from '$lib/entities/report/permissions'
+  import ReportRow from '$lib/entities/report/ReportRow.svelte'
   import { canAddRoute } from '$lib/entities/route/permissions'
   import { canEditTopo } from '$lib/entities/topo/permissions'
   import { m } from '$lib/paraglide/messages'
@@ -31,6 +33,9 @@
 
   const { block, location, routeCount, save }: Props = $props()
   const global = getGlobalState()
+  const reportable = $derived(
+    canReport(global.userRegions, global.user?.id, { authorFk: block.createdBy, regionFk: block.regionFk }),
+  )
 
   const canEdit = $derived(canEditBlock(global.userRegions, block))
   const canDelete = $derived(canDeleteBlock(global.userRegions, global.user?.id, block))
@@ -75,10 +80,14 @@
 
     <EntityTools {destination} {save} shareText={block.name} />
 
-    {#if canEdit || canDelete || canAddRouteHere || canEditTopos}
-      <MoreMenu title={block.name}>
+    {#if canEdit || canDelete || canAddRouteHere || canEditTopos || reportable}
+      <MoreMenu manage={canEdit || canDelete || canAddRouteHere || canEditTopos} title={block.name}>
         {#snippet children(close)}
-          <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.areas_manage()}</h3>
+          {#if canEdit || canDelete || canAddRouteHere || canEditTopos}
+            <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">
+              {m.areas_manage()}
+            </h3>
+          {/if}
 
           {#if canAddRouteHere}
             <MenuRow
@@ -114,6 +123,10 @@
                 void choice.start()
               }}
             />
+          {/if}
+
+          {#if reportable}
+            <ReportRow id={block.id} kind="block" onclick={close} />
           {/if}
         {/snippet}
       </MoreMenu>

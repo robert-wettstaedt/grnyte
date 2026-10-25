@@ -215,5 +215,6 @@ export const load = (async ({ locals, params }) => {
           file.uploader == null ? undefined : { id: file.uploader.id == null ? null : 0, name: file.uploader.name },
       }
 
-  return { controls, file: clientFile, grades, gradingScale, user }
+  // A member reports in the app; anyone else only through the legal channel.
+  return { controls, file: clientFile, grades, gradingScale, legalReport: !isMember, user }
 }) satisfies PageServerLoad

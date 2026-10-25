@@ -32,6 +32,7 @@ export const NOTIFICATION_CONFLICT_TARGET = [
   notifications.routeFk,
   notifications.subjectFk,
   notifications.decisionFk,
+  notifications.objectRef,
 ]
 
 /** One recipient, in both the shapes a row needs: the app's id and the one RLS compares. */
@@ -43,8 +44,8 @@ export interface NotificationRecipient {
 /** What a mutation hands over: who did what to which entity, and who might want to know. */
 export interface NotifyInput {
   /** Who caused it. Dropped from the recipients so nobody is told about their own edit, unless the
-   *  source type is `selfAddressed` (see `sourceTraits`). */
-  actorFk: number
+   *  source type is `selfAddressed` (see `sourceTraits`). Null when nobody did: a scheduled task. */
+  actorFk: null | number
   decisionFk?: number
   /**
    * Which card, for the source types that are about one. Part of the idempotency key, so two
@@ -55,6 +56,8 @@ export interface NotifyInput {
   metadata?: string
   /** What the row is about. Written into whichever of the six typed columns matches its type. */
   object?: EventObject
+  /** `kind:id` of a reported object, which may have no object column or be gone. */
+  objectRef?: string
   /** Which comment, so the inbox can point at the row rather than at the card. */
   reactionFk?: number
   regionFk: number
@@ -76,7 +79,7 @@ export interface NotifyInput {
 export async function notificationRecipients(
   regionFk: number,
   userFks: readonly number[],
-  actorFk: number,
+  actorFk: null | number,
   sourceType?: NotificationSourceType,
 ): Promise<NotificationRecipient[]> {
   const keepActor = sourceType != null && sourceTraits(sourceType).selfAddressed
@@ -133,12 +136,12 @@ export async function notify(input: NotifyInput): Promise<void> {
       .insert(notifications)
       .values(
         recipients.map((recipient) => ({
-          // A removal notice never names the admin, down to the row the reader's device syncs.
-          actorFk: input.decisionFk == null ? input.actorFk : null,
+          actorFk: sourceTraits(input.sourceType).anonymous ? null : input.actorFk,
           authUserFk: recipient.authUserFk,
           decisionFk: input.decisionFk,
           eventFk: input.eventFk,
           metadata: input.metadata,
+          objectRef: input.objectRef,
           reactionFk: input.reactionFk,
           regionFk: input.regionFk,
           sourceType: input.sourceType,
@@ -167,7 +170,8 @@ export async function notify(input: NotifyInput): Promise<void> {
           reactionFk: sql`excluded.reaction_fk`,
           readAt: null,
         },
-        setWhere: isNotNull(notifications.readAt),
+        // A report notice is the latest word on its object, so it replaces an unread one too.
+        setWhere: input.objectRef == null ? isNotNull(notifications.readAt) : undefined,
         // The whole key, in one target rather than the two partial ones this replaced: the card and
         // the object are both in it, and the nulls compare equal (see `notifications_source_idx`),
         // so a row that is about a card is separated by the card and a row that is not is separated

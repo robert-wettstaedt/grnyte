@@ -43,7 +43,8 @@ export async function previewRemoval(
 
 const author = { columns: { id: true, username: true } } as const
 
-async function itemOf(
+/** What the removal and report forms show of the object; nothing here checks anybody. */
+export async function itemOf(
   db: Context['db'],
   kind: RemovableKind,
   id: string,

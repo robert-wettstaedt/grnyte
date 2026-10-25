@@ -1,8 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import Image from '$lib/components/Image/Image.svelte'
-  import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import { deleteArea } from '$lib/entities/area/writes'
@@ -11,14 +9,15 @@
   import { deleteFile } from '$lib/entities/file/writes'
   import {
     goneForGood,
-    moderationGround,
     REASON_MAX,
     removalSchema,
+    type ModerationGround,
     type RemovableKind,
     type RemovalInput,
     type RemovalPreview,
   } from '$lib/entities/moderation/dto'
-  import { GROUND_LABELS } from '$lib/entities/moderation/mapper'
+  import GroundField from '$lib/entities/moderation/GroundField.svelte'
+  import ItemCard from '$lib/entities/moderation/ItemCard.svelte'
   import { removalPreview } from '$lib/entities/moderation/moderation.remote'
   import { undoRemoval } from '$lib/entities/moderation/writes'
   import { deleteComment } from '$lib/entities/reaction/writes'
@@ -29,15 +28,19 @@
   import { isAuthoredMessage, resolveIssueMessage, serverMessage } from '$lib/forms/issue'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { back } from '$lib/state/navigation.svelte'
+  import { back, exit } from '$lib/state/navigation.svelte'
   import { notifyUndo, toaster } from '$lib/state/toast'
 
   interface Props {
+    /** Preselected, from a report; the reason stays the admin's own. */
+    ground?: ModerationGround
     id: string
     kind: RemovableKind
+    /** Where to land once removed, when that is not the item's home: the reports queue. */
+    returnTo?: string
   }
 
-  const { id, kind }: Props = $props()
+  const { ground, id, kind, returnTo }: Props = $props()
 
   const store = createFormStore(removalSchema)
   const query = $derived(removalPreview({ id, kind }))
@@ -82,13 +85,14 @@
     }
   }
 
-  const onSubmitted = () => {
+  const onSubmitted = async () => {
     const target = removed
     if (target != null && !goneForGood(target.kind)) {
       notifyUndo({ message: m.moderation_removed(), onUndo: () => undoRemoval(target.kind, target.id) })
     } else {
       toaster.create({ title: m.moderation_removed(), type: 'success' })
     }
+    if (returnTo != null) await exit(returnTo)
   }
 
   const told = ({ names, others }: Pick<RemovalPreview, 'names' | 'others'>) =>
@@ -113,6 +117,8 @@
     cancelTo={preview.data?.item.home ?? resolve('/feed')}
     destructive
     {onSubmitted}
+    stayOnSubmit={returnTo != null}
+    seed={() => (ground == null ? {} : { ground })}
     {store}
     {submit}
     submitLabel={m.moderation_submit()}
@@ -120,49 +126,9 @@
     {waitFor}
   >
     {#snippet fields([{ item, ...people }])}
-      <section class="card bg-surface-100-900 space-y-2 p-4">
-        {#if item.image != null}
-          <Image
-            alt={m.moderation_photo()}
-            class="aspect-[4/3] w-full overflow-hidden rounded-lg"
-            path={item.image}
-            previewWidth={1024}
-          />
-        {/if}
-        {#if item.title !== ''}
-          <h2 class="text-surface-950-50 font-semibold">{item.title}</h2>
-        {/if}
-        {#if item.byline != null}
-          <p class="text-surface-600-400 text-xs">{m.moderation_byline({ name: item.byline })}</p>
-        {/if}
-        {#if item.body != null && item.body !== ''}
-          <Markdown
-            className={kind === 'comment' ? 'text-sm break-words' : 'line-clamp-6 text-sm break-words'}
-            markdown={item.body}
-          />
-        {/if}
-      </section>
+      <ItemCard {item} {kind} />
 
-      <FieldWrapper field={store.fields.ground} id="removal-ground" required>
-        {#snippet children(props)}
-          <fieldset {...props} class="space-y-1">
-            <legend class="text-surface-700-300 mb-1.5 text-sm font-semibold">{m.moderation_ground()}</legend>
-            {#each moderationGround as ground (ground)}
-              <label class="hover:bg-surface-100-900 flex min-h-11 items-center gap-3 rounded-lg px-2 text-sm">
-                <input
-                  checked={store.fields.ground.value() === ground}
-                  class="radio"
-                  name="ground"
-                  type="radio"
-                  value={ground}
-                  onchange={() => store.fields.ground.set(ground)}
-                />
-                {GROUND_LABELS[ground]()}
-              </label>
-            {/each}
-          </fieldset>
-        {/snippet}
-      </FieldWrapper>
+      <GroundField field={store.fields.ground} id="removal-ground" legend={m.moderation_ground()} />
 
       <FieldWrapper
         field={store.fields.reason}

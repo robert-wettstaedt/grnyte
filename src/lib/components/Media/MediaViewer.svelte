@@ -10,6 +10,7 @@
   (where d3's pan is a no-op), leaving pinch-zoom and zoomed panning entirely to d3.
 -->
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import ConfirmDialog from '$lib/components/Dialog/Dialog.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { isNavKeyExempt } from '$lib/components/SiblingNav/siblingNav'
@@ -18,6 +19,8 @@
   import { deleteFile } from '$lib/entities/file/writes'
   import { offersRemovalChoice } from '$lib/entities/moderation/permissions'
   import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
+  import { canReport } from '$lib/entities/report/permissions'
+  import { myOpenReport } from '$lib/entities/report/resources.svelte'
   import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -83,6 +86,18 @@
   const canEdit = $derived(canEditFile(global.userRegions, global.user?.id, currentFile))
   const canDelete = $derived(canDeleteFile(global.userRegions, global.user?.id, currentFile))
   const ownFile = $derived(currentFile.uploader?.id != null && currentFile.uploader.id === global.user?.id)
+  // Only once the uploader is known: without the relation an own file would read as somebody else's.
+  const reportable = $derived(
+    currentFile.uploader != null &&
+      canReport(global.userRegions, global.user?.id, {
+        authorFk: currentFile.uploader.id,
+        regionFk: currentFile.regionFk,
+      }),
+  )
+  const reported = myOpenReport(
+    () => 'file',
+    () => currentFile.id,
+  )
   // Only route videos carry a source (ascent clips are your own footage, and their picker
   // never asks for one). An unset `ascentCreatedBy` is what says "not ascent media".
   const canEditSource = $derived(canEdit && currentFile.bunnyStreamFk != null && currentFile.ascentCreatedBy == null)
@@ -390,6 +405,16 @@
             {/if}
 
             <ShareSheet file={currentFile} {canEdit} {shareText} bind:open={shareOpen} />
+
+            {#if reportable}
+              <a
+                aria-label={reported.data == null ? m.reports_entry() : m.reports_reported()}
+                class={MEDIA_TOOL}
+                href={resolve('/(app)/report/[kind=removable]/[id]', { id: currentFile.id, kind: 'file' })}
+              >
+                <Icon name="flag" fill={reported.data == null ? 'none' : 'currentColor'} size={20} />
+              </a>
+            {/if}
 
             {#snippet deleteTrigger(props: HTMLButtonAttributes)}
               <button {...props} type="button" class={[props.class, MEDIA_TOOL]} aria-label={m.common_delete()}>

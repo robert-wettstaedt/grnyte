@@ -25,6 +25,7 @@
     revokeRegionInvitation,
     updateRegionMemberRole,
   } from '$lib/entities/region/writes'
+  import { listRegionReports } from '$lib/entities/report/reports.remote'
   import type { AppRole, AssignableRole } from '$lib/entities/rolePermission/dto'
   import { resolveIssueMessage } from '$lib/forms/issue'
   import { formError } from '$lib/forms/schemas'
@@ -70,6 +71,9 @@
   // grown here, three of them disagreeing with the mapper.
   const name = $derived(membership == null ? undefined : regionDisplayName(membership))
   const tagCount = $derived(regionTags(global.userRegions, regionId).length)
+  const openReports = $derived(
+    canModerate(global.userRegions, regionId) ? listRegionReports({ regionFk: regionId }).current?.length : undefined,
+  )
   const invitations = $derived(listRegionInvitations({ regionFk: regionId }))
 
   const pending = $derived(invitations.current ?? [])
@@ -265,6 +269,7 @@
               <SettingLink
                 href={resolve('/(app)/regions/[regionId]/moderation', { regionId: String(regionId) })}
                 label={m.moderation_log()}
+                value={openReports == null || openReports === 0 ? undefined : String(openReports)}
               />
             {/if}
 

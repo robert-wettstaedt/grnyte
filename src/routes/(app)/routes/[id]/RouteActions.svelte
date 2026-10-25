@@ -16,6 +16,8 @@
   import { entityHref } from '$lib/entities/href'
   import { createRemovalChoice } from '$lib/entities/moderation/choice.svelte'
   import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
+  import { canReport } from '$lib/entities/report/permissions'
+  import ReportRow from '$lib/entities/report/ReportRow.svelte'
   import type { RouteDetail } from '$lib/entities/route/dto'
   import { canDeleteRoute, canEditRoute } from '$lib/entities/route/permissions'
   import { waitForRoute } from '$lib/entities/route/resources.svelte'
@@ -36,6 +38,9 @@
 
   const { block, location, route, save }: Props = $props()
   const global = getGlobalState()
+  const reportable = $derived(
+    canReport(global.userRegions, global.user?.id, { authorFk: route.createdBy, regionFk: route.regionFk }),
+  )
 
   const canEdit = $derived(canEditRoute(global.userRegions, route))
   const canDelete = $derived(canDeleteRoute(global.userRegions, global.user?.id, route))
@@ -83,10 +88,14 @@
 
     <ShareButton text={route.name} />
 
-    {#if canEdit || canDelete || canEditTopos}
-      <MoreMenu panel={false} title={route.name}>
+    {#if canEdit || canDelete || canEditTopos || reportable}
+      <MoreMenu manage={canEdit || canDelete || canEditTopos} panel={false} title={route.name}>
         {#snippet children(close)}
-          <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.areas_manage()}</h3>
+          {#if canEdit || canDelete || canEditTopos}
+            <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">
+              {m.areas_manage()}
+            </h3>
+          {/if}
 
           {#if canEdit}
             <MenuRow
@@ -111,6 +120,10 @@
                 void choice.start()
               }}
             />
+          {/if}
+
+          {#if reportable}
+            <ReportRow id={route.id} kind="route" onclick={close} />
           {/if}
         {/snippet}
       </MoreMenu>

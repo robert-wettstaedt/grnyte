@@ -69,6 +69,9 @@ import { describe, expect, it } from 'vitest'
  * - `previewRemoval` loads the row through `requireRow` and checks `region.delete` on its stored region
  * - `undoRemovalRow` loads the decision through `requireRow` and checks `canModerate` on its stored region, or app admin
  * - `readStatement` 404s unless the session is a subject of the stored decision or an app admin
+ * - `fileReportRow` loads the object through `requireRow` with `canReport` on its stored region and author;
+ *   `dismissReportsRow` loads the object's reports through `requireRow` with `canModerate` on their region
+ * - `previewReport` loads the object through `requireRow` with `canReport`, as `fileReportRow` does
  *
  * Adding a name here that does NOT gate would quietly defeat the whole check, which is why the list
  * is short and why the reason is written down.
@@ -115,11 +118,14 @@ const GATES = new Set([
   'deleteRegion',
   'deleteRouteRow',
   'deleteTopoRow',
+  'dismissReportsRow',
   'estimateBlockLocationRow',
+  'fileReportRow',
   'inviteRegionMemberRow',
   'postCommentRow',
   'previewRegionDeletion',
   'previewRemoval',
+  'previewReport',
   'readStatement',
   'removeRegionMemberRow',
   'removeRegionTagRow',

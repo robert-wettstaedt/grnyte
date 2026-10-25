@@ -8,6 +8,7 @@ import { moderationServerMutatorDefs } from '$lib/entities/moderation/mutators.s
 import { notificationsServerMutatorDefs } from '$lib/entities/notification/mutators.server'
 import { reactionsServerMutatorDefs } from '$lib/entities/reaction/mutators.server'
 import { regionsServerMutatorDefs } from '$lib/entities/region/mutators.server'
+import { reportsServerMutatorDefs } from '$lib/entities/report/mutators.server'
 import { routesServerMutatorDefs } from '$lib/entities/route/mutators.server'
 import { toposServerMutatorDefs } from '$lib/entities/topo/mutators.server'
 import { usersServerMutatorDefs } from '$lib/entities/user/mutators.server'
@@ -28,4 +29,5 @@ export const serverMutators = defineMutators({
   ...favoritesServerMutatorDefs,
   ...routesServerMutatorDefs,
   ...moderationServerMutatorDefs,
+  ...reportsServerMutatorDefs,
 })

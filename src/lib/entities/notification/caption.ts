@@ -1,5 +1,6 @@
 import type { EventEntityRef } from '$lib/entities/event/entity'
 import type { RemovableKind, RemovedItem } from '$lib/entities/moderation/dto'
+import type { ReportNotice } from '$lib/entities/report/dto'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import type { MessageKey, MessageOptions } from '$lib/i18n/message'
 import type { NotificationListItem, NotificationSourceType } from './dto'
@@ -41,12 +42,14 @@ const KEYS: Record<NotificationSourceType, MessageKey> = {
   comment_reaction: 'notifications_commentReaction',
   comment_reply: 'notifications_commentReply',
   content_removed: 'notifications_contentRemoved',
+  content_reported: 'notifications_contentReported',
   content_restored: 'notifications_contentRestored',
   invitation_received: 'notifications_invitationReceived',
   invite_accepted: 'notifications_inviteAccepted',
   membership_removed: 'notifications_membershipRemoved',
   mention: 'notifications_mention',
   reaction: 'notifications_reaction',
+  report_closed: 'notifications_reportActedOn',
   role_changed: 'notifications_roleChanged',
   video_ready: 'notifications_videoReady',
 }
@@ -78,19 +81,22 @@ export function notificationView(notification: NotificationSubject, options?: Me
   const named = notification.sourceType === 'video_ready' && (notification.objectName ?? '').length > 0
 
   const items = REMOVAL.has(notification.sourceType) ? removedItems(notification.metadata) : []
+  const report = isReportNotice(notification.sourceType) ? reportNotice(notification.metadata) : undefined
 
   return {
     key: named
       ? 'notifications_videoReadyNamed'
       : REMOVAL.has(notification.sourceType)
         ? removalKey(notification.sourceType, items)
-        : role == null && notification.sourceType === 'role_changed'
-          ? 'notifications_roleChangedPlain'
-          : KEYS[notification.sourceType],
+        : report != null
+          ? reportKey(notification.sourceType, report)
+          : role == null && notification.sourceType === 'role_changed'
+            ? 'notifications_roleChangedPlain'
+            : KEYS[notification.sourceType],
     params: {
       actor: notification.actorName,
       count: items.length,
-      name: items.length === 1 ? items[0].name : notification.objectName,
+      name: report?.name ?? (items.length === 1 ? items[0].name : notification.objectName),
       region: notification.regionName,
       role,
     },
@@ -105,6 +111,9 @@ export function notificationView(notification: NotificationSubject, options?: Me
 }
 
 const REMOVAL = new Set<NotificationSourceType>(['content_removed', 'content_restored'])
+const REPORT = new Set<NotificationSourceType>(['content_reported', 'report_closed'])
+
+export const isReportNotice = (sourceType: NotificationSourceType): boolean => REPORT.has(sourceType)
 
 // A leaf goes by what holds it, so its sentence names the kind; a reversed photo was not restored.
 const REMOVED_ONE: Partial<Record<RemovableKind, MessageKey>> = {
@@ -118,6 +127,16 @@ const RESTORED_ONE: Partial<Record<RemovableKind, MessageKey>> = {
   topo: 'notifications_contentReversedTopo',
 }
 
+type ReportSentence = 'actedOn' | 'reported' | 'stays'
+
+function parseMetadata(metadata: null | string | undefined): unknown {
+  try {
+    return JSON.parse(metadata ?? 'null')
+  } catch {
+    return undefined
+  }
+}
+
 function removalKey(sourceType: NotificationSourceType, items: RemovedItem[]): MessageKey {
   const removed = sourceType === 'content_removed'
   if (items.length > 1) return removed ? 'notifications_contentRemovedMany' : 'notifications_contentRestoredMany'
@@ -126,10 +145,41 @@ function removalKey(sourceType: NotificationSourceType, items: RemovedItem[]): M
 }
 
 function removedItems(metadata: null | string | undefined): RemovedItem[] {
-  try {
-    const parsed: unknown = JSON.parse(metadata ?? '[]')
-    return Array.isArray(parsed) ? (parsed as RemovedItem[]) : []
-  } catch {
-    return []
-  }
+  const parsed = parseMetadata(metadata)
+  return Array.isArray(parsed) ? (parsed as RemovedItem[]) : []
+}
+
+// Comments go unnamed; a leaf goes by what holds it, so its sentence names the kind.
+const REPORT_KEYS: Record<ReportSentence, Partial<Record<RemovableKind, MessageKey>> & { named: MessageKey }> = {
+  actedOn: {
+    ascent: 'notifications_reportActedOnAscent',
+    comment: 'notifications_reportActedOnComment',
+    file: 'notifications_reportActedOnFile',
+    named: 'notifications_reportActedOn',
+    topo: 'notifications_reportActedOnTopo',
+  },
+  reported: {
+    ascent: 'notifications_contentReportedAscent',
+    comment: 'notifications_contentReportedComment',
+    file: 'notifications_contentReportedFile',
+    named: 'notifications_contentReported',
+    topo: 'notifications_contentReportedTopo',
+  },
+  stays: {
+    ascent: 'notifications_reportStaysAscent',
+    comment: 'notifications_reportStaysComment',
+    file: 'notifications_reportStaysFile',
+    named: 'notifications_reportStays',
+    topo: 'notifications_reportStaysTopo',
+  },
+}
+
+function reportKey(sourceType: NotificationSourceType, { kind, outcome }: ReportNotice): MessageKey {
+  const keys = REPORT_KEYS[sourceType === 'content_reported' ? 'reported' : outcome === 'stays' ? 'stays' : 'actedOn']
+  return keys[kind] ?? keys.named
+}
+
+function reportNotice(metadata: null | string | undefined): ReportNotice {
+  const parsed = parseMetadata(metadata)
+  return parsed != null && typeof parsed === 'object' ? (parsed as ReportNotice) : { kind: 'comment' }
 }
