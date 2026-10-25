@@ -20,7 +20,7 @@
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { notificationView } from './caption'
+  import { isReportNotice, notificationView } from './caption'
   import type { NotificationListItem } from './dto'
 
   interface Props {
@@ -41,6 +41,11 @@
   // video is deleted, which falls back to the avatar and a tombstone row.
   const media = $derived(notification.sourceType === 'video_ready' ? notification.entity?.files?.[0] : undefined)
 
+  // Anonymous rows show what happened instead of a face.
+  const badge = $derived(
+    notification.decisionFk != null ? 'trash' : isReportNotice(notification.sourceType) ? 'flag' : undefined,
+  )
+
   /**
    * Where this row happened, when it happened under a card.
    *
@@ -52,6 +57,10 @@
   const href = $derived.by(() => {
     if (notification.decisionFk != null) {
       return resolve('/(app)/notices/[decisionId]', { decisionId: String(notification.decisionFk) })
+    }
+
+    if (notification.sourceType === 'content_reported') {
+      return resolve('/(app)/regions/[regionId]/moderation', { regionId: String(notification.regionFk) })
     }
 
     // The parent's page with the viewer open, not `/f/<id>`: that page is a share surface with no
@@ -103,9 +112,9 @@
          A minimum width keeps a portrait clip from rendering as a sliver. -->
     {#if media != null}
       <MediaTile class="h-[34px] min-w-[34px]" compact file={media} />
-    {:else if notification.decisionFk != null}
+    {:else if badge != null}
       <span class="bg-surface-200-800 text-surface-700-300 grid size-[34px] flex-none place-items-center rounded-full">
-        <Icon name="trash" size={16} />
+        <Icon name={badge} size={16} />
       </span>
     {:else}
       <Avatar author={toAuthor(notification.actorFk, notification.actorName)} size={34} solid />

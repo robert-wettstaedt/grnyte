@@ -11,6 +11,8 @@
   import { entityHref } from '$lib/entities/href'
   import { offersRemovalChoice } from '$lib/entities/moderation/permissions'
   import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
+  import { canReport } from '$lib/entities/report/permissions'
+  import ReportButton from '$lib/entities/report/ReportButton.svelte'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { formatDay } from '$lib/i18n/relativeTime'
@@ -55,6 +57,9 @@
   const crumbText = $derived(Array.isArray(crumbs) ? crumbs.join(' · ') : crumbs)
 
   const canEdit = $derived(canEditAscent(global.userRegions, global.user?.id, ascent))
+  const reportable = $derived(
+    canReport(global.userRegions, global.user?.id, { authorFk: ascent.createdBy, regionFk: ascent.regionFk }),
+  )
   // A region admin may delete anybody's ascent, so the confirmation has to say whose it is
   // rather than assuring them it is their own. Same actor/climber split the feed cards make.
   const ownAscent = $derived(global.user?.id != null && ascent.createdBy === global.user.id)
@@ -193,10 +198,13 @@
         </div>
       {/if}
 
-      {#if hasConditions || canEdit}
+      {#if hasConditions || canEdit || reportable}
         <div class="flex items-center gap-2">
           <ConditionsPill humidity={ascent.humidity} temperature={ascent.temperature} />
           <span class="flex-1"></span>
+          {#if reportable}
+            <ReportButton id={ascent.id} kind="ascent" />
+          {/if}
           {#if canEdit}
             <a class="btn btn-sm preset-tonal-surface" href={editHref}>
               <Icon name="edit" size={13} />

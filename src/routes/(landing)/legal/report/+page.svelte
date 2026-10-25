@@ -1,14 +1,20 @@
 <script lang="ts">
-  import { PUBLIC_APPLICATION_NAME as name } from '$env/static/public'
+  import { page } from '$app/state'
+  import { PUBLIC_APPLICATION_NAME as name, PUBLIC_REPORT_EMAIL } from '$env/static/public'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { renderLegal } from '../links'
+  import { reportMailto } from './mailto'
   import de from './report.de.html?raw'
   import en from './report.en.html?raw'
 
   // Long-form legal copy lives in the per-locale .html files. `renderLegal` fills every token in it,
   // including the cross-page links, which go through `resolve()` so a moved route breaks the build.
-  const body = renderLegal(getLocale() === 'de' ? de : en)
+  const body = $derived(
+    renderLegal(getLocale() === 'de' ? de : en, {
+      reportMailto: reportMailto(PUBLIC_REPORT_EMAIL, page.url.searchParams.get('content'), page.url.origin),
+    }),
+  )
 </script>
 
 <svelte:head>

@@ -344,6 +344,35 @@ describe.skipIf(!reachable)('deleteAccount', () => {
   })
 })
 
+describe.skipIf(!reachable)('deleteAccountData, reports', () => {
+  it('takes the reports the person filed and the reports on their content, and no others', async () => {
+    const [ada, ben, cy] = await Promise.all(
+      ['delete_account_reporter', 'delete_account_reported', 'delete_account_bystander'].map((label) =>
+        createThrowawayUser(label),
+      ),
+    )
+    const [{ id: region }] = await sql<{ id: number }[]>`
+      insert into public.regions (name, created_by) values (${PREFIX + 'reports'}, ${cy.userId}) returning id`
+    const reportIds = await sql<{ id: number }[]>`
+      insert into public.content_reports (author_fk, ground, object_id, object_type, region_fk, reporter_fk) values
+        (${ben.userId}, 'spam', '1', 'route', ${region}, ${ada.userId}),
+        (${ada.userId}, 'spam', '2', 'route', ${region}, ${cy.userId}),
+        (${ben.userId}, 'spam', '3', 'route', ${region}, ${cy.userId})
+      returning id`
+
+    try {
+      await db.transaction((tx) => deleteAccountData(tx, { authUserFk: ada.authId, id: ada.userId }, []))
+
+      const left = await sql<{ id: number }[]>`select id from public.content_reports where region_fk = ${region}`
+      expect(left).toEqual([reportIds[2]])
+    } finally {
+      await db.transaction((tx) => deleteRegionRows(tx, region))
+      await sql`delete from public.users where id in (${ben.userId}, ${cy.userId})`
+      await sql`delete from auth.users where id in (${ada.authId}, ${ben.authId}, ${cy.authId})`
+    }
+  })
+})
+
 describe.skipIf(!reachable)('deleteAccountData', () => {
   it('lets two people who reacted to the same card delete their accounts in turn', async () => {
     const [reader, ada, ben] = await Promise.all(

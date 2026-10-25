@@ -18,6 +18,14 @@ vi.mock('$lib/state/global.svelte', () => ({
   getGlobalState: () => ({ userRegions: [{ permissions: viewer.permissions, regionFk: 1 }] }),
 }))
 const nav = vi.hoisted(() => ({ goto: vi.fn() }))
+const reported = vi.hoisted(() => ({ ids: [] as string[] }))
+vi.mock('$lib/entities/report/resources.svelte', () => ({
+  myReportedIds: () => ({
+    get data() {
+      return reported.ids
+    },
+  }),
+}))
 vi.mock('$lib/state/navigation.svelte', () => ({ push: nav.goto }))
 
 const comment = (id: number, createdAt: number, replies: CommentListItem[] = []): CommentListItem => ({
@@ -217,4 +225,38 @@ it('sends a region admin from somebody else comment to its removal page', async 
   expect(screen.getAllByRole('button', { name: 'Remove comment' })).toHaveLength(1)
   await fireEvent.click(screen.getByRole('button', { name: 'Remove comment' }))
   expect(nav.goto).toHaveBeenCalledWith('/remove/comment/4')
+})
+
+it.each([
+  ['a member', ['region.read']],
+  ['a maintainer', ['region.read', 'region.edit']],
+])('lets %s report somebody else comment from its flag', async (_, permissions) => {
+  viewer.permissions = permissions
+  render(Comments, { thread: thread([theirs(4)]).value })
+
+  await fireEvent.click(screen.getByRole('button', { name: 'Report…' }))
+  expect(nav.goto).toHaveBeenCalledWith('/report/comment/4')
+})
+
+it('offers a region admin Remove, never Report', () => {
+  viewer.permissions = ['region.read', 'region.edit', 'region.delete']
+  render(Comments, { thread: thread([theirs(4)]).value })
+
+  expect(screen.queryByRole('button', { name: 'Report…' })).toBeNull()
+})
+
+it('offers the author no report of their own comment', () => {
+  viewer.permissions = ['region.read']
+  render(Comments, { thread: thread([comment(1, 10)]).value })
+
+  expect(screen.queryByRole('button', { name: 'Report…' })).toBeNull()
+})
+
+it('says Reported on a comment the reader already reported', () => {
+  viewer.permissions = ['region.read']
+  reported.ids = ['4']
+  render(Comments, { thread: thread([theirs(4)]).value })
+
+  expect(screen.getByRole('button', { name: 'Reported' })).toBeTruthy()
+  reported.ids = []
 })

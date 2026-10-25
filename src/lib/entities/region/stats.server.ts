@@ -11,6 +11,7 @@ import {
   areas,
   ascents,
   blocks,
+  contentReports,
   events,
   files,
   regionInvitations,
@@ -123,7 +124,7 @@ export async function collectRegionStats(
 export async function collectRegionSummaries(db: Db, locale: Locale): Promise<RegionSummary[]> {
   // Three grouped reads joined here rather than correlated subqueries: one scan each, whatever the
   // region count, and no per-region round trip.
-  const [rows, memberRows, activityRows] = await Promise.all([
+  const [rows, memberRows, activityRows, reportRows] = await Promise.all([
     db.select({ id: regions.id, name: regions.name }).from(regions),
     db
       .select({ regionFk: regionMembers.regionFk, total: count() })
@@ -137,10 +138,21 @@ export async function collectRegionSummaries(db: Db, locale: Locale): Promise<Re
       })
       .from(events)
       .groupBy(events.regionFk),
+    // Aggregates only: the operator never reads what a report says.
+    db
+      .select({
+        newest: sql<string>`(extract(epoch from max(${contentReports.createdAt})) * 1000)::bigint`,
+        oldest: sql<string>`(extract(epoch from min(${contentReports.createdAt})) * 1000)::bigint`,
+        regionFk: contentReports.regionFk,
+        total: count(),
+      })
+      .from(contentReports)
+      .groupBy(contentReports.regionFk),
   ])
 
   const members = new Map(memberRows.map((row) => [row.regionFk, row.total]))
   const activity = new Map(activityRows.map((row) => [row.regionFk, millis(row.last)]))
+  const reports = new Map(reportRows.map((row) => [row.regionFk, row]))
 
   return rows
     .map((row) => ({
@@ -148,6 +160,9 @@ export async function collectRegionSummaries(db: Db, locale: Locale): Promise<Re
       lastActivityAt: activity.get(row.id),
       members: members.get(row.id) ?? 0,
       name: toDisplayName(row.name, locale),
+      oldestReportAt: millis(reports.get(row.id)?.oldest ?? null),
+      openReports: reports.get(row.id)?.total ?? 0,
+      youngestReportAt: millis(reports.get(row.id)?.newest ?? null),
     }))
     .sort((a, b) => (b.lastActivityAt ?? 0) - (a.lastActivityAt ?? 0) || a.id - b.id)
 }

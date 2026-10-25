@@ -106,8 +106,13 @@ export function pathnameFor(row: {
   eventFk: null | number
   fileFk: null | string
   reactionFk: null | number
+  regionFk?: number
   sourceType: NotificationSourceType
 }): string {
+  if (row.sourceType === 'content_reported' && row.regionFk != null) {
+    return `/regions/${row.regionFk}/moderation`
+  }
+
   if (row.sourceType === 'invitation_received') {
     return '/settings'
   }

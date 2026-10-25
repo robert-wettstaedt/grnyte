@@ -5,6 +5,7 @@
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
+  import type { RegionSummary } from '$lib/entities/region/stats'
   import { listAllRegions } from '$lib/entities/region/stats.remote'
   import { resolveErrorMessage } from '$lib/forms/issue'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
@@ -22,6 +23,15 @@
 
   const lastActive = (at: number | undefined) =>
     at == null ? m.region_statsNoActivity() : formatUploadedAt(at, now, getLocale())
+
+  // How long reports have waited, never what they say: the operator reads no report.
+  const reportAges = ({ oldestReportAt, openReports, youngestReportAt }: RegionSummary) => {
+    const age = (at: number | undefined) => formatUploadedAt(at ?? now, now, getLocale())
+    if (openReports === 0) return ''
+    return openReports === 1
+      ? ` · ${m.reports_statsOne({ age: age(oldestReportAt) })}`
+      : ` · ${m.reports_statsMany({ count: openReports, newest: age(youngestReportAt), oldest: age(oldestReportAt) })}`
+  }
 </script>
 
 <svelte:head>
@@ -44,7 +54,9 @@
       <div class="space-y-2">
         {#each rows as region (region.id)}
           <Row
-            description="{m.region_members()}: {region.members} · {lastActive(region.lastActivityAt)}"
+            description="{m.region_members()}: {region.members} · {lastActive(region.lastActivityAt)}{reportAges(
+              region,
+            )}"
             href={resolve('/(app)/regions/[regionId]/stats', { regionId: String(region.id) })}
             title={region.name}
           />

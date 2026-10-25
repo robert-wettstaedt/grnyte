@@ -20,6 +20,9 @@
   import { canModerate } from '$lib/entities/moderation/permissions'
   import type { CommentListItem } from '$lib/entities/reaction/dto'
   import { deleteComment, restoreComment } from '$lib/entities/reaction/writes'
+  import { reportFormHref } from '$lib/entities/report/href'
+  import { canReport } from '$lib/entities/report/permissions'
+  import { myReportedIds } from '$lib/entities/report/resources.svelte'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -46,6 +49,9 @@
   const global = getGlobalState()
   // Somebody else's comment comes down only as a rule-breaking removal, on its own page.
   const canRemove = $derived(canModerate(global.userRegions, thread.regionFk))
+  const reported = myReportedIds('comment')
+  const reportable = (comment: CommentListItem) =>
+    canReport(global.userRegions, global.user?.id, { authorFk: comment.author.id, regionFk: thread.regionFk })
 
   /**
    * Bring the linked comment into view once, when it arrives. An attachment rather than an effect
@@ -226,6 +232,16 @@
               push(resolve('/(app)/remove/[kind=removable]/[id]', { id: String(comment.id), kind: 'comment' }))}
           >
             <Icon name="trash" size={14} />
+          </button>
+        {:else if !comment.mine && reportable(comment)}
+          {@const done = reported.data?.includes(String(comment.id)) === true}
+          <button
+            type="button"
+            class="text-surface-600-400 hover:text-surface-950-50 flex h-9 min-w-9 items-center justify-center px-2 text-xs"
+            aria-label={done ? m.reports_reported() : m.reports_entry()}
+            onclick={() => push(reportFormHref('comment', comment.id))}
+          >
+            <Icon name="flag" fill={done ? 'currentColor' : 'none'} size={14} />
           </button>
         {:else if comment.mine}
           <button

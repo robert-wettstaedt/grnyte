@@ -17,6 +17,8 @@
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { entityHref } from '$lib/entities/href'
+  import { canReport } from '$lib/entities/report/permissions'
+  import ReportButton from '$lib/entities/report/ReportButton.svelte'
   import { orderRoutesByTopo } from '$lib/entities/topo/order'
   import { canEditTopo } from '$lib/entities/topo/permissions'
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
@@ -91,6 +93,15 @@
 
   // Region-EDIT maintainers get a jump into the topo editor, opened on this photo.
   const canEditTopos = $derived(block.data != null && canEditTopo(global.userRegions, block.data))
+  // The photo's uploader is the topo's author; only known once the photo has synced.
+  const reportable = $derived(
+    topo?.imagePath != null &&
+      block.data != null &&
+      canReport(global.userRegions, global.user?.id, {
+        authorFk: topo.createdBy ?? null,
+        regionFk: block.data.regionFk,
+      }),
+  )
   const editHref = $derived(`${resolve('/(app)/blocks/[id]/topos/edit', { id: String(blockId) })}?topo=${topoId}`)
 
   const blockHref = $derived(entityHref('blocks', blockId))
@@ -231,6 +242,12 @@
             </div>
           {/each}
         </nav>
+
+        {#if reportable}
+          <div class="mt-4 flex justify-end">
+            <ReportButton id={topo.id} kind="topo" />
+          </div>
+        {/if}
       {/if}
     {/snippet}
   </QueryState>

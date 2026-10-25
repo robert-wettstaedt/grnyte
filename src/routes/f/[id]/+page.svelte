@@ -21,6 +21,7 @@
   import type { FileParent } from '$lib/entities/file/mapper'
   import { entityHref, type EntityKind } from '$lib/entities/href'
   import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
+  import { legalReportHref } from '$lib/entities/report/href'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
@@ -64,6 +65,8 @@
   )
 
   let shareOpen = $state(false)
+
+  const legalHref = $derived(legalReportHref(page.url.href))
 
   // Where to land after a delete: the file's owning entity (its share page is now a 404),
   // falling back home if there somehow is no parent.
@@ -120,9 +123,15 @@
     </strong>
   </a>
 
-  <!-- Share / delete, top-right, signed-in only (as in the media viewer's toolbar). -->
-  {#if controls != null}
-    <div class="absolute top-3 right-3 z-20 flex items-center gap-2">
+  <!-- Report for a non-member; share / delete, signed-in only (as in the media viewer's toolbar). -->
+  <div class="absolute top-3 right-3 z-20 flex items-center gap-2">
+    {#if data.legalReport}
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- legalReportHref is resolve() + ?content -->
+      <a aria-label={m.reports_report()} class={MEDIA_TOOL} href={legalHref}>
+        <Icon name="flag" size={20} />
+      </a>
+    {/if}
+    {#if controls != null}
       <ShareSheet
         {file}
         canEdit={controls.canEdit}
@@ -158,8 +167,8 @@
           {/snippet}
         </ConfirmDialog>
       {/if}
-    </div>
-  {/if}
+    {/if}
+  </div>
 </div>
 
 <!-- This route is outside the (app) layout, which is the only other place a toaster is mounted, so

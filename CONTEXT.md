@@ -102,8 +102,16 @@ actually produces, so `regression`, "this worked in the old app", comes first.
 A notice that a piece of user content is illegal, under Art. 16 DSA. A different thing from
 feedback in every way that matters: anyone may file one without an account, it names a piece
 of content rather than the app, and answering it is a legal obligation with its own deadlines.
-The two must never share a form, a table or a word. The public page is `/legal/report`; the
-in-app reporting flow is not built yet.
+The two must never share a form, a table or a word. The public page is `/legal/report`.
+
+**content report** (in-app report)
+A member's report of someone else's content to their region's admins, on one of the grounds an
+admin removes content for (`content_reports`, `/report/[kind]/[id]`). Not a **report**: it never
+reaches the operator, so it creates no DSA knowledge, and a legal claim still goes through
+`/legal/report`, which the form links to for the two legal grounds. It exists only while open:
+closing it (the content is gone, or an admin dismisses it) tells the reporter and deletes it. The
+person reported is never told. Code calls it a report (`report/`, `reports_*`); copy says "report"
+for both, and the context, the region's admins versus the operator, tells them apart.
 
 **region stats**
 A region's own numbers: how much guidebook it holds (sectors, blocks, routes, and the grades those

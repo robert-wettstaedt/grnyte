@@ -343,6 +343,31 @@ describe.skipIf(!reachable)('listAllRegions', () => {
     expect(rows.find((row) => row.name === QUIET)?.lastActivityAt).toBeUndefined()
   })
 
+  it('counts open reports and their ages, and carries nothing else of them', async () => {
+    await sql`
+      insert into public.content_reports (ground, note, object_id, object_type, region_fk, reporter_fk, created_at) values
+        ('spam', 'A secret note', '1', 'route', ${homeRegionId}, ${outsider.userId}, now() - interval '10 days'),
+        ('harassment', null, '2', 'route', ${homeRegionId}, ${outsider.userId}, now() - interval '1 day')`
+
+    const rows = await asRequest(appAdmin.authId, () => listAllRegions())
+    const home = rows.find((row) => row.name === HOME)
+    const day = 86_400_000
+
+    expect(Object.keys(home ?? {}).sort()).toEqual([
+      'id',
+      'lastActivityAt',
+      'members',
+      'name',
+      'oldestReportAt',
+      'openReports',
+      'youngestReportAt',
+    ])
+    expect(home?.openReports).toBe(2)
+    expect(Date.now() - (home?.oldestReportAt ?? 0)).toBeGreaterThan(9 * day)
+    expect(Date.now() - (home?.youngestReportAt ?? 0)).toBeLessThan(2 * day)
+    expect(rows.find((row) => row.name === QUIET)).toMatchObject({ oldestReportAt: undefined, openReports: 0 })
+  })
+
   it('refuses a region admin who is not an app admin', async () => {
     const status = await statusOf(() => asRequest(owner.authId, () => listAllRegions()))
 

@@ -21,6 +21,11 @@ vi.mock('$lib/entities/moderation/moderation.remote', () => ({
   }),
 }))
 vi.mock('$lib/entities/route/writes', () => writes)
+const nav = vi.hoisted(() => ({ exit: vi.fn(async () => {}) }))
+vi.mock('$lib/state/navigation.svelte', async (original) => ({
+  ...(await original<typeof import('$lib/state/navigation.svelte')>()),
+  exit: nav.exit,
+}))
 vi.mock('$lib/entities/moderation/writes', () => ({ undoRemoval: undo.undoRemoval }))
 vi.mock('$lib/state/toast', async (original) => ({
   ...(await original<typeof import('$lib/state/toast')>()),
@@ -48,7 +53,7 @@ const removeAsSpam = async () => {
 }
 
 beforeEach(() => {
-  Object.assign(page, { params: { id: '5', kind: 'route' } })
+  Object.assign(page, { params: { id: '5', kind: 'route' }, url: new URL('http://localhost/remove/route/5') })
   preview.ready = true
   preview.error = undefined
   writes.deleteRoute.mockClear()
@@ -88,6 +93,21 @@ it('refuses a removal without a reason on the reason field, and removes nothing'
   expect(writes.deleteRoute).not.toHaveBeenCalled()
 })
 
+it('starts on the ground a report link names, with the reason still to write', () => {
+  Object.assign(page, { url: new URL('http://localhost/remove/route/5?ground=harassment') })
+  render(Page)
+
+  expect((screen.getByLabelText('Harassment or threats') as HTMLInputElement).checked).toBe(true)
+  expect((screen.getByRole('textbox', { name: /^Reason/ }) as HTMLTextAreaElement).value).toBe('')
+})
+
+it('ignores a ground it does not know', () => {
+  Object.assign(page, { url: new URL('http://localhost/remove/route/5?ground=nonsense') })
+  render(Page)
+
+  expect(screen.getAllByRole('radio').some((radio) => (radio as HTMLInputElement).checked)).toBe(false)
+})
+
 it('removes the route with its ground and reason', async () => {
   render(Page)
 
@@ -111,3 +131,26 @@ it('offers an Undo that takes the removal back', async () => {
 
   expect(undo.undoRemoval).toHaveBeenCalledWith('route', '5')
 })
+
+it('returns to the reports queue it was opened from', async () => {
+  Object.assign(page, { url: new URL('http://localhost/remove/route/5?return=%2Fregions%2F1%2Fmoderation') })
+  render(Page)
+
+  await removeAsSpam()
+
+  await vi.waitFor(() => expect(nav.exit).toHaveBeenCalledWith('/regions/1/moderation'))
+})
+
+it.each(['https://evil.example/x', '//evil.example/x', '/\\evil.example/x', '/.//evil.example/x', 'http://['])(
+  'never returns off the site, to %s',
+  async (target) => {
+    nav.exit.mockClear()
+    Object.assign(page, { url: new URL(`http://localhost/remove/route/5?return=${encodeURIComponent(target)}`) })
+    render(Page)
+
+    await removeAsSpam()
+
+    await vi.waitFor(() => expect(nav.exit).toHaveBeenCalled())
+    expect(nav.exit.mock.calls.flat().some((href) => String(href).includes('evil'))).toBe(false)
+  },
+)

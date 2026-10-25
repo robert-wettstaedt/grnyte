@@ -1,5 +1,6 @@
 import { moderationDecisions, moderationDecisionSubjects } from '$lib/db/schema'
 import { notify } from '$lib/entities/notification/notification.server'
+import { closeReportsOn } from '$lib/entities/report/report.server'
 import type { Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { asPrivileged, type ServerMutatorContext } from '$lib/zero/serverMutator.server'
@@ -43,7 +44,7 @@ export async function recordPlanned(
 
 /** Needs a privileged handle; queues one notice per live author for after commit. */
 export async function recordRemoval(
-  db: Pick<Context['db'], 'insert'>,
+  db: Pick<Context['db'], 'delete' | 'insert' | 'query'>,
   removal: Removal,
   afterCommit: Context['afterCommit'],
 ): Promise<number> {
@@ -77,6 +78,8 @@ export async function recordRemoval(
       userFk,
     })
   }
+
+  await closeReportsOn(db, removal.object, afterCommit)
 
   return decision.id
 }

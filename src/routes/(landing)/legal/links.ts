@@ -40,8 +40,9 @@ export const legalLinks = () => [
  * dollar sequences, so a dollar sign in an environment-provided address (legal in an email local
  * part) would corrupt the rendered text; a function replacement never does.
  */
-export const renderLegal = (html: string): string => {
+export const renderLegal = (html: string, extra: Record<string, string> = {}): string => {
   const tokens: Record<string, string> = {
+    ...extra,
     contactEmail: PUBLIC_TOPO_EMAIL,
     disclaimerHref: resolve('/legal/disclaimer'),
     imprintHref: resolve('/legal/imprint'),

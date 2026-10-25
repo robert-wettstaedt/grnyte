@@ -21,6 +21,7 @@ export const regionTables = [
   'blocks',
   'bunnyStreams',
   'changes',
+  'contentReports',
   'events',
   'favorites',
   'files',

@@ -1936,6 +1936,8 @@ export const notificationSourceType: [
   'video_ready',
   'content_removed',
   'content_restored',
+  'content_reported',
+  'report_closed',
 ] = [
   'mention',
   'ascent_edited',
@@ -1951,6 +1953,8 @@ export const notificationSourceType: [
   'video_ready',
   'content_removed',
   'content_restored',
+  'content_reported',
+  'report_closed',
 ]
 
 /**
@@ -2010,6 +2014,9 @@ export const notifications = table(
     /** Whatever the sentence needs that the entity can no longer answer, e.g. the route name of
      *  a deleted ascent. */
     metadata: text('metadata'),
+    /** `kind:id` of what a report notice is about. In the key, since comments and topos have no object
+     *  column and the object may already be gone. */
+    objectRef: text('object_ref'),
     /** null = never delivered by push. Set by the cron once it has gone out. */
     pushedAt: timestamp('pushed_at', { withTimezone: true }),
     /**
@@ -2064,6 +2071,7 @@ export const notifications = table(
         table.routeFk,
         table.subjectFk,
         table.decisionFk,
+        table.objectRef,
       )
       .nullsNotDistinct(),
     check('notifications_at_most_one_object', sql.raw(`num_nonnulls(${EVENT_OBJECT_COLUMNS}) <= 1`)),
@@ -2308,6 +2316,49 @@ export const moderationDecisionSubjects = table(
     index('moderation_decision_subjects_user_fk_idx').on(table.userFk),
   ],
 ).enableRLS()
+
+/**
+ * A member's open report of someone else's content to the region's admins. Every row is open: closing
+ * one notifies its reporter and deletes it, so no allegation outlives its reader. Written on the
+ * privileged handle; the one policy lets a reporter read their own.
+ */
+export const contentReports = table(
+  'content_reports',
+  {
+    ...baseFields,
+    /** The reported content's author, so deleting their account takes the reports on it. */
+    authorFk: integer('author_fk').references((): AnyColumn => users.id, { onDelete: 'cascade' }),
+    ground: text('ground', { enum: moderationGround }).notNull(),
+    note: text('note'),
+    /** Text, since a file's id is. */
+    objectId: text('object_id').notNull(),
+    /** What the reporter's closing notice calls it, since by then it may be gone. Null for a comment. */
+    objectName: text('object_name'),
+    objectType: text('object_type', { enum: removableKind }).notNull(),
+    regionFk: integer('region_fk')
+      .notNull()
+      .references((): AnyColumn => regions.id, { onDelete: 'cascade' }),
+    reporterFk: integer('reporter_fk')
+      .notNull()
+      .references((): AnyColumn => users.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    uniqueIndex('content_reports_reporter_object_idx').on(table.reporterFk, table.objectType, table.objectId),
+    index('content_reports_region_fk_idx').on(table.regionFk),
+    index('content_reports_author_fk_idx').on(table.authorFk),
+    policy(
+      `users can read own content reports`,
+      getOwnRowPolicyConfig('select', REGION_PERMISSION_READ, table.reporterFk, table.regionFk),
+    ),
+  ],
+).enableRLS()
+
+export type ContentReport = InferSelectModel<typeof contentReports>
+
+export const contentReportsRelations = relations(contentReports, ({ one }) => ({
+  region: one(regions, { fields: [contentReports.regionFk], references: [regions.id] }),
+  reporter: one(users, { fields: [contentReports.reporterFk], references: [users.id] }),
+}))
 
 /** A comment its author deleted, kept off the synced row for the day its Undo lasts: the row left
  *  for its replies carries neither words nor author. No query names this table, so it never syncs. */
