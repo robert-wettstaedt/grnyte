@@ -372,15 +372,14 @@ describe('the region-scoped table list', () => {
     // keeping it complete was a comment. A migration that adds a `region_fk` to a new table
     // regenerates the Zero schema and fails here, rather than shipping the table unfiltered.
     //
-    // `activities` is the one deliberate omission: the events tables replaced it and no query may
-    // name it any more. It is still in the drizzle schema, so drizzle-zero still emits it, and it
-    // leaves here when the table is dropped.
-    const RETIRED = ['activities']
+    // Deliberate omissions: no query may name these. `activities` was replaced by the events tables
+    // and leaves here when it is dropped; `importRefs` is server-only, written and read by scripts.
+    const OMITTED = ['activities', 'importRefs']
 
     const withRegionFk = Object.entries(schema.tables)
       .filter(([, table]) => 'regionFk' in table.columns)
       .map(([name]) => name)
-      .filter((name) => !RETIRED.includes(name))
+      .filter((name) => !OMITTED.includes(name))
 
     expect([...regionTables].sort()).toEqual(withRegionFk.sort())
   })

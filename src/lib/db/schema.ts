@@ -707,6 +707,51 @@ export const routesRelations = relations(routes, ({ many, one }) => ({
   topoRoutes: many(topoRoutes),
 }))
 
+/**
+ * Which line of an outside source (a guidebook edition, another platform) an imported entity came from,
+ * and what the import wrote. Server-only: RLS on with no policy, and no query reads it.
+ */
+export const importRefs = table(
+  'import_refs',
+  {
+    ...baseFields,
+    /** Copied from the entity, so a region purge, which runs with foreign keys off, still finds the row. */
+    ...baseRegionFields,
+    areaFk: integer('area_fk').references((): AnyColumn => areas.id, { onDelete: 'cascade' }),
+    blockFk: integer('block_fk').references((): AnyColumn => blocks.id, { onDelete: 'cascade' }),
+    /** What the import wrote, so a later run can tell a person's edit from its own. */
+    imported: jsonb('imported').$type<Record<string, unknown>>().notNull(),
+    /** The line inside the source, for a guidebook its page-and-line anchor (`y95-123`). */
+    ref: text('ref').notNull(),
+    routeFk: integer('route_fk').references((): AnyColumn => routes.id, { onDelete: 'cascade' }),
+    /** The source and edition, e.g. `boulderappell-2026`. */
+    source: text('source').notNull(),
+  },
+  (table) => [
+    check('import_refs_one_target', sql`num_nonnulls(${table.areaFk}, ${table.blockFk}, ${table.routeFk}) = 1`),
+    check('import_refs_named', sql`${table.source} <> '' and ${table.ref} <> ''`),
+    uniqueIndex('import_refs_area_line')
+      .on(table.source, table.ref)
+      .where(sql`${table.areaFk} is not null`),
+    uniqueIndex('import_refs_block_line')
+      .on(table.source, table.ref)
+      .where(sql`${table.blockFk} is not null`),
+    uniqueIndex('import_refs_route_line')
+      .on(table.source, table.ref)
+      .where(sql`${table.routeFk} is not null`),
+    index('import_refs_area_fk_idx')
+      .on(table.areaFk)
+      .where(sql`${table.areaFk} is not null`),
+    index('import_refs_block_fk_idx')
+      .on(table.blockFk)
+      .where(sql`${table.blockFk} is not null`),
+    index('import_refs_route_fk_idx')
+      .on(table.routeFk)
+      .where(sql`${table.routeFk} is not null`),
+    index('import_refs_region_fk_idx').on(table.regionFk, table.source),
+  ],
+).enableRLS()
+
 export const routeExternalResources = table(
   'route_external_resources',
   {

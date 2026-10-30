@@ -20,6 +20,7 @@ export const HANDLED_TABLES = [
   'files',
   'first_ascensionists',
   'geolocations',
+  'import_refs',
   'notifications',
   'reactions',
   'region_invitations',
@@ -119,6 +120,10 @@ export async function carryContent(tx: Tx, source: number) {
   await tx`update areas a set region_fk = m.region_id from map_area m where a.id = m.area_id`
   await tx`update blocks b set region_fk = m.region_id from map_block m where b.id = m.block_id`
   await tx`update routes r set region_fk = m.region_id from map_route m where r.id = m.route_id`
+
+  await tx`update import_refs i set region_fk = m.region_id from map_area m where i.area_fk = m.area_id`
+  await tx`update import_refs i set region_fk = m.region_id from map_block m where i.block_fk = m.block_id`
+  await tx`update import_refs i set region_fk = m.region_id from map_route m where i.route_fk = m.route_id`
 
   await tx`update ascents x set region_fk = m.region_id from map_route m
            where x.route_fk = m.route_id and x.region_fk = ${source}`
@@ -381,6 +386,13 @@ export async function integrityCounts(
       'a route whose block no longer exists or sits in another region',
       tx`select count(*)::int as c from routes r where r.region_fk in (${regions})
          and not exists (select 1 from blocks b where b.id = r.block_fk and b.region_fk = r.region_fk)`,
+    ],
+    [
+      'an import ref whose entity is in another region',
+      tx`select count(*)::int as c from import_refs i
+         left join areas a on a.id = i.area_fk left join blocks b on b.id = i.block_fk
+         left join routes r on r.id = i.route_fk
+         where i.region_fk in (${regions}) and i.region_fk <> coalesce(a.region_fk, b.region_fk, r.region_fk)`,
     ],
     [
       'an ascent whose route is in another region',
