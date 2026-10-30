@@ -1,7 +1,7 @@
 import { events } from '$lib/db/schema'
 import * as z from '$lib/forms/zod'
 import { authedQuery } from '$lib/remote/authed.server'
-import { and, count, eq, isNotNull, or } from 'drizzle-orm'
+import { and, count, eq, isNotNull, isNull, or } from 'drizzle-orm'
 
 /**
  * How many contributions to the guidebook (areas, blocks and routes the user created, edited
@@ -20,6 +20,8 @@ export const userContributionCount = authedQuery(z.number(), async (userId, { db
     .where(
       and(
         eq(events.actorFk, userId),
+        // A bulk import is one person running a script, not thousands of contributions.
+        isNull(events.batch),
         or(isNotNull(events.areaFk), isNotNull(events.blockFk), isNotNull(events.routeFk)),
       ),
     )

@@ -838,6 +838,24 @@
       }
     }
   ],
+  "event_groupImport": [
+    {
+      "declarations": [
+        "input actor",
+        "input count",
+        "input person",
+        "local countPlural = count: plural",
+        "local countLabel = count: number"
+      ],
+      "selectors": ["person", "countPlural"],
+      "match": {
+        "person=self,countPlural=one": "You imported {countLabel} change from the guidebook",
+        "person=self,countPlural=*": "You imported {countLabel} changes from the guidebook",
+        "person=*,countPlural=one": "{actor} imported {countLabel} change from the guidebook",
+        "person=*,countPlural=*": "{actor} imported {countLabel} changes from the guidebook"
+      }
+    }
+  ],
   "event_groupRemovals": [
     {
       "declarations": ["input actor", "input person"],

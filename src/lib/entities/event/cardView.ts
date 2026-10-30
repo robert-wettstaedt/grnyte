@@ -20,13 +20,17 @@ import { verbEntry, verbKey } from './verbs'
 
 /** The lines one group of events produced. Built by `eventCard` from an `EventGroup`. */
 export interface CardGroup {
-  /** The actor. Every group key carries one, so every line on a card shares it. */
+  /** The actor, null once they deleted their account. Every group key but a batch's carries one; a batch takes its newest event's. */
   actorFk: null | number
+  /** How many events a batch holds, off its head. */
+  batchSize?: number
   /** Epoch millis of the group's newest event: what the feed sorts and dates by. */
   createdAt: number
   /** Keying id for `{#each}`, carried through from the event group. */
   id: string
   kind: EventGroupKind
+  /** The region a batch ran in: its card's one row. */
+  region?: EventEntity
   /**
    * Newest first, with one deliberate exception: a group that merged an upload into the create it
    * belongs to leads with that create, since the headline reads the card's verb off the front.
@@ -53,7 +57,7 @@ export interface CardAscent {
 export interface CardHeadline {
   /** The sentence to render, straight out of the verb catalogue. */
   key: MessageKey
-  params: { media: MediaWord; owner: 'none' | 'other' | 'self'; person: 'other' | 'self' }
+  params: { count?: number; media: MediaWord; owner: 'none' | 'other' | 'self'; person: 'other' | 'self' }
 }
 
 /**
@@ -168,6 +172,10 @@ export function cardView(
   topos?: ReadonlyMap<number, TopoView>,
   omit?: EventEntityRef,
 ): CardView {
+  if (group.kind === 'batch') {
+    return batchView(group, currentUserFk)
+  }
+
   const newest = group.rows[0]
   // What the card points AT, what it renders as rows and the place it happened in are three
   // different questions off one pass. An upload points at a file, which supplies the media and
@@ -365,6 +373,55 @@ export function headlineEntityName(line: CardLine, entity: EventEntity | null | 
   // entry with no `tombstone` has none: every other column stores its own value (a grade id,
   // a rating, an ascent type), which would read as a nonsense name.
   return entry?.tombstone == null ? undefined : named(line[entry.tombstone])
+}
+
+/** An import as one card: its headline over the region it ran in, since its thousands of rows say
+ *  nothing a reader can act on. */
+function batchView(group: CardGroup, currentUserFk: number | undefined): CardView {
+  const newest = group.rows[0]
+  const mine = currentUserFk != null && group.actorFk === currentUserFk
+
+  return {
+    actorFk: group.actorFk,
+    actorName: newest.actorName,
+    changes: [],
+    climbedAt: undefined,
+    climberName: undefined,
+    createdAt: group.createdAt,
+    entityName: undefined,
+    entityUnnamed: false,
+    files: [],
+    headline: {
+      key: 'event_groupImport',
+      // Off the head, since an unscoped list holds no other event of the batch.
+      params: {
+        count: group.batchSize ?? new Set(group.rows.map((line) => line.id)).size,
+        media: 'none',
+        owner: 'none',
+        person: mine ? 'self' : 'other',
+      },
+    },
+    id: group.id,
+    mine,
+    overflowCount: 0,
+    pin: undefined,
+    // On the newest line's ref, so the row claims that event's reaction bar the way a footer would.
+    rows:
+      group.region == null
+        ? []
+        : [
+            {
+              ascent: undefined,
+              entity: group.region,
+              name: undefined,
+              note: undefined,
+              ref: lineRef(newest),
+              state: 'entity',
+            },
+          ],
+    status: undefined,
+    summary: undefined,
+  }
 }
 
 /**

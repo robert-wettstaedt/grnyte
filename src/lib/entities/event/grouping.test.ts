@@ -355,6 +355,56 @@ describe('groupEvents', () => {
     expect(groups).toHaveLength(2)
   })
 
+  describe('batch', () => {
+    const noon = day(1, 12)
+
+    it('reads a head as an import card even alone', () => {
+      const groups = groupEvents([event({ batch: 'b1', batchSize: 40, createdAt: noon, objectId: 1, ...underBlock })])
+
+      expect(groups.map((group) => group.kind)).toEqual(['batch'])
+    })
+
+    it('never mixes a head with the edits around it', () => {
+      const groups = groupEvents([
+        event({ createdAt: noon, objectId: 1, ...underBlock }),
+        event({ batch: 'b1', batchSize: 40, createdAt: noon - MINUTE, objectId: 3, verb: 'create', ...underBlock }),
+        event({ createdAt: noon - 2 * MINUTE, objectId: 4, ...underBlock }),
+        // A photo on the route the import created stays out of the import card.
+        upload({ createdAt: noon - MINUTE, objectId: 'f1', parent: { id: 3, type: 'route' } }),
+      ])
+
+      expect(groups.map((group) => [group.kind, group.events.map((e) => e.objectId)])).toEqual([
+        ['burst', [1, 4]],
+        ['batch', [3]],
+        ['single', ['f1']],
+      ])
+    })
+
+    it('keeps two heads apart', () => {
+      const groups = groupEvents([
+        event({ batch: 'b1', batchSize: 40, createdAt: noon, objectId: 1, ...underBlock }),
+        event({ batch: 'b2', batchSize: 7, createdAt: noon - MINUTE, objectId: 1, ...underBlock }),
+      ])
+
+      expect(groups.map((group) => [group.kind, group.events.length])).toEqual([
+        ['batch', 1],
+        ['batch', 1],
+      ])
+    })
+
+    it('reads an import as the edits it made in an entity log, head included', () => {
+      const log = [
+        event({ batch: 'b1', batchSize: 3, createdAt: noon, objectId: 1, ...underBlock }),
+        event({ batch: 'b1', createdAt: noon, objectId: 2, ...underBlock }),
+        event({ batch: 'b1', createdAt: noon, objectId: 3, ...underBlock }),
+      ]
+
+      expect(groupEvents(log, { batches: false }).map((group) => [group.kind, group.events.length])).toEqual([
+        ['burst', 3],
+      ])
+    })
+  })
+
   it('returns nothing for no events', () => {
     expect(groupEvents([])).toEqual([])
   })

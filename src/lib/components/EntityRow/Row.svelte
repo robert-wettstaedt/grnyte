@@ -52,14 +52,16 @@
 
   // Colour/state utilities differ per variant: the card carries its own surface
   // and border; the option row is transparent until hovered/keyboard-active.
+  // A row with nowhere to go and nothing to do is a label, so it gets no hover either.
+  const hover = $derived(href || onclick ? 'hover:bg-surface-200-800' : '')
   const colorClass = $derived(
     variant === 'option'
       ? active
         ? 'preset-tonal-primary text-surface-950-50'
-        : 'text-surface-950-50 hover:bg-surface-200-800'
+        : `text-surface-950-50 ${hover}`
       : active
         ? 'bg-surface-200-800 border-primary-500 text-surface-950-50'
-        : 'bg-surface-100-900 border-surface-200-800 text-surface-950-50 hover:bg-surface-200-800',
+        : `bg-surface-100-900 border-surface-200-800 text-surface-950-50 ${hover}`,
   )
 </script>
 
@@ -95,10 +97,14 @@
       <a class="row {variant}" {href}>
         {@render body()}
       </a>
-    {:else}
+    {:else if onclick}
       <button type="button" class="row {variant}" {onclick}>
         {@render body()}
       </button>
+    {:else}
+      <div class="row static {variant}">
+        {@render body()}
+      </div>
     {/if}
 
     {#if action}
@@ -156,6 +162,10 @@
     flex: none;
     align-items: center;
     padding-inline-end: 8px;
+  }
+
+  .row.static {
+    cursor: default;
   }
 
   .row.option {

@@ -13,6 +13,8 @@ export function event(partial: Partial<EventListItem>): EventListItem {
   return {
     actorFk: 1,
     actorName: 'ada',
+    batch: undefined,
+    batchSize: undefined,
     changes: [],
     commentCount: 0,
     createdAt: 0,
@@ -25,6 +27,7 @@ export function event(partial: Partial<EventListItem>): EventListItem {
     parentEntity: undefined,
     promoted: false,
     reactions: [],
+    region: undefined,
     regionFk: 1,
     verb: 'update',
     ...partial,

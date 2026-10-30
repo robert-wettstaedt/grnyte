@@ -60,7 +60,7 @@ export class Preflight {
 }
 
 /** Opens the connection after refusing arguments: `--dry-run` from the `migrate-*` scripts would be ignored. */
-export function connect(name: string): postgres.Sql {
+export function connect(name: string, options: Pick<postgres.Options<never>, 'debug'> = {}): postgres.Sql {
   const url = process.env.DATABASE_URL
   if (!url) throw new Error(`${name}: DATABASE_URL is required`)
   if (process.argv.length > 2) {
@@ -68,7 +68,7 @@ export function connect(name: string): postgres.Sql {
       `${name}: unexpected argument(s) ${process.argv.slice(2).join(' ')}. This script is a DRY RUN by default; set CONFIRM=true to commit.`,
     )
   }
-  return postgres(url, { prepare: false })
+  return postgres(url, { prepare: false, ...options })
 }
 
 /** One transaction that rolls back unless `confirm`. Throw {@link ABORT} to stop after a printed preflight. */

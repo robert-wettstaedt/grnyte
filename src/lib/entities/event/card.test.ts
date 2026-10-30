@@ -242,6 +242,10 @@ describe('eventCard tier', () => {
     expect(mixed([event({ objectType: 'route', verb: 'delete' })]).tier).toBe('standard')
   })
 
+  it('never draws an import quietly, so every member sees it', () => {
+    expect(mixed([event({ batch: 'b1', batchSize: 40, objectType: 'route', verb: 'update' })]).tier).toBe('standard')
+  })
+
   it('never draws a role change quietly', () => {
     expect(mixed([event({ objectId: 5, objectType: 'user', verb: 'update' })]).tier).toBe('standard')
   })

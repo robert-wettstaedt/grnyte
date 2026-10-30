@@ -9,7 +9,7 @@ import { entityHref } from '$lib/entities/href'
 import type { ReactionListItem } from '$lib/entities/reaction/dto'
 import { toReaction } from '$lib/entities/reaction/mapper'
 import type { RegionMembership } from '$lib/entities/region/dto'
-import { regionCrumb } from '$lib/entities/region/mapper'
+import { regionCrumb, regionDisplayName } from '$lib/entities/region/mapper'
 import { toRouteListItem, type RouteListRow } from '$lib/entities/route/mapper'
 import { decodeApproach } from '$lib/map/polyline'
 import type { queries } from '$lib/zero/queries'
@@ -36,6 +36,10 @@ export interface EventListItem {
   actorFk: null | number
   /** The actor's username; empty while the user row has not synced, "Deleted user" once they are gone. */
   actorName: string
+  /** The bulk import this event came from, if any: a batch folds into one card. */
+  batch: string | undefined
+  /** Set on a batch's head only: how many events the batch holds. */
+  batchSize: number | undefined
   changes: EventChangeItem[]
   /**
    * How many live comments hang under this event, replies included.
@@ -82,6 +86,8 @@ export interface EventListItem {
   promoted: boolean
   /** The emoji sent on THIS event. A card shows one bar per event, not one per card. */
   reactions: ReactionListItem[]
+  /** The region as a row, on a batch event only: an import names no smaller place. */
+  region: EventEntity | undefined
   regionFk: number
   verb: EventVerb
 }
@@ -106,6 +112,8 @@ export function toEvent(row: EventRow, userRegions: RegionMembership[]): EventLi
   return {
     actorFk: row.actorFk,
     actorName: toAuthor(row.actorFk, row.actor?.username).name,
+    batch: row.batch ?? undefined,
+    batchSize: row.batchSize ?? undefined,
     changes: (row.changes ?? []).map(toEventChange),
     // `?? 0` because a NOT NULL DEFAULT column arrives nullable in the generated Zero row type.
     commentCount: row.commentCount ?? 0,
@@ -125,6 +133,7 @@ export function toEvent(row: EventRow, userRegions: RegionMembership[]): EventLi
     // No `type` filter: the query syncs the emoji half only, because the comment half is what
     // made the relation expensive. See `listEvents`.
     reactions: (row.reactions ?? []).map(toReaction),
+    region: row.batch == null ? undefined : regionEntity(userRegions, row.regionFk),
     regionFk: row.regionFk,
     verb: row.verb,
   }
@@ -350,6 +359,12 @@ function parentOf(row: EventRow): undefined | { id: number | string; type: Event
     file: row.file,
     routeBlockFk: row.route?.blockFk,
   })
+}
+
+function regionEntity(userRegions: RegionMembership[], regionFk: number): EventEntity | undefined {
+  const region = userRegions.find((entry) => entry.regionFk === regionFk)
+  // No href: the region's own page is its settings, nothing a reader of the import wants.
+  return region == null ? undefined : { crumbs: [], name: regionDisplayName(region), row: 'area' }
 }
 
 function routeEntity(route: NonNullable<EventRow['route']>, userRegions: RegionMembership[]): EventEntity {

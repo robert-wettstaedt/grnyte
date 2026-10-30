@@ -46,6 +46,44 @@ function burstRows(count: number, partial: (index: number) => Partial<CardLine>)
   return Array.from({ length: count }, (_, index) => line({ parentId: '400', parentType: 'block', ...partial(index) }))
 }
 
+describe('batch card', () => {
+  // Six events on six routes, one of which moved two columns: seven rows, six changes.
+  const rows = [
+    line({ columnName: 'name', id: 1, objectId: 1 }),
+    line({ columnName: 'gradeFk', id: 1, objectId: 1 }),
+    ...Array.from({ length: 5 }, (_, index) => line({ id: index + 2, objectId: index + 2, verb: 'create' })),
+  ]
+
+  it('says who imported how many changes, under the region and nothing else', () => {
+    const region: EventEntity = { name: 'Frankenjura', row: 'area' }
+    const view = cardView({ ...group(rows, 'batch'), region }, undefined, undefined)
+
+    expect(view.headline.key).toBe('event_groupImport')
+    expect(view.headline.params.count).toBe(6)
+    expect(view.summary).toBeUndefined()
+    expect(view.rows.map((row) => row.entity)).toEqual([region])
+    expect(view.overflowCount).toBe(0)
+    expect(view.changes).toEqual([])
+    expect(view.pin).toBeUndefined()
+  })
+
+  it('counts the batch off its head, not the rows a window happened to load', () => {
+    expect(cardView({ ...group(rows, 'batch'), batchSize: 2000 }, undefined, undefined).headline.params.count).toBe(
+      2000,
+    )
+  })
+
+  it('shows no row while the region has not synced', () => {
+    expect(card(rows, undefined, undefined, undefined, 'batch').rows).toEqual([])
+  })
+
+  it('keeps the import headline when every change names one entity', () => {
+    const same = [line({ columnName: 'name', id: 1 }), line({ columnName: 'name', id: 2 })]
+
+    expect(card(same, undefined, undefined, undefined, 'batch').headline.key).toBe('event_groupImport')
+  })
+})
+
 describe('headline keys', () => {
   it('takes a single card s verb from the column that changed', () => {
     expect(card([line({ columnName: 'gradeFk' })]).headline.key).toBe('event_routeUpdatedGradeFk')

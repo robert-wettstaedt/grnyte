@@ -228,6 +228,11 @@ export const eventsQueryDefs = {
         )
       }
 
+      // A bulk import reaches an unscoped list as its head alone, so it cannot fill the window.
+      if (args.scope == null && args.ids == null) {
+        q = q.where((q) => q.or(q.cmp('batch', 'IS', null), q.cmp('batchSize', 'IS NOT', null)))
+      }
+
       // The feed reads in two windows either side of the row the reader acknowledged, so rows
       // waiting behind the "N new" pill do not count against the window on screen and push an
       // equal number of old ones off its bottom. Both cuts compare the ORDER BY key as a pair, so

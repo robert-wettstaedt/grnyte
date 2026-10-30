@@ -76,7 +76,7 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
     enabled: () => seen != null,
   })
 
-  const groups = $derived(groupEvents(events.data))
+  const groups = $derived(groupEvents(events.data, { batches: filter().scope == null }))
 
   const expandedIds = new SvelteSet<string>()
   // Only the open cards, and among those only the events that say a topo photo changed, which

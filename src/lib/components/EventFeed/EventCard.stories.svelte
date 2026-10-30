@@ -1,5 +1,6 @@
 <script module lang="ts">
   import type { EventCardView } from '$lib/entities/event/card'
+  import { EVENT_CASES } from '$lib/entities/event/cases/index'
   import { groupEvents } from '$lib/entities/event/grouping'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
@@ -37,6 +38,7 @@
   const deletedRoute = pick((group) => group.events[0].verb === 'delete')
   const roleGrant = pick((group) => group.events[0].objectType === 'user')
   const unresolved = pick((group) => group.events[0].entity == null && group.events[0].verb === 'add')
+  const importBatch = groupEvents(EVENT_CASES.find((entry) => entry.id === 'GROUP-09a')!.events)[0]
 
   /**
    * One group built from scratch, for the tier cases the sample week has no shape for.
@@ -171,6 +173,9 @@
 <Story name="Deleted entity" args={{ view: mine(deletedRoute) }} />
 
 <Story name="Role change" args={{ view: mine(roleGrant) }} />
+
+<!-- One guidebook import as one card, whatever it created, changed and deleted (GROUP-09a). -->
+<Story name="Import batch" args={{ view: mine(importBatch) }} />
 
 <!-- An entity arrives with its event, so this is the card whose object resolves to nothing at
      all. An orphaned upload: the placeholder in the headline, no thumbnail, and the bar falling

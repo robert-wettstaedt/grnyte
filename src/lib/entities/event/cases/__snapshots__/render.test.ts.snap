@@ -4362,6 +4362,220 @@ exports[`the case catalogue renders what it claims > GROUP-08d: Delete a photo a
 }
 `;
 
+exports[`the case catalogue renders what it claims > GROUP-09a: Mara runs the guidebook import: five changes 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "Mara Lindqvist imported 5 changes from the guidebook",
+      "mine": false,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Frankenjura",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "One KIND \`batch\` card, "Mara Lindqvist imported 5 changes from the guidebook". An unscoped list holds the batch as its head alone (the query drops every other event of it), and the count is the head's \`batch_size\`, so it is the true size whatever window the feed has loaded. No sub line and no sentence naming one entity. Below it one row, the region the import ran in (Frankenjura), carrying the reaction bar: no entity rows, no change lines and no pin.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-09b: The same import, read by Mara who ran it 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You imported 5 changes from the guidebook",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Frankenjura",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "The same card as GROUP-09a with \`mine\` set: "You imported 5 changes from the guidebook". The batch key carries no actor, but the card takes its newest event's, so the person who ran the import reads it as their own.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-09c: An import that changed one thing 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "Mara Lindqvist imported 1 change from the guidebook",
+      "mine": false,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Frankenjura",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "A KIND \`batch\` card like GROUP-09a, in the singular: "Mara Lindqvist imported 1 change from the guidebook". A batch never becomes \`single\`, so one change still reads as an import rather than as a hand edit, and the feed and the push say the same thing.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-09d: You run the import, then rename a route by hand five minutes later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "Riss",
+          "before": "Rissweg",
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Name",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You renamed Riss",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Riss",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You imported 5 changes from the guidebook",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Frankenjura",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Two cards: "You renamed Riss", a KIND \`single\` for the hand edit, and the KIND \`batch\` card of five. They share an actor and five minutes, which would fold into one burst; a batch event never joins anything outside its batch, so the hand edit stays its own card.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-09e: The import creates Südblock, and you add a photo to it a minute later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 1,
+      "headline": "You added a photo to Südblock",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Südblock",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You imported 5 changes from the guidebook",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Frankenjura",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Two cards: "You added a photo to Südblock" with the photo in its strip, and the KIND \`batch\` card of five. The head is the Südblock create, and a create normally takes in uploads to what it created a minute later; a batch never does, so the photo is not hung on an import card.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-09f: Mara runs the import twice, an hour apart, under two labels 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "Mara Lindqvist imported 5 changes from the guidebook",
+      "mine": false,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Frankenjura",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "Mara Lindqvist imported 5 changes from the guidebook",
+      "mine": false,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Frankenjura",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Two KIND \`batch\` cards of five, "Mara Lindqvist imported 5 changes from the guidebook" each. The key is region plus label, so two runs under two labels never fold, whoever ran them and however close.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-09g: Mara runs the import over a whole region: 3000 changes 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "Mara Lindqvist imported 3,000 changes from the guidebook",
+      "mine": false,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Frankenjura",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "The same card as GROUP-09a, "Mara Lindqvist imported 3,000 changes from the guidebook", the count formatted for the locale: the list holds one row for the import however large it is, so it neither fills the window nor takes 60 taps of Load older to scroll past.",
+}
+`;
+
 exports[`the case catalogue renders what it claims > REGION-01a: /settings -> Regions -> {Region} -> Invite someone -> email address -> Invite 1`] = `
 {
   "cards": [

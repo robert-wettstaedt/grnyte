@@ -101,6 +101,11 @@ beforeAll(async () => {
       (${homeRegionId},  ${contributor.userId}, 'update', ${homeArea.id},   null,             null,            null),
       (${homeRegionId},  ${contributor.userId}, 'create', null,             null,             null,            ${homeAscent.id}),
       (${otherRegionId}, ${contributor.userId}, 'create', null,             ${otherBlock.id}, null,            null)`
+  // And an import, a member and its head, which the stat leaves out: one script run is not thousands of edits.
+  await sql`
+    insert into public.events (region_fk, actor_fk, verb, route_fk, batch, batch_size) values
+      (${homeRegionId}, ${contributor.userId}, 'update', ${homeRoute.id}, '__regions_remote_batch__', null),
+      (${homeRegionId}, ${contributor.userId}, 'update', ${homeRoute.id}, '__regions_remote_batch__', 2)`
 })
 
 afterAll(async () => {
