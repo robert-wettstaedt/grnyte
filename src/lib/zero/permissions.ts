@@ -12,8 +12,8 @@ import type { Schema } from './zero-schema'
  * itself is the one region-scoped table that is not on it: it keys on `id` rather than `regionFk`,
  * and `queries.region` spells its membership check out by hand.
  *
- * `activities` is off it because the events tables replaced it. Nothing reads it, and being off
- * this list is what stops a definition naming it, at the type level rather than by review.
+ * `activities` is off it because the events tables replaced it, and `importRefs` because only server
+ * scripts read it. Being off this list is what stops a definition naming them, at the type level.
  */
 export const regionTables = [
   'areas',
