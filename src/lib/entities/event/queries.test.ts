@@ -174,6 +174,33 @@ describe.skipIf(!usable)('listEvents', () => {
     }
   })
 
+  it('reads a bulk import as its head in an unscoped list, and as every event in a scoped one', async () => {
+    const [route] = await sql<{ id: number }[]>`
+      select id from public.routes where region_fk = ${region} and deleted_at is null order by id limit 1`
+    const [member] = await sql<{ id: number }[]>`
+      select user_fk as id from public.region_members where region_fk = ${region} and is_active limit 1`
+    if (route == null || member == null) return
+
+    const batch = `queries-test-${Date.now()}`
+    const rows = await sql<{ id: number }[]>`
+      insert into public.events (region_fk, actor_fk, verb, route_fk, batch, batch_size)
+      values (${region}, ${member.id}, 'update', ${route.id}, ${batch}, null),
+             (${region}, ${member.id}, 'update', ${route.id}, ${batch}, null),
+             (${region}, ${member.id}, 'update', ${route.id}, ${batch}, 3)
+      returning id`
+    const ids = rows.map((row) => row.id)
+
+    try {
+      const unscoped = await run({ limit: ALL_ROWS })
+      const scoped = await run({ limit: ALL_ROWS, scope: { id: route.id, type: 'route' } })
+
+      expect(unscoped.filter((row) => ids.includes(row.id)).map((row) => row.batchSize)).toEqual([3])
+      expect(scoped.filter((row) => ids.includes(row.id))).toHaveLength(3)
+    } finally {
+      await sql`delete from public.events where id = any(${ids})`
+    }
+  })
+
   it('takes a scope id as text, which is how every caller states it', async () => {
     // The old log keyed on `entity_id text`, so every caller passes `String(id)` and still does.
     // Five of the six object columns are integers and Zero compares by value AND type, so an

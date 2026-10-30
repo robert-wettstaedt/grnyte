@@ -33,6 +33,7 @@ const event = (over: Partial<DigestEvent> = {}): DigestEvent => ({
   areaFk: null,
   ascentFk: null,
   ascentType: null,
+  batch: null,
   blockFk: null,
   createdAt: new Date('2026-08-01T10:00:00Z'),
   fileFk: null,
@@ -188,6 +189,34 @@ describe.skipIf(!reachable)('digestCopy', () => {
 
     expect(copy?.title).toBe('Anna added the route Kante direkt')
     expect(copy?.body).toBe('and 4 more updates')
+  })
+
+  it('announces a batch as one import and counts the rest', async () => {
+    const at = (hoursAgo: number) => new Date(Date.parse('2026-08-01T10:00:00Z') - hoursAgo * 60 * 60 * 1000)
+    const head = event({ batch: 'b1', batchSize: 3, createdAt: at(0), id: 202 })
+    const older = event({ createdAt: at(12), id: 300 })
+
+    const en = await digestCopy([head, older], names(), 'en')
+    const de = await digestCopy([head, older], names(), 'de')
+
+    expect(en).toEqual({ body: 'and 1 more updates', title: 'Anna imported 3 changes from the guidebook' })
+    expect(de?.title).toBe('Anna hat 3 Änderungen aus dem Boulderführer übernommen')
+  })
+
+  it('counts a batch the scan read as its newest event by the events it stands for', async () => {
+    const newest = event({ batch: 'b1', batchSize: 2000, id: 400 })
+    const other = event({ batch: 'b2', batchSize: 700, createdAt: new Date('2026-07-01T10:00:00Z'), id: 401 })
+
+    expect(await digestCopy([newest, other], names(), 'en')).toEqual({
+      body: 'and 700 more updates',
+      title: 'Anna imported 2,000 changes from the guidebook',
+    })
+  })
+
+  it('says one change for a batch of one', async () => {
+    const lone = await digestCopy([event({ batch: 'b1', batchSize: 1, id: 500 })], names(), 'en')
+
+    expect(lone?.title).toBe('Anna imported 1 change from the guidebook')
   })
 
   it('names the climber a deleted ascent recorded', async () => {

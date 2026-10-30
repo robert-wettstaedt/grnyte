@@ -354,7 +354,8 @@ function tierOf(group: EventGroup, density: CardDensity, accolade: CardAccolade 
     return 'hero'
   }
 
-  if (density !== 'mixed' || !group.events.every(isFieldEdit)) {
+  // An import is news to every member, so it never shrinks to a background line.
+  if (density !== 'mixed' || group.kind === 'batch' || !group.events.every(isFieldEdit)) {
     return 'standard'
   }
 
@@ -378,14 +379,17 @@ function toCardGroup(group: EventGroup): CardGroup {
 
   return {
     actorFk: group.actorFk,
-    createdAt: group.createdAt,
-    id: group.id,
     // `single` means the card speaks ONE row's sentence, and the card decides that on what it
     // holds rather than on how many events produced it. One event that moved two columns is two
     // lines: under the old shape those were two stored rows and the card said "2 edits", and
     // calling it single because one event carries them names whichever column sorts first and
     // hides the rest.
-    kind: rows.length === 1 ? 'single' : group.kind === 'single' ? 'entity' : group.kind,
+    batchSize: group.events[0]?.batchSize,
+    createdAt: group.createdAt,
+    id: group.id,
+    kind:
+      group.kind === 'batch' ? 'batch' : rows.length === 1 ? 'single' : group.kind === 'single' ? 'entity' : group.kind,
+    region: group.events[0]?.region,
     rows,
   }
 }

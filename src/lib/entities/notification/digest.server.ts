@@ -50,6 +50,7 @@ export type DigestEvent = Pick<
   | 'actorFk'
   | 'areaFk'
   | 'ascentFk'
+  | 'batch'
   | 'blockFk'
   | 'fileFk'
   | 'id'
@@ -68,6 +69,8 @@ export type DigestEvent = Pick<
    */
   ascentClimbedAt?: Date | null | string
   ascentType?: null | string
+  /** How many events of a batch this one row stands for: the scan reads a batch as its newest event. */
+  batchSize?: null | number
   /** The first column an update moved, which is what the catalogue keys its sentence on. */
   changedColumn?: null | string
   createdAt: Date
@@ -96,6 +99,22 @@ export async function digestCopy(
 
   if (newest == null) {
     return undefined
+  }
+
+  // A batch row counts as the events it stands for.
+  const weight = new Map(events.map((event) => [event.id, event.batchSize ?? 1]))
+  const count = (list: readonly { id: number }[]) => list.reduce((sum, event) => sum + (weight.get(event.id) ?? 1), 0)
+  const rest = count(events) - count(newest.events)
+  const body = rest > 0 ? m.push_digestMore({ count: rest }, { locale }) : undefined
+
+  // The card's sentence, which names no entity: a batch is one import however many things it touched.
+  if (newest.kind === 'batch') {
+    const actor = toAuthor(
+      newest.actorFk,
+      newest.actorFk == null ? undefined : actorNames.get(newest.actorFk),
+      locale,
+    ).name
+    return { body, title: m.event_groupImport({ actor, count: count(newest.events), person: 'other' }, { locale }) }
   }
 
   // Through the catalogue adapter, exactly as the card does: an update expands to one row per
@@ -135,9 +154,7 @@ export async function digestCopy(
     { locale },
   )
 
-  const rest = events.length - newest.events.length
-
-  return { body: rest > 0 ? m.push_digestMore({ count: rest }, { locale }) : undefined, title }
+  return { body, title }
 }
 
 /**
@@ -228,6 +245,8 @@ function toEventItem(event: DigestEvent): EventListItem {
     // No actor name: the digest passes actors in separately, keyed by id, because one batch spans
     // several of them and only the headline's is ever read.
     actorName: '',
+    batch: event.batch ?? undefined,
+    batchSize: event.batchSize ?? undefined,
     // No change rows. The digest renders one headline, which reads the event's own verb; a card's
     // change LINES are the one thing a push deliberately does not list.
     changes:
@@ -273,6 +292,7 @@ function toEventItem(event: DigestEvent): EventListItem {
     // of it is the directed half's business, same as the reactions and comments above.
     promoted: false,
     reactions: [],
+    region: undefined,
     regionFk: event.regionFk,
     verb: event.verb,
   }

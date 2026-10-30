@@ -118,6 +118,13 @@ describe.skipIf(!usable)('toEvent', () => {
  * The branches a live database cannot be relied on to contain. These need no DB and no skip guard,
  * which is the point: both naming bugs below were shipped because nothing could reach them.
  */
+describe('batch', () => {
+  it('carries the import batch through, and nothing for an app write', () => {
+    expect(toEvent(eventRow({ batch: 'b1' }), []).batch).toBe('b1')
+    expect(toEvent(eventRow({ batch: null }), []).batch).toBeUndefined()
+  })
+})
+
 describe('entityOf, per branch', () => {
   it('gives a nameless block its Block N fallback rather than an empty headline', () => {
     const event = toEvent(

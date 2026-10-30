@@ -86,13 +86,7 @@ export async function createUpdateEvent(
     oldEntity: EventDiff
   },
 ): Promise<boolean> {
-  const changes: EventChange[] = Object.keys(newEntity)
-    .filter((key) => changed(oldEntity[key], newEntity[key]))
-    .map((key) => ({
-      columnName: key,
-      newValue: newEntity[key] == null ? null : String(newEntity[key]),
-      oldValue: oldEntity[key] == null ? null : String(oldEntity[key]),
-    }))
+  const changes = diffChanges(oldEntity, newEntity)
 
   if (changes.length === 0) {
     return false
@@ -101,6 +95,17 @@ export async function createUpdateEvent(
   // Always `update`: a change row reaches another verb only by folding into it, never directly.
   const event = await insertEvent(db, { actorFk, metadata, object, regionFk, verb: 'update' })
   return writeChanges(db, event, changes)
+}
+
+/** One change row per column of `newEntity` that moved, values stored as text. */
+export function diffChanges(oldEntity: EventDiff, newEntity: EventDiff): EventChange[] {
+  return Object.keys(newEntity)
+    .filter((key) => changed(oldEntity[key], newEntity[key]))
+    .map((key) => ({
+      columnName: key,
+      newValue: newEntity[key] == null ? null : String(newEntity[key]),
+      oldValue: oldEntity[key] == null ? null : String(oldEntity[key]),
+    }))
 }
 
 /**

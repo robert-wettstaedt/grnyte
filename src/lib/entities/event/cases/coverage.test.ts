@@ -138,12 +138,12 @@ describe('the case catalogue is read off the write path', () => {
   it('names a real writer on every case that claims one', () => {
     // The reaction and comment cases name `reactions.remote.ts`, which writes no event at all:
     // what they are about is the bar a card carries, whose rows are written there. A file counts
-    // as a writer if it writes an event OR a reaction.
+    // as a writer if it writes an event OR a reaction. A bulk import inserts events directly.
     const files = new Set([
       ...SITES.map((site) => site.file.split('/').pop()),
-      ...SOURCES.filter((path) => /\b(insert|update)\(reactions\)/.test(readFileSync(path, 'utf8'))).map((path) =>
-        path.split('/').pop(),
-      ),
+      ...SOURCES.filter((path) =>
+        /\b(insert|update)\(reactions\)|\binsert\(schema\.events\)/.test(readFileSync(path, 'utf8')),
+      ).map((path) => path.split('/').pop()),
     ])
     const wrong = EVENT_CASES.filter((entry) => entry.writer != null && !files.has(entry.writer.split(':')[0])).map(
       (entry) => `${entry.id} -> ${entry.writer}`,

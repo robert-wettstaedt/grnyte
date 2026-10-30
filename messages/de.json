@@ -838,6 +838,24 @@
       }
     }
   ],
+  "event_groupImport": [
+    {
+      "declarations": [
+        "input actor",
+        "input count",
+        "input person",
+        "local countPlural = count: plural",
+        "local countLabel = count: number"
+      ],
+      "selectors": ["person", "countPlural"],
+      "match": {
+        "person=self,countPlural=one": "Du hast {countLabel} Änderung aus dem Boulderführer übernommen",
+        "person=self,countPlural=*": "Du hast {countLabel} Änderungen aus dem Boulderführer übernommen",
+        "person=*,countPlural=one": "{actor} hat {countLabel} Änderung aus dem Boulderführer übernommen",
+        "person=*,countPlural=*": "{actor} hat {countLabel} Änderungen aus dem Boulderführer übernommen"
+      }
+    }
+  ],
   "event_groupRemovals": [
     {
       "declarations": ["input actor", "input person"],

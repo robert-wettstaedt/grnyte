@@ -3,7 +3,7 @@ import { isAscentEvent } from './dto'
 import type { EventListItem } from './mapper'
 
 export interface EventGroup {
-  /** The actor. Every key carries one, so every event in the group shares it. */
+  /** The actor, null once they deleted their account. Every key but a batch's carries one; a batch takes its newest event's. */
   actorFk: null | number
   /** Epoch millis of the group's newest event: what the feed sorts and dates by. */
   createdAt: number
@@ -25,6 +25,7 @@ export interface EventGroup {
 
 /**
  * How a card presents its events:
+ * - `batch`   one bulk import, whoever ran it and however long it took
  * - `session` one climber's ascents logged in one sitting
  * - `burst`   one editor's guidebook edits around the same place, close in time
  * - `removal` one editor's whole-entity deletions around the same place, close in time
@@ -32,7 +33,7 @@ export interface EventGroup {
  * - `entity`  one person's edits to the same entity, close in time
  * - `single`  a group that ended up with one event
  */
-export type EventGroupKind = 'burst' | 'entity' | 'removal' | 'session' | 'single' | 'upload'
+export type EventGroupKind = 'batch' | 'burst' | 'entity' | 'removal' | 'session' | 'single' | 'upload'
 
 /** How far apart two events can be and still share a burst or entity card. */
 const BURST_MS = 30 * 60 * 1000
@@ -56,7 +57,8 @@ const BURST_OBJECT_TYPES = new Set(['area', 'block', 'route'])
  * summarises. Upgrade = `eventParentRef` gains a grandparent arm and `+server.ts` joins blocks a
  * second time, if a real week of edits ever shows six lines is too many.
  */
-export function groupEvents(events: readonly EventListItem[]): EventGroup[] {
+/** `batches: false` for an entity's own log, where an import's events read as the edits they are. */
+export function groupEvents(events: readonly EventListItem[], { batches = true } = {}): EventGroup[] {
   const sorted = [...events].sort((a, b) => b.createdAt - a.createdAt || b.id - a.id)
   const groups: { group: EventGroup; key: string }[] = []
   /**
@@ -75,7 +77,7 @@ export function groupEvents(events: readonly EventListItem[]): EventGroup[] {
   const open = new Map<string, EventGroup[]>()
 
   for (const event of sorted) {
-    const kind = kindOf(event)
+    const kind = kindOf(event, batches)
     const key = groupKey(event, kind)
     const candidates = open.get(key) ?? []
 
@@ -102,7 +104,7 @@ export function groupEvents(events: readonly EventListItem[]): EventGroup[] {
   return mergeCreatedWithMedia(groups).map(({ group, key }) => ({
     ...group,
     id: `${key}#${oldestId(group.events)}`,
-    kind: group.events.length === 1 ? ('single' as const) : group.kind,
+    kind: group.events.length === 1 && group.kind !== 'batch' ? ('single' as const) : group.kind,
   }))
 }
 
@@ -135,6 +137,9 @@ function groupKey(event: EventListItem, kind: EventGroupKind): string {
   const region = event.regionFk
 
   switch (kind) {
+    case 'batch':
+      return `batch:${region}:${event.batch}`
+
     // No day in the key: `joins` decides, so a log running past local midnight stays one session
     // instead of splitting in two.
     case 'session':
@@ -175,6 +180,10 @@ function joins(group: EventGroup, event: EventListItem, kind: EventGroupKind): b
   const oldest = group.events[group.events.length - 1]
   const withinWindow = oldest.createdAt - event.createdAt <= BURST_MS
 
+  if (kind === 'batch') {
+    return true
+  }
+
   if (kind !== 'session') {
     return withinWindow
   }
@@ -213,7 +222,11 @@ function joinsCreate(create: EventListItem, uploads: EventGroup): boolean {
   return Math.abs(create.createdAt - uploads.createdAt) <= BURST_MS
 }
 
-function kindOf(event: EventListItem): EventGroupKind {
+function kindOf(event: EventListItem, batches: boolean): EventGroupKind {
+  if (batches && event.batchSize != null) {
+    return 'batch'
+  }
+
   // A deletion is the one thing on a card nobody may have to infer from a tombstone row, so it is
   // kept out of the edit bursts: a column-scoped delete (a photo, a parking pin) is an edit,
   // and is written as `remove` or `update` rather than `delete`, so the verb says it outright.
@@ -276,7 +289,12 @@ function mergeCreatedWithMedia(groups: { group: EventGroup; key: string }[]): { 
 
   for (const entry of groups) {
     const creates = entry.group.events.filter((event) => event.verb === 'create')
-    if (creates.length === 0 || (creates.length > 1 && entry.group.kind !== 'session')) {
+    // A batch never takes in uploads from outside it.
+    if (
+      entry.group.kind === 'batch' ||
+      creates.length === 0 ||
+      (creates.length > 1 && entry.group.kind !== 'session')
+    ) {
       continue
     }
 

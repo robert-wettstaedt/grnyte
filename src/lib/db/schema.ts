@@ -1555,6 +1555,10 @@ export const events = table(
 
     /** AS2 actor, null once they deleted their account: the event and its thread stay. */
     actorFk: integer('actor_fk').references((): AnyColumn => users.id),
+    /** Set only by a one-off bulk import: the feed and the digest fold one batch into one card. App code never writes it. */
+    batch: text('batch'),
+    /** On the batch's newest event only, the size of the batch: unscoped lists and the digest read just that row. */
+    batchSize: integer('batch_size'),
     /**
      * How many live comments hang under this card, top level and replies alike.
      *
@@ -1620,6 +1624,7 @@ export const events = table(
     // Exactly one object. An objectless event has nothing to render and nothing to react to, and
     // allowing it would reintroduce the "which of these is set" branching the keys exist to end.
     check('events_one_object', sql.raw(`num_nonnulls(${EVENT_OBJECT_COLUMNS}) = 1`)),
+    check('events_batch_size_in_batch', sql`${table.batchSize} is null or ${table.batch} is not null`),
 
     // Ownership on INSERT too, not only on the edits. A region predicate alone would let any
     // member write an event carrying somebody else's `actor_fk`, and the feed would render

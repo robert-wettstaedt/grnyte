@@ -137,6 +137,8 @@ export function eventAgo(
 
   return {
     actorName: partial.actorFk == null ? deletedUserName() : (PEOPLE[partial.actorFk] ?? ''),
+    batch: undefined,
+    batchSize: undefined,
     changes: [],
     commentCount: 0,
     createdAt: base - minutesAgo * 60_000,
@@ -149,6 +151,8 @@ export function eventAgo(
     parentEntity: parent == null ? undefined : entityOf(parent.type, parent.id),
     promoted: false,
     reactions: [],
+    // What `toEvent` hands a batch event: the region it ran in, as a row.
+    region: partial.batch == null ? undefined : { ...areaEntity('Frankenjura'), href: undefined },
     regionFk: 1,
     verb: 'update',
     ...partial,

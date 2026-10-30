@@ -4,7 +4,7 @@ import { eventParentRef } from '$lib/entities/event/mapper'
 import { contactLocale } from '$lib/i18n/message'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
-import { and, eq, gt, inArray, isNull, lte, max, ne, or, sql } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNotNull, isNull, lte, max, ne, or, sql } from 'drizzle-orm'
 import { toMs, unreadCounts } from './delivery.server'
 import { digestCopy } from './digest.server'
 import { categoryEnabled, inBatches, safeMark } from './dispatch'
@@ -106,6 +106,9 @@ export async function sendDigests(nowMs: number): Promise<number> {
           // The catalogue keys a logged ascent on its type, which is a column of the ascent rather
           // than of the event. Without it every send in a digest reads as the generic sentence.
           ascentType: ascents.type,
+          batch: events.batch,
+          // How many events this row stands for: a batch reaches the scan as its newest event alone.
+          batchSize: events.batchSize,
           blockAreaFk: blocks.areaFk,
           blockFk: events.blockFk,
           // The first column an update moved, which is what the catalogue keys the sentence on: an
@@ -144,6 +147,8 @@ export async function sendDigests(nowMs: number): Promise<number> {
             // only when its transaction commits, so reading right up to now would let the mark step
             // over something still in flight. See `DIGEST_COMMIT_LAG_MS`.
             lte(events.createdAt, new Date(nowMs - DIGEST_COMMIT_LAG_MS)),
+            // A batch by its head, the newest event, so the mark passes all of it at once.
+            or(isNull(events.batch), isNotNull(events.batchSize)),
             inArray(events.regionFk, regions),
             // Nobody is told about their own edit; a deleted actor's still counts.
             or(isNull(events.actorFk), ne(events.actorFk, subscriber.userFk)),

@@ -1,6 +1,5 @@
 import * as schema from '$lib/db/schema'
 import { areas, blocks, routes } from '$lib/db/schema'
-import type { Context } from '$lib/remote/authed.server'
 import { and, count, eq, inArray, isNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
@@ -21,6 +20,11 @@ export async function areaAncestry(db: Db, areaId: number): Promise<number[]> {
     current = area?.parentFk ?? null
   }
   return chain
+}
+
+/** `routes.areaIds`, the text form `routes/queries.ts` matches with `%^id$%`. */
+export function areaIdsOf(areaFks: readonly number[]): string {
+  return areaFks.map((id) => `^${id}$`).join(',')
 }
 
 /** {@link hasDeletedAncestor} for a row hanging off a BLOCK, which has to be live itself too. */
@@ -58,7 +62,7 @@ export async function hasDeletedAncestor(db: Db, areaId: number): Promise<boolea
  *  where the first block makes it a `sector` and the first sub-area an `area`. Call after a block
  *  or sub-area is deleted (resets an emptied area to `null`) or restored (sets it back).
  *  ponytail: blocks win when an area has both kinds of child; areas don't mix them in practice. */
-export async function refreshAreaType(db: Context['db'], areaId: number): Promise<void> {
+export async function refreshAreaType(db: Db, areaId: number): Promise<void> {
   const [[blockRow], [subAreaRow]] = await Promise.all([
     db
       .select({ count: count() })
