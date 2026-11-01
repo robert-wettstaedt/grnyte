@@ -161,9 +161,7 @@ export const routesQueryDefs = {
       const r = relatedRegion(ctx)
       const q = applyRouteFilters(zql.routes.where('deletedAt', 'IS', null), args, r)
 
-      // The map itself never passes one. It is here for the callers that only need to know
-      // whether a region holds none, one, or more than one route, which would otherwise sync
-      // every row in the region to count them.
+      // No caller passes one any more; it stays for a release because tabs opened before it still send it.
       return args.pageSize == null ? q : q.limit(args.pageSize)
     }),
   ),

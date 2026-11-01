@@ -2,8 +2,9 @@ import { isFieldDevice } from '$lib/state/device.svelte'
 import { isOnline } from '$lib/state/online.svelte'
 import { holdsPill, pillSurface, type PillSurface } from '$lib/state/pill.svelte'
 import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
-import type { HumanReadable, QueryOrQueryRequest, ReadonlyJSONValue } from '@rocicorp/zero'
+import type { HumanReadable, QueryOrQueryRequest, ReadonlyJSONValue, TTL } from '@rocicorp/zero'
 import { offlinePolicyOf, type OfflinePolicy } from './offline'
+import { ttlSource } from './ttlSource.svelte'
 import { getZ } from './z.svelte'
 import type { Schema } from './zero-schema'
 
@@ -224,6 +225,8 @@ class Resource<
  * @param opts.surface the pill to hold while arriving; tests pass one, components read context.
  * @param opts.register makes this a composite: a local-only `zql` read over rows these named queries
  *   sync, which supply its readiness and policy (`$lib/zero/coverage` checks the read stays inside).
+ * @param opts.ttl how long Zero keeps the query syncing once nothing reads it; `'none'` for a search
+ *   term the reader has moved past. Unset keeps Zero's default (5 minutes).
  */
 export function createResource<
   TTable extends keyof Schema['tables'] & string,
@@ -241,6 +244,7 @@ export function createResource<
     register?: () => QueryRequest[]
     source?: QuerySource
     surface?: PillSurface
+    ttl?: TTL
   },
 ): QueryResource<TOut> {
   return new Resource(
@@ -249,7 +253,7 @@ export function createResource<
     opts?.enabled ?? (() => true),
     opts?.offline,
     opts?.register,
-    opts?.source ?? zeroSource,
+    opts?.source ?? (opts?.ttl == null ? zeroSource : ttlSource(opts.ttl)),
     opts?.surface,
   )
 }

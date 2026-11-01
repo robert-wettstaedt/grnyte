@@ -7,6 +7,7 @@
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
+  import { countRoutesByGrade } from '$lib/entities/grade/counts'
   import { entityHref } from '$lib/entities/href'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { routeList } from '$lib/entities/route/resources.svelte'
@@ -46,6 +47,7 @@
     () => global.user?.id,
   )
 
+  const countByGrade = $derived(countRoutesByGrade(routes.data))
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
   // Block coordinates power the distance sort (route → block → geolocation).
@@ -154,7 +156,8 @@
       <Filter
         loading={routes.phase.kind === 'loading'}
         phase={routes.phase}
-        routes={routes.data}
+        {countByGrade}
+        total={routes.data.length}
         {sortOptions}
         sortDefaults={DEFAULT_DIR}
         placement="sheet"

@@ -602,6 +602,14 @@ export const blocks = table(
      */
     description: text('description'),
     geolocationFk: integer('geolocation_fk').references((): AnyColumn => geolocations.id),
+    /**
+     * Live routes per community grade id, `none` for ungraded, zero counts absent. The map draws its
+     * pins from this instead of syncing every route. Kept by the `routes_sync_block_grade_counts`
+     * trigger for every writer, including a read-only member whose ascent regrades a route (they may
+     * update `routes` but not `blocks`); a script that turns triggers off calls
+     * `recount_block_grade_counts`.
+     */
+    gradeCounts: jsonb('grade_counts').$type<Record<string, number>>().notNull().default({}),
     order: integer('order').notNull(),
   },
   (table) => [

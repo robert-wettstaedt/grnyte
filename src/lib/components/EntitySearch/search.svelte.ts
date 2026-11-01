@@ -227,26 +227,27 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
   const ready = () => isReady
 
   // Quietly: a search list has its own loading state, so it never holds the screen's pill.
+  // `ttl: 'none'`: a term the reader typed past stops syncing at once instead of staying cached for 5 minutes.
   const { areas, blocks, routes, users } = quietly(() => ({
     areas: createResource(
       () => queries.listAreas({ content: settled(), limit: perGroup }),
       (rows): EntityCandidate[] => rows.map(map.areas),
-      { enabled: ready },
+      { enabled: ready, ttl: 'none' },
     ),
     blocks: createResource(
       () => queries.listBlocks({ content: settled(), limit: perGroup }),
       (rows): EntityCandidate[] => rows.map(map.blocks),
-      { enabled: ready },
+      { enabled: ready, ttl: 'none' },
     ),
     routes: createResource(
       () => queries.listRoutes({ content: settled(), pageSize: perGroup, sort: 'rating', sortOrder: 'desc' }),
       (rows): EntityCandidate[] => rows.map(map.routes),
-      { enabled: ready },
+      { enabled: ready, ttl: 'none' },
     ),
     users: createResource(
       () => queries.listUsers({ content: settled(), limit: perGroup, regionFks: regionFks() }),
       (rows): EntityCandidate[] => rows.map(map.users),
-      { enabled: () => ready() && regionFks().length > 0 },
+      { enabled: () => ready() && regionFks().length > 0, ttl: 'none' },
     ),
   }))
 

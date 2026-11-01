@@ -146,8 +146,7 @@
     () => openEntity,
   )
 
-  // Detail screens report "n of N" against the rows this filtered map already holds.
-  $effect(() => setMatchingRoutes(isParsedFilterActive(filters), explore.routes.data, explore.routes.phase))
+  $effect(() => setMatchingRoutes(explore.matches, explore.matchPhase))
 
   // Nothing on hand to draw yet: the map says so in its pill, over the generic syncing.
   $effect(() => pill.offer(() => (explore.isLoading ? { kind: 'status', label: m.map_loading() } : undefined)))
@@ -321,9 +320,10 @@
     <SearchBar>
       {#snippet trailing()}
         <Filter
-          loading={explore.routes.phase.kind === 'loading'}
-          phase={explore.routes.phase}
-          routes={explore.routes.data}
+          loading={explore.matchPhase.kind === 'loading'}
+          phase={explore.matchPhase}
+          countByGrade={explore.filterCounts.countByGrade}
+          total={explore.filterCounts.total}
         />
       {/snippet}
     </SearchBar>

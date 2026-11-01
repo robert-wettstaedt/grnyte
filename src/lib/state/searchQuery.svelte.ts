@@ -34,6 +34,9 @@ export function setLiveSearchQuery(value: string) {
 
 let filter = $state.raw<LiveRouteFilter>({ parsed: parseRouteFilter(new URLSearchParams()), search: '' })
 
+/** Whether the active filter keeps a route; null with no filter. */
+export type MatchTest = ((route: { gradeFk: number | undefined; id: number }) => boolean) | null
+
 /** Reactive shared route filter. */
 export function liveRouteFilter(): { readonly current: LiveRouteFilter } {
   return {
@@ -51,11 +54,10 @@ export function setLiveRouteFilter(params: URLSearchParams) {
   if (search !== filter.search) filter = { parsed: parseRouteFilter(kept), search }
 }
 
-/** The route ids the active filter keeps (null with no filter), from the map's filtered rows. */
-let matching = $state.raw<{ ids: null | Set<number>; phase: QueryPhase }>({ ids: null, phase: { kind: 'loading' } })
+let matching = $state.raw<{ matches: MatchTest; phase: QueryPhase }>({ matches: null, phase: { kind: 'loading' } })
 
-/** Reactive matching route ids, for detail screens to report "n of N". */
-export function matchingRoutes(): { readonly current: { ids: null | Set<number>; phase: QueryPhase } } {
+/** Reactive match test, for detail screens to report "n of N". */
+export function matchingRoutes(): { readonly current: { matches: MatchTest; phase: QueryPhase } } {
   return {
     get current() {
       return matching
@@ -63,7 +65,6 @@ export function matchingRoutes(): { readonly current: { ids: null | Set<number>;
   }
 }
 
-/** Published by the explore layout from its filtered route rows. */
-export function setMatchingRoutes(active: boolean, routes: { id: number }[], phase: QueryPhase) {
-  matching = { ids: active ? new Set(routes.map((route) => route.id)) : null, phase }
+export function setMatchingRoutes(matches: MatchTest, phase: QueryPhase) {
+  matching = { matches, phase }
 }

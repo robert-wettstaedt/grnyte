@@ -14,6 +14,7 @@ interface BlockDetailRow extends BlockRow {
   readonly createdBy: null | number
   readonly description: null | string
   readonly geolocation?: Row<'geolocations'> | undefined
+  readonly gradeCounts?: null | Readonly<Record<string, number>> | undefined
   readonly topos?: readonly {
     readonly file?:
       | null
@@ -57,6 +58,7 @@ export function toBlockDetail(row: BlockDetailRow): BlockDetail {
     createdBy: row.createdBy,
     description: row.description ?? '',
     geolocation: row.geolocation == null ? undefined : toGeolocation(row.geolocation),
+    ...toGradeSummary(row.gradeCounts),
     rawName: row.name,
     topoImages: (row.topos ?? []).flatMap((topo) =>
       topo.file?.path == null
@@ -93,4 +95,19 @@ export function toBlockListItem(row: BlockRow): BlockListItem {
     order: row.order,
     regionFk: row.regionFk,
   }
+}
+
+/** `blocks.grade_counts` as the map draws it: graded routes per grade id for the donut, and every live route,
+ *  ungraded too, for the count. */
+export function toGradeSummary(counts: null | Readonly<Record<string, number>> | undefined): {
+  gradeCounts: Map<number, number>
+  routeCount: number
+} {
+  const gradeCounts = new Map<number, number>()
+  let routeCount = 0
+  for (const [key, n] of Object.entries(counts ?? {})) {
+    routeCount += n
+    if (key !== 'none') gradeCounts.set(Number(key), n)
+  }
+  return { gradeCounts, routeCount }
 }

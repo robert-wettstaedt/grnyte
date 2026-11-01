@@ -1,6 +1,7 @@
 import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
 import { queries } from '$lib/zero/queries'
 import { createResource, waitForRow } from '$lib/zero/resource.svelte'
+import type { TTL } from '@rocicorp/zero'
 import { toRouteDetail, toRouteListItem } from './mapper'
 
 export type AscentStatus = 'done' | 'project' | 'todo'
@@ -50,13 +51,16 @@ const betaPolicy = (filter: RouteListFilter): 'excluded' | undefined =>
   filter.hasBeta === true ? 'excluded' : undefined
 
 /** Slim route rows for the map (no related trees synced): see `listRoutesForMap`. */
-export function routeMapList(filter: () => RouteListFilter = () => ({})) {
+export function routeMapList(
+  filter: () => RouteListFilter = () => ({}),
+  opts?: { enabled?: () => boolean; ttl?: TTL },
+) {
   return createResource(
     () => queries.listRoutesForMap(filter()),
     // `name` is raw, for search matching only: render through the route mapper.
     (rows) =>
       rows.map((row) => ({ blockFk: row.blockFk, gradeFk: row.userGradeFk ?? undefined, id: row.id, name: row.name })),
-    { offline: () => betaPolicy(filter()) },
+    { ...opts, offline: () => betaPolicy(filter()) },
   )
 }
 

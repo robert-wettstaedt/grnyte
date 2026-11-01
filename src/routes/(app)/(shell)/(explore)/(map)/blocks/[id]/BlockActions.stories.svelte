@@ -17,11 +17,13 @@
     createdBy: 1,
     description: '',
     geolocation: { estimated: false, id: 10, lat: 48.4104, long: 2.6118 },
+    gradeCounts: new Map(),
     id: 1,
     name: blockName('Le Toit', 0),
     order: 0,
     rawName: 'Le Toit',
     regionFk: 1,
+    routeCount: 0,
     topoImages: [],
     ...overrides,
   })
