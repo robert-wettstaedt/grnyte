@@ -304,9 +304,9 @@ function keepContext(z: Z<Schema>): KeepContext {
  * `query.d.ts`); while the preload is live the rows are kept. So retention here rests on
  * nothing calling `cleanup`, which no test asserts and any refactor could quietly undo.
  *
- * TTL is not the lever it looks like either way: `MAX_TTL_MS` caps it at ten minutes and
- * `ttl: 'forever'` is silently clamped to that. An earlier version of this comment credited the
- * clamp with the retention, which was the right conclusion off the wrong mechanism.
+ * The TTL decides what survives a closed page: closing deactivates every query, a preload defaults
+ * to `ttl: 'none'`, and the TTL clock only ticks while Zero runs, so `'10m'` (the cap) keeps the rows
+ * confirmed across a reopen instead of re-sending them.
  *
  * Four weeks away costs nothing for *reading*, but not for reconnecting: zero-cache garbage
  * collects an inactive CVR after 48 hours, so any gap longer than that comes back through
@@ -336,7 +336,7 @@ async function preloadStage(z: Z<Schema>, stage: KeepStage, ctx: KeepContext): P
       try {
         const request = await build(ctx)
         if (request != null) {
-          await z.preload(request as Parameters<typeof z.preload>[0]).complete
+          await z.preload(request as Parameters<typeof z.preload>[0], { ttl: '10m' }).complete
         }
       } catch (error) {
         failed = true
