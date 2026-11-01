@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { liveRouteFilter, matchingRoutes, setLiveRouteFilter, setMatchingRoutes } from './searchQuery.svelte'
+import { liveRouteFilter, setLiveRouteFilter } from './searchQuery.svelte'
 
 describe('the shared route filter', () => {
   it('keeps only filter params, in a stable order', () => {
@@ -19,19 +19,5 @@ describe('the shared route filter', () => {
     setLiveRouteFilter(new URLSearchParams('minGrade=3'))
     setLiveRouteFilter(new URLSearchParams())
     expect(liveRouteFilter().current.search).toBe('')
-  })
-})
-
-describe('the matching routes', () => {
-  it('is null without a filter, whatever rows are on hand', () => {
-    setMatchingRoutes(false, [{ id: 1 }], { empty: false, kind: 'answered' })
-    expect(matchingRoutes().current.ids).toBeNull()
-  })
-
-  it('is the kept ids with a filter, empty included', () => {
-    setMatchingRoutes(true, [{ id: 1 }, { id: 4 }], { empty: false, kind: 'answered' })
-    expect([...matchingRoutes().current.ids!]).toEqual([1, 4])
-    setMatchingRoutes(true, [], { empty: true, kind: 'answered' })
-    expect(matchingRoutes().current.ids?.size).toBe(0)
   })
 })

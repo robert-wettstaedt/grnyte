@@ -117,11 +117,3 @@ export interface RouteListItem {
   /** The route's line points on that topo. */
   topoPoints?: TopoPoint[]
 }
-
-/** The map's per-route data: just what the donut counts and Filter need. */
-export interface RouteMapItem {
-  blockFk: null | number
-  /** Community grade (`userGradeFk`), like {@link RouteListItem.gradeFk}. */
-  gradeFk: number | undefined
-  id: number
-}

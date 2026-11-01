@@ -112,10 +112,20 @@ remains governed by its own exception.
 - **THEN** the grade chart and route count render from the routes on hand
 - **AND** they update in place, without going blank, once the routes are confirmed
 
+#### Scenario: Map markers while the blocks are unconfirmed
+
+- **WHEN** no route filter is active, or only a grade range, and the map's blocks are still being
+  confirmed after a reload or a first open
+- **THEN** each area, sector and block marker shows the count and grade split from the summaries of
+  the blocks on hand
+- **AND** they settle to the confirmed values without the marker going blank
+
 #### Scenario: Map markers while the routes are unconfirmed
 
-- **WHEN** the map's route list is still being confirmed after a reload or a first open
-- **THEN** each area, sector and block marker shows the count and grade split of the routes on hand
+- **WHEN** a route filter the block summaries cannot answer is active and its routes are still being
+  confirmed
+- **THEN** each area, sector and block marker shows the count and grade split of the matching routes
+  on hand
 - **AND** they settle to the confirmed values without the marker going blank
 
 #### Scenario: Nothing on hand yet

@@ -20,11 +20,13 @@
     createdBy: 1,
     description: '',
     geolocation: { estimated: false, id: id * 10, lat, long },
+    gradeCounts: new Map(),
     id,
     name: blockName(name, id - 1),
     order: id - 1,
     rawName: name,
     regionFk: 1,
+    routeCount: 0,
     topoImages: [],
   })
 

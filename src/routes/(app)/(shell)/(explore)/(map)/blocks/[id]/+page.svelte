@@ -52,12 +52,9 @@
   const routeCount = $derived(summaryOf(routes.phase, orderedRoutes.length))
   // Under a route filter, how many of these routes it keeps, from the map's filtered rows.
   const matching = matchingRoutes()
-  const matchingIds = $derived(matching.current.ids)
-  const matchingCount = $derived(
-    matchingIds == null
-      ? undefined
-      : summaryOf(matching.current.phase, orderedRoutes.filter((route) => matchingIds.has(route.id)).length),
-  )
+  const matches = $derived(matching.current.matches)
+  const matchingIds = $derived(matches == null ? null : new Set(orderedRoutes.filter(matches).map((route) => route.id)))
+  const matchingCount = $derived(matchingIds == null ? undefined : summaryOf(matching.current.phase, matchingIds.size))
   // The topo thumbnail is folded in here rather than per row: `RouteList` renders a route as it
   // is given, and a route carries at most one topo line.
   const routesWithTopos = $derived(

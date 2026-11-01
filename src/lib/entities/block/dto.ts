@@ -13,9 +13,13 @@ export type BlockDetail = BlockListItem & {
   /** Markdown, with entity references and user mentions. '' when unset, never null. */
   description: string
   geolocation: Geolocation | undefined
+  /** Live graded routes per grade id, from `blocks.grade_counts`: the map's donut without the routes. */
+  gradeCounts: Map<number, number>
   /** The stored name as typed: empty for auto-numbered blocks. `name` is the display
    *  fallback ("Block 2"); editing must prefill from this so a blank block stays blank. */
   rawName: string
+  /** Every live route, ungraded too, from `blocks.grade_counts`. */
+  routeCount: number
   /** One entry per topo image, in topo order: the `topos` row id (links to the
    *  topo page), `files.path` plus the stored EXIF-oriented pixel size (missing
    *  for files not yet backfilled). */

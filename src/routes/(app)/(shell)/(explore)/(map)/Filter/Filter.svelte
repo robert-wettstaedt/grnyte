@@ -5,9 +5,7 @@
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { groupFirstAscensionists } from '$lib/entities/firstAscensionist/mapper'
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
-  import { countRoutesByGrade } from '$lib/entities/grade/counts'
   import { allRegionTags } from '$lib/entities/region/tagVocabulary'
-  import type { RouteMapItem } from '$lib/entities/route/dto'
   import type { AscentStatus } from '$lib/entities/route/resources.svelte'
   import { FILTER_PARAM_KEYS, isFilterActive, parseRouteFilter, writeRouteFilter } from '$lib/map/filter'
   import { m } from '$lib/paraglide/messages'
@@ -30,23 +28,25 @@
   }
 
   interface Props {
+    /** Routes per grade id, for the grade bars. */
+    countByGrade: Map<number, number>
     loading: boolean
-    /** What may be said about `routes`: its count and grade bars show per `summaryOf`. */
+    /** What may be said about the routes: their count and grade bars show per `summaryOf`. */
     phase: QueryPhase
     /**
      * Desktop panel placement: `search` drops it under the search bar (explore),
      * `sheet` docks a slim column beside the routes sheet (area routes). No effect on mobile.
      */
     placement?: 'search' | 'sheet'
-    /** Only `gradeFk` and the count are read, so both the slim map rows and full list items fit. */
-    routes: Pick<RouteMapItem, 'gradeFk'>[]
     /** Default direction per sort field, used to seed Order and detect defaults. */
     sortDefaults?: Record<string, 'asc' | 'desc'>
     /** When set, a Sort section is shown and `sort`/`dir` URL params are managed. */
     sortOptions?: SortOption[]
+    /** How many routes match. */
+    total: number
   }
 
-  const { loading, phase, placement = 'search', routes, sortDefaults, sortOptions }: Props = $props()
+  const { countByGrade, loading, phase, placement = 'search', sortDefaults, sortOptions, total }: Props = $props()
 
   // Desktop panel geometry. `search`: under the search bar, sharing its x + width.
   // `sheet`: a slim column docked right of the routes sheet, sharing its y + height.
@@ -106,9 +106,7 @@
     sortDir = dirFor(field)
   }
 
-  const routeCount = $derived(summaryOf(phase, routes.length))
-
-  const routeCountByGrade = $derived(countRoutesByGrade(routes))
+  const routeCount = $derived(summaryOf(phase, total))
 
   // Short, value-aware summaries shown in each collapsed section's header so the
   // applied filters stay readable at a glance without expanding every section.
@@ -321,7 +319,7 @@
         <GradeRange
           grades={global.grades}
           gradingScale={global.gradingScale}
-          routeCountByGrade={routeCount != null ? routeCountByGrade : undefined}
+          routeCountByGrade={routeCount != null ? countByGrade : undefined}
           bind:value
         />
       </div>

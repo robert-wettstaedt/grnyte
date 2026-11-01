@@ -4,7 +4,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { regionDisplayName } from '$lib/entities/region/mapper'
   import { canEditRegion } from '$lib/entities/region/permissions'
-  import { routeMapList } from '$lib/entities/route/resources.svelte'
+  import { routeList } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { storage } from '$lib/state/storage'
@@ -25,12 +25,11 @@
 
   const global = getGlobalState()
 
-  // Scoped to this region, and the map's bare projection (id, block, grade) so counting costs
-  // nothing extra. Unscoped it counted every route the viewer could see anywhere, which for
+  // Scoped to this region: unscoped it counted every route the viewer could see anywhere, which for
   // anybody already in a populated region is never 1. `pageSize: 2` because "exactly one" is all
   // this asks: without it, opening any route in a 5000-route region synced all 5000 rows to
   // evaluate a length check.
-  const routes = routeMapList(() => ({ pageSize: 2, regionFk }))
+  const routes = routeList(() => ({ pageSize: 2, regionFk }))
 
   const region = $derived(global.userRegions.find((membership) => membership.regionFk === regionFk))
 

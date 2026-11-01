@@ -67,8 +67,9 @@
   const countByGrade = $derived(countRoutesByGrade(routes.data))
   // Under a route filter, the part of this area it keeps, from the map's filtered rows.
   const matching = matchingRoutes()
-  const matchingIds = $derived(matching.current.ids)
-  const matchingHere = $derived(matchingIds == null ? null : routes.data.filter((route) => matchingIds.has(route.id)))
+  const matches = $derived(matching.current.matches)
+  const matchingHere = $derived(matches == null ? null : routes.data.filter(matches))
+  const matchingIds = $derived(matchingHere == null ? null : new Set(matchingHere.map((route) => route.id)))
   // What is outside the filter is an absence claim, so it waits for the filtered rows to be answered.
   const matchingAnswered = $derived(matching.current.phase.kind === 'answered')
   const matchingByGrade = $derived(

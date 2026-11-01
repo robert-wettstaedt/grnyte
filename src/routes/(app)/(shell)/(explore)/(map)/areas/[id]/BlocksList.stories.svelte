@@ -23,11 +23,13 @@
     createdBy: 1,
     description: '',
     geolocation: { estimated: false, id: id * 10, lat: 48.4104 + id / 1000, long: 2.6118 },
+    gradeCounts: new Map(),
     id,
     name: blockName(name, 0),
     order: id - 1,
     rawName: name,
     regionFk: 1,
+    routeCount: 0,
     topoImages: [{ ...topo, id }],
     ...overrides,
   })

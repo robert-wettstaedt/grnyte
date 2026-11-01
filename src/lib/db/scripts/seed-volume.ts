@@ -8,8 +8,8 @@
  *
  * Run `seed-dev-region.ts` first (it creates the region + members this reads).
  *
- * `PROFILE=prod` applies the shape measured on prod for one reader's regions
- * (the targets live in the zero-latency change's design.md). Any knob below
+ * `PROFILE=prod` applies the shape of prod's largest region (see the profile
+ * below). Any knob below
  * overrides it. Without a profile the defaults reproduce the original ~5000
  * route tree with no topos, first ascensionists or events.
  *
@@ -30,28 +30,29 @@ import postgres from 'postgres'
 const DATABASE_URL = process.env.DATABASE_URL
 if (!DATABASE_URL) throw new Error('seed-volume: DATABASE_URL is required')
 
-// Measured on prod 2026-10-01 as aggregates over one reader's eight regions.
+// Region 32's tree after the guidebook rebuild, with the topos, events, ascents and media measured on prod.
 const PROFILES: Record<string, Record<string, number>> = {
   prod: {
-    AREAS: 8,
+    AREAS: 12,
     ASCENT_ROUTE_SHARE: 0.08,
-    BLOCKS_PER_SECTOR: 3.59,
+    BLOCKS_PER_SECTOR: 1.57,
     EVENTS: 12_350,
-    FA_EXTRA_P: 0.12,
-    FA_PEOPLE: 287,
-    FA_ROUTE_SHARE: 0.55,
-    GEO_BLOCK_SHARE: 0.86,
+    FA_EXTRA_P: 0.03,
+    FA_PEOPLE: 258,
+    FA_ROUTE_SHARE: 0.76,
+    GEO_BLOCK_SHARE: 0.915,
     MEDIA_ASCENT_SHARE: 0.03,
     MEDIA_BLOCK_SHARE: 0.1,
     MEDIA_ROUTE_SHARE: 0.07,
-    MID_BRANCHING: 4,
+    MID_BRANCHING: 2,
     MID_LEVELS: 2,
-    ROUTES_PER_BLOCK_MAX: 58,
-    ROUTES_PER_BLOCK_MEDIAN: 2,
-    // Measured p90 is 9; a lognormal through 2 and 9 overshoots prod's 6,729 routes by 16%.
-    ROUTES_PER_BLOCK_P90: 8.5,
-    SECTORS_PER_AREA: 4,
-    TOPO_BLOCK_SHARE: 0.47,
+    ROUTES_PER_BLOCK_MAX: 70,
+    ROUTES_PER_BLOCK_MEDIAN: 3,
+    // Below the measured p90: a lognormal through the measured one overshoots the route total.
+    ROUTES_PER_BLOCK_P90: 9.7,
+    SECTORS_PER_AREA: 22,
+    // Above region 32's on purpose: keeps the previous profile's ~1,140 topos on fewer blocks.
+    TOPO_BLOCK_SHARE: 0.52,
     TOPO_EXTRA_P: 0.23,
     TOPO_LINE_EXTRA_P: 0.05,
     TOPO_LINE_SHARE: 0.55,
