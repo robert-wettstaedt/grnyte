@@ -343,7 +343,8 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
         break
       }
       case 'create_area': {
-        const parentFk = resolve('area', o.parent)
+        // no parent: a root area of the region
+        const parentFk = o.parent == null ? null : resolve('area', o.parent)
         const [row] = await db
           .insert(schema.areas)
           .values({
@@ -371,7 +372,7 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
           log.record('area', o.id, 'description', a.description, set.description.new)
         }
         if (set.parent) {
-          const parent = resolve('area', set.parent.new)
+          const parent = set.parent.new == null ? null : resolve('area', set.parent.new)
           await tx`update areas set parent_fk = ${parent} where id = ${o.id}`
           log.record('area', o.id, 'parentFk', a.parentFk, parent)
         }
@@ -646,8 +647,8 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
   if (unresolved.length > 0) problems.push(`links to rows the run did not create: ${unresolved.join('; ')}`)
   // the app derives an area's type from what it holds; the list's type is what that must come to
   const typed = [
-    ...of('create_area').map((o) => ({ id: resolve('area', { key: o.key }), type: o.type })),
-    ...of('update_area').flatMap((o) => (o.set.type ? [{ id: o.id, type: o.set.type.new }] : [])),
+    ...of('create_area').map((o) => ({ id: resolve('area', { key: o.key }), key: `${o.key} `, type: o.type })),
+    ...of('update_area').flatMap((o) => (o.set.type ? [{ id: o.id, key: '', type: o.set.type.new }] : [])),
   ]
   const types = new Map(
     (
@@ -655,7 +656,9 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
       select id, type from areas where id = any(${typed.map((t) => t.id)}::int[])`
     ).map((r) => [r.id, r.type]),
   )
-  const mistyped = typed.filter((t) => types.get(t.id) !== t.type).map((t) => t.id)
+  const mistyped = typed
+    .filter((t) => types.get(t.id) !== t.type)
+    .map((t) => `${t.id} (${t.key}list ${t.type ?? 'none'}, holds ${types.get(t.id) ?? 'nothing'})`)
   if (mistyped.length > 0)
     problems.push(`${mistyped.length} area(s) hold what their list type does not: ${mistyped.join(', ')}`)
   const deleted = {

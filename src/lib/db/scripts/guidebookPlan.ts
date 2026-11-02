@@ -24,7 +24,7 @@ const opSchema = z.discriminatedUnion('op', [
     key: z.string(),
     name: text,
     op: z.literal('create_area'),
-    parent: ref,
+    parent: z.nullable(ref),
     type: z.enum(['area', 'sector']),
   }),
   z.strictObject({
@@ -33,7 +33,7 @@ const opSchema = z.discriminatedUnion('op', [
     set: z.strictObject({
       description: z.optional(pair(text)),
       name: z.optional(pair(text)),
-      parent: z.optional(z.strictObject({ new: ref, old: oldRef })),
+      parent: z.optional(z.strictObject({ new: z.nullable(ref), old: oldRef })),
       type: z.optional(pair(z.nullable(z.enum(['area', 'sector'])))),
     }),
   }),
