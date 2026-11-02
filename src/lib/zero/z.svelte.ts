@@ -309,7 +309,8 @@ function keepContext(z: Z<Schema>): KeepContext {
  * confirmed across a reopen instead of re-sending them.
  *
  * Four weeks away costs nothing for *reading*, but not for reconnecting: zero-cache garbage
- * collects an inactive CVR after 48 hours, so any gap longer than that comes back through
+ * collects an inactive CVR after `ZERO_CVR_GARBAGE_COLLECTION_INACTIVITY_THRESHOLD_HOURS` (720 in prod,
+ * Zero's default is 168), so any gap longer than that comes back through
  * `onClientStateNotFound`, which drops the sync stamp and reloads into a fresh sync.
  *
  * WHAT is kept, and how each request is built, lives in `KEPT` in `offline.ts`, the same table every
