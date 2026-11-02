@@ -105,7 +105,8 @@ on purpose rather than an oversight: **do not add them.**
 
 Client view records are derived state. They track which rows each client has already been sent, so
 losing them costs every client one re-sync and nothing else, which is the same path a client already
-takes after 48 hours away when zero-cache collects an inactive record. Backing them up would ship a
+takes after a long absence when zero-cache collects an inactive record
+(`ZERO_CVR_GARBAGE_COLLECTION_INACTIVITY_THRESHOLD_HOURS`, 720 in prod). Backing them up would ship a
 recreatable, fast-growing table around nightly for no recovery benefit.
 
 They live here rather than in the upstream database to keep them off Supabase, which is on a capped
