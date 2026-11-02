@@ -98,6 +98,7 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
     ...ids(of('create_block').map((o) => o.area)),
     ...ids(of('update_block').map((o) => o.set.area?.new)),
     ...ids(of('update_area').map((o) => o.set.parent?.new)),
+    ...ids(of('add_parking').map((o) => o.area)),
   ]
   const faIds = [
     ...of('rename_fa').map((o) => o.id),
@@ -535,6 +536,10 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
         await retire(kind, o.gone)
         break
       }
+      case 'add_parking':
+        await tx`insert into geolocations (region_fk, area_fk, lat, long, estimated)
+                 values (${region}, ${resolve('area', o.area)}, ${o.lat}, ${o.lng}, false)`
+        break
       case 'delete_route':
         await stampDeletedAt(db, { routeIds: [o.id] }, new Date(), null)
         events.push({ id: o.id, kind: 'route', verb: 'delete' })
