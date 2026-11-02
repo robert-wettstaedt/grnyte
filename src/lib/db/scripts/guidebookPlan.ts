@@ -91,6 +91,8 @@ const opSchema = z.discriminatedUnion('op', [
   z.strictObject({ id, op: z.literal('delete_route') }),
   z.strictObject({ id, op: z.literal('delete_block') }),
   z.strictObject({ id, op: z.literal('delete_area') }),
+  // a sector's parking spot: a `geolocations` row on the area, as the app reads parking
+  z.strictObject({ area: ref, lat: z.number(), lng: z.number(), op: z.literal('add_parking') }),
 ])
 
 const opsSchema = z.strictObject({
