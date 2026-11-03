@@ -1,10 +1,11 @@
 /* eslint-disable svelte/prefer-svelte-reactivity -- these collections are rebuilt wholesale
    inside $derived (the new reference is the reactivity) and never mutated afterwards.
    Plain Map avoids per-key signal overhead; see exploreData.svelte.ts for the dev-mode cost. */
+import type { AreaListItem } from '$lib/entities/area/dto'
 import type { BlockDetail } from '$lib/entities/block/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 import type { Coords } from './map'
-import type { BlocksMapProps, Bounds } from './types'
+import { CROWDED_TIER, type BlocksMapProps, type Bounds } from './types'
 
 const boundsOfCoords = (coords: Coords[]): Bounds | null => {
   if (coords.length === 0) return null
@@ -80,11 +81,64 @@ export function createMapData(props: BlocksMapProps) {
     })
   }
 
-  // Area tier, zoomed out. Falls back to the outermost ancestor of any type, or a sector at a
-  // region's root would draw in no tier below SECTOR_ZOOM and its blocks would vanish.
-  const areaTier = $derived(tierOf((block) => block.areas.find((area) => area.type === 'area') ?? block.areas[0]))
-  // Sector tier, drawn at mid zoom: the block-holding area.
-  const sectorTier = $derived(tierOf((block) => block.areas.find((area) => area.type === 'sector')))
+  // The area above the block's sector (a block loads one parent, not the root), else its outermost
+  // ancestor, or a sector at a region's root would draw in no tier below SECTOR_ZOOM.
+  const outer = (block: BlockDetail) => block.areas.find((area) => area.type === 'area') ?? block.areas[0]
+  const sectorOf = (block: BlockDetail) => block.areas.find((area) => area.type === 'sector')
+
+  const areaById = $derived(new Map((props.areas ?? []).map((area) => [area.id, area])))
+  const chainOf = (block: BlockDetail): AreaListItem[] => {
+    const chain: AreaListItem[] = []
+    const seen = new Set<number>()
+    let current = areaById.get(block.areas.at(-1)?.id ?? -1)
+    while (current != null && !seen.has(current.id)) {
+      seen.add(current.id)
+      if (current.type !== 'sector') chain.unshift(current)
+      current = current.parentFk == null ? undefined : areaById.get(current.parentFk)
+    }
+    return chain
+  }
+
+  // areaMapList maps fresh rows on every sync: keep the last picks while ids and names hold, or
+  // an unrelated area edit rebuilds every tier layer.
+  let lastThinned = new Map<number, AreaListItem>()
+  const samePicks = (a: Map<number, AreaListItem>, b: Map<number, AreaListItem>) =>
+    a.size === b.size && [...a].every(([id, area]) => b.get(id)?.id === area.id && b.get(id)?.name === area.name)
+
+  // Per crowded region, each block's area at the first level of the tree holding more than one.
+  const thinned = $derived.by(() => {
+    const byRegion = new Map<number, BlockDetail[]>()
+    for (const block of geoBlocks) {
+      const blocks = byRegion.get(block.regionFk)
+      if (blocks == null) byRegion.set(block.regionFk, [block])
+      else blocks.push(block)
+    }
+    const top = new Map<number, AreaListItem>()
+    for (const blocks of byRegion.values()) {
+      const today = new Set(blocks.map((block) => outer(block)?.id)).size
+      if (today <= CROWDED_TIER) continue
+      const chains = blocks.map(chainOf)
+      const at = (chain: AreaListItem[], depth: number) => chain[Math.min(depth, chain.length - 1)]
+      let depth = 0
+      while (
+        new Set(chains.map((chain) => at(chain, depth)?.id)).size <= 1 &&
+        chains.some((chain) => chain.length > depth + 1)
+      ) {
+        depth++
+      }
+      const picks = blocks.map((block, i) => [block.id, at(chains[i], depth) ?? outer(block)] as const)
+      if (new Set(picks.map(([, area]) => area?.id)).size >= today) continue
+      for (const [id, area] of picks) if (area != null) top.set(id, area)
+    }
+    if (!samePicks(top, lastThinned)) lastThinned = top
+    return lastThinned
+  })
+
+  // A crowded region draws its top level zoomed out, and its usual areas in the middle tier.
+  const areaTier = $derived(tierOf((block) => thinned.get(block.id) ?? outer(block)))
+  const middleTier = $derived(tierOf((block) => (thinned.has(block.id) ? outer(block) : undefined)))
+  const sectorTier = $derived(tierOf((block) => (thinned.has(block.id) ? undefined : sectorOf(block))))
+  const lateSectorTier = $derived(tierOf((block) => (thinned.has(block.id) ? sectorOf(block) : undefined)))
 
   const uniqueParkingLocations = $derived.by(() => {
     const deduplicated = new Map<number, Geolocation>()
@@ -102,6 +156,12 @@ export function createMapData(props: BlocksMapProps) {
     },
     get geoBlocks() {
       return geoBlocks
+    },
+    get lateSectorTier() {
+      return lateSectorTier
+    },
+    get middleTier() {
+      return middleTier
     },
     get routeCountByBlock() {
       return routeCountByBlock

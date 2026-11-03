@@ -24,7 +24,7 @@ import Icon from 'ol/style/Icon'
 // module would pull the whole library into StaticMap and so into every feed card.
 import type { TierEntry } from './data.svelte'
 import { APPROACH_COLOR } from './tiles'
-import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, MARKERS_LAYER_KEY, OSM_LAYER_KEY, SECTOR_ZOOM, type LayerEntry } from './types'
+import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, MARKERS_LAYER_KEY, OSM_LAYER_KEY, type LayerEntry } from './types'
 
 // The data layers are created once (empty) and kept stable; only their features are
 // rebuilt when the corresponding data changes (see Map.svelte). Recreating a layer
@@ -60,7 +60,7 @@ export function buildBlockFeatures(geoBlocks: BlockDetail[], routeCountByBlock: 
 }
 
 /**
- * The toggle rows for the layers sheet, one per distinct `layerKey`. The five marker layers share
+ * The toggle rows for the layers sheet, one per distinct `layerKey`. The marker layers share
  * one key and so collapse into a single row; two overlays that merely share a NAME do not.
  */
 export function buildLayerEntries(layers: BaseLayer[]): LayerEntry[] {
@@ -122,7 +122,7 @@ export function buildPathFeatures(uniqueLineStrings: string[]): Feature[] {
 }
 
 // One rect per area or sector around its blocks, with a donut of its routes by grade. The area tier
-// draws zoomed out; from SECTOR_ZOOM the sector rects take over, then the block markers.
+// draws zoomed out, then the sector rects (types.ts has the zooms), then the block markers.
 export function buildTierFeatures(tier: TierEntry[], look: TierLook): Feature[] {
   return tier.map(({ area, bounds, gradeCounts, routeCount }) => {
     const [minLat, minLng, maxLat, maxLng] = bounds
@@ -137,12 +137,6 @@ export function buildTierFeatures(tier: TierEntry[], look: TierLook): Feature[] 
     ])
     return feature
   })
-}
-
-export function createAreaLayer(): VectorLayer {
-  const layer = new VectorLayer({ maxZoom: SECTOR_ZOOM, source: new VectorSource() })
-  layer.set('layerName', 'Markers')
-  return layer
 }
 
 export function createBlockLayer(mapInstance: OlMap, getSelectedId: () => number | undefined): VectorLayer {
@@ -254,8 +248,8 @@ export function createPathLayer(minZoom = BLOCK_ZOOM): VectorLayer {
   return layer
 }
 
-export function createSectorLayer(): VectorLayer {
-  const layer = new VectorLayer({ maxZoom: BLOCK_ZOOM, minZoom: SECTOR_ZOOM, source: new VectorSource() })
+export function createTierLayer(minZoom: number | undefined, maxZoom: number): VectorLayer {
+  const layer = new VectorLayer({ maxZoom, minZoom, source: new VectorSource() })
   layer.set('layerName', 'Markers')
   return layer
 }

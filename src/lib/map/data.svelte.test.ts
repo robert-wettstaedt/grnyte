@@ -1,4 +1,5 @@
 import type { BlockDetail } from '$lib/entities/block/dto'
+import { flushSync } from 'svelte'
 import { describe, expect, it } from 'vitest'
 import { createMapData } from './data.svelte'
 
@@ -188,5 +189,88 @@ describe('createMapData tier contents', () => {
         },
       ]
     `)
+  })
+})
+
+describe('createMapData thinning a crowded region', () => {
+  type Node = { id: number; parentFk?: number; type: 'area' | 'sector' }
+  /** One block per sector and one sector per area: today's far view draws those areas. */
+  const region = (roots: number[], areasPerRoot: number, wrapper?: number) => {
+    const nodes: Node[] = wrapper == null ? [] : [{ id: wrapper, type: 'area' }]
+    const blocks: BlockDetail[] = []
+    for (const root of roots) {
+      nodes.push({ id: root, parentFk: wrapper, type: 'area' })
+      for (let i = 0; i < areasPerRoot; i++) {
+        const area = root * 100 + i
+        nodes.push({ id: area, parentFk: root, type: 'area' }, { id: area * 10, parentFk: area, type: 'sector' })
+        const parent = { id: area, name: `A${area}`, type: 'area' } as const
+        blocks.push(block(area, [parent, { id: area * 10, name: `S${area}`, type: 'sector' }]))
+      }
+    }
+    const areas = nodes.map((node) => ({ ...node, areas: [], name: `N${node.id}` }))
+    const data = createMapData({ areas: areas as never, blocks })
+    const ids = (tier: { area: { id: number } }[]) => tier.map(({ area }) => area.id)
+    return {
+      far: ids(data.areaTier).length,
+      late: ids(data.lateSectorTier).length,
+      middle: ids(data.middleTier).length,
+      sectors: ids(data.sectorTier).length,
+      top: ids(data.areaTier).slice(0, 3),
+    }
+  }
+
+  it("draws a crowded region by its top level, today's areas in the middle, its sectors late", () => {
+    expect(region([1, 2], 16)).toEqual({ far: 2, late: 32, middle: 32, sectors: 0, top: [1, 2] })
+  })
+
+  it('steps inside a lone wrapper to reach the top level', () => {
+    expect(region([1, 2, 3], 11, 9)).toEqual({ far: 3, late: 33, middle: 33, sectors: 0, top: [1, 2, 3] })
+  })
+
+  it('leaves a deeper region under the limit as it is: regions 4 and 34 draw 18 and 15 today', () => {
+    expect(region([1, 2], 10)).toEqual({ far: 20, late: 0, middle: 0, sectors: 20, top: [100, 101, 102] })
+  })
+
+  it('leaves a region at or under the limit as it is: region 32 today is a wrapper over 14 areas', () => {
+    expect(region([1], 14, 9)).toEqual({ far: 14, late: 0, middle: 0, sectors: 14, top: [100, 101, 102] })
+  })
+
+  it("leaves a crowded region whose top level is today's areas as it is", () => {
+    expect(region([1], 31)).toEqual({ far: 31, late: 0, middle: 0, sectors: 31, top: [100, 101, 102] })
+  })
+
+  it('leaves a region of exactly CROWDED_TIER areas as it is', () => {
+    expect(region([1, 2], 15)).toEqual({ far: 30, late: 0, middle: 0, sectors: 30, top: [100, 101, 102] })
+  })
+
+  it('keeps every tier when an area sync changes nothing the tiers draw', () => {
+    const areas: Node[] = [1, 2].map((id) => ({ id, type: 'area' }))
+    const blocks: BlockDetail[] = []
+    for (let id = 100; id < 132; id++) {
+      areas.push({ id, parentFk: id < 116 ? 1 : 2, type: 'area' }, { id: id * 10, parentFk: id, type: 'sector' })
+      blocks.push(
+        block(id, [
+          { id, name: `A${id}`, type: 'area' },
+          { id: id * 10, name: `S${id}`, type: 'sector' },
+        ]),
+      )
+    }
+    const props = $state({ areas: areas.map((area) => ({ ...area, areas: [], name: `N${area.id}` })), blocks })
+    let runs = 0
+    const stop = $effect.root(() => {
+      const data = createMapData(props as never)
+      $effect(() => {
+        void [data.areaTier, data.middleTier, data.sectorTier, data.lateSectorTier]
+        runs++
+      })
+    })
+    flushSync()
+    props.areas = props.areas.map((area) => ({ ...area }))
+    flushSync()
+    expect(runs).toBe(1)
+    props.areas = props.areas.map((area) => (area.id === 1 ? { ...area, name: 'Renamed' } : area))
+    flushSync()
+    stop()
+    expect(runs).toBe(2)
   })
 })

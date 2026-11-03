@@ -28,21 +28,31 @@
     buildParkingFeatures,
     buildPathFeatures,
     buildTierFeatures,
-    createAreaLayer,
     createBlockLayer,
     createDrawnPathLayer,
     createParkingLayer,
     createPathLayer,
-    createSectorLayer,
+    createTierLayer,
     createWmsLayers,
     SECTOR_TIER_LOOK,
   } from './layers.svelte'
   import { isMapPanKey } from './map'
-  import { BLOCK_LABEL_ZOOM, MARKERS_LAYER_KEY, type BlocksMapProps, type LayerEntry } from './types'
+  import {
+    BLOCK_LABEL_ZOOM,
+    BLOCK_ZOOM,
+    LATE_SECTOR_ZOOM,
+    MARKERS_LAYER_KEY,
+    SECTOR_ZOOM,
+    type BlocksMapProps,
+    type LayerEntry,
+  } from './types'
 
   const props: BlocksMapProps = $props()
 
   const data = createMapData({
+    get areas() {
+      return props.areas
+    },
     get blocks() {
       return props.blocks
     },
@@ -118,8 +128,13 @@
   // one layer whose features changed (layers are never torn down and rebuilt), so a Zero
   // sync from another client no longer flashes the whole map (and the donut icons, which
   // are expensive to regenerate, aren't reloaded unless their own area/sector changed).
-  let areaLayer = $state<VectorLayer>()
-  let sectorLayer = $state<VectorLayer>()
+  const TIERS = [
+    { look: AREA_TIER_LOOK, max: SECTOR_ZOOM, min: undefined, tier: () => data.areaTier },
+    { look: AREA_TIER_LOOK, max: LATE_SECTOR_ZOOM, min: SECTOR_ZOOM, tier: () => data.middleTier },
+    { look: SECTOR_TIER_LOOK, max: BLOCK_ZOOM, min: SECTOR_ZOOM, tier: () => data.sectorTier },
+    { look: SECTOR_TIER_LOOK, max: BLOCK_ZOOM, min: LATE_SECTOR_ZOOM, tier: () => data.lateSectorTier },
+  ]
+  let tierLayers = $state.raw<VectorLayer[]>([])
   let blockLayer = $state<VectorLayer>()
   let parkingLayer = $state<VectorLayer>()
   let pathLayer = $state<VectorLayer>()
@@ -128,13 +143,12 @@
     const mapInstance = map
     if (mapInstance == null) return
 
-    const area = createAreaLayer()
-    const sector = createSectorLayer()
+    const tiers = TIERS.map(({ max, min }) => createTierLayer(min, max))
     const block = createBlockLayer(mapInstance, () => props.selectedBlockId)
     const parking = createParkingLayer()
     const path = createPathLayer()
 
-    const dataLayers = [area, sector, block, parking, path]
+    const dataLayers = [...tiers, block, parking, path]
     for (const layer of dataLayers) {
       layer.set('layerName', m.map_markers())
       layer.set('layerKey', MARKERS_LAYER_KEY)
@@ -143,7 +157,7 @@
       layer.setVisible(untrack(() => markersVisible))
     }
     // Navigable markers (everything except the path lines) drive the pointer cursor.
-    for (const layer of [area, sector, block, parking]) {
+    for (const layer of [...tiers, block, parking]) {
       layer.set('clickable', true)
     }
     block.set('isBlockLayer', true)
@@ -151,8 +165,7 @@
     for (const layer of dataLayers) {
       mapInstance.addLayer(layer)
     }
-    areaLayer = area
-    sectorLayer = sector
+    tierLayers = tiers
     blockLayer = block
     parkingLayer = parking
     pathLayer = path
@@ -168,8 +181,7 @@
         layer.getSource()?.clear()
         layer.dispose()
       }
-      areaLayer = undefined
-      sectorLayer = undefined
+      tierLayers = []
       blockLayer = undefined
       parkingLayer = undefined
       pathLayer = undefined
@@ -185,8 +197,9 @@
     source.addFeatures(features)
   }
 
-  $effect(() => syncFeatures(areaLayer, buildTierFeatures(data.areaTier, AREA_TIER_LOOK)))
-  $effect(() => syncFeatures(sectorLayer, buildTierFeatures(data.sectorTier, SECTOR_TIER_LOOK)))
+  for (const [i, { look, tier }] of TIERS.entries()) {
+    $effect(() => syncFeatures(tierLayers[i], buildTierFeatures(tier(), look)))
+  }
   $effect(() => syncFeatures(blockLayer, buildBlockFeatures(data.geoBlocks, data.routeCountByBlock)))
 
   // Re-style the block layer when the selected block changes so the highlight + z-index follow.

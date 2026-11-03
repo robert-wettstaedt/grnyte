@@ -1,8 +1,11 @@
 import type { IconName } from '$lib/components/Icon/icons'
+import type { AreaDetail } from '$lib/entities/area/dto'
 import type { BlockDetail } from '$lib/entities/block/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 
 export interface BlocksMapProps {
+  /** Every area of the reader's regions, so a crowded region's far view can reach its root. */
+  areas?: Pick<AreaDetail, 'areas' | 'id' | 'name' | 'parentFk' | 'type'>[]
   blocks: BlockDetail[]
   /** Claims the camera for the open route. Omitted by maps that `focus` alone drives. */
   cameraClaim?: MapCameraClaim | null
@@ -53,7 +56,7 @@ export interface LayerEntry {
   visible: boolean
 }
 
-/** The five marker layers toggle as one group. */
+/** The marker layers toggle as one group. */
 export const MARKERS_LAYER_KEY = 'markers'
 export const OSM_LAYER_KEY = 'osm'
 
@@ -65,7 +68,7 @@ export type MapCameraClaim = { key: string; kind: 'entity' | 'reader' }
 /** The map-data subset produced by `createExploreMapData`, spread into `<Map>`. */
 export type MapData = Pick<
   BlocksMapProps,
-  'blocks' | 'gradeCountByBlock' | 'lineStrings' | 'parkingLocations' | 'routeCountByBlock'
+  'areas' | 'blocks' | 'gradeCountByBlock' | 'lineStrings' | 'parkingLocations' | 'routeCountByBlock'
 >
 
 export interface MapFocus {
@@ -80,9 +83,12 @@ export interface MapFocus {
 }
 
 // Below SECTOR_ZOOM only the (outer) area rects show, so the far view isn't cluttered with
-// every sector; from SECTOR_ZOOM the sector rects take over, and from BLOCK_ZOOM the blocks do.
+// every sector; from SECTOR_ZOOM the sector rects take over (a crowded region's from LATE_SECTOR_ZOOM).
 export const SECTOR_ZOOM = 11
+export const LATE_SECTOR_ZOOM = 13
 export const BLOCK_ZOOM = 14
+/** More far-view rects than this in one region, and it draws its top level instead. */
+export const CROWDED_TIER = 30
 export const BLOCK_LABEL_ZOOM = 15
 /** The scale one entity's own marker is framed at, as a floor rather than a target. */
 export const ENTITY_FOCUS_ZOOM = 16
