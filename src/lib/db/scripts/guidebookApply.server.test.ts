@@ -20,6 +20,7 @@ interface World {
   b3: number
   fa1: number
   fa2: number
+  fa3: number
   r1: number
   r2: number
   r3: number
@@ -62,10 +63,10 @@ async function world(tx: Tx): Promise<World> {
   ]
   const fa = (name: string) =>
     one(tx`insert into first_ascensionists (name, region_fk) values (${name}, ${region}) returning id`)
-  const [fa1, fa2] = [await fa('a. fels'), await fa('A. Fels')]
+  const [fa1, fa2, fa3] = [await fa('a. fels'), await fa('A. Fels'), await fa('Projekt')]
   await tx`insert into routes_to_first_ascensionists (route_fk, first_ascensionist_fk, region_fk)
            values (${r1}, ${fa2}, ${region}), (${r2}, ${fa1}, ${region})`
-  return { b1, b2, b3, fa1, fa2, r1, r2, r3, r4, region, root, sector, user: user.userId }
+  return { b1, b2, b3, fa1, fa2, fa3, r1, r2, r3, r4, region, root, sector, user: user.userId }
 }
 
 const list = (w: World, extra: Op[] = []) =>
@@ -120,6 +121,7 @@ const list = (w: World, extra: Op[] = []) =>
       },
       { id: w.fa2, new: 'Anna Fels', old: 'A. Fels', op: 'rename_fa' },
       { gone: w.fa1, into: w.fa2, op: 'merge_fa' },
+      { id: w.fa3, op: 'delete_fa' },
       { gone: w.r2, into: w.r1, op: 'merge_route' },
       { gone: w.b3, into: w.b1, op: 'merge_block' },
       { id: w.r3, op: 'delete_route' },
@@ -196,8 +198,8 @@ describe.skipIf(!reachable)('applyOps', () => {
           array(select tag_fk from routes_to_tags where route_fk = r.id order by tag_fk) as tags
         from routes r join grades g on g.id = r.grade_fk where r.id = ${w.r1}`
       expect(r1).toEqual({ fa: ['Anna Fels'], fb: 'FB 7A', tags: ['sit start'] })
-      const gone =
-        await tx`select 1 from routes where id = ${w.r2} union all select 1 from first_ascensionists where id = ${w.fa1}`
+      const gone = await tx`select 1 from routes where id = ${w.r2} union all select 1 from first_ascensionists
+                 where id in (${w.fa1}, ${w.fa3})`
       expect(gone).toHaveLength(0)
       const [moved] = await tx<{ block: number }[]>`select block_fk as block from routes where id = ${w.r4}`
       expect(moved.block).toBe(w.b1)
@@ -274,6 +276,23 @@ describe.skipIf(!reachable)('applyOps', () => {
         ]),
       )
     })
+  })
+
+  it('refuses to delete a first ascensionist a route names or an account holds', async () => {
+    for (const hold of ['route', 'account', 'user_fk'] as const) {
+      await inRollback(async (tx, db) => {
+        const w = await world(tx)
+        if (hold === 'route')
+          await tx`insert into routes_to_first_ascensionists (route_fk, first_ascensionist_fk, region_fk)
+                   values (${w.r1}, ${w.fa3}, ${w.region})`
+        if (hold === 'account') await tx`update users set first_ascentionist_fk = ${w.fa3} where id = ${w.user}`
+        if (hold === 'user_fk') await tx`update first_ascensionists set user_fk = ${w.user} where id = ${w.fa3}`
+        const ops = parseOps({ fp: {}, ops: [{ id: w.fa3, op: 'delete_fa' }], refs: [], source: 'Test-Buch-2026' })
+        await expect(
+          applyOps(tx, db, ops, { actor: w.user, batch: 'held', preflight: new Preflight(), region: w.region }),
+        ).rejects.toThrow(new RegExp(`first ascensionist ${w.fa3} is deleted but still linked`))
+      })
+    }
   })
 
   it('fails a run whose re-parenting makes a cycle instead of hanging', async () => {

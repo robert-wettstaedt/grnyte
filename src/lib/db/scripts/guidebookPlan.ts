@@ -85,6 +85,7 @@ const opSchema = z.discriminatedUnion('op', [
   }),
   z.strictObject({ id, new: z.string(), old: z.string(), op: z.literal('rename_fa') }),
   z.strictObject({ gone: id, into: id, op: z.literal('merge_fa') }),
+  z.strictObject({ id, op: z.literal('delete_fa') }),
   z.strictObject({ gone: id, into: id, op: z.literal('merge_route') }),
   z.strictObject({ gone: id, into: id, op: z.literal('merge_block') }),
   z.strictObject({ gone: id, into: id, op: z.literal('merge_area') }),

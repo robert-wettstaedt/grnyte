@@ -39,6 +39,7 @@ describe('parseOps', () => {
           set: { first_ascent: { new: [{ id: 3 }], old: ['A. Fels'] }, grade: { new: '7A', old: '6C' } },
         },
         { id: 3, new: 'Anna Fels', old: 'anna fels', op: 'rename_fa' },
+        { id: 4, op: 'delete_fa' },
         { gone: 8, into: 7, op: 'merge_route' },
         { id: 9, op: 'delete_area' },
       ]),
@@ -52,6 +53,7 @@ describe('parseOps', () => {
       'create_route',
       'update_route',
       'rename_fa',
+      'delete_fa',
       'merge_route',
       'delete_area',
     ])
