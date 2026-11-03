@@ -506,6 +506,16 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
         await repoint(tx, 'first_ascensionists', o.gone, o.into)
         await tx`delete from first_ascensionists where id = ${o.gone}`
         break
+      case 'delete_fa': {
+        // a row no route names and no account holds, proved again inside the transaction
+        const held = await countOf(tx<{ c: number }[]>`
+          select ((select count(*) from routes_to_first_ascensionists where first_ascensionist_fk = ${o.id})
+            + (select count(*) from users where first_ascentionist_fk = ${o.id})
+            + (select count(*) from first_ascensionists where id = ${o.id} and user_fk is not null))::int as c`)
+        if (held > 0) throw new Error(`guidebook-import: first ascensionist ${o.id} is deleted but still linked`)
+        await tx`delete from first_ascensionists where id = ${o.id}`
+        break
+      }
       case 'merge_route':
         await mergeRoute(tx, o.gone, o.into)
         recalc.delete(o.gone)
