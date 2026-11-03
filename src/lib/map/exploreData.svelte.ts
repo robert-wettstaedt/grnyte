@@ -103,6 +103,9 @@ export function createExploreMapData(
   // individually (never spread), so a field whose source query didn't change keeps a
   // stable reference and its map layer's effect doesn't re-run: only the changed layer does.
   return {
+    get areas() {
+      return areasResult.data
+    },
     get blocks() {
       return blocks
     },

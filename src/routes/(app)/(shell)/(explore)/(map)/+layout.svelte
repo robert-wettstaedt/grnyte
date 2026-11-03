@@ -276,6 +276,7 @@
 
 <div class="absolute inset-0">
   <Map
+    areas={explore.areas}
     blocks={explore.blocks}
     parkingLocations={explore.parkingLocations}
     lineStrings={explore.lineStrings}
