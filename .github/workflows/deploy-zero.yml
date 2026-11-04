@@ -2,6 +2,7 @@ name: Deploy Zero
 
 permissions:
   contents: read
+  id-token: write
 
 on:
   push:
@@ -14,8 +15,21 @@ on:
 jobs:
   setup-repo:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: 'Production – grnyte.rocks'
     steps:
+      # First, because tailscaled runs under `sudo -E` and must not inherit the vault's values. No
+      # cache: a hit skips the checksum, and the no-secrets CI job can write that cache scope.
+      - name: Join the tailnet
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
+        with:
+          oauth-client-id: ${{ vars.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ vars.TS_AUDIENCE }}
+          tags: tag:ci
+          version: '1.104.5'
+          sha256sum: 720cbbccbfc03d8b55df72afc19e5a72e31b0f65934700aa6fa38074d4ad7bf7
+          use-cache: 'false'
+
       # Only the three values needed to reach the box.
       - name: Load VPS access from Bitwarden
         uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
@@ -31,11 +45,11 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -T 30 -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
       - name: Setup deployment repository
         run: |
-          ssh "$VPS_USER@$VPS_HOST" << 'ENDSSH'
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" << 'ENDSSH'
             DEPLOY_DIR="$HOME/zero-deployment"
 
             # Clean up and setup fresh repository
@@ -62,6 +76,7 @@ jobs:
   prepare-envs:
     needs: setup-repo
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       matrix:
         environment:
@@ -95,6 +110,18 @@ jobs:
               3669b3d5-cdce-4964-84f1-b4b10092e14d > VPS_USER
     environment: ${{ matrix.environment.env_name }}
     steps:
+      # First, because tailscaled runs under `sudo -E` and must not inherit the vault's values. No
+      # cache: a hit skips the checksum, and the no-secrets CI job can write that cache scope.
+      - name: Join the tailnet
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
+        with:
+          oauth-client-id: ${{ vars.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ vars.TS_AUDIENCE }}
+          tags: tag:ci
+          version: '1.104.5'
+          sha256sum: 720cbbccbfc03d8b55df72afc19e5a72e31b0f65934700aa6fa38074d4ad7bf7
+          use-cache: 'false'
+
       - name: Checkout code
         uses: actions/checkout@v6
 
@@ -112,7 +139,7 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -T 30 -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
       # The access token is the only thing that says which environment this is: its machine account
       # can read the grnyte-prod project and nothing else.
@@ -142,7 +169,7 @@ jobs:
             printf '%s="%s"\n' "$key" "$value" >> env.zero
           done
 
-          ssh "$VPS_USER@$VPS_HOST" \
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" \
             "cat > \$HOME/zero-deployment/deployment/.env.${{ matrix.environment.name }}" < env.zero
           rm -f env.zero
 
@@ -155,8 +182,21 @@ jobs:
   deploy-infrastructure:
     needs: prepare-envs
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: 'Production – grnyte.rocks'
     steps:
+      # First, because tailscaled runs under `sudo -E` and must not inherit the vault's values. No
+      # cache: a hit skips the checksum, and the no-secrets CI job can write that cache scope.
+      - name: Join the tailnet
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
+        with:
+          oauth-client-id: ${{ vars.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ vars.TS_AUDIENCE }}
+          tags: tag:ci
+          version: '1.104.5'
+          sha256sum: 720cbbccbfc03d8b55df72afc19e5a72e31b0f65934700aa6fa38074d4ad7bf7
+          use-cache: 'false'
+
       # Only the three values needed to reach the box.
       - name: Load VPS access from Bitwarden
         uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
@@ -172,11 +212,11 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -T 30 -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
       - name: Check Docker IPv6 support
         run: |
-          ssh "$VPS_USER@$VPS_HOST" << 'ENDSSH'
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" << 'ENDSSH'
             echo "Checking if Docker IPv6 is enabled..."
             if [ ! -f /etc/docker/daemon.json ] || ! grep -q '"ipv6"[[:space:]]*:[[:space:]]*true' /etc/docker/daemon.json; then
               echo "❌ Docker IPv6 is NOT enabled!"
@@ -197,7 +237,7 @@ jobs:
 
       - name: Deploy Zero Infrastructure
         run: |
-          ssh "$VPS_USER@$VPS_HOST" << 'ENDSSH'
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" << 'ENDSSH'
             set -e
             cd $HOME/zero-deployment/deployment
 
