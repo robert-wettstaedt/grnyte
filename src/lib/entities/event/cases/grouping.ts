@@ -933,7 +933,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'One KIND `batch` card, "Mara Lindqvist imported 5 changes from the guidebook". An unscoped list holds the batch as its head alone (the query drops every other event of it), and the count is the head\'s `batch_size`, so it is the true size whatever window the feed has loaded. No sub line and no sentence naming one entity. Below it one row, the region the import ran in (Frankenjura), carrying the reaction bar: no entity rows, no change lines and no pin.',
     id: 'GROUP-09a',
-    writer: 'guidebook-import.ts:664',
+    writer: 'guidebookApply.ts:643',
   },
   {
     action: 'The same import, read by Mara who ran it',
@@ -943,7 +943,7 @@ export const GROUPING_CASES: EventCase[] = [
       'The same card as GROUP-09a with `mine` set: "You imported 5 changes from the guidebook". The batch key carries no actor, but the card takes its newest event\'s, so the person who ran the import reads it as their own.',
     id: 'GROUP-09b',
     reader: 5,
-    writer: 'guidebook-import.ts:664',
+    writer: 'guidebookApply.ts:643',
   },
   {
     action: 'An import that changed one thing',
@@ -952,7 +952,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'A KIND `batch` card like GROUP-09a, in the singular: "Mara Lindqvist imported 1 change from the guidebook". A batch never becomes `single`, so one change still reads as an import rather than as a hand edit, and the feed and the push say the same thing.',
     id: 'GROUP-09c',
-    writer: 'guidebook-import.ts:664',
+    writer: 'guidebookApply.ts:643',
   },
   {
     action: 'You run the import, then rename a route by hand five minutes later',
@@ -968,7 +968,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Two cards: "You renamed Riss", a KIND `single` for the hand edit, and the KIND `batch` card of five. They share an actor and five minutes, which would fold into one burst; a batch event never joins anything outside its batch, so the hand edit stays its own card.',
     id: 'GROUP-09d',
-    writer: 'guidebook-import.ts:664',
+    writer: 'guidebookApply.ts:643',
   },
   {
     action: 'The import creates Südblock, and you add a photo to it a minute later',
@@ -987,7 +987,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Two cards: "You added a photo to Südblock" with the photo in its strip, and the KIND `batch` card of five. The head is the Südblock create, and a create normally takes in uploads to what it created a minute later; a batch never does, so the photo is not hung on an import card.',
     id: 'GROUP-09e',
-    writer: 'guidebook-import.ts:664',
+    writer: 'guidebookApply.ts:643',
   },
   {
     action: 'Mara runs the import twice, an hour apart, under two labels',
@@ -996,7 +996,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'Two KIND `batch` cards of five, "Mara Lindqvist imported 5 changes from the guidebook" each. The key is region plus label, so two runs under two labels never fold, whoever ran them and however close.',
     id: 'GROUP-09f',
-    writer: 'guidebook-import.ts:664',
+    writer: 'guidebookApply.ts:643',
   },
   {
     action: 'Mara runs the import over a whole region: 3000 changes',
@@ -1005,7 +1005,7 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       'The same card as GROUP-09a, "Mara Lindqvist imported 3,000 changes from the guidebook", the count formatted for the locale: the list holds one row for the import however large it is, so it neither fills the window nor takes 60 taps of Load older to scroll past.',
     id: 'GROUP-09g',
-    writer: 'guidebook-import.ts:664',
+    writer: 'guidebookApply.ts:643',
   },
 ]
 
