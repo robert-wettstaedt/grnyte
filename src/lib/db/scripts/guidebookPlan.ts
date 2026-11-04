@@ -16,6 +16,8 @@ const point = z.strictObject({ estimated: z.boolean(), lat: z.number(), lng: z.n
 const pin = z.nullable(z.strictObject({ lat: z.number(), lng: z.number() }))
 /** A place as the snapshot held it: always a row that exists, or no parent at all. */
 const oldRef = z.strictObject({ id: z.nullable(id) })
+const areaType = z.enum(['area', 'sector'])
+const entityKind = z.enum(['area', 'block', 'route'])
 
 const opSchema = z.discriminatedUnion('op', [
   z.strictObject({ key: z.string(), name: z.string(), op: z.literal('create_fa') }),
@@ -25,7 +27,7 @@ const opSchema = z.discriminatedUnion('op', [
     name: text,
     op: z.literal('create_area'),
     parent: z.nullable(ref),
-    type: z.enum(['area', 'sector']),
+    type: areaType,
   }),
   z.strictObject({
     id,
@@ -34,7 +36,7 @@ const opSchema = z.discriminatedUnion('op', [
       description: z.optional(pair(text)),
       name: z.optional(pair(text)),
       parent: z.optional(z.strictObject({ new: z.nullable(ref), old: oldRef })),
-      type: z.optional(pair(z.nullable(z.enum(['area', 'sector'])))),
+      type: z.optional(pair(z.nullable(areaType))),
     }),
   }),
   z.strictObject({
@@ -99,13 +101,13 @@ const opSchema = z.discriminatedUnion('op', [
 const opsSchema = z.strictObject({
   fp: z.unknown(),
   ops: z.array(opSchema),
-  refs: z.array(z.strictObject({ kind: z.enum(['area', 'block', 'route']), ref: z.string(), target: ref })),
+  refs: z.array(z.strictObject({ kind: entityKind, ref: z.string(), target: ref })),
   // the region the exports came from; lists made before the exports recorded it have none
   region: z.optional(z.nullable(id)),
   source: z.string().check(z.minLength(1)),
 })
 
-export type EntityKind = 'area' | 'block' | 'route'
+export type EntityKind = z.infer<typeof entityKind>
 export type Op = z.infer<typeof opSchema>
 export type Ops = z.infer<typeof opsSchema>
 export type Ref = z.infer<typeof ref>
