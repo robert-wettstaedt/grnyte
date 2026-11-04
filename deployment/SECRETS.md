@@ -2,7 +2,8 @@
 
 Every environment variable for both environments lives in Bitwarden Secrets Manager. Nothing is
 typed into the Vercel dashboard, the VPS or GitHub by hand any more, with the two exceptions listed
-under [What stays out](#what-stays-out).
+under [What stays out](#what-stays-out) and the two Tailscale variables under
+[Bootstrap](#bootstrap).
 
 ## The model
 
@@ -34,7 +35,8 @@ Which half of a project goes where:
   Anything in BOTH places is a knob you cannot turn, because `environment:` overrides `env_file:`.
   That was true of the two connection limits until 2026-08-25, so editing them in the vault did
   nothing at all.
-- `VPS_SSH_KEY`, `VPS_HOST` and `VPS_USER` are the deploy's, and live in grnyte-prod.
+- `VPS_SSH_KEY`, `VPS_HOST` and `VPS_USER` are the deploy's, and live in grnyte-prod. Point
+  `VPS_HOST` at the box's tailnet address, not its public one.
 - Everything else is the app's. It goes to Vercel. `PUBLIC_ZERO_URL` is the app's, not the server's.
 - Local development gets both halves, because it runs both. `VPS_*` is not in grnyte-dev: nothing
   local talks to the VPS.
@@ -89,10 +91,16 @@ Then, in GitHub:
   vanished, so it is written down where it bites: adding required reviewers to
   `Production – grnyte.rocks` stops the canary running at all, and a canary that does not run looks
   exactly like one that passes.
+- Repository variables `TS_OAUTH_CLIENT_ID` and `TS_AUDIENCE`, from a Tailscale trust credential
+  with subject `repo:robert-wettstaedt/grnyte:environment:*`, scope Auth Keys write and tag `tag:ci`.
+  Every SSH job sets `environment:`, so a subject naming a branch matches none of them. Neither value
+  is secret: joining also takes a token GitHub signs for that subject. They sit outside the vault
+  because the join runs first, before any job holds a vault value. The tailnet policy gives `tag:ci`
+  only `tcp:22` on `tag:server`, and the box carries `tag:server`.
 
-**This is the only secret GitHub stores.** There are no repository secrets and no Actions
-variables; every other value is read from Bitwarden at run time by `bitwarden/sm-action`, pinned by
-commit in each workflow. Delete the rest **after the v2 cutover, not before** — `main` still reads
+**This is the only secret GitHub stores.** There are no repository secrets, and the only Actions
+variables are the two above; every other value is read from Bitwarden at run time by
+`bitwarden/sm-action`, pinned by commit in each workflow. Delete the rest **after the v2 cutover, not before** — `main` still reads
 `ZERO_UPSTREAM_DB`, `ZERO_AUTH_SECRET`, `ZERO_ADMIN_PASSWORD` and `VPS_SSH_KEY` as `secrets.*`, and
 Zero deploys from `main`:
 
