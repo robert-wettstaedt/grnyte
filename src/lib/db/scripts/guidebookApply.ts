@@ -69,10 +69,11 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
   const of = <T extends Op['op']>(op: T) => ops.ops.filter((o): o is Extract<Op, { op: T }> => o.op === op)
   const ids = (refs: (null | undefined | { id: null | number } | { key: string })[]) =>
     refs.flatMap((r) => (r != null && 'id' in r && r.id != null ? [r.id] : []))
+  const batchEvents = () => countOf(tx<{ c: number }[]>`select count(*)::int as c from events where batch = ${batch}`)
 
   /* --------------------------------------------------------------- preflight */
 
-  if ((await countOf(tx<{ c: number }[]>`select count(*)::int as c from events where batch = ${batch}`)) > 0) {
+  if ((await batchEvents()) > 0) {
     fail(`batch "${batch}" already has events; pick a new label rather than doubling them`)
   }
   await assertRouteReferences(tx, fail)
@@ -100,9 +101,10 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
     ...ids(of('update_area').map((o) => o.set.parent?.new)),
     ...ids(of('add_parking').map((o) => o.area)),
   ]
-  const faIds = [
+  const faWanted = [
     ...of('rename_fa').map((o) => o.id),
     ...of('merge_fa').flatMap((o) => [o.gone, o.into]),
+    ...of('delete_fa').map((o) => o.id),
     ...ids(of('create_route').flatMap((o) => o.first_ascent)),
     ...ids(of('update_route').flatMap((o) => o.set.first_ascent?.new ?? [])),
   ]
@@ -163,7 +165,7 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
   const fas = new Map(
     (
       await tx<{ id: number; name: string; regionFk: number }[]>`
-        select id, name, region_fk as "regionFk" from first_ascensionists where id = any(${[...new Set(faIds)]}::int[])`
+        select id, name, region_fk as "regionFk" from first_ascensionists where id = any(${[...new Set(faWanted)]}::int[])`
     ).map((row) => [row.id, row]),
   )
   for (const [what, wanted, rows] of [
@@ -178,7 +180,7 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
       else if (row.deleted) fail(`${what} ${id} is soft-deleted`)
     }
   }
-  for (const id of new Set(faIds)) {
+  for (const id of new Set(faWanted)) {
     const row = fas.get(id)
     if (row == null) fail(`first ascensionist ${id} does not exist`)
     else if (row.regionFk !== region) fail(`first ascensionist ${id} is in region ${row.regionFk}, not ${region}`)
@@ -222,8 +224,8 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
     const f = fas.get(o.id)
     if (f != null) stale('first ascensionist', o.id, 'name', f.name, o.old)
   }
-  // a merge into itself would destroy the row, and an op on a row an earlier op removed writes into a deleted one
   const removed = new Set<string>()
+  const updatedRoutes = new Set<number>()
   for (const o of ops.ops) {
     const kind = o.op.slice(o.op.indexOf('_') + 1)
     const used =
@@ -234,9 +236,25 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
           : []
     for (const row of used) if (removed.has(row)) fail(`${row} is used after an earlier op removed it`)
     if ('into' in o && o.gone === o.into) fail(`${o.op} merges ${o.gone} into itself`)
+    // the update event's route_fk would point at the row the merge hard-deletes
+    if (o.op === 'merge_route' && updatedRoutes.has(o.gone)) fail(`route ${o.gone} is updated, then merged away`)
     if ('gone' in o) removed.add(`${kind} ${o.gone}`)
     if (o.op.startsWith('delete_') && 'id' in o) removed.add(`${kind} ${o.id}`)
+    if (o.op === 'update_route') updatedRoutes.add(o.id)
   }
+  for (const kind of ['area', 'block', 'fa', 'route'] as const) {
+    const created = ops.ops.flatMap((o) => (o.op === `create_${kind}` && 'key' in o ? [o.key] : []))
+    const twice = created.length - new Set(created).size
+    if (twice > 0) fail(`${twice} create_${kind} op(s) reuse another's key`)
+  }
+  const mergedFas = of('merge_fa').map((o) => o.gone)
+  const claimed =
+    mergedFas.length === 0
+      ? []
+      : await tx<{ id: number }[]>`
+      select f.id from first_ascensionists f where f.id = any(${mergedFas}::int[])
+        and (f.user_fk is not null or exists (select 1 from users u where u.first_ascentionist_fk = f.id))`
+  for (const { id } of claimed) fail(`first ascensionist ${id} is merged away but an account holds it`)
   for (const o of of('merge_route')) {
     const clashes = await tx<{ topo: number }[]>`
       select c.topo_fk as topo from topo_routes c
@@ -249,11 +267,13 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
   const grades = await tx<{ fb: null | string; id: number }[]>`select id, "FB" as fb from grades`
   const gradeIds = new Map<string, number>()
   const labels = [...of('create_route').map((o) => o.grade), ...of('update_route').map((o) => o.set.grade?.new)]
+  let unmatched = 0
   for (const label of new Set(labels.filter((label) => label != null))) {
     const matches = grades.filter((grade) => grade.fb === fbLabel(label))
     if (matches.length === 1) gradeIds.set(label, matches[0].id)
-    else fail(`grade "${label}" matches ${matches.length} grades, not one`)
+    else unmatched++
   }
+  if (unmatched > 0) fail(`${unmatched} grade label(s) match no grade or several`)
   const gradeId = (label: null | string | undefined) => (label == null ? null : gradeIds.get(label)!)
 
   const [settings] = await tx<{ tags: null | string[] }[]>`
@@ -263,7 +283,8 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
     ...of('create_route').flatMap((o) => o.tags),
     ...of('update_route').flatMap((o) => o.add_tags ?? []),
   ]
-  for (const tag of new Set(tagsWritten)) if (!vocabulary.has(tag)) fail(`tag "${tag}" is not in the region's tag list`)
+  const unknownTags = [...new Set(tagsWritten)].filter((tag) => !vocabulary.has(tag)).length
+  if (unknownTags > 0) fail(`${unknownTags} tag(s) are not in the region's tag list`)
 
   ctx.preflight.abortIfFailed(`PREFLIGHT FAILED for region ${region}:`)
 
@@ -344,7 +365,6 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
         break
       }
       case 'create_area': {
-        // no parent: a root area of the region
         const parentFk = o.parent == null ? null : resolve('area', o.parent)
         const [row] = await db
           .insert(schema.areas)
@@ -507,7 +527,6 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
         await tx`delete from first_ascensionists where id = ${o.gone}`
         break
       case 'delete_fa': {
-        // a row no route names and no account holds, proved again inside the transaction
         const held = await countOf(tx<{ c: number }[]>`
           select ((select count(*) from routes_to_first_ascensionists where first_ascensionist_fk = ${o.id})
             + (select count(*) from users where first_ascentionist_fk = ${o.id})
@@ -524,16 +543,17 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
       case 'merge_block':
       case 'merge_area': {
         const kind = o.op === 'merge_block' ? 'block' : 'area'
-        // a block's pin: the survivor keeps its own, or takes the merged block's; never two rows for one block
-        const [{ geo } = { geo: null }] =
-          kind === 'block'
-            ? await tx<{ geo: null | number }[]>`select geolocation_fk as geo from blocks where id = ${o.gone}`
-            : []
+        let geo: null | number = null
+        if (kind === 'block') {
+          const [row] = await tx<
+            { geo: null | number }[]
+          >`select geolocation_fk as geo from blocks where id = ${o.gone}`
+          geo = row?.geo ?? null
+        }
         if (geo != null) {
           await tx`update blocks set geolocation_fk = null where id = ${o.gone}`
           await tx`update blocks set geolocation_fk = ${geo} where id = ${o.into} and geolocation_fk is null`
         }
-        // the merged row's source line goes with it, as a merged route's does in `mergeRoute`
         await tx`delete from import_refs where ${tx(`${kind}_fk`)} = ${o.gone}`
         await repoint(tx, CONTAINERS[kind], o.gone, o.into)
         if (geo != null) {
@@ -557,7 +577,6 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
       case 'delete_block':
       case 'delete_area': {
         const kind = o.op === 'delete_block' ? 'block' : 'area'
-        // nothing attached, proved again inside the transaction: the list was made from a snapshot
         const held = await countOf(
           kind === 'block'
             ? tx<{ c: number }[]>`select count(*)::int as c from routes where block_fk = ${o.id} and deleted_at is null`
@@ -575,7 +594,6 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
 
   const linkKeys = { areas: keys.area, blocks: keys.block, routes: keys.route }
   const unresolved: string[] = []
-  // the rows and their logged changes both, so the history never shows a key the reader cannot follow
   const linked = (text: string, where: string) =>
     text.replace(NEW_LINK, (all, kind: keyof typeof linkKeys, key: string) => {
       const id = linkKeys[kind].get(key)
@@ -662,8 +680,8 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
   if (unresolved.length > 0) problems.push(`links to rows the run did not create: ${unresolved.join('; ')}`)
   // the app derives an area's type from what it holds; the list's type is what that must come to
   const typed = [
-    ...of('create_area').map((o) => ({ id: resolve('area', { key: o.key }), key: `${o.key} `, type: o.type })),
-    ...of('update_area').flatMap((o) => (o.set.type ? [{ id: o.id, key: '', type: o.set.type.new }] : [])),
+    ...of('create_area').map((o) => ({ id: resolve('area', { key: o.key }), type: o.type })),
+    ...of('update_area').flatMap((o) => (o.set.type ? [{ id: o.id, type: o.set.type.new }] : [])),
   ]
   const types = new Map(
     (
@@ -673,9 +691,18 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
   )
   const mistyped = typed
     .filter((t) => types.get(t.id) !== t.type)
-    .map((t) => `${t.id} (${t.key}list ${t.type ?? 'none'}, holds ${types.get(t.id) ?? 'nothing'})`)
+    .map((t) => `${t.id} (list ${t.type ?? 'none'}, holds ${types.get(t.id) ?? 'nothing'})`)
   if (mistyped.length > 0)
     problems.push(`${mistyped.length} area(s) hold what their list type does not: ${mistyped.join(', ')}`)
+  // the app adds a parking spot only to a live sector
+  const parked = [...new Set(of('add_parking').map((o) => resolve('area', o.area)))]
+  const badParking =
+    parked.length === 0
+      ? []
+      : await tx<{ id: number }[]>`
+      select id from areas where id = any(${parked}::int[]) and (deleted_at is not null or type is distinct from 'sector')`
+  if (badParking.length > 0)
+    problems.push(`parking spots on areas that are deleted or not a sector: ${badParking.map((r) => r.id).join(', ')}`)
   const deleted = {
     areas: new Set([...of('delete_area').map((o) => o.id), ...of('merge_area').map((o) => o.gone)]),
     blocks: new Set([...of('delete_block').map((o) => o.id), ...of('merge_block').map((o) => o.gone)]),
@@ -708,14 +735,27 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
   const badChains = await countOf(tx<{ c: number }[]>`
     select count(*)::int as c from routes r join blocks b on b.id = r.block_fk
     where r.region_fk = ${region} and r.deleted_at is null
-      and (r.area_fks[array_length(r.area_fks, 1)] <> b.area_fk
-           or (select parent_fk from areas where id = r.area_fks[1]) is not null)`)
+      and coalesce(r.area_fks[array_length(r.area_fks, 1)] <> b.area_fk
+           or (select parent_fk from areas where id = r.area_fks[1]) is not null, true)`)
   if (badChains > 0) problems.push(`${badChains} route(s) carry an area chain that is not root to block`)
+  const cyclic = await countOf(tx<{ c: number }[]>`
+    with recursive walk(id, parent, depth) as (
+      select id, parent_fk, 0 from areas where region_fk = ${region} and deleted_at is null
+      union all
+      select w.id, a.parent_fk, w.depth + 1 from walk w join areas a on a.id = w.parent where w.depth < 50)
+    select count(distinct id)::int as c from walk where depth = 50 and parent is not null`)
+  if (cyclic > 0) problems.push(`${cyclic} live area(s) never reach a root through their parents`)
+  const deadRefs = await countOf(tx<{ c: number }[]>`
+    select count(*)::int as c from import_refs i
+    left join areas a on a.id = i.area_fk left join blocks b on b.id = i.block_fk left join routes r on r.id = i.route_fk
+    where i.source = ${ops.source} and i.region_fk = ${region}
+      and (a.deleted_at is not null or b.deleted_at is not null or r.deleted_at is not null)`)
+  if (deadRefs > 0) problems.push(`${deadRefs} import ref(s) point at a deleted area, block or route`)
   const stranded = await countOf(tx<{ c: number }[]>`
     select count(*)::int as c from routes r join blocks b on b.id = r.block_fk
     where r.region_fk = ${region} and r.deleted_at is null and b.deleted_at is not null`)
   if (stranded > 0) problems.push(`${stranded} live route(s) sit in a deleted block`)
-  const eventCount = await countOf(tx<{ c: number }[]>`select count(*)::int as c from events where batch = ${batch}`)
+  const eventCount = await batchEvents()
   if (eventCount !== written.length) problems.push(`${eventCount} events in the batch, ${written.length} written`)
   if (problems.length > 0) throw new Error(`guidebook-import: postconditions failed:\n  - ${problems.join('\n  - ')}`)
 
@@ -732,19 +772,19 @@ export async function applyOps(tx: Tx, db: Db, ops: Ops, ctx: ApplyContext) {
     where region_fk = ${region} and deleted_at is null and name <> '' group by area_fk, name having count(*) > 1`
   for (const d of duplicates)
     warn(`two live ${d.what}s share a name under ${d.what === 'route' ? 'block' : 'area'} ${d.parent}`)
+  // `blockName` numbers a nameless block by its slot, so two at one slot read the same
+  const unslotted = await tx<{ area: number }[]>`
+    select area_fk as area from blocks where region_fk = ${region} and deleted_at is null group by area_fk
+    having min("order") <> 0 or max("order") <> count(*) - 1 or count(distinct "order") <> count(*)`
+  if (unslotted.length > 0)
+    warn(`${unslotted.length} area(s) hold block slots that are not 0..n-1: ${unslotted.map((r) => r.area).join(', ')}`)
 
   return { counts, events: written.length }
 }
 
 /** Fails the run when a new table references `routes` that `mergeRoute` would leave pointing at a deleted copy. */
-async function assertRouteReferences(tx: Tx, fail: (message: string) => void) {
-  const found = (
-    await tx<{ ref: string }[]>`
-      select cl.relname || '.' || a.attname as ref from pg_constraint co
-      join pg_class cl on cl.oid = co.conrelid
-      join pg_attribute a on a.attrelid = co.conrelid and a.attnum = any(co.conkey)
-      where co.contype = 'f' and co.confrelid = 'public.routes'::regclass order by 1`
-  ).map((row) => row.ref)
+async function assertRouteReferences(tx: Tx, fail: Preflight['fail']) {
+  const found = (await referencingColumns(tx, 'routes')).map(({ col, tbl }) => `${tbl}.${col}`).sort()
   const unhandled = found.filter((ref) => !ROUTE_REFERENCES.includes(ref))
   const missing = ROUTE_REFERENCES.filter((ref) => !found.includes(ref))
   if (unhandled.length > 0) fail(`foreign keys to routes this script does not re-point: ${unhandled.join(', ')}`)
@@ -791,16 +831,21 @@ async function mergeRoute(tx: Tx, copy: number, keep: number) {
 const CONTAINERS = { area: 'areas', block: 'blocks' } as const
 const referencing = new Map<string, Promise<{ col: string; tbl: string }[]>>()
 
+/** Every column with a foreign key to `table`. */
+const referencingColumns = (tx: Tx, table: string) =>
+  tx<{ col: string; tbl: string }[]>`
+    select cl.relname as tbl, a.attname as col from pg_constraint co
+    join pg_class cl on cl.oid = co.conrelid
+    join pg_attribute a on a.attrelid = co.conrelid and a.attnum = any(co.conkey)
+    where co.contype = 'f' and co.confrelid = ${`public.${table}`}::regclass`
+
 /** Re-points every foreign key to `table.gone` at `into`; a unique clash aborts the run rather than dropping a row. */
 async function repoint(tx: Tx, table: 'areas' | 'blocks' | 'first_ascensionists', gone: number, into: number) {
-  const columns =
-    referencing.get(table) ??
-    tx<{ col: string; tbl: string }[]>`
-      select cl.relname as tbl, a.attname as col from pg_constraint co
-      join pg_class cl on cl.oid = co.conrelid
-      join pg_attribute a on a.attrelid = co.conrelid and a.attnum = any(co.conkey)
-      where co.contype = 'f' and co.confrelid = ${`public.${table}`}::regclass`
-  referencing.set(table, columns)
+  let columns = referencing.get(table)
+  if (columns == null) {
+    columns = referencingColumns(tx, table)
+    referencing.set(table, columns)
+  }
   for (const { col, tbl } of await columns) {
     await tx`update ${tx(tbl)} set ${tx(col)} = ${into} where ${tx(col)} = ${gone}`
   }

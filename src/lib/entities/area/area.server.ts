@@ -22,11 +22,6 @@ export async function areaAncestry(db: Db, areaId: number): Promise<number[]> {
   return chain
 }
 
-/** `routes.areaIds`, the text form `routes/queries.ts` matches with `%^id$%`. */
-export function areaIdsOf(areaFks: readonly number[]): string {
-  return areaFks.map((id) => `^${id}$`).join(',')
-}
-
 /** {@link hasDeletedAncestor} for a row hanging off a BLOCK, which has to be live itself too. */
 export async function blockIsStranded(db: Db, blockId: number): Promise<boolean> {
   const block = await db.query.blocks.findFirst({

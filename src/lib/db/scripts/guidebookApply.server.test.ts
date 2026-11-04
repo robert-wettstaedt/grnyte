@@ -295,6 +295,109 @@ describe.skipIf(!reachable)('applyOps', () => {
     }
   })
 
+  it("refuses to delete another region's first ascensionist", async () => {
+    await inRollback(async (tx, db) => {
+      const w = await world(tx)
+      const [other] = await tx<{ id: number }[]>`
+        insert into regions (name, created_by) values ('__guidebook_other__', ${w.user}) returning id`
+      const [foreign] = await tx<{ id: number }[]>`
+        insert into first_ascensionists (name, region_fk) values ('Fremd', ${other.id}) returning id`
+      const preflight = new Preflight()
+      const ops = parseOps({ fp: {}, ops: [{ id: foreign.id, op: 'delete_fa' }], refs: [], source: 'Test-Buch-2026' })
+      await expect(
+        applyOps(tx, db, ops, { actor: w.user, batch: 'foreign', preflight, region: w.region }),
+      ).rejects.toBeDefined()
+      expect(preflight.failures).toEqual([`first ascensionist ${foreign.id} is in region ${other.id}, not ${w.region}`])
+      expect(await tx`select 1 from first_ascensionists where id = ${foreign.id}`).toHaveLength(1)
+    })
+  })
+
+  it('fails the run when a parking spot lands on an area that is not a sector', async () => {
+    await inRollback(async (tx, db) => {
+      const w = await world(tx)
+      const parking: Op = { area: { id: w.root }, lat: 49.2, lng: 11.2, op: 'add_parking' }
+      const ops = parseOps({ fp: {}, ops: [parking], refs: [], source: 'Test-Buch-2026' })
+      await expect(
+        applyOps(tx, db, ops, { actor: w.user, batch: 'parking', preflight: new Preflight(), region: w.region }),
+      ).rejects.toThrow(new RegExp(`parking spots on areas that are deleted or not a sector: ${w.root}`))
+    })
+  })
+
+  it('refuses a claimed merge, a reused create key, and an update to a row the list then removes', async () => {
+    const cases: [string, (w: World, tx: Tx) => Promise<Op[]>, (w: World) => string][] = [
+      [
+        'claimed',
+        async (w, tx) => {
+          await tx`update users set first_ascentionist_fk = ${w.fa1} where id = ${w.user}`
+          return [{ gone: w.fa1, into: w.fa2, op: 'merge_fa' }]
+        },
+        (w) => `first ascensionist ${w.fa1} is merged away but an account holds it`,
+      ],
+      [
+        'key',
+        async () => [
+          { key: 'k', name: 'Eins', op: 'create_fa' },
+          { key: 'k', name: 'Zwei', op: 'create_fa' },
+        ],
+        () => `1 create_fa op(s) reuse another's key`,
+      ],
+      [
+        'removed',
+        async (w) => [
+          { id: w.r2, op: 'update_route', set: { name: { new: 'Kante links', old: 'Kante' } } },
+          { gone: w.r2, into: w.r1, op: 'merge_route' },
+        ],
+        (w) => `route ${w.r2} is updated, then merged away`,
+      ],
+    ]
+    for (const [batch, build, failure] of cases) {
+      await inRollback(async (tx, db) => {
+        const w = await world(tx)
+        const preflight = new Preflight()
+        const ops = parseOps({ fp: {}, ops: await build(w, tx), refs: [], source: 'Test-Buch-2026' })
+        await expect(applyOps(tx, db, ops, { actor: w.user, batch, preflight, region: w.region })).rejects.toBeDefined()
+        expect(preflight.failures).toContain(failure(w))
+      })
+    }
+  })
+
+  it('fails a run that leaves an area cycle with no routes under it, or a ref on a removed row', async () => {
+    await inRollback(async (tx, db) => {
+      const w = await world(tx)
+      const [x] = await tx<{ id: number }[]>`insert into areas (name, parent_fk, type, region_fk, created_by)
+        values ('X', ${w.root}, 'area', ${w.region}, ${w.user}) returning id`
+      const [y] = await tx<{ id: number }[]>`insert into areas (name, parent_fk, type, region_fk, created_by)
+        values ('Y', ${x.id}, 'area', ${w.region}, ${w.user}) returning id`
+      const cycle: Op = { id: x.id, op: 'update_area', set: { parent: { new: { id: y.id }, old: { id: w.root } } } }
+      const ops = parseOps({ fp: {}, ops: [cycle], refs: [], source: 'Test-Buch-2026' })
+      await expect(
+        applyOps(tx, db, ops, { actor: w.user, batch: 'cycle', preflight: new Preflight(), region: w.region }),
+      ).rejects.toThrow(/2 live area\(s\) never reach a root through their parents/)
+    })
+    for (const removal of ['merged block', 'deleted route'] as const) {
+      await inRollback(async (tx, db) => {
+        const w = await world(tx)
+        const ops = parseOps({
+          fp: {},
+          ops: [
+            removal === 'merged block'
+              ? { gone: w.b3, into: w.b1, op: 'merge_block' }
+              : { id: w.r2, op: 'delete_route' },
+          ],
+          refs: [
+            removal === 'merged block'
+              ? { kind: 'block', ref: 'y1-1', target: { id: w.b3 } }
+              : { kind: 'route', ref: 'y1-2', target: { id: w.r2 } },
+          ],
+          source: 'Test-Buch-2026',
+        })
+        await expect(
+          applyOps(tx, db, ops, { actor: w.user, batch: 'dead-ref', preflight: new Preflight(), region: w.region }),
+        ).rejects.toThrow(/1 import ref\(s\) point at a deleted area, block or route/)
+      })
+    }
+  })
+
   it('fails a run whose re-parenting makes a cycle instead of hanging', async () => {
     await inRollback(async (tx, db) => {
       const w = await world(tx)
