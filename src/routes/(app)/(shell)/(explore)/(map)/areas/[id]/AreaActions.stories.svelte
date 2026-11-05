@@ -19,6 +19,7 @@
     name: toDisplayName('Roche aux Sabots'),
     parentFk: undefined,
     parkingLocations: [],
+    rawName: 'Roche aux Sabots',
     regionFk: 1,
     type: 'sector',
     ...overrides,

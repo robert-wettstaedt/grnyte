@@ -36,6 +36,8 @@ export interface Props {
   /** Desktop panel positioner classes (placement), e.g. `fixed top-16 left-27 z-60`. */
   panelClass?: string
   popoverProps?: PopoverRootProps
+  /** Mobile heights as fractions of the screen. With several, the sheet opens at the first and
+   *  drags up to the largest. */
   snapPoints?: number[]
   subtitle?: string
   title: string

@@ -45,8 +45,10 @@
     }
   ],
   "areas_grades": "Schwierigkeiten",
-  "areas_holdsBlocks": "Enthält Blöcke, keine Gebiete",
   "areas_manage": "Verwalten",
+  "areas_mergeIntoOwnArea": "Ein Gebiet kann nicht mit etwas darin zusammengeführt werden.",
+  "areas_mergeMixedChildren": "Diese Gebiete enthalten Verschiedenes: eines hat Blöcke, das andere Gebiete oder Sektoren. Verschiebe sie zuerst, damit beide dasselbe enthalten.",
+  "areas_moveIntoItself": "Ein Gebiet kann nicht in sich selbst oder in etwas darin verschoben werden.",
   "areas_nameExists": "Ein Gebiet mit dem Namen „{name}“ existiert hier bereits",
   "areas_nameHint": "Du kannst es jederzeit umbenennen",
   "areas_namePlaceholder": "Gebietsname",
@@ -211,6 +213,16 @@
   "blocks_add_removeLocation": "Standort entfernen",
   "blocks_add_setLocationTitle": "Standort festlegen",
   "blocks_add_useCurrentLocation": "Aktuellen Standort verwenden",
+  "blocks_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Block",
+        "countPlural=other": "{count} Blöcke"
+      }
+    }
+  ],
   "blocks_delete": "Block löschen",
   "blocks_deleted": "Block gelöscht",
   "blocks_editBlock": "Block bearbeiten",
@@ -478,6 +490,16 @@
       }
     }
   ],
+  "event_areaUpdatedMergedFrom": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "Du hast ein Duplikat mit {name} vereint",
+        "person=*": "{actor} hat ein Duplikat mit {name} vereint"
+      }
+    }
+  ],
   "event_areaUpdatedName": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -485,6 +507,16 @@
       "match": {
         "person=self": "Du hast {name} umbenannt",
         "person=*": "{actor} hat {name} umbenannt"
+      }
+    }
+  ],
+  "event_areaUpdatedParent": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "Du hast {name} verschoben",
+        "person=*": "{actor} hat {name} verschoben"
       }
     }
   ],
@@ -687,6 +719,16 @@
       }
     }
   ],
+  "event_blockUpdatedMergedFrom": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "Du hast ein Duplikat mit {name} vereint",
+        "person=*": "{actor} hat ein Duplikat mit {name} vereint"
+      }
+    }
+  ],
   "event_blockUpdatedName": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -694,6 +736,16 @@
       "match": {
         "person=self": "Du hast {name} umbenannt",
         "person=*": "{actor} hat {name} umbenannt"
+      }
+    }
+  ],
+  "event_blockUpdatedParent": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "Du hast {name} verschoben",
+        "person=*": "{actor} hat {name} verschoben"
       }
     }
   ],
@@ -763,8 +815,10 @@
   "event_fieldGrade": "Schwierigkeit",
   "event_fieldHumidity": "Luftfeuchtigkeit",
   "event_fieldLocation": "Standort",
+  "event_fieldMergedFrom": "Vereint",
   "event_fieldName": "Name",
   "event_fieldNotes": "Notizen",
+  "event_fieldParent": "Verschoben",
   "event_fieldParkingLocation": "Parkplatz",
   "event_fieldRating": "Bewertung",
   "event_fieldRole": "Rolle",
@@ -993,6 +1047,16 @@
       }
     }
   ],
+  "event_routeUpdatedMergedFrom": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "Du hast ein Duplikat mit {name} vereint",
+        "person=*": "{actor} hat ein Duplikat mit {name} vereint"
+      }
+    }
+  ],
   "event_routeUpdatedName": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -1000,6 +1064,16 @@
       "match": {
         "person=self": "Du hast {name} umbenannt",
         "person=*": "{actor} hat {name} umbenannt"
+      }
+    }
+  ],
+  "event_routeUpdatedParent": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "Du hast {name} verschoben",
+        "person=*": "{actor} hat {name} verschoben"
       }
     }
   ],
@@ -1486,6 +1560,40 @@
   "media_videoPreparing": "Video, wird vorbereitet",
   "media_videoServiceFailed": "Der Video-Dienst hat die Anfrage abgelehnt",
   "media_videoUnavailable": "Video, nicht verfügbar",
+  "merges_confirm": "Zusammenführen",
+  "merges_confirmBody": "{source} wird mit {survivor} zusammengeführt. Alles, was daran hängt, zieht mit um:",
+  "merges_countAscents": "Begehungen",
+  "merges_countChildren": "Einträge darin",
+  "merges_countPhotos": "Fotos und Videos",
+  "merges_countTopos": "Topos",
+  "merges_empty": "Kein Treffer in dieser Region",
+  "merges_fieldsIntro": "Beide haben hier einen Wert. Wähle, welcher bleibt.",
+  "merges_less": "Weniger",
+  "merges_mergeInto": "Zusammenführen mit …",
+  "merges_more": "Mehr",
+  "merges_next": "Weiter",
+  "merges_noUndo": "Das lässt sich nicht rückgängig machen. Das Duplikat wird stillgelegt, Links darauf zeigen „nicht gefunden“.",
+  "merges_onSource": "Von {name}",
+  "merges_onSurvivor": "Bei {name}, das bleibt",
+  "merges_reasonInside": "Liegt in dem, was du zusammenführst",
+  "merges_restoreRefused": "Das wurde mit einem anderen Eintrag zusammengeführt und kann nicht zurückgeholt werden. Alles, was daran hing, ist jetzt dort.",
+  "merges_search": "Nach Namen suchen",
+  "merges_searchHint": "Nichts direkt daneben. Suche in der Region nach dem Namen.",
+  "merges_siblingsAreas": "Daneben",
+  "merges_siblingsBlocks": "Im selben Sektor",
+  "merges_siblingsRoutes": "Im selben Sektor",
+  "merges_title": "{name} zusammenführen mit",
+  "merges_topoLines": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Linie auf den Fotos des Duplikat-Blocks wird entfernt, weil sie diesen Boulder nachzeichnet.",
+        "countPlural=other": "{count} Linien auf den Fotos des Duplikat-Blocks werden entfernt, weil sie diesen Boulder nachzeichnen."
+      }
+    }
+  ],
+  "merges_topoLinesChanged": "Die Linien des Duplikats auf den Fotos haben sich geändert, seit du das geöffnet hast. Prüfe das Zusammenführen noch einmal.",
   "moderation_alreadyReversed": "Diese Entfernung wurde bereits rückgängig gemacht.",
   "moderation_breaksRules": "Verstößt gegen Regeln…",
   "moderation_byline": "Von {name}",
@@ -1534,6 +1642,36 @@
   "moderation_undoTitle": "{reference} rückgängig machen?",
   "moderation_undone": "Rückgängig gemacht.",
   "moderation_undoneBy": "Rückgängig gemacht von {name}",
+  "moves_confirm": "Verschieben",
+  "moves_empty": "Nichts, wohin es passt",
+  "moves_emptyHere": "Hier ist noch nichts",
+  "moves_into": "Nach {name} verschieben",
+  "moves_moveSelected": "{count} verschieben nach …",
+  "moves_moveTo": "Verschieben nach …",
+  "moves_moved": "Nach {name} verschoben",
+  "moves_openBlock": "Erst einen Block öffnen",
+  "moves_openResult": "Erst ein Ergebnis öffnen",
+  "moves_openSector": "Erst einen Sektor öffnen",
+  "moves_reasonCurrent": "Ist schon hier",
+  "moves_reasonNoEdit": "Hier kannst du nichts hinzufügen",
+  "moves_reasonSelf": "Kann nicht in sich selbst liegen",
+  "moves_searchAreas": "Gebiete und Sektoren suchen",
+  "moves_searchBlocks": "Blöcke suchen",
+  "moves_select": "Auswählen",
+  "moves_titleMany": "{count} ausgewählte verschieben",
+  "moves_titleNamed": "„{name}“ verschieben",
+  "moves_topLevel": "Auf die oberste Ebene",
+  "moves_topoWarning": [
+    {
+      "declarations": ["input count", "input name", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Linie auf den Fotos des alten Blocks wird entfernt, weil sie diesen Boulder nachzeichnet. Rückgängig holt sie nicht zurück. Nach {name} verschieben?",
+        "countPlural=other": "{count} Linien auf den Fotos des alten Blocks werden entfernt, weil sie diesen Boulder nachzeichnen. Rückgängig holt sie nicht zurück. Nach {name} verschieben?"
+      }
+    }
+  ],
+  "moves_where": "Wo du gerade bist",
   "notices_appeal": "Hältst du das für falsch, leg innerhalb eines Monats nach der Entfernung Beschwerde bei mir ein, nenn die Referenz und sag, warum. Ich prüfe es selbst erneut, antworte innerhalb von vierzehn Tagen oder sage dir, warum es länger dauert, und stelle wieder her, was entfernt wurde, wo das noch möglich ist.",
   "notices_appealSubject": "Beschwerde gegen Entfernung {reference}",
   "notices_automation": "Kein automatisiertes Werkzeug hat es gefunden oder entschieden.",
@@ -1991,6 +2129,7 @@
       }
     }
   ],
+  "routes_moveTopoLinesChanged": "Die Linien dieser Route auf dem Foto haben sich inzwischen geändert. Prüfe das Verschieben noch einmal.",
   "routes_nameExists": "Eine Route namens „{name}“ existiert schon an diesem Block",
   "routes_noOpinions": "Noch keine Meinungen",
   "routes_notFound": "Route nicht gefunden",

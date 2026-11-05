@@ -85,7 +85,7 @@
     // detached node is never a real tap on the map behind the sheet: ignore it.
     if (!target.isConnected) return
 
-    if (!target.closest('.bottom-sheet') && !target.closest('[data-sheet-floating]')) {
+    if (!target.closest('.bottom-sheet, [data-sheet-floating], [data-scope="toast"]')) {
       sheet?.setSnapPoint(titleSnapPoint)
     }
   }
@@ -108,7 +108,7 @@
 
 {#snippet content()}
   <!-- The sheet element is the scroll container here: BottomSheet.Content clips instead. -->
-  <BottomSheet.Sheet class="preset-filled-surface-50-950! block!" {@attach resetOnNavigate}>
+  <BottomSheet.Sheet class="explore-sheet preset-filled-surface-50-950! block!" {@attach resetOnNavigate}>
     <BottomSheet.Handle style="background: var(--color-surface-50-950)" />
 
     <div
@@ -195,5 +195,10 @@
 <style>
   :global(.bottom-sheet-grip) {
     background: var(--color-surface-950-50) !important;
+  }
+
+  /* The library's wrapper scrolls on x, which makes it the sticky container for page content; clip is no scroller. */
+  :global(.explore-sheet .scroll-clip) {
+    overflow: clip visible !important;
   }
 </style>

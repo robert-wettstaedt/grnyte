@@ -21,6 +21,15 @@
     title,
   }: MobileProps = $props()
 
+  // The library measures snap points against `maxHeight`, so a sheet that can grow is capped at its
+  // tallest point and the rest are rescaled to it.
+  const settings = $derived.by(() => {
+    if (snapPoints.length < 2) return { maxHeight: snapPoints[0], snapPoints }
+    const tallest = Math.max(...snapPoints)
+    const scaled = snapPoints.map((point) => point / tallest)
+    return { maxHeight: tallest, snapPoints: scaled, startingSnapPoint: scaled[0] }
+  })
+
   // This sheet's own pill: what it renders holds it, drawn above its own backdrop.
   const pill = createPillSurface()
 
@@ -200,7 +209,7 @@
 {/snippet}
 
 <Portal>
-  <BottomSheet settings={{ maxHeight: snapPoints[0], snapPoints }} bind:isSheetOpen={sheetOpen}>
+  <BottomSheet {settings} bind:isSheetOpen={sheetOpen}>
     {#if backdrop}
       <!-- Scrim behind the sheet; tap to dismiss. stopPropagation keeps the tap from
            reaching the map panel's document-click handler (which would collapse it). -->

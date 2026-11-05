@@ -1,6 +1,10 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import ActionBar, { ACTION_TOOL, ACTION_TOOL_LABEL } from '$lib/components/ActionBar/ActionBar.svelte'
+  import MergeSheet from '$lib/components/GuidebookPicker/MergeSheet.svelte'
+  import MoveSheet from '$lib/components/GuidebookPicker/MoveSheet.svelte'
+  import { RestructureSheets } from '$lib/components/GuidebookPicker/restructure.svelte'
+  import RestructureRows from '$lib/components/GuidebookPicker/RestructureRows.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
@@ -12,6 +16,7 @@
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
+  import { blockSide } from '$lib/entities/merge/sides'
   import { createRemovalChoice } from '$lib/entities/moderation/choice.svelte'
   import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import { canReport } from '$lib/entities/report/permissions'
@@ -61,6 +66,8 @@
     })
 
   const choice = createRemovalChoice(() => block.regionFk, onDelete)
+
+  const sheets = new RestructureSheets()
 </script>
 
 <div>
@@ -113,17 +120,16 @@
             <MenuRow href={moveHref} icon="map-pin" label={m.blocks_move()} onclick={close} />
           {/if}
 
-          {#if canDelete}
-            <MenuRow
-              destructive
-              icon="map-pin-x"
-              label={m.blocks_delete()}
-              onclick={() => {
-                close()
-                void choice.start()
-              }}
-            />
-          {/if}
+          <RestructureRows
+            canMerge={canDelete}
+            canMove={canEdit}
+            {close}
+            deleteIcon="map-pin-x"
+            deleteLabel={m.blocks_delete()}
+            ondelete={() => void choice.start()}
+            onmerge={sheets.merge}
+            onmove={sheets.move}
+          />
 
           {#if reportable}
             <ReportRow id={block.id} kind="block" onclick={close} />
@@ -133,5 +139,20 @@
     {/if}
   </ActionBar>
 </div>
+
+{#if sheets.used.merge}
+  <MergeSheet bind:open={sheets.merging} kind="blocks" source={blockSide(block)} />
+{/if}
+
+{#if sheets.used.move}
+  <MoveSheet
+    bind:open={sheets.moving}
+    from={block.areaFk}
+    ids={[block.id]}
+    kind="blocks"
+    name={block.name}
+    regionFk={block.regionFk}
+  />
+{/if}
 
 <RemovalChoice bind:open={choice.open} id={block.id} kind="block" ontidy={onDelete} title={block.name} />

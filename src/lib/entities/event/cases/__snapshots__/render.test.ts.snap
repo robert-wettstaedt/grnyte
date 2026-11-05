@@ -548,6 +548,68 @@ exports[`the case catalogue renders what it claims > AREA-05b: Two areas created
 }
 `;
 
+exports[`the case catalogue renders what it claims > AREA-MERGE-01: More -> Merge into... -> pick the survivor -> Merge 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "Talhang Ost",
+          "before": undefined,
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Merged",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You merged a duplicate into Steinbruch",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Steinbruch",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Single card on the survivor, "You merged a duplicate into ...", with one Merged line naming the duplicate.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-MOVE-01: More -> Move to... -> pick a new parent -> Move 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "Westgrat",
+          "before": "Talhang",
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Moved",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You moved Steinbruch",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Steinbruch",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You moved ...", with one Moved line from Talhang to Westgrat: the names stored at the time, so a parent renamed or deleted later still reads as it was.",
+}
+`;
+
 exports[`the case catalogue renders what it claims > ASCENT-01a: /routes/500 -> Log ascent -> Flash -> Save 1`] = `
 {
   "cards": [
@@ -2226,6 +2288,68 @@ exports[`the case catalogue renders what it claims > BLOCK-08d: Rename a block, 
     },
   ],
   "expected": "TWO cards, kept apart twice over. The server refuses to let a \`delete\` join an open \`update\`, which would have reported the removal as an edit; and the feed keeps deletions out of edit bursts, so "You deleted the block Nordblock" cannot end up buried inside a card counting edits.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-MERGE-01: More -> Merge into... -> pick the survivor -> Merge 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "Nordwand links",
+          "before": undefined,
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Merged",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You merged a duplicate into Nordblock",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Nordblock",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Single card on the survivor, "You merged a duplicate into ...", with one Merged line naming the duplicate.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-MOVE-01: More -> Move to... -> pick a new parent -> Move 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "Südwand",
+          "before": "Nordwand",
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Moved",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You moved Nordblock",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Nordblock",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You moved ...", with one Moved line from Nordwand to Südwand: the names stored at the time, so a parent renamed or deleted later still reads as it was.",
 }
 `;
 
@@ -5985,6 +6109,115 @@ exports[`the case catalogue renders what it claims > ROUTE-05b: Undo a hard dele
 {
   "cards": [],
   "expected": "No card at all, and none comes back either. The restore inserts a brand new route row and writes no event, so the route returns with an empty history: nothing to move onto the new id, because the cascade took the old one. A reader sees a route that has always been there and was never added by anybody.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-MERGE-01: More -> Merge into... -> pick the survivor -> Merge 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "Kante",
+          "before": undefined,
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Merged",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You merged a duplicate into Kante direkt",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Kante direkt",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Single card on the survivor, "You merged a duplicate into ...", with one Merged line naming the duplicate.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-MERGE-02: More -> Merge into... -> pick the survivor -> pick the duplicate's grade and description -> Merge 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "Kante",
+          "before": undefined,
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Merged",
+        },
+        {
+          "after": undefined,
+          "before": undefined,
+          "caption": undefined,
+          "kind": "grade",
+          "label": "Grade",
+        },
+        {
+          "after": "Slopers",
+          "before": "Crimps",
+          "caption": undefined,
+          "kind": "prose",
+          "label": "Description",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You merged a duplicate into Kante direkt",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Kante direkt",
+      ],
+      "status": undefined,
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "Still "You merged a duplicate into ...", counting 2 edits: the merge speaks for the values picked with it, which list below the Merged line.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-MOVE-01: More -> Move to... -> pick a new parent -> Move 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "Kleiner Block",
+          "before": "Nordblock",
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Moved",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You moved Kante direkt",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Kante direkt",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You moved ...", with one Moved line from Nordblock to Kleiner Block: the names stored at the time, so a parent renamed or deleted later still reads as it was.",
 }
 `;
 

@@ -24,6 +24,8 @@ export interface VerbField {
   icon: IconName
   kind: ChangeKind
   labelKey: MessageKey
+  /** Only on `pair`: one value, no before, so it shows as one chip rather than "nothing to X". */
+  single?: true
 }
 
 /**
@@ -45,8 +47,12 @@ const FIELD = {
   location: { icon: 'map-pin', kind: 'location', labelKey: 'event_fieldLocation' },
   /** A cleared pin. See {@link VerbField.cleared}. */
   locationGone: { cleared: true, icon: 'map-pin', kind: 'location', labelKey: 'event_fieldLocation' },
+  /** The duplicate's name, stored at the time: a retired row needs no lookup, and two rows of one name still differ. */
+  mergedFrom: { format: 'name', icon: 'merge', kind: 'pair', labelKey: 'event_fieldMergedFrom', single: true },
   name: { format: 'text', icon: 'edit', kind: 'pair', labelKey: 'event_fieldName' },
   notes: { icon: 'file-text', kind: 'prose', labelKey: 'event_fieldNotes' },
+  /** The old and new parent's display names, stored at the time of the move. */
+  parent: { format: 'name', icon: 'folder-input', kind: 'pair', labelKey: 'event_fieldParent' },
   parkingLocation: { icon: 'parking', kind: 'location', labelKey: 'event_fieldParkingLocation' },
   parkingLocationGone: { cleared: true, icon: 'parking', kind: 'location', labelKey: 'event_fieldParkingLocation' },
   rating: { icon: 'star', kind: 'rating', labelKey: 'event_fieldRating' },
@@ -176,6 +182,14 @@ export const VERBS = [
     objectType: 'area',
     verb: 'remove',
   },
+  { columnName: 'parent', field: FIELD.parent, key: 'event_areaUpdatedParent', objectType: 'area', verb: 'update' },
+  {
+    columnName: 'mergedFrom',
+    field: FIELD.mergedFrom,
+    key: 'event_areaUpdatedMergedFrom',
+    objectType: 'area',
+    verb: 'update',
+  },
   { key: 'event_areaDeleted', objectType: 'area', tombstone: 'oldValue', verb: 'delete' },
 
   {
@@ -228,6 +242,14 @@ export const VERBS = [
   // A pulled photo is its own sentence, the way a cleared pin is: "updated the topo" for a
   // deletion is true only in the sense that everything is an update.
   { columnName: 'topo', field: FIELD.topo, key: 'event_blockDeletedTopo', objectType: 'block', verb: 'remove' },
+  { columnName: 'parent', field: FIELD.parent, key: 'event_blockUpdatedParent', objectType: 'block', verb: 'update' },
+  {
+    columnName: 'mergedFrom',
+    field: FIELD.mergedFrom,
+    key: 'event_blockUpdatedMergedFrom',
+    objectType: 'block',
+    verb: 'update',
+  },
   { key: 'event_blockDeleted', objectType: 'block', tombstone: 'oldValue', verb: 'delete' },
 
   { key: 'event_routeCreated', objectType: 'route', tombstone: 'newValue', verb: 'create' },
@@ -275,6 +297,14 @@ export const VERBS = [
     verb: 'update',
   },
   { columnName: 'tags', field: FIELD.tags, key: 'event_routeUpdatedTags', objectType: 'route', verb: 'update' },
+  { columnName: 'parent', field: FIELD.parent, key: 'event_routeUpdatedParent', objectType: 'route', verb: 'update' },
+  {
+    columnName: 'mergedFrom',
+    field: FIELD.mergedFrom,
+    key: 'event_routeUpdatedMergedFrom',
+    objectType: 'route',
+    verb: 'update',
+  },
   { key: 'event_routeDeleted', objectType: 'route', tombstone: 'oldValue', verb: 'delete' },
 
   // A new ascent's value column holds its ascent type, never a name, so no `tombstone`: a

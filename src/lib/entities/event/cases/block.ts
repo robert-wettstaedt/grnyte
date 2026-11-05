@@ -629,4 +629,36 @@ export const BLOCK_CASES: EventCase[] = [
     id: 'BLOCK-08d',
     writer: 'lifecycle.server.ts:67',
   },
+  {
+    action: 'More -> Move to... -> pick a new parent -> Move',
+    domain: 'block',
+    events: [
+      eventAgo(120, {
+        actorFk: ME,
+        changes: [change({ columnName: 'parent', newValue: 'Südwand', oldValue: 'Nordwand' })],
+        objectId: 400,
+        objectType: 'block',
+      }),
+    ],
+    expected:
+      'Single card, "You moved ...", with one Moved line from Nordwand to Südwand: the names stored at the time, so a parent renamed or deleted later still reads as it was.',
+    id: 'BLOCK-MOVE-01',
+    writer: 'move.server.ts:67',
+  },
+  {
+    action: 'More -> Merge into... -> pick the survivor -> Merge',
+    domain: 'block',
+    events: [
+      eventAgo(110, {
+        actorFk: ME,
+        changes: [change({ columnName: 'mergedFrom', newValue: 'Nordwand links' })],
+        objectId: 400,
+        objectType: 'block',
+      }),
+    ],
+    expected:
+      'Single card on the survivor, "You merged a duplicate into ...", with one Merged line naming the duplicate.',
+    id: 'BLOCK-MERGE-01',
+    writer: 'merge.server.ts:91',
+  },
 ]

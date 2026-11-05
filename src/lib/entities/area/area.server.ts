@@ -1,6 +1,6 @@
 import * as schema from '$lib/db/schema'
 import { areas, blocks, routes } from '$lib/db/schema'
-import { and, count, eq, inArray, isNull } from 'drizzle-orm'
+import { and, count, eq, inArray, isNull, type SQL } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 /** Wider than `Context['db']`: takes the RLS transaction and the plain handle both. */
@@ -22,6 +22,11 @@ export async function areaAncestry(db: Db, areaId: number): Promise<number[]> {
   return chain
 }
 
+/** `routes.areaIds`, the text form `routes/queries.ts` matches with `%^id$%`. */
+export function areaIdsOf(areaFks: readonly number[]): string {
+  return areaFks.map((id) => `^${id}$`).join(',')
+}
+
 /** {@link hasDeletedAncestor} for a row hanging off a BLOCK, which has to be live itself too. */
 export async function blockIsStranded(db: Db, blockId: number): Promise<boolean> {
   const block = await db.query.blocks.findFirst({
@@ -34,6 +39,11 @@ export async function blockIsStranded(db: Db, blockId: number): Promise<boolean>
   }
 
   return hasDeletedAncestor(db, block.areaFk)
+}
+
+/** Give just these routes the chain ending in `areaId`, for a move that leaves the areas alone. */
+export async function chainRoutes(db: Db, areaId: number, which: SQL): Promise<void> {
+  await setChain(db, await areaAncestry(db, areaId), which)
 }
 
 /** Whether a row under `areaId` would be stranded: an ancestor deleted, absent, or looping.
@@ -51,6 +61,35 @@ export async function hasDeletedAncestor(db: Db, areaId: number): Promise<boolea
   }
 
   return rows.find((row) => row.id === chain[0])?.parentFk != null
+}
+
+/** Rewrite `areaFks`/`areaIds` on every route under these areas and their descendants, deleted rows
+ *  included so a later restore carries a correct chain. Call after a parent changes. */
+export async function recomputeAreaChains(db: Db, areaIds: readonly number[]): Promise<void> {
+  // A child's chain is its parent's plus itself, so only the roots walk up.
+  const chains = new Map<number, number[]>()
+  for (const id of new Set(areaIds)) chains.set(id, await areaAncestry(db, id))
+  let frontier = [...chains.keys()]
+  while (frontier.length > 0) {
+    const children = await db
+      .select({ id: areas.id, parentFk: areas.parentFk })
+      .from(areas)
+      .where(inArray(areas.parentFk, frontier))
+    frontier = []
+    for (const child of children) {
+      if (chains.has(child.id)) continue
+      chains.set(child.id, [...chains.get(child.parentFk!)!, child.id])
+      frontier.push(child.id)
+    }
+  }
+
+  for (const [areaId, chain] of chains) {
+    await setChain(
+      db,
+      chain,
+      inArray(routes.blockFk, db.select({ id: blocks.id }).from(blocks).where(eq(blocks.areaFk, areaId))),
+    )
+  }
 }
 
 /** Re-derive an area's `type` from its live (non-deleted) children, mirroring the create side
@@ -109,4 +148,11 @@ export async function stampDeletedAt(
       .set({ deletedAt: to })
       .where(and(inArray(routes.id, routeIds), carrying(routes.deletedAt)))
   }
+}
+
+async function setChain(db: Db, chain: number[], which: SQL) {
+  await db
+    .update(routes)
+    .set({ areaFks: chain, areaIds: areaIdsOf(chain) })
+    .where(which)
 }

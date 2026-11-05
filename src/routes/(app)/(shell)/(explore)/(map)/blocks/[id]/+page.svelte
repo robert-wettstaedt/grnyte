@@ -6,6 +6,9 @@
   import RouteList from '$lib/components/EntityRow/RouteList.svelte'
   import { trackView } from '$lib/components/EntitySearch/recent.svelte'
   import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
+  import BulkMove from '$lib/components/GuidebookPicker/BulkMove.svelte'
+  import { Selection } from '$lib/components/GuidebookPicker/selection.svelte'
+  import SelectToggle from '$lib/components/GuidebookPicker/SelectToggle.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import CollapsibleMarkdown from '$lib/components/Markdown/CollapsibleMarkdown.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
@@ -15,6 +18,7 @@
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
+  import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockDetail, blockList, blockRouteList } from '$lib/entities/block/resources.svelte'
   import { createSaveState } from '$lib/entities/favorite/save.svelte'
   import { createLocationState } from '$lib/entities/geolocation/location.svelte'
@@ -29,6 +33,7 @@
   import { isOnline } from '$lib/state/online.svelte'
   import { matchingRoutes } from '$lib/state/searchQuery.svelte'
   import { summaryOf } from '$lib/zero/resource.svelte'
+  import { untrack } from 'svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import BlockActions from './BlockActions.svelte'
   import BlockEmpty from './BlockEmpty.svelte'
@@ -36,6 +41,12 @@
   const global = getGlobalState()
 
   const blockId = $derived(Number(page.params.id))
+  // One per page instance, which Kit reuses across blocks: leave select mode with the block.
+  const selection = new Selection()
+  $effect(() => {
+    void blockId
+    untrack(selection.done)
+  })
 
   // Getter keeps the resource live across navigation between blocks: the query
   // re-targets as the param changes.
@@ -154,19 +165,32 @@
 
       {#if orderedRoutes.length > 0}
         <section class="space-y-2">
-          <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">
-            {#if routeCount != null && matchingCount != null}
-              {m.routes_matchingCount({ count: routeCount, matching: matchingCount })}
-            {:else}
-              {routeCount != null ? m.routes_routesCount({ count: routeCount }) : m.common_routes()}
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">
+              {#if routeCount != null && matchingCount != null}
+                {m.routes_matchingCount({ count: routeCount, matching: matchingCount })}
+              {:else}
+                {routeCount != null ? m.routes_routesCount({ count: routeCount }) : m.common_routes()}
+              {/if}
+            </h2>
+            {#if canEditBlock(global.userRegions, detail)}
+              <SelectToggle {selection} />
             {/if}
-          </h2>
+          </div>
           <RouteList
             dimmed={matchingIds == null || matching.current.phase.kind !== 'answered'
               ? undefined
               : (id) => !matchingIds.has(id)}
             routes={routesWithTopos}
+            {selection}
             status={ascentStatus}
+          />
+          <BulkMove
+            from={detail.id}
+            items={orderedRoutes.map((route) => ({ id: route.id, title: route.name, topoLines: route.topoLines }))}
+            kind="routes"
+            regionFk={detail.regionFk}
+            {selection}
           />
         </section>
       {:else if routes.phase.kind === 'answered'}

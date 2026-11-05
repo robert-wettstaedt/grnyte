@@ -19,6 +19,8 @@ export interface AreaDetail extends AreaListItem {
   /** The stored parent, which a delete leaves for; absent on a top-level area. */
   parentFk: number | undefined
   parkingLocations: Geolocation[]
+  /** The stored name, blank allowed: what a merge compares and writes. */
+  rawName: null | string
   regionFk: number
 }
 
@@ -85,6 +87,23 @@ export type DeleteAreaSnapshot =
     }
   // No `deletedAt`: read off the stored row rather than accepted from the client (see `softRestoreArea`).
   | { areaId: number; mode: 'soft' }
+
+/** `areas.merge`. `values` carries only what the person was asked about; strict, because the server writes it
+ *  past RLS. */
+export const mergeAreasSchema = z.object({
+  sourceId: z.number(),
+  survivorId: z.number(),
+  values: z.strictObject({
+    description: z.optional(z.string()),
+    name: z.optional(z.string().check(z.trim(), z.minLength(1))),
+  }),
+})
+
+/** `areas.move`. `parentId` null moves the areas to the top level of their region. */
+export const moveAreasSchema = z.object({
+  areaIds: z.array(z.number()).check(z.minLength(1)),
+  parentId: z.nullable(z.number()),
+})
 
 export const addParkingSchema = z.object({
   areaId: stringToInt,

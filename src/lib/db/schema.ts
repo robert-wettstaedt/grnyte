@@ -547,6 +547,9 @@ export const areas = table(
     /** Markdown. Deliberately unindexed, for the reasons on `blocks.description`. */
     description: text('description'),
     geoPaths: jsonb('geo_paths').$type<string[]>(),
+    /** The survivor a merge folded this row into. Set only with `deleted_at` (the CHECK), and the reason no
+     *  restore may bring the row back: `refuseMerged` asks it, the constraint holds every other path. */
+    mergedInto: integer('merged_into').references((): AnyColumn => areas.id, { onDelete: 'set null' }),
     parentFk: integer('parent_fk').references((): AnyColumn => areas.id),
     type: text('type', { enum: areaTypeEnum }),
 
@@ -555,6 +558,7 @@ export const areas = table(
   (table) => [
     index('areas_region_fk_idx').on(table.regionFk),
     index('areas_deleted_at_idx').on(table.deletedAt),
+    check('areas_merged_is_deleted', sql`${table.mergedInto} is null or ${table.deletedAt} is not null`),
 
     ...createBasicTablePolicies('areas', table.regionFk),
     // DELETE at edit (not delete): an area is only ever hard-deleted while bare, and the
@@ -591,7 +595,6 @@ export const blocks = table(
     areaFk: integer('area_fk')
       .notNull()
       .references((): AnyColumn => areas.id),
-
     /**
      * Markdown, with `!type:id!` entity references and user mentions, same as `areas` and
      * `routes`. Deliberately unindexed, as those two now are: the only reads are
@@ -601,6 +604,7 @@ export const blocks = table(
      * pg_trgm GIN index, not this.
      */
     description: text('description'),
+
     geolocationFk: integer('geolocation_fk').references((): AnyColumn => geolocations.id),
     /**
      * Live routes per community grade id, `none` for ungraded, zero counts absent. The map draws its
@@ -610,11 +614,15 @@ export const blocks = table(
      * `recount_block_grade_counts`.
      */
     gradeCounts: jsonb('grade_counts').$type<Record<string, number>>().notNull().default({}),
+    /** The survivor a merge folded this row into. Set only with `deleted_at` (the CHECK), and the reason no
+     *  restore may bring the row back: `refuseMerged` asks it, the constraint holds every other path. */
+    mergedInto: integer('merged_into').references((): AnyColumn => blocks.id, { onDelete: 'set null' }),
     order: integer('order').notNull(),
   },
   (table) => [
     index('blocks_region_fk_idx').on(table.regionFk),
     index('blocks_deleted_at_idx').on(table.deletedAt),
+    check('blocks_merged_is_deleted', sql`${table.mergedInto} is null or ${table.deletedAt} is not null`),
     index('blocks_geolocation_fk_idx').on(table.geolocationFk),
 
     ...createBasicTablePolicies('blocks', table.regionFk),
@@ -658,6 +666,9 @@ export const routes = table(
     externalResourcesFk: integer('external_resources_fk').references((): AnyColumn => routeExternalResources.id),
     firstAscentYear: integer('first_ascent_year'),
     gradeFk: integer('grade_fk').references((): AnyColumn => grades.id),
+    /** The survivor a merge folded this row into. Set only with `deleted_at` (the CHECK), and the reason no
+     *  restore may bring the row back: `refuseMerged` asks it, the constraint holds every other path. */
+    mergedInto: integer('merged_into').references((): AnyColumn => routes.id, { onDelete: 'set null' }),
     rating: integer('rating'),
     userGradeFk: integer('user_grade_fk').references((): AnyColumn => grades.id),
     userRating: integer('user_rating'),
@@ -666,6 +677,7 @@ export const routes = table(
     index('routes_block_fk_idx').on(table.blockFk),
     index('routes_region_fk_idx').on(table.regionFk),
     index('routes_deleted_at_idx').on(table.deletedAt),
+    check('routes_merged_is_deleted', sql`${table.mergedInto} is null or ${table.deletedAt} is not null`),
     index('routes_area_fks_gin_idx').using('gin', table.areaFks),
     index('routes_area_ids_idx').on(table.areaIds),
     index('routes_grade_fk_idx').on(table.gradeFk),

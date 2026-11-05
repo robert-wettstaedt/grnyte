@@ -2,6 +2,10 @@
   import { resolve } from '$app/paths'
   import ActionBar from '$lib/components/ActionBar/ActionBar.svelte'
   import DirectionsButton from '$lib/components/DirectionsButton/DirectionsButton.svelte'
+  import MergeSheet from '$lib/components/GuidebookPicker/MergeSheet.svelte'
+  import MoveSheet from '$lib/components/GuidebookPicker/MoveSheet.svelte'
+  import { RestructureSheets } from '$lib/components/GuidebookPicker/restructure.svelte'
+  import RestructureRows from '$lib/components/GuidebookPicker/RestructureRows.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
   import SaveButton from '$lib/components/SaveButton/SaveButton.svelte'
@@ -14,6 +18,7 @@
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
   import { entityHref } from '$lib/entities/href'
+  import { routeSide } from '$lib/entities/merge/sides'
   import { createRemovalChoice } from '$lib/entities/moderation/choice.svelte'
   import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import { canReport } from '$lib/entities/report/permissions'
@@ -73,6 +78,8 @@
     })
 
   const choice = createRemovalChoice(() => route.regionFk, onDelete)
+
+  const sheets = new RestructureSheets()
 </script>
 
 <div>
@@ -110,17 +117,16 @@
             <MenuRow href={editLineHref} icon="route" label={m.topo_editLine()} onclick={close} />
           {/if}
 
-          {#if canDelete}
-            <MenuRow
-              destructive
-              icon="trash"
-              label={m.routes_delete()}
-              onclick={() => {
-                close()
-                void choice.start()
-              }}
-            />
-          {/if}
+          <RestructureRows
+            canMerge={canDelete}
+            canMove={canEdit}
+            {close}
+            deleteIcon="trash"
+            deleteLabel={m.routes_delete()}
+            ondelete={() => void choice.start()}
+            onmerge={sheets.merge}
+            onmove={sheets.move}
+          />
 
           {#if reportable}
             <ReportRow id={route.id} kind="route" onclick={close} />
@@ -130,5 +136,21 @@
     {/if}
   </ActionBar>
 </div>
+
+{#if sheets.used.merge}
+  <MergeSheet bind:open={sheets.merging} kind="routes" source={routeSide(route)} sectorId={block?.areaFk} />
+{/if}
+
+{#if sheets.used.move}
+  <MoveSheet
+    bind:open={sheets.moving}
+    from={route.blockFk}
+    ids={[route.id]}
+    kind="routes"
+    name={route.name}
+    regionFk={route.regionFk}
+    topoLines={route.topoLines}
+  />
+{/if}
 
 <RemovalChoice bind:open={choice.open} id={route.id} kind="route" ontidy={onDelete} title={route.name} />

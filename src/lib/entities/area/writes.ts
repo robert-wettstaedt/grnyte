@@ -9,9 +9,19 @@ import type {
   addParkingSchema,
   AreaFormInput,
   DeleteAreaSnapshot,
+  mergeAreasSchema,
+  moveAreasSchema,
   restoreAreaSchema,
   restoreParkingSchema,
 } from './dto'
+
+/** Lands on the survivor: the source is gone once this answers. */
+export const mergeAreas = (values: z.input<typeof mergeAreasSchema>) =>
+  write(mutators.areas.merge(values), { redirectTo: entityHref('areas', values.survivorId) })
+
+/** Answers each moved area's old parent, which is what its Undo moves it back under. */
+export const moveAreas = (values: z.input<typeof moveAreasSchema>) =>
+  write<{ previous: { id: number; parentId: null | number }[] }>(mutators.areas.move(values))
 
 export const createArea = (values: AreaFormInput) =>
   write<{ id: number }>(mutators.areas.create(values), { redirectTo: ({ id }) => entityHref('areas', id) })

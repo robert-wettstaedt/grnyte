@@ -1,6 +1,8 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import type { AscentStatus } from '$lib/components/EntityRow/types'
+  import Selectable from '$lib/components/GuidebookPicker/Selectable.svelte'
+  import type { Selection } from '$lib/components/GuidebookPicker/selection.svelte'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { getGlobalState } from '$lib/state/global.svelte'
   import type { ComponentProps, Snippet } from 'svelte'
@@ -16,11 +18,13 @@
     dimmed?: (routeId: number) => boolean
     /** Already ordered and already filtered: this only renders. */
     routes: RouteListEntry[]
+    /** Select mode, where a row ticks instead of opening. */
+    selection?: Selection
     /** The user's logged ascent state per route id: `userAscentStatus` satisfies it. */
     status?: { get(routeId: number): AscentStatus | undefined }
   }
 
-  let { children, dimmed, routes, status }: Props = $props()
+  let { children, dimmed, routes, selection, status }: Props = $props()
 
   const global = getGlobalState()
 </script>
@@ -29,13 +33,15 @@
      route reads identically on a block, an area and a profile. -->
 <nav class="flex flex-col gap-1.5">
   {#each routes as route (route.id)}
-    <RouteRow
-      {route}
-      dimmed={dimmed?.(route.id)}
-      grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-      status={status?.get(route.id)}
-      href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
-    />
+    <Selectable id={route.id} label={route.name} {selection}>
+      <RouteRow
+        {route}
+        dimmed={dimmed?.(route.id)}
+        grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
+        status={status?.get(route.id)}
+        href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
+      />
+    </Selectable>
   {/each}
 
   {@render children?.()}

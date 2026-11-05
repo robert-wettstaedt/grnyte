@@ -6,6 +6,9 @@
   import { trackView } from '$lib/components/EntitySearch/recent.svelte'
   import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
+  import BulkMove from '$lib/components/GuidebookPicker/BulkMove.svelte'
+  import { Selection } from '$lib/components/GuidebookPicker/selection.svelte'
+  import SelectToggle from '$lib/components/GuidebookPicker/SelectToggle.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import CollapsibleMarkdown from '$lib/components/Markdown/CollapsibleMarkdown.svelte'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
@@ -14,6 +17,7 @@
   import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import SkeletonChart from '$lib/components/Skeleton/SkeletonChart.svelte'
   import { areaTypeLabel } from '$lib/entities/area/mapper'
+  import { canEditArea } from '$lib/entities/area/permissions'
   import { areaDetail, areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { createSaveState } from '$lib/entities/favorite/save.svelte'
@@ -28,6 +32,7 @@
   import { isOnline } from '$lib/state/online.svelte'
   import { liveRouteFilter, matchingRoutes } from '$lib/state/searchQuery.svelte'
   import { expectingMore, summaryOf } from '$lib/zero/resource.svelte'
+  import { untrack } from 'svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import AreaActions from './AreaActions.svelte'
   import AreaEmpty, { areaEmptyIsActionable } from './AreaEmpty.svelte'
@@ -39,6 +44,12 @@
   // Getters keep the resources live across navigation between areas (e.g. when
   // tapping a sub-area). The underlying queries re-target as the param changes.
   const area = areaDetail(() => Number(page.params.id))
+  // One per page instance, which Kit reuses across areas: leave select mode with the area.
+  const selection = new Selection()
+  $effect(() => {
+    void page.params.id
+    untrack(selection.done)
+  })
   const subAreas = areaList(() => ({ parentFk: Number(page.params.id) }))
 
   // Siblings for prev/next nav: areas sharing this area's parent, ordered by name.
@@ -141,6 +152,10 @@
   })
 </script>
 
+{#snippet selectAction()}
+  <SelectToggle {selection} />
+{/snippet}
+
 <svelte:head>
   <title>{area.data?.name ?? m.areas_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
@@ -231,19 +246,37 @@
 
       {#if detail.type === 'sector'}
         <BlocksList
+          action={canEditArea(global.userRegions, detail) ? selectAction : undefined}
           blocks={blocks.data}
           routes={routes.data}
           matching={matchingAnswered ? matchingIds : null}
           failed={blocks.phase.kind === 'error' || routes.phase.kind === 'error'}
           counted={routeCount != null}
+          {selection}
           settled={blocks.phase.kind === 'answered' && routes.phase.kind === 'answered'}
+        />
+        <BulkMove
+          from={detail.id}
+          items={blocks.data.map((block) => ({ id: block.id, title: block.name }))}
+          kind="blocks"
+          regionFk={detail.regionFk}
+          {selection}
         />
       {:else if detail.type === 'area'}
         <AreaList
+          action={canEditArea(global.userRegions, detail) ? selectAction : undefined}
           areas={subAreas.data}
           counted={subAreaCount != null}
           failed={subAreas.phase.kind === 'error'}
+          {selection}
           settled={subAreas.phase.kind === 'answered'}
+        />
+        <BulkMove
+          from={detail.id}
+          items={subAreas.data.map((area) => ({ id: area.id, title: area.name }))}
+          kind="areas"
+          regionFk={detail.regionFk}
+          {selection}
         />
       {:else if !emptyLeads}
         <AreaEmpty area={detail} />

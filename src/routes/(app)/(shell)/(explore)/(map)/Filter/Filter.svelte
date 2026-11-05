@@ -249,7 +249,7 @@
   {panelClass}
   {contentClass}
   title={showSort ? m.filter_filterAndSort() : m.common_filter()}
-  snapPoints={[0.75, 0.6]}
+  snapPoints={[0.75, 0.45]}
   subtitle={routeCount != null ? m.routes_routesCount({ count: routeCount }) : undefined}
   footer={modalFooter}
 >

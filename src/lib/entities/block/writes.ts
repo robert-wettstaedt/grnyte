@@ -4,9 +4,23 @@ import { whileDeleting } from '$lib/zero/deleting.svelte'
 import { mutators } from '$lib/zero/mutators'
 import { write } from '$lib/zero/write'
 import { entityHref } from '../href'
-import type { BlockFormInput, DeleteBlockSnapshot, restoreBlockSchema } from './dto'
+import type {
+  BlockFormInput,
+  DeleteBlockSnapshot,
+  mergeBlocksSchema,
+  moveBlocksSchema,
+  restoreBlockSchema,
+} from './dto'
 
 type Pin = { id: number; lat: number; long: number }
+
+/** Lands on the survivor: the source is gone once this answers. */
+export const mergeBlocks = (values: z.input<typeof mergeBlocksSchema>) =>
+  write(mutators.blocks.merge(values), { redirectTo: entityHref('blocks', values.survivorId) })
+
+/** Answers each source area's slot order from before, which its Undo passes back as `restoreOrder`. */
+export const moveBlocks = (values: z.input<typeof moveBlocksSchema>) =>
+  write<{ previous: { areaId: number; order: number[] }[] }>(mutators.blocks.move(values))
 
 export const createBlock = (values: BlockFormInput) =>
   write<{ id: number }>(mutators.blocks.create(values), { redirectTo: ({ id }) => entityHref('blocks', id) })
