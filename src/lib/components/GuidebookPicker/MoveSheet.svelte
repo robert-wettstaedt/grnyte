@@ -1,6 +1,5 @@
 <script lang="ts">
   import Modal from '$lib/components/Modal/Modal.svelte'
-  import { afterClick } from '$lib/components/Modal/nested'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { areaTypeLabel } from '$lib/entities/area/mapper'
   import { canAddArea, canAddBlock } from '$lib/entities/area/permissions'
@@ -196,27 +195,25 @@
   const confirm = () => {
     if (!('id' in target)) return
     const { id, name } = target
-    if (kind === 'routes' && topoLines > 0) afterClick(() => (confirming = { id, name }))
+    if (kind === 'routes' && topoLines > 0) confirming = { id, name }
     else void commit(id, name)
   }
 
-  const go = (item: PickerItem) =>
-    afterClick(() => {
-      query = ''
-      if (isBlockRow(item)) {
-        const blockId = blockRowId(item.id)
-        at = blocks.data.find((block) => block.id === blockId)?.areaFk ?? at
-        atBlock = blockId
-        return
-      }
-      atBlock = null
-      at = item.id
-    })
-  const jump = (id: null | number) =>
-    afterClick(() => {
-      atBlock = null
-      at = id
-    })
+  const go = (item: PickerItem) => {
+    query = ''
+    if (isBlockRow(item)) {
+      const blockId = blockRowId(item.id)
+      at = blocks.data.find((block) => block.id === blockId)?.areaFk ?? at
+      atBlock = blockId
+      return
+    }
+    atBlock = null
+    at = item.id
+  }
+  const jump = (id: null | number) => {
+    atBlock = null
+    at = id
+  }
 </script>
 
 {#snippet footer()}
@@ -232,11 +229,7 @@
       >
         {m.moves_confirm()}
       </button>
-      <button
-        class="btn preset-tonal active:scale-[0.97] md:flex-1"
-        onclick={() => afterClick(() => (confirming = null))}
-        type="button"
-      >
+      <button class="btn preset-tonal active:scale-[0.97] md:flex-1" onclick={() => (confirming = null)} type="button">
         {m.common_back()}
       </button>
     </div>

@@ -75,18 +75,6 @@
     onAdd(routeId)
   }
 
-  // Switching steps re-renders the sheet mid-click; svelte-bottom-sheet's document-level
-  // close-on-outside handler then sees a detached event.target (`contains()` is false) and
-  // dismisses the whole sheet. Stop the click here so that handler never runs. Svelte registers
-  // its delegated click listener at mount, before the sheet's (added ~100ms after it opens), so
-  // stopImmediatePropagation from this handler preempts the library's.
-  // ponytail: tied to that handler being a bubbling document `click` listener; revisit if the lib
-  // switches to pointerdown or exposes a real "don't close" API.
-  function setNewRouteOpen(next: boolean, event: Event) {
-    event.stopImmediatePropagation()
-    newRouteOpen = next
-  }
-
   // Both "Quick line" (step 1) and the new-route form (step 2) create a route; a quick line sends
   // only the block (empty name, no grade), whatever step 2 holds. A toast rather than letting a dead
   // network reach the error boundary, which would replace the editor and take the unsaved lines.
@@ -132,7 +120,7 @@
       <button
         class="preset-tonal-primary border-primary-500/40 rounded-xl border p-3 text-left"
         type="button"
-        onclick={(event) => setNewRouteOpen(true, event)}
+        onclick={() => (newRouteOpen = true)}
       >
         <span class="block text-sm font-bold">{m.topo_newRoute()}</span>
         <span class="mt-0.5 block text-xs opacity-80">{m.topo_newRouteSub()}</span>
@@ -148,7 +136,7 @@
     class="btn-icon preset-filled-surface-200-800 shrink-0"
     type="button"
     aria-label={m.common_back()}
-    onclick={(event) => setNewRouteOpen(false, event)}
+    onclick={() => (newRouteOpen = false)}
   >
     <Icon name="arrow-left" />
   </button>

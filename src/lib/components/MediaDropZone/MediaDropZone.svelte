@@ -371,15 +371,10 @@
           </span>
         </button>
 
-        <!-- stopPropagation: the step switch detaches this button before the click
-             bubbles to the sheet's outside-click handler, which would close it. -->
         <button
           type="button"
           class="hover:bg-surface-100-900 -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 text-left"
-          onclick={(event) => {
-            event.stopPropagation()
-            sheetStep = 'video'
-          }}
+          onclick={() => (sheetStep = 'video')}
         >
           <span
             class="bg-primary-500/15 text-primary-400 flex size-10 flex-none items-center justify-center rounded-xl"

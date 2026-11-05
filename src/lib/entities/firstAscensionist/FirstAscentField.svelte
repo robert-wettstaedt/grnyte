@@ -144,7 +144,13 @@
       <button
         aria-label={m.common_remove()}
         class="hover:bg-surface-300-700 flex size-5.5 items-center justify-center rounded-full"
-        onclick={() => (value = value.filter((_, i) => i !== index))}
+        onclick={(event) => {
+          // A pointer press never focuses this button (keepFocus), so focus here came from the keyboard and
+          // would drop to body when it unmounts.
+          if (document.activeElement === event.currentTarget) input?.focus()
+          value = value.filter((_, i) => i !== index)
+        }}
+        onmousedown={keepFocus}
         type="button"
       >
         <Icon name="close" size={12} />

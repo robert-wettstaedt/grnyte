@@ -35,10 +35,6 @@
   )
   const isSelected = (group: FirstAscensionistGroup) => group.ids.some((id) => value.includes(id))
 
-  // A row's presence depends only on the search term (never on selection), so
-  // toggling a row keeps it mounted. svelte-bottom-sheet closes when a click's
-  // target leaves the DOM, so removing the clicked node here would dismiss the
-  // sheet before "Apply" can be pressed.
   const matches = $derived.by(() => {
     const term = searchable ? search.trim().toLowerCase() : ''
     const found = firstAscensionists.filter((fa) => term === '' || fa.name.toLowerCase().includes(term))

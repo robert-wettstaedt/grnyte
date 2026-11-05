@@ -1,6 +1,5 @@
 <script lang="ts">
   import Modal from '$lib/components/Modal/Modal.svelte'
-  import { afterClick } from '$lib/components/Modal/nested'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { areaTypeLabel } from '$lib/entities/area/mapper'
   import { areaMapList } from '$lib/entities/area/resources.svelte'
@@ -171,13 +170,12 @@
           })),
   )
 
-  const pick = (picked: PickerItem) =>
-    afterClick(() => {
-      survivor = candidates.find((side) => side.id === picked.id) ?? null
-      if (survivor == null) return
-      chosen = Object.fromEntries(asking.map((key) => [key, 'survivor' as const]))
-      step = stepAfterPick(asking)
-    })
+  const pick = (picked: PickerItem) => {
+    survivor = candidates.find((side) => side.id === picked.id) ?? null
+    if (survivor == null) return
+    chosen = Object.fromEntries(asking.map((key) => [key, 'survivor' as const]))
+    step = stepAfterPick(asking)
+  }
 
   const countLabels = $derived([
     m.merges_countAscents(),
@@ -240,7 +238,7 @@
           : [preview.ascents, preview.photos, preview.topos, preview.children]
               .slice(0, countLabels.length)
               .map((value, i) => ({ label: countLabels[i], value })),
-      onback: () => afterClick(() => (step = asking.length > 0 ? 'fields' : 'pick')),
+      onback: () => (step = asking.length > 0 ? 'fields' : 'pick'),
       onmerge: merge,
       // Only a route leaving its block can lose lines: every line sits on its own block's photos.
       warnable: kind === 'routes' && survivor?.parentId !== source.parentId,
@@ -250,8 +248,8 @@
           : undefined,
     }}
     fields={{
-      onback: () => afterClick(() => (step = 'pick')),
-      onnext: () => afterClick(() => (step = 'confirm')),
+      onback: () => (step = 'pick'),
+      onnext: () => (step = 'confirm'),
       questions,
     }}
     pick={{

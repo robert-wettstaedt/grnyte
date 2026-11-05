@@ -134,15 +134,7 @@
 
   const selectItem = (item: EntityCandidate) => {
     picker.command?.({ id: item.id, label: item.label, type: item.type })
-
-    // Closed a task later, so the list is still in the document while the press that chose it is
-    // still being dispatched. Removing it mid-dispatch leaves the event's target detached, and a
-    // listener further up that asks "did this happen inside me?" answers no for a press that was
-    // plainly inside. The bottom sheet's dismiss-on-outside-press is such a listener, which is
-    // the shape of a phone tap on a name closing the whole comment sheet.
-    setTimeout(() => {
-      picker.open = false
-    })
+    picker.open = false
   }
 
   const onPickerKeyDown = (event: KeyboardEvent): boolean => {

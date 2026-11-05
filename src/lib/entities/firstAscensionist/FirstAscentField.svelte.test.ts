@@ -30,6 +30,38 @@ const typed = async (text: string) => {
   return { input, names, prevented, userFks }
 }
 
+const withChip = () => {
+  // jsdom has no WAAPI, and focusing the input opens the suggestion list's transition.
+  Element.prototype.animate = (() => ({ cancel() {} })) as never
+  const { container } = render(FirstAscentField, { regionFk: 2, value: [{ name: 'Alex Honnold' }] })
+  return {
+    chips: () => container.querySelectorAll('input[name$=".name"]').length,
+    input: container.querySelector<HTMLInputElement>('input[type="text"]')!,
+    remove: container.querySelector<HTMLButtonElement>('button[aria-label]')!,
+  }
+}
+
+it('hands focus to the input when a keyboard press removes a chip', async () => {
+  const { chips, input, remove } = withChip()
+  remove.focus()
+
+  await fireEvent.click(remove)
+
+  expect(chips()).toBe(0)
+  expect(document.activeElement).toBe(input)
+})
+
+it('leaves focus where it was when a pointer press removes a chip', async () => {
+  const { chips, input, remove } = withChip()
+
+  const allowed = await fireEvent.mouseDown(remove)
+  await fireEvent.click(remove)
+
+  expect(allowed).toBe(false)
+  expect(chips()).toBe(0)
+  expect(document.activeElement).not.toBe(input)
+})
+
 it('adds a new name on Enter instead of letting the form submit', async () => {
   const { input, names, prevented } = await typed('Lynn Hill')
 
