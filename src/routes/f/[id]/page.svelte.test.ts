@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/svelte'
-import { expect, it, vi } from 'vitest'
+import { beforeAll, expect, it, vi } from 'vitest'
 import Page from './+page.svelte'
 
 vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/f/abc') } }))
@@ -10,6 +10,9 @@ vi.mock('$lib/entities/file/files.remote', () => ({ deleteFile: vi.fn(), setFile
 vi.hoisted(() => {
   window.matchMedia = (() => ({ addEventListener() {}, matches: false, removeEventListener() {} })) as never
 })
+
+// Modal preloads this unawaited on import; a teardown mid-load fails the run as an unhandled error.
+beforeAll(() => import('$lib/components/Modal/Modal.mobile.svelte'))
 
 const data = (legalReport: boolean) =>
   ({

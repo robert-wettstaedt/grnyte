@@ -1,8 +1,11 @@
 import { render, screen } from '@testing-library/svelte'
-import { expect, it, vi } from 'vitest'
+import { beforeAll, expect, it, vi } from 'vitest'
 import MemberRow from './MemberRow.svelte'
 
 vi.stubGlobal('matchMedia', () => ({ addEventListener() {}, matches: false, removeEventListener() {} }))
+
+// Modal preloads this unawaited on import; a teardown mid-load fails the run as an unhandled error.
+beforeAll(() => import('$lib/components/Modal/Modal.mobile.svelte'))
 
 const row = (owner: boolean) =>
   render(MemberRow, {
