@@ -14,6 +14,7 @@ import { hasDeletedAncestor, refreshAreaType, stampDeletedAt } from '../area/are
 import { canAddBlock } from '../area/permissions'
 import { canHardDelete, deleteEvent, insertEvent } from '../event/event.server'
 import { stringifyDeletionScale } from '../event/metadata'
+import { refuseMerged } from '../merge/restore.server'
 import { restoreBlockSchema, type DeleteBlockSnapshot } from './dto'
 import { canDeleteBlock } from './permissions'
 import { attachPin, removePin } from './pin.server'
@@ -291,6 +292,7 @@ export async function softRestoreBlock(db: Context['db'], block: Block): Promise
   if (block.deletedAt == null) {
     return
   }
+  refuseMerged(block)
 
   await shiftBlockOrdersUp(db, block.areaFk, block.order)
   await stampDeletedAt(db, { blockIds: [block.id] }, null, block.deletedAt)

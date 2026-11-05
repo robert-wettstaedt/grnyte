@@ -2,8 +2,17 @@ import { removableIdArgs } from '$lib/entities/moderation/dto'
 import { recordPlanned } from '$lib/entities/moderation/record.server'
 import { refuseWhileRemoved } from '$lib/entities/moderation/undo.server'
 import { asCaller, asPrivileged, defineServerMutator, refuseWithField } from '$lib/zero/serverMutator.server'
-import { blockActionSchema, blockPinSchema, reorderBlocksSchema, restoreBlockSchema } from './dto'
+import {
+  blockActionSchema,
+  blockPinSchema,
+  mergeBlocksSchema,
+  moveBlocksSchema,
+  reorderBlocksSchema,
+  restoreBlockSchema,
+} from './dto'
 import { deleteBlockRow, restoreBlockRow } from './lifecycle.server'
+import { planBlockMerge, repointBlockMerge } from './merge.server'
+import { moveBlocksRow } from './move.server'
 import { reorderBlocksRow } from './order.server'
 import { estimateBlockLocationRow, setBlockLocationRow } from './pin.server'
 import { createBlockRow, updateBlockRow } from './save.server'
@@ -22,6 +31,13 @@ export const blocksServerMutatorDefs = {
     estimateLocation: defineServerMutator(blockPinSchema, async ({ args, ctx, tx }) => {
       await asCaller(tx, ctx, (db) => estimateBlockLocationRow(args, { ...ctx, db }))
     }),
+    merge: defineServerMutator(mergeBlocksSchema, async ({ args, ctx, tx }) => {
+      const plan = await asCaller(tx, ctx, (db) => planBlockMerge(args, { ...ctx, db }))
+      await asPrivileged(tx, (db) => repointBlockMerge(db, plan, ctx))
+    }),
+    move: defineServerMutator(moveBlocksSchema, async ({ args, ctx, tx }) =>
+      asCaller(tx, ctx, (db) => moveBlocksRow(args, { ...ctx, db })),
+    ),
     reorder: defineServerMutator(reorderBlocksSchema, async ({ args, ctx, tx }) => {
       await asCaller(tx, ctx, (db) => reorderBlocksRow(args, { ...ctx, db }))
     }),

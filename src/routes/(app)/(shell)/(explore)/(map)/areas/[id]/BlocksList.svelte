@@ -1,6 +1,8 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import RouteList from '$lib/components/EntityRow/RouteList.svelte'
+  import Selectable from '$lib/components/GuidebookPicker/Selectable.svelte'
+  import type { Selection } from '$lib/components/GuidebookPicker/selection.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Image from '$lib/components/Image/Image.svelte'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
@@ -16,10 +18,13 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { isOnline } from '$lib/state/online.svelte'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
+  import type { Snippet } from 'svelte'
   import { SvelteMap } from 'svelte/reactivity'
   import { fade } from 'svelte/transition'
 
   interface Props {
+    /** Trailing in the heading row, after the count. */
+    action?: Snippet
     /** Blocks beneath the area, already ordered by the query. */
     blocks: BlockDetail[]
     /** The routes on hand may be counted (see `summaryOf`). */
@@ -30,11 +35,13 @@
     matching?: null | Set<number>
     /** Every route beneath the area; grouped here by `blockFk`. */
     routes: RouteListItem[]
+    /** Select mode, where a block's heading ticks it instead of opening it. */
+    selection?: Selection
     /** Both lists are whole, so a "none" is true. */
     settled: boolean
   }
 
-  const { blocks, counted, failed = false, matching = null, routes, settled }: Props = $props()
+  const { action, blocks, counted, failed = false, matching = null, routes, selection, settled }: Props = $props()
 
   const global = getGlobalState()
 
@@ -62,6 +69,19 @@
   // Routes list vs. full-width topo images per block.
   let view = $state<'routes' | 'topos'>('routes')
 </script>
+
+<!-- Always there, so the count and Select never insert above blocks already on screen. -->
+<div class="flex items-center justify-between">
+  <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.common_blocks()}</h2>
+  <span class="flex items-center gap-3">
+    {#if blocks.length > 0}
+      <span class="text-surface-500 text-[11px] font-semibold tabular-nums">
+        {m.blocks_count({ count: blocks.length })}
+      </span>
+    {/if}
+    {@render action?.()}
+  </span>
+</div>
 
 {#if blocks.length > 0}
   <SegmentedControl value={view} onValueChange={(details) => (view = details.value as typeof view)}>
@@ -108,53 +128,55 @@
       ? formatDistance(location.current, { lat: block.geolocation.lat, long: block.geolocation.long })
       : null}
   <section class="space-y-2">
-    <a
-      class="group flex items-center justify-between gap-2"
-      href={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) })}
-    >
-      <span class="flex min-w-0 items-center gap-1">
-        <h2
-          class="text-surface-600-400 group-hover:text-primary-400 truncate text-sm font-bold tracking-wider uppercase transition-colors"
-        >
-          {block.name}
-        </h2>
-        <Icon
-          name="chevron-right"
-          size={14}
-          class="text-surface-500 group-hover:text-primary-400 shrink-0 transition-colors"
-        />
-      </span>
+    <Selectable id={block.id} label={block.name} {selection}>
+      <a
+        class="group flex items-center justify-between gap-2"
+        href={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) })}
+      >
+        <span class="flex min-w-0 items-center gap-1">
+          <h2
+            class="text-surface-600-400 group-hover:text-primary-400 truncate text-sm font-bold tracking-wider uppercase transition-colors"
+          >
+            {block.name}
+          </h2>
+          <Icon
+            name="chevron-right"
+            size={14}
+            class="text-surface-500 group-hover:text-primary-400 shrink-0 transition-colors"
+          />
+        </span>
 
-      <span class="text-surface-500 flex shrink-0 items-center gap-1.5 text-[11px] font-semibold tabular-nums">
-        {#if block.geolocation == null}
-          <Icon name="alert-triangle" size={14} class="text-warning-500" title={m.blocks_noLocation()} />
-        {:else}
-          {#if block.geolocation.estimated}
-            <Icon name="map-pin-search" size={14} class="text-warning-500" title={m.blocks_estimatedLocation()} />
+        <span class="text-surface-500 flex shrink-0 items-center gap-1.5 text-[11px] font-semibold tabular-nums">
+          {#if block.geolocation == null}
+            <Icon name="alert-triangle" size={14} class="text-warning-500" title={m.blocks_noLocation()} />
+          {:else}
+            {#if block.geolocation.estimated}
+              <Icon name="map-pin-search" size={14} class="text-warning-500" title={m.blocks_estimatedLocation()} />
+            {/if}
+            {#if distance != null}
+              <span class="flex items-center gap-1">
+                <Icon name="map-pin" size={12} />
+                {distance}
+              </span>
+            {/if}
           {/if}
-          {#if distance != null}
-            <span class="flex items-center gap-1">
-              <Icon name="map-pin" size={12} />
-              {distance}
-            </span>
+          {#if counted && blockRoutes.length > 0}
+            {#if block.geolocation == null || block.geolocation.estimated || distance != null}
+              <span class="opacity-40" aria-hidden="true">·</span>
+            {/if}
+            {matching == null
+              ? m.routes_routesCount({ count: blockRoutes.length })
+              : m.routes_matchingCount({
+                  count: blockRoutes.length,
+                  matching: blockRoutes.filter((route) => matching.has(route.id)).length,
+                })}
           {/if}
-        {/if}
-        {#if counted && blockRoutes.length > 0}
-          {#if block.geolocation == null || block.geolocation.estimated || distance != null}
-            <span class="opacity-40" aria-hidden="true">·</span>
-          {/if}
-          {matching == null
-            ? m.routes_routesCount({ count: blockRoutes.length })
-            : m.routes_matchingCount({
-                count: blockRoutes.length,
-                matching: blockRoutes.filter((route) => matching.has(route.id)).length,
-              })}
-        {/if}
-      </span>
-    </a>
+        </span>
+      </a>
+    </Selectable>
 
     {#key view}
-      <div in:fade={{ duration: 150 }}>
+      <div in:fade={{ duration: 150 }} inert={selection?.active}>
         {#if view === 'topos'}
           {#if block.topoImages.length > 0}
             <div class="flex flex-col gap-3">

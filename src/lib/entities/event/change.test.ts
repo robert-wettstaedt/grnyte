@@ -107,6 +107,22 @@ describe('pair', () => {
     })
   })
 
+  it('reads a move and a merge as the names stored at the time', () => {
+    for (const objectType of ['area', 'block', 'route'] as const) {
+      expect(change({ columnName: 'parent', newValue: 'Südwand', objectType, oldValue: 'Nordwand' })).toMatchObject({
+        after: 'Südwand',
+        before: 'Nordwand',
+        field: { labelKey: 'event_fieldParent' },
+        kind: 'pair',
+      })
+      expect(change({ columnName: 'mergedFrom', newValue: 'Kante', objectType })).toMatchObject({
+        after: 'Kante',
+        field: { labelKey: 'event_fieldMergedFrom' },
+        single: true,
+      })
+    }
+  })
+
   it('declares the format its catalogue entry picked', () => {
     expect(change({ columnName: 'dateTime', newValue: '2026-04-21', objectType: 'ascent' })).toMatchObject({
       format: 'date',

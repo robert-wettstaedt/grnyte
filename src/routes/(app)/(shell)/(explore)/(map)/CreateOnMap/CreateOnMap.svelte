@@ -1,11 +1,12 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import Row from '$lib/components/EntityRow/Row.svelte'
   import { searchOutcome } from '$lib/components/EntitySearch/search.svelte'
+  import GuidebookPicker, { type PickerItem } from '$lib/components/GuidebookPicker/GuidebookPicker.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { AreaListItem } from '$lib/entities/area/dto'
+  import { areaTypeLabel } from '$lib/entities/area/mapper'
   import { canAddArea, canAddBlock, canAddParking } from '$lib/entities/area/permissions'
   import { areaMapList } from '$lib/entities/area/resources.svelte'
   import { blockMapList } from '$lib/entities/block/resources.svelte'
@@ -204,6 +205,17 @@
     placing = type
   }
 
+  const pickerItem = (area: AreaListItem, from: Map<number, number>): PickerItem => {
+    const metres = from.get(area.id)
+    return {
+      badge: area.type == null ? undefined : areaTypeLabel(area.type),
+      crumbs: area.areas.map((ancestor) => ancestor.name),
+      id: area.id,
+      meta: metres == null ? undefined : formatMetres(metres),
+      title: area.name,
+    }
+  }
+
   const confirmCreate = () => {
     const sector = resolvedSector
     if (sector == null || center == null || placing == null) return
@@ -216,37 +228,6 @@
     push(`${path}?lat=${center[0]}&long=${center[1]}`)
   }
 </script>
-
-<!-- `Row` rather than `AreaRow`, which would put a thumbnail on every one. `tabular-nums` is what
-     makes the distances read as a ranking. -->
-{#snippet optionRow(item: AreaListItem, metres: number | undefined, onclick: () => void)}
-  <Row crumbs={item.areas.map((ancestor) => ancestor.name)} {onclick} title={item.name} variant="option">
-    {#snippet rightContent()}
-      {#if metres != null}
-        <span class="text-surface-500 shrink-0 text-[11px] font-semibold tabular-nums">{formatMetres(metres)}</span>
-      {/if}
-    {/snippet}
-  </Row>
-{/snippet}
-
-{#snippet sectorRow(sector: AreaListItem)}
-  {@render optionRow(sector, distances.get(sector.id), () => {
-    chosenSectorId = sector.id
-    pickerOpen = false
-  })}
-{/snippet}
-
-{#snippet areaRow(area: AreaListItem)}
-  {@render optionRow(area, areaDistances.get(area.id), () => chooseArea(area.id))}
-{/snippet}
-
-<!-- Inert on purpose: nothing to press, it only says why the sector is missing. -->
-{#snippet blockedSectorRow(sector: AreaListItem)}
-  <div class="flex flex-col px-3 py-2">
-    <span class="text-surface-600-400 truncate text-sm font-medium">{sector.name}</span>
-    <span class="text-surface-500 text-xs">{m.areas_holdsBlocks()}</span>
-  </div>
-{/snippet}
 
 {#if placing == null}
   <Modal
@@ -337,38 +318,20 @@
     panelClass="fixed inset-0 z-60 flex items-center justify-center p-4"
     title={m.map_create_chooseArea()}
   >
-    <div class="flex flex-col gap-2 py-2">
-      <input
-        bind:value={areaSearch}
-        class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-2.5 text-base focus:ring-0 focus:outline-none"
-        placeholder={m.map_create_searchAreas()}
-        type="search"
-      />
-      <div class="flex max-h-64 flex-col overflow-y-auto">
-        {#each locatedAreas as area (area.id)}
-          {@render areaRow(area)}
-        {/each}
-
-        <!-- Only a heading when both groups are populated: on its own, the tail IS the list. -->
-        {#if locatedAreas.length > 0 && unlocatedAreas.length > 0}
-          <h3 class="text-surface-500 px-1 pt-3 pb-1 text-xs font-bold tracking-wider uppercase">
-            {m.map_create_withoutLocation()}
-          </h3>
-        {/if}
-
-        {#each unlocatedAreas as area (area.id)}
-          {@render areaRow(area)}
-        {/each}
-
-        {#each blockedSectors as sector (sector.id)}
-          {@render blockedSectorRow(sector)}
-        {/each}
-
-        {#if filteredAreas.length === 0 && blockedSectors.length === 0 && placesSettled}
-          <span class="text-surface-600-400 px-3 py-2 text-sm">{m.map_create_noAreasFound()}</span>
-        {/if}
-      </div>
-    </div>
+    <GuidebookPicker
+      bind:query={areaSearch}
+      emptyLabel={m.map_create_noAreasFound()}
+      items={[
+        ...[...locatedAreas, ...unlocatedAreas].map((area) => pickerItem(area, areaDistances)),
+        // The badge says why: a sector holds no areas.
+        ...blockedSectors.map((sector) => ({ ...pickerItem(sector, new Map()), dimmed: true })),
+      ]}
+      onpick={(item) => chooseArea(item.id)}
+      pinned={locatedAreas.map((area) => pickerItem(area, areaDistances))}
+      placeholder={m.map_create_searchAreas()}
+      restLabel={m.map_create_withoutLocation()}
+      settled={placesSettled}
+    />
   </Modal>
 {:else}
   <!-- Placement mode: the picked location is the map centre; a fixed pin marks it. -->
@@ -406,34 +369,19 @@
             </button>
           {/snippet}
 
-          <div class="flex flex-col gap-2 py-2">
-            <input
-              bind:value={search}
-              class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-2.5 text-base focus:ring-0 focus:outline-none"
-              placeholder={m.map_create_searchSectors()}
-              type="search"
-            />
-            <div class="flex max-h-64 flex-col overflow-y-auto">
-              {#each locatedSectors as sector (sector.id)}
-                {@render sectorRow(sector)}
-              {/each}
-
-              <!-- Only a heading when both groups are populated: on its own, the tail IS the list. -->
-              {#if locatedSectors.length > 0 && unlocatedSectors.length > 0}
-                <h3 class="text-surface-500 px-1 pt-3 pb-1 text-xs font-bold tracking-wider uppercase">
-                  {m.map_create_withoutLocation()}
-                </h3>
-              {/if}
-
-              {#each unlocatedSectors as sector (sector.id)}
-                {@render sectorRow(sector)}
-              {/each}
-
-              {#if filteredSectors.length === 0 && placesSettled}
-                <span class="text-surface-600-400 px-3 py-2 text-sm">{m.map_create_noSectorsFound()}</span>
-              {/if}
-            </div>
-          </div>
+          <GuidebookPicker
+            bind:query={search}
+            emptyLabel={m.map_create_noSectorsFound()}
+            items={[...locatedSectors, ...unlocatedSectors].map((area) => pickerItem(area, distances))}
+            onpick={(item) => {
+              chosenSectorId = item.id
+              pickerOpen = false
+            }}
+            pinned={locatedSectors.map((area) => pickerItem(area, distances))}
+            placeholder={m.map_create_searchSectors()}
+            restLabel={m.map_create_withoutLocation()}
+            settled={placesSettled}
+          />
         </Modal>
       </div>
 

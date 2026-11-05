@@ -1,6 +1,10 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import ActionBar, { ACTION_TOOL, ACTION_TOOL_LABEL } from '$lib/components/ActionBar/ActionBar.svelte'
+  import MergeSheet from '$lib/components/GuidebookPicker/MergeSheet.svelte'
+  import MoveSheet from '$lib/components/GuidebookPicker/MoveSheet.svelte'
+  import { RestructureSheets } from '$lib/components/GuidebookPicker/restructure.svelte'
+  import RestructureRows from '$lib/components/GuidebookPicker/RestructureRows.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
@@ -11,6 +15,7 @@
   import type { SaveState } from '$lib/entities/favorite/save.svelte'
   import type { LocationState } from '$lib/entities/geolocation/location.svelte'
   import LocationMeta from '$lib/entities/geolocation/LocationMeta.svelte'
+  import { areaSide } from '$lib/entities/merge/sides'
   import { createRemovalChoice } from '$lib/entities/moderation/choice.svelte'
   import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import { canReport } from '$lib/entities/report/permissions'
@@ -71,6 +76,8 @@
     })
 
   const choice = createRemovalChoice(() => area.regionFk, onDelete)
+
+  const sheets = new RestructureSheets()
 </script>
 
 <div>
@@ -149,17 +156,16 @@
             {/if}
           {/if}
 
-          {#if canDelete}
-            <MenuRow
-              destructive
-              icon="map-pin-x"
-              label={m.areas_delete()}
-              onclick={() => {
-                close()
-                void choice.start()
-              }}
-            />
-          {/if}
+          <RestructureRows
+            canMerge={canDelete}
+            canMove={canEdit}
+            {close}
+            deleteIcon="map-pin-x"
+            deleteLabel={m.areas_delete()}
+            ondelete={() => void choice.start()}
+            onmerge={sheets.merge}
+            onmove={sheets.move}
+          />
 
           {#if reportable}
             <ReportRow id={area.id} kind="area" onclick={close} />
@@ -169,5 +175,20 @@
     {/if}
   </ActionBar>
 </div>
+
+{#if sheets.used.merge}
+  <MergeSheet bind:open={sheets.merging} kind="areas" source={areaSide(area)} />
+{/if}
+
+{#if sheets.used.move}
+  <MoveSheet
+    bind:open={sheets.moving}
+    from={area.parentFk ?? null}
+    ids={[area.id]}
+    kind="areas"
+    name={area.name}
+    regionFk={area.regionFk}
+  />
+{/if}
 
 <RemovalChoice bind:open={choice.open} id={area.id} kind="area" ontidy={onDelete} title={area.name} />

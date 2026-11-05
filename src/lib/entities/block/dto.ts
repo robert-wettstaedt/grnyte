@@ -93,3 +93,22 @@ export type DeleteBlockSnapshot =
 
 /** What the reorder screen submits: the ids it could see, top to bottom. */
 export const reorderBlocksSchema = z.object({ areaId: z.number(), orderedIds: z.array(z.number()) })
+
+/** `blocks.merge`. `values` carries only what the person was asked about; `geolocationFk` names the pin kept.
+ *  Strict, because the server writes it past RLS. */
+export const mergeBlocksSchema = z.object({
+  sourceId: z.number(),
+  survivorId: z.number(),
+  values: z.strictObject({
+    description: z.optional(z.string()),
+    geolocationFk: z.optional(z.number()),
+    name: z.optional(z.string().check(z.trim())),
+  }),
+})
+
+/** `blocks.move`. `restoreOrder` is an Undo's: the area's slot order from before the move. */
+export const moveBlocksSchema = z.object({
+  areaId: z.number(),
+  blockIds: z.array(z.number()).check(z.minLength(1)),
+  restoreOrder: z.optional(z.array(z.number())),
+})

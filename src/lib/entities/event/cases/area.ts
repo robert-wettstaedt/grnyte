@@ -282,4 +282,36 @@ export const AREA_CASES: EventCase[] = [
     id: 'AREA-05b',
     writer: 'save.server.ts:80',
   },
+  {
+    action: 'More -> Move to... -> pick a new parent -> Move',
+    domain: 'area',
+    events: [
+      eventAgo(120, {
+        actorFk: ME,
+        changes: [change({ columnName: 'parent', newValue: 'Westgrat', oldValue: 'Talhang' })],
+        objectId: 300,
+        objectType: 'area',
+      }),
+    ],
+    expected:
+      'Single card, "You moved ...", with one Moved line from Talhang to Westgrat: the names stored at the time, so a parent renamed or deleted later still reads as it was.',
+    id: 'AREA-MOVE-01',
+    writer: 'move.server.ts:71',
+  },
+  {
+    action: 'More -> Merge into... -> pick the survivor -> Merge',
+    domain: 'area',
+    events: [
+      eventAgo(110, {
+        actorFk: ME,
+        changes: [change({ columnName: 'mergedFrom', newValue: 'Talhang Ost' })],
+        objectId: 300,
+        objectType: 'area',
+      }),
+    ],
+    expected:
+      'Single card on the survivor, "You merged a duplicate into ...", with one Merged line naming the duplicate.',
+    id: 'AREA-MERGE-01',
+    writer: 'merge.server.ts:85',
+  },
 ]

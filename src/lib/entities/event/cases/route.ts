@@ -353,4 +353,53 @@ export const ROUTE_CASES: EventCase[] = [
     id: 'ROUTE-05b',
     writer: 'lifecycle.server.ts:259',
   },
+  {
+    action: 'More -> Move to... -> pick a new parent -> Move',
+    domain: 'route',
+    events: [
+      eventAgo(120, {
+        actorFk: ME,
+        changes: [change({ columnName: 'parent', newValue: 'Kleiner Block', oldValue: 'Nordblock' })],
+        objectId: 500,
+      }),
+    ],
+    expected:
+      'Single card, "You moved ...", with one Moved line from Nordblock to Kleiner Block: the names stored at the time, so a parent renamed or deleted later still reads as it was.',
+    id: 'ROUTE-MOVE-01',
+    writer: 'move.server.ts:68',
+  },
+  {
+    action: 'More -> Merge into... -> pick the survivor -> Merge',
+    domain: 'route',
+    events: [
+      eventAgo(110, {
+        actorFk: ME,
+        changes: [change({ columnName: 'mergedFrom', newValue: 'Kante' })],
+        objectId: 500,
+      }),
+    ],
+    expected:
+      'Single card on the survivor, "You merged a duplicate into ...", with one Merged line naming the duplicate.',
+    id: 'ROUTE-MERGE-01',
+    writer: 'merge.server.ts:66',
+  },
+  {
+    action: "More -> Merge into... -> pick the survivor -> pick the duplicate's grade and description -> Merge",
+    domain: 'route',
+    events: [
+      eventAgo(110, {
+        actorFk: ME,
+        changes: [
+          change({ columnName: 'mergedFrom', newValue: 'Kante' }),
+          change({ columnName: 'gradeFk', newValue: '12', oldValue: '11' }),
+          change({ columnName: 'description', newValue: 'Slopers', oldValue: 'Crimps' }),
+        ],
+        objectId: 500,
+      }),
+    ],
+    expected:
+      'Still "You merged a duplicate into ...", counting 2 edits: the merge speaks for the values picked with it, which list below the Merged line.',
+    id: 'ROUTE-MERGE-02',
+    writer: 'merge.server.ts:66',
+  },
 ]

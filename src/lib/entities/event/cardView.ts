@@ -634,9 +634,17 @@ function sharedVerbKey(group: CardGroup, subjects: number): MessageKey | undefin
     return undefined
   }
 
+  // A merge speaks for the edits it made with it: "merged a duplicate into", not "edited".
+  const merge = mergeLine(group)
+  if (merge != null) {
+    return verbEntry(merge)?.key
+  }
+
   const [first, ...rest] = group.rows.map((line) => verbEntry(line)?.key)
   return first != null && rest.every((key) => key === first) ? first : undefined
 }
+
+const mergeLine = (group: CardGroup) => group.rows.find((line) => line.columnName === 'mergedFrom')
 
 /**
  * The line whose OWN sentence the card speaks, or `undefined` for a card that summarises
@@ -652,7 +660,7 @@ function spokenLine(group: CardGroup, verb: CardVerb): CardLine | undefined {
   // one person saying one thing about one entity several times over. Everything else is a
   // summary, because "redpointed Rampe" would name one of four ascents.
   if (group.kind === 'single' || verb.media != null || verb.shared != null) {
-    return group.rows[0]
+    return mergeLine(group) ?? group.rows[0]
   }
 
   // One climb logged and then corrected is not a session. The correction is a second event once it
@@ -702,7 +710,9 @@ function summaryParts(
   // was not asking about. A create is not an edit, so a card that speaks its create and holds one
   // correction says "1 edit" rather than counting the log itself.
   const edits =
-    spoken == null ? undefined : group.rows.length - group.rows.filter((row) => row.verb === 'create').length
+    spoken == null
+      ? undefined
+      : group.rows.filter((row) => row.verb !== 'create' && row.columnName !== 'mergedFrom').length
 
   // A session counts ASCENTS, and three edits to one ascent are one ascent, not three. Counted off
   // the rows rather than off the card's subjects, because a session holds the clips hung on those

@@ -59,6 +59,7 @@ export function toAreaDetail(row: AreaDetailRow): AreaDetail {
     geoPaths: row.geoPaths == null ? [] : [...row.geoPaths],
     parentFk: row.parentFk ?? undefined,
     parkingLocations: row.parkingLocations.map(toGeolocation),
+    rawName: row.name,
     regionFk: row.regionFk,
   }
 }

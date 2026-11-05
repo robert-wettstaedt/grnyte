@@ -77,7 +77,7 @@ export type ChangeView = ChangeBase &
     | { after: number; before: number; kind: 'rating' }
     | { after: SourceSide; before: SourceSide; kind: 'source' }
     | { after: string[]; before: string[]; kind: 'chips' }
-    | { after: string | undefined; before: string | undefined; format: PairFormat; kind: 'pair' }
+    | { after: string | undefined; before: string | undefined; format: PairFormat; kind: 'pair'; single?: true }
     | { after: string | undefined; before: string | undefined; kind: 'ascentType' }
     | { after: string | undefined; before: string | undefined; kind: 'prose'; segments: ProseSegment[] | undefined }
     | { afterFk: number | undefined; beforeFk: number | undefined; kind: 'grade' }
@@ -102,7 +102,7 @@ export type ChangeView = ChangeBase &
 export type MediaWord = 'none' | 'photo' | 'video'
 
 /** Which formatter a `pair`'s two chips read through. `text` shows the value as stored. */
-export type PairFormat = 'date' | 'humidity' | 'role' | 'temperature' | 'text'
+export type PairFormat = 'date' | 'humidity' | 'name' | 'role' | 'temperature' | 'text'
 
 /** One run of a prose diff: text that survived the edit, text it added, text it took out. */
 export interface ProseSegment {
@@ -241,6 +241,7 @@ function changeView(line: CardLine, field: VerbField, ctx: ChangeContext): Chang
         before: line.oldValue,
         format: field.format ?? 'text',
         kind: 'pair',
+        single: field.single,
       }
   }
 }

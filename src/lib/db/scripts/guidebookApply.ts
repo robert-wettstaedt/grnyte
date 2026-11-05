@@ -44,6 +44,7 @@ const ROUTE_REFERENCES = [
   'import_refs.route_fk',
   'notifications.route_fk',
   'route_external_resources.route_fk',
+  'routes.merged_into',
   'routes_to_first_ascensionists.route_fk',
   'routes_to_tags.route_fk',
   'topo_routes.route_fk',
@@ -825,6 +826,8 @@ async function mergeRoute(tx: Tx, copy: number, keep: number) {
   await tx`update activities set entity_id = ${String(keep)} where entity_type = 'route' and entity_id = ${String(copy)}`
   await tx`update activities set parent_entity_id = ${String(keep)}
            where parent_entity_type = 'route' and parent_entity_id = ${String(copy)}`
+  // Routes an in-app merge folded into the copy now point at the survivor, as `repointShared` does.
+  await tx`update routes set merged_into = ${keep} where merged_into = ${copy}`
   await tx`delete from routes where id = ${copy}`
 }
 

@@ -41,7 +41,8 @@ This project uses:
 - Writes are Zero custom mutators: a client def in `<entity>/mutators.ts`, a server def in
   `<entity>/mutators.server.ts`, aggregated in `$lib/zero/mutators*.ts` like the queries. The server
   def wraps a handler body from `<entity>/*.server.ts` in `asCaller` (RLS) or, only where the body
-  used `pinnedTx`, `asPrivileged`; `gates.test.ts` holds both to a named gate. Toggles write the
+  used `pinnedTx` or a merge repoints rows other people own after its caller-run gates,
+  `asPrivileged`; `gates.test.ts` holds both to a named gate. Toggles write the
   local store optimistically; forms, creates and deletes write nothing on the client and await
   `.server`, because ids are serial. Remote functions remain for what a mutator cannot answer:
   auth and account, the upload steps, `sendTestPush`, `replyToFeedback` and remote reads.

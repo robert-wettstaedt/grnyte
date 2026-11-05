@@ -12,6 +12,7 @@
   import AscentTypeGlyph from '$lib/entities/ascent/AscentTypeGlyph.svelte'
   import { toDisplayName } from '$lib/entities/displayName'
   import type { ChangeView, PairFormat, SourceSide } from '$lib/entities/event/change'
+  import { readStoredName } from '$lib/entities/event/storedName'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
@@ -62,6 +63,8 @@
       const humidity = numeric(value)
       return humidity == null ? value : formatHumidity(humidity)
     },
+    // A name kept for a row that may be gone; a nameless one reads in this reader's language.
+    name: readStoredName,
     // `region_maintainer` is what the column stores, not what anybody should read.
     role: (value) => roleLabelFor(value) ?? value,
     temperature: (value) => {
@@ -256,8 +259,10 @@
   {:else}
     <!-- The plain pair, read through the formatter its entry declares. -->
     {@const format = FORMATTERS[change.format]}
-    {@render chip(format(change.before))}
-    {@render arrow()}
+    {#if !change.single}
+      {@render chip(format(change.before))}
+      {@render arrow()}
+    {/if}
     {@render chip(format(change.after))}
   {/if}
 {/snippet}

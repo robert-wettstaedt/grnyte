@@ -1,6 +1,13 @@
 import { removableIdArgs } from '$lib/entities/moderation/dto'
 import { defineMutator } from '@rocicorp/zero'
-import { blockActionSchema, blockPinSchema, reorderBlocksSchema, restoreBlockSchema } from './dto'
+import {
+  blockActionSchema,
+  blockPinSchema,
+  mergeBlocksSchema,
+  moveBlocksSchema,
+  reorderBlocksSchema,
+  restoreBlockSchema,
+} from './dto'
 
 // Each validates and writes nothing: forms, creates and deletes wait for the server (ids are serial),
 // and a reorder or a pin is answered by the server's rows rather than drawn first.
@@ -11,6 +18,8 @@ export const blocksMutatorDefs = {
     create: defineMutator(blockActionSchema, waitForServer),
     delete: defineMutator(removableIdArgs, waitForServer),
     estimateLocation: defineMutator(blockPinSchema, waitForServer),
+    merge: defineMutator(mergeBlocksSchema, waitForServer),
+    move: defineMutator(moveBlocksSchema, waitForServer),
     reorder: defineMutator(reorderBlocksSchema, waitForServer),
     restore: defineMutator(restoreBlockSchema, waitForServer),
     setLocation: defineMutator(blockPinSchema, waitForServer),

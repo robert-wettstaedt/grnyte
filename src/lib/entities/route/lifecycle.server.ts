@@ -27,6 +27,7 @@ import { error } from '@sveltejs/kit'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { areaAncestry, blockIsStranded, stampDeletedAt } from '../area/area.server'
 import { canHardDelete, deleteEvent, insertEvent } from '../event/event.server'
+import { refuseMerged } from '../merge/restore.server'
 import { regionTags } from '../region/tagVocabulary'
 import { restoreRouteSchema, type DeleteRouteSnapshot } from './dto'
 import { canAddRoute, canDeleteRoute } from './permissions'
@@ -274,6 +275,8 @@ export async function restoreRouteRow(
   if (route.deletedAt == null) {
     return { data: { routeId: route.id }, redirectTo: entityHref('routes', route.id) }
   }
+
+  refuseMerged(route)
 
   // Refuse rather than strand it: restore the ancestor first, which brings this row with it.
   if (await blockIsStranded(db, route.blockFk)) {

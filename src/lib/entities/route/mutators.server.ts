@@ -2,8 +2,10 @@ import { removableIdArgs } from '$lib/entities/moderation/dto'
 import { recordPlanned } from '$lib/entities/moderation/record.server'
 import { refuseWhileRemoved } from '$lib/entities/moderation/undo.server'
 import { asCaller, asPrivileged, defineServerMutator, refuseWithField } from '$lib/zero/serverMutator.server'
-import { restoreRouteSchema, routeActionSchema } from './dto'
+import { mergeRoutesSchema, moveRoutesSchema, restoreRouteSchema, routeActionSchema } from './dto'
 import { deleteRouteRow, restoreRouteRow } from './lifecycle.server'
+import { planRouteMerge, repointRouteMerge } from './merge.server'
+import { moveRoutesRow } from './move.server'
 import { createRouteRow, updateRouteRow } from './save.server'
 
 export const routesServerMutatorDefs = {
@@ -17,6 +19,13 @@ export const routesServerMutatorDefs = {
       await recordPlanned(tx, ctx, removal)
       return data
     }),
+    merge: defineServerMutator(mergeRoutesSchema, async ({ args, ctx, tx }) => {
+      const plan = await asCaller(tx, ctx, (db) => planRouteMerge(args, { ...ctx, db }))
+      await asPrivileged(tx, (db) => repointRouteMerge(db, plan, ctx))
+    }),
+    move: defineServerMutator(moveRoutesSchema, async ({ args, ctx, tx }) =>
+      asCaller(tx, ctx, (db) => moveRoutesRow(args, { ...ctx, db })),
+    ),
     restore: defineServerMutator(restoreRouteSchema, async ({ args, ctx, tx }) => {
       const { data } = await asCaller(tx, ctx, (db) => restoreRouteRow(args, { ...ctx, db }))
       if (args.mode === 'soft') await asPrivileged(tx, (db) => refuseWhileRemoved(db, 'route', args.routeId))

@@ -62,6 +62,18 @@ import { describe, expect, it } from 'vitest'
  *   members lock before they write
  * - `createRouteRow` checks `canAddRoute` on the stored block
  * - `deleteRouteRow` loads the route through `requireRow` with `canDeleteRoute`
+ * - `planAreaMerge` loads the stored source through `requireRow` with `canDeleteArea` and the survivor with
+ *   `canEditArea` plus the source's region, before the privileged repointing runs
+ * - `planBlockMerge` loads the stored source through `requireRow` with `canDeleteBlock` and the survivor with
+ *   `canEditBlock` plus the source's region, before the privileged repointing runs
+ * - `planRouteMerge` loads the stored source through `requireRow` with `canDeleteRoute` and the survivor with
+ *   `canEditRoute` plus the source's region, before the privileged repointing runs
+ * - `moveAreasRow` loads each stored area through `requireRow` with `canEditArea`, and the stored parent,
+ *   when there is one, with `canAddArea` plus the area's region
+ * - `moveBlocksRow` loads the stored area through `requireRow` with `canAddBlock`, and each block with
+ *   `canEditBlock` plus the area's region
+ * - `moveRoutesRow` loads the stored block through `requireRow` with `canAddRoute`, and each route with
+ *   `canEditRoute` plus the block's region
  * - `restoreRouteRow` gates a recreate on `canAddRoute` and an undelete on `canDeleteRoute`, both on stored rows
  * - `setFavorite` 404s unless the stored entity is in a region the caller may read (`checkRegionPermission`)
  * - `updateRouteRow` loads the route through `requireRowForm` with `canEditRoute`
@@ -122,6 +134,12 @@ const GATES = new Set([
   'estimateBlockLocationRow',
   'fileReportRow',
   'inviteRegionMemberRow',
+  'moveAreasRow',
+  'moveBlocksRow',
+  'moveRoutesRow',
+  'planAreaMerge',
+  'planBlockMerge',
+  'planRouteMerge',
   'postCommentRow',
   'previewRegionDeletion',
   'previewRemoval',

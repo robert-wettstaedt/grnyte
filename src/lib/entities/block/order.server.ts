@@ -19,6 +19,25 @@ export function inAreaOrderSql(table: Pick<typeof blocks, 'id' | 'order'>): SQL[
   return [asc(table.order), asc(table.id)]
 }
 
+export const liveIdsIn = async (db: Pick<Context['db'], 'select'>, areaId: number) =>
+  (
+    await db
+      .select({ id: blocks.id })
+      .from(blocks)
+      .where(and(eq(blocks.areaFk, areaId), isNull(blocks.deletedAt)))
+      .orderBy(...inAreaOrderSql(blocks))
+  ).map((row) => row.id)
+
+/** Give these blocks the slots 0..n-1 in the order given; the caller decides the order. */
+export async function renumberArea(db: Pick<Context['db'], 'update'>, orderedIds: readonly number[]) {
+  // One UPDATE per block, fine at this size; a single CASE update is the upgrade for hundreds.
+  let order = 0
+  for (const id of orderedIds) {
+    await db.update(blocks).set({ order }).where(eq(blocks.id, id))
+    order += 1
+  }
+}
+
 /** Persist a new block order for an area. `orderedIds` is what the client could see, top to
  *  bottom, and deliberately not all of them: submitted ids take the slots those blocks already
  *  held, everything absent keeps its own. Foreign and stale ids are dropped. */
@@ -44,14 +63,10 @@ export async function reorderBlocksRow(
   // putting them in front reordered blocks the reader never saw.
   const queue = [...new Set(orderedIds)].filter((id) => belongsToArea.has(id))
   const submitted = new Set(queue)
-  const renumbered = areaBlocks.map((row) => (submitted.has(row.id) ? queue.shift()! : row.id))
-
-  // One UPDATE per block, fine at this size; a single CASE update is the upgrade for hundreds.
-  let order = 0
-  for (const id of renumbered) {
-    await db.update(blocks).set({ order }).where(eq(blocks.id, id))
-    order += 1
-  }
+  await renumberArea(
+    db,
+    areaBlocks.map((row) => (submitted.has(row.id) ? queue.shift()! : row.id)),
+  )
 
   return { redirectTo: entityHref('areas', areaId) }
 }

@@ -42,6 +42,7 @@ export function toRouteListItem(row: RouteListRow): RouteListItem {
     topoImageHeight: thumb?.imageHeight,
     topoImagePath: thumb?.imagePath,
     topoImageWidth: thumb?.imageWidth,
+    topoLines: row.topoRoutes?.length ?? 0,
     topoPoints: thumb?.points,
   }
 }

@@ -13,6 +13,7 @@ import { error } from '@sveltejs/kit'
 import { and, count, eq, inArray, isNull } from 'drizzle-orm'
 import { canHardDelete, deleteEvent, insertEvent } from '../event/event.server'
 import { stringifyDeletionScale } from '../event/metadata'
+import { refuseMerged } from '../merge/restore.server'
 import { hasDeletedAncestor, refreshAreaType, stampDeletedAt } from './area.server'
 import { restoreAreaSchema, type DeleteAreaSnapshot } from './dto'
 import { loadParentArea } from './guards.server'
@@ -304,6 +305,7 @@ export async function softRestoreArea(db: Context['db'], area: Area): Promise<vo
   if (area.deletedAt == null) {
     return
   }
+  refuseMerged(area)
 
   const areaIds = await collectAreaSubtreeIds(db, area.id)
   const blockRows = await db.query.blocks.findMany({ columns: { id: true }, where: inArray(blocks.areaFk, areaIds) })

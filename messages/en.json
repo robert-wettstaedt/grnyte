@@ -45,8 +45,10 @@
     }
   ],
   "areas_grades": "Grades",
-  "areas_holdsBlocks": "Holds blocks, not areas",
   "areas_manage": "Manage",
+  "areas_mergeIntoOwnArea": "An area can't merge into anything inside it.",
+  "areas_mergeMixedChildren": "These areas hold different things: one has blocks, the other has areas or sectors. Move them first so both hold the same kind.",
+  "areas_moveIntoItself": "An area can't go inside itself or anything inside it.",
   "areas_nameExists": "An area named “{name}” already exists here",
   "areas_nameHint": "You can rename it anytime",
   "areas_namePlaceholder": "Area name",
@@ -211,6 +213,16 @@
   "blocks_add_removeLocation": "Remove location",
   "blocks_add_setLocationTitle": "Set location",
   "blocks_add_useCurrentLocation": "Use current location",
+  "blocks_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} block",
+        "countPlural=other": "{count} blocks"
+      }
+    }
+  ],
   "blocks_delete": "Delete block",
   "blocks_deleted": "Block deleted",
   "blocks_editBlock": "Edit block",
@@ -478,6 +490,16 @@
       }
     }
   ],
+  "event_areaUpdatedMergedFrom": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You merged a duplicate into {name}",
+        "person=*": "{actor} merged a duplicate into {name}"
+      }
+    }
+  ],
   "event_areaUpdatedName": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -485,6 +507,16 @@
       "match": {
         "person=self": "You renamed {name}",
         "person=*": "{actor} renamed {name}"
+      }
+    }
+  ],
+  "event_areaUpdatedParent": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You moved {name}",
+        "person=*": "{actor} moved {name}"
       }
     }
   ],
@@ -687,6 +719,16 @@
       }
     }
   ],
+  "event_blockUpdatedMergedFrom": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You merged a duplicate into {name}",
+        "person=*": "{actor} merged a duplicate into {name}"
+      }
+    }
+  ],
   "event_blockUpdatedName": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -694,6 +736,16 @@
       "match": {
         "person=self": "You renamed {name}",
         "person=*": "{actor} renamed {name}"
+      }
+    }
+  ],
+  "event_blockUpdatedParent": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You moved {name}",
+        "person=*": "{actor} moved {name}"
       }
     }
   ],
@@ -763,8 +815,10 @@
   "event_fieldGrade": "Grade",
   "event_fieldHumidity": "Humidity",
   "event_fieldLocation": "Location",
+  "event_fieldMergedFrom": "Merged",
   "event_fieldName": "Name",
   "event_fieldNotes": "Notes",
+  "event_fieldParent": "Moved",
   "event_fieldParkingLocation": "Parking",
   "event_fieldRating": "Rating",
   "event_fieldRole": "Role",
@@ -993,6 +1047,16 @@
       }
     }
   ],
+  "event_routeUpdatedMergedFrom": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You merged a duplicate into {name}",
+        "person=*": "{actor} merged a duplicate into {name}"
+      }
+    }
+  ],
   "event_routeUpdatedName": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -1000,6 +1064,16 @@
       "match": {
         "person=self": "You renamed {name}",
         "person=*": "{actor} renamed {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedParent": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You moved {name}",
+        "person=*": "{actor} moved {name}"
       }
     }
   ],
@@ -1486,6 +1560,40 @@
   "media_videoPreparing": "Video, being prepared",
   "media_videoServiceFailed": "The video service rejected the request",
   "media_videoUnavailable": "Video, unavailable",
+  "merges_confirm": "Merge",
+  "merges_confirmBody": "{source} will be merged into {survivor}. Everything attached to it moves over:",
+  "merges_countAscents": "Ascents",
+  "merges_countChildren": "Entries inside",
+  "merges_countPhotos": "Photos and videos",
+  "merges_countTopos": "Topos",
+  "merges_empty": "No match in this region",
+  "merges_fieldsIntro": "Both have a value here. Pick the one to keep.",
+  "merges_less": "Less",
+  "merges_mergeInto": "Merge into…",
+  "merges_more": "More",
+  "merges_next": "Continue",
+  "merges_noUndo": "This can’t be undone. The duplicate is retired, and links to it will show “not found”.",
+  "merges_onSource": "From {name}",
+  "merges_onSurvivor": "On {name}, which stays",
+  "merges_reasonInside": "It’s inside the one you’re merging",
+  "merges_restoreRefused": "This was merged into another entry and can’t come back. Everything attached to it is on that entry now.",
+  "merges_search": "Search by name",
+  "merges_searchHint": "Nothing next to it. Search the region by name.",
+  "merges_siblingsAreas": "Next to it",
+  "merges_siblingsBlocks": "In the same sector",
+  "merges_siblingsRoutes": "In the same sector",
+  "merges_title": "Merge {name} into",
+  "merges_topoLines": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} line on the duplicate’s block photos will be removed, because it traces that boulder.",
+        "countPlural=other": "{count} lines on the duplicate’s block photos will be removed, because they trace that boulder."
+      }
+    }
+  ],
+  "merges_topoLinesChanged": "The duplicate’s lines on the photos changed since you opened this. Check the merge again.",
   "moderation_alreadyReversed": "This removal was already undone.",
   "moderation_breaksRules": "Breaks the rules…",
   "moderation_byline": "By {name}",
@@ -1525,6 +1633,36 @@
   "moderation_undoTitle": "Undo {reference}?",
   "moderation_undone": "Undone.",
   "moderation_undoneBy": "Undone by {name}",
+  "moves_confirm": "Move",
+  "moves_empty": "Nothing to move it to",
+  "moves_emptyHere": "Nothing here yet",
+  "moves_into": "Move to {name}",
+  "moves_moveSelected": "Move {count} to…",
+  "moves_moveTo": "Move to…",
+  "moves_moved": "Moved to {name}",
+  "moves_openBlock": "Open a block first",
+  "moves_openResult": "Open a result first",
+  "moves_openSector": "Open a sector first",
+  "moves_reasonCurrent": "It’s already here",
+  "moves_reasonNoEdit": "You can’t add to this one",
+  "moves_reasonSelf": "Can’t go inside itself",
+  "moves_searchAreas": "Search areas and sectors",
+  "moves_searchBlocks": "Search blocks",
+  "moves_select": "Select",
+  "moves_titleMany": "Move {count} selected",
+  "moves_titleNamed": "Move “{name}”",
+  "moves_topLevel": "Move to the top level",
+  "moves_topoWarning": [
+    {
+      "declarations": ["input count", "input name", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} line on the old block’s photos will be removed, because it traces that boulder. Undo won’t bring it back. Move to {name}?",
+        "countPlural=other": "{count} lines on the old block’s photos will be removed, because they trace that boulder. Undo won’t bring them back. Move to {name}?"
+      }
+    }
+  ],
+  "moves_where": "Where you are",
   "notices_appeal": "If you think this was wrong, write to me within a month of the removal, name the reference and say why. I look at it again myself, answer within fourteen days or tell you why it will take longer, and restore what was removed where that is still possible.",
   "notices_appealSubject": "Appeal against removal {reference}",
   "notices_automation": "No automated tool found it or made the decision.",
@@ -1982,6 +2120,7 @@
       }
     }
   ],
+  "routes_moveTopoLinesChanged": "This route's lines on the photo changed since you opened this. Check the move again.",
   "routes_nameExists": "A route named “{name}” already exists on this block",
   "routes_noOpinions": "No opinions yet",
   "routes_notFound": "Route not found",

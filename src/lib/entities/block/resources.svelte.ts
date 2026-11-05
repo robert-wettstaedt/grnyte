@@ -58,6 +58,9 @@ export function blockRouteList(id: () => number) {
         rating: route.userRating ?? 0,
         regionFk: route.regionFk,
         tags: route.tags.map((tag) => tag.tagFk),
+        // Every stored line, drawable or not: the count a move's `knownTopoLines` is checked against.
+        topoLines: (row?.topos ?? []).flatMap((topo) => topo.routes ?? []).filter((line) => line.routeFk === route.id)
+          .length,
       })),
   )
 }

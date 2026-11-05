@@ -126,6 +126,18 @@ says which, so name the region one in full.
 Not a **guidebook** figure either. Half of what it counts is guidebook and half is logbook and
 people, so it sits above both rather than under one.
 
+**move**
+Giving an area, block or route a new parent inside its own region. Everything under it goes along,
+except topo lines: a route's lines trace rock on its old block, so moving it off that block drops
+them. Never across regions, which is a script and not a move. Copy says "Move", not "relocate".
+
+**merge**
+Folding a duplicate into the entity that stays. The **source** is the duplicate the merge starts
+from; the **survivor** is the one picked to stay, and it takes over everything people attached to
+the source. The source is retired, not deleted: it cannot be restored, its address shows not found,
+and references to it in stored text are rewritten to name the survivor. History keeps what was
+written. Copy says "Merge into", and never "combine" or "deduplicate".
+
 ## Internal terms
 
 These name concepts in code and in prose here, never in UI copy. They are in this file so that one

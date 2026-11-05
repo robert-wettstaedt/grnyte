@@ -56,6 +56,29 @@ export async function createThrowawayUser(label: string): Promise<SeedUser> {
   return { authId: auth.id, email, userId: user.id }
 }
 
+/** Delete a {@link seedRegion} region and the guidebook a suite built in it, leaves first so no
+ *  foreign key refuses: topo lines, topos, files, events, routes, blocks, areas (deepest first). */
+export async function dropGuidebookRegion(regionId: number): Promise<void> {
+  await sql`delete from public.topo_routes where region_fk = ${regionId}`
+  await sql`delete from public.topos where region_fk = ${regionId}`
+  await sql`delete from public.files where region_fk = ${regionId}`
+  await sql`delete from public.events where region_fk = ${regionId}`
+  await sql`delete from public.routes where region_fk = ${regionId}`
+  await sql`update public.blocks set geolocation_fk = null where region_fk = ${regionId}`
+  await sql`delete from public.geolocations where region_fk = ${regionId}`
+  await sql`delete from public.blocks where region_fk = ${regionId}`
+  while (
+    (
+      await sql`delete from public.areas a where a.region_fk = ${regionId}
+      and not exists (select 1 from public.areas c where c.parent_fk = a.id) returning id`
+    ).length > 0
+  ) {
+    // Leaves until none are left: a nested tree empties one level per pass.
+  }
+  await sql`delete from public.region_members where region_fk = ${regionId}`
+  await sql`delete from public.regions where id = ${regionId}`
+}
+
 /** Remove a {@link createThrowawayUser} account. Anything it still owns is its suite's to clean
  *  up first: this deliberately does not cascade, so a leak fails loudly rather than silently
  *  taking rows with it. */

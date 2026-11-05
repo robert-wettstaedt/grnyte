@@ -28,6 +28,8 @@
     line({ actorFk: 1, columnName: 'description', newValue: LOREM, oldValue: 'Stand start.' }),
     line({ actorFk: 1, columnName: 'firstAscentYear', newValue: '1998' }),
     line({ actorFk: 1, columnName: 'location', objectType: 'block' }),
+    line({ actorFk: 1, columnName: 'parent', newValue: 'Südwand', objectType: 'block', oldValue: 'Nordwand' }),
+    line({ actorFk: 1, columnName: 'mergedFrom', newValue: 'Kante' }),
     line({ actorFk: 1, columnName: 'topo', objectType: 'block' }),
     line({ actorFk: 1, columnName: 'file', verb: 'remove' }),
     // The ascent type, which is a glyph and a word rather than the stored enum member.

@@ -32,6 +32,30 @@ export const routeActionSchema = z.object({
   tags: z._default(z.optional(z.array(z.string())), []),
 })
 
+/** `routes.move`: one block for one or several routes. `knownTopoLines` is the count of topo lines
+ *  the confirmation said would go; the server refuses when it no longer matches. */
+export const moveRoutesSchema = z.object({
+  blockId: z.number(),
+  knownTopoLines: z.int().check(z.gte(0)),
+  routeIds: z.array(z.number()).check(z.minLength(1)),
+})
+
+/** `routes.merge`. `values` carries only the fields the person was asked about, as the values they picked;
+ *  strict, because the server writes them past RLS. */
+export const mergeRoutesSchema = z.object({
+  /** The lines the confirmation said the merge removes; refused when that count has changed. */
+  knownTopoLines: z.int().check(z.gte(0)),
+  sourceId: z.number(),
+  survivorId: z.number(),
+  values: z.strictObject({
+    description: z.optional(z.string()),
+    firstAscentYear: z.optional(z.int().check(z.gte(1900), z.lte(2100))),
+    gradeFk: z.optional(z.number()),
+    name: z.optional(z.string().check(z.trim(), z.minLength(1))),
+    rating: z.optional(z.int().check(z.gte(1), z.lte(3))),
+  }),
+})
+
 /** What `restoreRoute` accepts. Placement and authorship are never in it: they come from the block. */
 export const restoreRouteSchema = z.discriminatedUnion('mode', [
   z.object({
@@ -114,6 +138,8 @@ export interface RouteListItem {
   /** `files.path` of the route's best topo image, if it's drawn on one. */
   topoImagePath?: string
   topoImageWidth?: number
+  /** How many topo lines draw this route: what a move off its block would remove. */
+  topoLines?: number
   /** The route's line points on that topo. */
   topoPoints?: TopoPoint[]
 }
