@@ -89,8 +89,8 @@ Measured). On other devices the unfiltered request is gone. No query is removed,
 ## Migration Plan
 
 1. Migration: column, function, trigger. 2. Migration: backfill via the recount. 3. `generate:zero`. 4. Deploy app
-reading `grade_counts`. Rollback: the column is additive; the previous
-app ignores it, and dropping the trigger stops the cost.
+   reading `grade_counts`. Rollback: the column is additive; the previous
+   app ignores it, and dropping the trigger stops the cost.
 
 ## Measured (2026-10-31)
 
@@ -99,20 +99,20 @@ and 18, 8,075 routes), production builds, perf zero-cache at 0.4 CPU, phone at 3
 device. Medians of 5. Warm means the device kept its store but the server dropped the client group (>5 s away).
 "Before" is `develop`, "no offline routes" is this change with `guidebookRoutes` left out of `KEPT` (not shipped).
 
-| Desktop                           | Before        | After         |
-| --------------------------------- | ------------- | ------------- |
-| cold: map drawn / sync quiet      | 5.0 s / 4.8 s | 2.9 s / 2.8 s |
-| cold: received / stored           | 4.2 / 3.8 MB  | 1.1 / 1.0 MB  |
-| warm: map drawn / sync quiet      | 1.5 s / 3.4 s | 0.6 s / 1.3 s |
-| rows held per client group        | 12,963        | 4,888         |
+| Desktop                      | Before        | After         |
+| ---------------------------- | ------------- | ------------- |
+| cold: map drawn / sync quiet | 5.0 s / 4.8 s | 2.9 s / 2.8 s |
+| cold: received / stored      | 4.2 / 3.8 MB  | 1.1 / 1.0 MB  |
+| warm: map drawn / sync quiet | 1.5 s / 3.4 s | 0.6 s / 1.3 s |
+| rows held per client group   | 12,963        | 4,888         |
 
-| Phone                             | Before        | After         | No offline routes |
-| --------------------------------- | ------------- | ------------- | ----------------- |
-| cold: map drawn / sync quiet      | 3.8 s / 4.4 s | 3.8 s / 6.0 s | 3.0 s / 4.1 s     |
-| cold: received / stored           | 6.6 / 3.3 MB  | 6.6 / 3.0 MB  | 3.5 / 3.5 MB      |
-| warm: map drawn / sync quiet      | 2.6 s / 6.4 s | 2.2 s / 6.3 s | 1.8 s / 5.4 s     |
-| warm: received                    | 3.5 MB        | **7.0 MB**    | 3.5 MB            |
-| rows held per client group        | 27,941        | 27,941        | 19,866            |
+| Phone                        | Before        | After         | No offline routes |
+| ---------------------------- | ------------- | ------------- | ----------------- |
+| cold: map drawn / sync quiet | 3.8 s / 4.4 s | 3.8 s / 6.0 s | 3.0 s / 4.1 s     |
+| cold: received / stored      | 6.6 / 3.3 MB  | 6.6 / 3.0 MB  | 3.5 / 3.5 MB      |
+| warm: map drawn / sync quiet | 2.6 s / 6.4 s | 2.2 s / 6.3 s | 1.8 s / 5.4 s     |
+| warm: received               | 3.5 MB        | **7.0 MB**    | 3.5 MB            |
+| rows held per client group   | 27,941        | 27,941        | 19,866            |
 
 - Desktop gains about half its load time and three quarters of its download: `listRoutesForMap` was the bulk of
   the map's sync, not a cheap query.

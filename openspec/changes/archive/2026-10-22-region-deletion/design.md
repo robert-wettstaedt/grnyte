@@ -14,10 +14,12 @@ See proposal.md for the motivation. The current state that shapes this design:
 ## Goals / Non-Goals
 
 **Goals:**
+
 - One owner guard that every member write and account deletion read, so no path can bypass it.
 - Reuse `deleteRegionRows`, `removeFileStorage`, `verifyPassword`, the founding-cap lock, the `role_changed` notice and the account deletion screen. Build no parallel copies of them.
 
 **Non-Goals:**
+
 - No new role in `app_role`, so RLS, `role_permissions` and Zero permissions stay untouched.
 - No soft delete, no scheduled purge.
 
@@ -57,6 +59,7 @@ Both need `verifyPassword`, a GoTrue network call, before the transaction. AGENT
   - writes no feed event: the notice to the new owner is the record.
 
   After the commit, `notify({ sourceType: 'role_changed', metadata: 'owner', ... })` sends the notice.
+
 - `deleteRegionCommand({ regionFk, name, password })`. It checks the name first: trimmed, against the stored name, refused on the `name` field. It then verifies the password. Then, in one `pinnedTx`:
   - locks the region row and requires that the caller is the owner;
   - collects the other active members' ids, emails and `contactLocale`, before the rows go;
