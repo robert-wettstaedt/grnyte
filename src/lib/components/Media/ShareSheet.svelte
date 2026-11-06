@@ -21,7 +21,7 @@
   import { videoView } from '$lib/videos/view.svelte'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
   import { slide } from 'svelte/transition'
-  import { MEDIA_TOOL } from './toolbar'
+  import MediaToolButton from './MediaToolButton.svelte'
 
   interface Props {
     /** Whether the viewer may change visibility (region EDIT / own ascent). */
@@ -97,14 +97,8 @@
   title={isVideo ? m.share_shareVideo() : m.share_sharePhoto()}
 >
   {#snippet trigger(props)}
-    <button
-      {...props}
-      type="button"
-      class={[props.class, MEDIA_TOOL, 'relative']}
-      aria-label={m.share_share()}
-      title={isPublic ? m.share_statusPublic() : m.share_statusPrivate()}
-      onclick={() => (open = !open)}
-    >
+    {@const status = isPublic ? m.share_statusPublic() : m.share_statusPrivate()}
+    <MediaToolButton attributes={props} label={`${m.share_share()}. ${status}`} onclick={() => (open = !open)}>
       <Icon name="share" size={19} />
       <!-- At-a-glance visibility: a green dot marks a public (shared) file, a muted dot a
            private one, so the state is legible without opening the sheet. -->
@@ -114,7 +108,7 @@
           isPublic ? 'bg-success-500' : 'bg-surface-400',
         ]}
       ></span>
-    </button>
+    </MediaToolButton>
   {/snippet}
 
   <div class="space-y-4">

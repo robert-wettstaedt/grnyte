@@ -5,15 +5,14 @@
   those (see MediaViewer).
 -->
 <script lang="ts">
-  import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { MediaFile } from '$lib/entities/file/dto'
   import { isValidSource, normalizeSource } from '$lib/entities/file/upload'
   import { setVideoSource } from '$lib/entities/file/writes'
   import { m } from '$lib/paraglide/messages'
   import { notifyError } from '$lib/state/toast'
+  import MediaToolButton from './MediaToolButton.svelte'
   import SourceField from './SourceField.svelte'
-  import { MEDIA_TOOL } from './toolbar'
 
   interface Props {
     file: MediaFile
@@ -55,18 +54,15 @@
 
 <Modal backdrop bind:open contentClass="w-80" {footer} panel={false} snapPoints={[0.5]} title={m.media_editSource()}>
   {#snippet trigger(props)}
-    <button
-      {...props}
-      type="button"
-      class={[props.class, MEDIA_TOOL]}
-      aria-label={m.media_editSource()}
+    <MediaToolButton
+      attributes={props}
+      icon="link"
+      label={m.media_editSource()}
       onclick={() => {
         raw = file.source ?? ''
         open = !open
       }}
-    >
-      <Icon name="link" size={19} />
-    </button>
+    />
   {/snippet}
 
   <SourceField bind:value={raw} {valid} />

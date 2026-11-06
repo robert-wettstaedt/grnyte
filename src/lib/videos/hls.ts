@@ -18,7 +18,14 @@ import type { Attachment } from 'svelte/attachments'
 export const createHlsAttachment =
   (url: string, onFail: () => void): Attachment<HTMLVideoElement> =>
   (video) => {
-    const play = () => void video.play().catch(() => {})
+    // A remembered "sound on" can be refused on a new element. An abort is teardown, so never retry it.
+    const play = () =>
+      void video.play().catch((cause: unknown) => {
+        if (cause instanceof DOMException && cause.name === 'NotAllowedError' && !video.muted) {
+          video.muted = true
+          void video.play().catch(() => {})
+        }
+      })
 
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS (Safari): the element's own error event is the only failure

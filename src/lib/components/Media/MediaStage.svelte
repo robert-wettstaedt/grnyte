@@ -4,11 +4,16 @@
   paging to a sibling starts every bit of this state fresh. Swipe/dismiss gestures live
   in the viewer's deck (which reads `onZoomChange` to stay out of the way while zoomed).
 -->
+<script module lang="ts">
+  let soundOnUntilReload = false
+</script>
+
 <script lang="ts">
   import { browser } from '$app/environment'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
+  import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { panzoom } from '$lib/components/Topo/panzoom'
   import AscentType from '$lib/entities/ascent/AscentType.svelte'
@@ -25,13 +30,34 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { motion } from '$lib/state/motion.svelte'
   import { now } from '$lib/state/now.svelte'
   import { createHlsAttachment } from '$lib/videos/hls'
   import { videoView, watchReadiness } from '$lib/videos/view.svelte'
+  import { onMount } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
-  import { MEDIA_TOOL } from './toolbar'
+  import { fade, scale } from 'svelte/transition'
+  import { chromeClass, type ChromeMode, type MediaChrome } from './chrome.svelte'
+  import { mediaKeyAction, type MediaKeyAction } from './keys'
+  import MediaToolButton from './MediaToolButton.svelte'
+  import { MEDIA_FOCUS_RING } from './toolbar'
+
+  const SPEEDS = [0.25, 0.5, 0.75, 1, 1.5, 2]
+  const CHROME_MODE: Record<'iframe' | 'image' | 'panel' | 'video', ChromeMode> = {
+    iframe: 'pinned',
+    image: 'manual',
+    panel: 'pinned',
+    video: 'timed',
+  }
+  const SEEK_SECONDS = 5
+  const SEEK_BAR_STEP = 0.1
+  // HTMLMediaElement's constants, which do not exist on the server, and /f/<id> server-renders.
+  const HAVE_METADATA = 1
+  const HAVE_FUTURE_DATA = 3
+  const ASSUMED_30FPS_STEP_SECONDS = 1 / 30
 
   interface Props {
+    chrome: MediaChrome
     file: MediaFile
     /** Reports when the video dropped to the iframe fallback, a cross-origin frame that
      *  swallows touch, so the deck surfaces its arrow buttons (swipe can't reach it). */
@@ -40,7 +66,7 @@
     onZoomChange?: (scale: number) => void
   }
 
-  const { file, onFallback, onZoomChange }: Props = $props()
+  const { chrome, file, onFallback, onZoomChange }: Props = $props()
 
   const global = getGlobalState()
 
@@ -59,11 +85,11 @@
   // re-evaluates it, so attaching on it restarts a playing video.
   const hlsUrl = $derived(view?.kind === 'playable' ? view.hls : '')
   const iframeUrl = $derived(view?.kind === 'playable' ? view.iframe : undefined)
+  const posterUrl = $derived(view?.kind === 'playable' ? view.poster : undefined)
 
   // The viewer probes too, because a deep link opens it with no tile ever mounted to fill the
   // shared set. Gated on visibility and connectivity, or a backgrounded tab polls the CDN forever.
   watchReadiness(() => file)
-  const playable = $derived(view?.kind === 'playable')
 
   // Route context (name/grade/rating), shown by the share page; unset in the in-app viewer.
   // Already a display name: `file.route` is populated only by the share page's loader, which
@@ -131,6 +157,7 @@
   $effect(() => {
     onFallback?.(videoFailed)
   })
+  onMount(() => onZoomChange?.(1))
 
   // `paused` reflects the element's own play/pause events (one-way); playback is driven
   // imperatively via togglePlay so every play() is ours to catch. Svelte's two-way
@@ -138,15 +165,90 @@
   // autoplay) that rejects when teardown detaches the media: the DOMException on close.
   let videoEl = $state<HTMLVideoElement>()
   let paused = $state(true)
-  let muted = $state(true)
+  let muted = $state(!soundOnUntilReload)
   let currentTime = $state(0)
   let duration = $state(0)
+  let playbackRate = $state(1)
+  let ended = $state(false)
+  let seeking = $state(false)
+  let readyState = $state(0)
+  let speedOpen = $state(false)
+
+  const playLabel = $derived(paused ? m.media_play() : m.media_pause())
+  const muteLabel = $derived(muted ? m.media_unmute() : m.media_mute())
+
+  const atEnd = $derived(ended || (paused && duration > 0 && duration - currentTime <= SEEK_BAR_STEP))
+
+  // Not at the end: browsers can drop below HAVE_FUTURE_DATA there, with nothing left to load.
+  const buffering = $derived(!atEnd && (seeking || readyState < HAVE_FUTURE_DATA))
+
+  // `paused` is also true before autoplay starts, when there is nothing to step through.
+  const canStep = $derived(paused && readyState >= HAVE_METADATA)
+
+  const kind = $derived.by(() => {
+    if (preparing || unavailable) return 'panel'
+    if (!isVideo) return 'image'
+    return videoFailed ? 'iframe' : 'video'
+  })
+  $effect(() => chrome.reset(CHROME_MODE[kind]))
+  $effect(() => chrome.setPlaying(!paused && !buffering))
+  $effect(() => {
+    if (ended) chrome.reveal()
+  })
+  $effect(() => {
+    // A fallback unmounts the footer and these sheets without closing them.
+    chrome.setHold('stageSheet', (infoOpen || speedOpen) && kind !== 'iframe')
+    return () => chrome.setHold('stageSheet', false)
+  })
 
   const togglePlay = () => {
     const video = videoEl
     if (video == null || videoFailed) return
     if (video.paused) void video.play().catch(() => {})
     else video.pause()
+  }
+
+  // Seeks itself: play() only restarts an element that has truly ended, and `atEnd` is wider than that.
+  const repeat = () => {
+    if (videoEl == null) return
+    videoEl.currentTime = 0
+    void videoEl.play().catch(() => {})
+  }
+
+  const toggleMute = () => {
+    muted = !muted
+    soundOnUntilReload = !muted
+  }
+
+  const seekBy = (seconds: number) => {
+    if (videoEl != null) videoEl.currentTime += seconds
+  }
+
+  const changeSpeed = (direction: -1 | 1) => {
+    playbackRate = SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, SPEEDS.indexOf(playbackRate) + direction))]
+  }
+
+  const speedFormat = $derived(new Intl.NumberFormat(getLocale()))
+  const formatSpeed = (speed: number) => `${speedFormat.format(speed)}x`
+
+  const keyActions: Record<MediaKeyAction, () => void> = {
+    faster: () => changeSpeed(1),
+    seekBack: () => seekBy(-SEEK_SECONDS),
+    seekForward: () => seekBy(SEEK_SECONDS),
+    slower: () => changeSpeed(-1),
+    stepBack: () => seekBy(-ASSUMED_30FPS_STEP_SECONDS),
+    stepForward: () => seekBy(ASSUMED_30FPS_STEP_SECONDS),
+    toggleMute,
+    togglePlay,
+  }
+
+  const onKeydown = (event: KeyboardEvent) => {
+    if (kind !== 'video') return
+    const action = mediaKeyAction(event, { canStep, sheetOpen: chrome.sheetOpen })
+    if (action == null) return
+    event.preventDefault()
+    chrome.reveal()
+    keyActions[action]()
   }
 
   const formatTime = (s: number) => {
@@ -156,20 +258,51 @@
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  // A click (mouse) or a tap that never turned into a drag toggles playback. Added as a
-  // listener (not an inline handler) so the media stays a plain non-interactive surface;
-  // the footer's play button is the keyboard-accessible equivalent.
-  const clickToTogglePlay: Attachment<HTMLElement> = (node) => {
-    node.addEventListener('click', togglePlay)
-    return () => node.removeEventListener('click', togglePlay)
+  // Listeners, so the media stays a non-interactive surface. A click reads the press before it, because
+  // `click` does not report its pointer type across the browser floor. d3 eats the click ending a drag.
+  const pressHandling: Attachment<HTMLElement> = (node) => {
+    let pointerType = ''
+    // Read at the press: a popover closes about 12 ms later, before the click that dismissed it.
+    let dismissedSheet = false
+    const onDown = (event: PointerEvent) => {
+      pointerType = event.pointerType
+      dismissedSheet = chrome.sheetOpen
+    }
+    const onClick = () => {
+      if (dismissedSheet) return
+      if (pointerType === 'mouse' && isVideo) {
+        togglePlay()
+        chrome.reveal()
+      } else {
+        chrome.tap()
+      }
+    }
+    // Zero movement filtered: browsers can fire a move when content changes under a still pointer.
+    const onMove = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse' && isVideo && (event.movementX !== 0 || event.movementY !== 0)) {
+        chrome.reveal()
+      }
+    }
+    node.addEventListener('pointerdown', onDown, { capture: true })
+    node.addEventListener('click', onClick)
+    node.addEventListener('pointermove', onMove)
+    return () => {
+      node.removeEventListener('pointerdown', onDown, { capture: true })
+      node.removeEventListener('click', onClick)
+      node.removeEventListener('pointermove', onMove)
+    }
   }
 
   // Legacy rows can hold a non-URL source (the z.url() validation arrived later);
   // render the credit only when it parses instead of crashing the whole stage.
   const host = $derived(sourceHost(file.source))
+
+  const showSpinner = $derived(kind === 'video' ? buffering : kind === 'image' && !fullLoaded && !fullFailed)
 </script>
 
-{#if preparing || unavailable}
+<svelte:window onkeydown={onKeydown} />
+
+{#if kind === 'panel'}
   <!-- Our own panel, not the host's holding page, which hides the footer context below. -->
   <div class="absolute inset-0 grid place-items-center p-6" role="status">
     <div class="flex max-w-xs flex-col items-center gap-3 text-center">
@@ -178,7 +311,7 @@
       <p class="text-sm opacity-80">{preparing ? m.media_preparingHint() : m.media_unavailableHint()}</p>
     </div>
   </div>
-{:else if isVideo && videoFailed}
+{:else if kind === 'iframe'}
   <iframe
     class="absolute inset-0 h-full w-full"
     src={iframeUrl}
@@ -188,32 +321,37 @@
   ></iframe>
 {:else}
   <div
-    class="absolute inset-0 overflow-hidden"
+    class={['absolute inset-0 overflow-hidden', isVideo && !chrome.visible && 'cursor-none']}
     use:panzoom={{
       aspect,
       enabled: true,
       onZoom: (k) => {
         // First zoom-in is the signal to stream the true original.
         if (k > 1) wantFull = true
+        chrome.zoomed()
         onZoomChange?.(k)
       },
     }}
-    {@attach clickToTogglePlay}
+    {@attach pressHandling}
   >
-    {#if playable}
+    {#if kind === 'video'}
       <video
         bind:this={videoEl}
         {@attach createHlsAttachment(hlsUrl, () => (videoFailed = true))}
         class="h-full w-full object-contain"
         playsinline
+        poster={posterUrl}
         bind:muted
         bind:currentTime
         bind:duration
         bind:videoWidth
         bind:videoHeight
+        bind:playbackRate
+        bind:ended
+        bind:seeking
+        bind:readyState
         onplay={() => (paused = false)}
         onpause={() => (paused = true)}
-        onended={() => (paused = true)}
       ></video>
     {:else}
       <!-- Both layers ride the same panzoom child so they zoom/pan together. -->
@@ -239,14 +377,27 @@
     {/if}
   </div>
 
-  {#if !isVideo && !fullLoaded && !fullFailed}
-    <!-- The display-res image is still streaming in behind the cached thumbnail. -->
+  {#if showSpinner}
     <div
-      class="pointer-events-none absolute inset-0 grid place-items-center"
+      class={['pointer-events-none absolute inset-0 grid place-items-center', kind === 'video' && 'skeleton-hold']}
       role="status"
       aria-label={m.media_loading()}
     >
       <div class="size-10 animate-spin rounded-full border-[3px] border-white/30 border-t-white"></div>
+    </div>
+  {/if}
+
+  {#if kind === 'video' && atEnd && chrome.visible}
+    <div class="pointer-events-none absolute inset-0 z-10 grid place-items-center">
+      <button
+        type="button"
+        class="btn preset-glass-neutral btn-lg pointer-events-auto gap-2 {MEDIA_FOCUS_RING}"
+        transition:scale={{ duration: motion(), start: 0.9 }}
+        onclick={repeat}
+      >
+        <Icon name="rotate-ccw" size={20} />
+        {m.media_repeat()}
+      </button>
     </div>
   {/if}
 {/if}
@@ -255,8 +406,14 @@
      Reels-style attribution slot: uploader + upload date now (source folded in for
      videos); ascent notes will extend it here later, collapsed then into a sheet.
      Hidden only over the raw iframe fallback, which renders its own chrome. -->
-{#if !(playable && videoFailed)}
-  <footer class="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 bg-linear-to-t from-black/70 to-transparent p-3">
+{#if kind !== 'iframe'}
+  <footer
+    class={[
+      'p-safe-3 absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 bg-linear-to-t from-black/70 to-transparent pt-3!',
+      chromeClass(chrome.visible),
+    ]}
+    {@attach chrome.surface}
+  >
     <div class="flex flex-col gap-1.5">
       {#if file.uploader}
         {@const profile = signedIn ? authorHref(file.uploader) : undefined}
@@ -312,7 +469,7 @@
             <button
               {...props}
               type="button"
-              class={[props.class, 'flex flex-col items-start gap-1 text-left']}
+              class={[props.class, 'flex flex-col items-start gap-1 self-start text-left']}
               onclick={() => (infoOpen = !infoOpen)}
             >
               <span class="flex items-center gap-2">
@@ -383,39 +540,79 @@
       {/if}
     </div>
 
-    {#if playable}
+    {#if kind === 'video'}
       <div class="flex items-center gap-3">
-        <button
-          type="button"
-          class={MEDIA_TOOL}
-          aria-label={paused ? m.media_play() : m.media_pause()}
-          onclick={togglePlay}
-        >
-          <Icon name={paused ? 'play' : 'pause'} size={20} fill="currentColor" />
-        </button>
-
+        <span class="shrink-0 text-xs tabular-nums opacity-80">{formatTime(currentTime)}</span>
         <input
           type="range"
           class="min-w-0 flex-1"
           min="0"
           max={duration || 0}
-          step="0.1"
+          step={SEEK_BAR_STEP}
           aria-label={m.media_seek()}
           bind:value={currentTime}
+          onpointerup={(event) => event.currentTarget.blur()}
+        />
+        <span class="shrink-0 text-xs tabular-nums opacity-80">{formatTime(duration)}</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <MediaToolButton
+          fill="currentColor"
+          icon={paused ? 'play' : 'pause'}
+          key="K"
+          label={playLabel}
+          onclick={togglePlay}
+          shortcuts="Space k"
         />
 
-        <span class="shrink-0 text-xs whitespace-nowrap tabular-nums opacity-80">
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </span>
+        {#if canStep}
+          <span class="flex gap-2" transition:fade={{ duration: motion() }}>
+            <MediaToolButton
+              icon="step-back"
+              key=","
+              label={m.media_stepBack()}
+              onclick={() => seekBy(-ASSUMED_30FPS_STEP_SECONDS)}
+            />
+            <MediaToolButton
+              icon="step-forward"
+              key="."
+              label={m.media_stepForward()}
+              onclick={() => seekBy(ASSUMED_30FPS_STEP_SECONDS)}
+            />
+          </span>
+        {/if}
 
-        <button
-          type="button"
-          class={MEDIA_TOOL}
-          aria-label={muted ? m.media_unmute() : m.media_mute()}
-          onclick={() => (muted = !muted)}
-        >
-          <Icon name={muted ? 'volume-off' : 'volume-1'} size={20} />
-        </button>
+        <span class="flex-1"></span>
+
+        <MediaToolButton icon={muted ? 'volume-off' : 'volume-1'} key="M" label={muteLabel} onclick={toggleMute} />
+
+        <Modal bind:open={speedOpen} panel={false} contentClass="w-64" snapPoints={[0.65]} title={m.media_speed()}>
+          {#snippet trigger(props)}
+            <MediaToolButton
+              attributes={props}
+              key="< >"
+              label={`${m.media_speed()}: ${formatSpeed(playbackRate)}`}
+              onclick={() => (speedOpen = !speedOpen)}
+            >
+              <span class="text-sm font-semibold tabular-nums">{formatSpeed(playbackRate)}</span>
+            </MediaToolButton>
+          {/snippet}
+
+          <div class="pb-2">
+            {#each SPEEDS as speed (speed)}
+              <MenuRow
+                icon="gauge"
+                label={formatSpeed(speed)}
+                selected={speed === playbackRate}
+                onclick={() => {
+                  playbackRate = speed
+                  speedOpen = false
+                }}
+              />
+            {/each}
+          </div>
+        </Modal>
       </div>
     {/if}
   </footer>
