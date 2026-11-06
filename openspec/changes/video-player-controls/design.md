@@ -168,12 +168,38 @@ Zag's Svelte adapter already binds `onfocusin` and `onfocusout`. The share toolt
 replacing its native `title`, which would preempt the tooltip. `MEDIA_TOOL` restates the brand focus ring, because
 the glass preset's shadow beats the zero-specificity rule in `app.css` and left these buttons with no visible focus.
 
+### Closing never lands on a file entry, and the viewer is never closed but mounted
+
+A link or a thumbnail behind an open viewer can push a second `?media` entry. Popping onto it would land on a URL
+that still names a file. Two rules cover that:
+
+- `closeMedia` pops only when the entry behind names no file, and otherwise replaces this entry with its URL minus
+  `?media`. It never moves more than one step, so a miscount in the trail cannot send it to the wrong screen.
+- A user close only asks to leave. The dialog stays open until the navigation unmounts it, so no route, including
+  a hash link's shallow history step that the trail never hears about, can leave a closed viewer with a video
+  playing. Delete still closes through `open`. Because the dialog stays pressable, `closeMedia` ignores a further
+  close from the same URL until a navigation lands or a hash step moves it, or a double tap would pop past the screen.
+
+Rejected on the way here: a guard in `openMedia` (links skip it, and it read "URL has `?media`" as "a viewer is
+open"), stepping back several entries (a same-URL link is a replace that the trail records as a push, so it could
+overshoot), and resetting `open` in `afterNavigate` (shallow steps fire no `afterNavigate`).
+
+The cost: after such a replace, going back reaches the earlier file entry and shows the viewer again, visibly.
+
+Accepted residual, after following a same-page hash link in a note: the close is a shallow step that does not
+unmount, so the first Escape or X visibly does nothing and takes a second press. A swipe dismiss there leaves the
+stage at its off-screen offset, and a close from the keyboard or back still works.
+
+Also accepted: on a viewer URL that carries a hash with no shallow step behind it, `hashchange` may clear the guard
+during a real pop, so a second press inside the 5 to 10 ms window could still pop twice. Only a note link can reach
+that URL, and whether an engine fires the event there is untested.
+
 ### Spinner and buffering state
 
 Two derived values replace buffering event handlers. `buffering` is `!atEnd && (seeking || readyState < 3)`,
 which also ends after a refused autoplay wherever the browser keeps loading, since `canplay` updates
 `readyState` without `playing` ever firing. A browser that does not load without a gesture would spin over the
-poster until play; that was not observed on a device, and task 11.4 checks it. `actuallyPlaying` is `!paused && !buffering`, and it drives the timer, because `play` fires
+poster until play; that was not observed on a device, and the device pass was dropped. `actuallyPlaying` is `!paused && !buffering`, and it drives the timer, because `play` fires
 before any frame exists.
 
 The existing spinner markup in `MediaStage` now serves both images and videos behind one derived
@@ -193,16 +219,16 @@ on each evaluation, and the existing comment warns that keying on it restarts a 
 
 ### Reuse summary
 
-| Need | Reuses |
-| --- | --- |
-| Fade duration | `motion()` from `$lib/state/motion.svelte` |
-| Speed picker | `Modal`, `MenuRow` |
-| Typing guard | `isNavKeyExempt` |
-| Button styling | `MEDIA_TOOL` |
-| Safe areas | `p-safe-*` |
-| Spinner wait | `skeleton-hold` |
-| Playback state | Svelte's `bind:ended`, `bind:seeking`, `bind:readyState` |
-| New icons | `step-back`, `step-forward`, `rotate-ccw`, `gauge` through `icons.ts` |
+| Need           | Reuses                                                                |
+| -------------- | --------------------------------------------------------------------- |
+| Fade duration  | `motion()` from `$lib/state/motion.svelte`                            |
+| Speed picker   | `Modal`, `MenuRow`                                                    |
+| Typing guard   | `isNavKeyExempt`                                                      |
+| Button styling | `MEDIA_TOOL`                                                          |
+| Safe areas     | `p-safe-*`                                                            |
+| Spinner wait   | `skeleton-hold`                                                       |
+| Playback state | Svelte's `bind:ended`, `bind:seeking`, `bind:readyState`              |
+| New icons      | `step-back`, `step-forward`, `rotate-ccw`, `gauge` through `icons.ts` |
 
 ## Risks / Trade-offs
 
@@ -223,7 +249,7 @@ on each evaluation, and the existing comment warns that keying on it restarts a 
   Kept by request, and the button's icon and centered position separate them. German is distinct:
   `Wiederholung` for the ascent, `Wiederholen` for the button. Worth a look during driving.
 - **Hiding controls could conflict with screen reader use** → They stay in the accessibility tree and
-  reveal on focus. VoiceOver is checked in the sweep, as a virtual cursor may not fire focus events.
+  reveal on focus. VoiceOver was not checked, because the device pass was dropped, and a virtual cursor may not fire focus events.
 - **WCAG status of auto-hide is unsettled** ([w3c/wcag#2007](https://github.com/w3c/wcag/issues/2007)) →
   Pausing stops the timer and keyboard focus holds the controls. No setting is added.
 

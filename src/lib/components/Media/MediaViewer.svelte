@@ -91,8 +91,8 @@
   // never asks for one). An unset `ascentCreatedBy` is what says "not ascent media".
   const canEditSource = $derived(canEdit && currentFile.bunnyStreamFk != null && currentFile.ascentCreatedBy == null)
 
-  // The viewer dialog's own open state, controlled so a delete can close it through its
-  // machine (restoring aria-hidden) instead of a bare host unmount.
+  // The viewer dialog's own open state, controlled so a user close stays visible until the
+  // navigation unmounts it, while a delete closes it through its machine first.
   let open = $state(true)
   // Open state of the delete confirmation, controlled so keyboard paging can be paused
   // while it is up (see onKeydown) and so it tears down through its own machine.
@@ -337,7 +337,7 @@
 <Dialog
   {open}
   onOpenChange={(event) => {
-    open = event.open
+    // Stays open until the navigation unmounts it: closed but mounted would be an invisible, playing video.
     if (!event.open) onClose()
   }}
   closeOnInteractOutside={false}

@@ -442,7 +442,7 @@
         <svelte:element
           this={signedIn ? 'a' : 'div'}
           href={signedIn ? routeHref : undefined}
-          class={['flex flex-wrap items-center gap-2', signedIn && 'hover:opacity-80']}
+          class={['flex flex-wrap items-center gap-2 self-start', signedIn && 'hover:opacity-80']}
         >
           <span class="text-sm font-semibold">{routeName}</span>
           <RouteGrade
@@ -469,7 +469,7 @@
             <button
               {...props}
               type="button"
-              class={[props.class, 'flex flex-col items-start gap-1 self-start text-left']}
+              class={[props.class, 'flex max-w-full flex-col items-start gap-1 self-start text-left']}
               onclick={() => (infoOpen = !infoOpen)}
             >
               <span class="flex items-center gap-2">
@@ -480,7 +480,7 @@
                 <Icon name="chevron-down" size={14} class="rotate-180 opacity-60" />
               </span>
               {#if ascentNotes !== ''}
-                <span class="text-sm opacity-90">
+                <span class="max-w-full text-sm opacity-90">
                   <Markdown className="short" disableLinks encloseReferences="strong" markdown={ascentNotes} />
                 </span>
               {/if}

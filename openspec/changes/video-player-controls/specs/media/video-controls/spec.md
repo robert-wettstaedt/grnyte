@@ -320,6 +320,28 @@ and 2x. A shortcut SHALL reveal the controls. `j` and `l` keep paging.
 - **WHEN** a reader presses `>` at 2x
 - **THEN** the speed stays at 2x
 
+### Requirement: Closing the viewer never leaves an invisible player
+
+Closing the viewer SHALL normally land on an entry with no file named, however many file entries are behind it. If
+a close still lands on a file entry, the viewer SHALL show that file visibly, except after a swipe: only Delete
+closes the dialog ahead of the navigation that unmounts it. An earlier file entry stays reachable by going back, and
+it shows the viewer. A second close while the first is on its way SHALL NOT move any further back.
+
+#### Scenario: A second file entry behind the viewer
+
+- **WHEN** a reader follows a link to another file with the viewer open, then closes it
+- **THEN** the screen shows with no `?media` in its URL and no video mounted
+
+#### Scenario: Pressing close twice
+
+- **WHEN** a reader presses close twice before the first close has landed
+- **THEN** only the screen the viewer was opened on shows, not the one before it
+
+#### Scenario: Closing after arriving from another screen
+
+- **WHEN** a reader opened the viewer from a notification on another screen, then closes it
+- **THEN** that other screen shows
+
 ### Requirement: Viewer buttons name themselves and their shortcuts
 
 On a hover-capable device, hovering or keyboard-focusing a viewer button SHALL show a tooltip with its name and, where it has one, its shortcut. Every button with a shortcut SHALL expose it to assistive technology. The seek bar SHALL have no tooltip, because it would cover the bar during a drag.

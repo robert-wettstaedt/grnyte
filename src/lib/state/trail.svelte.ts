@@ -13,6 +13,8 @@ export interface Trail {
   /** Go back, or to `up` when nothing of the app is behind: a shared link, a notification, a cold
    *  start. `up` is that screen's parent, never a general fallback. */
   back: (up: string) => void
+  /** Go back, unless the entry behind is one to `avoid`: then to `up`, replacing this entry. */
+  backUnless: (avoid: (entry: string) => boolean, up: string) => void
   canGoBack: () => boolean
   /** Leave a finished task for `destination`, retiring the screen it was performed on. */
   exit: (destination: string) => Promise<void>
@@ -53,6 +55,12 @@ export function createTrail(navigator: TrailNavigator): Trail {
       } else {
         void navigator.replace(up)
       }
+    },
+
+    backUnless(avoid, up) {
+      const behind = previous()
+      if (behind == null || avoid(behind)) void navigator.replace(up)
+      else navigator.back()
     },
 
     canGoBack: () => index > 0,

@@ -59,6 +59,138 @@ describe('withSearchParams', () => {
   })
 })
 
+// Landing on an entry that still names a file would show the viewer again instead of closing it.
+describe('closeMedia', () => {
+  const walk = async (...hrefs: string[]) => {
+    vi.resetModules()
+    let handler: ((navigation: { from: { url: URL }; to: { url: URL }; type: string }) => void) | undefined
+    const goto = vi.fn(() => Promise.resolve())
+    const back = vi.spyOn(history, 'back').mockImplementation(() => {})
+    vi.doMock('$app/navigation', () => ({
+      afterNavigate: (callback: typeof handler) => void (handler = callback),
+      goto,
+      replaceState: () => undefined,
+    }))
+    const page = { url: at(hrefs.at(-1)!) }
+    vi.doMock('$app/state', () => ({ page }))
+    vi.doMock('./scroll', () => ({ onNavigation: vi.fn() }))
+    const navigation = await import('./navigation.svelte')
+    navigation.trackHistoryDepth()
+    hrefs.forEach((href, i) =>
+      handler?.({ from: { url: at(hrefs[i - 1] ?? href) }, to: { url: at(href) }, type: i === 0 ? 'enter' : 'link' }),
+    )
+    const arrive = (href: string) => {
+      handler?.({ from: { url: page.url }, to: { url: at(href) }, type: 'link' })
+      page.url = at(href)
+    }
+    return { arrive, back, goto, navigation, page }
+  }
+
+  const replacedWith = (goto: ReturnType<typeof vi.fn>) => {
+    const [href, options] = goto.mock.lastCall as unknown as [string, object]
+    expect(options).toHaveProperty('replaceState', true)
+    return href
+  }
+
+  afterEach(() => {
+    vi.doUnmock('$app/navigation')
+    vi.doUnmock('$app/state')
+    vi.doUnmock('./scroll')
+    vi.restoreAllMocks()
+  })
+
+  it('pops back to the screen the viewer was opened on', async () => {
+    const { back, goto, navigation } = await walk('/routes/1', '/routes/1?media=a')
+
+    navigation.closeMedia()
+
+    expect(back).toHaveBeenCalledOnce()
+    expect(goto).not.toHaveBeenCalled()
+  })
+
+  it('pops back to another screen it was opened from', async () => {
+    const { back, navigation } = await walk('/notifications', '/routes/1?media=a')
+
+    navigation.closeMedia()
+
+    expect(back).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    ['this screen', '/routes/1?media=a'],
+    ['another route', '/routes/2?media=a'],
+  ])('replaces instead of landing on an entry for %s that names a file', async (_label, behind) => {
+    const { back, goto, navigation } = await walk(behind, '/routes/1?media=b')
+
+    navigation.closeMedia()
+
+    expect(back).not.toHaveBeenCalled()
+    expect(replacedWith(goto)).toBe('/routes/1')
+  })
+
+  it('keeps its other params when the entry behind names a file after them', async () => {
+    const { goto, navigation } = await walk('/routes/1/ascents?ascent=7&media=a', '/routes/1/ascents?ascent=7&media=b')
+
+    navigation.closeMedia()
+
+    expect(replacedWith(goto)).toBe('/routes/1/ascents?ascent=7')
+  })
+
+  // The dialog stays pressable until the pop lands, and a second pop would leave the screen.
+  it('ignores a second close while the first is on its way', async () => {
+    const { back, navigation } = await walk('/routes/1', '/routes/1?media=a')
+
+    navigation.closeMedia()
+    navigation.closeMedia()
+
+    expect(back).toHaveBeenCalledOnce()
+  })
+
+  it('closes again when the same file is reopened after landing', async () => {
+    const { arrive, back, navigation } = await walk('/routes/1', '/routes/1?media=a')
+
+    navigation.closeMedia()
+    arrive('/routes/1')
+    arrive('/routes/1?media=a')
+    navigation.closeMedia()
+
+    expect(back).toHaveBeenCalledTimes(2)
+  })
+
+  // A hash step is shallow: the URL moves with no afterNavigate, and the viewer is still up.
+  it('closes again after a shallow step changed the URL', async () => {
+    const { back, navigation, page } = await walk('/routes/1', '/routes/1?media=a')
+
+    navigation.closeMedia()
+    page.url = at('/routes/1?media=a#note')
+    navigation.closeMedia()
+
+    expect(back).toHaveBeenCalledTimes(2)
+  })
+
+  it('closes again on returning to the URL an earlier close left from', async () => {
+    const { back, navigation, page } = await walk('/routes/1', '/routes/1?media=a#y')
+
+    navigation.closeMedia()
+    page.url = at('/routes/1?media=a')
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+    page.url = at('/routes/1?media=a#y')
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+    navigation.closeMedia()
+
+    expect(back).toHaveBeenCalledTimes(2)
+  })
+
+  it('replaces the entry away on a deep link', async () => {
+    const { back, goto, navigation } = await walk('/routes/1?media=a')
+
+    navigation.closeMedia()
+
+    expect(back).not.toHaveBeenCalled()
+    expect(replacedWith(goto)).toBe('/routes/1')
+  })
+})
+
 /**
  * The classification `trackHistoryDepth` computes, asserted at the call site rather than on a
  * helper: the point of the change is that the trail and the scroll rule read ONE answer, and a test
