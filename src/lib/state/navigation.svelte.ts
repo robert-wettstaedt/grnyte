@@ -32,6 +32,12 @@ const forwarded = createNavigationRecord()
 // pathnames are skipped.
 let lastAppPath = $state('')
 
+// The URL a viewer close left from, until a navigation lands or a hash step, which fires no afterNavigate, moves it.
+let closingFrom: string | undefined
+const closeLanded = () => {
+  closingFrom = undefined
+}
+
 /**
  * Go back within the app, or navigate to `up` when nothing of the app is behind us: a shared link,
  * a notification, or a cold start. `up` is that screen's parent, never a general fallback.
@@ -45,10 +51,15 @@ export function canGoBack(): boolean {
   return trail.canGoBack()
 }
 
-/** Close the viewer: pop the `?media` entry, or replace it away on a deep link. */
+/** Close the viewer: pop the `?media` entry, or replace it away on a deep link or when a pop would reopen it. */
 export function closeMedia() {
+  // The dialog stays pressable until the pop lands, and a second pop would leave the screen.
+  if (closingFrom === page.url.href) return
+  closingFrom = page.url.href
+  addEventListener('hashchange', closeLanded)
+
   const url = mediaUrl(null)
-  back(url.pathname + url.search)
+  trail.backUnless((entry) => /[?&]media=/.test(entry), url.pathname + url.search)
 }
 
 /**
@@ -132,6 +143,8 @@ export function syncSearchParams(values: Record<string, number | string | undefi
  */
 export function trackHistoryDepth() {
   afterNavigate((navigation) => {
+    closeLanded()
+
     const to = navigation.to?.url
     if (to != null && !to.pathname.startsWith('/settings')) {
       lastAppPath = to.pathname

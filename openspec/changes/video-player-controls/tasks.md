@@ -65,7 +65,6 @@
 - [x] 11.1 Over the touched paths, run `npx prettier --write`, `npx eslint`, `npx vitest run --project browser` for the new tests and `page.svelte.test.ts`, and typecheck with `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`. Verify all pass, and run `svelte-autofixer` on the changed Svelte files.
 - [x] 11.2 Run `npm run lint:duplication` and `npm run lint:unused`. Verify no `[NEW]` clones and no unused exports.
 - [x] 11.3 Drive the running app at 375x667 and 1280x800, in both the in-app viewer and `/f/<id>` while signed out, through the spec's scenarios, in English and German and with reduced motion. Verify against `specs/media/video-controls/spec.md`, and close the browser pages afterwards.
-- [ ] 11.4 (needs a person with a real iPhone) Drive on a real iPhone over Tailscale: seek bar not fighting the system bottom-edge swipe, sound refused then muted, no endless spinner when Low Power Mode refuses autoplay, and a VoiceOver pass reaching hidden controls. Verify each, and record any failure in `design.md`.
 
 ## 12. Tooltips
 
@@ -76,4 +75,5 @@
 
 ## Workflow follow-up
 
+- The real iPhone pass was dropped by decision. Refused-sound autoplay, the spinner under Low Power Mode, VoiceOver reaching hidden controls and the seek bar against the iPhone's bottom-edge swipe were not checked on a device.
 - Offer `/review-loop` after implementation, then archive the change once review is done.

@@ -125,6 +125,52 @@ describe('back', () => {
   })
 })
 
+describe('backUnless', () => {
+  const namesFile = (entry: string) => entry.includes('?media=')
+
+  it('steps back when the entry behind is fine to land on', () => {
+    const { calls, trail } = harness()
+    trail.record({ href: '/routes/5', type: 'enter' })
+    trail.record({ href: '/routes/5?media=a', type: 'push' })
+
+    trail.backUnless(namesFile, '/routes/5')
+
+    expect(calls).toEqual([{ type: 'back' }])
+  })
+
+  it('replaces this entry instead when the one behind is to be avoided', () => {
+    const { calls, trail } = harness()
+    trail.record({ href: '/routes/5', type: 'enter' })
+    trail.record({ href: '/routes/5?media=a', type: 'push' })
+    trail.record({ href: '/routes/5?media=b', type: 'push' })
+
+    trail.backUnless(namesFile, '/routes/5')
+
+    expect(calls).toEqual([{ href: '/routes/5', invalidateAll: undefined, type: 'replace' }])
+  })
+
+  it('goes up when the reader arrived directly', () => {
+    const { calls, trail } = harness()
+    trail.record({ href: '/routes/5?media=a', type: 'enter' })
+
+    trail.backUnless(namesFile, '/routes/5')
+
+    expect(calls).toEqual([{ href: '/routes/5', invalidateAll: undefined, type: 'replace' }])
+  })
+
+  it('reads the entry behind the current position, not the end of the trail', () => {
+    const { calls, trail } = harness()
+    trail.record({ href: '/feed', type: 'enter' })
+    trail.record({ href: '/routes/5?media=a', type: 'push' })
+    trail.record({ href: '/routes/5?media=b', type: 'push' })
+    trail.record({ delta: -1, href: '/routes/5?media=a', type: 'popstate' })
+
+    trail.backUnless(namesFile, '/routes/5')
+
+    expect(calls).toEqual([{ type: 'back' }])
+  })
+})
+
 describe('canGoBack', () => {
   it('is false on the entry the reader landed on', () => {
     const { trail } = harness()
