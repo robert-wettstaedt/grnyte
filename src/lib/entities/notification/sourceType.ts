@@ -62,6 +62,15 @@ const TRAITS = {
     row: true,
     selfAddressed: false,
   },
+  // Written by the `sync_event_promoted` trigger, and nobody in particular caused it.
+  community_favorite: {
+    anonymous: true,
+    outlivesMembership: false,
+    push: 'reactions',
+    queueOnly: false,
+    row: true,
+    selfAddressed: false,
+  },
   // The item is gone (or back), so there is no row to draw; the row opens the statement instead.
   content_removed: {
     anonymous: true,

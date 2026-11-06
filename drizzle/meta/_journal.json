@@ -505,6 +505,13 @@
       "when": 1793905638241,
       "tag": "0146_stale_topo_lines",
       "breakpoints": true
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1793961155808,
+      "tag": "0147_promotion_quarter_and_notification",
+      "breakpoints": true
     }
   ]
 }

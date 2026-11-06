@@ -37,9 +37,10 @@ $$;--> statement-breakpoint
 -- and the ceiling are what stop it degenerating.
 --
 -- The floor of three is the important half. In a five-person region a third rounds to two, which is
--- just your two mates; three of five really is the community turning up. The ceiling of twelve
--- keeps the claim reachable in a region that has grown past the point where a third of it ever
--- looks at one card.
+-- just your two mates; three of five really is the community turning up. Comment weighting lets two
+-- people clear it anyway (a commenter plus a reactor scores 3), which is accepted. The ceiling of
+-- twelve keeps the claim reachable in a region that has grown past the point where a third of it
+-- ever looks at one card.
 --
 -- Both numbers are guesses, and deliberately so: reactions did not exist when this was written, so
 -- there is no data to set them from. They are one expression in one place precisely so that a month

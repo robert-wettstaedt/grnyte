@@ -42,9 +42,11 @@
   const media = $derived(notification.sourceType === 'video_ready' ? notification.entity?.files?.[0] : undefined)
 
   // Anonymous rows show what happened instead of a face.
-  const badge = $derived(
-    notification.decisionFk != null ? 'trash' : isReportNotice(notification.sourceType) ? 'flag' : undefined,
-  )
+  const badge = $derived.by(() => {
+    if (notification.sourceType === 'community_favorite') return 'award'
+    if (notification.decisionFk != null) return 'trash'
+    return isReportNotice(notification.sourceType) ? 'flag' : undefined
+  })
 
   /**
    * Where this row happened, when it happened under a card.

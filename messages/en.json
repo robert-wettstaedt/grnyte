@@ -426,6 +426,23 @@
       }
     }
   ],
+  "event_accoladeProjectMonths": "Project {name} sent, {sessions} sessions over {months} months",
+  "event_accoladeProjectYears": [
+    {
+      "declarations": [
+        "input name",
+        "input sessions",
+        "input years",
+        "local yearsLabel = years: number",
+        "local yearsPlural = years: plural"
+      ],
+      "selectors": ["yearsPlural"],
+      "match": {
+        "yearsPlural=one": "Project {name} sent, {sessions} sessions over {yearsLabel} year",
+        "yearsPlural=*": "Project {name} sent, {sessions} sessions over {yearsLabel} years"
+      }
+    }
+  ],
   "event_areaCreated": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -1686,6 +1703,7 @@
   "notifications_comment": "{actor} commented on your entry",
   "notifications_commentReaction": "{actor} reacted to your comment",
   "notifications_commentReply": "{actor} replied to you",
+  "notifications_communityFavorite": "Your entry is now a Community favorite",
   "notifications_contentRemoved": "A region admin removed “{name}”",
   "notifications_contentRemovedAscent": "A region admin removed your ascent of “{name}”",
   "notifications_contentRemovedFile": "A region admin removed your photo or video on “{name}”",

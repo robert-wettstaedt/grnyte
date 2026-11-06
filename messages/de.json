@@ -130,7 +130,7 @@
   "ascents_seeAll": "Alle {count} Begehungen ansehen",
   "ascents_seeAllUncounted": "Alle Begehungen ansehen",
   "ascents_statusFlashed": "Geflasht",
-  "ascents_statusRedpointed": "Durchstiegen",
+  "ascents_statusRedpointed": "Durchgestiegen",
   "ascents_statusRepeated": "Wiederholt",
   "ascents_statusTried": "Versucht",
   "ascents_title": "Begehungen",
@@ -426,6 +426,23 @@
       }
     }
   ],
+  "event_accoladeProjectMonths": "Projekt {name} durchgestiegen, {sessions} Sessions über {months} Monate",
+  "event_accoladeProjectYears": [
+    {
+      "declarations": [
+        "input name",
+        "input sessions",
+        "input years",
+        "local yearsLabel = years: number",
+        "local yearsPlural = years: plural"
+      ],
+      "selectors": ["yearsPlural"],
+      "match": {
+        "yearsPlural=one": "Projekt {name} durchgestiegen, {sessions} Sessions über {yearsLabel} Jahr",
+        "yearsPlural=*": "Projekt {name} durchgestiegen, {sessions} Sessions über {yearsLabel} Jahre"
+      }
+    }
+  ],
   "event_areaCreated": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -565,8 +582,8 @@
       "declarations": ["input actor", "input name", "input person"],
       "selectors": ["person"],
       "match": {
-        "person=self": "Du hast {name} durchstiegen",
-        "person=*": "{actor} hat {name} durchstiegen"
+        "person=self": "Du bist {name} durchgestiegen",
+        "person=*": "{actor} ist {name} durchgestiegen"
       }
     }
   ],
@@ -1695,6 +1712,7 @@
   "notifications_comment": "{actor} hat deinen Eintrag kommentiert",
   "notifications_commentReaction": "{actor} hat auf deinen Kommentar reagiert",
   "notifications_commentReply": "{actor} hat dir geantwortet",
+  "notifications_communityFavorite": "Dein Eintrag ist jetzt beliebt in der Community",
   "notifications_contentRemoved": "Ein Admin der Region hat „{name}“ entfernt",
   "notifications_contentRemovedAscent": "Ein Admin der Region hat deine Begehung von „{name}“ entfernt",
   "notifications_contentRemovedFile": "Ein Admin der Region hat dein Foto oder Video bei „{name}“ entfernt",

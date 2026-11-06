@@ -1654,6 +1654,9 @@ export const events = table(
      * Sticky by construction: the trigger only ever sets it true. Reactions can be taken back, and
      * a banner that appears and then vanishes is worse than one that lingers; it also cannot flap
      * for an event sitting on the threshold.
+     *
+     * The flip also writes the actor's `community_favorite` notification, when the card can show
+     * the banner. Comment weighting lets two people clear the floor. Accepted.
      */
     promoted: boolean('promoted').notNull().default(false),
     verb: text('verb', { enum: eventVerb }).notNull(),
@@ -2008,6 +2011,7 @@ export const notificationSourceType: [
   'content_restored',
   'content_reported',
   'report_closed',
+  'community_favorite',
 ] = [
   'mention',
   'ascent_edited',
@@ -2025,6 +2029,7 @@ export const notificationSourceType: [
   'content_restored',
   'content_reported',
   'report_closed',
+  'community_favorite',
 ]
 
 /**
@@ -2035,10 +2040,10 @@ export const notificationSourceType: [
  * holds N times over only to render it a second time. What the badge counts is what was aimed at
  * the reader; a badge dominated by guidebook edits trains people to ignore it.
  *
- * Only the server writes here (the fan-out runs on the privileged handle), so there is no insert
- * or delete policy: an own-rows insert policy would by definition reject a row the actor is
- * writing for somebody else, and a wider one would let anybody with a JWT post into a stranger's
- * inbox.
+ * Only the server writes here (the fan-out runs on the privileged handle, `community_favorite` in
+ * the `sync_event_promoted` trigger), so there is no insert or delete policy: an own-rows insert
+ * policy would by definition reject a row the actor is writing for somebody else, and a wider one
+ * would let anybody with a JWT post into a stranger's inbox.
  */
 export const notifications = table(
   'notifications',
@@ -2070,7 +2075,7 @@ export const notifications = table(
      *  two removals by one admin of one author's content must stay two rows. */
     decisionFk: integer('decision_fk').references((): AnyColumn => moderationDecisions.id, { onDelete: 'cascade' }),
     /**
-     * Which card, for the two source types that are about one: a reaction and a comment.
+     * Which card, for the source types that are about one.
      *
      * The object columns stay set beside it, and are still what the inbox row links to and
      * renders. This says WHICH event was reacted to, so two reactions on two events about the same
