@@ -10,9 +10,11 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
-  import ConfirmDialog from '$lib/components/Dialog/Dialog.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import { chromeClass, createMediaChrome } from '$lib/components/Media/chrome.svelte'
+  import MediaDeleteControl from '$lib/components/Media/MediaDeleteControl.svelte'
   import MediaStage from '$lib/components/Media/MediaStage.svelte'
+  import MediaToolTip from '$lib/components/Media/MediaToolTip.svelte'
   import ShareSheet from '$lib/components/Media/ShareSheet.svelte'
   import { MEDIA_TOOL } from '$lib/components/Media/toolbar'
   import Toaster from '$lib/components/Toaster/Toaster.svelte'
@@ -20,7 +22,6 @@
   import { deleteFile, setFileVisibility } from '$lib/entities/file/files.remote'
   import type { FileParent } from '$lib/entities/file/mapper'
   import { entityHref, type EntityKind } from '$lib/entities/href'
-  import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import { legalReportHref } from '$lib/entities/report/href'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { imageSrc } from '$lib/images/derivatives'
@@ -28,8 +29,7 @@
   import { provideGlobalState, staticGlobalState } from '$lib/state/global.svelte'
   import { exit } from '$lib/state/navigation.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
-  import { untrack } from 'svelte'
-  import type { HTMLButtonAttributes } from 'svelte/elements'
+  import { onDestroy, untrack } from 'svelte'
 
   const { data } = $props()
 
@@ -65,6 +65,11 @@
   )
 
   let shareOpen = $state(false)
+  let confirmOpen = $state(false)
+
+  const chrome = createMediaChrome()
+  onDestroy(() => chrome.destroy())
+  $effect(() => chrome.setHold('sheet', shareOpen || confirmOpen))
 
   const legalHref = $derived(legalReportHref(page.url.href))
 
@@ -110,64 +115,44 @@
 </svelte:head>
 
 <div class="fixed inset-0 bg-black text-white">
-  <MediaStage {file} />
+  <MediaStage {chrome} {file} />
 
-  <!-- Home / branding, top-left. Sized/typed like the landing header. -->
-  <a
-    href={resolve('/')}
-    class="absolute top-3 left-3 z-20 flex items-center gap-2.5 rounded-lg bg-black/30 px-2.5 py-1.5 no-underline backdrop-blur-sm hover:bg-black/50"
-  >
-    <img src={Logo} alt="" class="block h-7.5 w-7.5 rounded-lg" />
-    <strong class="[font-family:var(--heading-font-family)] text-[19px] font-bold tracking-tight">
-      {PUBLIC_APPLICATION_NAME}
-    </strong>
-  </a>
+  <div class="p-safe-3 pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between">
+    <a
+      href={resolve('/')}
+      class="pointer-events-auto flex items-center gap-2.5 rounded-lg bg-black/30 px-2.5 py-1.5 no-underline backdrop-blur-sm hover:bg-black/50"
+    >
+      <img src={Logo} alt="" class="block h-7.5 w-7.5 rounded-lg" />
+      <strong class="[font-family:var(--heading-font-family)] text-[19px] font-bold tracking-tight">
+        {PUBLIC_APPLICATION_NAME}
+      </strong>
+    </a>
 
-  <!-- Report for a non-member; share / delete, signed-in only (as in the media viewer's toolbar). -->
-  <div class="absolute top-3 right-3 z-20 flex items-center gap-2">
-    {#if data.legalReport}
-      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- legalReportHref is resolve() + ?content -->
-      <a aria-label={m.reports_report()} class={MEDIA_TOOL} href={legalHref}>
-        <Icon name="flag" size={20} />
-      </a>
-    {/if}
-    {#if controls != null}
-      <ShareSheet
-        {file}
-        canEdit={controls.canEdit}
-        shareText={controls.shareText}
-        bind:open={shareOpen}
-        onVisibilityChange={(next) => (visibilityOverride = next)}
-        persist={(fileId, visibility) => setFileVisibility({ fileId, visibility })}
-      />
-
-      {#snippet deleteTrigger(props: HTMLButtonAttributes)}
-        <button {...props} type="button" class={[props.class, MEDIA_TOOL]} aria-label={m.common_delete()}>
-          <Icon name="trash" size={20} />
-        </button>
-      {/snippet}
-      {#if controls.canDelete && controls.choice}
-        <RemovalChoice
-          id={data.file.id}
-          kind="file"
-          ontidy={onDelete}
-          title={m.media_delete()}
-          trigger={deleteTrigger}
-        />
-      {:else if controls.canDelete}
-        <ConfirmDialog
-          destructive
-          title={m.media_delete()}
-          saveText={m.common_delete()}
-          onsave={onDelete}
-          trigger={deleteTrigger}
-        >
-          {#snippet content()}
-            {m.media_deleteConfirm()}
-          {/snippet}
-        </ConfirmDialog>
+    <!-- Report for a non-member; share / delete, signed-in only (as in the media viewer's toolbar). -->
+    <div class={['flex items-center gap-2', chromeClass(chrome.visible)]} {@attach chrome.surface}>
+      {#if data.legalReport}
+        <MediaToolTip label={m.reports_report()}>
+          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- legalReportHref is resolve() + ?content -->
+          <a aria-label={m.reports_report()} class={MEDIA_TOOL} href={legalHref}>
+            <Icon name="flag" size={20} />
+          </a>
+        </MediaToolTip>
       {/if}
-    {/if}
+      {#if controls != null}
+        <ShareSheet
+          {file}
+          canEdit={controls.canEdit}
+          shareText={controls.shareText}
+          bind:open={shareOpen}
+          onVisibilityChange={(next) => (visibilityOverride = next)}
+          persist={(fileId, visibility) => setFileVisibility({ fileId, visibility })}
+        />
+
+        {#if controls.canDelete}
+          <MediaDeleteControl bind:open={confirmOpen} choice={controls.choice} id={data.file.id} {onDelete} />
+        {/if}
+      {/if}
+    </div>
   </div>
 </div>
 

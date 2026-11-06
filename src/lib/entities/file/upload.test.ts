@@ -104,7 +104,7 @@ describe('normalizeSource / isValidSource', () => {
     expect(isValidSource(normalizeSource('instagram.com/reel/1'))).toBe(true)
   })
 
-  // `file.source` is rendered as an `<a href>` (Media/MediaStage.svelte:354), so a scheme that
+  // `file.source` is rendered as an `<a href>` (the caption's source link in Media/MediaStage.svelte), so a scheme that
   // executes has to fail this. It does, because `new URL('javascript:alert(1)').hostname` is
   // empty and carries no dot. Pinned explicitly rather than left as a side effect of the dot
   // rule, since that rule could be loosened for a plausible-sounding reason.

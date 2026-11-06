@@ -11,14 +11,11 @@
 -->
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import ConfirmDialog from '$lib/components/Dialog/Dialog.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import { isNavKeyExempt } from '$lib/components/SiblingNav/siblingNav'
   import type { MediaFile } from '$lib/entities/file/dto'
   import { canDeleteFile, canEditFile } from '$lib/entities/file/permissions'
   import { deleteFile } from '$lib/entities/file/writes'
   import { offersRemovalChoice } from '$lib/entities/moderation/permissions'
-  import RemovalChoice from '$lib/entities/moderation/RemovalChoice.svelte'
   import { canReport } from '$lib/entities/report/permissions'
   import { myOpenReport } from '$lib/entities/report/resources.svelte'
   import { imageSrc } from '$lib/images/derivatives'
@@ -29,9 +26,13 @@
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
   import { onDestroy } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
-  import type { HTMLButtonAttributes } from 'svelte/elements'
   import { MediaQuery, SvelteSet } from 'svelte/reactivity'
+  import { chromeClass, createMediaChrome } from './chrome.svelte'
+  import { isMediaKeyExempt } from './keys'
+  import MediaDeleteControl from './MediaDeleteControl.svelte'
   import MediaStage from './MediaStage.svelte'
+  import MediaToolButton from './MediaToolButton.svelte'
+  import MediaToolTip from './MediaToolTip.svelte'
   import ShareSheet from './ShareSheet.svelte'
   import SourceSheet from './SourceSheet.svelte'
   import { MEDIA_TOOL } from './toolbar'
@@ -58,21 +59,9 @@
   const findSiblingIndex = (id: string) => siblings.findIndex((sibling) => sibling.id === id)
   // Closure so the initial prop reads are one-time (the effect below owns updates).
   let currentIndex = $state((() => Math.max(0, findSiblingIndex(file.id)))())
-  // The open file id we last reset stage state for. A background change to `siblings`
-  // (a sibling syncing, an in-viewer visibility toggle) re-runs this effect with the
-  // SAME open file, so only reset zoom/fallback when the open file changed;
-  // otherwise a zoomed image would snap back and a fallen-back video would lose the
-  // nav arrows it needs (the iframe swallows swipes).
-  let syncedFileId = (() => file.id)()
   $effect(() => {
     const i = findSiblingIndex(file.id)
-    if (i < 0) return
-    currentIndex = i
-    if (file.id !== syncedFileId) {
-      syncedFileId = file.id
-      stageZoom = 1
-      stageFallback = false
-    }
+    if (i >= 0) currentIndex = i
   })
 
   const n = $derived(siblings.length)
@@ -159,7 +148,6 @@
 
   function commit(dir: -1 | 1) {
     currentIndex = (currentIndex + dir + n) % n
-    stageZoom = 1
     onNavigate(siblings[currentIndex].id)
   }
 
@@ -220,8 +208,16 @@
   let shareOpen = $state(false)
   let sourceOpen = $state(false)
 
+  // Opening focuses the deck, not the first control: a focused control would hold the chrome up
+  // on a deep link or keyboard open, and take Space away from playback.
+  let deck = $state<HTMLElement>()
+
+  const chrome = createMediaChrome()
+  onDestroy(() => chrome.destroy())
+  $effect(() => chrome.setHold('sheet', shareOpen || sourceOpen || confirmOpen))
+
   const onKeydown = (event: KeyboardEvent) => {
-    if (shareOpen || sourceOpen || confirmOpen || !canPage || isNavKeyExempt(event)) return
+    if (chrome.sheetOpen || !canPage || isMediaKeyExempt(event)) return
     const key = event.key.toLowerCase()
     if (key === 'j') {
       event.preventDefault()
@@ -303,7 +299,7 @@
     return view == null ? imageSrc(f.path, 256) : view.kind === 'playable' ? view.poster : undefined
   }
 
-  const arrow = `${MEDIA_TOOL} absolute top-1/2 z-20 -translate-y-1/2`
+  const arrow = 'absolute top-1/2 z-20 -translate-y-1/2'
   const slide = 'absolute inset-0 flex items-center justify-center'
 </script>
 
@@ -346,11 +342,19 @@
   }}
   closeOnInteractOutside={false}
   trapFocus={false}
+  initialFocusEl={() => deck ?? null}
 >
   <Portal>
     <Dialog.Positioner class="fixed inset-0 z-50">
       <Dialog.Content class="relative h-full w-full overflow-hidden text-white">
-        <div class="absolute inset-0" bind:clientWidth={width} bind:clientHeight={height} {@attach deckGestures}>
+        <div
+          bind:this={deck}
+          class="absolute inset-0 outline-none"
+          tabindex="-1"
+          bind:clientWidth={width}
+          bind:clientHeight={height}
+          {@attach deckGestures}
+        >
           <!-- Backdrop: fades toward the page behind as the media lifts on a vertical drag. -->
           <div
             class="absolute inset-0 bg-black"
@@ -376,6 +380,7 @@
               >
                 {#key currentFile.id}
                   <MediaStage
+                    {chrome}
                     file={currentFile}
                     onZoomChange={(k) => (stageZoom = k)}
                     onFallback={(active) => (stageFallback = active)}
@@ -392,12 +397,19 @@
 
         <!-- Top toolbar, fades out with the media on a dismiss drag. -->
         <header
-          class="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 bg-linear-to-b from-black/60 to-transparent p-3 pb-10"
-          style:opacity={chromeOpacity}
+          class={[
+            'p-safe-3 absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 bg-linear-to-b from-black/60 to-transparent pb-10!',
+            chromeClass(chrome.visible),
+          ]}
+          style:opacity={chrome.visible ? chromeOpacity : 0}
+          style:transition={axis === 'v' ? 'none' : undefined}
+          {@attach chrome.surface}
         >
-          <Dialog.CloseTrigger class={MEDIA_TOOL} aria-label={m.common_close()}>
-            <Icon name="close" size={20} />
-          </Dialog.CloseTrigger>
+          <MediaToolTip key="Esc" label={m.common_close()}>
+            <Dialog.CloseTrigger class={MEDIA_TOOL} aria-keyshortcuts="Escape" aria-label={m.common_close()}>
+              <Icon name="close" size={20} />
+            </Dialog.CloseTrigger>
+          </MediaToolTip>
 
           <div class="flex items-center gap-2">
             {#if canEditSource}
@@ -407,59 +419,49 @@
             <ShareSheet file={currentFile} {canEdit} {shareText} bind:open={shareOpen} />
 
             {#if reportable}
-              <a
-                aria-label={reported.data == null ? m.reports_entry() : m.reports_reported()}
-                class={MEDIA_TOOL}
-                href={resolve('/(app)/report/[kind=removable]/[id]', { id: currentFile.id, kind: 'file' })}
-              >
-                <Icon name="flag" fill={reported.data == null ? 'none' : 'currentColor'} size={20} />
-              </a>
+              <MediaToolTip label={reported.data == null ? m.reports_entry() : m.reports_reported()}>
+                <a
+                  aria-label={reported.data == null ? m.reports_entry() : m.reports_reported()}
+                  class={MEDIA_TOOL}
+                  href={resolve('/(app)/report/[kind=removable]/[id]', { id: currentFile.id, kind: 'file' })}
+                >
+                  <Icon name="flag" fill={reported.data == null ? 'none' : 'currentColor'} size={20} />
+                </a>
+              </MediaToolTip>
             {/if}
 
-            {#snippet deleteTrigger(props: HTMLButtonAttributes)}
-              <button {...props} type="button" class={[props.class, MEDIA_TOOL]} aria-label={m.common_delete()}>
-                <Icon name="trash" size={20} />
-              </button>
-            {/snippet}
-            {#if canDelete && offersRemovalChoice(global.userRegions, currentFile.regionFk, ownFile)}
-              <RemovalChoice
-                bind:open={confirmOpen}
-                id={currentFile.id}
-                kind="file"
-                modal={false}
-                ontidy={onDelete}
-                title={m.media_delete()}
-                trigger={deleteTrigger}
-              />
-            {:else if canDelete}
+            {#if canDelete}
               <!-- Non-modal: the viewer is already a modal blocking the page, so a second
                    modal layer here only adds an aria-hidden stack that strands on teardown. -->
-              <ConfirmDialog
-                destructive
-                open={confirmOpen}
-                onOpenChange={(event) => (confirmOpen = event.open)}
+              <MediaDeleteControl
+                bind:open={confirmOpen}
+                choice={offersRemovalChoice(global.userRegions, currentFile.regionFk, ownFile)}
+                id={currentFile.id}
                 modal={false}
-                title={m.media_delete()}
-                saveText={m.common_delete()}
-                onsave={onDelete}
-                trigger={deleteTrigger}
-              >
-                {#snippet content()}
-                  {m.media_deleteConfirm()}
-                {/snippet}
-              </ConfirmDialog>
+                {onDelete}
+              />
             {/if}
           </div>
         </header>
 
         <!-- Arrows on hover, and always over the iframe fallback (swipe can't reach it). -->
         {#if (canHover.current || stageFallback) && canPage}
-          <button type="button" class="{arrow} left-3" aria-label={m.media_previous()} onclick={goPrev}>
-            <Icon name="chevron-left" size={20} />
-          </button>
-          <button type="button" class="{arrow} right-3" aria-label={m.media_next()} onclick={goNext}>
-            <Icon name="chevron-right" size={20} />
-          </button>
+          <div class={['absolute inset-0 z-20', chromeClass(chrome.visible)]} {@attach chrome.surface}>
+            <MediaToolButton
+              class="{arrow} left-3"
+              icon="chevron-left"
+              key="J"
+              label={m.media_previous()}
+              onclick={goPrev}
+            />
+            <MediaToolButton
+              class="{arrow} right-3"
+              icon="chevron-right"
+              key="L"
+              label={m.media_next()}
+              onclick={goNext}
+            />
+          </div>
         {/if}
       </Dialog.Content>
     </Dialog.Positioner>
