@@ -3,8 +3,17 @@ import { createRawSnippet, flushSync } from 'svelte'
 import { beforeEach, expect, it, vi } from 'vitest'
 import MediaToolTip from './MediaToolTip.svelte'
 
-// jsdom has no matchMedia; this is the hover-capable branch.
 beforeEach(() => {
+  // jsdom has no ResizeObserver; nothing here depends on a measured size.
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      disconnect() {}
+      observe() {}
+      unobserve() {}
+    },
+  )
+  // jsdom has no matchMedia; this is the hover-capable branch.
   window.matchMedia = vi.fn(() => ({
     addEventListener: () => {},
     matches: true,
