@@ -14,7 +14,7 @@
 import { db } from '$lib/db/db.server'
 import { notifications } from '$lib/db/schema'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   dropCommentNotification,
@@ -67,11 +67,14 @@ const emoji = async (who: Who): Promise<number> => {
   return id
 }
 
+// Two commenters clear the promotion floor here, which tells the author something else.
+const aboutTheThread = () => and(eq(notifications.eventFk, eventId), ne(notifications.sourceType, 'community_favorite'))
+
 /** Who has an inbox row about this event, whatever it says. */
 const told = async (): Promise<number[]> => {
   const rows = await db.query.notifications.findMany({
     columns: { userFk: true },
-    where: eq(notifications.eventFk, eventId),
+    where: aboutTheThread(),
   })
   return rows.map((row) => row.userFk).sort((a, b) => a - b)
 }
@@ -86,7 +89,7 @@ const told = async (): Promise<number[]> => {
 const said = async (): Promise<{ sourceType: string; userFk: number }[]> => {
   const rows = await db.query.notifications.findMany({
     columns: { sourceType: true, userFk: true },
-    where: eq(notifications.eventFk, eventId),
+    where: aboutTheThread(),
   })
   return rows.map((row) => ({ sourceType: row.sourceType, userFk: row.userFk })).sort((a, b) => a.userFk - b.userFk)
 }

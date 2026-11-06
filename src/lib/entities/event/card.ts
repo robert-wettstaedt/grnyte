@@ -5,6 +5,7 @@ import { eventEntityKey, type EventEntity, type EventEntityMap, type EventEntity
 import type { ReactionChip } from '$lib/entities/reaction/dto'
 import { reactionChips } from '$lib/entities/reaction/mapper'
 import type { TopoView } from '$lib/entities/topo/dto'
+import { m } from '$lib/paraglide/messages'
 import { FIELD_EDIT_OBJECT_TYPES } from './dto'
 import type { EventGroup } from './grouping'
 import { eventLines } from './line'
@@ -48,6 +49,17 @@ export type CardDensity = 'mixed' | 'uniform'
  * one it exists for becomes illegible.
  */
 export type CardTier = 'compact' | 'hero' | 'standard'
+
+/** Rounded to nearest, since "over" states a span. Years take over at 351, where months would say 12. */
+export function projectBanner({ days, sessions }: Extract<Accolade, { kind: 'project' }>, name: string): string {
+  if (days >= 351) {
+    return m.event_accoladeProjectYears({ name, sessions, years: Math.round((days / 365) * 2) / 2 })
+  }
+
+  return days >= 61
+    ? m.event_accoladeProjectMonths({ months: Math.round(days / 30.44), name, sessions })
+    : m.event_accoladeProject({ days, name, sessions })
+}
 
 /**
  * The verbs a card can be congratulated for.

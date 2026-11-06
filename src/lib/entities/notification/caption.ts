@@ -41,6 +41,7 @@ const KEYS: Record<NotificationSourceType, MessageKey> = {
   comment: 'notifications_comment',
   comment_reaction: 'notifications_commentReaction',
   comment_reply: 'notifications_commentReply',
+  community_favorite: 'notifications_communityFavorite',
   content_removed: 'notifications_contentRemoved',
   content_reported: 'notifications_contentReported',
   content_restored: 'notifications_contentRestored',

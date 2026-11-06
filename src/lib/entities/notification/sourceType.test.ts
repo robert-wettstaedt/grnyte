@@ -15,13 +15,18 @@ describe('sourceTraits', () => {
     expect(OUTLIVES_MEMBERSHIP).toEqual(['content_removed', 'content_restored'])
   })
 
-  it('stores no actor on a removal or a report notice', () => {
+  it('stores no actor on a removal, a report notice or a community favorite', () => {
     expect(where((type) => sourceTraits(type).anonymous)).toEqual([
+      'community_favorite',
       'content_removed',
       'content_reported',
       'content_restored',
       'report_closed',
     ])
+  })
+
+  it('mutes a community favorite with the reactions switch', () => {
+    expect(sourceTraits('community_favorite').push).toBe('reactions')
   })
 
   it('lets only video_ready notify its own actor', () => {

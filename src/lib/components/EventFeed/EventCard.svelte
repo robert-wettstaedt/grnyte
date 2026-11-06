@@ -17,7 +17,7 @@
   import AscentTypeBadge from '$lib/entities/ascent/AscentType.svelte'
   import ConditionsPill from '$lib/entities/ascent/ConditionsPill.svelte'
   import { toAuthor } from '$lib/entities/displayName'
-  import type { EventCardView } from '$lib/entities/event/card'
+  import { projectBanner, type EventCardView } from '$lib/entities/event/card'
   import type { CardAscent } from '$lib/entities/event/cardView'
   import { eventEntityKey } from '$lib/entities/event/entity'
   import { getGradeBand } from '$lib/entities/grade/color'
@@ -231,13 +231,9 @@
         class="bg-primary-500/15 text-primary-700-300 -mx-3 -mt-3 flex items-center gap-1.5 rounded-t-2xl px-3 py-1.5 text-xs font-semibold"
         transition:slide={{ duration }}
       >
-        <Icon name="award" size={13} />
+        <Icon class="shrink-0" name="award" size={13} />
         {#if view.accolade.accolade.kind === 'project'}
-          {m.event_accoladeProject({
-            days: view.accolade.accolade.days,
-            name: view.accolade.name,
-            sessions: view.accolade.accolade.sessions,
-          })}
+          {projectBanner(view.accolade.accolade, view.accolade.name)}
         {:else if view.accolade.accolade.kind === 'ceiling'}
           {m.event_accoladeCeiling({ name: view.accolade.name })}
         {:else}

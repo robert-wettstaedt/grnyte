@@ -1,9 +1,11 @@
+import { toDisplayName } from '$lib/entities/displayName'
 import { eventCard } from '$lib/entities/event/card'
 import { EVENT_CASES } from '$lib/entities/event/cases/index'
 import { ME } from '$lib/entities/event/cases/world'
 import { groupEvents } from '$lib/entities/event/grouping'
+import { setLocale } from '$lib/paraglide/runtime'
 import { fireEvent, render } from '@testing-library/svelte'
-import { expect, it, vi } from 'vitest'
+import { expect, it, onTestFinished, vi } from 'vitest'
 import EventCard from './EventCard.svelte'
 
 vi.mock('$lib/state/global.svelte', () => ({
@@ -39,4 +41,36 @@ it('credits a deleted actor without a face or a link to lead to', () => {
 
   expect(getByText('Deleted user')).toBeTruthy()
   expect(container.querySelector('a[href^="/users/"]')).toBeNull()
+})
+
+const projectCard = (days: number) => ({
+  view: {
+    ...theirs!,
+    accolade: { accolade: { days, kind: 'project' as const, sessions: 17 }, name: toDisplayName('Foobar') },
+  },
+})
+
+it.each([
+  [60, 'over 60 days'],
+  [61, 'over 2 months'],
+  [90, 'over 3 months'],
+  [350, 'over 11 months'],
+  [351, 'over 1 year'],
+  [365, 'over 1 year'],
+  [547, 'over 1.5 years'],
+  [729, 'over 2 years'],
+  [946, 'over 2.5 years'],
+])('states a project of %i days as %s', (days, span) => {
+  const { getByText } = render(EventCard, projectCard(days))
+
+  expect(getByText(`Project Foobar sent, 17 sessions ${span}`)).toBeTruthy()
+})
+
+it('formats half years for the reader, in their language', () => {
+  setLocale('de', { reload: false })
+  onTestFinished(() => setLocale('en', { reload: false }))
+
+  const { getByText } = render(EventCard, projectCard(946))
+
+  expect(getByText('Projekt Foobar durchgestiegen, 17 Sessions über 2,5 Jahre')).toBeTruthy()
 })
