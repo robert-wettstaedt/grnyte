@@ -16,7 +16,7 @@ services:
     image: journeyapps/powersync-service:1.27.2
     command: ['start', '-r', 'unified']
     ports:
-      - '58100:8080'
+      - '127.0.0.1:58100:8080'
     environment:
       POWERSYNC_CONFIG_PATH: /config/service.yaml
       PS_DATA_SOURCE_URI: postgresql://postgres:your-super-secret-and-long-postgres-password@supabase-db:5432/postgres

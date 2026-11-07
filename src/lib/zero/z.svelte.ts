@@ -63,7 +63,7 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   const z = new Z<Schema>(zeroOptions(session))
   instance = z
   // The measurement build: a local-only client in memory, so the screens still on Zero render their
-  // needs-a-connection state while PowerSync alone syncs. Removed with Zero in R1.
+  // needs-a-connection state while PowerSync alone syncs.
   if (powerSyncOnly()) return z
   trackSyncFor(userID)
 
@@ -365,7 +365,6 @@ function tightenPing(z: Z<Schema>): void {
   }, RESUME_LOG_WINDOW_MS)
 }
 
-/** The options the app's Zero client is built from. */
 function zeroOptions(session: null | Session | undefined) {
   return {
     auth: session?.access_token,

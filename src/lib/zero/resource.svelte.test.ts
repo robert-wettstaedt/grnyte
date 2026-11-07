@@ -4,9 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { queries } from './queries'
 import { createResource, type QuerySource } from './resource.svelte'
 
-const env = vi.hoisted(() => ({ fieldDevice: false, guidebookSynced: false, online: true, referenceSynced: false }))
+const env = vi.hoisted(() => ({
+  fieldDevice: false,
+  guidebookSynced: false,
+  online: true,
+  powerSyncOnly: false,
+  referenceSynced: false,
+}))
 
 vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => env.online }))
+vi.mock('$lib/powersync/db.svelte', () => ({ powerSyncOnly: () => env.powerSyncOnly }))
 vi.mock('$lib/state/device.svelte', () => ({ isFieldDevice: () => env.fieldDevice }))
 vi.mock('$lib/state/sync.svelte', () => ({
   lastSyncedAt: (stamp: string) =>
@@ -62,6 +69,7 @@ describe('a resource built on a fake client', () => {
 
   beforeEach(() => {
     env.online = true
+    env.powerSyncOnly = false
     env.fieldDevice = false
     env.guidebookSynced = false
     env.referenceSynced = false
@@ -113,6 +121,15 @@ describe('a resource built on a fake client', () => {
 
   it('is unavailable offline when this device never got the data', () => {
     env.online = false
+    expect(phase()).toEqual({ excluded: false, kind: 'unavailable' })
+  })
+
+  it('is unavailable on a live network when only PowerSync runs, whatever the stamps say', () => {
+    // Zero is a local-only client then: nothing will ever answer it, and its store is empty.
+    env.powerSyncOnly = true
+    env.fieldDevice = true
+    env.guidebookSynced = true
+    rebuild()
     expect(phase()).toEqual({ excluded: false, kind: 'unavailable' })
   })
 

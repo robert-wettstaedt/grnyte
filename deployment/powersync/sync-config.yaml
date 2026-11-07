@@ -1,6 +1,9 @@
 # What every signed-in device holds: every region it is an active member of, in full. RLS never sees this path, so
 # these predicates are the tenancy boundary for synced reads; src/lib/powersync/streams.server.test.ts pins them.
 # Single-table queries only: a JOIN costs one parameter lookup per joined row, counted per connection.
+#
+# Every query also refuses a contested signup (`app_metadata.contested_signup` set to anything), as the app's
+# token check does: GoTrue still issues such a token to whoever knows the password.
 config:
   edition: 3
 
@@ -10,19 +13,25 @@ streams:
     auto_subscribe: true
     priority: 0
     queries:
-      - SELECT *, id AS nid FROM grades
-      - SELECT *, id AS nid FROM role_permissions
+      - SELECT *, id AS nid FROM grades WHERE auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
+      - SELECT *, id AS nid FROM role_permissions WHERE auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
       - SELECT *, id AS nid FROM users WHERE auth_user_fk = auth.user_id()
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
       - SELECT *, id AS nid FROM user_roles WHERE auth_user_fk = auth.user_id()
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
       - SELECT *, id AS nid FROM user_settings WHERE auth_user_fk = auth.user_id()
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
       - SELECT *, id AS nid FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
       - SELECT *, id AS nid FROM regions WHERE id IN (SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active)
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
 
   guidebook:
     auto_subscribe: true
     priority: 1
     with:
       my_regions: SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
     queries:
       - SELECT *, id AS nid FROM areas WHERE region_fk IN my_regions AND deleted_at IS NULL
       - SELECT *, id AS nid FROM blocks WHERE region_fk IN my_regions AND deleted_at IS NULL
@@ -30,7 +39,6 @@ streams:
       - SELECT *, id AS nid FROM first_ascensionists WHERE region_fk IN my_regions
       - SELECT *, id AS nid FROM geolocations WHERE region_fk IN my_regions
       - SELECT *, id AS nid FROM routes_to_first_ascensionists WHERE region_fk IN my_regions
-      # No id column: the pair is the key.
       - SELECT *, route_fk || '-' || tag_fk AS id FROM routes_to_tags WHERE region_fk IN my_regions
       - SELECT *, id AS nid FROM topo_routes WHERE region_fk IN my_regions
       - SELECT *, id AS nid FROM topos WHERE region_fk IN my_regions
@@ -43,25 +51,27 @@ streams:
     priority: 1
     with:
       my_regions: SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
     queries:
       - SELECT *, id AS nid FROM ascents WHERE region_fk IN my_regions AND deleted_at IS NULL
       - SELECT *, id AS nid FROM region_members WHERE region_fk IN my_regions AND is_active
       - SELECT *, id AS nid FROM favorites WHERE region_fk IN my_regions
 
-  # One bucket per co-member, shared by everyone who sees that user (decided over a per-region copy, 2026-11-07).
+  # One bucket per co-member, shared by everyone who sees that user.
   members:
     auto_subscribe: true
     priority: 1
     with:
       my_regions: SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
     queries:
       - SELECT *, id AS nid FROM users WHERE id IN (SELECT user_fk FROM region_members WHERE region_fk IN my_regions AND is_active)
 
-  # Video state for ascent and route media; at most a few hundred rows per region.
   media:
     auto_subscribe: true
     priority: 2
     with:
       my_regions: SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
     queries:
       - SELECT * FROM bunny_streams WHERE region_fk IN my_regions

@@ -54,9 +54,16 @@ export class SyncedWorld {
   }
 
   /** Every row an account signed in as `authId` would hold, optionally asking for streams with parameters. */
-  async holdings(authId: string, streams: Record<string, RequestedStream[]> = {}): Promise<Held[]> {
+  async holdings(
+    authId: string,
+    streams: Record<string, RequestedStream[]> = {},
+    claims: Record<string, unknown> = {},
+  ): Promise<Held[]> {
     const { errors, querier } = synced.getBucketParameterQuerier({
-      globalParameters: new RequestParameters(new RequestJwtPayload({ aud: 'authenticated', sub: authId }), {}),
+      globalParameters: new RequestParameters(
+        new RequestJwtPayload({ ...claims, aud: 'authenticated', sub: authId }),
+        {},
+      ),
       hasDefaultStreams: true,
       streams,
     })

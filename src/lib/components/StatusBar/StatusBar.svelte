@@ -10,6 +10,12 @@
   // Supabase rotates the token hourly and Zero can pass through `needs-auth` on the
   // way back up, so a zero-delay red bar would flash on every slow handoff.
   const TERMINAL_HOLD_MS = 3_000
+
+  // Signed out, no database is open and there is no sync to report on.
+  const powerSyncConnection = (): ConnectionName => {
+    const status = powerSyncStatus()
+    return status == null ? 'connected' : connectionOf(status)
+  }
 </script>
 
 <script lang="ts">
@@ -36,7 +42,7 @@
   // connection in alongside the browser flag and the reachability probe; `settled` reads Zero alone.
   const online = $derived(props.online ?? isOnline())
   const raw = $derived(
-    props.connectionState?.name ?? (powerSyncOnly() ? connectionOf(powerSyncStatus()) : getZ().connectionState.name),
+    props.connectionState?.name ?? (powerSyncOnly() ? powerSyncConnection() : getZ().connectionState.name),
   )
 
   // Hold a non-connected state for its threshold before showing anything: every

@@ -29,9 +29,8 @@ export const load = (async ({ depends, fetch }) => {
   } = await supabase.auth.getSession()
 
   // Before Zero: whether Zero syncs at all is decided by the measurement switch PowerSync holds.
-  // The token is asked on every connect, so one refreshed in the background reaches PowerSync without a push.
   initPowerSync(session, async () => (await supabase.auth.getSession()).data.session?.access_token, {
-    // shortcut: dev falls back to the local service until PUBLIC_POWERSYNC_URL is in every .env (task 7.5).
+    // shortcut: dev falls back to the local service until PUBLIC_POWERSYNC_URL is in every .env.
     endpoint: env.PUBLIC_POWERSYNC_URL || (dev ? 'http://localhost:58100' : ''),
     only: env.PUBLIC_SYNC_ONLY_POWERSYNC === '1',
   })
