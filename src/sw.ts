@@ -380,17 +380,11 @@ function showFor(payload: PushPayload, focused: boolean): Promise<void> {
 
 self.addEventListener('notificationclick', (event) => {
   const notification = event.notification
-  const action = event.action
   const data = (notification.data ?? {}) as { pathname?: string }
 
   notification.close()
 
-  if (action && data.pathname != null) {
-    event.waitUntil(self.clients.openWindow(data.pathname))
-    return
-  }
-
-  // If no specific action, focus on the app if it's open
+  // Focus the app if it's open, else open it.
   event.waitUntil(
     self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then(async (windowClients) => {
       if (windowClients.at(0) == null) {
