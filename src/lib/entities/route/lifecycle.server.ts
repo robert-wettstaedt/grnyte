@@ -26,6 +26,7 @@ import { answerReplayedRestore, requireIssuedId, requireRow } from '$lib/remote/
 import { error } from '@sveltejs/kit'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { areaAncestry, blockIsStranded, stampDeletedAt } from '../area/area.server'
+import { areaIdsOf } from '../area/areaIds'
 import { canHardDelete, deleteEvent, insertEvent } from '../event/event.server'
 import { refuseMerged } from '../merge/restore.server'
 import { regionTags } from '../region/tagVocabulary'
@@ -169,7 +170,7 @@ export async function hardRestoreRoute(
     .insert(routes)
     .values({
       areaFks,
-      areaIds: areaFks.map((id) => `^${id}$`).join(','),
+      areaIds: areaIdsOf(areaFks),
       blockFk: block.id,
       createdBy: userId,
       description: snapshot.route.description,

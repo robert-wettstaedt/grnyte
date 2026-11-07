@@ -1,3 +1,5 @@
+import { areaToken } from '../area/areaIds'
+
 export type SimilarKind = 'exact' | 'firstLetterTypo' | 'typo' | 'word'
 
 export interface SimilarMatch {
@@ -35,7 +37,7 @@ const fold = (name: string) =>
 const withoutSpaces = (folded: string) => folded.replace(/ /g, '')
 
 export function similarNames(rows: readonly SimilarRow[], block: { areaFk: number; id: number }) {
-  const sectorToken = `^${block.areaFk}$`
+  const sectorToken = areaToken(block.areaFk)
 
   const placeOf = (row: SimilarRow): SimilarPlace => {
     if (row.blockFk === block.id) return 'block'
