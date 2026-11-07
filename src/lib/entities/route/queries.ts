@@ -157,13 +157,10 @@ export const routesQueryDefs = {
    * Filters still apply server-side via `whereExists`, which doesn't sync the related rows.
    */
   listRoutesForMap: defineQuery(
-    z.object({ ...routeFilterShape, pageSize: z.optional(z.number()) }),
+    z.object(routeFilterShape),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
-      const q = applyRouteFilters(zql.routes.where('deletedAt', 'IS', null), args, r)
-
-      // No caller passes one any more; it stays for a release because tabs opened before it still send it.
-      return args.pageSize == null ? q : q.limit(args.pageSize)
+      return applyRouteFilters(zql.routes.where('deletedAt', 'IS', null), args, r)
     }),
   ),
 }
