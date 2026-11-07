@@ -1,26 +1,27 @@
+import type { PowerSyncDatabase } from '@powersync/web'
 import { createCollection } from '@tanstack/db'
 import { powerSyncCollectionOptions } from '@tanstack/powersync-db-collection'
 import { getPowerSync } from './db.svelte'
 import { appSchema } from './schema'
 
-const make = <K extends keyof typeof appSchema.props>(table: K) =>
-  createCollection(powerSyncCollectionOptions({ database: getPowerSync(), table: appSchema.props[table] }))
+type Tables = typeof appSchema.props
 
-let built: ReturnType<typeof build> | undefined
-const build = () => ({
-  areas: make('areas'),
-  ascents: make('ascents'),
-  blocks: make('blocks'),
-  favorites: make('favorites'),
-  files: make('files'),
-  geolocations: make('geolocations'),
-  routes: make('routes'),
-  routesToTags: make('routes_to_tags'),
-  topoRoutes: make('topo_routes'),
-  topos: make('topos'),
-  users: make('users'),
-})
+const make = <K extends keyof Tables>(database: PowerSyncDatabase, table: K) =>
+  createCollection(powerSyncCollectionOptions({ database, table: appSchema.props[table] }))
 
-export function collections() {
-  return (built ??= build())
+type Collections = { [K in keyof Tables]: ReturnType<typeof make<K>> }
+
+let built: undefined | { collections: Collections; database: PowerSyncDatabase }
+
+/** One collection per synced table, on the signed-in account's database; rebuilt when the account changes. */
+export function collections(): Collections {
+  const database = getPowerSync()
+  if (built?.database !== database) {
+    const tables = Object.keys(appSchema.props) as (keyof Tables)[]
+    built = {
+      collections: Object.fromEntries(tables.map((table) => [table, make(database, table)])) as Collections,
+      database,
+    }
+  }
+  return built.collections
 }

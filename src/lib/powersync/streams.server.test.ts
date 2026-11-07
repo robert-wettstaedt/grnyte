@@ -6,20 +6,9 @@
  * Two fixture regions with one member each: `user@` in A, a throwaway account in B. Skipped without DATABASE_URL.
  */
 import { createThrowawayUser, dropThrowawayUser, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import {
-  DEFAULT_HYDRATION_STATE,
-  nodeSqlite,
-  RequestJwtPayload,
-  RequestParameters,
-  SqlSyncRules,
-  type HydratedSyncConfig,
-  type RequestedStream,
-  type SqliteJsonRow,
-  type SqliteRow,
-} from '@powersync/service-sync-rules'
-import { readFileSync } from 'node:fs'
-import * as sqlite from 'node:sqlite'
+import type { RequestedStream } from '@powersync/service-sync-rules'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { SyncedWorld, type Held } from './evaluate.server'
 
 const REGION_A = '__streams_a__'
 const REGION_B = '__streams_b__'
@@ -45,52 +34,12 @@ const REGION_TABLES = [
 ] as const
 const GLOBAL_TABLES = ['grades', 'regions', 'role_permissions', 'user_roles', 'user_settings', 'users'] as const
 
-const config = SqlSyncRules.fromYaml(readFileSync('deployment/powersync/sync-config.yaml', 'utf8'), {
-  defaultSchema: 'public',
-})
-const synced: HydratedSyncConfig = config.config.hydrate({
-  hydrationState: DEFAULT_HYDRATION_STATE,
-  sqlite: nodeSqlite(sqlite),
-})
-
-const tableRef = (name: string) => ({ connectionTag: 'default', name, schema: 'public' })
-
-interface Held {
-  data: SqliteJsonRow
-  table: string
-}
-
-/** A Postgres value as logical replication hands it to PowerSync. */
-function toSqlite(value: unknown): SqliteRow[string] {
-  if (value == null) return null
-  if (typeof value === 'boolean') return value ? 1n : 0n
-  if (typeof value === 'number') return Number.isInteger(value) ? BigInt(value) : value
-  if (value instanceof Date) return value.toISOString()
-  if (typeof value === 'object') return JSON.stringify(value)
-  return value as string
-}
-
-let routed: (Held & { bucket: string })[] = []
-let lookups = new Map<string, SqliteJsonRow[]>()
+let world = new SyncedWorld()
 let users = {} as Record<'insider' | 'outsider', SeedUser>
 let regionA = 0
 let regionB = 0
 
-/** Every row a client signed in as `authId` would hold, optionally asking for streams with parameters. */
-async function holdings(authId: string, streams: Record<string, RequestedStream[]> = {}): Promise<Held[]> {
-  const { errors, querier } = synced.getBucketParameterQuerier({
-    globalParameters: new RequestParameters(new RequestJwtPayload({ aud: 'authenticated', sub: authId }), {}),
-    hasDefaultStreams: true,
-    streams,
-  })
-  expect(errors).toEqual([])
-  const dynamic = await querier.queryDynamicBucketDescriptions({
-    getParameterSets: async (requested) =>
-      requested.map((lookup) => ({ lookup, rows: lookups.get(lookup.serializedRepresentation) ?? [] })),
-  })
-  const buckets = new Set([...querier.staticBuckets, ...dynamic].map((bucket) => bucket.bucket))
-  return routed.filter((row) => buckets.has(row.bucket))
-}
+const holdings = (authId: string, streams?: Record<string, RequestedStream[]>) => world.holdings(authId, streams)
 
 /** Which fixture regions a set of rows touches, per table. */
 function regionsByTable(rows: Held[]): Record<string, number[]> {
@@ -127,30 +76,17 @@ async function removeFixtures() {
 
 /** Reads the fixture world and runs it through the engine, as replication would after every change. */
 async function replicate() {
-  routed = []
-  lookups = new Map()
+  world = new SyncedWorld()
   const regions = [regionA, regionB]
   for (const table of [...REGION_TABLES, ...GLOBAL_TABLES]) {
-    const ref = tableRef(table)
     // Parameter tables are read whole: a membership elsewhere must not leak in through a missing lookup row.
-    const rows =
-      table === 'region_members' || !(REGION_TABLES as readonly string[]).includes(table)
+    const whole = table === 'region_members' || !(REGION_TABLES as readonly string[]).includes(table)
+    world.add(
+      table,
+      whole
         ? await sql`select * from ${sql('public.' + table)}`
-        : await sql`select * from ${sql('public.' + table)} where region_fk = any(${regions})`
-    for (const raw of rows) {
-      const record = Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, toSqlite(value)]))
-      if (synced.tableSyncsParameters(ref)) {
-        for (const result of synced.evaluateParameterRow(ref, record)) {
-          const key = result.lookup.serializedRepresentation
-          lookups.set(key, [...(lookups.get(key) ?? []), ...result.bucketParameters])
-        }
-      }
-      if (synced.tableSyncsData(ref)) {
-        for (const row of synced.evaluateRow({ record, sourceTable: ref })) {
-          routed.push({ bucket: row.bucket, data: row.data, table: row.table })
-        }
-      }
-    }
+        : await sql`select * from ${sql('public.' + table)} where region_fk = any(${regions})`,
+    )
   }
 }
 
