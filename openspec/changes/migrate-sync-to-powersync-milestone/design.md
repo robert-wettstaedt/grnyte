@@ -36,7 +36,7 @@ Per query, three shapes:
 
 - Plain table reads (about 22, the ten `guidebook*` queries among them): a live query over one collection. The `guidebook*` definitions and the `register` composites in `offline.ts` are deleted; the screens' own queries answer from the synced tables.
 - Joined trees (13: `area`, `listAreas`, `listBlocks`, `blockTopos`, `listRoutes`, `listRoutesForMap`, `listRouteAscents`, `listUserAscentsDetailed`, `ascent`, `listRouteFiles`, `parking`, `listRegionMembers`, `listFirstAscensionists`): TanStack nested subselects for detail trees; raw SQL through `db.watch` for the list and map screens, where EXISTS filters and ILIKE have no TanStack form. Every raw statement is checked with `EXPLAIN QUERY PLAN` in a test (D7): the trial measured a LEFT JOIN through PowerSync's views at 6 s because SQLite cannot use the index through them; inner joins and correlated subqueries search the index (27 to 39 ms).
-- Text search (`listRoutes` content filter, `EntitySearch`, `listUsers`): filtered in JS with `toLocaleLowerCase` over the synced rows. SQLite's LIKE is case-insensitive for ASCII only, so umlauts would diverge from Postgres ILIKE; the row counts are a few thousand.
+- Text search (`listRoutes` content filter, `EntitySearch`, `listUsers`): filtered in JS with `toLocaleLowerCase` over the synced rows. SQLite's LIKE is case-insensitive for ASCII only, so umlauts would diverge from Postgres ILIKE; the row counts are a few thousand. The cost is not the comparison but loading the rows into JS: an eager collection holds its whole table in memory once a query touches it, and on-demand mode cannot help because this filter does not compile to SQLite. So 6.4 measures it on the largest region before it is settled; the alternative is a lowercased name column computed in Postgres and synced, matched with SQLite `LIKE` so only the hits reach JS (user search keeps JS: a region's members are a few dozen rows).
 
 `waitForArea/Block/Route` (4 callers, after a server write with a serial id) become a live query on the id with the same 5 s cap. `holdWhileDeleting` is engine-agnostic and stays.
 
@@ -46,23 +46,25 @@ Per query, three shapes:
 
 Mappings:
 
-- `arriving`: collection `isReady` plus the stream's `hasSynced` (per stream, looked up by name and parameters).
+- `arriving` and `answered`: see D9 (revised during 5.2; the stream's own `hasSynced` alone proved wrong).
 - "not syncing" (the status-bar branch with a reload action) does not apply to PowerSync (revised during 4.3): the branch exists because Zero's `closed` and `error` never recover without a reload, while PowerSync retries forever and pulls a fresh token itself. Mapping a download error to it would also misfire offline, where PowerSync reports a download error too. So everything short of connected maps to one non-terminal name (`connectionOf` in `online.svelte.ts`), shown as "reconnecting", or "offline" once the hold fires.
 - `isOnline`: fed from `status.connected` with the same reconnect hold as today.
 - Cold-store copy ("first run" vs "restore"): one localStorage stamp written when `hasSynced` first turns true.
 - Resume after suspend (`sync/query-readiness`, the re-establish requirement): PowerSync reconnects on its own; `arriving` derives from `status.connected` and `hasSynced`, so a connection that died while suspended reads as reconnecting, never as current. Verified on the iPhone in task 8.4.
-- iOS: status events do not fire on iOS Safari without shared workers (trial finding). `db.currentStatus` is polled at 250 ms while `document.visibilityState === 'visible'`, beside the listener, on every platform.
+- Status events: the listener only. The trial's finding that events never fire on iOS Safari did not hold on `@powersync/web` 2.6.0 in the iOS 27.2 Simulator: 8 to 28 listener events per load, and a 250 ms poll only ever caught the status from before the listener attached. The poll was removed on 2026-11-07.
 - Essentials before guidebook: the `essentials` stream syncs at priority 0, and the shell waits for priority 0's completion before rendering the first screen, as the reference stamp did.
 
-Account switch keeps the reload contract (`wipeAndLeave` reloads). `clearPowerSync` deletes every `grnyte-*.sqlite` file through the OPFS adapter, not only the open one (the trial's `shortcut:` note). First boot after the switch calls `dropAllDatabases()` (already in `wipe.ts`) once, keyed by a localStorage flag, while `@rocicorp/zero` is still installed.
+Account switch keeps the reload contract (`wipeAndLeave` reloads). `clearPowerSync` deletes every `grnyte-*` IndexedDB database (the store, see D5's client store note), not only the open one (the trial's `shortcut:` note); where `indexedDB.databases()` is missing (Firefox before 126) it deletes the file this page opened. First boot after the switch calls `dropAllDatabases()` (already in `wipe.ts`) once, keyed by a localStorage flag, while `@rocicorp/zero` is still installed.
 
 ### D3. Streams: the trial config promoted, as the tenancy boundary
 
-`deployment/powersync/sync-config.yaml` starts from `trial3-setup/powersync-mongo/sync-config.yaml`, with priorities (user, 2026-11-07): `essentials` at 0 (grades, role_permissions, my regions, my own user row and my role: what Zero's `KEPT.reference` held; the trial's name `reference` is retired), `guidebook`, `region_activity` (everyone's ascents and `region_members`), `members` (users of my regions) and `personal` (favorites, user_settings own rows) at 1, `bunny_streams` at 2. `members` stays the trial's subquery, one bucket per co-member, shared by everyone who sees that user: at 12 to 25 buckets per reader it is far from the 1,000 limit, and a per-region bucket would need profile fields copied onto `region_members` by a trigger (user, 2026-11-07). Removed for this milestone: `feed*`, `thread`, `profile_user`, `region_reactions` (R2). Added: `favorites` region-wide for the save count (`listEntityFavorites`), `user_settings`, `user_roles`, `bunny_streams` by region (route media on the ascent list; auto-subscribed unless day 1's count shows over 2,000 rows in a region, then on demand; task 2.1 records the choice), `routes_to_tags` with its composite text id. Every synced table has a primary key (`routes_to_tags` a composite one), so no replica identity change is needed.
+`deployment/powersync/sync-config.yaml` starts from `trial3-setup/powersync-mongo/sync-config.yaml`, with priorities (user, 2026-11-07): `essentials` at 0 (grades, role_permissions, my regions, my own user row and my role: what Zero's `KEPT.reference` held; the trial's name `reference` is retired), `guidebook`, `region_activity` (everyone's ascents and `region_members`), `members` (users of my regions, former members included since 2026-11-07: their ascents stay in the region's activity and need the name they were logged under) and `personal` (favorites, user_settings own rows) at 1, `bunny_streams` at 2. `members` stays the trial's subquery, one bucket per co-member, shared by everyone who sees that user: at 12 to 25 buckets per reader it is far from the 1,000 limit, and a per-region bucket would need profile fields copied onto `region_members` by a trigger (user, 2026-11-07). Removed for this milestone: `feed*`, `thread`, `profile_user`, `region_reactions` (R2). Added: `favorites` region-wide for the save count (`listEntityFavorites`), `user_settings`, `user_roles`, `bunny_streams` by region (route media on the ascent list; auto-subscribed unless day 1's count shows over 2,000 rows in a region, then on demand; task 2.1 records the choice), `routes_to_tags` with its composite text id. Every synced table has a primary key (`routes_to_tags` a composite one), so no replica identity change is needed.
 
 A region's guidebook arrives as one unit, so a screen opened before its region has synced once shows arriving, and once synced no screen of that region ever waits (the `sync/query-readiness` delta). Rule 2 of the remeasure is what checks that the first open is no worse than today.
 
 The predicates are the whole boundary: RLS does not see the sync path. So the review loop runs with `+security` against the 39 cases in `src/lib/db/regionPolicies.test.ts` (deactivated membership, soft-deleted regions, `files.visibility`, content_removed rows), and D7 adds a test that runs on every `npm test`.
+
+Ascents of a deleted route (the route is soft-deleted so an undo restores them; the ascents stay live) still sync, and the ascent resources hide them: a deleted route takes its ascents with it on screen (the user's decision, 2026-11-07). Filtering them in the stream instead (`route_fk IN (SELECT id FROM routes WHERE deleted_at IS NULL)`) was measured with the sync-rules engine to make one bucket per live route, past the 1,000-bucket limit in any real region.
 
 A sync-config change re-replicates the whole upstream before activating (20 to 90 s at trial size). Config deploys are separate from app deploys, and the service log's activation line is the signal.
 
@@ -75,6 +77,18 @@ A sync-config change re-replicates the whole upstream before activating (20 to 9
 `deployment/docker-compose.zero.yml` gains `powersync-prod` (`journeyapps/powersync-service:1.27.2`, `service.yaml` and `sync-config.yaml` bind-mounted read-only from `deployment/powersync/`) and `mongo-prod` (`mongo:7`, single-node replica set, WiredTiger cache capped at 1 GB, on an internal network, derived state, no backup). `nginx.zero.conf` gains a server block for `sync.grnyte.rocks` with `proxy_buffering off`, `proxy_read_timeout` over an hour and `proxy_http_version 1.1`: the existing block's 60 s read timeout would cut the sync stream every minute. The block is tested locally with `nginx:alpine` in front of `trial-ps-mongo` before it touches the box. Compaction: a sidecar service looping `sleep 3600` then `compact`, so the deploy owns it. `api.parameters.max_concurrent_connections` set deliberately (the trial's default returned 429 to 550 of 750 reconnecting devices).
 
 Secrets: `POWERSYNC_*` through the same Bitwarden allowlist in `deploy-zero.yml` and `secrets.mjs`, `PUBLIC_POWERSYNC_URL` on Vercel. The Supabase HS256 secret as `client_auth.supabase_jwt_secret`. Prod Postgres: `create publication powersync for table ...` listing the synced tables, over the direct connection, never the pooler (`wal_level=logical` is already set for zero-cache). First the user reads `show max_replication_slots` and `pg_replication_slots`: two consumers must fit for the overlap release, and a slot whose consumer is down retains WAL on the capped disk.
+
+Docs review (2026-11-07, against docs.powersync.com and the service source). Each item lands in the group 7 task named:
+
+- Replication slots (7.3, 7.4): PowerSync holds one slot, plus a second while it reprocesses a new sync config. A config deploy therefore needs zero-cache's slot and two PowerSync slots at once, not two in total. Set `max_slot_wal_keep_size` so a stalled consumer cannot fill the capped disk, and watch `replication_lag_bytes` and `safe_wal_size` in the Diagnostics API through each 20 to 90 s reprocess.
+- Connections (7.2): the docs cap an API container at 200 concurrent connections and recommend 100 or fewer, with one replication process beside the API containers. `max_concurrent_connections: 2000` in one process goes against that. Either run API containers (`start -r api`) behind nginx with one `start -r sync`, or keep one process and measure memory, `powersync_concurrent_connections` and event-loop lag under the 750-device reconnect, recording the choice here. Either way set `NODE_OPTIONS=--max-old-space-size-percentage=80` and a container memory limit.
+- Limits (7.2): `max_buckets_per_connection` and `max_parameter_query_results` are 10000 against a documented default of 1000, which the docs say to raise only after reducing bucket count. Drop both, or set a measured number with a one-line reason (`members` costs one bucket per co-member).
+- Health and monitoring (7.2, 7.3): `healthcheck.probes` (`use_http`, `use_filesystem`) with a compose healthcheck on `/probes/liveness`; `telemetry.prometheus_port` on the internal network only; a cron or sidecar posting `/api/admin/v1/diagnostics` with the admin token, alerting on a non-empty `errors` or replication lag.
+- Admin API (7.1): `location /api/admin/ { deny all; }` in the `sync.grnyte.rocks` block; diagnostics are reached from inside the docker network.
+- MongoDB sizing (7.2): the docs ask for a three-node replica set with 2 GB or more each in production and call a single 2 GB node the minimal setup. The planned single node with a 1 GB cache is below both. Bucket storage is derived and rebuildable from Postgres, so a single node is a defensible choice, but it is stated here as one, and the cache cap is raised to 2 GB unless the VPS memory says otherwise.
+- Defragmentation (after 7.4): compaction cannot shrink a bucket whose rows are inserted and deleted often. Once metrics exist, compare operation counts with row counts for the `favorites` and `ascents` buckets; if they diverge, a pg_cron job touching every row of the table shortly before a compact rewrites them. Never redeploy the config to clean history.
+- JWT (with the deferred signing-key migration): when Supabase moves to asymmetric keys, drop `supabase_jwt_secret` and keep `supabase: true`, which configures JWKS itself.
+- Client store (7.5): the client keeps the default IndexedDB store (`IDBBatchAtomicVFS`). The docs recommend OPFS (`OPFSCoopSyncVFS`) for Safari and for several tabs, and it was tried on 2026-11-07: in the iOS 27.2 Simulator a cold Safari opened, synced and confirmed on OPFS, but a reload in the same Safari left the previous page's instance holding the file (two `.ahp-` folders), and the new page stayed connected without ever completing a sync, still `arriving` after 45 s. The same reload on IndexedDB confirmed every stream. Revisit OPFS only with a reload test that passes on WebKit. The service worker precaches the async `wa-sqlite` wasm and raises Workbox's 2 MiB `maximumFileSizeToCacheInBytes`, which its 2.26 MB build exceeds. Check the emitted names in a real build.
 
 Local dev: one `docker compose` for PowerSync plus MongoDB started from the main checkout against the shared Supabase DB (one publication, one slot), shared by every worktree like zero-cache today. `e2e/support.ts` requires it in place of zero-cache. CI keeps plain Postgres and `ci/shim.sql` untouched (no Zero server piece changes in this milestone).
 
@@ -94,11 +108,39 @@ The milestone branch still holds the Zero client for feed, inbox, comments and w
 
 `/api/sync/mutate/+server.ts` and `/api/zero/mutate/+server.ts` import one handler. The old path stays through R1 and R2 for zero-cache's `ZERO_MUTATE_URL`; R2 replaces the implementation under the new path; R3 deletes the old path and `zero_0`.
 
+### D9. When a PowerSync resource answers (decided during 5.2)
+
+An empty answer is a claim the app acts on: the layout sends a member with no regions to `/regions/new`, forms show not found, empty states replace skeletons. Zero's `answered` meant the server confirmed the query in this session. PowerSync's own flags do not mean that, and the first drive of 5.2 showed both gaps: a five-region member signing in was sent to `/regions/new`.
+
+- PowerSync stores a stream's `hasSynced` and `lastSyncedAt` on disk and reports them on open, before it reconnects. They describe the previous session.
+- The TanStack collections copy synced rows in after PowerSync applies them: each collection's diff triggers write to its own TEMP tracking table, flushed on a throttled change callback (on an OPFS store they would be ordinary tables, which the probe would then have to read from `sqlite_master` too). For a moment the stream reads synced while the collection is still empty.
+
+So `psResource` (`src/lib/powersync/resource.svelte.ts`) decides from these:
+
+- Online, a resource answers once its stream is confirmed (`streamConfirmed` in `db.svelte.ts`): its `lastSyncedAt` is at or after the moment the file was opened, and a probe under the write lock finds this tab's tracking tables empty. Until then, rows already on the device show as `arriving`: visible, but nothing treats an empty result as true.
+- The probe counts only the tracking tables this tab's collections registered (`registerCollections`, from each collection's `utils.getMeta()`). Desktop tabs share one connection, so a closed tab's tables stay on it and would hold confirmation back for the rest of the browser session.
+- Offline, a stream that ever synced answers from disk, since every device holds its regions whole (D3). One that never synced is `unavailable`, which the global state turns into the cold-store screen.
+- The answer is latched per query (keyed on the dep values), as Zero's is: coming back online does not turn an answer back into `arriving`.
+- Never `error`: PowerSync retries a failed download itself, and reports one whenever it is offline. A download error held during the first load counts as "nothing coming" for `isStoreCold` instead.
+
+Alternatives: trust `hasSynced` (the bug above); wait a fixed delay after a sync for the collections to flush (correct only on a fast device, and the bounce it would let through navigates away); query SQLite directly for every absence claim (a second copy of each query).
+
+### D10. SDK versions (decided 2026-11-07)
+
+`@powersync/web` 2.6.0 and `@powersync/node` 1.3.0 (dev), so one `@powersync/common` 2.5.0 serves the client, the scripts and TanStack's collection (node 1.2.0 pinned common 2.4.0 exactly and would have left a second copy). The user overrode the two-week release-age rule for this upgrade, for the `connectTimeoutMs` and cancel-on-disconnect fix to checkpoint requests (powersync-js #1173). A plain `npm install` against the lockfile is unaffected by the rule; only adding or bumping a package inside the window needs it overridden again.
+
+### D11. Recorded for the offline-writes PR (so the milestone does not decide it by accident)
+
+- `uploadData` first: a real one that sends each queued change to the app server, which runs the existing mutator. While the upload queue holds anything the client does not take a new checkpoint, so one local write against today's no-op `uploadData` would freeze sync.
+- Ids: serial ids stay. Toggles (favorites first) sync with a natural composite id (user plus entity, as `routes_to_tags` already does), so a client can create and delete them offline with no new column. Tables whose rows are created offline (ascents first) gain a native `uuid` column beside the serial, filled by `gen_random_uuid()` in SQL and `crypto.randomUUID()` in the client (both inside the browser floor), and synced as the PowerSync `id`. Files stay cuid2. No migration to UUID primary keys: every foreign key would change type and the id-based URLs, which never break, would need redirects.
+- Checkpoint requests: alpha (no beta or GA date published). Only ever a UI gate (releasing an optimistic state, waiting before showing a just-created row), always behind our own timeout and a fallback, never for correctness. They need `checkpointMode: 'requests'` on connect, and a failing checkpoint-request call fails the whole sync attempt, so force that failure in dev before relying on it.
+- The favorite overlay (`save.svelte.ts`) is retired by that PR: a local write stays visible until the server's checkpoint replaces it.
+
 ## Risks / Trade-offs
 
 - [nginx has never fronted the stream] → the block is proven locally against `trial-ps-mongo` with a 10-minute idle connection before the VPS deploy.
 - [Replication slot headroom on prod] → read before day 1; if only one slot is free, the overlap release shortens to days with a forced service-worker reload.
-- [Status events on iOS] → polling while visible on every platform; the user's day-2 iPhone drive is the proof.
+- [Status events on iOS] → listener only, verified in the iOS Simulator; the rule 8 soak on the iPhone (8.4) would show a stalled status.
 - [The row shim hides column drift] → the generated schema (D4) and one mapper snapshot test per migrated entity.
 - [Raw SQL scans on a phone] → the EXPLAIN guard (D7) on every raw statement; none ships without it.
 - [Two engines on the branch during the milestone] → the measurement switch (D6); the branch is never released in that state.
@@ -112,7 +154,7 @@ Milestone only; nothing deploys to users.
 1. Infra on the VPS beside zero-cache, service reachable at `sync.grnyte.rocks`, syncing prod data to a test account.
 2. Branch `feature/powersync` in a fresh worktree off `develop`; trial code ported by file, not merged.
 3. Reads and shell land per task group with a review loop after reads.
-4. Remeasure on the user's iPhone (home-screen app, preview build over Tailscale, switch on): rule 1 cold start and reopen to map-ready, rule 2 screens, rule 8 one-hour soak, each against today's Zero build. Pass means no worse.
+4. Remeasure on the user's iPhone (home-screen app, preview build over Tailscale, switch on): rule 1 cold start and reopen to map-ready, rule 2 screens, rule 8 one-hour soak, each against today's Zero build. Pass means no worse. iOS checks run in the iOS Simulator first; the iPhone carries only what the Simulator cannot measure: the rule 1 and 2 timings and the rule 8 soak.
 5. Go/no-go. On no-go, the VPS services are removed and the branch is kept.
 
 Rollback at this stage is deleting two containers and one publication.

@@ -42,11 +42,7 @@
   const { isSelf, onBack, userId, username }: Props = $props()
   const global = getGlobalState()
 
-  const ascents = userAscentDetailList(
-    () => userId,
-    () => true,
-    () => isSelf,
-  )
+  const ascents = userAscentDetailList(() => userId)
   // Guidebook contributions (areas/blocks/routes edited), counted server-side
   // rather than syncing the whole audit log only for a headline number.
   const contributions = $derived(userContributionCount(userId))

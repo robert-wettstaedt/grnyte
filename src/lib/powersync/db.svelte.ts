@@ -9,8 +9,6 @@ import { appSchema } from './schema'
 
 /** Every account file starts with this, so a sign-out can find the ones it did not open. */
 const FILE_PREFIX = 'grnyte-'
-/** Status events never fire on iOS Safari (no shared worker), so the status is also read on this beat. */
-const POLL_MS = 250
 const ZERO_DROPPED_KEY = 'grnyte.zeroStoreDropped'
 
 // The explore map's block rows. Never a LEFT JOIN through PowerSync's views: SQLite cannot use the index through
@@ -31,20 +29,30 @@ let settings: PowerSyncSettings = { endpoint: '', only: false }
 let db: PowerSyncDatabase | undefined
 let userId: string | undefined
 let cleared = Promise.resolve()
-/** Stops the open database's poll and status listener, so nothing it reports reaches the next account. */
+/** Stops the open database's status listener, so nothing it reports reaches the next account. */
 let stopWatching = () => {}
 // Raw: PowerSync hands over a new status object on every change and never mutates one.
 let status = $state.raw<SyncStatus | undefined>(undefined)
-/** The stamps this account has written since its file was opened, so the poll writes each once. */
+/** The stamps this account has written since its file was opened, so each is written once. */
 let stamped: SyncStamp[] = []
+/** When the open file was opened: a stream's `lastSyncedAt` before it is a previous session's, read off disk. */
+let openedAt = 0
+/** Streams synced this session and copied into the collections; the persisted `hasSynced` promises neither. */
+let confirmed = $state.raw<readonly string[]>([])
+let confirming: string[] = []
+/** This tab's collections' own tracking tables. Desktop tabs share one connection; others' stay out of the count. */
+let trackedTables: () => string[] = () => []
 
 /** Removes every account's local data from this device, open or not. */
 export async function clearPowerSync(): Promise<void> {
+  const open = userId == null ? [] : [fileName(userId)]
   await closeCurrent()
   userId = undefined
-  const files = (await indexedDB.databases())
-    .map((info) => info.name ?? '')
-    .filter((name) => name.startsWith(FILE_PREFIX))
+  // `databases()` is missing before Firefox 126: then only the file this page opened is known.
+  const files =
+    'databases' in indexedDB
+      ? (await indexedDB.databases()).map((info) => info.name ?? '').filter((name) => name.startsWith(FILE_PREFIX))
+      : open
   const deleted = await Promise.all(files.map((name) => deleteDatabase(name)))
   const left = files.filter((_, i) => !deleted[i])
   if (left.length > 0) throw new Error(`account files left: ${left.join(', ')}`)
@@ -56,6 +64,8 @@ export async function dropZeroStoreOnce(): Promise<void> {
   const { errors } = await dropAllDatabases()
   if (errors.length === 0) storage.set(ZERO_DROPPED_KEY, '1')
 }
+
+const fileName = (id: string) => `${FILE_PREFIX}${id}.sqlite`
 
 export function getPowerSync(): PowerSyncDatabase {
   if (db == null) throw new Error('PowerSync is not initialized: initPowerSync(session) must run first')
@@ -80,23 +90,20 @@ export function initPowerSync(
   userId = session?.user.id
   if (session == null || db != null) return
 
-  const opened = new PowerSyncDatabase({
-    database: { dbFilename: `${FILE_PREFIX}${session.user.id}.sqlite` },
-    schema: appSchema,
-  })
+  // The default IndexedDB store, not OPFS: on iOS Safari a reload left the previous page holding the OPFS file and
+  // the new page never finished a sync (design D5, client store).
+  const opened = new PowerSyncDatabase({ database: { dbFilename: fileName(session.user.id) }, schema: appSchema })
   db = opened
   stamped = []
+  openedAt = Date.now()
+  confirmed = []
+  confirming = []
   trackSyncFor(session.user.id)
   // Every late callback checks it still belongs to the open account: a switch closes this one asynchronously.
   const current = () => db === opened
   void opened.waitForReady().then(() => current() && powerSyncOnly() && markStoreLoaded())
   observe(opened.currentStatus)
-  const stopListening = opened.registerListener({ statusChanged: (next) => current() && observe(next) })
-  const stopPolling = pollWhileVisible(opened)
-  stopWatching = () => {
-    stopPolling()
-    stopListening()
-  }
+  stopWatching = opened.registerListener({ statusChanged: (next) => current() && observe(next) })
 
   const connector: PowerSyncBackendConnector = {
     fetchCredentials: async () => {
@@ -120,14 +127,64 @@ export function powerSyncStatus(): SyncStatus | undefined {
   return status
 }
 
+export function registerCollections(database: PowerSyncDatabase, tables: () => string[]): void {
+  if (database === db) trackedTables = tables
+}
+
+/** Whether `stream` has synced in this session and every collection has taken its rows in: only then is an
+ *  empty result an answer online. */
+export function streamConfirmed(stream: string): boolean {
+  return confirmed.includes(stream)
+}
+
 /** Stops, clears and closes the open account's database, so its file can be deleted or another one opened. */
 async function closeCurrent(): Promise<void> {
   stopWatching()
   stopWatching = () => {}
   const closing = db
   db = undefined
+  trackedTables = () => []
+  confirmed = []
+  confirming = []
   await closing?.disconnectAndClear()
   await closing?.close()
+}
+
+function confirmStreams(next: SyncStatus): void {
+  const opened = db
+  if (opened == null) return
+  for (const { subscription } of next.syncStreams ?? []) {
+    const { lastSyncedAt, name } = subscription
+    if (lastSyncedAt == null || lastSyncedAt.getTime() < openedAt) continue
+    if (confirmed.includes(name) || confirming.includes(name)) continue
+    confirming.push(name)
+    copiedIn(opened)
+      .then(() => {
+        if (db === opened) confirmed = [...confirmed, name]
+      })
+      .catch(() => {
+        if (db === opened) confirming = confirming.filter((other) => other !== name)
+      })
+  }
+}
+
+/** Resolves once no collection has changes left to take in. Each copies through a temp table it empties, so
+ *  synced rows are not yet readable while one holds a row. Under the write lock: temp tables are per connection. */
+async function copiedIn(opened: PowerSyncDatabase): Promise<void> {
+  for (let wait = 50; ; wait = Math.min(wait * 2, 1000)) {
+    const names = trackedTables()
+    const pending = await opened.writeLock(async (tx) => {
+      const tables = await tx.getAll<{ name: string }>(
+        `SELECT name FROM sqlite_temp_master WHERE type = 'table' AND name IN (${names.map(() => '?').join(',')})`,
+        names,
+      )
+      let rows = 0
+      for (const { name } of tables) rows += (await tx.get<{ n: number }>(`SELECT count(*) AS n FROM "${name}"`)).n
+      return rows
+    })
+    if (pending === 0) return
+    await new Promise((resolve) => setTimeout(resolve, wait))
+  }
 }
 
 /** Whether the delete went through. Blocked counts: it completes once the last connection closes. */
@@ -141,9 +198,9 @@ function deleteDatabase(name: string): Promise<boolean> {
 
 /** Takes a status in and writes the stamps the shell reads: the essentials (priority 0), then everything. */
 function observe(next: SyncStatus): void {
-  // The poll reads the same object until something changes.
   if (next === status) return
   status = next
+  confirmStreams(next)
   // While Zero syncs, the online signal and the stamps are Zero's: PowerSync's would vouch for Zero's store.
   if (!powerSyncOnly()) return
   reportSyncStatus(next)
@@ -154,20 +211,5 @@ function observe(next: SyncStatus): void {
     if (stamped.includes(stamp)) continue
     stamped.push(stamp)
     markSynced(stamp)
-  }
-}
-
-function pollWhileVisible(opened: PowerSyncDatabase): () => void {
-  let timer: ReturnType<typeof setInterval> | undefined
-  const sync = () => {
-    clearInterval(timer)
-    timer =
-      document.visibilityState === 'visible' ? setInterval(() => observe(opened.currentStatus), POLL_MS) : undefined
-  }
-  sync()
-  document.addEventListener('visibilitychange', sync)
-  return () => {
-    clearInterval(timer)
-    document.removeEventListener('visibilitychange', sync)
   }
 }

@@ -1,40 +1,64 @@
+import { page } from '$app/state'
 import { isOnline } from '$lib/state/online.svelte'
 import { resolvePhase, type QueryPhase, type QueryResource } from '$lib/zero/resource.svelte'
 import type { Context, InferResultType, InitialQueryBuilder, QueryBuilder } from '@tanstack/db'
 import { useLiveQuery } from '@tanstack/svelte-db'
-import { powerSyncStatus } from './db.svelte'
+import { powerSyncStatus, streamConfirmed } from './db.svelte'
 
 /**
  * A TanStack DB live query as the app's `QueryResource`, so `QueryState` and `summaryOf` read it unchanged.
- * Complete means the collection is ready and the stream that fills it has synced once. Every device holds the
- * whole region, so offline after that first sync is an answer, not an absence.
+ * Online it answers once its stream has synced this session; until then the rows on disk show as arriving.
+ * Offline, a stream that ever synced answers from disk: every device holds the whole region. Never `error`:
+ * PowerSync retries a failed download itself, and offline it always reports one. A query joining tables from
+ * several streams names them all, and answers once every one of them has. Disabled, it is loading, as Zero's is.
  */
 export function psResource<TContext extends Context, TOut>(
   query: (q: InitialQueryBuilder) => QueryBuilder<TContext>,
   deps: (() => unknown)[],
   select: (rows: InferResultType<TContext>) => TOut,
-  stream = 'guidebook',
+  stream: string | string[] = 'guidebook',
+  opts?: { enabled?: () => boolean },
 ): QueryResource<TOut> {
+  const streams = typeof stream === 'string' ? [stream] : stream
   const live = useLiveQuery(query, deps) as { data: InferResultType<TContext>; isReady: boolean }
-  const synced = $derived(powerSyncStatus()?.forStream({ name: stream, parameters: null })?.subscription.hasSynced)
-  const complete = $derived(live.isReady && synced === true)
-  const errored = $derived(powerSyncStatus()?.dataFlowStatus.downloadError != null && !complete)
-  const data = $derived(select(live.data))
+  const everSynced = $derived(
+    streams.every((name) => powerSyncStatus()?.forStream({ name, parameters: null })?.subscription.hasSynced === true),
+  )
+  const enabled = () => opts?.enabled?.() !== false
+  // Disabled, nothing: as Zero's unmaterialized query, whatever the live query has found.
+  const data = $derived(select((enabled() ? live.data : []) as InferResultType<TContext>))
+  // Latched per query, as Zero's is: coming back online must not turn an answer back into arriving.
+  const queryKey = $derived(JSON.stringify(deps.map((dep) => dep())))
+  let latched: string | undefined
 
   return {
     get data() {
       return data
     },
     get phase(): QueryPhase {
-      const raw = live.data as unknown
-      const rawEmpty = raw == null || (Array.isArray(raw) && raw.length === 0)
+      if (!enabled()) return { kind: 'loading' }
+      const online = isOnline()
+      const settled = live.isReady && (online ? streams.every(streamConfirmed) : everSynced)
+      if (settled) latched = queryKey
+      const answered = live.isReady && (settled || latched === queryKey)
+      // The selection when it is a list or nothing: a filter applied there can leave nothing of rows the query matched.
+      const shown = Array.isArray(data) || data === undefined ? data : (live.data as unknown)
+      const rawEmpty = shown == null || (Array.isArray(shown) && shown.length === 0)
       return resolvePhase({
         excluded: false,
-        online: isOnline(),
+        online,
         rawEmpty,
-        settled: complete,
-        status: errored ? 'error' : complete ? 'ready' : 'loading',
+        settled: answered,
+        // Nothing yet and nothing confirmed is loading, as Zero's is: arriving would render a screen with no row.
+        status: live.isReady && everSynced && (answered || !rawEmpty) ? 'ready' : 'loading',
       })
     },
   }
+}
+
+/** The signed-in auth id as a dep that fires when the id changes, not on every `page.data` replacement:
+ *  each fire rebuilds the live query. */
+export function signedInAuthId(): () => string {
+  const id = $derived(page.data.session?.user.id ?? '')
+  return () => id
 }
