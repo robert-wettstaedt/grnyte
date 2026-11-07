@@ -1,17 +1,13 @@
 // Writes src/lib/powersync/schema.ts: the client half of deployment/powersync/sync-config.yaml, one table per
 // synced table with every column drizzle declares for it.
 //   npm run generate:powersync
-import { SqlSyncRules } from '@powersync/service-sync-rules'
 import { getTableName, isTable } from 'drizzle-orm'
 import { getTableConfig, type PgTable } from 'drizzle-orm/pg-core'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import * as schema from '../src/lib/db/schema'
+import { syncedTables as synced } from '../src/lib/powersync/evaluate.server'
 
 const OUT = 'src/lib/powersync/schema.ts'
-const config = SqlSyncRules.fromYaml(readFileSync('deployment/powersync/sync-config.yaml', 'utf8'), {
-  defaultSchema: 'public',
-}).config
-const synced = [...new Set(config.getSourceTables().map((table) => table.tablePattern))].sort()
 const tables = new Map(
   Object.values(schema)
     .filter((item) => isTable(item))

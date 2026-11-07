@@ -1,3 +1,4 @@
+import { powerSyncOnly } from '$lib/powersync/db.svelte'
 import { isFieldDevice } from '$lib/state/device.svelte'
 import { isOnline } from '$lib/state/online.svelte'
 import { holdsPill, pillSurface, type PillSurface } from '$lib/state/pill.svelte'
@@ -66,7 +67,7 @@ class Resource<
   get phase(): QueryPhase {
     return resolvePhase({
       excluded: this.#keptInput().policy === 'excluded',
-      online: isOnline(),
+      online: zeroOnline(),
       rawEmpty: this.#rawEmpty,
       settled: this.#settled,
       status: this.#status,
@@ -158,7 +159,7 @@ class Resource<
     const next = resolveSettled({
       // Offline, a kept query is answered by its preload; latched like a server answer, so the
       // reconnect does not drop a form to `arriving` and remount its fields over the edits.
-      complete: this.isComplete || (!isOnline() && resolveKept(this.#keptInput())),
+      complete: this.isComplete || (!zeroOnline() && !powerSyncOnly() && resolveKept(this.#keptInput())),
       latched: this.#settledLatch,
       sameView: sameViews(views, this.#settledViews),
     })
@@ -411,4 +412,9 @@ export function waitForRow<
 // Zero carries the registry name on every request, so a resource finds its own offline policy.
 function queryNameOf(request: QueryRequest): string | undefined {
   return typeof request === 'object' && 'query' in request ? request.query.queryName : undefined
+}
+
+/** Whether Zero can reach its server: never in the measurement build, where it runs local-only and empty. */
+function zeroOnline(): boolean {
+  return isOnline() && !powerSyncOnly()
 }

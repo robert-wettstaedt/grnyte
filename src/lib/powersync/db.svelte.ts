@@ -1,5 +1,6 @@
 import { browser } from '$app/environment'
 import { reportSyncStatus } from '$lib/state/online.svelte'
+import { storage } from '$lib/state/storage'
 import { markStoreLoaded, markSynced, trackSyncFor, type SyncStamp } from '$lib/state/sync.svelte'
 import { PowerSyncDatabase, type PowerSyncBackendConnector, type SyncStatus } from '@powersync/web'
 import { dropAllDatabases } from '@rocicorp/zero'
@@ -30,30 +31,30 @@ let settings: PowerSyncSettings = { endpoint: '', only: false }
 let db: PowerSyncDatabase | undefined
 let userId: string | undefined
 let cleared = Promise.resolve()
-let stopPolling = () => {}
+/** Stops the open database's poll and status listener, so nothing it reports reaches the next account. */
+let stopWatching = () => {}
 // Raw: PowerSync hands over a new status object on every change and never mutates one.
 let status = $state.raw<SyncStatus | undefined>(undefined)
 /** The stamps this account has written since its file was opened, so the poll writes each once. */
 let stamped: SyncStamp[] = []
 
-/** Removes every account's local data from this device, open or not. Sign-out's half. */
+/** Removes every account's local data from this device, open or not. */
 export async function clearPowerSync(): Promise<void> {
-  stopPolling()
-  await db?.disconnectAndClear()
-  await db?.close()
-  db = undefined
+  await closeCurrent()
   userId = undefined
   const files = (await indexedDB.databases())
     .map((info) => info.name ?? '')
     .filter((name) => name.startsWith(FILE_PREFIX))
-  await Promise.all(files.map((name) => deleteDatabase(name)))
+  const deleted = await Promise.all(files.map((name) => deleteDatabase(name)))
+  const left = files.filter((_, i) => !deleted[i])
+  if (left.length > 0) throw new Error(`account files left: ${left.join(', ')}`)
 }
 
 /** Drops the previous engine's local store once per device: it would otherwise keep a second copy of every region. */
 export async function dropZeroStoreOnce(): Promise<void> {
-  if (localStorage.getItem(ZERO_DROPPED_KEY) != null) return
+  if (storage.get(ZERO_DROPPED_KEY) != null) return
   const { errors } = await dropAllDatabases()
-  if (errors.length === 0) localStorage.setItem(ZERO_DROPPED_KEY, '1')
+  if (errors.length === 0) storage.set(ZERO_DROPPED_KEY, '1')
 }
 
 export function getPowerSync(): PowerSyncDatabase {
@@ -74,15 +75,11 @@ export function initPowerSync(
   settings = options
   if (db != null && userId !== session?.user.id) {
     // A reload follows every sign-out; this covers a switch that skips it.
-    const previous = db
-    cleared = previous.disconnectAndClear().catch((error: unknown) => console.error('[powersync] clear failed', error))
-    stopPolling()
-    db = undefined
+    cleared = closeCurrent().catch((error: unknown) => console.error('[powersync] clear failed', error))
   }
   userId = session?.user.id
   if (session == null || db != null) return
 
-  // One file per account, so no account ever opens another's rows.
   const opened = new PowerSyncDatabase({
     database: { dbFilename: `${FILE_PREFIX}${session.user.id}.sqlite` },
     schema: appSchema,
@@ -90,23 +87,31 @@ export function initPowerSync(
   db = opened
   stamped = []
   trackSyncFor(session.user.id)
-  void opened.waitForReady().then(markStoreLoaded)
+  // Every late callback checks it still belongs to the open account: a switch closes this one asynchronously.
+  const current = () => db === opened
+  void opened.waitForReady().then(() => current() && powerSyncOnly() && markStoreLoaded())
   observe(opened.currentStatus)
-  opened.registerListener({ statusChanged: observe })
-  stopPolling = pollWhileVisible(opened)
+  const stopListening = opened.registerListener({ statusChanged: (next) => current() && observe(next) })
+  const stopPolling = pollWhileVisible(opened)
+  stopWatching = () => {
+    stopPolling()
+    stopListening()
+  }
 
   const connector: PowerSyncBackendConnector = {
     fetchCredentials: async () => {
       const token = await accessToken()
       return token == null ? null : { endpoint: settings.endpoint, token }
     },
-    // Nothing writes to the local database: writes stay server mutators until the offline-writes PR.
+    // Nothing writes to the local database; writes go through the server mutators.
     uploadData: async () => {},
   }
-  void cleared.then(() => opened.connect(connector))
+  void cleared
+    .then(() => (current() ? opened.connect(connector) : undefined))
+    .catch((error: unknown) => console.error('[powersync] connect failed', error))
 }
 
-/** The measurement build: only PowerSync starts, so the remeasure runs on one engine. Removed in R1. */
+/** shortcut: the measurement build starts only PowerSync; goes when Zero leaves the client. */
 export function powerSyncOnly(): boolean {
   return settings.only
 }
@@ -115,18 +120,33 @@ export function powerSyncStatus(): SyncStatus | undefined {
   return status
 }
 
-function deleteDatabase(name: string): Promise<void> {
+/** Stops, clears and closes the open account's database, so its file can be deleted or another one opened. */
+async function closeCurrent(): Promise<void> {
+  stopWatching()
+  stopWatching = () => {}
+  const closing = db
+  db = undefined
+  await closing?.disconnectAndClear()
+  await closing?.close()
+}
+
+/** Whether the delete went through. Blocked counts: it completes once the last connection closes. */
+function deleteDatabase(name: string): Promise<boolean> {
   return new Promise((resolve) => {
     const request = indexedDB.deleteDatabase(name)
-    request.onsuccess = request.onerror = request.onblocked = () => resolve()
+    request.onsuccess = request.onblocked = () => resolve(true)
+    request.onerror = () => resolve(false)
   })
 }
 
 /** Takes a status in and writes the stamps the shell reads: the essentials (priority 0), then everything. */
 function observe(next: SyncStatus): void {
+  // The poll reads the same object until something changes.
+  if (next === status) return
   status = next
-  // Zero reports while it syncs; only the measurement build leaves the online signal to PowerSync.
-  if (powerSyncOnly()) reportSyncStatus(next)
+  // While Zero syncs, the online signal and the stamps are Zero's: PowerSync's would vouch for Zero's store.
+  if (!powerSyncOnly()) return
+  reportSyncStatus(next)
   const reached: SyncStamp[] = []
   if (next.statusForPriority(0)?.hasSynced) reached.push('reference')
   if (next.hasSynced) reached.push('guidebook', 'personal')

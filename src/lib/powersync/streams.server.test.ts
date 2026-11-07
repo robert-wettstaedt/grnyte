@@ -8,7 +8,7 @@
 import { createThrowawayUser, dropThrowawayUser, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import type { RequestedStream } from '@powersync/service-sync-rules'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { SyncedWorld, type Held } from './evaluate.server'
+import { syncedTables, SyncedWorld, type Held } from './evaluate.server'
 
 const REGION_A = '__streams_a__'
 const REGION_B = '__streams_b__'
@@ -146,6 +146,10 @@ afterAll(async () => {
   await sql.end()
 })
 
+it('checks every table a stream syncs, so a new one cannot slip past the boundary unchecked', () => {
+  expect([...REGION_TABLES, ...GLOBAL_TABLES].sort()).toEqual(syncedTables)
+})
+
 describe.skipIf(!reachable)('synced reads never cross the region boundary', () => {
   it('gives a member every table of their region and nothing of another', async () => {
     const held = regionsByTable(await holdings(users.insider.authId))
@@ -169,10 +173,21 @@ describe.skipIf(!reachable)('synced reads never cross the region boundary', () =
     const held = await holdings(users.insider.authId)
     const userIds = held.filter((row) => row.table === 'users').map((row) => Number(row.data.id))
     const settingsOwners = held.filter((row) => row.table === 'user_settings').map((row) => row.data.auth_user_fk)
+    const roleOwners = held.filter((row) => row.table === 'user_roles').map((row) => row.data.auth_user_fk)
 
     expect(userIds).toContain(users.insider.userId)
     expect(userIds).not.toContain(users.outsider.userId)
     expect(new Set(settingsOwners)).toEqual(new Set([users.insider.authId]))
+    expect(roleOwners.filter((owner) => owner !== users.insider.authId)).toEqual([])
+  })
+
+  it('syncs nothing at all to a contested signup, whatever the flag holds', async () => {
+    // The app refuses these tokens (`isContested`); GoTrue still issues them to whoever knows the password.
+    for (const flag of [true, false, '2026-11-07T10:00:00Z']) {
+      const held = await world.holdings(users.insider.authId, {}, { app_metadata: { contested_signup: flag } })
+
+      expect(held).toEqual([])
+    }
   })
 
   it('ignores a region the client names in its subscription', async () => {

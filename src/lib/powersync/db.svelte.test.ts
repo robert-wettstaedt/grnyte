@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const engine = vi.hoisted(() => ({
   connectors: [] as PowerSyncBackendConnector[],
   files: [] as string[],
+  /** Each database's status listeners, by file, until disposed. */
+  listeners: new Map<string, (status: object) => void>(),
   status: { connected: false } as object,
   statusReads: 0,
 }))
@@ -13,12 +15,14 @@ vi.mock('$app/environment', () => ({ browser: true, dev: true }))
 vi.mock('@powersync/web', async (original) => ({
   ...(await original<object>()),
   PowerSyncDatabase: class {
+    readonly file: string
     get currentStatus() {
       engine.statusReads++
       return engine.status
     }
     constructor(options: { database: { dbFilename: string } }) {
-      engine.files.push(options.database.dbFilename)
+      this.file = options.database.dbFilename
+      engine.files.push(this.file)
     }
     close = () => Promise.resolve()
     connect = (connector: PowerSyncBackendConnector) => {
@@ -26,7 +30,10 @@ vi.mock('@powersync/web', async (original) => ({
       return Promise.resolve()
     }
     disconnectAndClear = () => Promise.resolve()
-    registerListener = () => () => {}
+    registerListener = (listener: { statusChanged: (status: object) => void }) => {
+      engine.listeners.set(this.file, listener.statusChanged)
+      return () => engine.listeners.delete(this.file)
+    }
     waitForReady = () => Promise.resolve()
   },
 }))
@@ -47,7 +54,13 @@ describe('the PowerSync shell', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.useFakeTimers()
-    Object.assign(engine, { connectors: [], files: [], status: synced([], false), statusReads: 0 })
+    Object.assign(engine, {
+      connectors: [],
+      files: [],
+      listeners: new Map(),
+      status: synced([], false),
+      statusReads: 0,
+    })
     localStorage.clear()
     visibility = 'visible'
     vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility)
@@ -118,7 +131,7 @@ describe('the PowerSync shell', () => {
   it('stamps the essentials once priority 0 has synced, and the guidebook once everything has', async () => {
     const { initPowerSync } = await import('./db.svelte')
     const { lastSyncedAt, localStoreLoaded } = await import('$lib/state/sync.svelte')
-    initPowerSync(session('a'), async () => 'token', settings)
+    initPowerSync(session('a'), async () => 'token', { ...settings, only: true })
     await settle()
     expect(localStoreLoaded()).toBe(true)
     expect(lastSyncedAt('reference')).toBeNull()
@@ -131,5 +144,32 @@ describe('the PowerSync shell', () => {
     engine.status = synced([0, 1, 2], true)
     await vi.advanceTimersByTimeAsync(300)
     expect(lastSyncedAt('guidebook')).not.toBeNull()
+  })
+
+  it('leaves the stamps to Zero while Zero still syncs, so they never vouch for its store', async () => {
+    const { initPowerSync } = await import('./db.svelte')
+    const { lastSyncedAt, localStoreLoaded } = await import('$lib/state/sync.svelte')
+    initPowerSync(session('a'), async () => 'token', settings)
+    engine.status = synced([0, 1, 2], true)
+    await vi.advanceTimersByTimeAsync(300)
+
+    expect(localStoreLoaded()).toBe(false)
+    expect([lastSyncedAt('reference'), lastSyncedAt('guidebook')]).toEqual([null, null])
+  })
+
+  it('never writes the next account stamps from the previous account status', async () => {
+    const { initPowerSync } = await import('./db.svelte')
+    const { lastSyncedAt } = await import('$lib/state/sync.svelte')
+    const only = { ...settings, only: true }
+    initPowerSync(session('a'), async () => 'token', only)
+    await settle()
+    const fromA = engine.listeners.get('grnyte-a.sqlite')
+
+    initPowerSync(session('b'), async () => 'token', only)
+    await settle()
+    // A disconnecting announces its last status, synced, after B is already the open account.
+    fromA?.(synced([0, 1, 2], true))
+
+    expect([lastSyncedAt('reference'), lastSyncedAt('guidebook')]).toEqual([null, null])
   })
 })
