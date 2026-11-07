@@ -9,6 +9,8 @@ describe('toaster', () => {
   // re-enter the flush and throw inside Svelte's `update_reaction`, blanking the screen.
   it('raises a toast from inside an effect without crashing the flush', async () => {
     const { container, rerender } = render(ToastFixture, { fix: undefined })
+    // The group mounts a microtask late; raised before that, the toast is seeded rather than published.
+    await vi.waitFor(() => expect(container.querySelector('[data-scope="toast"][data-part="group"]')).not.toBeNull())
 
     await rerender({ fix: null })
 

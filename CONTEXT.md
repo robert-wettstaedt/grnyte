@@ -172,6 +172,45 @@ A vocabulary rather than a list because it is also the allowlist a route write i
 (`regionTags`), so a word that is not in it cannot be stored on a route. In the UI the word is
 "Tags". `settings.ts` and `tagVocabulary.ts` hold how it is read and who owns it.
 
+### Parts of the sync system
+
+"The server" and "PowerSync" each name two things, so say which one. A write and a read take different
+paths, and that difference is most of what goes wrong.
+
+**Postgres**
+The source of truth. Every other copy of the data below is derived from it and can be rebuilt.
+
+**app server**
+The SvelteKit server (Vercel in production): remote functions, the server half of each mutator,
+`/api/zero/mutate`. Every write lands here and is committed to Postgres here. "Our server" means this.
+
+**client**
+The PWA running in a browser or as an installed home-screen app. "The app" in a sentence about syncing
+means this. "Device" is the place its local copy lives, which is per browser profile, not per person.
+
+**PowerSync service**
+The self-hosted sync server (`sync.grnyte.rocks`, beside zero-cache on the VPS). It reads Postgres's
+replication stream and serves each client its **streams**. It never takes writes from a client in
+this app. Its **bucket storage** is MongoDB, derived state.
+
+**PowerSync client**
+The SDK inside the client, and its **local database**: one SQLite file per account (`grnyte-<uid>`),
+which holds the synced streams. **Collections** are TanStack DB's in-memory views over that file, the
+thing a resource queries.
+
+**zero-cache** / **Zero client**
+The engine being replaced, server and client half. It still carries writes (custom mutators) and the
+feed, inbox and comments until the R1 to R3 changes move them.
+
+**stream**
+A named set of rows the PowerSync service sends a client (`essentials`, `guidebook`, ...), defined in
+`deployment/powersync/sync-config.yaml`. The tenancy boundary for synced reads.
+
+**checkpoint**
+A consistent position of the PowerSync service's data. A client is caught up to a checkpoint once its
+local database has applied everything up to it; a **checkpoint request** asks the service for its
+current position so a client can wait for a write the app server just committed.
+
 ## Events
 
 How the feed stores what happened. It replaced the `activities` audit log: nothing reads that

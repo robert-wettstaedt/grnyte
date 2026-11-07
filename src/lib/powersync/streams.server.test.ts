@@ -181,6 +181,24 @@ describe.skipIf(!reachable)('synced reads never cross the region boundary', () =
     expect(roleOwners.filter((owner) => owner !== users.insider.authId)).toEqual([])
   })
 
+  it("keeps a former member's name for those still in the region, and nothing of the region for them", async () => {
+    // Their ascents stay in the region's activity, so the name they were logged under has to stay readable too.
+    await sql`
+      insert into public.region_members (region_fk, role, is_active, auth_user_fk, user_fk)
+      values (${regionA}, 'region_user', false, ${users.outsider.authId}, ${users.outsider.userId})`
+    try {
+      await replicate()
+      const insiderSees = (await holdings(users.insider.authId)).filter((row) => row.table === 'users')
+      const formerGets = regionsByTable(await holdings(users.outsider.authId))
+
+      expect(insiderSees.map((row) => Number(row.data.id))).toContain(users.outsider.userId)
+      expect(Object.values(formerGets).flat()).not.toContain(regionA)
+    } finally {
+      await sql`delete from public.region_members where region_fk = ${regionA} and user_fk = ${users.outsider.userId}`
+      await replicate()
+    }
+  })
+
   it('syncs nothing at all to a contested signup, whatever the flag holds', async () => {
     // The app refuses these tokens (`isContested`); GoTrue still issues them to whoever knows the password.
     for (const flag of [true, false, '2026-11-07T10:00:00Z']) {

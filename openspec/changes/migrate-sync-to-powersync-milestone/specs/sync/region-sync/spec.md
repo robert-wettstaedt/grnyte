@@ -8,7 +8,7 @@ What a signed-in device holds locally and keeps current: every region the reader
 
 ### Requirement: A device holds every region it belongs to, in full
 
-A signed-in device SHALL receive and keep current the complete guidebook of every region the reader is an active member of (areas, blocks, routes, topos and their images' records, first ascensionists, tags, geolocations), everyone's ascents in those regions, the regions' members, the reader's own favorites and settings, and the reference data every screen needs. This applies to every device, desktop included; there is no per-device subset.
+A signed-in device SHALL receive and keep current the complete guidebook of every region the reader is an active member of (areas, blocks, routes, topos and their images' records, first ascensionists, tags, geolocations), everyone's ascents in those regions, the regions' members (and the names of former members, whose ascents remain), the reader's own favorites and settings, and the reference data every screen needs. This applies to every device, desktop included; there is no per-device subset.
 
 #### Scenario: A member of two regions opens the app on a new device
 

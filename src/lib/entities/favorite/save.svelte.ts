@@ -10,8 +10,8 @@ export type SaveState = {
 }
 
 /**
- * Live save state for one entity. The write is a Zero mutator, so the local store reflects it at
- * once and Zero reverts it if the server refuses.
+ * Live save state for one entity. The read only sees a write once it syncs back, so the wanted state shows
+ * until it does, and is dropped if the server refuses. Keyed to the entity: the page is reused across ids.
  */
 export function createSaveState(
   userId: () => number | undefined,
@@ -20,33 +20,46 @@ export function createSaveState(
 ): SaveState {
   const favorited = isFavorited(userId, entityType, entityId)
   const count = saveCount(entityType, entityId)
+  const key = () => `${entityType()}:${entityId()}`
+  let wanted = $state.raw<{ key: string; saved: boolean }>()
+  // Held while writes are out: a second tap can agree with the stale read before the first write syncs back.
+  let writing = $state(0)
+  const unsynced = $derived(
+    wanted?.key === key() && (writing > 0 || wanted.saved !== favorited.data) ? wanted.saved : undefined,
+  )
+  // Dropped once the read agrees: kept, it would resurface when another device later flips the same save.
+  $effect(() => {
+    if (wanted != null && unsynced == null) wanted = undefined
+  })
 
   return {
-    // 0 (no badge) until it is whole: your own preloaded row alone read as "1".
+    // 0 (no badge) until it is whole: your own row alone read as "1".
     get count() {
-      return count.phase.kind === 'answered' ? count.data : 0
+      const synced = count.phase.kind === 'answered' ? count.data : 0
+      return unsynced == null ? synced : synced + (unsynced ? 1 : -1)
     },
     /** Loading only, not unanswered: Zero clears `complete` on its own background-tab disconnect. */
     get pending() {
       return favorited.phase.kind === 'loading'
     },
     get saved() {
-      return favorited.data
+      return unsynced ?? favorited.data
     },
     toggle: async () => {
       const id = userId()
       if (id == null) {
         return
       }
+      const next = { key: key(), saved: !(unsynced ?? favorited.data) }
+      wanted = next
+      writing++
       try {
-        await saveFavorite({
-          entityId: entityId(),
-          entityType: entityType(),
-          saved: !favorited.data,
-          userId: id,
-        })
+        await saveFavorite({ entityId: entityId(), entityType: entityType(), saved: next.saved, userId: id })
       } catch (cause) {
+        if (wanted === next) wanted = undefined
         notifyError(cause)
+      } finally {
+        writing--
       }
     },
   }

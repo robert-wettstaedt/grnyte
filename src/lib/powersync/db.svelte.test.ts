@@ -8,16 +8,31 @@ const engine = vi.hoisted(() => ({
   files: [] as string[],
   /** Each database's status listeners, by file, until disposed. */
   listeners: new Map<string, (status: object) => void>(),
+  /** Rows the collections have not taken in yet, across their tracking tables. */
+  pending: 0,
   status: { connected: false } as object,
-  statusReads: 0,
 }))
+
+/** IndexedDB holding these databases (without `databases()` when undefined); returns what got deleted. */
+function stubIndexedDb(databases: string[] | undefined): string[] {
+  const deleted: string[] = []
+  vi.stubGlobal('indexedDB', {
+    ...(databases && { databases: async () => databases.map((name) => ({ name })) }),
+    deleteDatabase: (name: string) => {
+      deleted.push(name)
+      const request = {} as IDBOpenDBRequest
+      queueMicrotask(() => request.onsuccess?.({} as Event))
+      return request
+    },
+  })
+  return deleted
+}
 vi.mock('$app/environment', () => ({ browser: true, dev: true }))
 vi.mock('@powersync/web', async (original) => ({
   ...(await original<object>()),
   PowerSyncDatabase: class {
     readonly file: string
     get currentStatus() {
-      engine.statusReads++
       return engine.status
     }
     constructor(options: { database: { dbFilename: string } }) {
@@ -35,6 +50,15 @@ vi.mock('@powersync/web', async (original) => ({
       return () => engine.listeners.delete(this.file)
     }
     waitForReady = () => Promise.resolve()
+    // The connection's temp tables: this tab's, plus one a closed tab left on the shared connection.
+    writeLock = <T>(run: (tx: object) => Promise<T>) =>
+      run({
+        get: async (sql: string) => ({ n: sql.includes('__orphan') ? 5 : engine.pending }),
+        getAll: async (_sql: string, names: string[]) =>
+          ['__grades_tracking_1', '__orphan_tracking_9']
+            .filter((name) => names.includes(name))
+            .map((name) => ({ name })),
+      })
   },
 }))
 
@@ -48,7 +72,8 @@ const synced = (priorities: number[], all: boolean) => ({
 const session = (id: string) => ({ access_token: `stale-${id}`, user: { id } }) as Session
 const settings = { endpoint: 'https://sync.example', only: false }
 const settle = () => vi.advanceTimersByTimeAsync(0)
-let visibility: DocumentVisibilityState = 'visible'
+/** A status change as account a's database announces it to its listener. */
+const announce = (status: object) => engine.listeners.get('grnyte-a.sqlite')?.(status)
 
 describe('the PowerSync shell', () => {
   beforeEach(() => {
@@ -58,12 +83,10 @@ describe('the PowerSync shell', () => {
       connectors: [],
       files: [],
       listeners: new Map(),
+      pending: 0,
       status: synced([], false),
-      statusReads: 0,
     })
     localStorage.clear()
-    visibility = 'visible'
-    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility)
   })
   afterEach(() => {
     vi.useRealTimers()
@@ -93,39 +116,50 @@ describe('the PowerSync shell', () => {
     expect(await connector.fetchCredentials()).toEqual({ endpoint: 'https://sync.example', token: 'refreshed' })
   })
 
-  it('reads the status on its own while visible, and stops while hidden', async () => {
-    const { initPowerSync, powerSyncStatus } = await import('./db.svelte')
+  it('confirms a stream only once it synced after the file opened and the collections took its rows in', async () => {
+    const { getPowerSync, initPowerSync, registerCollections, streamConfirmed } = await import('./db.svelte')
     initPowerSync(session('a'), async () => 'token', settings)
+    registerCollections(getPowerSync(), () => ['__grades_tracking_1'])
+    const report = (lastSyncedAt: number) =>
+      engine.listeners.get('grnyte-a.sqlite')?.({
+        ...synced([0], false),
+        syncStreams: [{ subscription: { hasSynced: true, lastSyncedAt: new Date(lastSyncedAt), name: 'essentials' } }],
+      })
 
-    // A change no event announced, as on iOS Safari.
-    engine.status = synced([0], false)
-    await vi.advanceTimersByTimeAsync(300)
-    expect(powerSyncStatus()).toBe(engine.status)
+    // Read off disk on open: a previous session's sync says nothing about what the server holds now.
+    report(Date.now() - 60_000)
+    await vi.advanceTimersByTimeAsync(200)
+    expect(streamConfirmed('essentials')).toBe(false)
 
-    visibility = 'hidden'
-    document.dispatchEvent(new Event('visibilitychange'))
-    const readsWhenHidden = engine.statusReads
-    await vi.advanceTimersByTimeAsync(5_000)
-    expect(engine.statusReads).toBe(readsWhenHidden)
+    engine.pending = 3
+    report(Date.now() + 1)
+    await vi.advanceTimersByTimeAsync(200)
+    expect(streamConfirmed('essentials')).toBe(false)
+
+    // A closed tab's tracking table still holds rows on the shared connection; it is not this tab's to wait for.
+    engine.pending = 0
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(streamConfirmed('essentials')).toBe(true)
   })
 
   it('deletes every account file on sign-out, including ones this page never opened', async () => {
-    const deleted: string[] = []
-    vi.stubGlobal('indexedDB', {
-      databases: async () => [{ name: 'grnyte-a.sqlite' }, { name: 'grnyte-old.sqlite' }, { name: 'rep:zero' }],
-      deleteDatabase: (name: string) => {
-        deleted.push(name)
-        const request = {} as IDBOpenDBRequest
-        queueMicrotask(() => request.onsuccess?.({} as Event))
-        return request
-      },
-    })
+    const deleted = stubIndexedDb(['grnyte-a.sqlite', 'grnyte-old.sqlite', 'rep:zero'])
     const { clearPowerSync, initPowerSync } = await import('./db.svelte')
     initPowerSync(session('a'), async () => 'token', settings)
 
     await clearPowerSync()
 
     expect(deleted.sort()).toEqual(['grnyte-a.sqlite', 'grnyte-old.sqlite'])
+  })
+
+  it('still deletes the open file where IndexedDB cannot list its databases (Firefox before 126)', async () => {
+    const deleted = stubIndexedDb(undefined)
+    const { clearPowerSync, initPowerSync } = await import('./db.svelte')
+    initPowerSync(session('a'), async () => 'token', settings)
+
+    await clearPowerSync()
+
+    expect(deleted).toEqual(['grnyte-a.sqlite'])
   })
 
   it('stamps the essentials once priority 0 has synced, and the guidebook once everything has', async () => {
@@ -136,13 +170,11 @@ describe('the PowerSync shell', () => {
     expect(localStoreLoaded()).toBe(true)
     expect(lastSyncedAt('reference')).toBeNull()
 
-    engine.status = synced([0], false)
-    await vi.advanceTimersByTimeAsync(300)
+    announce(synced([0], false))
     expect(lastSyncedAt('reference')).not.toBeNull()
     expect(lastSyncedAt('guidebook')).toBeNull()
 
-    engine.status = synced([0, 1, 2], true)
-    await vi.advanceTimersByTimeAsync(300)
+    announce(synced([0, 1, 2], true))
     expect(lastSyncedAt('guidebook')).not.toBeNull()
   })
 
@@ -150,8 +182,8 @@ describe('the PowerSync shell', () => {
     const { initPowerSync } = await import('./db.svelte')
     const { lastSyncedAt, localStoreLoaded } = await import('$lib/state/sync.svelte')
     initPowerSync(session('a'), async () => 'token', settings)
-    engine.status = synced([0, 1, 2], true)
-    await vi.advanceTimersByTimeAsync(300)
+    announce(synced([0, 1, 2], true))
+    await settle()
 
     expect(localStoreLoaded()).toBe(false)
     expect([lastSyncedAt('reference'), lastSyncedAt('guidebook')]).toEqual([null, null])

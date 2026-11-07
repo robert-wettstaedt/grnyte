@@ -1,8 +1,8 @@
 // Writes src/lib/powersync/schema.ts: the client half of deployment/powersync/sync-config.yaml, one table per
-// synced table with every column drizzle declares for it.
+// synced table with every column drizzle declares for it, and how each column maps onto Zero's row shape.
 //   npm run generate:powersync
-import { getTableName, isTable } from 'drizzle-orm'
-import { getTableConfig, type PgTable } from 'drizzle-orm/pg-core'
+import { getTableColumns, getTableName, isTable } from 'drizzle-orm'
+import type { PgTable } from 'drizzle-orm/pg-core'
 import { writeFileSync } from 'node:fs'
 import * as schema from '../src/lib/db/schema'
 import { syncedTables as synced } from '../src/lib/powersync/evaluate.server'
@@ -14,29 +14,49 @@ const tables = new Map(
     .map((table) => [getTableName(table), table as PgTable]),
 )
 
+type Column = ReturnType<typeof getTableColumns<PgTable>>[string]
+
 // Replicated rows arrive as SQLite values: integers and booleans as integers, decimals as reals, the rest as text.
-function columnType(dataType: string, columnType: string): 'integer' | 'real' | 'text' {
-  if (dataType === 'boolean') return 'integer'
-  if (dataType !== 'number') return 'text'
-  return /Real|Double|Numeric/.test(columnType) ? 'real' : 'integer'
+function sqliteType(column: Column): 'integer' | 'real' | 'text' {
+  if (column.dataType === 'boolean') return 'integer'
+  if (column.dataType !== 'number') return 'text'
+  return /Real|Double|Numeric/.test(column.columnType) ? 'real' : 'integer'
 }
 
-const body = synced.map((name) => {
+// What Zero hands a mapper instead: dates and timestamps as epoch ms, jsonb and arrays parsed, booleans as booleans.
+function zeroKind(column: Column): 'bool' | 'json' | 'ms' | 'plain' {
+  if (/Timestamp|Date/.test(column.columnType)) return 'ms'
+  if (column.dataType === 'json' || column.dataType === 'array') return 'json'
+  return column.dataType === 'boolean' ? 'bool' : 'plain'
+}
+
+const byName = (a: string, b: string) => a.localeCompare(b, 'en', { numeric: true })
+const tablesOut: string[] = []
+const shapesOut: string[] = []
+for (const name of synced) {
   const table = tables.get(name)
   if (table == null) throw new Error(`${name} is synced but not declared in src/lib/db/schema.ts`)
-  const columns = getTableConfig(table).columns
-  const id = columns.find((column) => column.name === 'id')
-  const fields = columns
-    .filter((column) => column.name !== 'id')
-    .map((column) => [column.name, columnType(column.dataType, column.columnType)] as const)
+  const columns = Object.entries(getTableColumns(table))
+  const id = columns.find(([, column]) => column.name === 'id')?.[1]
   // PowerSync's own `id` is text, and TanStack compares strictly, so integer ids get an integer copy to join on.
-  if (id != null && id.dataType === 'number') fields.push(['nid', 'integer'])
-  // Numeric-aware, as the lint rule on object keys orders them.
-  fields.sort(([a], [b]) => a.localeCompare(b, 'en', { numeric: true }))
-  const indexed = fields.map(([field]) => field).filter((field) => field === 'nid' || field.endsWith('_fk'))
-  const indexes = indexed.map((field) => `${field}: ['${field}']`).join(', ')
-  return `  ${name}: new Table(\n    { ${fields.map(([field, type]) => `${field}: column.${type}`).join(', ')} },\n    { indexes: { ${indexes} } },\n  ),`
-})
+  const integerId = id?.dataType === 'number'
+  const fields = columns
+    .filter(([, column]) => column.name !== 'id')
+    .map(([, column]) => [column.name, sqliteType(column)] as const)
+  if (integerId) fields.push(['nid', 'integer'])
+  fields.sort(([a], [b]) => byName(a, b))
+  const indexes = fields
+    .map(([field]) => field)
+    .filter((field) => field === 'nid' || field.endsWith('_fk'))
+    .map((field) => `${field}: ['${field}']`)
+  tablesOut.push(
+    `  ${name}: new Table(\n    { ${fields.map(([field, type]) => `${field}: column.${type}`).join(', ')} },\n    { indexes: { ${indexes.join(', ')} } },\n  ),`,
+  )
+  const shape = columns
+    .map(([key, column]) => [key, column.name === 'id' && integerId ? 'nid' : column.name, zeroKind(column)] as const)
+    .sort(([a], [b]) => byName(a, b))
+  shapesOut.push(`  ${name}: [${shape.map(([key, from, kind]) => `['${key}', '${from}', '${kind}']`).join(', ')}],`)
+}
 
 writeFileSync(
   OUT,
@@ -45,8 +65,13 @@ writeFileSync(
 import { column, Schema, Table } from '@powersync/web'
 
 export const appSchema = new Schema({
-${body.join('\n')}
+${tablesOut.join('\n')}
 })
+
+/** Per table: Zero's column name, the synced column it reads, and how its value converts. */
+export const zeroShapes = {
+${shapesOut.join('\n')}
+} as const satisfies Record<keyof typeof appSchema.props, readonly (readonly [string, string, 'bool' | 'json' | 'ms' | 'plain'])[]>
 `,
 )
 console.log(`${OUT}: ${synced.length} tables`)

@@ -9,6 +9,7 @@ import type { AppRole, Permission } from '$lib/entities/rolePermission/dto'
 import { rolePermissionList } from '$lib/entities/rolePermission/resources.svelte'
 import type { GradingScale, User } from '$lib/entities/user/dto'
 import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelte'
+import { powerSyncStatus } from '$lib/powersync/db.svelte'
 import { isOnline } from '$lib/state/online.svelte'
 import { quietly } from '$lib/state/pill.svelte'
 import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
@@ -23,9 +24,8 @@ const GLOBAL_STATE_KEY = Symbol('global-state')
 const STORE_PATIENCE_MS = 3000
 
 /**
- * App-wide reference data and the signed-in user, loaded once from Zero and
- * shared through Svelte context. The underlying queries are eagerly preloaded
- * in `initZero`, so reads here render from the local store immediately.
+ * App-wide reference data and the signed-in user, shared through Svelte context. They sync first (PowerSync's
+ * `essentials` stream), so reads here render from the local store immediately.
  */
 export interface GlobalState {
   /** All grades, ordered by their ordinal id (low → high). */
@@ -150,7 +150,9 @@ export function setGlobalState(): GlobalState | undefined {
         return false
       }
 
-      return !isOnline() || isTerminal(getZ().connectionState.name)
+      // PowerSync retries a refused download for ever rather than parking, so a held error is the third case.
+      const refused = powerSyncStatus()?.dataFlowStatus.downloadError != null
+      return !isOnline() || refused || isTerminal(getZ().connectionState.name)
     },
     get lastSyncedAt() {
       return lastSyncedAt()

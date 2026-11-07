@@ -28,8 +28,8 @@ const store = createToaster({
  * Deferring here rather than at the call sites is the point: `create` is one of fourteen methods
  * that publish (`success`, `dismiss`, `update`, …), and the group itself calls `remove`/`pause`/
  * `expand` from its own actions, none of which a call-site rule reaches. The group's mount-time
- * seed (`context.set('toasts', getVisibleToasts())`) stays synchronous and is fine: the crash needs
- * a suspended effect that has written its own deps, which a mounting layout has not.
+ * seed (`context.set('toasts', getVisibleToasts())`) is synchronous too, so `<Toaster>` mounts the
+ * group a microtask late, outside the layout's first flush.
  *
  * `toast.effect.test.ts` is the enforcement and goes red the moment the deferral is removed.
  * Reordering the raising effect's own statements also "fixes" it, and stops holding the next time

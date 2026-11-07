@@ -31,12 +31,8 @@
 
   const { isSelf, status, userId }: Props = $props()
 
-  const favorites = userAllFavoriteList(
-    () => userId,
-    () => true,
-    () => isSelf,
-  )
-  // Offline, somebody else's favorites are fragments other queries left, not their list.
+  const favorites = userAllFavoriteList(() => userId)
+  // Unavailable: offline with nothing synced yet.
   const known = $derived(favorites.phase.kind === 'unavailable' ? [] : favorites.data)
   const favAreaIds = $derived(
     known.filter((favorite) => favorite.entityType === 'area').map((favorite) => favorite.entityId),

@@ -5,12 +5,10 @@ import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
 import { eq, toArray, type InitialQueryBuilder } from '@tanstack/db'
 import { collections } from './collections'
 import { psResource } from './resource.svelte'
+import { json, ms, unwrapParents } from './rows'
 
 // Trial 3: the block screen's three resources on PowerSync + TanStack DB, shaped like `queries.block`'s row so
 // the existing mappers run unchanged.
-
-const ms = (iso: null | string | undefined) => (iso == null ? null : Date.parse(iso))
-const json = (text: null | string | undefined) => (text == null ? null : (JSON.parse(text) as Record<string, number>))
 
 // The same shape `blockRouteList` in block/resources.svelte.ts builds; task 6.2 folds this module into it.
 const toRouteItems = (row: Tree) =>
@@ -116,17 +114,15 @@ function blockTree(q: InitialQueryBuilder, blockId: number) {
 
 function toZeroRow(tree: Tree) {
   if (tree == null) return undefined
-  const unwrapArea = (level: Tree): Tree =>
-    level == null ? undefined : { ...level, parent: unwrapArea(level.parent?.[0]) }
   return {
     ...tree,
-    area: unwrapArea(tree.area?.[0]),
+    area: unwrapParents(tree.area?.[0]),
     createdAt: ms(tree.createdAt),
     geolocation:
       tree.geolocation?.[0] == null
         ? undefined
         : { ...tree.geolocation[0], estimated: !!tree.geolocation[0].estimated },
-    gradeCounts: json(tree.gradeCounts),
+    gradeCounts: json<Record<string, number>>(tree.gradeCounts),
     routes: tree.routes.map((r: Tree) => ({ ...r, name: r.name ?? '' })),
     topos: tree.topos.map((t: Tree) => ({ ...t, file: t.file?.[0] })),
   }

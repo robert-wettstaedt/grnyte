@@ -57,7 +57,8 @@ streams:
       - SELECT *, id AS nid FROM region_members WHERE region_fk IN my_regions AND is_active
       - SELECT *, id AS nid FROM favorites WHERE region_fk IN my_regions
 
-  # One bucket per co-member, shared by everyone who sees that user.
+  # One bucket per co-member, shared by everyone who sees that user. Former members too: their ascents stay in the
+  # region's activity, and Zero resolved their names.
   members:
     auto_subscribe: true
     priority: 1
@@ -65,7 +66,7 @@ streams:
       my_regions: SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active
         AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
     queries:
-      - SELECT *, id AS nid FROM users WHERE id IN (SELECT user_fk FROM region_members WHERE region_fk IN my_regions AND is_active)
+      - SELECT *, id AS nid FROM users WHERE id IN (SELECT user_fk FROM region_members WHERE region_fk IN my_regions)
 
   media:
     auto_subscribe: true

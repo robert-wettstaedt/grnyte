@@ -19,14 +19,6 @@ export const favoritesQueryDefs = {
     regionMemberCan(({ args }) => zql.favorites.where('userFk', args.userId).orderBy('createdAt', 'desc')),
   ),
 
-  // The current user's favorite for one specific entity: empty when not saved.
-  listUserEntityFavorites: defineQuery(
-    z.extend(entityArgs, { userId: z.number() }),
-    regionMemberCan(({ args }) =>
-      zql.favorites.where('userFk', args.userId).where(FAVORITE_KEY[args.entityType], args.entityId),
-    ),
-  ),
-
   listUserFavorites: defineQuery(
     z.object({ userId: z.number() }),
     regionMemberCan(({ args }) => zql.favorites.where('userFk', args.userId).where('routeFk', 'IS NOT', null)),
