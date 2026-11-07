@@ -1,25 +1,8 @@
+import './sheetTestEnv'
 import { render, waitFor } from '@testing-library/svelte'
 import { createRawSnippet } from 'svelte'
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import Mobile from './Modal.mobile.svelte'
-
-vi.hoisted(() => {
-  window.matchMedia = (() => ({ addEventListener() {}, matches: false, removeEventListener() {} })) as never
-  // jsdom has no WAAPI, and a sheet only unmounts once its outro finishes.
-  Element.prototype.animate = (() => {
-    const animation = { cancel() {}, onfinish: null as (() => void) | null }
-    setTimeout(() => animation.onfinish?.())
-    return animation
-  }) as never
-})
-
-vi.stubGlobal(
-  'ResizeObserver',
-  class {
-    disconnect() {}
-    observe() {}
-  },
-)
 
 const children = createRawSnippet(() => ({
   render: () => '<div><button id="self-removing" type="button">Pick</button></div>',

@@ -14,10 +14,10 @@
   import type { FormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import type { RouteDetail } from './dto'
-  import type { RouteFormInput } from './dto'
+  import type { RouteDetail, RouteFormInput } from './dto'
   import RouteRatingInput from './RouteRatingInput.svelte'
   import RouteTagsInput from './RouteTagsInput.svelte'
+  import SimilarRoutes, { type SimilarAction } from './SimilarRoutes.svelte'
 
   // Shared body for the add/edit route forms. Every field is optional (one note up top says so
   // instead of per-field badges, hence `required` on each wrapper). Mirrors BlockFormFields.
@@ -35,6 +35,8 @@
     rating?: number
     /** When editing: the route, to seed the non-text fields once on mount. */
     route?: RouteDetail
+    /** What a similar route's preview offers in place of its link. */
+    similar?: SimilarAction
     tags?: string[]
     /** Media picked in the form, uploading in the background while the user types.
      *  The page finalizes them against the route once it exists. */
@@ -49,11 +51,14 @@
     gradeFk = $bindable(),
     rating = $bindable(),
     route,
+    similar,
     tags = $bindable(),
     uploads = $bindable([]),
   }: Props = $props()
 
   const global = getGlobalState()
+
+  let nameFocused = $state(false)
 
   // Seeded once at init, deliberately: reading live data on every change would clobber the user's
   // edits (same rule as the pages' prefill effects). An already-set value is a caller holding these
@@ -130,10 +135,16 @@
       autocomplete="off"
       class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-3.5 text-base font-semibold tracking-tight focus:ring-0 focus:outline-none"
       enterkeyhint="done"
+      onblur={() => (nameFocused = false)}
+      onfocus={() => (nameFocused = true)}
       placeholder={m.routes_form_namePlaceholder()}
     />
   {/snippet}
 </FieldWrapper>
+
+{#if route == null}
+  <SimilarRoutes {block} focused={nameFocused} name={String(form.fields.name.value() ?? '')} {similar} />
+{/if}
 
 <FieldWrapper
   class="space-y-2.5"

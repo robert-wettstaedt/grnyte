@@ -94,11 +94,11 @@
   <div class="row-line">
     {#if href}
       <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- generic pass-through; callers resolve() the href -->
-      <a class="row {variant}" {href}>
+      <a class="row {variant} active:bg-surface-300-700" {href}>
         {@render body()}
       </a>
     {:else if onclick}
-      <button type="button" class="row {variant}" {onclick}>
+      <button type="button" class="row {variant} active:bg-surface-300-700" {onclick}>
         {@render body()}
       </button>
     {:else}
