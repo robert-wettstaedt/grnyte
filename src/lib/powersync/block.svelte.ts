@@ -48,7 +48,7 @@ function areaChain(q: InitialQueryBuilder, fk: any, depth: number): any {
   )
 }
 function blockTree(q: InitialQueryBuilder, blockId: number) {
-  const { blocks, files, geolocations, routes, routesToTags, topoRoutes, topos } = collections()
+  const { blocks, files, geolocations, routes, routes_to_tags, topo_routes, topos } = collections()
   return q
     .from({ b: blocks })
     .where(({ b }) => eq(b.nid, blockId))
@@ -81,7 +81,7 @@ function blockTree(q: InitialQueryBuilder, blockId: number) {
             regionFk: r.region_fk,
             tags: toArray(
               q
-                .from({ t: routesToTags })
+                .from({ t: routes_to_tags })
                 .where(({ t }) => eq(t.route_fk, r.nid))
                 .select(({ t }) => ({ tagFk: t.tag_fk })),
             ),
@@ -105,7 +105,7 @@ function blockTree(q: InitialQueryBuilder, blockId: number) {
             id: tp.nid,
             routes: toArray(
               q
-                .from({ tr: topoRoutes })
+                .from({ tr: topo_routes })
                 .where(({ tr }) => eq(tr.topo_fk, tp.nid))
                 .select(({ tr }) => ({ id: tr.nid, path: tr.path, routeFk: tr.route_fk, topType: tr.top_type })),
             ),

@@ -19,9 +19,9 @@ Tests run red before green, only at the seams agreed on 2026-11-07: S1 the strea
 
 ## 3. Client schema
 
-- [ ] 3.1 Write `scripts/generate-powersync-schema.ts` producing `src/lib/powersync/schema.ts` from `src/lib/db/schema.ts` for the tables in `sync-config.yaml` (snake_case columns, `nid` integer copies, indexes for every column a stream, join or where reads); add it to `npm run generate`. Verify the generated file replaces the trial's hand-written one and `svelte-check` passes.
-- [ ] 3.2 Schema pin test: the generated tables equal the sync config's tables and every stream column exists in the client schema. Seen red by removing one table from the config. Verify with `npx vitest run --project server src/lib/powersync/schema.test.ts`.
-- [ ] 3.3 `collections.ts` builds one TanStack collection per generated table by mapping `Object.keys(appSchema.props)` instead of its hand-written list (one table list, pinned by 3.2), the module-level cache replaced by a per-account rebuild so a client swap rebuilds them (`block.svelte.ts` renames its two camelCase keys); verify with a browser-project test (PowerSync faked at the module boundary, as in 4.1) that a second `initPowerSync(sessionB)` yields collections bound to the new client.
+- [x] 3.1 Write `scripts/generate-powersync-schema.ts` producing `src/lib/powersync/schema.ts` from `src/lib/db/schema.ts` for the tables in `sync-config.yaml` (snake_case columns, `nid` integer copies, indexes for every column a stream, join or where reads); add it to `npm run generate`. Verify the generated file replaces the trial's hand-written one and `svelte-check` passes.
+- [x] 3.2 Schema pin test: the generated tables equal the sync config's tables and every stream column exists in the client schema. Seen red by removing one table from the config. Verify with `npx vitest run --project server src/lib/powersync/schema.test.ts`.
+- [x] 3.3 `collections.ts` builds one TanStack collection per generated table by mapping `Object.keys(appSchema.props)` instead of its hand-written list (one table list, pinned by 3.2), the module-level cache replaced by a per-account rebuild so a client swap rebuilds them (`block.svelte.ts` renames its two camelCase keys); verify with a browser-project test (PowerSync faked at the module boundary, as in 4.1) that a second `initPowerSync(sessionB)` yields collections bound to the new client.
 
 ## 4. Sync shell
 
