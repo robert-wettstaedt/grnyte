@@ -8,17 +8,12 @@ import { acrossAreasOrder, inAreaOrder } from './order'
 export const blocksQueryDefs = {
   block: defineQuery(
     z.object({
-      areaId: z.optional(z.number()),
       blockId: z.optional(z.number()),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
       let q = zql.blocks.where('deletedAt', 'IS', null)
-
-      if (args.areaId != null) {
-        q = q.where('areaFk', args.areaId)
-      }
 
       if (args.blockId != null) {
         q = q.where('id', args.blockId)
