@@ -1,6 +1,7 @@
 import { getTableName, isTable, sql } from 'drizzle-orm'
 import { getTableConfig } from 'drizzle-orm/pg-core'
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import * as retired from '../retired'
 import * as schema from '../schema'
 
 /**
@@ -9,7 +10,7 @@ import * as schema from '../schema'
  * permission waiting for somebody to add one, and a hand-kept exclusion list is a thing to forget.
  * `notifications` is the one exception below, because WHICH column is not something a policy says.
  */
-const writable = Object.values(schema)
+const writable = [...Object.values(schema), ...Object.values(retired)]
   .filter((item) => isTable(item))
   .filter((table) =>
     getTableConfig(table).policies.some((policy) => ['all', 'delete', 'insert', 'update'].includes(policy.for ?? '')),

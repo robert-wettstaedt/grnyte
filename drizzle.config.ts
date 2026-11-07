@@ -7,6 +7,6 @@ export default {
   },
   dialect: 'postgresql',
   out: './drizzle',
-  schema: './src/lib/db/schema.ts',
+  schema: ['./src/lib/db/schema.ts', './src/lib/db/retired.ts'],
   verbose: true,
 } satisfies Config
