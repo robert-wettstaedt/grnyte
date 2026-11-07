@@ -35,9 +35,16 @@ Which half of a project goes where:
   Anything in BOTH places is a knob you cannot turn, because `environment:` overrides `env_file:`.
   That was true of the two connection limits until 2026-08-25, so editing them in the vault did
   nothing at all.
+- `PS_*` is the PowerSync service's, and travels exactly like `ZERO_*` (the service refuses any other
+  prefix in `!env`). The vault holds `PS_DATA_SOURCE_URI` (prod Postgres over the direct connection,
+  never the pooler), `PS_SUPABASE_JWT_SECRET` (the Supabase JWT secret) and `PS_ADMIN_TOKEN` (any long
+  random string; it guards the admin API, which nginx already refuses from outside). `PS_MONGO_URI`
+  and `PS_DATA_SOURCE_SSLMODE` stay in `docker-compose.zero.yml`, beside the containers they describe.
+  Until these three are in `deploy-zero.yml`'s allowlist, `powersync-prod` exits on a missing variable.
 - `VPS_SSH_KEY`, `VPS_HOST` and `VPS_USER` are the deploy's, and live in grnyte-prod. Point
   `VPS_HOST` at the box's tailnet address, not its public one.
-- Everything else is the app's. It goes to Vercel. `PUBLIC_ZERO_URL` is the app's, not the server's.
+- Everything else is the app's. It goes to Vercel. `PUBLIC_ZERO_URL` and `PUBLIC_POWERSYNC_URL` are the
+  app's, not the servers'.
 - Local development gets both halves, because it runs both. `VPS_*` is not in grnyte-dev: nothing
   local talks to the VPS.
 

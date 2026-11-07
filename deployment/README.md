@@ -114,7 +114,15 @@ docker compose -f docker-compose.zero.yml logs nginx
 
 # Test connectivity
 curl -f https://zero.grnyte.rocks
+curl -f https://sync.grnyte.rocks/probes/liveness
+
+# PowerSync diagnostics (replication lag, errors). nginx refuses /api/admin/ from outside, so ask from inside.
+docker exec powersync-prod node -e "fetch('http://localhost:8080/api/admin/v1/diagnostics', { method: 'POST', headers: { authorization: 'Bearer ' + process.env.PS_ADMIN_TOKEN, 'content-type': 'application/json' }, body: '{}' }).then((r) => r.text()).then(console.log)"
 ```
+
+Nothing alerts on a non-empty `errors` or on replication lag yet: there is no alert channel on this
+box. `powersync-compact-prod` compacts bucket storage hourly; its log is the place to look when
+MongoDB grows.
 
 ## Troubleshooting
 

@@ -149,7 +149,7 @@ jobs:
           # keeps the exact shape docker compose already reads. A missing value fails here instead
           # of writing an empty one, which the old `grep || exit` could not catch per key.
           : > env.zero
-          for key in $(printf '%s\n' "$SECRET_IDS" | awk '/>/ { print $NF }' | grep '^ZERO_'); do
+          for key in $(printf '%s\n' "$SECRET_IDS" | awk '/>/ { print $NF }' | grep -E '^(ZERO|PS)_'); do
             value="${!key}"
             if [ -z "$value" ]; then
               echo "❌ $key is empty: its SECRET_IDS mapping is missing"

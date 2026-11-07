@@ -64,10 +64,10 @@ const listSecrets = () => JSON.parse(bws(['secret', 'list', '-o', 'json'])).sort
 
 const render = (secrets) => [HEADER, ...secrets.map((secret) => `${secret.key}="${secret.value}"`), ''].join('\n')
 
-// The project holds one environment's whole world, and this prefix is the seam through it: ZERO_* is
-// the Zero server's half. deploy-zero.yml sends exactly those to the VPS, so exactly those stay off
-// Vercel. The app reads PUBLIC_ZERO_URL and nothing else about Zero.
-const isZeroServerOnly = (key) => key.startsWith('ZERO_')
+// The project holds one environment's whole world, and these prefixes are the seam through it: ZERO_* and
+// PS_* (PowerSync) are the VPS's half. deploy-zero.yml sends exactly those to the VPS, so exactly those stay
+// off Vercel. The app reads PUBLIC_ZERO_URL and PUBLIC_POWERSYNC_URL and nothing else of either.
+const isVpsOnly = (key) => key.startsWith('ZERO_') || key.startsWith('PS_')
 
 /**
  * The project's secrets as `<uuid> > KEY` lines, which is exactly the input format
@@ -117,7 +117,7 @@ function pull(file = '.env', force = false) {
 function pushToVercel(project, target = 'production') {
   if (project == null) die('Usage: node deployment/secrets.mjs vercel <vercel-project> [target]')
 
-  for (const secret of listSecrets().filter((secret) => !isZeroServerOnly(secret.key))) {
+  for (const secret of listSecrets().filter((secret) => !isVpsOnly(secret.key))) {
     // Vercel rejects --sensitive for development, and a sensitive PUBLIC_* var only means nobody can
     // read a value in the dashboard that ships to the browser anyway.
     const sensitivity =
@@ -213,8 +213,15 @@ async function selftest() {
 
   // The Vercel/VPS seam, in both directions: what one side keeps, the other drops.
   assert.deepEqual(
-    ['ZERO_UPSTREAM_DB', 'ZERO_AUTH_SECRET', 'PUBLIC_ZERO_URL', 'DATABASE_URL'].filter(isZeroServerOnly),
-    ['ZERO_UPSTREAM_DB', 'ZERO_AUTH_SECRET'],
+    [
+      'ZERO_UPSTREAM_DB',
+      'ZERO_AUTH_SECRET',
+      'PS_ADMIN_TOKEN',
+      'PUBLIC_ZERO_URL',
+      'PUBLIC_POWERSYNC_URL',
+      'DATABASE_URL',
+    ].filter(isVpsOnly),
+    ['ZERO_UPSTREAM_DB', 'ZERO_AUTH_SECRET', 'PS_ADMIN_TOKEN'],
   )
 
   console.error('selftest ok')

@@ -90,6 +90,15 @@ Docs review (2026-11-07, against docs.powersync.com and the service source). Eac
 - JWT (with the deferred signing-key migration): when Supabase moves to asymmetric keys, drop `supabase_jwt_secret` and keep `supabase: true`, which configures JWKS itself.
 - Client store (7.5): the client keeps the default IndexedDB store (`IDBBatchAtomicVFS`). The docs recommend OPFS (`OPFSCoopSyncVFS`) for Safari and for several tabs, and it was tried on 2026-11-07: in the iOS 27.2 Simulator a cold Safari opened, synced and confirmed on OPFS, but a reload in the same Safari left the previous page's instance holding the file (two `.ahp-` folders), and the new page stayed connected without ever completing a sync, still `arriving` after 45 s. The same reload on IndexedDB confirmed every stream. Revisit OPFS only with a reload test that passes on WebKit. The service worker precaches the async `wa-sqlite` wasm and raises Workbox's 2 MiB `maximumFileSizeToCacheInBytes`, which its 2.26 MB build exceeds. Check the emitted names in a real build.
 
+Recorded for 7.2 (2026-11-08, taken overnight without the user, open to reversal):
+
+- One unified process, not API containers: facts.md leaves ~1 GB beside zero-cache, so the box holds one service (`NODE_OPTIONS=--max-old-space-size=768` from facts.md, not the percentage flag, plus `mem_limit: 1g`). `max_concurrent_connections` goes back to the documented 200; prod concurrency is far below it. If it nears 200, split into `start -r api` containers once zero-cache is gone.
+- Both 10000 limits dropped to the default 1000. `members` costs one bucket per co-member, so 7.3 reads the largest prod member count first.
+- MongoDB cache 512 MB per facts.md (overrides the 2 GB above: the VPS memory says otherwise), single node, `mem_limit: 1g`, on an internal network with no auth.
+- Health: `healthcheck.probes.use_http` with a compose healthcheck through `node -e fetch` (the image has no curl). Prometheus on 9464, published nowhere.
+- Diagnostics: a documented manual call in `deployment/README.md`. The scheduled poll waits for an alert channel the box does not have.
+- Prod sslmode `verify-full`: the service's default CA bundle covers Supabase's certificate.
+
 Local dev: one `docker compose` for PowerSync plus MongoDB started from the main checkout against the shared Supabase DB (one publication, one slot), shared by every worktree like zero-cache today. `e2e/support.ts` requires it in place of zero-cache. CI keeps plain Postgres and `ci/shim.sql` untouched (no Zero server piece changes in this milestone).
 
 ### D6. The measurement switch

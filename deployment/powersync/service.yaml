@@ -2,6 +2,12 @@
 # other prefix in `!env`).
 telemetry:
   disable_telemetry_sharing: true
+  # Exposed on the docker network only; no compose file publishes it.
+  prometheus_port: 9464
+
+healthcheck:
+  probes:
+    use_http: true
 
 replication:
   connections:
@@ -24,11 +30,8 @@ client_auth:
   supabase_jwt_secret: !env PS_SUPABASE_JWT_SECRET
   audience: ['authenticated']
 
+# Connection and bucket limits stay at the documented defaults (200 per process, 1000 buckets): `members` costs one
+# bucket per co-member, so raise the bucket limits only from a measured member count.
 api:
-  parameters:
-    # The default rejected 550 of 750 reconnecting devices with 429 in the trial.
-    max_concurrent_connections: 2000
-    max_parameter_query_results: 10000
-    max_buckets_per_connection: 10000
   tokens:
     - !env PS_ADMIN_TOKEN
