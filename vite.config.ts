@@ -147,6 +147,8 @@ export default defineConfig({
   define: {
     __APP_REPO__: JSON.stringify(pkg.repository.url),
   },
+  // PowerSync's workers and wasm must not be pre-bundled.
+  optimizeDeps: { exclude: ['@powersync/web'] },
   plugins: [
     paraglideVitePlugin({
       outdir: './src/lib/paraglide',
@@ -347,4 +349,5 @@ export default defineConfig({
       },
     ],
   },
+  worker: { format: 'es' },
 })
