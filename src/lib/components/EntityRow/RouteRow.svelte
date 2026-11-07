@@ -2,7 +2,8 @@
   import { ENTITY_TYPE_ICON } from '$lib/components/EntitySearch/search.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Image from '$lib/components/Image/Image.svelte'
-  import AscentType from '$lib/entities/ascent/AscentType.svelte'
+  import AscentTypeBadge from '$lib/entities/ascent/AscentType.svelte'
+  import type { AscentType } from '$lib/entities/ascent/dto'
   import { getGradeBand, gradeFgVar, gradeVar } from '$lib/entities/grade/color'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
@@ -13,7 +14,6 @@
   import type { Snippet } from 'svelte'
   import Row from './Row.svelte'
   import RowDescription from './RowDescription.svelte'
-  import type { AscentStatus } from './types'
 
   /** The slice of a route the row renders: a `RouteListItem` satisfies it. */
   type RouteRowData = Pick<
@@ -45,7 +45,7 @@
     /** The route: name, grade band (via `gradeFk`), stars, description and topo thumbnail. */
     route: RouteRowData
     /** The user's logged ascent state, if any. */
-    status?: AscentStatus
+    status?: AscentType
     /** Layout variant, passed through to {@link Row}: `option` is the flat, tighter row
      *  for nesting inside another card (e.g. an event card). */
     variant?: 'card' | 'option'
@@ -137,7 +137,7 @@
 {#snippet rightContent()}
   <div class="flex flex-col items-end justify-center gap-2">
     <div class="flex">
-      <AscentType {status} />
+      <AscentTypeBadge {status} />
       <RouteGrade {band} {grade} muted={dimmed} />
     </div>
 

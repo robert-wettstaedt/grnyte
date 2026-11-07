@@ -1,5 +1,5 @@
 import { areas, ascents, blocks, files, reactions, routes, topos } from '$lib/db/schema'
-import { collectAreaSubtreeIds } from '$lib/entities/area/lifecycle.server'
+import { collectAreaSubtreeIds } from '$lib/entities/area/area.server'
 import { blockName } from '$lib/entities/block/mapper'
 import { toDisplayName, type DisplayName } from '$lib/entities/displayName'
 import { formError } from '$lib/forms/schemas'

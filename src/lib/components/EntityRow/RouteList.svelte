@@ -1,8 +1,8 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import type { AscentStatus } from '$lib/components/EntityRow/types'
   import Selectable from '$lib/components/GuidebookPicker/Selectable.svelte'
   import type { Selection } from '$lib/components/GuidebookPicker/selection.svelte'
+  import type { AscentType } from '$lib/entities/ascent/dto'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { getGlobalState } from '$lib/state/global.svelte'
   import type { ComponentProps, Snippet } from 'svelte'
@@ -21,7 +21,7 @@
     /** Select mode, where a row ticks instead of opening. */
     selection?: Selection
     /** The user's logged ascent state per route id: `userAscentStatus` satisfies it. */
-    status?: { get(routeId: number): AscentStatus | undefined }
+    status?: { get(routeId: number): AscentType | undefined }
   }
 
   let { children, dimmed, routes, selection, status }: Props = $props()

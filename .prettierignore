@@ -17,6 +17,9 @@ bun.lockb
 # `npm run generate:emails` output. Reformatting it would fight the generator on every run,
 # and the whitespace is load-bearing: mail clients collapse and re-wrap markup differently.
 /emails/
+# `npm run lint:baseline` output, in fallow's own layout.
+/.fallow-dupes-baseline.json
+/.fallow-health-baseline.json
 
 # Installed agent skills
 /.agents/

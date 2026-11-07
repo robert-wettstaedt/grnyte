@@ -4,7 +4,6 @@
   import AreaRow from '$lib/components/EntityRow/AreaRow.svelte'
   import BlockRow from '$lib/components/EntityRow/BlockRow.svelte'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
-  import type { AscentStatus } from '$lib/components/EntityRow/types'
   import UserRow from '$lib/components/EntityRow/UserRow.svelte'
   import {
     entityCrumbs,
@@ -17,6 +16,7 @@
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { areaList } from '$lib/entities/area/resources.svelte'
+  import type { AscentType } from '$lib/entities/ascent/dto'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import type { DisplayName } from '$lib/entities/displayName'
@@ -87,7 +87,7 @@
   }
 
   type Result =
-    | (ResultBase & { grade: string; route: RouteListItem; status: AscentStatus | undefined; type: 'routes' })
+    | (ResultBase & { grade: string; route: RouteListItem; status: AscentType | undefined; type: 'routes' })
     | (ResultBase & { topoImagePath?: string; type: 'blocks' })
     | (ResultBase & { type: 'areas' })
     | (ResultBase & { type: 'users' })
