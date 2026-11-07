@@ -47,7 +47,7 @@ Per query, three shapes:
 Mappings:
 
 - `arriving`: collection `isReady` plus the stream's `hasSynced` (per stream, looked up by name and parameters).
-- "not syncing" (the status-bar branch with a reload action): a `downloadError` held for the existing hold time while `isOnline()`, or a 401 from `fetchCredentials`. PowerSync has no terminal state, so this replaces `connection.ts`'s TERMINAL set.
+- "not syncing" (the status-bar branch with a reload action) does not apply to PowerSync (revised during 4.3): the branch exists because Zero's `closed` and `error` never recover without a reload, while PowerSync retries forever and pulls a fresh token itself. Mapping a download error to it would also misfire offline, where PowerSync reports a download error too. So everything short of connected maps to one non-terminal name (`connectionOf` in `online.svelte.ts`), shown as "reconnecting", or "offline" once the hold fires.
 - `isOnline`: fed from `status.connected` with the same reconnect hold as today.
 - Cold-store copy ("first run" vs "restore"): one localStorage stamp written when `hasSynced` first turns true.
 - Resume after suspend (`sync/query-readiness`, the re-establish requirement): PowerSync reconnects on its own; `arriving` derives from `status.connected` and `hasSynced`, so a connection that died while suspended reads as reconnecting, never as current. Verified on the iPhone in task 8.4.

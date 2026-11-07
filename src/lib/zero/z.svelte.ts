@@ -1,6 +1,7 @@
 import { dev } from '$app/environment'
 import { PUBLIC_ZERO_URL } from '$env/static/public'
 import { recordResume } from '$lib/logging/resumeLog'
+import { powerSyncOnly } from '$lib/powersync/db.svelte'
 import { isFieldDevice } from '$lib/state/device.svelte'
 import { reportConnectionState, setPingTightenHandler } from '$lib/state/online.svelte'
 import { forgetSynced, markStoreLoaded, markSynced, trackSyncFor } from '$lib/state/sync.svelte'
@@ -60,6 +61,10 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   instance?.close()
 
   const z = new Z<Schema>(zeroOptions(session))
+  instance = z
+  // The measurement build: a local-only client in memory, so the screens still on Zero render their
+  // needs-a-connection state while PowerSync alone syncs. Removed with Zero in R1.
+  if (powerSyncOnly()) return z
   trackSyncFor(userID)
 
   // Zero is the only thing in the app continuously trying to reach the server, which makes it the
@@ -116,8 +121,6 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
       .then(() => preloadForOffline(z, ctx))
   }
 
-  instance = z
-
   if (dev) {
     // Sync failures are invisible from the outside: the app only renders a spinner or stale rows,
     // and `connectionState` is otherwise only reachable through a component. Costs nothing in a
@@ -128,74 +131,6 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
     // put ours in the same place. Both are worth having.
     Object.assign(window, {
       __grnyte: {
-        /**
-         * Time a registry query end to end on a COLD client: server execution, CVR build,
-         * transfer and local ingest, with nothing already in the replica.
-         *
-         * `await __grnyte.bench('listEvents', [{ limit: 50 }, { limit: 20 }, { limit: 10 }])`
-         *
-         * Each sample gets its own throwaway client and IndexedDB, because a warm replica answers
-         * locally and would time nothing. `listGrades` is measured the same way as a baseline: the
-         * same connect, auth and client-group setup with a query that costs nothing, so the
-         * difference is the query under test rather than the handshake in front of it.
-         */
-        bench: async (name: keyof typeof queries, argsList: unknown[] = [undefined], runs = 3) => {
-          if (session == null) {
-            return 'not signed in'
-          }
-
-          // Captured so the null check above narrows inside `once`, which is a nested closure.
-          const active = session
-          const keys: string[] = []
-
-          const once = async (queryName: keyof typeof queries, args: unknown) => {
-            const key = `bench-${keys.length}-${queryName}`
-            keys.push(key)
-            const cold = createColdZero(active, key)
-            const start = performance.now()
-            // The registry is a union of factories with unrelated argument types.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const rows = await cold.run((queries[queryName] as any)(args), { type: 'complete' })
-            const ms = performance.now() - start
-            cold.close()
-            return { ms, rows: Array.isArray(rows) ? rows.length : rows == null ? 0 : 1 }
-          }
-
-          const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]
-
-          const table: Record<string, unknown>[] = []
-
-          for (const label of ['baseline', ...argsList.map((a) => JSON.stringify(a))]) {
-            const isBaseline = label === 'baseline'
-            const samples: number[] = []
-            let rows = 0
-
-            for (let i = 0; i < runs; i++) {
-              const r = isBaseline ? await once('listGrades', undefined) : await once(name, argsList[table.length - 1])
-              samples.push(r.ms)
-              rows = r.rows
-            }
-
-            table.push({
-              args: label,
-              median: Math.round(median(samples)),
-              rows,
-              samples: samples.map((ms) => Math.round(ms)),
-            })
-          }
-
-          // The throwaway replicas are real IndexedDB databases; left behind they accumulate one
-          // per sample and the next run measures a browser with a hundred dead stores.
-          const dbs = (await indexedDB.databases?.()) ?? []
-          for (const db of dbs) {
-            if (db.name != null && keys.some((key) => db.name?.includes(key))) {
-              indexedDB.deleteDatabase(db.name)
-            }
-          }
-
-          console.table(table)
-          return table
-        },
         get connectionState() {
           return z.connectionState
         },
@@ -237,15 +172,6 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   }
 
   return z
-}
-
-/**
- * A throwaway client with its own empty replica, so `/bench` can time a cold
- * initial sync without disturbing the app's client or its IndexedDB. The caller
- * owns the lifecycle: `close()` it and drop the database named by `storageKey`.
- */
-function createColdZero(session: Session, storageKey: string): Z<Schema> {
-  return new Z<Schema>(zeroOptions(session, storageKey))
 }
 
 let storeProbe: undefined | { destroy(): void }
@@ -439,12 +365,8 @@ function tightenPing(z: Z<Schema>): void {
   }, RESUME_LOG_WINDOW_MS)
 }
 
-/**
- * The options every Zero client in this app is built from. Shared so the
- * throwaway client `createColdZero` hands to the benchmark cannot drift from
- * the real one and quietly measure a different configuration.
- */
-function zeroOptions(session: null | Session | undefined, storageKey?: string) {
+/** The options the app's Zero client is built from. */
+function zeroOptions(session: null | Session | undefined) {
   return {
     auth: session?.access_token,
     context: session == null ? undefined : { authUserId: session.user.id },
@@ -462,8 +384,7 @@ function zeroOptions(session: null | Session | undefined, storageKey?: string) {
       location.reload()
     },
     schema,
-    server: PUBLIC_ZERO_URL,
-    storageKey,
+    ...(powerSyncOnly() ? { kvStore: 'mem' as const, server: null } : { server: PUBLIC_ZERO_URL }),
     // `undefined` rather than `'anon'` for logged-out clients. Zero 1.4 deprecated the sentinel
     // ahead of the client-group security work in 1.5, and a real user id is the only thing that may
     // appear here. It also changes the IndexedDB key for logged-out clients, so they get one cold
