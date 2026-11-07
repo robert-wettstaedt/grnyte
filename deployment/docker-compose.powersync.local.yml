@@ -1,0 +1,53 @@
+# Local PowerSync for the shared dev stack, beside zero-cache. One instance for every checkout and worktree (it holds
+# one replication slot on the shared database), so start it from the main checkout:
+#
+#   PS_SUPABASE_JWT_SECRET=<JWT_SECRET from .env> docker compose -p grnyte-powersync \
+#     -f deployment/docker-compose.powersync.local.yml up -d
+#
+# The shared database needs the publication once (the main checkout's job, like any change to that database):
+#
+#   create publication powersync for table
+#     public.grades, public.role_permissions, public.users, public.user_roles, public.user_settings,
+#     public.region_members, public.regions, public.areas, public.blocks, public.routes, public.first_ascensionists,
+#     public.geolocations, public.routes_to_first_ascensionists, public.routes_to_tags, public.topo_routes,
+#     public.topos, public.files, public.ascents, public.favorites, public.bunny_streams;
+services:
+  powersync:
+    image: journeyapps/powersync-service:1.27.2
+    command: ['start', '-r', 'unified']
+    ports:
+      - '58100:8080'
+    environment:
+      POWERSYNC_CONFIG_PATH: /config/service.yaml
+      PS_DATA_SOURCE_URI: postgresql://postgres:your-super-secret-and-long-postgres-password@supabase-db:5432/postgres
+      PS_DATA_SOURCE_SSLMODE: disable
+      PS_MONGO_URI: mongodb://powersync-mongo:27017/powersync?replicaSet=rs0
+      PS_SUPABASE_JWT_SECRET: ${PS_SUPABASE_JWT_SECRET:?set it from .env}
+      PS_ADMIN_TOKEN: local-admin
+    volumes:
+      - ./powersync:/config:ro
+    depends_on:
+      powersync-mongo:
+        condition: service_healthy
+    networks: [supabase_default]
+
+  powersync-mongo:
+    image: mongo:7
+    command: ['--replSet', 'rs0', '--bind_ip_all', '--wiredTigerCacheSizeGB', '0.5']
+    healthcheck:
+      # Initiates the single-node replica set on first start; PowerSync needs one for change streams.
+      test: >-
+        echo "try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'powersync-mongo:27017' }] }) }"
+        | mongosh --quiet
+      interval: 5s
+      retries: 20
+    volumes:
+      - mongo_data:/data/db
+    networks: [supabase_default]
+
+volumes:
+  mongo_data:
+
+networks:
+  supabase_default:
+    external: true
