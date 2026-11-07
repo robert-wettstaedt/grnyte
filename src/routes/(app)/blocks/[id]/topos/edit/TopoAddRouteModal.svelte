@@ -14,6 +14,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
   import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast'
+  import { tick } from 'svelte'
   import { flip } from 'svelte/animate'
   import { fade, slide } from 'svelte/transition'
 
@@ -48,11 +49,10 @@
   let rating = $state<number>()
   let tags = $state<string[]>()
 
-  const filtered = $derived(
-    query.trim() === ''
-      ? candidates
-      : candidates.filter((route) => route.name.toLowerCase().includes(query.trim().toLowerCase())),
-  )
+  // A route on another block, or already on this photo, has nothing to offer here: leaving would lose the lines.
+  const offersSimilar = (route: RouteListItem) => candidates.some((candidate) => candidate.id === route.id)
+
+  const filtered = $derived(candidates.filter((route) => route.name.toLowerCase().includes(query.trim().toLowerCase())))
 
   // Open fresh at step 1 every time. Resetting on open (not close) also avoids a flicker
   // where the closing animation would briefly show the reset state.
@@ -73,6 +73,13 @@
   function pick(routeId: number) {
     open = false
     onAdd(routeId)
+  }
+
+  // The preview nests in this sheet, so it closes first: see the nested `Modal` rule in AGENTS.md.
+  async function pickSimilar(routeId: number, closePreview: () => void) {
+    closePreview()
+    await tick()
+    pick(routeId)
   }
 
   // Both "Quick line" (step 1) and the new-route form (step 2) create a route; a quick line sends
@@ -154,6 +161,12 @@
   </button>
 {/snippet}
 
+{#snippet drawSimilar(route: RouteListItem, close: () => void)}
+  <button class="btn preset-filled-primary-500 w-full" type="button" onclick={() => pickSimilar(route.id, close)}>
+    {m.topo_addRouteToPhoto()}
+  </button>
+{/snippet}
+
 <!-- Desktop: overlay the routes panel exactly (same position/size, one z above) so it fully
      covers it instead of floating beside it. Mobile: opened from inside the routes sheet, so Modal
      stacks it over that one. Either way only one surface is ever visible. -->
@@ -190,7 +203,16 @@
     >
       <FormError form={store} />
 
-      <RouteFormFields allowMedia={false} {block} bind:firstAscents form={store} bind:gradeFk bind:rating bind:tags />
+      <RouteFormFields
+        allowMedia={false}
+        {block}
+        bind:firstAscents
+        form={store}
+        bind:gradeFk
+        bind:rating
+        similar={{ action: drawSimilar, offers: offersSimilar }}
+        bind:tags
+      />
     </form>
   {:else}
     <!-- Step 1: pick an existing route to draw on this photo. -->

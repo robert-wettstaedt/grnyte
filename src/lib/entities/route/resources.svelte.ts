@@ -59,7 +59,13 @@ export function routeMapList(
     () => queries.listRoutesForMap(filter()),
     // `name` is raw, for search matching only: render through the route mapper.
     (rows) =>
-      rows.map((row) => ({ blockFk: row.blockFk, gradeFk: row.userGradeFk ?? undefined, id: row.id, name: row.name })),
+      rows.map((row) => ({
+        areaIds: row.areaIds,
+        blockFk: row.blockFk,
+        gradeFk: row.userGradeFk ?? undefined,
+        id: row.id,
+        name: row.name,
+      })),
     { ...opts, offline: () => betaPolicy(filter()) },
   )
 }
@@ -69,11 +75,11 @@ export function routeMapList(
  * favorite lists hydrate their derived id sets through this. Skipped while the
  * id set is empty; callers reorder the result by their own list.
  */
-export function routesByIds(ids: () => number[], opts?: { enabled?: () => boolean }) {
+export function routesByIds(ids: () => number[], opts?: { enabled?: () => boolean; ttl?: TTL }) {
   return createResource(
     () => queries.listRoutes({ routeId: ids() }),
     (rows) => rows.map(toRouteListItem),
-    { enabled: () => ids().length > 0 && (opts?.enabled?.() ?? true) },
+    { enabled: () => ids().length > 0 && (opts?.enabled?.() ?? true), ttl: opts?.ttl },
   )
 }
 
