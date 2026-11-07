@@ -5,6 +5,7 @@ import type { Context } from '$lib/remote/authed.server'
 import { requireRowForm } from '$lib/remote/require.server'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { areaAncestry } from '../area/area.server'
+import { areaIdsOf } from '../area/areaIds'
 import { createUpdateEvent, insertEvent } from '../event/event.server'
 import { notifyMentions } from '../notification/notification.server'
 import { regionTags } from '../region/tagVocabulary'
@@ -54,7 +55,7 @@ export async function createRouteRow(
     .insert(routes)
     .values({
       areaFks,
-      areaIds: areaFks.map((id) => `^${id}$`).join(','),
+      areaIds: areaIdsOf(areaFks),
       blockFk: block.id,
       createdBy: user.id,
       description: blank(value.description),

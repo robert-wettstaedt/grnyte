@@ -5,6 +5,7 @@
  */
 import type { Sql } from 'postgres'
 import type { SeedUser } from '../src/lib/db/testAccounts'
+import { areaIdsOf } from '../src/lib/entities/area/areaIds'
 // Type only, so it is erased before this runs: the Playwright process has no vite aliases.
 import type { RegionSettings } from '../src/lib/entities/region/settings'
 
@@ -283,7 +284,7 @@ async function insertRoute(
     values (
       ${name}, ${blockFk}, ${regionId}, ${owner.userId},
       ${extra.description ?? null}, ${extra.gradeFk ?? null}, ${extra.rating ?? null},
-      ${areaFks}, ${areaFks.map((id) => `^${id}$`).join(',')}
+      ${areaFks}, ${areaIdsOf(areaFks)}
     ) returning id`
 
   return row.id

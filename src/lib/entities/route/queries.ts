@@ -4,6 +4,7 @@ import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import type { Schema } from '$lib/zero/zero-schema'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery, type Query } from '@rocicorp/zero'
+import { areaToken } from '../area/areaIds'
 
 /** The filter keys `listRoutes` and `listRoutesForMap` share, spread into both query schemas. */
 const routeFilterShape = {
@@ -42,7 +43,7 @@ function applyRouteFilters<Q extends RoutesQuery>(
   }
 
   if (args.areaId != null) {
-    q = q.where('areaIds', 'ILIKE', `%^${args.areaId}$%`)
+    q = q.where('areaIds', 'ILIKE', `%${areaToken(args.areaId)}%`)
   }
 
   // Filters run on the community grade/rating, the values every list displays.

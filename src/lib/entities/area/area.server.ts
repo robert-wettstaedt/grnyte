@@ -2,6 +2,7 @@ import * as schema from '$lib/db/schema'
 import { areas, blocks, routes } from '$lib/db/schema'
 import { and, count, eq, inArray, isNull, type SQL } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { areaIdsOf } from './areaIds'
 
 /** Wider than `Context['db']`: takes the RLS transaction and the plain handle both. */
 type Db = PostgresJsDatabase<typeof schema>
@@ -20,11 +21,6 @@ export async function areaAncestry(db: Db, areaId: number): Promise<number[]> {
     current = area?.parentFk ?? null
   }
   return chain
-}
-
-/** `routes.areaIds`, the text form `routes/queries.ts` matches with `%^id$%`. */
-export function areaIdsOf(areaFks: readonly number[]): string {
-  return areaFks.map((id) => `^${id}$`).join(',')
 }
 
 /** {@link hasDeletedAncestor} for a row hanging off a BLOCK, which has to be live itself too. */
