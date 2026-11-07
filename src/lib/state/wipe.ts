@@ -1,21 +1,23 @@
 import { clearViewed } from '$lib/components/EntitySearch/recent.svelte'
 import { IMAGE_CACHE } from '$lib/images/derivatives'
+import { clearPowerSync } from '$lib/powersync/db.svelte'
 import { dropAllDatabases } from '@rocicorp/zero'
 import { clearHistory } from './searchHistory'
 import { forgetAllSynced } from './sync.svelte'
 
 /**
- * Removes what the previous account left on this device: its Zero replica, cached images, sync
- * stamps, search history and recently viewed entities. Every sign-out path calls it.
+ * Removes what the previous account left on this device: its Zero replica, every PowerSync account file, cached
+ * images, sync stamps, search history and recently viewed entities. Every sign-out path calls it.
  */
 export async function wipeDeviceData(): Promise<void> {
   forgetAllSynced()
   clearHistory()
   clearViewed()
 
-  const [, dropped] = await Promise.allSettled([
+  const [, dropped, powerSync] = await Promise.allSettled([
     typeof caches === 'undefined' ? undefined : caches.delete(IMAGE_CACHE),
     dropAllDatabases(),
+    clearPowerSync(),
   ])
   // A replica left behind is the thing this exists to prevent, so it is reported, not swallowed.
   if (dropped.status === 'rejected' || dropped.value.errors.length > 0) {
@@ -24,6 +26,7 @@ export async function wipeDeviceData(): Promise<void> {
       dropped.status === 'rejected' ? dropped.reason : dropped.value.errors,
     )
   }
+  if (powerSync.status === 'rejected') console.error('[wipe] PowerSync files left on this device', powerSync.reason)
 }
 
 /** A stuck IndexedDB delete must not keep a signed-out person on the old screen. */

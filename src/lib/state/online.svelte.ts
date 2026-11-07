@@ -102,6 +102,16 @@ if (browser) {
 }
 
 /**
+ * PowerSync's status as one of Zero's connection names. Everything short of connected is one name: PowerSync
+ * flips between connecting and disconnected while it backs off, and each flip would restart the hold, which
+ * would then never fire. Never a terminal name either: PowerSync retries forever and asks for a fresh token
+ * itself, so there is no state a reload would get it out of.
+ */
+export function connectionOf(status: undefined | { connected: boolean }): ConnectionName {
+  return status?.connected === true ? 'connected' : 'connecting'
+}
+
+/**
  * What one of Zero's connection states says about the *network*, which is not the same question as
  * what it says about the sync.
  *
@@ -165,6 +175,11 @@ export function reportConnectionState(state: { name: ConnectionName }): void {
   currentConnectionState = state.name
   unconfirmed = false
   applyConnectionState(state.name)
+}
+
+/** Feeds PowerSync's status in, read through the same judgement as Zero's connection. */
+export function reportSyncStatus(status: { connected: boolean }): void {
+  reportConnectionState({ name: connectionOf(status) })
 }
 
 /**

@@ -1,6 +1,7 @@
 <script module lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import { isOnline } from '$lib/state/online.svelte'
+  import { powerSyncOnly, powerSyncStatus } from '$lib/powersync/db.svelte'
+  import { connectionOf, isOnline } from '$lib/state/online.svelte'
   import { isUpdateReady } from '$lib/state/updateReady.svelte'
   import { isTerminal, RECONNECT_HOLD_MS, type ConnectionName } from '$lib/zero/connection'
   import { getZ } from '$lib/zero/z.svelte'
@@ -34,7 +35,9 @@
   // with no signal at all while the screen behind it said "not downloaded". `isOnline()` folds Zero's
   // connection in alongside the browser flag and the reachability probe; `settled` reads Zero alone.
   const online = $derived(props.online ?? isOnline())
-  const raw = $derived(props.connectionState?.name ?? getZ().connectionState.name)
+  const raw = $derived(
+    props.connectionState?.name ?? (powerSyncOnly() ? connectionOf(powerSyncStatus()) : getZ().connectionState.name),
+  )
 
   // Hold a non-connected state for its threshold before showing anything: every
   // change restarts the timer, so flapping never reaches the bar.

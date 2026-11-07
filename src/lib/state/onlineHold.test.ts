@@ -593,3 +593,28 @@ describe('tightening the ping after a resume', () => {
     expect(tighten).not.toHaveBeenCalled()
   })
 })
+
+describe('PowerSync reporting in', () => {
+  const status = (connected: boolean, connecting: boolean) => ({ connected, connecting })
+
+  it('calls the app offline when a retrying connection keeps flipping between connecting and disconnected', async () => {
+    // PowerSync alternates the two while it backs off. If each flip counted as news, the hold would restart
+    // on every one and never fire, leaving a dead connection reading as online for good.
+    const online = await load()
+    for (let second = 0; second < 12; second++) {
+      online.reportSyncStatus(status(false, second % 2 === 0))
+      vi.advanceTimersByTime(1_000)
+    }
+
+    expect(online.isOnline()).toBe(false)
+  })
+
+  it('takes a connected status as proof, like any connection', async () => {
+    const online = await load()
+    online.reportSyncStatus(status(false, true))
+    vi.advanceTimersByTime(11_000)
+    online.reportSyncStatus(status(true, false))
+
+    expect(online.isOnline()).toBe(true)
+  })
+})

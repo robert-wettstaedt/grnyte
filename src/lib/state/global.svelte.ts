@@ -199,11 +199,11 @@ export function setGlobalState(): GlobalState | undefined {
       __grnyteGlobal: {
         get statuses() {
           return {
-            grades: describe(gradesResource),
-            rolePermissions: describe(rolePermissionsResource),
-            user: describe(userResource),
-            userRegions: describe(userRegionsResource),
-            userRole: describe(userRoleResource),
+            grades: gradesResource.phase,
+            rolePermissions: rolePermissionsResource.phase,
+            user: userResource.phase,
+            userRegions: userRegionsResource.phase,
+            userRole: userRoleResource.phase,
           }
         },
       },
@@ -251,12 +251,5 @@ export function staticGlobalState(
     userRegions,
     userRegionsResource: ready(userRegions),
     userRole: data.userRole,
-  }
-}
-
-/** One resource's state, for the dev console hook above. */
-function describe(resource: QueryResource<unknown>) {
-  return {
-    phase: resource.phase,
   }
 }

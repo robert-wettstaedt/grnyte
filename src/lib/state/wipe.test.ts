@@ -10,6 +10,21 @@ vi.mock('@rocicorp/zero', async (importOriginal) => ({
   dropAllDatabases: vi.fn(async () => ({ dropped: [], errors: [] })),
 }))
 
+/** IndexedDB as far as the wipe sees it: names to list, and what got deleted. */
+function stubIndexedDb(names: string[]) {
+  const deleted: string[] = []
+  vi.stubGlobal('indexedDB', {
+    databases: async () => names.map((name) => ({ name })),
+    deleteDatabase: (name: string) => {
+      deleted.push(name)
+      const request = {} as IDBOpenDBRequest
+      queueMicrotask(() => request.onsuccess?.({} as Event))
+      return request
+    },
+  })
+  return deleted
+}
+
 describe('wipeDeviceData', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -20,9 +35,10 @@ describe('wipeDeviceData', () => {
     vi.unstubAllGlobals()
   })
 
-  it('drops the replica, the image cache, the sync stamps and the search history', async () => {
+  it('drops the replica, the account files, the image cache, the sync stamps and the search history', async () => {
     const del = vi.fn(async () => true)
     vi.stubGlobal('caches', { delete: del })
+    const deleted = stubIndexedDb(['grnyte-u1.sqlite', 'grnyte-u0.sqlite'])
     trackSyncFor('u1')
     markSynced('reference')
     saveHistory(['sun'])
@@ -31,6 +47,7 @@ describe('wipeDeviceData', () => {
     await wipeDeviceData()
 
     expect(dropAllDatabases).toHaveBeenCalledOnce()
+    expect(deleted.sort()).toEqual(['grnyte-u0.sqlite', 'grnyte-u1.sqlite'])
     expect(del).toHaveBeenCalledWith('images')
     expect(localStorage.getItem(VIEWED_KEY)).toBeNull()
     expect(loadHistory()).toEqual([])
@@ -41,6 +58,7 @@ describe('wipeDeviceData', () => {
 
   it('still wipes the rest when a step fails or Cache Storage is missing', async () => {
     vi.stubGlobal('caches', undefined)
+    stubIndexedDb([])
     vi.mocked(dropAllDatabases).mockRejectedValueOnce(new Error('idb blocked'))
     saveHistory(['sun'])
 

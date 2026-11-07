@@ -1,11 +1,16 @@
 import { browser } from '$app/environment'
-import type { PowerSyncBackendConnector, SyncStatus } from '@powersync/web'
-import { PowerSyncDatabase } from '@powersync/web'
+import { reportSyncStatus } from '$lib/state/online.svelte'
+import { markStoreLoaded, markSynced, trackSyncFor, type SyncStamp } from '$lib/state/sync.svelte'
+import { PowerSyncDatabase, type PowerSyncBackendConnector, type SyncStatus } from '@powersync/web'
+import { dropAllDatabases } from '@rocicorp/zero'
 import type { Session } from '@supabase/supabase-js'
 import { appSchema } from './schema'
 
-// shortcut: the local dev service only; 4.1 reads PUBLIC_POWERSYNC_URL instead.
-const ENDPOINT = 'http://localhost:58080'
+/** Every account file starts with this, so a sign-out can find the ones it did not open. */
+const FILE_PREFIX = 'grnyte-'
+/** Status events never fire on iOS Safari (no shared worker), so the status is also read on this beat. */
+const POLL_MS = 250
+const ZERO_DROPPED_KEY = 'grnyte.zeroStoreDropped'
 
 // The explore map's block rows. Never a LEFT JOIN through PowerSync's views: SQLite cannot use the index through
 // them and scans (6 s here); an inner join and correlated subqueries both search the index.
@@ -14,22 +19,41 @@ export const MAP_SQL = `select b.nid as id, b.name, b.grade_counts, a.nid as are
     (select g.long from geolocations g where g.nid = b.geolocation_fk) as long
   from blocks b join areas a on a.nid = b.area_fk`
 
-let db: PowerSyncDatabase | undefined
-let token: string | undefined
-let userId: string | undefined
-let cleared = Promise.resolve()
-let status = $state<SyncStatus | undefined>(undefined)
-
-const connector: PowerSyncBackendConnector = {
-  fetchCredentials: async () => (token == null ? null : { endpoint: ENDPOINT, token }),
-  // Nothing writes to the local database: writes stay server mutators until the offline-writes PR.
-  uploadData: async () => {},
+/** Where the service is, and whether it is the only engine running (the measurement build). The layout reads
+ *  both from the environment, which only exists inside SvelteKit's runtime. */
+export interface PowerSyncSettings {
+  endpoint: string
+  only: boolean
 }
 
-/** Sign-out's half: clears the client this document opened. shortcut: a sign-out from a page without one (invite
- *  accept) leaves that account's file, readable only by it; delete every `trial3-*` file in a real port. */
+let settings: PowerSyncSettings = { endpoint: '', only: false }
+let db: PowerSyncDatabase | undefined
+let userId: string | undefined
+let cleared = Promise.resolve()
+let stopPolling = () => {}
+// Raw: PowerSync hands over a new status object on every change and never mutates one.
+let status = $state.raw<SyncStatus | undefined>(undefined)
+/** The stamps this account has written since its file was opened, so the poll writes each once. */
+let stamped: SyncStamp[] = []
+
+/** Removes every account's local data from this device, open or not. Sign-out's half. */
 export async function clearPowerSync(): Promise<void> {
+  stopPolling()
   await db?.disconnectAndClear()
+  await db?.close()
+  db = undefined
+  userId = undefined
+  const files = (await indexedDB.databases())
+    .map((info) => info.name ?? '')
+    .filter((name) => name.startsWith(FILE_PREFIX))
+  await Promise.all(files.map((name) => deleteDatabase(name)))
+}
+
+/** Drops the previous engine's local store once per device: it would otherwise keep a second copy of every region. */
+export async function dropZeroStoreOnce(): Promise<void> {
+  if (localStorage.getItem(ZERO_DROPPED_KEY) != null) return
+  const { errors } = await dropAllDatabases()
+  if (errors.length === 0) localStorage.setItem(ZERO_DROPPED_KEY, '1')
 }
 
 export function getPowerSync(): PowerSyncDatabase {
@@ -37,32 +61,93 @@ export function getPowerSync(): PowerSyncDatabase {
   return db
 }
 
-export function initPowerSync(session: null | Session | undefined): void {
+/**
+ * Opens (or keeps) the signed-in account's database and connects it. `accessToken` is asked on every connect and
+ * reconnect, so a token refreshed while the app was in the background is used without anyone pushing it.
+ */
+export function initPowerSync(
+  session: null | Session | undefined,
+  accessToken: () => Promise<string | undefined>,
+  options: PowerSyncSettings,
+): void {
   if (!browser) return
-  // shortcut: collections built on a dropped client stay on it; fine while every sign-out reloads the page.
+  settings = options
   if (db != null && userId !== session?.user.id) {
-    cleared = db.disconnectAndClear().catch((error: unknown) => console.error('[powersync] clear failed', error))
+    // A reload follows every sign-out; this covers a switch that skips it.
+    const previous = db
+    cleared = previous.disconnectAndClear().catch((error: unknown) => console.error('[powersync] clear failed', error))
+    stopPolling()
     db = undefined
   }
   userId = session?.user.id
-  if (session == null) {
-    token = undefined
-    return
+  if (session == null || db != null) return
+
+  // One file per account, so no account ever opens another's rows.
+  const opened = new PowerSyncDatabase({
+    database: { dbFilename: `${FILE_PREFIX}${session.user.id}.sqlite` },
+    schema: appSchema,
+  })
+  db = opened
+  stamped = []
+  trackSyncFor(session.user.id)
+  void opened.waitForReady().then(markStoreLoaded)
+  observe(opened.currentStatus)
+  opened.registerListener({ statusChanged: observe })
+  stopPolling = pollWhileVisible(opened)
+
+  const connector: PowerSyncBackendConnector = {
+    fetchCredentials: async () => {
+      const token = await accessToken()
+      return token == null ? null : { endpoint: settings.endpoint, token }
+    },
+    // Nothing writes to the local database: writes stay server mutators until the offline-writes PR.
+    uploadData: async () => {},
   }
-  const fresh = token !== session.access_token
-  token = session.access_token
-  if (db == null) {
-    // One file per account, so no account ever opens another's rows or upload queue, reload or not.
-    db = new PowerSyncDatabase({ database: { dbFilename: `trial3-${session.user.id}.sqlite` }, schema: appSchema })
-    db.registerListener({ statusChanged: (next) => (status = next) })
-    status = db.currentStatus
-  } else if (!fresh) {
-    return
-  }
-  const connecting = db
-  void cleared.then(() => connecting.connect(connector))
+  void cleared.then(() => opened.connect(connector))
+}
+
+/** The measurement build: only PowerSync starts, so the remeasure runs on one engine. Removed in R1. */
+export function powerSyncOnly(): boolean {
+  return settings.only
 }
 
 export function powerSyncStatus(): SyncStatus | undefined {
   return status
+}
+
+function deleteDatabase(name: string): Promise<void> {
+  return new Promise((resolve) => {
+    const request = indexedDB.deleteDatabase(name)
+    request.onsuccess = request.onerror = request.onblocked = () => resolve()
+  })
+}
+
+/** Takes a status in and writes the stamps the shell reads: the essentials (priority 0), then everything. */
+function observe(next: SyncStatus): void {
+  status = next
+  // Zero reports while it syncs; only the measurement build leaves the online signal to PowerSync.
+  if (powerSyncOnly()) reportSyncStatus(next)
+  const reached: SyncStamp[] = []
+  if (next.statusForPriority(0)?.hasSynced) reached.push('reference')
+  if (next.hasSynced) reached.push('guidebook', 'personal')
+  for (const stamp of reached) {
+    if (stamped.includes(stamp)) continue
+    stamped.push(stamp)
+    markSynced(stamp)
+  }
+}
+
+function pollWhileVisible(opened: PowerSyncDatabase): () => void {
+  let timer: ReturnType<typeof setInterval> | undefined
+  const sync = () => {
+    clearInterval(timer)
+    timer =
+      document.visibilityState === 'visible' ? setInterval(() => observe(opened.currentStatus), POLL_MS) : undefined
+  }
+  sync()
+  document.addEventListener('visibilitychange', sync)
+  return () => {
+    clearInterval(timer)
+    document.removeEventListener('visibilitychange', sync)
+  }
 }

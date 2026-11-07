@@ -1,4 +1,7 @@
+import { dev } from '$app/environment'
+import { env } from '$env/dynamic/public'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
+import { dropZeroStoreOnce, initPowerSync, powerSyncOnly } from '$lib/powersync/db.svelte'
 import { initZero } from '$lib/zero/z.svelte'
 import { createBrowserClient } from '@supabase/ssr'
 import type { LayoutLoad } from './$types'
@@ -24,6 +27,15 @@ export const load = (async ({ depends, fetch }) => {
   const {
     data: { session },
   } = await supabase.auth.getSession()
+
+  // Before Zero: whether Zero syncs at all is decided by the measurement switch PowerSync holds.
+  // The token is asked on every connect, so one refreshed in the background reaches PowerSync without a push.
+  initPowerSync(session, async () => (await supabase.auth.getSession()).data.session?.access_token, {
+    // shortcut: dev falls back to the local service until PUBLIC_POWERSYNC_URL is in every .env (task 7.5).
+    endpoint: env.PUBLIC_POWERSYNC_URL || (dev ? 'http://localhost:58100' : ''),
+    only: env.PUBLIC_SYNC_ONLY_POWERSYNC === '1',
+  })
+  if (powerSyncOnly()) void dropZeroStoreOnce()
 
   // Sets up the Zero client singleton before any (app) page reads getZ().
   initZero(session)
