@@ -1,38 +1,5 @@
 # Zero Infrastructure Deployment
 
-## Quick Start (Simplified)
-
-This deployment has been simplified to be more reliable. The process:
-
-1. **Start services**: All services (Zero servers + nginx) start together
-2. **HTTP first**: nginx serves HTTP initially to allow certificate generation
-3. **Generate SSL**: Automated script handles SSL certificate generation
-4. **Switch to HTTPS**: nginx config is updated to redirect HTTP to HTTPS
-
-### Key Files
-
-- `docker-compose.zero.yml` - Main services (no profiles needed)
-- `nginx.zero.conf` - nginx configuration (serves HTTP initially, then HTTPS)
-- `setup-ssl.sh` - Automated SSL certificate setup script
-- `.env.prod` - Environment configuration, written by `deploy-zero.yml` out of
-  Bitwarden Secrets Manager. See [SECRETS.md](SECRETS.md).
-
-### Quick Manual Deployment
-
-If you need to deploy manually:
-
-```bash
-# 1. Start all services
-docker compose -f docker-compose.zero.yml up -d
-
-# 2. Wait for services to be ready
-docker logs zero-server-prod
-
-# 3. Setup SSL certificates
-chmod +x setup-ssl.sh
-./setup-ssl.sh
-```
-
 ## Architecture
 
 - **Single VPS deployment** with nginx in front of the Zero instance
