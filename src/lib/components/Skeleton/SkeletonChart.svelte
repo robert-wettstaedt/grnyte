@@ -4,11 +4,10 @@
   import type { ClassValue } from 'svelte/elements'
 
   interface Props {
-    bars?: number
     class?: ClassValue
   }
 
-  const { bars = 8, class: className }: Props = $props()
+  const { class: className }: Props = $props()
 
   // Fixed, so a reload does not reshuffle it; a bell shape reads as a grade spread.
   const HEIGHTS = [20, 45, 70, 90, 75, 50, 30, 15]
@@ -16,11 +15,8 @@
 
 <div class={['skeleton-hold flex flex-col gap-1.5', className]} aria-busy="true">
   <div class="flex h-26 items-end gap-1">
-    {#each { length: bars }, index (index)}
-      <div
-        class="bg-surface-200-800 w-full animate-pulse rounded-t-sm"
-        style:height="{HEIGHTS[index % HEIGHTS.length]}%"
-      ></div>
+    {#each HEIGHTS as height, index (index)}
+      <div class="bg-surface-200-800 w-full animate-pulse rounded-t-sm" style:height="{height}%"></div>
     {/each}
   </div>
   <div class="bg-surface-200-800 h-3.5 animate-pulse rounded"></div>

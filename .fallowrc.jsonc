@@ -1,0 +1,44 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": [
+    "src/sw.ts",
+    "src/lib/db/scripts/*.ts",
+    "src/lib/email/push-templates.ts",
+    "src/lib/email/test-send.ts",
+    "src/**/*.stories.svelte",
+    "deployment/announce.ts",
+    "memlab/*.cjs",
+    "stryker/vitest.config.ts",
+    // Read by vite-plugin-pwa's `pwaAssets` option, never imported.
+    "pwa-assets.config.ts",
+  ],
+  "ignoreFindings": ["brand/**"],
+  // memlab runs as a binary from `test:memory`; Stryker loads its runner by name.
+  "ignoreDependencies": ["memlab", "@stryker-mutator/vitest-runner"],
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "unused-dev-dependencies": "error",
+    "unused-component-props": "error",
+    // Vite bundles everything, so the dependencies/devDependencies split carries no meaning.
+    "dev-dependencies-in-production": "off",
+  },
+  "health": {
+    "ignore": ["src/lib/db/scripts/**", "e2e/**"],
+  },
+  "duplicates": {
+    "mode": "mild",
+    // The defaults skip *.test.* and *.spec.*; jscpd scanned them and so do we.
+    "ignoreDefaults": false,
+    "minTokens": 50,
+    "minLines": 5,
+    "ignore": [
+      "**/node_modules/**",
+      "**/.svelte-kit/**",
+      "**/.claude/**",
+      "**/*.gen.ts",
+      "**/paraglide/**",
+      "**/*.stories.svelte",
+      "brand/**",
+    ],
+  },
+}

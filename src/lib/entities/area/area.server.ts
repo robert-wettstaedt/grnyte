@@ -42,6 +42,21 @@ export async function chainRoutes(db: Db, areaId: number, which: SQL): Promise<v
   await setChain(db, await areaAncestry(db, areaId), which)
 }
 
+/** Collect `rootId` and every area transitively nested beneath it (via `parentFk`).
+ *  Cycle-safe; a level-by-level loop is plenty for the shallow area trees we have. */
+export async function collectAreaSubtreeIds(db: Db, rootId: number): Promise<number[]> {
+  const ids = [rootId]
+  let frontier = [rootId]
+
+  while (frontier.length > 0) {
+    const children = await db.query.areas.findMany({ columns: { id: true }, where: inArray(areas.parentFk, frontier) })
+    frontier = children.map((child) => child.id).filter((id) => !ids.includes(id))
+    ids.push(...frontier)
+  }
+
+  return ids
+}
+
 /** Whether a row under `areaId` would be stranded: an ancestor deleted, absent, or looping.
  *  All three fail closed. `areaAncestry` records an id before looking it up, so an absent row
  *  shortens the count; a root still carrying a `parentFk` means the walk stopped on a cycle. */

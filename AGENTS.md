@@ -203,11 +203,16 @@ ambiguous` the first time a person triggers it. Reach for the alias whenever a q
 - Before handing back, over the paths you touched and nothing else: `npx prettier --write`,
   `npx eslint`, `npx vitest run --project server` for `*.server.test.ts` and `*.remote.test.ts` or
   `--project browser` for the rest, then typecheck (see `npm run check` above).
-- Run `npm run lint:duplication` and `npm run lint:unused` BEFORE handing work back: both are in CI,
-  so a late miss still costs you the cheap moment to reuse something. jscpd fails only on clones
-  absent from `.jscpd-baseline.json` and marks them `[NEW]`; if a new one is deliberate, say so and
-  run `npm run lint:duplication:accept` to rewrite the baseline. It is fingerprint-based, so moving
-  existing duplicated code also reads as new.
+- Run `npm run lint:unused`, `npm run lint:duplication` and `npm run lint:health` (all fallow,
+  pinned to an exact version, all in CI) BEFORE handing work back, so a late miss still costs you the cheap moment to reuse something.
+  `lint:unused` has no baseline: any unused file, export, dependency or prop and any import cycle
+  fails. The other two fail on a clone or complexity hotspot absent from
+  `.fallow-dupes-baseline.json` / `.fallow-health-baseline.json`, and on a baseline entry that no
+  longer matches. Those baselines only shrink: CI refuses a commit that adds an entry, so
+  `npm run lint:baseline` is for removing stale entries after a fix, never for accepting a new
+  finding. A deliberate one gets an inline `// fallow-ignore-next-line <kind> -- <reason>` instead,
+  which review sees. fallow misses some Svelte template reads (a prop inside `{#each { length }}`, a
+  `<script module>` import used only in markup); suppress those the same way, with that reason.
 - Browser floor: `vite.config.ts` pins `build.target`; check a feature against that pinned list, never
   against "Baseline Widely" in the abstract. Unpinned it inherits Vite's `baseline-widely-available`
   default, which is Baseline Widely as of a date frozen per Vite major, so the floor drifts on an

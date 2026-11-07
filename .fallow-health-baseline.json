@@ -1,0 +1,965 @@
+{
+  "kind": "health",
+  "finding_counts": {
+    "deployment/secrets.mjs": {
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "memlab/shared.cjs": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/BarChart/BarChart.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/ContributionCalendar/ContributionCalendar.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "src/lib/components/EntitySearch/EntityList.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/EventFeed/EventCard.stories.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/EventFeed/EventCard.svelte": {
+      "complexity_critical": {
+        "count": 1
+      }
+    },
+    "src/lib/components/EventFeed/EventChanges.svelte": {
+      "complexity_critical": {
+        "count": 1
+      }
+    },
+    "src/lib/components/EventFeed/EventWording.stories.svelte": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/lib/components/EventFeed/ProseDiff.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/GradeHistogram/GradeHistogram.svelte": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/GuidebookPicker/MergePanel.svelte": {
+      "complexity_high": {
+        "count": 1
+      }
+    },
+    "src/lib/components/GuidebookPicker/MergeSheet.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "src/lib/components/GuidebookPicker/MovePanel.svelte": {
+      "complexity_high": {
+        "count": 1
+      }
+    },
+    "src/lib/components/GuidebookPicker/MoveSheet.svelte": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Image/Image.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Markdown/lib/remark-safe-urls.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/MarkdownEditor/MarkdownEditor.svelte": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/lib/components/Media/MediaGrid.svelte": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/lib/components/Media/MediaStage.svelte": {
+      "complexity_critical": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Media/MediaTile.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Media/MediaViewer.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "src/lib/components/Media/ShareSheet.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Media/SourceSheet.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Media/keys.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/MediaDropZone/MediaDropZone.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 5
+      }
+    },
+    "src/lib/components/Modal/Modal.desktop.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Profile/ProfileView.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/QueryState/QueryState.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/QueryState/fallback.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Reactions/CommentComposer.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Reactions/Comments.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Reactions/ReactionPicker.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Reactions/thread.svelte.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Topo/Topo.svelte": {
+      "complexity_high": {
+        "count": 1
+      }
+    },
+    "src/lib/components/Topo/TopoEditorStage.svelte": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "src/lib/components/Topo/panzoom.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/area/lifecycle.server.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/area/move.server.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/ascent/AscentFormFields.svelte": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/ascent/AscentRow.svelte": {
+      "complexity_critical": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/ascent/mapper.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/block/BlockForm.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/block/resources.svelte.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/event/cardView.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/event/cases/coverage.test.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/event/cases/render.test.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/event/change.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/lib/entities/event/feed.svelte.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/lib/entities/event/grouping.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/event/line.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/event/mapper.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/event/queries.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/favorite/favorite.server.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/firstAscensionist/FirstAscentField.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/moderation/DecisionList.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/moderation/preview.server.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/moderation/reverse.server.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/moderation/subjects.server.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/notification/NotificationRow.svelte": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/notification/caption.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/notification/digest.server.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/lib/entities/notification/digestRun.server.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/notification/directed.server.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/reaction/mutators.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/report/ReportQueue.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/report/target.server.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/route/SimilarRoutes.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/route/queries.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/lib/entities/route/similarNames.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/topo/editor.svelte.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/topo/mapper.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/entities/user/mapper.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/forms/Form.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/forms/FormGate.svelte": {
+      "complexity_high": {
+        "count": 1
+      }
+    },
+    "src/lib/hooks/auth.server.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/map/LocationPicker.svelte": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/map/Map.svelte": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 4
+      }
+    },
+    "src/lib/map/StaticMap.svelte": {
+      "complexity_high": {
+        "count": 1
+      }
+    },
+    "src/lib/map/attribution.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/map/data.svelte.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/map/exploreData.svelte.ts": {
+      "crap_high": {
+        "count": 3
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "src/lib/map/filteredRoutes.svelte.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/lib/map/layers.svelte.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/remote/gates.test.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/state/navigation.svelte.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/lib/state/online.svelte.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/state/serviceWorker.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/state/updateReady.svelte.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/lib/videos/hdr.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/lib/zero/z.svelte.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/(map)/+layout.svelte": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 4
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/(map)/CreateOnMap/CreateOnMap.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/(map)/Filter/Filter.svelte": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/(map)/Filter/fields/FirstAscensionistSelect.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/(map)/SearchBar/SearchBar.svelte": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/(map)/areas/[id]/+page.svelte": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/(map)/areas/[id]/AreaActions.svelte": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/(map)/areas/[id]/BlocksList.svelte": {
+      "complexity_critical": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/(map)/blocks/[id]/+page.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/(map)/blocks/[id]/BlockActions.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/(map)/search/+page.svelte": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/Modal/Modal.mobile.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/Modal/keyboardNav.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/(shell)/(explore)/blocks/[id]/topos/[topoId]/+page.svelte": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/+layout.svelte": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/routes/(app)/areas/[id]/blocks/order/+page.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/areas/[id]/blocks/order/ReorderMap.svelte": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/blocks/[id]/topos/edit/+page.svelte": {
+      "complexity_critical": {
+        "count": 2
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/routes/(app)/blocks/[id]/topos/edit/TopoAddRouteModal.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/blocks/[id]/topos/edit/TopoPhotoStrip.svelte": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/routes/(app)/blocks/[id]/topos/edit/TopoRouteCard.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/blocks/[id]/topos/edit/keydown.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/regions/[regionId]/+page.svelte": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/regions/[regionId]/InvitationRow.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/regions/[regionId]/tags/+page.svelte": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "src/routes/(app)/regions/[regionId]/tags/TagRow.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/remove/[kind=removable]/[id]/RemovalForm.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/routes/[id]/+page.svelte": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 2
+      }
+    },
+    "src/routes/(app)/routes/[id]/RouteActions.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/routes/[id]/ascents/+page.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/settings/feedback/inbox/+page.svelte": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(app)/settings/notifications/+page.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(landing)/+page.svelte": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(landing)/BoulderThree.svelte": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(landing)/auth/confirm/+server.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/(landing)/invite/accept/+page.svelte": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "src/routes/f/[id]/+page.server.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "src/sw.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "stryker/vitest.config.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "svelte.config.js": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "vitest-global-setup.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    }
+  },
+  "runtime_coverage_findings": [],
+  "target_keys": [
+    "src/lib/entities/ascent/resources.svelte.ts:high impact",
+    "src/lib/entities/topo/mapper.ts:high impact",
+    "src/lib/entities/region/regions.remote.ts:hidden coupling",
+    "src/routes/(app)/routes/[id]/edit/+page.svelte:hidden coupling",
+    "src/lib/map/exploreData.svelte.ts:high impact",
+    "src/lib/components/GuidebookPicker/MoveSheet.svelte:high impact",
+    "src/routes/(app)/areas/[id]/add/+page.svelte:hidden coupling",
+    "src/lib/entities/moderation/subjects.server.ts:high impact",
+    "src/lib/entities/event/card.ts:hidden coupling",
+    "src/lib/components/StatusPill/PillHost.svelte:high impact",
+    "src/lib/entities/block/resources.svelte.ts:high impact",
+    "src/lib/components/GuidebookPicker/MergeSheet.svelte:high impact",
+    "src/lib/entities/report/resources.svelte.ts:high impact",
+    "src/lib/entities/event/line.ts:high impact",
+    "src/routes/(app)/areas/[id]/blocks/add/+page.svelte:hidden coupling",
+    "src/lib/entities/event/mapper.ts:complexity",
+    "src/routes/(app)/areas/[id]/edit/+page.svelte:hidden coupling",
+    "src/routes/(app)/(shell)/(explore)/(map)/areas/[id]/+page.svelte:complexity",
+    "src/lib/components/EntitySearch/recent.svelte.ts:high impact",
+    "src/lib/entities/route/resources.svelte.ts:high impact",
+    "src/lib/components/Media/MediaViewer.svelte:hidden coupling",
+    "src/routes/(app)/(shell)/(explore)/(map)/blocks/[id]/+page.svelte:hidden coupling",
+    "src/lib/components/EventFeed/EventCard.svelte:complexity",
+    "src/lib/map/filter.ts:high impact",
+    "src/lib/entities/report/target.server.ts:complexity",
+    "src/routes/(app)/(shell)/(explore)/(map)/areas/[id]/AreaActions.svelte:complexity",
+    "src/lib/entities/ascent/AscentRow.svelte:complexity",
+    "src/routes/(app)/blocks/[id]/BlockEditor.svelte:hidden coupling",
+    "src/lib/entities/favorite/resources.svelte.ts:high impact",
+    "src/routes/(app)/(shell)/(explore)/(map)/blocks/[id]/BlockActions.svelte:hidden coupling",
+    "src/routes/f/[id]/+page.server.ts:complexity",
+    "src/lib/components/Topo/Topo.svelte:complexity",
+    "src/lib/components/EventFeed/EventChanges.svelte:complexity",
+    "src/routes/(app)/(shell)/(explore)/(map)/areas/[id]/BlocksList.svelte:complexity",
+    "src/routes/(app)/regions/[regionId]/+page.svelte:complexity",
+    "src/lib/forms/store.svelte.ts:high impact",
+    "src/lib/map/map.ts:high impact",
+    "src/lib/entities/user/resources.svelte.ts:high impact",
+    "src/routes/(app)/routes/[id]/RouteActions.svelte:hidden coupling",
+    "src/lib/entities/merge/fields.ts:high impact",
+    "src/lib/entities/moderation/preview.server.ts:complexity",
+    "src/lib/entities/block/blocks.remote.ts:hidden coupling",
+    "src/lib/entities/route/similarMatches.svelte.ts:high impact",
+    "src/lib/logging/stringify.ts:high impact",
+    "src/lib/map/data.svelte.ts:high impact",
+    "src/lib/entities/topo/order.ts:high impact",
+    "src/lib/entities/region/resources.svelte.ts:high impact",
+    "src/lib/entities/area/areas.remote.ts:hidden coupling",
+    "src/routes/(app)/blocks/[id]/topos/edit/keydown.ts:complexity",
+    "src/routes/f/[id]/+page.svelte:hidden coupling",
+    "src/lib/entities/firstAscensionist/resources.svelte.ts:high impact",
+    "src/lib/map/filteredRoutes.svelte.ts:untested risk",
+    "src/routes/(app)/areas/[id]/parking/edit/+page.svelte:hidden coupling",
+    "src/lib/map/Map.svelte:complexity",
+    "src/routes/(app)/blocks/[id]/topos/edit/+page.svelte:complexity",
+    "src/lib/entities/notification/notification.server.ts:hidden coupling",
+    "src/lib/map/narrow.ts:high impact",
+    "src/lib/components/Media/MediaStage.svelte:complexity",
+    "src/lib/entities/notification/caption.ts:hidden coupling",
+    "src/lib/map/layers.svelte.ts:hidden coupling",
+    "src/routes/(app)/ascents/[id]/edit/+page.svelte:hidden coupling",
+    "src/routes/(landing)/auth/(tabs)/signup/signup.remote.ts:hidden coupling",
+    "src/lib/components/GradeHistogram/GradeHistogram.svelte:complexity",
+    "src/lib/entities/topo/editor.svelte.ts:high impact",
+    "src/lib/entities/route/queries.ts:hidden coupling",
+    "src/lib/state/searchHistory.ts:high impact",
+    "src/lib/components/Media/chrome.svelte.ts:high impact",
+    "src/lib/components/StatusBar/StatusBar.svelte:hidden coupling",
+    "src/lib/entities/user/mapper.ts:hidden coupling",
+    "src/lib/entities/user/users.remote.ts:hidden coupling",
+    "src/routes/(app)/routes/[id]/+page.svelte:complexity",
+    "src/routes/(app)/routes/[id]/ascents/add/+page.svelte:hidden coupling",
+    "src/routes/(landing)/auth/(tabs)/signup/signup.remote.test.ts:hidden coupling",
+    "src/lib/entities/route/routes.remote.ts:hidden coupling",
+    "src/routes/(landing)/auth/forgot-password/forgot-password.remote.ts:hidden coupling",
+    "src/lib/entities/event/queries.ts:hidden coupling",
+    "src/routes/(landing)/auth/forgot-password/+page.svelte:hidden coupling",
+    "src/lib/components/Topo/TopoEditorStage.svelte:complexity",
+    "src/lib/entities/region/invite.server.test.ts:hidden coupling",
+    "src/routes/(landing)/auth/(tabs)/signup/+page.svelte:hidden coupling",
+    "src/lib/components/StatusBar/statusBar.test.ts:hidden coupling",
+    "src/lib/map/StaticMap.svelte:complexity",
+    "src/lib/components/GuidebookPicker/MergePanel.svelte:complexity",
+    "src/lib/remote/gates.test.ts:hidden coupling"
+  ]
+}

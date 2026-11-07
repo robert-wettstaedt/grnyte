@@ -14,6 +14,7 @@
     lines?: 1 | 2
   }
 
+  // fallow-ignore-next-line unused-component-props -- fallow misses a read inside `{#each { length }}`
   const { class: className, count = 3, lead = 'none', lines = 2 }: Props = $props()
 </script>
 

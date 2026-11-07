@@ -58,8 +58,11 @@ jobs:
       PUBLIC_ZERO_URL: foobar
 
     steps:
+      # Full history: the fallow baseline growth gate compares against an earlier commit.
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -107,10 +110,33 @@ jobs:
       - name: Run checks
         run: npm run check
 
-      # Fails only on clones absent from `.jscpd-baseline.json`. `lint:duplication:accept` rewrites
-      # that baseline when a new one is deliberate.
+      # Baselines may only shrink: compare against the PR target, else the commit before this push,
+      # else main for a new branch. fallow refuses a base equal to HEAD, so that case skips the gate.
+      - name: Pick the baseline base
+        id: baseline
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            base="origin/$BASE_REF"
+          elif [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            base="$BEFORE"
+          else
+            base="$(git merge-base origin/main HEAD)"
+          fi
+          if [ "$(git rev-parse "$base")" = "$(git rev-parse HEAD)" ]; then
+            echo "flags=" >> "$GITHUB_OUTPUT"
+          else
+            echo "flags=--fail-on-baseline-growth --baseline-base $base" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check for duplication
-        run: npm run lint:duplication
+        run: npm run lint:duplication -- ${{ steps.baseline.outputs.flags }}
+
+      - name: Check complexity hotspots
+        run: npm run lint:health -- ${{ steps.baseline.outputs.flags }}
 
       - name: Check for unused files, exports and dependencies
         run: npm run lint:unused

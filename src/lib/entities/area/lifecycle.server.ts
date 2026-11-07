@@ -14,7 +14,7 @@ import { and, count, eq, inArray, isNull } from 'drizzle-orm'
 import { canHardDelete, deleteEvent, insertEvent } from '../event/event.server'
 import { stringifyDeletionScale } from '../event/metadata'
 import { refuseMerged } from '../merge/restore.server'
-import { hasDeletedAncestor, refreshAreaType, stampDeletedAt } from './area.server'
+import { collectAreaSubtreeIds, hasDeletedAncestor, refreshAreaType, stampDeletedAt } from './area.server'
 import { restoreAreaSchema, type DeleteAreaSnapshot } from './dto'
 import { loadParentArea } from './guards.server'
 import { canAddArea, canDeleteArea } from './permissions'
@@ -24,21 +24,6 @@ type Caller = Pick<Context, 'db' | 'user' | 'userRegions'>
 /** What `restoreArea` receives: the parsed snapshot, whose optional/nullable area fields
  *  differ from {@link DeleteAreaSnapshot}, so the restore helpers key off this. */
 type RestoreAreaSnapshot = z.infer<typeof restoreAreaSchema>
-
-/** Collect `rootId` and every area transitively nested beneath it (via `parentFk`).
- *  Cycle-safe; a level-by-level loop is plenty for the shallow area trees we have. */
-export async function collectAreaSubtreeIds(db: Context['db'], rootId: number): Promise<number[]> {
-  const ids = [rootId]
-  let frontier = [rootId]
-
-  while (frontier.length > 0) {
-    const children = await db.query.areas.findMany({ columns: { id: true }, where: inArray(areas.parentFk, frontier) })
-    frontier = children.map((child) => child.id).filter((id) => !ids.includes(id))
-    ids.push(...frontier)
-  }
-
-  return ids
-}
 
 /** Delete an area. A leaf area (no sub-areas, blocks or files) is hard-deleted; anything
  *  with descendants is soft-deleted across the whole subtree. Answers the snapshot
