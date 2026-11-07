@@ -52,7 +52,7 @@ import {
   READ_AUTH_ADMIN_POLICY_CONFIG,
 } from './policy'
 
-const baseFields = {
+export const baseFields = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   id: serial('id').notNull().primaryKey(),
 }
@@ -83,7 +83,7 @@ const softDeleteFields = {
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }
 
-const baseRegionFields = {
+export const baseRegionFields = {
   regionFk: integer('region_fk')
     .notNull()
     .references((): AnyColumn => regions.id),
@@ -1449,80 +1449,12 @@ export const geolocationsRelations = relations(geolocations, ({ one }) => ({
   region: one(regions, { fields: [geolocations.regionFk], references: [regions.id] }),
 }))
 
-export const activityType: ['created', 'updated', 'deleted', 'uploaded'] = ['created', 'updated', 'deleted', 'uploaded']
-export const activityParentEntityType: ['block', 'route', 'area', 'ascent'] = ['block', 'route', 'area', 'ascent']
-
-/**
- * Retired. Nothing in the app reads or writes this table any more, replaced by `events` and
- * `changes`; it is kept only so a future migration can drop it, and its policies are kept with it
- * so the rows stay readable to the same people until that happens.
- */
-export const activities = table(
-  'activities',
-  {
-    ...baseFields,
-    ...baseRegionFields,
-
-    columnName: text('column_name'), // Only populated for 'updated' activities
-    entityId: text('entity_id').notNull(),
-    entityType: text('entity_type', { enum: [...activityParentEntityType, 'file', 'user'] }).notNull(),
-    metadata: text('metadata'), // JSON string containing relevant changes
-    newValue: text('new_value'), // Only populated for 'updated' activities
-    oldValue: text('old_value'), // Only populated for 'updated' activities
-    parentEntityId: text('parent_entity_id'),
-    parentEntityType: text('parent_entity_type', { enum: activityParentEntityType }),
-    type: pgEnum('activity_type', activityType)('type').notNull(),
-    userFk: integer('user_fk').references((): AnyColumn => users.id),
-  },
-  (table) => [
-    index('activities_created_at_idx').on(table.createdAt),
-    index('activities_entity_id_idx').on(table.entityId),
-    index('activities_entity_type_idx').on(table.entityType),
-    index('activities_parent_entity_id_idx').on(table.parentEntityId),
-    index('activities_type_idx').on(table.type),
-    index('activities_user_fk_idx').on(table.userFk),
-    index('activities_region_fk_idx').on(table.regionFk),
-
-    policy(
-      `${REGION_PERMISSION_READ} can insert activities`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ, table.regionFk),
-    ),
-    policy(
-      `${REGION_PERMISSION_READ} can read activities`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
-    ),
-    policy(
-      `${REGION_PERMISSION_DELETE} can delete activities`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE, table.regionFk),
-    ),
-    policy(
-      `${REGION_PERMISSION_READ} can delete their own activities`,
-      getOwnRowPolicyConfig('delete', REGION_PERMISSION_READ, table.userFk, table.regionFk),
-    ),
-    // Without this, the activities log's debounced writer used to silently lose updates: a table
-    // with RLS on denies any command it has no policy for, so its merge-into-the-existing-row
-    // UPDATE matched nothing and the change had already been taken off the insert list.
-    policy(
-      `${REGION_PERMISSION_READ} can update their own activities`,
-      getOwnRowPolicyConfig('update', REGION_PERMISSION_READ, table.userFk, table.regionFk),
-    ),
-  ],
-).enableRLS()
-
-export type Activity = InferSelectModel<typeof activities>
-export type InsertActivity = InferInsertModel<typeof activities>
-
-export const activitiesRelations = relations(activities, ({ one }) => ({
-  region: one(regions, { fields: [activities.regionFk], references: [regions.id] }),
-  user: one(users, { fields: [activities.userFk], references: [users.id] }),
-}))
-
 /**
  * === EVENTS ===
  *
  * What happened, as opposed to what changed. See CONTEXT.md for the vocabulary. Replaces
  * `activities`: every mutation logs here, and the feed and the digest read from here too.
- * `activities` keeps its rows for now, retired rather than dropped.
+ * `activities` waits in `retired.ts` for its drop.
  */
 
 /**

@@ -1,7 +1,7 @@
 import { pinnedTx } from '$lib/db/pinned.server'
+import { activities } from '$lib/db/retired'
 import * as schema from '$lib/db/schema'
 import {
-  activities,
   areas,
   ascents,
   blocks,

@@ -372,9 +372,8 @@ describe('the region-scoped table list', () => {
     // keeping it complete was a comment. A migration that adds a `region_fk` to a new table
     // regenerates the Zero schema and fails here, rather than shipping the table unfiltered.
     //
-    // Deliberate omissions: no query may name these. `activities` was replaced by the events tables
-    // and leaves here when it is dropped; `importRefs` is server-only, written and read by scripts.
-    const OMITTED = ['activities', 'importRefs']
+    // Deliberate omission: `importRefs` is server-only, written and read by scripts.
+    const OMITTED = ['importRefs']
 
     const withRegionFk = Object.entries(schema.tables)
       .filter(([, table]) => 'regionFk' in table.columns)
