@@ -21,7 +21,7 @@ import { deleteAccountRows } from '../src/lib/db/testAccounts'
 import { reachable, seedUsers, sql, type SeedUser } from '../src/lib/db/testDb'
 // Same reason, and it resolves for the same one: `dto.ts` imports nothing at runtime, only types.
 import { acceptPath } from '../src/lib/entities/region/paths'
-import { adminClient, APP, assertLocalStack, reachableUrl, signIn, visit } from './support'
+import { APP, assertLocalStack, reachableUrl, settle, signIn, visit } from './support'
 
 const MAILBOX = 'http://localhost:9010'
 
@@ -161,7 +161,7 @@ test('an invited address signs up from the link and joins the region', async ({ 
   await page.waitForURL(/\/invite\/accept/)
   // Join is a Svelte click handler, so this leg needs the same wait for hydration that `visit`
   // does. It cannot use `visit` itself: the navigation here is the hook's redirect, not a goto.
-  await page.waitForLoadState('networkidle')
+  await settle(page)
 
   const join = page.getByRole('button', { name: `Join ${REGION}` })
   await expect(join).toBeVisible()
