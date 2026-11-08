@@ -1,8 +1,10 @@
+import { entityMappers } from '$lib/components/EntitySearch/search.svelte'
 import { toAreaDetail } from '$lib/entities/area/mapper'
 import { toAreaRow, toMapArea } from '$lib/entities/area/resources.svelte'
 import { toRouteAscent, type RouteAscentRow } from '$lib/entities/ascent/mapper'
 import { toBlockDetail } from '$lib/entities/block/mapper'
-import { toBlockRow, toMapBlock } from '$lib/entities/block/resources.svelte'
+import { toBlockRow, toListBlock, toMapBlock } from '$lib/entities/block/resources.svelte'
+import type { DisplayName } from '$lib/entities/displayName'
 import { toUserFavoriteEntity, type UserAllFavoriteRow } from '$lib/entities/favorite/mapper'
 import { toMediaFile } from '$lib/entities/file/mapper'
 import { toFileRow } from '$lib/entities/file/resources.svelte'
@@ -423,5 +425,23 @@ describe('toZeroRow', () => {
 
     expect(membership.layersComplete).toBe(true)
     expect(membership.settings.mapLayers).toEqual([LAYER])
+  })
+
+  it('reads a listed block as the search, the recent list and a mention name it', () => {
+    const synced = {
+      area: [{ id: 5, name: 'Sector', parent: [{ id: 2, name: 'Forest', parent: [], type: 'area' }], type: 'sector' }],
+      geolocation: [],
+      id: '40',
+      name: '',
+      nid: 40,
+      order: 2,
+      region_fk: 18,
+      topos: [{ file: [{ height: 800, id: 'f1', path: 't/1', width: 600 }], id: '9', nid: 9 }],
+    }
+    const block = toListBlock(synced)
+    const map = entityMappers((regionFk) => `Region ${regionFk}` as DisplayName)
+
+    expect(block.topoImages).toEqual([{ height: 800, id: 9, path: 't/1', width: 600 }])
+    expect(map.blocks(block)).toEqual({ context: ['Region 18', 'Sector'], id: 40, label: 'Block 3', type: 'blocks' })
   })
 })

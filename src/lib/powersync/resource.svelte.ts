@@ -6,8 +6,41 @@ import { useLiveQuery } from '@tanstack/svelte-db'
 import { collections } from './collections'
 import { getPowerSync, powerSyncStatus, streamConfirmed } from './db.svelte'
 import { changedRows } from './rows'
+import { matchesText } from './text'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the builder's ref types do not survive a helper
+type AnyQuery = any
 type Live<T> = { data: T; isReady: boolean }
+type TextFilter = { content?: string; limit?: number; references?: string }
+
+/**
+ * A list a text match or a cap narrows: `hits` matches the bare rows in JS and returns the ids in order, `found`
+ * reads only those rows in full. Building every row's related rows for a whole region is the cost. Not
+ * narrowed, `all` answers.
+ */
+export function narrowedList<T extends { id: number }>(
+  narrowed: () => boolean,
+  all: QueryResource<T[]>,
+  hits: QueryResource<number[]>,
+  found: QueryResource<T[]>,
+): QueryResource<T[]> {
+  const ranked = $derived.by(() => {
+    const rank: Record<number, number> = Object.fromEntries(hits.data.map((id, index) => [id, index]))
+    // `found` can still hold the previous hits' rows while it rebuilds.
+    return found.data.filter((item) => item.id in rank).toSorted((a, b) => rank[a.id] - rank[b.id])
+  })
+  return {
+    get data() {
+      if (!narrowed()) return all.data
+      return hits.data.length > 0 ? ranked : []
+    },
+    get phase() {
+      if (!narrowed()) return all.phase
+      // Until the match settles, or when it matched nothing, the match speaks; then the hits' own rows do.
+      return hits.phase.kind !== 'answered' || hits.data.length === 0 ? hits.phase : found.phase
+    },
+  }
+}
 
 /**
  * A TanStack DB live query as the app's `QueryResource`, so `QueryState` and `summaryOf` read it unchanged.
@@ -24,7 +57,9 @@ export function psResource<TContext extends Context, TOut>(
   opts?: { enabled?: () => boolean },
 ): QueryResource<TOut> {
   // Disabled, no query at all: TanStack would otherwise build it in full and only the output would be hidden.
-  const enabled = () => opts?.enabled?.() !== false
+  // Derived, so a gate reading typed text rebuilds the query only when its answer flips.
+  const on = $derived(opts?.enabled?.() !== false)
+  const enabled = () => on
   const live = useLiveQuery((q) => (enabled() ? query(q) : undefined), [...deps, enabled]) as Live<
     InferResultType<TContext>
   >
@@ -80,6 +115,56 @@ export function sqlResource<Row, TOut>(
     },
   }
   return resourceOf(current, [sql, parameters], select, streams, opts)
+}
+
+/**
+ * A TanStack list whose rows carry related rows, narrowed by a text match or a cap as {@link narrowedList} reads
+ * it. A keystroke (text only) rebuilds no live query: every value its builds read is derived.
+ */
+export function treeList<F extends TextFilter, T extends { id: number }>(
+  filter: () => F,
+  query: {
+    /** The rows with these ids. */
+    byIds: (q: InitialQueryBuilder, ids: number[]) => AnyQuery
+    /** The bare rows, filtered and ordered by everything but text and limit. */
+    rows: (q: InitialQueryBuilder, filter: F) => AnyQuery
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a tree row's shape is the caller's
+    toItem: (row: any) => T
+    /** A bare query with its related rows. */
+    trees: (q: InitialQueryBuilder, rows: AnyQuery) => AnyQuery
+  },
+  opts?: { enabled?: () => boolean },
+): QueryResource<T[]> {
+  const narrowed = $derived(filter().content != null || filter().limit != null)
+  const on = $derived(opts?.enabled?.() !== false)
+  // Everything but text and limit, as a string: JSON drops the undefined keys.
+  const shape = $derived(JSON.stringify({ ...filter(), content: undefined, limit: undefined }))
+  const bare = (q: InitialQueryBuilder) => query.rows(q, JSON.parse(shape) as F)
+  const toItems = (rows: unknown[]) => rows.map(query.toItem)
+
+  const all = psResource((q) => query.trees(q, bare(q)), [() => shape], toItems, 'guidebook', {
+    enabled: () => !narrowed && on,
+  })
+  const hits = psResource(
+    bare,
+    [() => shape],
+    (rows) =>
+      (rows as { description?: null | string; name?: null | string; nid: number }[])
+        .filter(matchesText(filter()))
+        .slice(0, filter().limit)
+        .map((row) => row.nid),
+    'guidebook',
+    { enabled: () => narrowed && on },
+  )
+  const ids = $derived(hits.data.join())
+  const found = psResource(
+    (q) => query.trees(q, query.byIds(q, ids.split(',').map(Number))),
+    [() => ids],
+    toItems,
+    'guidebook',
+    { enabled: () => narrowed && on && ids !== '' },
+  )
+  return narrowedList(() => narrowed, all, hits, found)
 }
 
 /**

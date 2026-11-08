@@ -118,9 +118,6 @@
 
   const search = entitySearch({
     open: () => picker.open,
-    // The `@` picker opens on an empty term and means it, so it must not go idle on the first
-    // character and blank the list it already has.
-    opensEmpty: true,
     query: () => picker.query,
     regionFks: () => (regionFk == null ? [] : [regionFk]),
   })

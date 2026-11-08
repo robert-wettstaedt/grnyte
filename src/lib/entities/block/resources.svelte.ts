@@ -1,10 +1,9 @@
 import { areaChain } from '$lib/entities/area/resources.svelte'
 import { toDisplayName } from '$lib/entities/displayName'
 import { collections } from '$lib/powersync/collections'
-import { psResource, sqlResource, waitForSynced } from '$lib/powersync/resource.svelte'
+import { psResource, sqlResource, treeList, waitForSynced } from '$lib/powersync/resource.svelte'
 import { json, toZeroRow, unwrapParents } from '$lib/powersync/rows'
 import { MAP_SQL } from '$lib/powersync/sql'
-import { matchesText } from '$lib/powersync/text'
 import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
 import type { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
@@ -21,6 +20,8 @@ export interface BlockListFilter {
   limit?: number
   /** Find blocks whose description references the given `!type:id!` token (backlinks). */
   references?: string
+  /** Newest first; by slot or name otherwise. */
+  sort?: 'createdAt'
 }
 
 // The rows the mappers were written against, from Zero's query types.
@@ -95,6 +96,8 @@ const toTopoRow = (topo: SyncedTopo): TopoRow => ({
 
 type MapBlockRow = Record<string, unknown> & { area: string; geolocation: null | string }
 
+type SyncedListBlock = Synced & { area: Ref[]; geolocation: Synced[]; topos: SyncedTopo[] }
+
 export function blockDetail(id: () => number) {
   return holdWhileDeleting(
     blockTree(id, (row) => (row == null ? undefined : toBlockDetail(row))),
@@ -105,43 +108,35 @@ export function blockDetail(id: () => number) {
 
 /**
  * Blocks with their area and parent, geolocation and topo photos. Text is matched in JS with
- * `toLocaleLowerCase`, as Postgres's ILIKE did: SQLite's LIKE folds ASCII only.
+ * `toLocaleLowerCase`, as Postgres's ILIKE did: SQLite's LIKE folds ASCII only. A text match or a cap reads only
+ * the hits' trees (`treeList`).
  */
 export function blockList(filter: () => BlockListFilter = () => ({}), opts?: { enabled?: () => boolean }) {
-  return psResource(
-    (q) => {
-      const { areaId, blockId, references } = filter()
-      let query = q.from({ b: collections().blocks })
-      if (areaId !== undefined) query = query.where(({ b }) => eq(b.area_fk, areaId))
-      if (blockId != null) query = query.where(({ b }) => inArray(b.nid, [blockId].flat()))
-      // A backlink token is fixed per page, so it narrows the query rather than the selection.
-      if (references != null) query = query.where(({ b }) => ilike(b.description, `%${references}%`))
-      for (const key of areaId === undefined ? acrossAreasKeys : inAreaKeys) {
-        query = query.orderBy(({ b }) => b[key], 'asc')
-      }
-      return query.select(({ b }) => ({
-        ...b,
-        area: areaChain(q, b.area_fk, 1),
-        geolocation: geolocationOf(q, b.geolocation_fk),
-        topos: toArray(toposOf(q, b.nid).select(({ tp }) => ({ ...tp, file: fileOf(q, tp.file_fk) }))),
-      }))
+  return treeList(
+    filter,
+    {
+      byIds: (q, ids) => q.from({ b: collections().blocks }).where(({ b }) => inArray(b.nid, ids)),
+      rows: (q, { areaId, blockId, references, sort }) => {
+        let query = q.from({ b: collections().blocks })
+        if (areaId !== undefined) query = query.where(({ b }) => eq(b.area_fk, areaId))
+        if (blockId != null) query = query.where(({ b }) => inArray(b.nid, [blockId].flat()))
+        // A backlink token is fixed per page, so it narrows the query rather than the selection.
+        if (references != null) query = query.where(({ b }) => ilike(b.description, `%${references}%`))
+        if (sort === 'createdAt') query = query.orderBy(({ b }) => b.created_at, 'desc')
+        for (const key of areaId === undefined ? acrossAreasKeys : inAreaKeys) {
+          query = query.orderBy(({ b }) => b[key], 'asc')
+        }
+        return query
+      },
+      toItem: toListBlock,
+      trees: (q, rows) =>
+        rows.select(({ b }: Ref) => ({
+          ...b,
+          area: areaChain(q, b.area_fk, 1),
+          geolocation: geolocationOf(q, b.geolocation_fk),
+          topos: toArray(toposOf(q, b.nid).select(({ tp }) => ({ ...tp, file: fileOf(q, tp.file_fk) }))),
+        })),
     },
-    // Text and limit apply in `select`, so typing a search does not rebuild the query.
-    [() => filter().areaId, () => filter().blockId, () => filter().references],
-    (rows) =>
-      rows
-        .filter(matchesText(filter()))
-        .slice(0, filter().limit)
-        .map((row) =>
-          toBlockDetail({
-            ...toZeroRow<ListRow>('blocks', row),
-            area: unwrapParents(row.area[0]) as ListRow['area'],
-            geolocation:
-              row.geolocation[0] && toZeroRow<NonNullable<ListRow['geolocation']>>('geolocations', row.geolocation[0]),
-            topos: row.topos.map(toTopoRow),
-          }),
-        ),
-    'guidebook',
     opts,
   )
 }
@@ -212,6 +207,17 @@ export function toBlockRow(
     })),
     topos: row.topos.map(toTopoRow),
   } satisfies BlockRow
+}
+
+/** A synced block with its area chain, pin and topo photos, as a list shows it. */
+export function toListBlock(row: SyncedListBlock) {
+  return toBlockDetail({
+    ...toZeroRow<ListRow>('blocks', row),
+    area: unwrapParents(row.area[0]) as ListRow['area'],
+    geolocation:
+      row.geolocation[0] && toZeroRow<NonNullable<ListRow['geolocation']>>('geolocations', row.geolocation[0]),
+    topos: row.topos.map(toTopoRow),
+  })
 }
 
 /** A `MAP_SQL` row as `toBlockDetail` reads it. */
