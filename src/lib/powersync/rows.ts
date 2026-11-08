@@ -1,6 +1,23 @@
+import { ArrayComparator, type WatchedQueryComparator } from '@powersync/web'
 import { zeroShapes } from './schema'
 
 type Nested = undefined | { [key: string]: unknown; parent?: Nested[] }
+
+/**
+ * A watch emits only a changed result. ArrayComparator alone swallows an empty first result, which equals the
+ * empty state before it, so the first result always emits here.
+ */
+export function changedRows<Row>(): WatchedQueryComparator<Row[]> {
+  const rows = new ArrayComparator<Row>({ compareBy: (row) => JSON.stringify(row) })
+  let delivered = false
+  return {
+    checkEquality: (current, previous) => {
+      const same = delivered && rows.checkEquality(current, previous)
+      delivered = true
+      return same
+    },
+  }
+}
 
 /** A jsonb or array column, which arrives as JSON text. */
 export function json<T = unknown>(text: unknown): null | T {

@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { changedRows } from './rows'
 import { appSchema } from './schema'
 import * as statements from './sql'
 
@@ -34,6 +35,17 @@ const innerSteps = async (sql: string) =>
 describe('every raw statement joins through an index', () => {
   it.each(Object.entries(statements))('%s scans no large table it joins', async (_, sql) => {
     expect((await innerSteps(sql)).filter((step) => LARGE.test(step))).toEqual([])
+  })
+})
+
+describe('a watched statement', () => {
+  it('answers an empty first result, so an empty list leaves its skeleton', async () => {
+    const watched = db.query({ sql: 'select nid from routes where nid = -1' }).watch({ comparator: changedRows() })
+    const first = new Promise<unknown>((resolve) => watched.registerListener({ onData: (rows) => resolve([...rows]) }))
+    const timeout = new Promise((resolve) => setTimeout(() => resolve('never answered'), 2000))
+
+    expect(await Promise.race([first, timeout])).toEqual([])
+    await watched.close()
   })
 })
 

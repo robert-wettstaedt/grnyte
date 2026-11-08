@@ -1,11 +1,11 @@
 import { page } from '$app/state'
 import { isOnline } from '$lib/state/online.svelte'
 import { resolvePhase, type QueryPhase, type QueryResource } from '$lib/zero/resource.svelte'
-import { ArrayComparator } from '@powersync/web'
 import { eq, type Context, type InferResultType, type InitialQueryBuilder, type QueryBuilder } from '@tanstack/db'
 import { useLiveQuery } from '@tanstack/svelte-db'
 import { collections } from './collections'
 import { getPowerSync, powerSyncStatus, streamConfirmed } from './db.svelte'
+import { changedRows } from './rows'
 
 type Live<T> = { data: T; isReady: boolean }
 
@@ -23,7 +23,11 @@ export function psResource<TContext extends Context, TOut>(
   stream: string | string[] = 'guidebook',
   opts?: { enabled?: () => boolean },
 ): QueryResource<TOut> {
-  const live = useLiveQuery(query, deps) as Live<InferResultType<TContext>>
+  // Disabled, no query at all: TanStack would otherwise build it in full and only the output would be hidden.
+  const enabled = () => opts?.enabled?.() !== false
+  const live = useLiveQuery((q) => (enabled() ? query(q) : undefined), [...deps, enabled]) as Live<
+    InferResultType<TContext>
+  >
   return resourceOf(live, deps, select, () => stream, opts)
 }
 
@@ -55,8 +59,9 @@ export function sqlResource<Row, TOut>(
     if (!on) return
     const [statement, values] = JSON.parse(key) as [string, (null | number | string)[]]
     // Every write to a table the statement reads re-runs it; only a changed result reaches the screen.
-    const comparator = new ArrayComparator<Row>({ compareBy: (row) => JSON.stringify(row) })
-    const watched = getPowerSync().query<Row>({ parameters: values, sql: statement }).watch({ comparator })
+    const watched = getPowerSync()
+      .query<Row>({ parameters: values, sql: statement })
+      .watch({ comparator: changedRows<Row>() })
     const stop = watched.registerListener({
       onData: (data) => void (live = { data: [...data], isReady: true }),
       onError: (error) => console.error('PowerSync watched query failed', error),
