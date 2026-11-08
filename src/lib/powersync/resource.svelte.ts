@@ -1,6 +1,6 @@
 import { page } from '$app/state'
 import { isOnline } from '$lib/state/online.svelte'
-import { resolvePhase, type QueryPhase, type QueryResource } from '$lib/zero/resource.svelte'
+import { holdWhileArriving, resolvePhase, type QueryPhase, type QueryResource } from '$lib/zero/resource.svelte'
 import { eq, type Context, type InferResultType, type InitialQueryBuilder, type QueryBuilder } from '@tanstack/db'
 import { useLiveQuery } from '@tanstack/svelte-db'
 import { collections } from './collections'
@@ -48,6 +48,7 @@ export function narrowedList<T extends { id: number }>(
  * Offline, a stream that ever synced answers from disk: every device holds the whole region. Never `error`:
  * PowerSync retries a failed download itself, and offline it always reports one. A query joining tables from
  * several streams names them all, and answers once every one of them has. Disabled, it is loading, as Zero's is.
+ * Arriving, it holds the nearest pill unless built `quietly`.
  */
 export function psResource<TContext extends Context, TOut>(
   query: (q: InitialQueryBuilder) => QueryBuilder<TContext>,
@@ -206,7 +207,7 @@ function resourceOf<TRows, TOut>(
   const queryKey = $derived(JSON.stringify(deps.map((dep) => dep())))
   let latched: string | undefined
 
-  return {
+  const resource: QueryResource<TOut> = {
     get data() {
       return data
     },
@@ -230,4 +231,6 @@ function resourceOf<TRows, TOut>(
       })
     },
   }
+  holdWhileArriving(resource)
+  return resource
 }

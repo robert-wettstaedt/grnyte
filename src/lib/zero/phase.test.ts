@@ -31,8 +31,7 @@ describe('resolvePhase', () => {
     expect(resolvePhase({ ...base, online: false })).toEqual({ empty: false, kind: 'answered' })
   })
 
-  it('answers empty offline once the preload that keeps it finished', () => {
-    // A kept query counts as settled offline (`resolveKept` feeds the latch), whatever Zero says.
+  it('answers empty offline once settled, whatever the transport says', () => {
     const kept = { ...base, online: false, rawEmpty: true, settled: true, status: 'loading' } as const
     expect(resolvePhase(kept)).toEqual({ empty: true, kind: 'answered' })
   })
