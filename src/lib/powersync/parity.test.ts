@@ -4,6 +4,11 @@ import { toRouteAscent, type RouteAscentRow } from '$lib/entities/ascent/mapper'
 import { toBlockDetail } from '$lib/entities/block/mapper'
 import { toBlockRow } from '$lib/entities/block/resources.svelte'
 import { toUserFavoriteEntity, type UserAllFavoriteRow } from '$lib/entities/favorite/mapper'
+import { toMediaFile } from '$lib/entities/file/mapper'
+import { toFileRow } from '$lib/entities/file/resources.svelte'
+import { toFirstAscensionist } from '$lib/entities/firstAscensionist/mapper'
+import { toFirstAscensionistRow } from '$lib/entities/firstAscensionist/resources.svelte'
+import { toSyncedParking } from '$lib/entities/geolocation/resources.svelte'
 import { toGrade, type GradeRow } from '$lib/entities/grade/mapper'
 import { toRegionMembership, type RegionMemberRow } from '$lib/entities/region/mapper'
 import { toRouteDetail } from '$lib/entities/route/mapper'
@@ -261,6 +266,80 @@ describe('toZeroRow', () => {
       topoLines: 2,
     })
     expect(route.firstAscents[1]?.userFk).toBeUndefined()
+  })
+
+  it("reads a route's media with its uploader and video state as the route page shows them", () => {
+    const file = toMediaFile(
+      toFileRow({
+        author: [{ id: '3', nid: 3, username: 'ada' }],
+        bunny_stream_fk: 's1',
+        created_at: '2026-11-07T10:00:00.123456Z',
+        created_by: 3,
+        height: 1080,
+        id: 'ck1',
+        path: 'v/1',
+        region_fk: 18,
+        route_fk: 125,
+        stream: [{ id: 's1', readiness: 'ready', source: 'hls/1' }],
+        visibility: 'public',
+        width: 1920,
+      } as Parameters<typeof toFileRow>[0]),
+    )
+
+    expect(file).toEqual({
+      ascentCreatedBy: undefined,
+      bunnyStreamFk: 's1',
+      createdAt: 1794045600123,
+      height: 1080,
+      id: 'ck1',
+      path: 'v/1',
+      readiness: 'ready',
+      regionFk: 18,
+      source: 'hls/1',
+      uploader: { id: 3, name: 'ada' },
+      visibility: 'public',
+      width: 1920,
+    })
+  })
+
+  it('reads a first ascensionist with the username its linked user carries', () => {
+    const linked = {
+      id: '7',
+      name: 'Ada',
+      nid: 7,
+      region_fk: 18,
+      user: [{ id: '3', nid: 3, username: 'ada' }],
+      user_fk: 3,
+    }
+    const plain = { id: '8', name: 'Bea', nid: 8, region_fk: 18, user: [], user_fk: null }
+
+    expect([linked, plain].map((row) => toFirstAscensionist(toFirstAscensionistRow(row)))).toEqual([
+      { id: 7, name: 'Ada', userFk: 3, username: 'ada' },
+      { id: 8, name: 'Bea', userFk: undefined, username: undefined },
+    ])
+  })
+
+  it("reads a parking's coordinates and area trail as the parking sheet shows them", () => {
+    const parking = toSyncedParking({
+      area: [{ id: 5, name: 'Sector', parent: [{ id: 2, name: 'Forest', parent: [], type: 'area' }], type: 'sector' }],
+      area_fk: 5,
+      block_fk: null,
+      estimated: 0,
+      id: '6',
+      lat: 47.5,
+      long: 11.1,
+      nid: 6,
+      region_fk: 18,
+    } as Parameters<typeof toSyncedParking>[0])
+
+    expect(parking).toEqual({
+      area: { areas: [{ areas: [], id: 2, name: 'Forest', type: 'area' }], id: 5, name: 'Sector', type: 'sector' },
+      areaFk: 5,
+      id: 6,
+      lat: 47.5,
+      long: 11.1,
+      regionFk: 18,
+    })
   })
 
   it('parses jsonb text, so region settings read whole', () => {

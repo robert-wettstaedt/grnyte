@@ -1,3 +1,4 @@
+import { fileTrees, toFileRow } from '$lib/entities/file/resources.svelte'
 import { collections } from '$lib/powersync/collections'
 import { psResource } from '$lib/powersync/resource.svelte'
 import { toZeroRow } from '$lib/powersync/rows'
@@ -19,31 +20,11 @@ const WITH_MEDIA = ['region_activity', 'guidebook', 'media', 'members']
 
 type BlockRow = NonNullable<RouteRow['block']>
 // The nested rows the mappers were written against, from Zero's query types.
-type FileRow = RouteAscentRow['files'][number]
 type RouteRow = NonNullable<UserAscentDetailRow['route']>
-type SyncedFile = { author: object[]; stream: object[] }
 
 /** An ascent's files with their video and author, as Zero's `.related('files', …)` nested them. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the builder's ref types do not survive a helper
-const filesOf = (q: InitialQueryBuilder, ascentFk: any) => {
-  const { bunny_streams, files, users } = collections()
-  return toArray(
-    q
-      .from({ f: files })
-      .where(({ f }) => eq(f.ascent_fk, ascentFk))
-      .select(({ f }) => ({
-        ...f,
-        author: toArray(q.from({ u: users }).where(({ u }) => eq(u.nid, f.created_by))),
-        stream: toArray(q.from({ s: bunny_streams }).where(({ s }) => eq(s.id, f.bunny_stream_fk))),
-      })),
-  )
-}
-
-const toFileRow = (file: SyncedFile): FileRow => ({
-  ...toZeroRow<FileRow>('files', file),
-  author: file.author[0] && toZeroRow<FileRow['author']>('users', file.author[0]),
-  bunnyStream: file.stream[0] && toZeroRow<FileRow['bunnyStream']>('bunny_streams', file.stream[0]),
-})
+const filesOf = (q: InitialQueryBuilder, ascentFk: any) => toArray(fileTrees(q, (f) => eq(f.ascent_fk, ascentFk)))
 
 const authorOf = (row: { author: object[] }) =>
   row.author[0] && toZeroRow<RouteAscentRow['author']>('users', row.author[0])
