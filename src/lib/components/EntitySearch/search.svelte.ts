@@ -211,6 +211,7 @@ export function entitySearch({ limit, open, query, regionCrumb, regionFks }: Ent
   let placed: EntityType[] = []
   let placedTerm: string | undefined
   let shown: EntityGroup[] = []
+  let shownTerm = ''
 
   const candidates = $derived<Record<EntityType, EntityCandidate[]>>({
     areas: areas.data.map(map.areas),
@@ -237,7 +238,10 @@ export function entitySearch({ limit, open, query, regionCrumb, regionFks }: Ent
       const loading = sources(areas, blocks, routes, users, regionFks().length > 0).some(
         (phase) => phase.kind === 'loading',
       )
-      if (placed.length === 0 && loading) return shown
+      // Only for the same search typed on: another term, or a reopen, never sees the previous results.
+      const related = query().startsWith(shownTerm) || shownTerm.startsWith(query())
+      if (placed.length === 0 && loading) return open() && shownTerm !== '' && query() !== '' && related ? shown : []
+      shownTerm = query()
       placed = placeGroups(
         placed,
         GROUP_ORDER.filter((type) => all[type].length > 0),
