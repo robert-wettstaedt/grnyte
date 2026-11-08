@@ -1,8 +1,11 @@
 import { resolve } from '$app/paths'
-import { form, getRequestEvent } from '$app/server'
+import { command, form, getRequestEvent } from '$app/server'
 import { isSameOriginPath } from '$lib/auth'
+import { mailPasswordReset } from '$lib/auth/mail.server'
+import { authError, formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
-import { redirect } from '@sveltejs/kit'
+import { refuseCommand } from '$lib/remote/authed.server'
+import { error, redirect } from '@sveltejs/kit'
 
 /**
  * A same-origin path to come back to after signing out. Validated rather than trusted: this value
@@ -35,4 +38,22 @@ export const signOut = form(z.object({ redirectTo: returnPath }), async ({ redir
   await supabase.auth.signOut()
 
   redirect(303, redirectTo)
+})
+
+export const sendPasswordReset = command(async () => {
+  const {
+    locals: { claims, supabase },
+    url,
+  } = getRequestEvent()
+
+  if (claims?.email == null) {
+    error(401, formError('auth_notSignedIn'))
+  }
+
+  const { error: resetError } = await mailPasswordReset(supabase, claims.email, url.origin)
+  if (resetError != null) {
+    refuseCommand(authError(resetError))
+  }
+
+  return { email: claims.email }
 })

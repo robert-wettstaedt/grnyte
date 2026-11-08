@@ -31,6 +31,8 @@ const authErrorKeys = {
   otp_expired: 'auth_resetLinkInvalid',
   over_email_send_rate_limit: 'auth_rateLimited',
   over_request_rate_limit: 'auth_rateLimited',
+  // Supabase's "Secure password change" refuses a session older than 24 h; the emailed link is fresh.
+  reauthentication_needed: 'auth_reauthNeeded',
   same_password: 'auth_passwordSame',
   user_already_exists: 'auth_emailTaken',
   validation_failed: 'auth_emailInvalid',

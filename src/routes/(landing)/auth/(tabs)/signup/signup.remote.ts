@@ -1,5 +1,6 @@
 import { form, getRequestEvent } from '$app/server'
-import { CONTESTED_SIGNUP } from '$lib/auth'
+import { flagContestedSignup } from '$lib/auth/contested.server'
+import { mailSignupConfirmation } from '$lib/auth/mail.server'
 import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
@@ -8,7 +9,6 @@ import { botFields } from '$lib/forms/botCheck'
 import { screenSubmit } from '$lib/forms/botCheck.server'
 import { authError, formError, passwordSchema, passwordsMatch, usernameSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
-import { logServerFailure } from '$lib/logging/failure.server'
 import { getLocale } from '$lib/paraglide/runtime'
 import { invalid } from '@sveltejs/kit'
 import { and, eq, isNull, sql } from 'drizzle-orm'
@@ -48,13 +48,8 @@ export const signUp = form(signUpSchema, async (submitted) => {
       .from(authUsers)
       .where(and(eq(authUsers.email, sql`lower(${email})`), isNull(authUsers.emailConfirmedAt)))
       .limit(1)
-    if (unconfirmed != null) {
-      const { error: flagError } = await supabaseAdmin().auth.admin.updateUserById(unconfirmed.id, {
-        app_metadata: { [CONTESTED_SIGNUP]: true },
-      })
-      if (flagError != null) {
-        await logServerFailure('signup', `contested flag failed: ${flagError.code ?? flagError.message}`)
-      }
+    if (unconfirmed != null && !(await flagContestedSignup(unconfirmed.id))) {
+      return { success: true }
     }
     // Same answer as a new address. Resend mails only an unconfirmed account, and its per-address
     // limit would show one was mailed a minute ago, which a new address can never hit.
@@ -98,7 +93,7 @@ async function sendConfirmation(
   email: string,
   { quietRateLimit = false } = {},
 ): Promise<void> {
-  const { error } = await supabase.auth.resend({ email, type: 'signup' })
+  const { error } = await mailSignupConfirmation(supabase, email)
   if (error != null && !(quietRateLimit && error.code === 'over_email_send_rate_limit')) {
     invalid(authError(error))
   }

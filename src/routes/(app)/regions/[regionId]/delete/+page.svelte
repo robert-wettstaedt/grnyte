@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import CurrentPasswordField from '$lib/auth/CurrentPasswordField.svelte'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import { entityHref } from '$lib/entities/href'
@@ -74,14 +75,7 @@
       autocomplete="off"
       enterkeyhint="next"
     />
-    <AuthField
-      field={store.fields.password}
-      label={m.settings_currentPassword()}
-      type="password"
-      placeholder={m.auth_passwordPlaceholder()}
-      autocomplete="current-password"
-      enterkeyhint="go"
-    />
+    <CurrentPasswordField field={store.fields.password} enterkeyhint="go" />
 
     {#if preview?.phase.kind === 'error'}
       <QueryError />

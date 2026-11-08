@@ -1,12 +1,12 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import CurrentPasswordField from '$lib/auth/CurrentPasswordField.svelte'
   import { entityHref } from '$lib/entities/href'
   import { ownerOnlyDenied, regionDenied } from '$lib/entities/region/adminScreen.svelte'
   import { handOverSchema } from '$lib/entities/region/dto'
   import { transferRegionOwnershipCommand } from '$lib/entities/region/regions.remote'
   import { regionDetail, regionMemberList } from '$lib/entities/region/resources.svelte'
-  import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'
   import Form from '$lib/forms/Form.svelte'
   import { createFormStore } from '$lib/forms/store.svelte'
@@ -77,14 +77,6 @@
   {#snippet fields([detail, member])}
     <p>{m.region_handOverIntro({ name: member.username, region: detail.name })}</p>
 
-    <AuthField
-      field={store.fields.password}
-      label={m.settings_currentPassword()}
-      type="password"
-      placeholder={m.auth_passwordPlaceholder()}
-      autocomplete="current-password"
-      enterkeyhint="go"
-      autofocus
-    />
+    <CurrentPasswordField field={store.fields.password} enterkeyhint="go" autofocus />
   {/snippet}
 </Form>

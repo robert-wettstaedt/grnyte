@@ -43,11 +43,8 @@
   const issues = $derived(field.issues() ?? [])
 </script>
 
-<label class="flex flex-col gap-1.5">
-  <div class="flex items-center justify-between">
-    <span class="text-surface-950-50 text-[13px] font-semibold">{label}</span>
-    {@render action?.()}
-  </div>
+<div class="relative flex flex-col gap-1.5">
+  <label for={id} class="text-surface-950-50 self-start text-[13px] font-semibold">{label}</label>
 
   <input
     {...field.as(type)}
@@ -67,5 +64,11 @@
     {placeholder}
   />
 
+  <!-- Drawn on the label row but after the input, so Tab reaches the field first. Outside the
+       <label>, which would label a button inside it too. -->
+  {#if action != null}
+    <div class="absolute end-0 top-0 flex h-5 items-center">{@render action()}</div>
+  {/if}
+
   <FormHint {id} {issues} />
-</label>
+</div>

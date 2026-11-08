@@ -1,9 +1,9 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import CurrentPasswordField from '$lib/auth/CurrentPasswordField.svelte'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
-  import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'
   import Form from '$lib/forms/Form.svelte'
   import { createFormStore } from '$lib/forms/store.svelte'
@@ -70,14 +70,7 @@
     <p class="text-surface-600-400 text-sm">{m.settings_deleteAccountStays()}</p>
   </section>
 
-  <AuthField
-    field={store.fields.password}
-    label={m.settings_currentPassword()}
-    type="password"
-    placeholder={m.auth_passwordPlaceholder()}
-    autocomplete="current-password"
-    enterkeyhint="go"
-  />
+  <CurrentPasswordField field={store.fields.password} enterkeyhint="go" />
 
   <!-- Below the field: the regions arrive from a query, and must never push the field down. -->
   {#if preview.phase.kind === 'error'}

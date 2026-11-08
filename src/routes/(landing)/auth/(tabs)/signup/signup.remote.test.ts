@@ -19,6 +19,7 @@ let created: string[] = []
 let flagged: { claimed: unknown; id: string }[] = []
 let resent: string[] = []
 let resendError: null | { code: string; message: string } = null
+let flagError: null | { code: string; message: string } = null
 /** What the fake admin API answers: a real auth.users id, or a GoTrue error code. */
 let adminAnswer: { code: string } | { id: string } = { code: 'unset' }
 
@@ -34,7 +35,7 @@ vi.mock('$lib/db/supabaseAdmin.server', () => ({
         },
         updateUserById: async (id: string, { app_metadata }: { app_metadata: Record<string, unknown> }) => {
           flagged.push({ claimed: app_metadata[CONTESTED_SIGNUP], id })
-          return { error: null }
+          return { error: flagError }
         },
       },
     },
@@ -91,6 +92,7 @@ beforeEach(async () => {
   flagged = []
   resent = []
   resendError = null
+  flagError = null
   if (reachable) await cleanup()
 })
 
@@ -98,6 +100,7 @@ afterAll(async () => {
   if (!reachable) return
   await cleanup()
   await sql`delete from public.spent_challenges where nonce = any(${nonces})`
+  await sql`delete from public.client_error_logs where error like ${'[signup-contested] flag failed for %: signup_test_flag'}`
 })
 
 describe('signUp', () => {
@@ -148,6 +151,17 @@ describe.skipIf(!reachable)('signUp through the admin API', () => {
 
     expect(await submit({ ...FIELDS, email: NEW.toUpperCase() })).toMatchObject({ result: { success: true } })
     expect(flagged).toEqual([{ claimed: true, id }])
+  })
+
+  it('sends no confirmation when the flag does not land, and answers the same', async () => {
+    const [{ id }] = await sql<{ id: string }[]>`
+      insert into auth.users (id, email) values (gen_random_uuid(), ${NEW}) returning id`
+    adminAnswer = { code: 'email_exists' }
+    flagError = { code: 'signup_test_flag', message: 'admin api down' }
+
+    expect(await submit(FIELDS)).toMatchObject({ result: { success: true } })
+    expect(flagged).toEqual([{ claimed: true, id }])
+    expect(resent).toEqual([])
   })
 
   it('leaves a confirmed account alone', async () => {

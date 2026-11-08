@@ -19,7 +19,7 @@
 {#if forgotPassword.result?.success}
   <div class="card preset-tonal-success px-4 py-6 text-center text-sm" role="status">
     <p class="font-bold">{m.auth_resetLinkSent()}</p>
-    <p class="text-surface-600-400 mt-1">{m.auth_resetLinkSentBody({ email: forgotPassword.result.email })}</p>
+    <p class="text-surface-600-400 mt-1">{m.auth_resetLinkSentIfAccount({ email: forgotPassword.result.email })}</p>
     <a href={resolve('/auth/signin')} class="text-primary-400 mt-3 inline-block font-bold">{m.auth_backToSignIn()}</a>
   </div>
 {:else}

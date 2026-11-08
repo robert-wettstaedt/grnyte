@@ -42,6 +42,7 @@ vi.stubGlobal('matchMedia', () => ({ addEventListener() {}, matches: false, remo
 Element.prototype.scrollIntoView = () => {}
 
 const submitButton = () => screen.getByRole('button', { name: 'Delete region' })
+vi.mock('$lib/auth/session.remote', () => ({ sendPasswordReset: vi.fn() }))
 
 beforeEach(() => {
   state.counts = { ascents: 3, members: 2 }
