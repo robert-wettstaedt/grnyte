@@ -1,5 +1,5 @@
 import { areaToken } from '$lib/entities/area/areaIds'
-import { sqlResource, waitForSynced } from '$lib/powersync/resource.svelte'
+import { narrowedList, sqlResource, waitForSynced } from '$lib/powersync/resource.svelte'
 import { json, toZeroRow } from '$lib/powersync/rows'
 import { ROUTE_LIST_SQL, ROUTE_MAP_SQL, ROUTES_BY_ID_SQL } from '$lib/powersync/sql'
 import { matchesText } from '$lib/powersync/text'
@@ -148,24 +148,11 @@ export function routeList(
   )
   const found = byIds(
     () => hits.data,
-    (rows) => {
-      const rank: Record<number, number> = Object.fromEntries(hits.data.map((id, index) => [id, index]))
-      return toItems(rows.toSorted((a, b) => rank[a.nid as number] - rank[b.nid as number]))
-    },
+    toItems,
     () => text && enabled() && hits.data.length > 0,
   )
 
-  return {
-    get data() {
-      if (!text) return all.data
-      return hits.data.length > 0 ? found.data : []
-    },
-    get phase() {
-      if (!text) return all.phase
-      // Until the match settles, or when it matched nothing, the match speaks; then the hits' own rows do.
-      return hits.phase.kind !== 'answered' || hits.data.length === 0 ? hits.phase : found.phase
-    },
-  }
+  return narrowedList(() => text, all, hits, found)
 }
 
 /** Slim route rows for the map (no related rows). `name` is raw, for search matching only. */

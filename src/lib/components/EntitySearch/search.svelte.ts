@@ -1,13 +1,17 @@
 import type { IconName } from '$lib/components/Icon/icons'
-import { toAreaListItem, type AreaAncestor } from '$lib/entities/area/mapper'
-import { toBlockListItem } from '$lib/entities/block/mapper'
+import type { AreaDetail } from '$lib/entities/area/dto'
+import { areaList } from '$lib/entities/area/resources.svelte'
+import type { BlockListItem } from '$lib/entities/block/dto'
+import { blockList } from '$lib/entities/block/resources.svelte'
 import type { DisplayName } from '$lib/entities/displayName'
 import type { EntityKind } from '$lib/entities/href'
-import { toRouteListItem, type RouteListRow } from '$lib/entities/route/mapper'
+import type { RouteListItem } from '$lib/entities/route/dto'
+import { routeList } from '$lib/entities/route/resources.svelte'
+import type { UserListItem } from '$lib/entities/user/dto'
+import { userList } from '$lib/entities/user/resources.svelte'
 import { m } from '$lib/paraglide/messages'
 import { quietly } from '$lib/state/pill.svelte'
-import { queries } from '$lib/zero/queries'
-import { createResource, expectingMore, type QueryPhase } from '$lib/zero/resource.svelte'
+import { expectingMore, type QueryPhase } from '$lib/zero/resource.svelte'
 
 /** A lightweight entity reference: the shape the `@` picker suggests and inserts. */
 export interface EntityItem {
@@ -63,24 +67,17 @@ export function entityGroupLabel(type: EntityType): string {
   }
 }
 
-// Section order in the dropdown and the per-section cap. The cap is pushed into
-// each Zero query as a `limit`, so only this many rows per type ever materialise.
+// Section order in the dropdown and the per-section cap. Only the capped hits per type read their related rows.
 const GROUP_ORDER: EntityType[] = ['users', 'areas', 'blocks', 'routes']
 const PER_GROUP_LIMIT = 6
-
-// The query text is a query ARGUMENT, so every distinct value is its own server registration and
-// its own CVR write. Undebounced, one typed word costs four registrations per character.
-const QUERY_DEBOUNCE_MS = 200
 
 export type SearchOutcome = 'answered' | 'error' | 'pending' | 'unavailable'
 
 interface EntitySearchOptions {
-  /** Per-type row cap pushed into each query as a `limit`; defaults to {@link PER_GROUP_LIMIT}. */
+  /** Per-type row cap; defaults to {@link PER_GROUP_LIMIT}. */
   limit?: number
-  /** Only query while the picker is open: keeps it idle (and synced-down) otherwise. */
+  /** Only query while the picker is open. */
   open: () => boolean
-  /** Set when the caller opens with an empty box and means it; see {@link searchReady}. */
-  opensEmpty?: boolean
   /** Current query (the text typed after the `@` trigger, or into the search bar). */
   query: () => string
   /**
@@ -91,11 +88,6 @@ interface EntitySearchOptions {
   regionCrumb?: (regionFk: number) => DisplayName | undefined
   /** Regions to search users within; empty hides the People group. */
   regionFks: () => number[]
-}
-interface UserRow {
-  id: number
-  regionMemberships?: readonly { regionFk: number }[] | undefined
-  username: string
 }
 
 /**
@@ -149,106 +141,69 @@ export function entityCrumbs(
 }
 
 /**
- * Row → candidate mappers, shared by the live search and the search flyout's
+ * Entity → candidate mappers, shared by the live search and the search flyout's
  * recent/new sections so their crumbs can't drift apart. `regionCrumb` prepends the
  * region name (used once a search spans more than one region); omitting it leaves
- * the crumbs bare.
- *
- * Labels and crumbs come from the entity mappers, never from `row.name`: those mappers
- * are what decide that a nameless route reads `common_unnamed` and a nameless block
- * reads "Block <order>", so a list formatting its own label would render a blank row.
+ * the crumbs bare. Labels are the DTOs' display names, so a nameless block reads "Block <order>".
  */
 export function entityMappers(regionCrumb?: (regionFk: number) => DisplayName | undefined) {
   const crumbs = (regionFk: null | number | undefined, rest: Array<DisplayName | null | undefined>): DisplayName[] =>
     entityCrumbs(regionCrumb != null && regionFk != null ? regionCrumb(regionFk) : undefined, rest)
 
   return {
-    areas: (row: AreaAncestor & { regionFk: number }): EntityCandidate => {
-      const area = toAreaListItem(row)
-      return {
-        context: crumbs(row.regionFk, [area.areas.at(-1)?.name]),
-        id: area.id,
-        label: area.name,
-        type: 'areas',
-      }
-    },
+    areas: (area: AreaDetail): EntityCandidate => ({
+      context: crumbs(area.regionFk, [area.areas.at(-1)?.name]),
+      id: area.id,
+      label: area.name,
+      type: 'areas',
+    }),
 
-    blocks: (row: Parameters<typeof toBlockListItem>[0]): EntityCandidate => {
-      const block = toBlockListItem(row)
-      return {
-        context: crumbs(block.regionFk, [block.areas.at(-1)?.name]),
-        id: block.id,
-        label: block.name,
-        type: 'blocks',
-      }
-    },
+    blocks: (block: BlockListItem): EntityCandidate => ({
+      context: crumbs(block.regionFk, [block.areas.at(-1)?.name]),
+      id: block.id,
+      label: block.name,
+      type: 'blocks',
+    }),
 
-    routes: (row: RouteListRow): EntityCandidate => {
-      const route = toRouteListItem(row)
-      return {
-        context: crumbs(route.regionFk, [route.areaName, route.blockName]),
-        id: route.id,
-        label: route.name,
-        type: 'routes',
-      }
-    },
+    routes: (route: RouteListItem): EntityCandidate => ({
+      context: crumbs(route.regionFk, [route.areaName, route.blockName]),
+      id: route.id,
+      label: route.name,
+      type: 'routes',
+    }),
 
-    users: (row: UserRow): EntityCandidate => ({
+    users: (user: UserListItem): EntityCandidate => ({
       // A user isn't in one place, so its crumb is the region(s) it shares with the
       // searcher: only shown when `regionCrumb` opts in.
       context: crumbs(
         null,
-        (row.regionMemberships ?? []).map((membership) => regionCrumb?.(membership.regionFk)),
+        user.regionFks.map((regionFk) => regionCrumb?.(regionFk)),
       ),
-      id: row.id,
-      label: row.username,
+      id: user.id,
+      label: user.username,
       type: 'users',
     }),
   }
 }
 
 /**
- * Reactive entity search. The search term and a per-type `limit` are pushed
- * **into** the Zero queries (`content` ILIKE + `limit`), so a search
- * materialises at most `PER_GROUP_LIMIT` rows per type rather than the whole
- * region, no client-side scan. The term is debounced first, because it is a query
- * argument and each distinct value registers its own query. Queries are gated on `open`, so nothing runs
- * (and `users` never syncs over the network) until the caller opts in.
+ * Reactive entity search over the synced rows: each type matches its bare rows in JS and reads only its first
+ * `limit` hits in full. Nothing runs (and no user list is read) until the caller opens it.
  */
-export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regionFks }: EntitySearchOptions) {
+export function entitySearch({ limit, open, query, regionCrumb, regionFks }: EntitySearchOptions) {
   const perGroup = limit ?? PER_GROUP_LIMIT
   const map = entityMappers(regionCrumb)
-  const settled = debouncedQuery(query, QUERY_DEBOUNCE_MS, open)
-
-  // $derived, not a getter: `createResource` rebuilds when a dependency of `enabled` changes, and
-  // each rebuilt `Query` leaks the $effect.root its constructor opens. A $derived only invalidates
-  // its readers when the ANSWER changes, so both callers may read `query` here freely.
-  const isReady = $derived(searchReady(open(), query(), settled(), opensEmpty))
-  const ready = () => isReady
 
   // Quietly: a search list has its own loading state, so it never holds the screen's pill.
-  // `ttl: 'none'`: a term the reader typed past stops syncing at once instead of staying cached for 5 minutes.
   const { areas, blocks, routes, users } = quietly(() => ({
-    areas: createResource(
-      () => queries.listAreas({ content: settled(), limit: perGroup }),
-      (rows): EntityCandidate[] => rows.map(map.areas),
-      { enabled: ready, ttl: 'none' },
-    ),
-    blocks: createResource(
-      () => queries.listBlocks({ content: settled(), limit: perGroup }),
-      (rows): EntityCandidate[] => rows.map(map.blocks),
-      { enabled: ready, ttl: 'none' },
-    ),
-    routes: createResource(
-      () => queries.listRoutes({ content: settled(), pageSize: perGroup, sort: 'rating', sortOrder: 'desc' }),
-      (rows): EntityCandidate[] => rows.map(map.routes),
-      { enabled: ready, ttl: 'none' },
-    ),
-    users: createResource(
-      () => queries.listUsers({ content: settled(), limit: perGroup, regionFks: regionFks() }),
-      (rows): EntityCandidate[] => rows.map(map.users),
-      { enabled: () => ready() && regionFks().length > 0, ttl: 'none' },
-    ),
+    areas: areaList(() => ({ content: query(), limit: perGroup }), { enabled: open }),
+    blocks: blockList(() => ({ content: query(), limit: perGroup }), { enabled: open }),
+    routes: routeList(() => ({ content: query(), pageSize: perGroup, sort: 'rating', sortOrder: 'desc' }), {
+      enabled: open,
+    }),
+    users: userList(() => ({ content: query(), limit: perGroup, regionFks: regionFks() }), {
+      enabled: () => open() && regionFks().length > 0,
+    }),
   }))
 
   // The groups this term has shown so far, in the order they first did. Plain variables: they are
@@ -256,11 +211,11 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
   let placed: EntityType[] = []
   let placedTerm: string | undefined
 
-  const candidates = (): Record<EntityType, EntityCandidate[]> => ({
-    areas: areas.data,
-    blocks: blocks.data,
-    routes: routes.data,
-    users: users.data,
+  const candidates = $derived<Record<EntityType, EntityCandidate[]>>({
+    areas: areas.data.map(map.areas),
+    blocks: blocks.data.map(map.blocks),
+    routes: routes.data.map(map.routes),
+    users: users.data.map(map.users),
   })
 
   return {
@@ -271,10 +226,10 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
 
     /** Non-empty groups, in the order they arrived for this term (already filtered + capped). */
     get groups(): EntityGroup[] {
-      const all = candidates()
-      if (placedTerm !== settled()) {
+      const all = candidates
+      if (placedTerm !== query()) {
         placed = []
-        placedTerm = settled()
+        placedTerm = query()
       }
       placed = placeGroups(
         placed,
@@ -297,7 +252,7 @@ export function entitySearch({ limit, open, opensEmpty, query, regionCrumb, regi
      */
     resolveLabel(type: EntityType, id: string): string | undefined {
       const numericId = Number(id)
-      return candidates()[type].find((item) => item.id === numericId)?.label
+      return candidates[type].find((item) => item.id === numericId)?.label
     },
   }
 }
@@ -313,18 +268,6 @@ export function searchOutcome(phases: readonly QueryPhase[]): SearchOutcome {
   if (phases.some(expectingMore)) return 'pending'
   if (phases.some((phase) => phase.kind === 'error')) return 'error'
   return phases.every((phase) => phase.kind === 'answered') ? 'answered' : 'unavailable'
-}
-
-/**
- * Whether a search may register, as a function of its inputs and nothing else.
- *
- * A caller that opens ON the first character arrives before the debounce does, and registering then
- * costs a query for the empty term. `opensEmpty` is the caller saying it opens with an empty box and
- * means it: without it the answer flips to false on that first character, and a false `enabled`
- * bypasses zero-svelte's view cache for a fresh empty one, which is what blanks a loaded list.
- */
-export function searchReady(open: boolean, query: string, settled: string, opensEmpty = false): boolean {
-  return open && (opensEmpty || query === '' || settled !== '')
 }
 
 /** The phases a search waits on. Users only with a region to search, otherwise that query never runs. */

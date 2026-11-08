@@ -65,7 +65,9 @@ export function userById(id: () => number) {
  * ILIKE did: SQLite's LIKE folds ASCII only, so "jürgen" would miss "Jürgen".
  */
 export function userList(filter: () => UserListFilter, opts?: { enabled?: () => boolean }) {
-  const regionFks = () => filter().regionFks
+  // A string, so typing (text only) rebuilds no live query.
+  const regions = $derived(filter().regionFks.join())
+  const regionFks = () => (regions === '' ? [] : regions.split(',').map(Number))
   return psResource(
     (q) =>
       q.from({ u: collections().users }).select(({ u }) => ({
@@ -76,7 +78,7 @@ export function userList(filter: () => UserListFilter, opts?: { enabled?: () => 
             .where(({ m }) => and(eq(m.user_fk, u.nid), eq(m.is_active, 1), inArray(m.region_fk, regionFks()))),
         ),
       })),
-    [regionFks],
+    [() => regions],
     (rows) => {
       const { content, ids, limit } = filter()
       const needle = content?.toLocaleLowerCase()

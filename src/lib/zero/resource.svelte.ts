@@ -2,9 +2,8 @@ import { powerSyncOnly } from '$lib/powersync/db.svelte'
 import { isOnline } from '$lib/state/online.svelte'
 import { holdsPill, pillSurface, type PillSurface } from '$lib/state/pill.svelte'
 import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
-import type { HumanReadable, QueryOrQueryRequest, ReadonlyJSONValue, TTL } from '@rocicorp/zero'
+import type { HumanReadable, QueryOrQueryRequest, ReadonlyJSONValue } from '@rocicorp/zero'
 import { offlinePolicyOf, type OfflinePolicy } from './offline'
-import { ttlSource } from './ttlSource.svelte'
 import { getZ } from './z.svelte'
 import type { Schema } from './zero-schema'
 
@@ -203,8 +202,6 @@ class Resource<
  *   its arguments (your own logbook is kept, somebody else's is not).
  * @param opts.source the Zero client; tests pass a fake.
  * @param opts.surface the pill to hold while arriving; tests pass one, components read context.
- * @param opts.ttl how long Zero keeps the query syncing once nothing reads it; `'none'` for a search
- *   term the reader has moved past. Unset keeps Zero's default (5 minutes).
  */
 export function createResource<
   TTable extends keyof Schema['tables'] & string,
@@ -221,7 +218,6 @@ export function createResource<
     offline?: (() => OfflinePolicy | undefined) | OfflinePolicy
     source?: QuerySource
     surface?: PillSurface
-    ttl?: TTL
   },
 ): QueryResource<TOut> {
   return new Resource(
@@ -229,7 +225,7 @@ export function createResource<
     select,
     opts?.enabled ?? (() => true),
     opts?.offline,
-    opts?.source ?? (opts?.ttl == null ? zeroSource : ttlSource(opts.ttl)),
+    opts?.source ?? zeroSource,
     opts?.surface,
   )
 }

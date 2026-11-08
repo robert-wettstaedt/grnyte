@@ -1,8 +1,7 @@
 import { collections } from '$lib/powersync/collections'
-import { psResource, sqlResource, waitForSynced } from '$lib/powersync/resource.svelte'
+import { psResource, sqlResource, treeList, waitForSynced } from '$lib/powersync/resource.svelte'
 import { json, toZeroRow, unwrapParents } from '$lib/powersync/rows'
 import { AREA_MAP_SQL } from '$lib/powersync/sql'
-import { matchesText } from '$lib/powersync/text'
 import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
 import { eq, ilike, inArray, isNull, toArray, type InitialQueryBuilder } from '@tanstack/db'
 import { toAreaDetail, type AreaDetailRow } from './mapper'
@@ -17,6 +16,8 @@ export interface AreaListFilter {
   parentFk?: null | number
   /** Find areas whose description references the given `!type:id!` token (backlinks). */
   references?: string
+  /** Newest first; by name otherwise. */
+  sort?: 'createdAt'
 }
 
 type MapAreaRow = Record<string, unknown> & { parent: null | string; parking: string }
@@ -58,31 +59,29 @@ export function areaDetail(id: () => number) {
   return holdWhileDeleting(area, 'areas', id)
 }
 
+/** Areas with their parent chain and parking. A text match or a cap reads only the hits' trees (`treeList`). */
 export function areaList(filter: () => AreaListFilter = () => ({}), opts?: { enabled?: () => boolean }) {
-  return psResource(
-    (q) => {
-      const { id, parentFk, references } = filter()
-      let query = q.from({ a: collections().areas })
-      if (id != null) query = query.where(({ a }) => inArray(a.nid, [id].flat()))
-      // A backlink token is fixed per page, so it narrows the query rather than the selection.
-      if (references != null) query = query.where(({ a }) => ilike(a.description, `%${references}%`))
-      if (parentFk !== undefined) {
-        query = query.where(({ a }) => (parentFk === null ? isNull(a.parent_fk) : eq(a.parent_fk, parentFk)))
-      }
-      return areaTrees(
-        q,
-        query.orderBy(({ a }) => a.name, 'asc').orderBy(({ a }) => a.nid, 'asc'),
-        1,
-      )
+  return treeList(
+    filter,
+    {
+      byIds: (q, ids) => q.from({ a: collections().areas }).where(({ a }) => inArray(a.nid, ids)),
+      rows: (q, { id, parentFk, references, sort }) => {
+        let query = q.from({ a: collections().areas })
+        if (id != null) query = query.where(({ a }) => inArray(a.nid, [id].flat()))
+        // A backlink token is fixed per page, so it narrows the query rather than the selection.
+        if (references != null) query = query.where(({ a }) => ilike(a.description, `%${references}%`))
+        if (parentFk !== undefined) {
+          query = query.where(({ a }) => (parentFk === null ? isNull(a.parent_fk) : eq(a.parent_fk, parentFk)))
+        }
+        query =
+          sort === 'createdAt'
+            ? query.orderBy(({ a }) => a.created_at, 'desc')
+            : query.orderBy(({ a }) => a.name, 'asc')
+        return query.orderBy(({ a }) => a.nid, 'asc')
+      },
+      toItem: (row: SyncedArea) => toAreaDetail(toAreaRow(row)),
+      trees: (q, rows) => areaTrees(q, rows, 1),
     },
-    // Text and limit apply in `select`, so typing a search does not rebuild the query.
-    [() => filter().id, () => filter().parentFk, () => filter().references],
-    (rows) =>
-      (rows as SyncedArea[])
-        .filter(matchesText(filter()))
-        .slice(0, filter().limit)
-        .map((row) => toAreaDetail(toAreaRow(row))),
-    'guidebook',
     opts,
   )
 }
