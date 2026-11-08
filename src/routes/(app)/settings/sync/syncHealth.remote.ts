@@ -15,6 +15,7 @@ const syncHealthSchema = z.object({
   reasons: z.array(z.string()),
   safeWalSize: count,
   status: z.enum(['healthy', 'unhealthy', 'unreachable']),
+  version: z.optional(z.nullable(z.string())),
   walStatus: z.optional(z.nullable(z.string())),
 })
 

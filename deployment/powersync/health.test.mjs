@@ -35,6 +35,7 @@ const diagnostics = ({ connection = {}, ruleErrors = [], sourceErrors = [], tabl
       errors: ruleErrors,
     },
     connections: [{ errors: sourceErrors, postgres_uri: 'postgresql://supabase-db:5432/postgres' }],
+    service: { version: '1.27.2' },
   },
 })
 
@@ -56,6 +57,7 @@ describe('verdict', () => {
       reasons: [],
       safeWalSize: 4_298_026_312,
       status: 'healthy',
+      version: '1.27.2',
       walStatus: 'reserved',
     })
   })
