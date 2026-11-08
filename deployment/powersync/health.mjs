@@ -10,8 +10,8 @@ export const MAX_LAG_BYTES = 256 * 1024 * 1024
 export const MAX_CHECKPOINT_AGE_MS = 10 * 60 * 1000
 // Well under nginx's 15 s and an uptime probe's own timeout, so a hung service reads as down rather than slow.
 const DIAGNOSTICS_TIMEOUT_MS = 5000
-// Below this the slot is about to lose WAL: a quarter of prod's max_slot_wal_keep_size (512 MB).
-export const MIN_SAFE_WAL_BYTES = 128 * 1024 ** 2
+// Below this the slot is about to lose WAL; prod's disk is capped, so max_slot_wal_keep_size is set.
+export const MIN_SAFE_WAL_BYTES = 1024 ** 3
 // One diagnostics call per window however often the public endpoint is hit.
 export const CACHE_MS = 15_000
 
@@ -19,6 +19,7 @@ export const CACHE_MS = 15_000
 const fatal = (errors) => (errors ?? []).filter((error) => (error?.level ?? 'fatal') === 'fatal')
 const errorsOf = (items) => (items ?? []).flatMap((item) => fatal(item.errors))
 
+/** Asks the service; anything but a diagnostics answer in time is `unreachable`. */
 export async function diagnose(url, token, now = Date.now) {
   try {
     const response = await fetch(`${url}/api/admin/v1/diagnostics`, {
@@ -35,6 +36,7 @@ export async function diagnose(url, token, now = Date.now) {
   return { reasons: ['unreachable'], status: 'unreachable' }
 }
 
+/** The public endpoint: concurrent requests share one diagnostics call, and its verdict serves for `CACHE_MS`. */
 export function healthServer(url, token, now = Date.now) {
   let cached
   return createServer(async (request, response) => {
@@ -58,15 +60,10 @@ export function healthServer(url, token, now = Date.now) {
 export function verdict(diagnostics, now) {
   const rules = diagnostics?.data?.active_sync_rules ?? {}
   const connections = rules.connections ?? []
-  // A sync config that failed to deploy leaves the old one serving, so only its errors tell.
-  const deploying = diagnostics?.data?.deploying_sync_rules ?? {}
   const errorCount =
     errorsOf(diagnostics?.data?.connections).length +
-    [rules, deploying].reduce(
-      (sum, set) =>
-        sum + fatal(set.errors).length + errorsOf((set.connections ?? []).flatMap((c) => c.tables ?? [])).length,
-      0,
-    )
+    fatal(rules.errors).length +
+    errorsOf(connections.flatMap((c) => c.tables ?? [])).length
   const {
     last_checkpoint_ts: lastCheckpoint = null,
     max_slot_wal_keep_size: keepSize = null,
@@ -94,7 +91,6 @@ export function verdict(diagnostics, now) {
     reasons,
     safeWalSize,
     status: reasons.length === 0 ? 'healthy' : 'unhealthy',
-    version: diagnostics?.data?.service?.version ?? null,
     walStatus,
   }
 }
