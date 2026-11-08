@@ -201,6 +201,8 @@ const MUTATOR_WRAPPERS = new Set(['defineServerMutator'])
  * silently carrying its exemption to a different function.
  */
 const NO_GATE: Record<string, string> = {
+  'lib/auth/session.remote.ts#sendPasswordReset':
+    "Takes no input: mails the standard reset link to the session's own verified address, which only that inbox can use.",
   'lib/auth/session.remote.ts#signOut':
     'Acts on whatever session the request already carries and revokes only that one; the sole input is a redirect path, validated same-origin.',
   'lib/entities/event/events.remote.ts#userContributionCount':

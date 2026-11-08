@@ -142,9 +142,7 @@ export async function signIn(page: Page, email: string, password: string) {
   await expect(page.getByLabel('Email')).toBeFocused()
 
   await page.getByLabel('Email').fill(email)
-  // By autocomplete, not by label: `AuthField` wraps the input and its "Forgot?" link in one
-  // `<label>`, so the accessible name is not "Password".
-  await page.locator('input[autocomplete="current-password"]').fill(password)
+  await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await page.waitForURL(/\/explore/)
 }

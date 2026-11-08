@@ -3,10 +3,12 @@ import { reachable, seedUsers, type SeedUser } from '$lib/db/testDb'
 import { formError } from '$lib/forms/schemas'
 import { asRequest } from '$lib/remote/testHarness'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { deleteAccountCommand, updateEmailCommand } from './account.remote'
+import { deleteAccountCommand, updateEmailCommand, updatePasswordCommand } from './account.remote'
 
 const deletion = vi.hoisted(() => ({ deleteAccount: vi.fn() }))
 vi.mock('$lib/entities/user/delete.server', () => deletion)
+// A real check signs in against GoTrue, which CI does not run.
+vi.mock('$lib/entities/user/password.server', () => ({ verifyPassword: async () => true }))
 
 let user: SeedUser
 
@@ -72,5 +74,17 @@ describe.skipIf(!reachable)('deleteAccountCommand', () => {
     )
     // This browser leaves signed out; GoTrue already revoked every other session with the account.
     expect(signOut).toHaveBeenCalledWith({ scope: 'local' })
+  })
+})
+
+describe.skipIf(!reachable)('updatePasswordCommand', () => {
+  it('points a session Supabase wants re-authenticated at the emailed reset link', async () => {
+    const updateUser = vi.fn(async () => ({ error: { code: 'reauthentication_needed', message: 'old session' } }))
+    const values = { confirmPassword: 'a-new-Passw0rd!', currentPassword: 'hunter12', password: 'a-new-Passw0rd!' }
+    const outcome = await asRequest(user.authId, () => updatePasswordCommand(values), { auth: { updateUser } }).catch(
+      (cause: { body?: unknown }) => cause.body,
+    )
+
+    expect(outcome).toEqual({ message: formError('auth_reauthNeeded') })
   })
 })

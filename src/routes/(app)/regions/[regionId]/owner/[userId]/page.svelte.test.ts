@@ -39,6 +39,7 @@ vi.stubGlobal(
   },
 )
 vi.stubGlobal('matchMedia', () => ({ addEventListener() {}, matches: false, removeEventListener() {} }))
+vi.mock('$lib/auth/session.remote', () => ({ sendPasswordReset: vi.fn() }))
 
 beforeEach(() => {
   state.recipient = 9

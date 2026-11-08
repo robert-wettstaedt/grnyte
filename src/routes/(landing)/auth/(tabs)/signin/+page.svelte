@@ -77,7 +77,10 @@
     enterkeyhint="go"
   >
     {#snippet action()}
-      <a href={resolve('/auth/forgot-password')} class="text-primary-400 text-[12.5px] font-semibold">
+      <a
+        href={resolve('/auth/forgot-password')}
+        class="text-primary-600-400 -mx-1 flex min-h-6 items-center px-1 text-[12.5px] font-semibold"
+      >
         {m.auth_forgot()}
       </a>
     {/snippet}

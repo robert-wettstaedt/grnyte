@@ -32,6 +32,7 @@ vi.stubGlobal(
 vi.stubGlobal('matchMedia', () => ({ addEventListener() {}, matches: false, removeEventListener() {} }))
 
 const submitButton = () => screen.getByRole('button', { name: 'Delete my account' })
+vi.mock('$lib/auth/session.remote', () => ({ sendPasswordReset: vi.fn() }))
 
 it('names a region that blocks the deletion, and will not submit while it does', () => {
   preview.blocks = [{ id: 1, name: 'Harz' }]

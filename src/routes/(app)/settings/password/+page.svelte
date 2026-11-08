@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import CurrentPasswordField from '$lib/auth/CurrentPasswordField.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'
   import Form from '$lib/forms/Form.svelte'
@@ -33,15 +34,7 @@
   title={m.settings_changePassword()}
 >
   <!-- The current password is what stops a stolen session from taking the account over for good. -->
-  <AuthField
-    field={store.fields.currentPassword}
-    label={m.settings_currentPassword()}
-    type="password"
-    placeholder={m.auth_passwordPlaceholder()}
-    autocomplete="current-password"
-    enterkeyhint="next"
-    autofocus
-  />
+  <CurrentPasswordField field={store.fields.currentPassword} enterkeyhint="next" autofocus />
 
   <AuthField
     field={store.fields.password}
