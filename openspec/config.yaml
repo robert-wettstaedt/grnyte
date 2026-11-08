@@ -33,6 +33,10 @@ context: |
 
 rules:
   proposal:
+    - 'If a grilling decisions file exists for this feature (docs/decisions/<topic>.md), read it
+      first. Before writing any artifact, list every contradiction (the plan does X, D<n> says Y)
+      and every addition (a decision the plan makes that no entry covers), and have the user rule
+      on each. Never resolve a contradiction silently.'
     - Include a Non-goals section.
     - Name the entity modules, routes and tables the change touches.
     - Flag anything that changes a URL, a remote function export or manifest.id as
@@ -52,5 +56,7 @@ rules:
 operations:
   apply:
     guidance:
+      - 'Before the first task: if the change has a design.md and its review.md is missing or not
+        "Status: clean", stop and offer /review-loop plan <change>. Skip only on an explicit -plan.'
       - Stage only the paths this change touched, by name.
       - A new test counts once it has been seen red.
