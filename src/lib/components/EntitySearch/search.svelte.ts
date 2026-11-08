@@ -210,6 +210,7 @@ export function entitySearch({ limit, open, query, regionCrumb, regionFks }: Ent
   // bookkeeping read while rendering, never a reason to render again.
   let placed: EntityType[] = []
   let placedTerm: string | undefined
+  let shown: EntityGroup[] = []
 
   const candidates = $derived<Record<EntityType, EntityCandidate[]>>({
     areas: areas.data.map(map.areas),
@@ -231,15 +232,20 @@ export function entitySearch({ limit, open, query, regionCrumb, regionFks }: Ent
         placed = []
         placedTerm = query()
       }
-      // Local reads answer a frame apart: placing the first groups before all have would order them by arrival.
-      if (placed.length === 0 && this.outcome === 'pending') return []
+      // Local reads answer a frame apart: a term's first groups wait until none has nothing on hand, so they take
+      // the usual order rather than arrival order. The previous term's groups stay up meanwhile.
+      const loading = sources(areas, blocks, routes, users, regionFks().length > 0).some(
+        (phase) => phase.kind === 'loading',
+      )
+      if (placed.length === 0 && loading) return shown
       placed = placeGroups(
         placed,
         GROUP_ORDER.filter((type) => all[type].length > 0),
       )
-      return placed
+      shown = placed
         .filter((type) => all[type].length > 0)
         .map((type) => ({ items: all[type], key: type, label: entityGroupLabel(type) }))
+      return shown
     },
 
     /** What an empty result means; see {@link searchOutcome}. */
