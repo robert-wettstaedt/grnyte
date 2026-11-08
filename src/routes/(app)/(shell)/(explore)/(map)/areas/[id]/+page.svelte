@@ -194,7 +194,10 @@
                 {:else if matchingCount != null && routeCount != null}
                   {m.routes_matchingCount({ count: routeCount, matching: matchingCount })}
                 {:else}
-                  {m.areas_gradedCount({ count: gradedCount })}
+                  <!-- Here, not under the chart: a line below it would push the page down when routes land. -->
+                  {m.areas_gradedCount({ count: gradedCount })}{#if ungradedCount > 0}&nbsp;· {m.areas_ungradedCount({
+                      count: ungradedCount,
+                    })}{/if}
                 {/if}
               </span>
             {/if}
@@ -208,7 +211,6 @@
               {matchingByGrade}
               grades={global.grades}
               gradingScale={global.gradingScale}
-              ungraded={ungradedCount}
               onselect={(bar) => (selected = bar)}
             />
           {:else if routes.phase.kind === 'error'}

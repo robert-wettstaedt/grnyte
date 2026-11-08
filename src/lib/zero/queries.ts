@@ -15,6 +15,7 @@ import { rolePermissionsQueryDefs } from '$lib/entities/rolePermission/queries'
 import { routesQueryDefs } from '$lib/entities/route/queries'
 import { usersQueryDefs } from '$lib/entities/user/queries'
 import { defineQueries } from '@rocicorp/zero'
+import { retiredQueryDefs } from './retired'
 
 export const queries = defineQueries({
   ...areasQueryDefs,
@@ -30,6 +31,7 @@ export const queries = defineQueries({
   ...reactionsQueryDefs,
   ...regionsQueryDefs,
   ...reportsQueryDefs,
+  ...retiredQueryDefs,
   ...rolePermissionsQueryDefs,
   ...routesQueryDefs,
   ...usersQueryDefs,
