@@ -189,6 +189,9 @@ async function hideServiceWorkerApi(page: Page) {
   await page.addInitScript(() => {
     delete (Navigator.prototype as { serviceWorker?: unknown }).serviceWorker
   })
+  // The fixtures' map layer points at `.invalid`, which some resolvers never answer: refused here,
+  // or its tiles stay pending and `networkidle` never arrives.
+  await page.route('https://example.invalid/**', (route) => route.abort())
 }
 
 /** Loopback, whatever the port. Anything else is somebody's deployment. */
