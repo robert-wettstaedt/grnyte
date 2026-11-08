@@ -1,8 +1,11 @@
+import { areaToken } from '$lib/entities/area/areaIds'
+import { sqlResource, waitForSynced } from '$lib/powersync/resource.svelte'
+import { json, toZeroRow } from '$lib/powersync/rows'
+import { ROUTE_LIST_SQL, ROUTE_MAP_SQL, ROUTES_BY_ID_SQL } from '$lib/powersync/sql'
+import { matchesText } from '$lib/powersync/text'
 import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
-import { queries } from '$lib/zero/queries'
-import { createResource, waitForRow } from '$lib/zero/resource.svelte'
-import type { TTL } from '@rocicorp/zero'
-import { toRouteDetail, toRouteListItem } from './mapper'
+import type { QueryResource } from '$lib/zero/resource.svelte'
+import { toRouteDetail, toRouteListItem, type RouteListRow } from './mapper'
 
 export type AscentStatus = 'done' | 'project' | 'todo'
 
@@ -23,50 +26,164 @@ export interface RouteListFilter {
   references?: string
   /** Scope to one region, for the counts that are only meaningful per region. */
   regionFk?: number
-  /** Server-side ordering (pairs with `sortOrder`); unsorted otherwise. */
-  sort?: 'firstAscentYear' | 'grade' | 'name' | 'rating'
+  /** Ordering (pairs with `sortOrder`); by id otherwise. */
+  sort?: 'createdAt' | 'firstAscentYear' | 'grade' | 'name' | 'rating'
   sortOrder?: 'asc' | 'desc'
   tags?: string[]
 }
 
+/** A `ROUTE_LIST_SQL` row: the route's columns, its related rows as JSON text. */
+export type SyncedRoute = Record<string, unknown> & {
+  block: null | string
+  description?: null | string
+  first_ascents: string
+  name?: null | string
+  tags: string
+  topo_routes: string
+}
+
+type MapRow = {
+  area_ids: string
+  block_fk: number
+  description: null | string
+  id: number
+  name: null | string
+  user_grade_fk: null | number
+}
+
+// The column each sort orders by, then its tie-breaks, as Zero's `listRoutes` ordered them.
+const SORTS = {
+  createdAt: ['r.created_at', ''],
+  firstAscentYear: ['r.first_ascent_year', ''],
+  grade: ['r.user_grade_fk', ', r.user_rating desc'],
+  name: ['r.name', ''],
+  rating: ['r.user_rating', ', r.user_grade_fk asc'],
+} as const
+
+const hasText = (filter: RouteListFilter) =>
+  filter.content != null || filter.namePrefix != null || filter.references != null
+
+/** `ROUTE_FILTERS`' parameters, in order. */
+const filterParameters = (filter: RouteListFilter) =>
+  [
+    filter.regionFk,
+    filter.areaId == null ? null : areaToken(filter.areaId),
+    filter.minGrade,
+    filter.maxGrade,
+    filter.minRating,
+    jsonList(filter.tags),
+    jsonList(filter.firstAscensionists),
+    filter.hasTopo ? 1 : null,
+    filter.hasBeta ? 1 : null,
+  ].map((value) => value ?? null)
+
+const jsonList = (values?: readonly unknown[]) => (values?.length ? JSON.stringify(values) : null)
+
+// Beta lives on ascents' files too, which the region activity stream carries.
+const streamsOf = (filter: RouteListFilter) => (filter.hasBeta ? ['guidebook', 'region_activity'] : 'guidebook')
+
+/** A synced route with its related rows, as `toRouteListItem` reads it. */
+export function toRouteRow(row: SyncedRoute): RouteListRow {
+  return {
+    ...toZeroRow<RouteListRow>('routes', row),
+    block: json<RouteListRow['block']>(row.block) ?? undefined,
+    firstAscents: json<RouteListRow['firstAscents']>(row.first_ascents) ?? [],
+    tags: json<RouteListRow['tags']>(row.tags) ?? [],
+    topoRoutes: json<RouteListRow['topoRoutes']>(row.topo_routes) ?? [],
+  }
+}
+
+const byIds = <TOut>(ids: () => number[], select: (rows: SyncedRoute[]) => TOut, enabled?: () => boolean) =>
+  sqlResource(
+    () => ROUTES_BY_ID_SQL,
+    () => [JSON.stringify(ids())],
+    select,
+    () => 'guidebook',
+    { enabled },
+  )
+
 export function routeDetail(id: () => number, opts?: { enabled?: () => boolean }) {
-  const route = createResource(
-    () => queries.listRoutes({ routeId: id() }),
-    (rows) => (rows[0] == null ? undefined : toRouteDetail(rows[0])),
-    opts,
+  const route = byIds(
+    () => [id()],
+    (rows) => (rows[0] == null ? undefined : toRouteDetail(toRouteRow(rows[0]))),
+    opts?.enabled,
   )
   return holdWhileDeleting(route, 'routes', id)
 }
 
-export function routeList(filter: () => RouteListFilter = () => ({}), opts?: { enabled?: () => boolean }) {
-  return createResource(
-    () => queries.listRoutes(filter()),
-    (rows) => rows.map(toRouteListItem),
-    { ...opts, offline: () => betaPolicy(filter()) },
+/**
+ * Routes with tags, first ascents, block and topo. A text search matches the bare rows in JS, then reads the related
+ * rows of the hits only: building them for the whole region cost 300 ms at 4x throttle, the bare rows 60 (D1).
+ */
+export function routeList(
+  filter: () => RouteListFilter = () => ({}),
+  opts?: { enabled?: () => boolean },
+): QueryResource<ReturnType<typeof toRouteListItem>[]> {
+  const order = $derived.by(() => {
+    const { sort, sortOrder } = filter()
+    const by = sort != null && sortOrder != null && Object.hasOwn(SORTS, sort) ? SORTS[sort] : undefined
+    return by == null ? 'order by r.nid' : `order by ${by[0]} ${sortOrder === 'desc' ? 'desc' : 'asc'}${by[1]}, r.nid`
+  })
+  const text = $derived(hasText(filter()))
+  const enabled = () => opts?.enabled?.() !== false
+  const toItems = (rows: SyncedRoute[]) => rows.map((row) => toRouteListItem(toRouteRow(row)))
+
+  const all = sqlResource(
+    () => `${ROUTE_LIST_SQL} ${order} limit ?10`,
+    () => [...filterParameters(filter()), filter().pageSize ?? -1],
+    toItems,
+    () => streamsOf(filter()),
+    { enabled: () => !text && enabled() },
   )
+  const hits = sqlResource(
+    () => `${ROUTE_MAP_SQL} ${order}`,
+    () => filterParameters(filter()),
+    (rows: MapRow[]) =>
+      rows
+        .filter(matchesText(filter()))
+        .slice(0, filter().pageSize)
+        .map((row) => row.id),
+    () => streamsOf(filter()),
+    { enabled: () => text && enabled() },
+  )
+  const found = byIds(
+    () => hits.data,
+    (rows) => {
+      const rank: Record<number, number> = Object.fromEntries(hits.data.map((id, index) => [id, index]))
+      return toItems(rows.toSorted((a, b) => rank[a.nid as number] - rank[b.nid as number]))
+    },
+    () => text && enabled() && hits.data.length > 0,
+  )
+
+  return {
+    get data() {
+      if (!text) return all.data
+      return hits.data.length > 0 ? found.data : []
+    },
+    get phase() {
+      if (!text) return all.phase
+      // Until the match settles, or when it matched nothing, the match speaks; then the hits' own rows do.
+      return hits.phase.kind !== 'answered' || hits.data.length === 0 ? hits.phase : found.phase
+    },
+  }
 }
 
-// Beta lives on media no preload keeps, so a has-beta filter cannot be answered offline.
-const betaPolicy = (filter: RouteListFilter): 'excluded' | undefined =>
-  filter.hasBeta === true ? 'excluded' : undefined
-
-/** Slim route rows for the map (no related trees synced): see `listRoutesForMap`. */
-export function routeMapList(
-  filter: () => RouteListFilter = () => ({}),
-  opts?: { enabled?: () => boolean; ttl?: TTL },
-) {
-  return createResource(
-    () => queries.listRoutesForMap(filter()),
-    // `name` is raw, for search matching only: render through the route mapper.
-    (rows) =>
-      rows.map((row) => ({
-        areaIds: row.areaIds,
-        blockFk: row.blockFk,
-        gradeFk: row.userGradeFk ?? undefined,
+/** Slim route rows for the map (no related rows). `name` is raw, for search matching only. */
+export function routeMapList(filter: () => RouteListFilter = () => ({}), opts?: { enabled?: () => boolean }) {
+  const parameters = $derived(filterParameters(filter()))
+  return sqlResource(
+    () => ROUTE_MAP_SQL,
+    () => parameters,
+    (rows: MapRow[]) =>
+      rows.filter(matchesText(filter())).map((row) => ({
+        areaIds: row.area_ids,
+        blockFk: row.block_fk,
+        gradeFk: row.user_grade_fk ?? undefined,
         id: row.id,
         name: row.name,
       })),
-    { ...opts, offline: () => betaPolicy(filter()) },
+    () => streamsOf(filter()),
+    opts,
   )
 }
 
@@ -75,15 +192,15 @@ export function routeMapList(
  * favorite lists hydrate their derived id sets through this. Skipped while the
  * id set is empty; callers reorder the result by their own list.
  */
-export function routesByIds(ids: () => number[], opts?: { enabled?: () => boolean; ttl?: TTL }) {
-  return createResource(
-    () => queries.listRoutes({ routeId: ids() }),
-    (rows) => rows.map(toRouteListItem),
-    { enabled: () => ids().length > 0 && (opts?.enabled?.() ?? true), ttl: opts?.ttl },
+export function routesByIds(ids: () => number[], opts?: { enabled?: () => boolean }) {
+  return byIds(
+    ids,
+    (rows) => rows.map((row) => toRouteListItem(toRouteRow(row))),
+    () => ids().length > 0 && (opts?.enabled?.() ?? true),
   )
 }
 
-/** Resolve once Zero has the live route row for `id` locally, or after `timeoutMs`. See {@link waitForRow}. */
+/** Resolve once the route row for `id` has synced, or after `timeoutMs`. See {@link waitForSynced}. */
 export function waitForRoute(id: number, timeoutMs = 5000): Promise<void> {
-  return waitForRow(queries.listRoutes({ routeId: id }), (rows) => rows.length > 0, timeoutMs)
+  return waitForSynced('routes', id, timeoutMs)
 }

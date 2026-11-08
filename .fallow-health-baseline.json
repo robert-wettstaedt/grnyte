@@ -260,17 +260,7 @@
         "count": 1
       }
     },
-    "src/lib/entities/ascent/mapper.ts": {
-      "crap_moderate": {
-        "count": 1
-      }
-    },
     "src/lib/entities/block/BlockForm.svelte": {
-      "crap_moderate": {
-        "count": 1
-      }
-    },
-    "src/lib/entities/block/resources.svelte.ts": {
       "crap_moderate": {
         "count": 1
       }

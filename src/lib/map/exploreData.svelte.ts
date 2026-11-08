@@ -79,7 +79,7 @@ export function createExploreMapData(
     inGradeRange(filters().filter, route.gradeFk) && !(todo && sentSet.has(route.id))
 
   // Route names and descriptions, as the search dropdown matches them, through the map's filter. A field
-  // device answers from its own rows; `ttl: 'none'` stops a term syncing once the reader moves past it.
+  // device answers from its own rows.
   const typed = $derived(search().trim())
   const term = debouncedQuery(
     () => typed,
@@ -90,10 +90,7 @@ export function createExploreMapData(
   // Quietly: search results never hold the screen's pill.
   const found = quietly(() =>
     filteredRouteList(
-      routeMapList(() => ({ ...filters().filter, content: term() }), {
-        enabled: () => searchable(term()),
-        ttl: 'none',
-      }),
+      routeMapList(() => ({ ...filters().filter, content: term() }), { enabled: () => searchable(term()) }),
       filters,
       userId,
     ),
