@@ -1,8 +1,8 @@
 import { toAreaDetail } from '$lib/entities/area/mapper'
-import { toAreaRow } from '$lib/entities/area/resources.svelte'
+import { toAreaRow, toMapArea } from '$lib/entities/area/resources.svelte'
 import { toRouteAscent, type RouteAscentRow } from '$lib/entities/ascent/mapper'
 import { toBlockDetail } from '$lib/entities/block/mapper'
-import { toBlockRow } from '$lib/entities/block/resources.svelte'
+import { toBlockRow, toMapBlock } from '$lib/entities/block/resources.svelte'
 import { toUserFavoriteEntity, type UserAllFavoriteRow } from '$lib/entities/favorite/mapper'
 import { toMediaFile } from '$lib/entities/file/mapper'
 import { toFileRow } from '$lib/entities/file/resources.svelte'
@@ -179,6 +179,73 @@ describe('toZeroRow', () => {
     })
     expect(row.routes[0]).toMatchObject({ id: 125, tags: [{ tagFk: 'crimpy' }], userGradeFk: 12 })
     expect(toTopoViews(row)[0]?.lines).toMatchObject([{ gradeFk: 12, id: 30, name: 'Kante', routeId: 125 }])
+  })
+
+  it("reads a map block's breadcrumb, pin and grade counts as the explore map draws them", () => {
+    const block = toMapBlock({
+      area: JSON.stringify({ id: 5, name: 'Sector', parent: { id: 2, name: 'Forest', type: 'area' }, type: 'sector' }),
+      area_fk: 5,
+      created_at: '2026-11-07T10:00:00.123456Z',
+      geolocation: JSON.stringify({ estimated: 1, lat: 47.5, long: 11.1, nid: 6 }),
+      grade_counts: JSON.stringify({ '12': 2, none: 1 }),
+      id: '40',
+      name: '',
+      nid: 40,
+      order: 2,
+      region_fk: 18,
+    })
+
+    expect(block).toMatchObject({
+      areaFk: 5,
+      areas: [
+        { id: 2, name: 'Forest', type: 'area' },
+        { id: 5, name: 'Sector', type: 'sector' },
+      ],
+      createdAt: new Date(1794045600123),
+      description: '',
+      geolocation: { estimated: true, id: 6, lat: 47.5, long: 11.1 },
+      gradeCounts: new Map([[12, 2]]),
+      id: 40,
+      name: 'Block 3',
+      regionFk: 18,
+      routeCount: 3,
+    })
+    expect(
+      toMapBlock({
+        area: JSON.stringify({ id: 5, name: 'S', parent: null, type: null }),
+        geolocation: null,
+        name: '',
+        nid: 1,
+        order: 0,
+      }),
+    ).toMatchObject({ areas: [{ id: 5, type: 'area' }], geolocation: undefined })
+  })
+
+  it("reads a map area's breadcrumb and parking as the map and the pickers show them", () => {
+    const area = toMapArea({
+      created_at: '2026-11-07T10:00:00.123456Z',
+      geo_paths: JSON.stringify(['M1,2']),
+      name: 'Sector',
+      nid: 5,
+      parent: JSON.stringify({ id: 2, name: 'Forest', parent: { id: 1, name: '', type: 'area' }, type: 'area' }),
+      parent_fk: 2,
+      parking: JSON.stringify([{ area_fk: 5, estimated: 0, lat: 47.5, long: 11.1, nid: 6, region_fk: 18 }]),
+      region_fk: 18,
+      type: 'sector',
+    })
+
+    expect(area).toMatchObject({
+      areas: [
+        { id: 1, name: 'Unnamed' },
+        { id: 2, name: 'Forest', type: 'area' },
+      ],
+      geoPaths: ['M1,2'],
+      id: 5,
+      parentFk: 2,
+      parkingLocations: [{ estimated: false, id: 6, lat: 47.5, long: 11.1 }],
+      regionFk: 18,
+      type: 'sector',
+    })
   })
 
   it("reads an area's breadcrumb, parking and geo paths as the area page shows them", () => {

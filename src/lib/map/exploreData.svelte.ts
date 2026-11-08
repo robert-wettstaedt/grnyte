@@ -4,10 +4,8 @@
    set once a signal updates >5 times per flush, costing >1s on the initial /explore load. */
 import { debouncedQuery } from '$lib/components/EntitySearch/search.svelte'
 import { areaMapList } from '$lib/entities/area/resources.svelte'
-import { userAscentList } from '$lib/entities/ascent/resources.svelte'
 import { blockList, blockMapList } from '$lib/entities/block/resources.svelte'
-import { routeMapList, routesByIds } from '$lib/entities/route/resources.svelte'
-import { isFieldDevice } from '$lib/state/device.svelte'
+import { routeMapList } from '$lib/entities/route/resources.svelte'
 import { quietly } from '$lib/state/pill.svelte'
 import type { MatchTest } from '$lib/state/searchQuery.svelte'
 import type { QueryPhase } from '$lib/zero/resource.svelte'
@@ -15,7 +13,6 @@ import { blockBounds } from './data.svelte'
 import { isParsedFilterActive, parseRouteFilter, type ParsedRouteFilter } from './filter'
 import { filteredRouteList } from './filteredRoutes.svelte'
 import { narrowBlocks, type OpenEntity } from './narrow'
-import { answersFromSummary, countsFromSummary, inGradeRange, withoutRoutes } from './summary'
 import type { MapData } from './types'
 
 /**
@@ -36,8 +33,6 @@ export function createAreaPickerMapData(areaId: () => number, userId: () => numb
   }
 }
 
-const ANSWERED: QueryPhase = { empty: false, kind: 'answered' }
-
 /**
  * The /explore map dataset: all blocks/areas/parking/paths plus the per-block
  * route & grade counts that feed the donut markers. Shared so the parking
@@ -49,37 +44,16 @@ export function createExploreMapData(
   search: () => string = () => '',
   open: () => OpenEntity = () => null,
 ) {
-  const fromSummary = $derived(answersFromSummary(filters()))
-  // Joined on the device from the guidebook's flat rows, so a field device hydrates nothing twice.
   const blocksResult = blockMapList()
   const areasResult = areaMapList()
   // Slim rows (no related trees): the map reads id/blockFk/gradeFk per route.
-  // A field device keeps every route anyway; without this second query holding them, reopening the
-  // app re-sends all of them (measured 7.0 MB against 3.5 MB at region 32's size).
-  const routesLocal = $derived(!fromSummary || isFieldDevice())
   const routes = filteredRouteList(
-    routeMapList(() => filters().filter, { enabled: () => routesLocal }),
+    routeMapList(() => filters().filter),
     filters,
     userId,
   )
-  const todo = $derived(fromSummary && filters().ascentStatus === 'todo')
-  const ascents = userAscentList(userId, () => todo)
-  const sentSet = $derived(
-    new Set(ascents.data.filter((ascent) => ascent.type !== 'attempt').map((ascent) => ascent.routeFk)),
-  )
-  const sentIds = $derived([...sentSet])
-  const sent = routesByIds(() => sentIds, { enabled: () => todo })
-  const summary = $derived.by(() => {
-    if (!fromSummary) return undefined
-    const counts = countsFromSummary(blocksResult.data, filters().filter)
-    return todo ? withoutRoutes(counts, sent.data, filters().filter) : counts
-  })
-  // Whether a route counts under the summaries: the filter's grade range, less the reader's sends.
-  const keptBySummary = (route: { gradeFk: number | undefined; id: number }) =>
-    inGradeRange(filters().filter, route.gradeFk) && !(todo && sentSet.has(route.id))
 
-  // Route names and descriptions, as the search dropdown matches them, through the map's filter. A field
-  // device answers from its own rows.
+  // Route names and descriptions, as the search dropdown matches them, through the map's filter.
   const typed = $derived(search().trim())
   const term = debouncedQuery(
     () => typed,
@@ -104,8 +78,7 @@ export function createExploreMapData(
       answered = { routeBlocks: new Set<number>(), text: '' }
       return { routeBlocks: answered.routeBlocks, text: typed }
     }
-    // A field device keeps every route, so its own rows answer without waiting on a stalled connection.
-    if (term() === typed && (found.phase.kind !== 'loading' || isFieldDevice())) {
+    if (term() === typed && found.phase.kind !== 'loading') {
       answered = { routeBlocks: new Set(found.data.map((route) => route.blockFk)), text: typed }
     }
     return answered
@@ -117,7 +90,6 @@ export function createExploreMapData(
   // feed) keep stable references. That keeps the map's per-layer effects granular: an
   // update touches only the affected layer instead of rebuilding (and flashing) them all.
   const routeCountByBlock = $derived.by(() => {
-    if (summary) return summary.routeCountByBlock
     const counts = new Map<number, number>()
     for (const route of routes.data) {
       if (route.blockFk != null) counts.set(route.blockFk, (counts.get(route.blockFk) ?? 0) + 1)
@@ -126,7 +98,6 @@ export function createExploreMapData(
   })
 
   const gradeCountByBlock = $derived.by(() => {
-    if (summary) return summary.gradeCountByBlock
     const counts = new Map<number, Map<number, number>>()
     for (const route of routes.data) {
       if (route.blockFk == null || route.gradeFk == null) continue
@@ -156,27 +127,16 @@ export function createExploreMapData(
   const parkingLocations = $derived(areasResult.data.flatMap((area) => area.parkingLocations))
   const lineStrings = $derived(areasResult.data.flatMap((area) => area.geoPaths))
 
-  // True only while nothing is renderable yet: local-first preloads flip the
-  // source queries to `ready` fast, so this is the cold-load case (no markers).
-  const summaryPhase = $derived.by((): QueryPhase => {
-    // a disabled query never answers: no reader, or no sends, is nothing to wait for
-    if (todo && userId() != null && ascents.phase.kind !== 'answered') return ascents.phase
-    if (todo && sentIds.length > 0 && sent.phase.kind !== 'answered') return sent.phase
-    return blocksResult.phase.kind === 'answered' ? ANSWERED : blocksResult.phase
-  })
+  // True only while nothing is renderable yet: the cold-load case (no markers).
   const isLoading = $derived(
-    (fromSummary ? summaryPhase : routes.phase).kind === 'loading' ||
-      blocksResult.phase.kind === 'loading' ||
-      areasResult.phase.kind === 'loading',
+    routes.phase.kind === 'loading' || blocksResult.phase.kind === 'loading' || areasResult.phase.kind === 'loading',
   )
 
   const matches = $derived.by((): MatchTest => {
     if (!isParsedFilterActive(filters())) return null
-    if (fromSummary) return keptBySummary
     const ids = new Set(routes.data.map((route) => route.id))
     return (route) => ids.has(route.id)
   })
-  const matchPhase = $derived(fromSummary ? summaryPhase : routes.phase)
   // Every route has a block, so the map's per-block counts are also the filter sheet's totals.
   const filterCounts = $derived.by(() => {
     let total = 0
@@ -217,7 +177,7 @@ export function createExploreMapData(
       return matches
     },
     get matchPhase() {
-      return matchPhase
+      return routes.phase
     },
     get parkingLocations() {
       return parkingLocations

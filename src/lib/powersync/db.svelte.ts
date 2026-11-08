@@ -94,7 +94,7 @@ export function initPowerSync(
   trackSyncFor(session.user.id)
   // Every late callback checks it still belongs to the open account: a switch closes this one asynchronously.
   const current = () => db === opened
-  void opened.waitForReady().then(() => current() && powerSyncOnly() && markStoreLoaded())
+  void opened.waitForReady().then(() => current() && markStoreLoaded())
   observe(opened.currentStatus)
   stopWatching = opened.registerListener({ statusChanged: (next) => current() && observe(next) })
 
@@ -194,9 +194,8 @@ function observe(next: SyncStatus): void {
   if (next === status) return
   status = next
   confirmStreams(next)
-  // While Zero syncs, the online signal and the stamps are Zero's: PowerSync's would vouch for Zero's store.
-  if (!powerSyncOnly()) return
-  reportSyncStatus(next)
+  // While Zero syncs, the online signal is Zero's. The stamps are PowerSync's: Zero keeps nothing offline any more.
+  if (powerSyncOnly()) reportSyncStatus(next)
   const reached: SyncStamp[] = []
   if (next.statusForPriority(0)?.hasSynced) reached.push('reference')
   if (next.hasSynced) reached.push('guidebook', 'personal')

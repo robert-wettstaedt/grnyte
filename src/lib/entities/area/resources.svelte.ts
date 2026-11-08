@@ -1,11 +1,9 @@
 import { collections } from '$lib/powersync/collections'
-import { psResource, waitForSynced } from '$lib/powersync/resource.svelte'
-import { toZeroRow, unwrapParents } from '$lib/powersync/rows'
+import { psResource, sqlResource, waitForSynced } from '$lib/powersync/resource.svelte'
+import { json, toZeroRow, unwrapParents } from '$lib/powersync/rows'
+import { AREA_MAP_SQL } from '$lib/powersync/sql'
 import { matchesText } from '$lib/powersync/text'
 import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
-import { guidebookReadRegistrations, guidebookReads } from '$lib/zero/guidebook'
-import { queries } from '$lib/zero/queries'
-import { createResource } from '$lib/zero/resource.svelte'
 import { eq, ilike, inArray, isNull, toArray, type InitialQueryBuilder } from '@tanstack/db'
 import { toAreaDetail, type AreaDetailRow } from './mapper'
 
@@ -21,8 +19,10 @@ export interface AreaListFilter {
   references?: string
 }
 
+type MapAreaRow = Record<string, unknown> & { parent: null | string; parking: string }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the builder's ref types do not survive a helper
 type Ref = any
+
 // `areaTrees` takes an untyped builder, so its rows are asserted here.
 type SyncedArea = { description?: null | string; name?: null | string; parent: Ref[]; parking: object[] }
 
@@ -87,11 +87,15 @@ export function areaList(filter: () => AreaListFilter = () => ({}), opts?: { ena
   )
 }
 
-/** Every area in your regions for the map, joined on the device. See `guidebookReads`. */
+/** Every area in your regions with two levels of parents and its parking, for the map and the pickers. Raw SQL:
+ *  a live query building that tree per area held the map's first draw back by about 1.5 s at 4x throttle. */
 export function areaMapList() {
-  return createResource(guidebookReads.areas, (rows) => rows.map(toAreaDetail), {
-    register: () => guidebookReadRegistrations.map((name) => queries[name]()),
-  })
+  return sqlResource(
+    () => AREA_MAP_SQL,
+    () => [],
+    (rows: MapAreaRow[]) => rows.map(toMapArea),
+    () => 'guidebook',
+  )
 }
 
 /** A synced area with its parent chain and parking, as `toAreaDetail` reads it. */
@@ -101,6 +105,17 @@ export function toAreaRow(row: SyncedArea): AreaDetailRow {
     parent: unwrapParents(row.parent[0]) as AreaDetailRow['parent'],
     parkingLocations: row.parking.map((g) => toZeroRow<AreaDetailRow['parkingLocations'][number]>('geolocations', g)),
   }
+}
+
+/** An `AREA_MAP_SQL` row as `toAreaDetail` reads it. */
+export function toMapArea(row: MapAreaRow) {
+  return toAreaDetail({
+    ...toZeroRow<AreaDetailRow>('areas', row),
+    parent: json<AreaDetailRow['parent']>(row.parent) ?? undefined,
+    parkingLocations: (json<object[]>(row.parking) ?? []).map((g) =>
+      toZeroRow<AreaDetailRow['parkingLocations'][number]>('geolocations', g),
+    ),
+  })
 }
 
 /** Resolve once the area row for `id` has synced, or after `timeoutMs`. See {@link waitForSynced}. */

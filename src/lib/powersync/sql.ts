@@ -1,11 +1,24 @@
 // Raw statements over the local database, each held to an index by `explain.server.test.ts`.
 
-// The explore map's block rows. Never a LEFT JOIN through PowerSync's views: SQLite cannot use the index through
-// them and scans (6 s here); an inner join and correlated subqueries both search the index.
-export const MAP_SQL = `select b.nid as id, b.name, b.grade_counts, a.nid as area_id, a.name as area_name, a.parent_fk,
-    (select g.lat from geolocations g where g.nid = b.geolocation_fk) as lat,
-    (select g.long from geolocations g where g.nid = b.geolocation_fk) as long
-  from blocks b join areas a on a.nid = b.area_fk`
+// The explore map's block rows, with the area and parent `toBlockDetail` reads. Never a LEFT JOIN through PowerSync's
+// views: SQLite cannot use the index through them and scans (6 s here); correlated subqueries search the index.
+export const MAP_SQL = `select b.*,
+    (select json_object('id', a.nid, 'name', a.name, 'type', a.type,
+        'parent', json((select json_object('id', p.nid, 'name', p.name, 'type', p.type) from areas p where p.nid = a.parent_fk)))
+      from areas a where a.nid = b.area_fk) as area,
+    (select json_object('estimated', g.estimated, 'nid', g.nid, 'lat', g.lat, 'long', g.long)
+      from geolocations g where g.nid = b.geolocation_fk) as geolocation
+  from blocks b order by b.name, b.nid`
+
+// Every area with two levels of parents and its parking: the map's and the pickers' area rows.
+export const AREA_MAP_SQL = `select a.*,
+    (select json_object('id', p.nid, 'name', p.name, 'type', p.type,
+        'parent', json((select json_object('id', pp.nid, 'name', pp.name, 'type', pp.type) from areas pp where pp.nid = p.parent_fk)))
+      from areas p where p.nid = a.parent_fk) as parent,
+    (select json_group_array(json_object('area_fk', g.area_fk, 'block_fk', g.block_fk, 'estimated', g.estimated,
+        'lat', g.lat, 'long', g.long, 'nid', g.nid, 'region_fk', g.region_fk) order by g.nid)
+      from geolocations g where g.area_fk = a.nid) as parking
+  from areas a order by a.name, a.nid`
 
 // `routes/queries.ts` applyRouteFilters, one parameter each and null for off. Lists bind as JSON arrays.
 const ROUTE_FILTERS = `where (?1 is null or r.region_fk = ?1)

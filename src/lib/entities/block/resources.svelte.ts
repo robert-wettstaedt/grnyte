@@ -1,13 +1,12 @@
 import { areaChain } from '$lib/entities/area/resources.svelte'
 import { toDisplayName } from '$lib/entities/displayName'
 import { collections } from '$lib/powersync/collections'
-import { psResource, waitForSynced } from '$lib/powersync/resource.svelte'
-import { toZeroRow, unwrapParents } from '$lib/powersync/rows'
+import { psResource, sqlResource, waitForSynced } from '$lib/powersync/resource.svelte'
+import { json, toZeroRow, unwrapParents } from '$lib/powersync/rows'
+import { MAP_SQL } from '$lib/powersync/sql'
 import { matchesText } from '$lib/powersync/text'
 import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
-import { guidebookReadRegistrations, guidebookReads } from '$lib/zero/guidebook'
-import { queries } from '$lib/zero/queries'
-import { createResource } from '$lib/zero/resource.svelte'
+import type { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
 import { eq, ilike, inArray, toArray, type InitialQueryBuilder } from '@tanstack/db'
 import { toBlockDetail } from './mapper'
@@ -94,6 +93,8 @@ const toTopoRow = (topo: SyncedTopo): TopoRow => ({
   routes: (topo.lines ?? []).map((line) => toZeroRow<TopoRow['routes'][number]>('topo_routes', line)),
 })
 
+type MapBlockRow = Record<string, unknown> & { area: string; geolocation: null | string }
+
 export function blockDetail(id: () => number) {
   return holdWhileDeleting(
     blockTree(id, (row) => (row == null ? undefined : toBlockDetail(row))),
@@ -145,11 +146,15 @@ export function blockList(filter: () => BlockListFilter = () => ({}), opts?: { e
   )
 }
 
-/** Every block in your regions for the map, joined on the device. See `guidebookReads`. */
+/** Every block in your regions for the map, with its area, parent and pin: raw SQL, as a live query building that
+ *  tree per block is the map's slowest read. */
 export function blockMapList() {
-  return createResource(guidebookReads.blocks, (rows) => rows.map(toBlockDetail), {
-    register: () => guidebookReadRegistrations.map((name) => queries[name]()),
-  })
+  return sqlResource(
+    () => MAP_SQL,
+    () => [],
+    (rows: MapBlockRow[]) => rows.map(toMapBlock),
+    () => 'guidebook',
+  )
 }
 
 /** The block's routes, only the fields a route row needs. Order them with `orderRoutesByTopo` at the call site. */
@@ -207,6 +212,17 @@ export function toBlockRow(
     })),
     topos: row.topos.map(toTopoRow),
   } satisfies BlockRow
+}
+
+/** A `MAP_SQL` row as `toBlockDetail` reads it. */
+export function toMapBlock(row: MapBlockRow) {
+  const geolocation = json<object>(row.geolocation)
+  return toBlockDetail({
+    ...toZeroRow<ListRow>('blocks', row),
+    area: json<ListRow['area']>(row.area) ?? undefined,
+    geolocation:
+      geolocation == null ? undefined : toZeroRow<NonNullable<ListRow['geolocation']>>('geolocations', geolocation),
+  })
 }
 
 /** Resolve once the block row for `id` has synced, or after `timeoutMs`. See {@link waitForSynced}. */

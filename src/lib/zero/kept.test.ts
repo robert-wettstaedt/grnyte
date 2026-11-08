@@ -6,9 +6,8 @@ import { resolveKept } from './resource.svelte'
  * what lets an empty offline result count as an answer. Every case here is a bug that shipped.
  */
 
-/** A field device with every preload behind it. Each test bends one thing. */
+/** A device with every preload behind it. Each test bends one thing. */
 const base = {
-  fieldDevice: true,
   guidebookSynced: true,
   personalSynced: true,
   policy: 'field',
@@ -33,10 +32,6 @@ describe('resolveKept', () => {
     // The reference stamp lands on five tiny queries seconds into a sync with thousands of rows
     // still to come, so a connection lost in that gap left the device claiming a half guidebook.
     expect(resolveKept({ ...base, guidebookSynced: false, referenceSynced: true })).toBe(false)
-  })
-
-  it('does not claim the guidebook on a device that does not keep one', () => {
-    expect(resolveKept({ ...base, fieldDevice: false })).toBe(false)
   })
 
   it('claims nothing until the replica is read back, since its stamps outlive it', () => {

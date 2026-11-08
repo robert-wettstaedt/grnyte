@@ -26,7 +26,6 @@ import { queries } from '$lib/zero/queries'
 import { schema } from '$lib/zero/zero-schema'
 import { zeroPostgresJS } from '@rocicorp/zero/server/adapters/postgresjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { guidebookQueryDefs } from './guidebook'
 import { authenticatedUserCan, regionMemberCan, regionTables, type QueryContext } from './permissions'
 import { zql } from './zero-schema.gen'
 
@@ -219,18 +218,6 @@ describe.skipIf(!reachable)('region content never crosses the tenancy boundary',
     } finally {
       await sql`delete from public.notifications where region_fk = ${regionA} and user_fk = ${outsider.userId}`
     }
-  })
-
-  it.each(Object.keys(guidebookQueryDefs))('never leaks a foreign region through %s', async (name) => {
-    const rows = await run<{ file?: { regionFk: number }; regionFk: number }[]>(
-      queries[name as keyof typeof guidebookQueryDefs],
-      undefined,
-      await ctxFor('outsider'),
-    )
-
-    // Fixture B's own row coming back is what makes the empty foreign set mean something.
-    expect(regionsIn(rows)).toEqual([regionB])
-    expect(regionsIn(rows.flatMap((row) => (row.file == null ? [] : [row.file])))).not.toContain(regionA)
   })
 
   /**

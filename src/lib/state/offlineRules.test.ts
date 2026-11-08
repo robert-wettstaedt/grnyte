@@ -1,15 +1,10 @@
 import type { ConnectionName } from '$lib/zero/connection'
 import { describe, expect, it } from 'vitest'
-import { shouldKeepOffline } from './device.svelte'
 import { connectionVerdict } from './online.svelte'
 
 /**
- * The two rules the offline behaviour turns on, neither of which was assertable before: each lived
- * inside a function that also owned a timer, module state, or four `matchMedia` reads.
- *
- * Most of the cases below are bugs that shipped, which is the argument for the file existing; the
- * rest pin the neighbouring branches so a fix to one cannot quietly move another. The adapter around
- * these two (the hold, the dedupe, the visibility gate) is covered in `onlineHold.test.ts`.
+ * The connection rule the offline behaviour turns on. Most cases below are bugs that shipped; the
+ * adapter around it (the hold, the dedupe, the visibility gate) is covered in `onlineHold.test.ts`.
  */
 
 describe('connectionVerdict', () => {
@@ -40,33 +35,5 @@ describe('connectionVerdict', () => {
     // Zero has six states today. A seventh should hold the app to its ten-second check rather than
     // be waved through as evidence of a working connection.
     expect(connectionVerdict('some-new-state' as ConnectionName)).toBe('unreachable')
-  })
-})
-
-describe('shouldKeepOffline', () => {
-  const desktop = { fine: true, hover: true, installed: false, override: null }
-
-  it('skips only a device it is confident about', () => {
-    expect(shouldKeepOffline(desktop)).toBe(false)
-  })
-
-  it('keeps data for anything ambiguous', () => {
-    // The costs are not symmetric: a phone misread as a desktop loses offline access in a forest
-    // where it cannot be fixed, a desktop misread as a phone costs a few megabytes of CVR. So a
-    // touchscreen laptop, a tablet, and a browser with no matchMedia all fall on the keep side.
-    expect(shouldKeepOffline({ ...desktop, hover: false })).toBe(true)
-    expect(shouldKeepOffline({ ...desktop, fine: false })).toBe(true)
-    expect(shouldKeepOffline({ fine: false, hover: false, installed: false, override: null })).toBe(true)
-  })
-
-  it('treats installing the app as asking for it', () => {
-    expect(shouldKeepOffline({ ...desktop, installed: true })).toBe(true)
-  })
-
-  it('lets the stored override settle it either way', () => {
-    // Both directions matter. Without the first, offline cannot be tested on a desktop at all, and
-    // "it does not work here" looks the same whether the gate is behaving or something is broken.
-    expect(shouldKeepOffline({ ...desktop, override: true })).toBe(true)
-    expect(shouldKeepOffline({ fine: false, hover: false, installed: true, override: false })).toBe(false)
   })
 })
