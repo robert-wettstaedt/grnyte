@@ -1,3 +1,4 @@
+import { byNameOrder } from '$lib/i18n/collator'
 import { collections } from '$lib/powersync/collections'
 import { psResource } from '$lib/powersync/resource.svelte'
 import { toZeroRow } from '$lib/powersync/rows'
@@ -21,7 +22,7 @@ export function firstAscensionistList(filter: () => { regionFk?: number } = () =
       let query = q.from({ fa: collections().first_ascensionists })
       if (regionFk != null) query = query.where(({ fa }) => eq(fa.region_fk, regionFk))
       return query
-        .orderBy(({ fa }) => fa.name, 'asc')
+        .orderBy(({ fa }) => fa.name, byNameOrder())
         .orderBy(({ fa }) => fa.nid, 'asc')
         .select(({ fa }) => ({
           ...fa,

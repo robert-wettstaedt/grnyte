@@ -1,3 +1,4 @@
+import { byNameOrder, sortByName } from '$lib/i18n/collator'
 import { collections } from '$lib/powersync/collections'
 import { psResource, sqlResource, treeList, waitForSynced } from '$lib/powersync/resource.svelte'
 import { json, toZeroRow, unwrapParents } from '$lib/powersync/rows'
@@ -76,7 +77,7 @@ export function areaList(filter: () => AreaListFilter = () => ({}), opts?: { ena
         query =
           sort === 'createdAt'
             ? query.orderBy(({ a }) => a.created_at, 'desc')
-            : query.orderBy(({ a }) => a.name, 'asc')
+            : query.orderBy(({ a }) => a.name, byNameOrder())
         return query.orderBy(({ a }) => a.nid, 'asc')
       },
       toItem: (row: SyncedArea) => toAreaDetail(toAreaRow(row)),
@@ -92,7 +93,8 @@ export function areaMapList() {
   return sqlResource(
     () => AREA_MAP_SQL,
     () => [],
-    (rows: MapAreaRow[]) => rows.map(toMapArea),
+    // Sorted here: SQLite orders names by bytes, every other list by the reader's language.
+    (rows: MapAreaRow[]) => sortByName(rows as (MapAreaRow & { id: number; name: null | string })[]).map(toMapArea),
     () => 'guidebook',
   )
 }

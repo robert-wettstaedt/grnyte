@@ -8,7 +8,7 @@ export const MAP_SQL = `select b.*,
       from areas a where a.nid = b.area_fk) as area,
     (select json_object('estimated', g.estimated, 'nid', g.nid, 'lat', g.lat, 'long', g.long)
       from geolocations g where g.nid = b.geolocation_fk) as geolocation
-  from blocks b order by b.name, b.nid`
+  from blocks b`
 
 // Every area with two levels of parents and its parking: the map's and the pickers' area rows.
 export const AREA_MAP_SQL = `select a.*,
@@ -18,7 +18,7 @@ export const AREA_MAP_SQL = `select a.*,
     (select json_group_array(json_object('area_fk', g.area_fk, 'block_fk', g.block_fk, 'estimated', g.estimated,
         'lat', g.lat, 'long', g.long, 'nid', g.nid, 'region_fk', g.region_fk) order by g.nid)
       from geolocations g where g.area_fk = a.nid) as parking
-  from areas a order by a.name, a.nid`
+  from areas a`
 
 // `routes/queries.ts` applyRouteFilters, one parameter each and null for off. Lists bind as JSON arrays.
 const ROUTE_FILTERS = `where (?1 is null or r.region_fk = ?1)

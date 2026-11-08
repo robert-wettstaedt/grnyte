@@ -112,7 +112,10 @@ describe('the route statements', () => {
       { id: 5, name: 'Sector', parent: { id: 2, name: 'Forest', type: 'area' }, type: 'sector' },
       { estimated: 1, lat: 47.5, long: 11.1, nid: 6 },
     ])
-    const areas = await db.getAll<Record<string, string>>(statements.AREA_MAP_SQL)
+    // Unordered: the resource sorts names in JS.
+    const areas = (await db.getAll<Record<string, string>>(statements.AREA_MAP_SQL)).toSorted((a, b) =>
+      a.name.localeCompare(b.name),
+    )
     expect(areas.map((area) => [area.name, JSON.parse(area.parent), JSON.parse(area.parking)])).toEqual([
       ['Forest', null, []],
       [
