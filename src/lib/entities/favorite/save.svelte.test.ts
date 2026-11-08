@@ -2,7 +2,7 @@ import { flushSync } from 'svelte'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createSaveState, type SaveState } from './save.svelte'
 
-const read = $state({ count: 0, saved: false })
+const read = $state({ answered: true, count: 0, saved: false })
 const pending: (() => void)[] = []
 
 vi.mock('./resources.svelte', () => ({
@@ -16,7 +16,9 @@ vi.mock('./resources.svelte', () => ({
     get data() {
       return read.count
     },
-    phase: { empty: false, kind: 'answered' },
+    get phase() {
+      return read.answered ? { empty: false, kind: 'answered' } : { kind: 'arriving' }
+    },
   }),
 }))
 vi.mock('./writes', () => ({ saveFavorite: () => new Promise<void>((resolve) => pending.push(resolve)) }))
@@ -26,6 +28,7 @@ let state: SaveState
 let cleanup: () => void
 
 beforeEach(() => {
+  read.answered = true
   read.saved = false
   read.count = 4
   pending.length = 0
@@ -57,4 +60,12 @@ it('counts a save once when its row syncs back before the write returns', () => 
   flushSync()
 
   expect(state.count).toBe(5)
+})
+
+it('shows no count until the count answers, even with a save on its way', () => {
+  read.answered = false
+  void state.toggle()
+  flushSync()
+
+  expect(state.count).toBe(0)
 })
