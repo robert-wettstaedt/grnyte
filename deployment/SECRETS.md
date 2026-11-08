@@ -41,6 +41,10 @@ Which half of a project goes where:
   random string; it guards the admin API, which nginx already refuses from outside). `PS_MONGO_URI`
   and `PS_DATA_SOURCE_SSLMODE` stay in `docker-compose.zero.yml`, beside the containers they describe.
   Until these three are in `deploy-zero.yml`'s allowlist, `powersync-prod` exits on a missing variable.
+  `sync-health-prod` reads `PS_ADMIN_TOKEN` from `.env.health`, which `deploy-zero.yml` writes beside
+  `.env.prod` with that one line and nothing else; the app never holds it, and reads
+  the sidecar's verdict at the public `/health/sync`. `SYNC_HEALTH_URL` is a local override only and
+  belongs in no vault project.
 - `VPS_SSH_KEY`, `VPS_HOST` and `VPS_USER` are the deploy's, and live in grnyte-prod. Point
   `VPS_HOST` at the box's tailnet address, not its public one.
 - Everything else is the app's. It goes to Vercel. `PUBLIC_ZERO_URL` and `PUBLIC_POWERSYNC_URL` are the

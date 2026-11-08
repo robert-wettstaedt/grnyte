@@ -160,7 +160,12 @@ jobs:
 
           ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" \
             "cat > \$HOME/zero-deployment/deployment/.env.prod" < env.zero
-          rm -f env.zero
+
+          # sync-health-prod gets the admin token and nothing else; empty until PS_ADMIN_TOKEN is allowlisted.
+          grep '^PS_ADMIN_TOKEN=' env.zero > env.health || true
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" \
+            "cat > \$HOME/zero-deployment/deployment/.env.health" < env.health
+          rm -f env.zero env.health
 
           echo "✅ Environment configured for prod"
 

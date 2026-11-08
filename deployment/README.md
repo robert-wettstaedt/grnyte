@@ -12,6 +12,7 @@
 - `docker-compose.zero.yml` - Docker Compose configuration for the Zero instance and its CVR database
 - `nginx.zero.conf` - Domain-based nginx configuration with SSL support
 - `.env.prod` - Instance environment variables (written during deployment)
+- `.env.health` - `PS_ADMIN_TOKEN` alone, for `sync-health-prod` (written during deployment)
 
 ## Deployment
 
@@ -39,6 +40,7 @@ cd ~/zero-deployment/deployment
 # your machine, not on the VPS: no access token belongs on that box.
 BWS_ACCESS_TOKEN=<prod token> node deployment/secrets.mjs pull env.all
 grep '^ZERO_' env.all | ssh user@your-vps 'cat > ~/zero-deployment/deployment/.env.prod'
+grep '^PS_ADMIN_TOKEN=' env.all | ssh user@your-vps 'cat > ~/zero-deployment/deployment/.env.health'
 rm env.all
 
 # Clean up any existing deployment
@@ -120,9 +122,34 @@ curl -f https://sync.grnyte.rocks/probes/liveness
 docker exec powersync-prod node -e "fetch('http://localhost:8080/api/admin/v1/diagnostics', { method: 'POST', headers: { authorization: 'Bearer ' + process.env.PS_ADMIN_TOKEN, 'content-type': 'application/json' }, body: '{}' }).then((r) => r.text()).then(console.log)"
 ```
 
-Nothing alerts on a non-empty `errors` or on replication lag yet: there is no alert channel on this
-box. `powersync-compact-prod` compacts bucket storage hourly; its log is the place to look when
-MongoDB grows.
+### Sync health
+
+`sync-health-prod` runs `powersync/health.mjs`, which asks the diagnostics API with `PS_ADMIN_TOKEN`
+(from `.env.health`, nothing else) at most once per `CACHE_MS` (15 s), concurrent requests sharing
+one call, and serves the verdict at `https://sync.grnyte.rocks/health/sync`: 200 when healthy, 503
+when any error list holds a fatal error (warnings pass), replication lag passes `MAX_LAG_BYTES`,
+`wal_status` is `unreserved` or `lost`, `safe_wal_size` is under `MIN_SAFE_WAL_BYTES` (1 GiB), the
+last checkpoint is missing or older than `MAX_CHECKPOINT_AGE_MS`, diagnostics refuses the token
+(reason `unauthorized`), or it does not answer within 5 s (reason `unreachable`). The body is
+`status`, `reasons`, `lagBytes`, `safeWalSize`, `walStatus`, `lastCheckpoint` and `errorCount`, never
+the token, URIs or table names. Upptime polls it once `sync.grnyte.rocks` has DNS and a certificate,
+and app admins read it in Settings > Sync health.
+
+```bash
+curl -s -w ' %{http_code}\n' https://sync.grnyte.rocks/health/sync
+```
+
+Locally, against the local service (its token is `local-admin`), then set
+`SYNC_HEALTH_URL=http://localhost:58101/health/sync` in `.env.local` (Vite loads it after `.env`, and
+`npm run secrets:pull` never rewrites it; restart the dev server) for the Settings screen:
+
+```bash
+POWERSYNC_URL=http://localhost:58100 PS_ADMIN_TOKEN=local-admin PORT=58101 node deployment/powersync/health.mjs
+curl -s -w ' %{http_code}\n' http://localhost:58101/health/sync
+```
+
+`powersync-compact-prod` compacts bucket storage hourly; its log is the place to look when MongoDB
+grows.
 
 ## Troubleshooting
 

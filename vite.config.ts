@@ -15,6 +15,7 @@ import { configDefaults, defineConfig } from 'vitest/config'
  * without a DOM. They have to leave the project, not just the environment.
  */
 const NODE_ENVIRONMENT_TESTS = [
+  'deployment/powersync/health.test.mjs',
   'src/lib/components/Markdown/lib/remark-safe-urls.coverage.test.ts',
   'src/lib/db/regionPolicies.test.ts',
   'src/lib/db/scripts/migrate-promote-originals.test.ts',

@@ -167,6 +167,26 @@ services:
       - zero_network
       - powersync_network
 
+  # Serves GET /health/sync from the diagnostics API (`powersync/health.mjs`). `.env.health` holds only
+  # `PS_ADMIN_TOKEN`, written beside `.env.prod` by deploy-zero.yml.
+  sync-health-prod:
+    image: journeyapps/powersync-service:1.27.2
+    container_name: sync-health-prod
+    entrypoint: ['node', '/health/health.mjs']
+    expose:
+      - '8080'
+    env_file:
+      - .env.health
+    environment:
+      - POWERSYNC_URL=http://powersync-prod:8080
+      - PORT=8080
+    mem_limit: 128m
+    volumes:
+      - ./powersync/health.mjs:/health/health.mjs:ro
+    restart: unless-stopped
+    networks:
+      - zero_network
+
   nginx:
     image: nginx:alpine
     container_name: nginx-main

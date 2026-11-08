@@ -269,6 +269,8 @@ const NO_GATE: Record<string, string> = {
     "Authorized by the session cookie plus a re-entry of the current password, checked against the session's own email; it names no account.",
   'routes/(app)/settings/account.remote.ts#updatePasswordCommand':
     'The same body as `updatePassword`: the session cookie plus a re-entry of the current password, against the session email.',
+  'routes/(app)/settings/sync/syncHealth.remote.ts#syncHealth':
+    'Not region scoped: it relays the public /health/sync verdict and touches no data. Gated on app.admin through requireAppAdmin, like listErrorLogs.',
   'routes/(landing)/auth/(tabs)/signin/signin.remote.ts#signIn':
     'Runs before authentication because it is the authentication, and the only path it takes back is validated same-origin.',
   'routes/(landing)/auth/(tabs)/signup/signup.remote.ts#signUp':
