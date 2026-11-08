@@ -49,7 +49,9 @@
   const SEARCH_ROUTE: RouteId = '/(app)/(shell)/(explore)/(map)/search'
   const AREA_ROUTES_ROUTE: RouteId = '/(app)/(shell)/(explore)/(map)/areas/[id]/routes'
 
-  let open = $state(page.route.id !== EXPLORE_ROUTE)
+  // From the route, so a sheet page's first render lands in the Modal, not the inline slot. The sheet's own close
+  // overrides it until `exit()` reaches /explore, whose new page re-derives it.
+  let open = $derived(page.route.id !== EXPLORE_ROUTE)
   let mapViewState = $state<null | { center: [number, number]; zoom: number }>(null)
   let restoredFocus = $state<MapFocus | null>(null)
 
@@ -93,11 +95,7 @@
     })
   })
 
-  // The modal is open on detail routes (e.g. areas/[id]) and closed on the
-  // /explore index. Keep `open` in sync as the user navigates.
   afterNavigate((navigation) => {
-    open = navigation.to?.route.id !== EXPLORE_ROUTE
-
     // On back/forward, restore the map view saved into this entry's history state
     // (see the effect above). `focus` wins when a detail item is open.
     if (navigation.type === 'popstate' && page.state?.mapView != null) {
@@ -350,6 +348,12 @@
      closing a detail doesn't drop the filters; the search text rides back via the
      persisted live query. -->
 <!-- `exit`, not a goto: a dismissed sheet must not be somewhere the back button can return to. -->
-<Modal bind:open onclose={() => exit(exploreReturn)}>
+<!-- Only a close the reader made: a back to /explore also closes the sheet, and exiting again would pop a second entry. -->
+<Modal
+  bind:open
+  onclose={() => {
+    if (page.route.id !== EXPLORE_ROUTE) exit(exploreReturn)
+  }}
+>
   {@render children?.()}
 </Modal>
