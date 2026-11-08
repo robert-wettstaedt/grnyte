@@ -9,6 +9,16 @@ it('orders raw names as a reader does, not by their bytes, a nameless row first'
   expect(sortByName(rows).map((row) => row.name)).toEqual(['', 'ameise', 'ärger', 'Block 9', 'Block 10', 'Zecke'])
 })
 
+it('keeps ties in id order when the names run backwards', () => {
+  const rows = [
+    { id: 2, name: 'Dach' },
+    { id: 1, name: 'Dach' },
+    { id: 3, name: 'Ameise' },
+  ]
+
+  expect(sortByName(rows, (row) => row.id, 'desc').map((row) => row.id)).toEqual([1, 2, 3])
+})
+
 it('breaks a tie by id, so rows syncing in do not swap places', () => {
   expect(
     sortByName([

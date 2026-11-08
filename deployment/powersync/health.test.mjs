@@ -100,6 +100,13 @@ describe('verdict', () => {
     expect(verdict(diagnostics(overrides), NOW).reasons).toEqual([])
   })
 
+  it('is unhealthy while a sync config that failed to deploy waits beside the serving one', () => {
+    const failed = diagnostics()
+    failed.data.deploying_sync_rules = { connections: [{ tables: [{ errors: [error] }] }], errors: [error] }
+
+    expect(verdict(failed, NOW)).toMatchObject({ errorCount: 2, reasons: ['errors'], status: 'unhealthy' })
+  })
+
   it('is unhealthy with no active sync rules', () => {
     expect(verdict({ data: { connections: [] } }, NOW).reasons).toEqual(['checkpoint', 'lag', 'wal'])
   })

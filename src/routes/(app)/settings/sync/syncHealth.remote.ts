@@ -11,7 +11,8 @@ const syncHealthSchema = z.object({
   errorCount: z.optional(z.number()),
   lagBytes: count,
   lastCheckpoint: z.optional(z.nullable(z.string())),
-  reasons: z.array(z.enum(['checkpoint', 'errors', 'lag', 'unauthorized', 'unreachable', 'wal', 'walHeadroom'])),
+  // Open: the sidecar deploys apart from the app, and a reason this build does not know still carries a verdict.
+  reasons: z.array(z.string()),
   safeWalSize: count,
   status: z.enum(['healthy', 'unhealthy', 'unreachable']),
   walStatus: z.optional(z.nullable(z.string())),
