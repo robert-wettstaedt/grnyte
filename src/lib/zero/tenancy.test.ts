@@ -20,7 +20,15 @@
  *
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
-import { createThrowawayUser, dropThrowawayUser, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
+import {
+  createThrowawayUser,
+  dropThrowawayUser,
+  reachable,
+  seedTwoRegions,
+  seedUsers,
+  sql,
+  type SeedUser,
+} from '$lib/db/testDb'
 import { getUserPermissions } from '$lib/hooks/auth.server'
 import { queries } from '$lib/zero/queries'
 import { schema } from '$lib/zero/zero-schema'
@@ -139,17 +147,7 @@ beforeAll(async () => {
   users = { ...(await seedUsers(EMAILS)), outsider: await createThrowawayUser('tenancy') }
 
   await removeFixtures()
-  ;[{ id: regionA }] = await sql<{ id: number }[]>`
-    insert into public.regions (name, created_by, max_members) values (${REGION_A}, ${users.insider.userId}, 10)
-    returning id`
-  ;[{ id: regionB }] = await sql<{ id: number }[]>`
-    insert into public.regions (name, created_by, max_members) values (${REGION_B}, ${users.outsider.userId}, 10)
-    returning id`
-
-  await sql`
-    insert into public.region_members (region_fk, role, is_active, auth_user_fk, user_fk) values
-      (${regionA}, 'region_admin', true, ${users.insider.authId}, ${users.insider.userId}),
-      (${regionB}, 'region_admin', true, ${users.outsider.authId}, ${users.outsider.userId})`
+  ;[regionA, regionB] = await seedTwoRegions([REGION_A, REGION_B], users.insider, users.outsider)
 
   await sql`
     insert into public.areas (name, region_fk, created_by) values

@@ -24,6 +24,7 @@ function sqliteType(column: Column): 'integer' | 'real' | 'text' {
 }
 
 // What Zero hands a mapper instead: dates and timestamps as epoch ms, jsonb and arrays parsed, booleans as booleans.
+// fallow-ignore-next-line complexity -- importing this script runs it; its output is checked in as schema.ts and parity.test.ts reads it
 function zeroKind(column: Column): 'bool' | 'json' | 'ms' | 'plain' {
   if (/Timestamp|Date/.test(column.columnType)) return 'ms'
   if (column.dataType === 'json' || column.dataType === 'array') return 'json'

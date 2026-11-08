@@ -114,6 +114,26 @@ export async function seedRegion(
   return { regionId: region.id, user }
 }
 
+/** Two regions with one active member each, for tenancy suites: the insider's region first. */
+export async function seedTwoRegions(
+  names: [string, string],
+  insider: SeedUser,
+  outsider: SeedUser,
+  insiderRole: 'region_admin' | 'region_user' = 'region_admin',
+): Promise<[number, number]> {
+  const [[a], [b]] = [
+    await sql<{ id: number }[]>`
+      insert into public.regions (name, created_by, max_members) values (${names[0]}, ${insider.userId}, 10) returning id`,
+    await sql<{ id: number }[]>`
+      insert into public.regions (name, created_by, max_members) values (${names[1]}, ${outsider.userId}, 10) returning id`,
+  ]
+  await sql`
+    insert into public.region_members (region_fk, role, is_active, auth_user_fk, user_fk) values
+      (${a.id}, ${insiderRole}, true, ${insider.authId}, ${insider.userId}),
+      (${b.id}, 'region_admin', true, ${outsider.authId}, ${outsider.userId})`
+  return [a.id, b.id]
+}
+
 /** {@link resolveSeedUsers} on this module's pool, which is what every vitest suite wants. */
 export async function seedUsers<K extends string>(emails: Record<K, string>): Promise<Record<K, SeedUser>> {
   return resolveSeedUsers(sql, emails)

@@ -1,6 +1,7 @@
 import { recordView, VIEWED_KEY } from '$lib/components/EntitySearch/recent.svelte'
 import { dropAllDatabases } from '@rocicorp/zero'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { stubIndexedDb } from './indexedDbStub'
 import { loadHistory, saveHistory } from './searchHistory'
 import { markSynced, trackSyncFor } from './sync.svelte'
 import { wipeDeviceData } from './wipe'
@@ -9,21 +10,6 @@ vi.mock('@rocicorp/zero', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@rocicorp/zero')>()),
   dropAllDatabases: vi.fn(async () => ({ dropped: [], errors: [] })),
 }))
-
-/** IndexedDB as far as the wipe sees it: names to list, and what got deleted. */
-function stubIndexedDb(names: string[]) {
-  const deleted: string[] = []
-  vi.stubGlobal('indexedDB', {
-    databases: async () => names.map((name) => ({ name })),
-    deleteDatabase: (name: string) => {
-      deleted.push(name)
-      const request = {} as IDBOpenDBRequest
-      queueMicrotask(() => request.onsuccess?.({} as Event))
-      return request
-    },
-  })
-  return deleted
-}
 
 describe('wipeDeviceData', () => {
   beforeEach(() => {
