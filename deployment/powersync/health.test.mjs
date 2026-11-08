@@ -94,6 +94,8 @@ describe('verdict', () => {
   it.each([
     ['warnings only', { ruleErrors: [warning], sourceErrors: [warning], tableErrors: [warning] }],
     ['extended WAL', { connection: { wal_status: 'extended' } }],
+    // Prod's real cap with a caught-up slot.
+    ['a 512 MB cap barely used', { connection: { max_slot_wal_keep_size: 536_870_912, safe_wal_size: 536_000_000 } }],
     [
       'no WAL headroom with max_slot_wal_keep_size unset',
       { connection: { max_slot_wal_keep_size: -1, safe_wal_size: null } },

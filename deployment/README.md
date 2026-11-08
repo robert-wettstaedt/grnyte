@@ -128,7 +128,7 @@ docker exec powersync-prod node -e "fetch('http://localhost:8080/api/admin/v1/di
 (from `.env.health`, nothing else) at most once per `CACHE_MS` (15 s), concurrent requests sharing
 one call, and serves the verdict at `https://sync.grnyte.rocks/health/sync`: 200 when healthy, 503
 when any error list holds a fatal error (warnings pass), replication lag passes `MAX_LAG_BYTES`,
-`wal_status` is `unreserved` or `lost`, `safe_wal_size` is under `MIN_SAFE_WAL_BYTES` (1 GiB), the
+`wal_status` is `unreserved` or `lost`, `safe_wal_size` is under `MIN_SAFE_WAL_BYTES` (128 MiB, a quarter of prod's 512 MB cap), the
 last checkpoint is missing or older than `MAX_CHECKPOINT_AGE_MS`, diagnostics refuses the token
 (reason `unauthorized`), or it does not answer within 5 s (reason `unreachable`). The body is
 `status`, `reasons`, `lagBytes`, `safeWalSize`, `walStatus`, `lastCheckpoint`, `errorCount` and the service `version`, never
