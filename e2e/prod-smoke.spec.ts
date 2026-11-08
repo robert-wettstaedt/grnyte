@@ -181,7 +181,8 @@ test('a deployed environment serves a signed-in reader', async ({ page }) => {
 
   // The breadcrumb proves that the related rows synced, not only the route. A replica that
   // bootstrapped in part renders the route and loses its parents.
-  await expect(page.locator(`a[href$="/blocks/${route.blockFk}"]`)).toBeVisible()
+  // `:not([aria-label])` skips the icon-only "Show on map" link to the same block.
+  await expect(page.locator(`a[href$="/blocks/${route.blockFk}"]:not([aria-label])`)).toBeVisible()
 
   await visit(page, '/profile')
   await expect(page.getByText('Grade pyramid')).toBeVisible()

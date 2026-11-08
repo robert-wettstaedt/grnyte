@@ -30,6 +30,12 @@ let secondUserId = 0
 
 test.describe.configure({ mode: 'serial' })
 
+/** The driver moderates the region, so a delete asks tidy-up or breaks-the-rules first. */
+async function deleteTidy(item: string) {
+  await manageAction(page, item)
+  await page.getByRole('button', { exact: true, name: 'Tidy up' }).click()
+}
+
 /** Poll rather than assert once: the click returns before the write has landed and synced back. */
 async function expectState(table: Soft, id: number, want: 'deleted' | 'live' | 'missing') {
   await expect.poll(async () => rowState(table, id), { timeout: 15_000 }).toBe(want)
@@ -98,7 +104,7 @@ test.afterAll(async () => {
  *  the id. */
 test('a deleted route with an ascent is restored in place', async () => {
   await visit(page, `/routes/${fixture.richRouteId}`)
-  await manageAction(page, 'Delete route')
+  await deleteTidy('Delete route')
   await expectState('routes', fixture.richRouteId, 'deleted')
 
   await undo(page)
@@ -118,7 +124,7 @@ test('a deleted bare route is erased and comes back under its old id', async () 
     where block_fk = ${fixture.alphaBlockId} and name = 'Bare Route' and deleted_at is null`
 
   await visit(page, `/routes/${fixture.bareRouteId}`)
-  await manageAction(page, 'Delete route')
+  await deleteTidy('Delete route')
 
   // No `deleted_at` to wait for: with no ascents, files or topo lines the row is gone outright.
   await expectState('routes', fixture.bareRouteId, 'missing')
@@ -133,7 +139,7 @@ test('a deleted bare route is erased and comes back under its old id', async () 
 
 test('deleting an area cascades, and undo restores only what that delete marked', async () => {
   await visit(page, `/areas/${fixture.betaSectorId}`)
-  await manageAction(page, 'Delete area')
+  await deleteTidy('Delete area')
 
   await expectState('areas', fixture.betaSectorId, 'deleted')
   await expectState('blocks', fixture.betaBlockId, 'deleted')
@@ -152,7 +158,7 @@ test('deleting an area cascades, and undo restores only what that delete marked'
 
 test('deleting a block cascades, and undo restores the area type it changed', async () => {
   await visit(page, `/blocks/${fixture.betaBlockId}`)
-  await manageAction(page, 'Delete block')
+  await deleteTidy('Delete block')
 
   await expectState('blocks', fixture.betaBlockId, 'deleted')
   await expectState('routes', fixture.betaRouteId, 'deleted')
@@ -269,7 +275,8 @@ test('a deleted comment comes back with its body', async () => {
   await page.getByRole('button', { name: 'Delete comment' }).click()
   await expectState('reactions', commentId, 'deleted')
 
-  await undo(page)
+  // A comment's Undo sits inline in the row it replaced, not in the snackbar.
+  await page.getByRole('status').getByRole('button', { exact: true, name: 'Undo' }).click()
   await expectState('reactions', commentId, 'live')
 
   const [row] = await sql<{ body: string }[]>`select body from public.reactions where id = ${commentId}`
