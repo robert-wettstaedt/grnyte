@@ -131,7 +131,7 @@ when any error list holds a fatal error (warnings pass), replication lag passes 
 `wal_status` is `unreserved` or `lost`, `safe_wal_size` is under `MIN_SAFE_WAL_BYTES` (1 GiB), the
 last checkpoint is missing or older than `MAX_CHECKPOINT_AGE_MS`, diagnostics refuses the token
 (reason `unauthorized`), or it does not answer within 5 s (reason `unreachable`). The body is
-`status`, `reasons`, `lagBytes`, `safeWalSize`, `walStatus`, `lastCheckpoint` and `errorCount`, never
+`status`, `reasons`, `lagBytes`, `safeWalSize`, `walStatus`, `lastCheckpoint`, `errorCount` and the service `version`, never
 the token, URIs or table names. Upptime polls it once `sync.grnyte.rocks` has DNS and a certificate,
 and app admins read it in Settings > Sync health.
 

@@ -94,6 +94,7 @@ export function verdict(diagnostics, now) {
     reasons,
     safeWalSize,
     status: reasons.length === 0 ? 'healthy' : 'unhealthy',
+    version: diagnostics?.data?.service?.version ?? null,
     walStatus,
   }
 }

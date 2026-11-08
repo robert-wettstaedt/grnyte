@@ -89,7 +89,11 @@
     {#snippet ready(h)}
       <div class="divide-surface-200-800 border-surface-200-800 divide-y overflow-hidden rounded-xl border">
         <div class="flex items-center justify-between gap-3 p-4">
-          <span class="text-sm font-semibold">{m.settings_syncHealth()}</span>
+          <!-- The engine's own name, untranslated; its version only when the service answered. -->
+          <span class="flex items-baseline gap-1.5">
+            <span class="text-sm font-semibold">PowerSync</span>
+            {#if h.version}<span class="text-surface-600-400 text-xs tabular-nums">{h.version}</span>{/if}
+          </span>
           <span class="badge {STATUS[h.status].badge}">{STATUS[h.status].label()}</span>
         </div>
 
