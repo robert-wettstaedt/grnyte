@@ -5,7 +5,6 @@ import { queries } from './queries'
 import { createResource, type QuerySource } from './resource.svelte'
 
 const env = vi.hoisted(() => ({
-  fieldDevice: false,
   guidebookSynced: false,
   online: true,
   powerSyncOnly: false,
@@ -14,7 +13,6 @@ const env = vi.hoisted(() => ({
 
 vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => env.online }))
 vi.mock('$lib/powersync/db.svelte', () => ({ powerSyncOnly: () => env.powerSyncOnly }))
-vi.mock('$lib/state/device.svelte', () => ({ isFieldDevice: () => env.fieldDevice }))
 vi.mock('$lib/state/sync.svelte', () => ({
   lastSyncedAt: (stamp: string) =>
     (stamp === 'guidebook' ? env.guidebookSynced : stamp === 'reference' && env.referenceSynced) ? 1 : null,
@@ -70,7 +68,6 @@ describe('a resource built on a fake client', () => {
   beforeEach(() => {
     env.online = true
     env.powerSyncOnly = false
-    env.fieldDevice = false
     env.guidebookSynced = false
     env.referenceSynced = false
     build()
@@ -127,15 +124,13 @@ describe('a resource built on a fake client', () => {
   it('is unavailable on a live network when only PowerSync runs, whatever the stamps say', () => {
     // Zero is a local-only client then: nothing will ever answer it, and its store is empty.
     env.powerSyncOnly = true
-    env.fieldDevice = true
     env.guidebookSynced = true
     rebuild()
     expect(phase()).toEqual({ excluded: false, kind: 'unavailable' })
   })
 
-  it('answers offline from a field device that finished the guidebook', () => {
+  it('answers offline from a device that finished the guidebook', () => {
     env.online = false
-    env.fieldDevice = true
     env.guidebookSynced = true
     rebuild()
     fake.result.data = [{ id: 1 }]
@@ -144,7 +139,6 @@ describe('a resource built on a fake client', () => {
 
   it('stays answered when the connection returns after an offline kept answer', () => {
     env.online = false
-    env.fieldDevice = true
     env.guidebookSynced = true
     rebuild()
     fake.result.data = [{ id: 1 }]
@@ -159,7 +153,6 @@ describe('a resource built on a fake client', () => {
   it('follows a policy that depends on its arguments as they change', () => {
     cleanup()
     env.online = false
-    env.fieldDevice = true
     env.guidebookSynced = true
     let policy = $state<'excluded' | 'field'>('excluded')
     cleanup = $effect.root(() => {

@@ -96,6 +96,33 @@ describe('the route statements', () => {
     expect(await list(8, 1)).toEqual([1, 2])
   })
 
+  it('hand the map its blocks and areas with their parents, pin and parking', async () => {
+    await db.execute(`insert into areas (id, nid, name, type) values ('2', 2, 'Forest', 'area')`)
+    await db.execute(`update areas set parent_fk = 2, type = 'sector' where nid = 5`)
+    await db.execute(
+      `insert into geolocations (id, nid, lat, long, estimated, block_fk) values ('6', 6, 47.5, 11.1, 1, 40)`,
+    )
+    await db.execute(
+      `insert into geolocations (id, nid, lat, long, estimated, area_fk) values ('7', 7, 47.6, 11.2, 0, 5)`,
+    )
+    await db.execute(`update blocks set geolocation_fk = 6 where nid = 40`)
+
+    const [block] = await db.getAll<Record<string, string>>(statements.MAP_SQL)
+    expect([JSON.parse(block!.area), JSON.parse(block!.geolocation)]).toEqual([
+      { id: 5, name: 'Sector', parent: { id: 2, name: 'Forest', type: 'area' }, type: 'sector' },
+      { estimated: 1, lat: 47.5, long: 11.1, nid: 6 },
+    ])
+    const areas = await db.getAll<Record<string, string>>(statements.AREA_MAP_SQL)
+    expect(areas.map((area) => [area.name, JSON.parse(area.parent), JSON.parse(area.parking)])).toEqual([
+      ['Forest', null, []],
+      [
+        'Sector',
+        { id: 2, name: 'Forest', parent: null, type: 'area' },
+        [{ area_fk: 5, block_fk: null, estimated: 0, lat: 47.6, long: 11.2, nid: 7, region_fk: null }],
+      ],
+    ])
+  })
+
   it('hand back the related rows as Zero nested them', async () => {
     const [two, three] = await db.getAll<Record<string, string>>(statements.ROUTES_BY_ID_SQL, ['[3,2]'])
     expect(JSON.parse(two!.first_ascents)).toEqual([{ firstAscensionist: { name: 'Ada', userFk: 3 } }])

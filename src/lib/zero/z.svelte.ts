@@ -2,14 +2,12 @@ import { dev } from '$app/environment'
 import { PUBLIC_ZERO_URL } from '$env/static/public'
 import { recordResume } from '$lib/logging/resumeLog'
 import { powerSyncOnly } from '$lib/powersync/db.svelte'
-import { isFieldDevice } from '$lib/state/device.svelte'
 import { reportConnectionState, setPingTightenHandler } from '$lib/state/online.svelte'
-import { forgetSynced, markStoreLoaded, markSynced, trackSyncFor } from '$lib/state/sync.svelte'
+import { forgetSynced } from '$lib/state/sync.svelte'
 import type { Session } from '@supabase/supabase-js'
 import { Z } from 'zero-svelte'
 import type { ConnectionName } from './connection'
 import { mutators } from './mutators'
-import { FIELD_STAGES, KEPT, type KeepContext, type KeepStage } from './offline'
 import { queries } from './queries'
 import { schema, type Schema } from './zero-schema'
 
@@ -65,7 +63,6 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   // The measurement build: a local-only client in memory, so the screens still on Zero render their
   // needs-a-connection state while PowerSync alone syncs.
   if (powerSyncOnly()) return z
-  trackSyncFor(userID)
 
   // Zero is the only thing in the app continuously trying to reach the server, which makes it the
   // only honest answer to "are we online". `navigator.onLine` alone says yes on a fresh document
@@ -92,34 +89,6 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   // this app can see that state, so the only lever is making Zero look sooner, and only where a
   // just-answered probe makes a short pong deadline safe. See `shouldTightenPing`.
   setPingTightenHandler(() => tightenPing(z))
-
-  storeProbe?.destroy()
-  storeProbe = undefined
-  if (session != null) {
-    // The signed-in user always has a row, so seeing it local proves the replica was read back.
-    const probe = z.materialize(queries.currentUser())
-    storeProbe = probe
-    probe.addListener((data) => {
-      if (Array.isArray(data) ? data.length > 0 : data != null) {
-        markStoreLoaded()
-        queueMicrotask(() => probe.destroy())
-        if (storeProbe === probe) storeProbe = undefined
-      }
-    })
-
-    // Eagerly sync app-wide reference data and the signed-in user into the
-    // local store so resources reading them (see $lib/state/global.svelte)
-    // render immediately rather than flashing a loading state.
-    //
-    // No `catch`: Zero's `complete` promise resolves or stays pending, it does not reject, so a
-    // handler here could only ever be dead code. Offline the whole chain never settles,
-    // which is the correct outcome - `markSynced` must not fire for a sync that did not happen.
-    const ctx = keepContext(z)
-    // The stamp says the shell can render, and nothing about the guidebook still arriving.
-    void preloadStage(z, KEPT.reference, ctx)
-      .then(afterFirstScreen)
-      .then(() => preloadForOffline(z, ctx))
-  }
 
   if (dev) {
     // Sync failures are invisible from the outside: the app only renders a spinner or stale rows,
@@ -174,8 +143,6 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   return z
 }
 
-let storeProbe: undefined | { destroy(): void }
-
 let caughtUp = $state(false)
 let barrier = 0
 
@@ -183,16 +150,6 @@ let barrier = 0
  *  once for a query hash Zero already holds, with last session's rows. */
 export function syncCaughtUp(): boolean {
   return caughtUp
-}
-
-/** Once the first screen has asked for its rows: zero-cache answers in arrival order, so a guidebook
- *  sent beside them held the feed ~2.6 s on prod, and sent one query at a time took twice as long. */
-function afterFirstScreen(): Promise<void> {
-  return new Promise((resolve) => {
-    // Safari has no `requestIdleCallback`.
-    if ('requestIdleCallback' in window) requestIdleCallback(() => resolve(), { timeout: 1000 })
-    else setTimeout(resolve, 300)
-  })
 }
 
 function armSyncBarrier(z: Z<Schema>): void {
@@ -204,76 +161,6 @@ function armSyncBarrier(z: Z<Schema>): void {
     if (generation === barrier) caughtUp = true
   }
   void z.run(queries.syncBarrier({ nonce }), { ttl: 'none', type: 'complete' }).then(settle, settle)
-}
-
-/** The lookups kept queries take their arguments from, each run once per sync. */
-function keepContext(z: Z<Schema>): KeepContext {
-  let user: Promise<number | undefined> | undefined
-  let regions: Promise<number[]> | undefined
-  return {
-    regionFks: () =>
-      (regions ??= z
-        .run(queries.listUserRegions(), { type: 'complete' })
-        .then((memberships) => memberships.map((membership) => membership.regionFk))),
-    userId: () => (user ??= z.run(queries.currentUser(), { type: 'complete' }).then((row) => row?.id ?? undefined)),
-  }
-}
-
-/**
- * Keeps the guidebook in the local store, plus your own logbook and your regions' members, so the
- * guidebook is readable with no signal. "Guidebook" is the corpus describing the rock (see
- * CONTEXT.md); the other two ride along because the screens that render it need them, not because
- * they are part of it.
- *
- * `preload()` and never `cleanup()`, and the "never" is the whole mechanism. A preload's TTL governs
- * how long its rows survive *after* `cleanup()` is called (see `PreloadOptions` in Zero's
- * `query.d.ts`); while the preload is live the rows are kept. So retention here rests on
- * nothing calling `cleanup`, which no test asserts and any refactor could quietly undo.
- *
- * The TTL decides what survives a closed page: closing deactivates every query, a preload defaults
- * to `ttl: 'none'`, and the TTL clock only ticks while Zero runs, so `'10m'` (the cap) keeps the rows
- * confirmed across a reopen instead of re-sending them.
- *
- * Four weeks away costs nothing for *reading*, but not for reconnecting: zero-cache garbage
- * collects an inactive CVR after `ZERO_CVR_GARBAGE_COLLECTION_INACTIVITY_THRESHOLD_HOURS` (720 in prod,
- * Zero's default is 168), so any gap longer than that comes back through
- * `onClientStateNotFound`, which drops the sync stamp and reloads into a fresh sync.
- *
- * WHAT is kept, and how each request is built, lives in `KEPT` in `offline.ts`, the same table every
- * screen reads its offline policy from. This function only decides when each stage starts.
- */
-function preloadForOffline(z: Z<Schema>, ctx: KeepContext): void {
-  if (!isFieldDevice()) {
-    return
-  }
-
-  // The guidebook's stamp is what lets a screen offline treat an empty result as an answer, so it
-  // waits for every guidebook table rather than for the reference stamp, which lands seconds sooner.
-  for (const stage of FIELD_STAGES) {
-    void preloadStage(z, stage, ctx)
-  }
-}
-
-/** Preloads one stage of `KEPT`, stamping it once every query in it is complete. A failed lookup
- *  costs its own query and the stamp, never the rest of the stage. */
-async function preloadStage(z: Z<Schema>, stage: KeepStage, ctx: KeepContext): Promise<void> {
-  let failed = false
-  await Promise.all(
-    Object.entries(stage.queries).map(async ([name, build]) => {
-      try {
-        const request = await build(ctx)
-        if (request != null) {
-          await z.preload(request as Parameters<typeof z.preload>[0], { ttl: '10m' }).complete
-        }
-      } catch (error) {
-        failed = true
-        console.error(`Error preloading ${name} for offline use:`, error)
-      }
-    }),
-  )
-  if (!failed && stage.stamp != null) {
-    markSynced(stage.stamp)
-  }
 }
 
 /**

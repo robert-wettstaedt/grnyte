@@ -517,11 +517,8 @@
       }
     },
     "src/lib/map/exploreData.svelte.ts": {
-      "crap_high": {
-        "count": 3
-      },
       "crap_moderate": {
-        "count": 3
+        "count": 2
       }
     },
     "src/lib/map/filteredRoutes.svelte.ts": {
@@ -566,11 +563,6 @@
       }
     },
     "src/lib/videos/hdr.ts": {
-      "crap_moderate": {
-        "count": 1
-      }
-    },
-    "src/lib/zero/z.svelte.ts": {
       "crap_moderate": {
         "count": 1
       }

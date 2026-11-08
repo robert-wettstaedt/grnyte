@@ -37,7 +37,6 @@ vi.mock('$lib/powersync/db.svelte', () => ({
   streamConfirmed: () => true,
 }))
 vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => true }))
-vi.mock('$lib/state/device.svelte', () => ({ isFieldDevice: () => false }))
 vi.mock('$lib/state/sync.svelte', () => ({ lastSyncedAt: () => null, localStoreLoaded: () => true }))
 
 const current = $state({ block: { areaFk: 10, id: 1, regionFk: 2 } })

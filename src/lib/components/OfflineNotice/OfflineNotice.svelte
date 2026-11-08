@@ -5,7 +5,7 @@
 
   /**
    * Stands in for a section whose data is deliberately not kept for offline use: events, changes,
-   * reactions, other people's ascents. See `preloadForOffline` in `$lib/zero/z.svelte`.
+   * reactions, other people's ascents. See `EXCLUDED` in `$lib/zero/offline`.
    *
    * It exists so those sections cannot state an absence as a fact. "No grade opinions yet" and "event
    * not found" are claims about the guidebook; offline they are claims about the connection, and

@@ -178,15 +178,15 @@ describe('the PowerSync shell', () => {
     expect(lastSyncedAt('guidebook')).not.toBeNull()
   })
 
-  it('leaves the stamps to Zero while Zero still syncs, so they never vouch for its store', async () => {
+  it('stamps while Zero still syncs too, since Zero keeps nothing offline to vouch for', async () => {
     const { initPowerSync } = await import('./db.svelte')
     const { lastSyncedAt, localStoreLoaded } = await import('$lib/state/sync.svelte')
     initPowerSync(session('a'), async () => 'token', settings)
-    announce(synced([0, 1, 2], true))
     await settle()
+    expect(localStoreLoaded()).toBe(true)
 
-    expect(localStoreLoaded()).toBe(false)
-    expect([lastSyncedAt('reference'), lastSyncedAt('guidebook')]).toEqual([null, null])
+    announce(synced([0, 1, 2], true))
+    expect(lastSyncedAt('guidebook')).not.toBeNull()
   })
 
   it('never writes the next account stamps from the previous account status', async () => {

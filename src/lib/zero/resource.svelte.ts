@@ -1,5 +1,4 @@
 import { powerSyncOnly } from '$lib/powersync/db.svelte'
-import { isFieldDevice } from '$lib/state/device.svelte'
 import { isOnline } from '$lib/state/online.svelte'
 import { holdsPill, pillSurface, type PillSurface } from '$lib/state/pill.svelte'
 import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
@@ -61,7 +60,7 @@ class Resource<
     return this.#data
   }
   get isComplete(): boolean {
-    return this.#confirming.every((query) => query.details.type === 'complete')
+    return this.#query.details.type === 'complete'
   }
 
   get phase(): QueryPhase {
@@ -106,30 +105,13 @@ class Resource<
     return query
   })
 
-  #register: (() => QueryRequest[]) | undefined
-
-  // What the server must confirm: the query itself, or in a composite the named queries it
-  // registers, since its local read is never sent and so never completes.
-  #confirming = $derived.by(() => {
-    if (this.#register == null) {
-      return [this.#query]
-    }
-
-    return this.#register().map((request) => {
-      const query = this.#source.createQuery(request, this.#enabled())
-      query.view?.ensureSubscribed()
-      return query
-    })
-  })
-
   #select: (data: HumanReadable<TReturn>) => TOut
 
   #data = $derived.by(() => this.#select(this.#query.data as HumanReadable<TReturn>))
 
   #offline: (() => OfflinePolicy | undefined) | OfflinePolicy | undefined
   #policy = $derived.by(() => {
-    const requests = this.#register?.() ?? [this.#request()]
-    return resolvePolicy(requests.map((request) => offlinePolicyOf(queryNameOf(request))))
+    return offlinePolicyOf(queryNameOf(this.#request()))
   })
   #rawEmpty = $derived.by(() => {
     const raw = this.#query.data
@@ -146,7 +128,6 @@ class Resource<
   #settledViews: unknown[] = []
 
   #keptInput = () => ({
-    fieldDevice: isFieldDevice(),
     guidebookSynced: lastSyncedAt('guidebook') != null,
     personalSynced: lastSyncedAt('personal') != null,
     policy: (typeof this.#offline === 'function' ? this.#offline() : this.#offline) ?? this.#policy,
@@ -155,7 +136,7 @@ class Resource<
   })
 
   #settled = $derived.by(() => {
-    const views = this.#confirming.map((query) => query.view)
+    const views = [this.#query.view]
     const next = resolveSettled({
       // Offline, a kept query is answered by its preload; latched like a server answer, so the
       // reconnect does not drop a form to `arriving` and remount its fields over the edits.
@@ -171,7 +152,7 @@ class Resource<
   #status: ResourceStatus = $derived.by(() => {
     return resolveStatus({
       complete: this.isComplete,
-      errored: this.#confirming.some((query) => query.details.type === 'error'),
+      errored: this.#query.details.type === 'error',
       rawEmpty: this.#rawEmpty,
     })
   })
@@ -181,7 +162,6 @@ class Resource<
     select: (data: HumanReadable<TReturn>) => TOut,
     enabled: () => boolean,
     offline: (() => OfflinePolicy | undefined) | OfflinePolicy | undefined,
-    register: (() => QueryRequest[]) | undefined,
     source: QuerySource,
     surface: PillSurface | undefined,
   ) {
@@ -190,7 +170,6 @@ class Resource<
     this.#select = select
     this.#enabled = enabled
     this.#offline = offline
-    this.#register = register
 
     // Resolved now, during component init, so it is the surface this resource renders on. Built
     // outside a component there is none, and it holds no pill rather than throwing.
@@ -224,8 +203,6 @@ class Resource<
  *   its arguments (your own logbook is kept, somebody else's is not).
  * @param opts.source the Zero client; tests pass a fake.
  * @param opts.surface the pill to hold while arriving; tests pass one, components read context.
- * @param opts.register makes this a composite: a local-only `zql` read over rows these named queries
- *   sync, which supply its readiness and policy (`$lib/zero/coverage` checks the read stays inside).
  * @param opts.ttl how long Zero keeps the query syncing once nothing reads it; `'none'` for a search
  *   term the reader has moved past. Unset keeps Zero's default (5 minutes).
  */
@@ -242,7 +219,6 @@ export function createResource<
   opts?: {
     enabled?: () => boolean
     offline?: (() => OfflinePolicy | undefined) | OfflinePolicy
-    register?: () => QueryRequest[]
     source?: QuerySource
     surface?: PillSurface
     ttl?: TTL
@@ -253,7 +229,6 @@ export function createResource<
     select,
     opts?.enabled ?? (() => true),
     opts?.offline,
-    opts?.register,
     opts?.source ?? (opts?.ttl == null ? zeroSource : ttlSource(opts.ttl)),
     opts?.surface,
   )
@@ -269,7 +244,6 @@ export function expectingMore(phase: QueryPhase): boolean {
  * that fills it finished. The reference stamp does not vouch for the guidebook, which lands later.
  */
 export function resolveKept(input: {
-  fieldDevice: boolean
   guidebookSynced: boolean
   personalSynced: boolean
   policy: OfflinePolicy | undefined
@@ -283,10 +257,6 @@ export function resolveKept(input: {
   if (input.policy === 'always') {
     return input.referenceSynced
   }
-  if (!input.fieldDevice) {
-    return false
-  }
-
   return input.policy === 'field' ? input.guidebookSynced : input.policy === 'personal' && input.personalSynced
 }
 
@@ -310,14 +280,6 @@ export function resolvePhase({
   if (!online && (excluded || status === 'loading')) return { excluded, kind: 'unavailable' }
   if (status === 'loading') return { kind: 'loading' }
   return online ? { kind: 'arriving' } : { kind: 'partial' }
-}
-
-/** A composite's policy: one only when every query it registers agrees, since it is no more kept
- *  than its least kept query and the order of the policies says nothing about which that is. */
-export function resolvePolicy(policies: (OfflinePolicy | undefined)[]): OfflinePolicy | undefined {
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a plain function, nothing reads it reactively
-  const distinct = new Set(policies)
-  return distinct.size === 1 ? [...distinct][0] : undefined
 }
 
 /**
