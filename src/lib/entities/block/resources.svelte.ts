@@ -95,7 +95,12 @@ const toTopoRow = (topo: SyncedTopo): TopoRow => ({
   routes: (topo.lines ?? []).map((line) => toZeroRow<TopoRow['routes'][number]>('topo_routes', line)),
 })
 
-type MapBlockRow = Record<string, unknown> & { area: string; geolocation: null | string }
+type MapBlockRow = Record<string, unknown> & {
+  area: string
+  geolocation: null | string
+  name: null | string
+  nid: number
+}
 
 type SyncedListBlock = Synced & { area: Ref[]; geolocation: Synced[]; topos: SyncedTopo[] }
 
@@ -149,7 +154,7 @@ export function blockMapList() {
     () => MAP_SQL,
     () => [],
     // Sorted here: SQLite orders names by bytes, every other list by the reader's language.
-    (rows: MapBlockRow[]) => sortByName(rows as (MapBlockRow & { id: number; name: null | string })[]).map(toMapBlock),
+    (rows: MapBlockRow[]) => sortByName(rows, (row) => row.nid).map(toMapBlock),
     () => 'guidebook',
   )
 }

@@ -11,7 +11,7 @@ const syncHealthSchema = z.object({
   errorCount: z.optional(z.number()),
   lagBytes: count,
   lastCheckpoint: z.optional(z.nullable(z.string())),
-  reasons: z.array(z.string()),
+  reasons: z.array(z.enum(['checkpoint', 'errors', 'lag', 'unauthorized', 'unreachable', 'wal', 'walHeadroom'])),
   safeWalSize: count,
   status: z.enum(['healthy', 'unhealthy', 'unreachable']),
   walStatus: z.optional(z.nullable(z.string())),
