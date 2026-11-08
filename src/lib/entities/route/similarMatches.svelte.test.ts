@@ -1,38 +1,46 @@
+import { ROUTE_MAP_SQL, ROUTES_BY_ID_SQL } from '$lib/powersync/sql'
 import { flushSync } from 'svelte'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { similarRoutes } from './similarMatches.svelte'
 
-type Args = Record<string, unknown>
+type Args = unknown[]
 
 const client = vi.hoisted(() => {
   const state = {
-    createQuery: (request: { args: Args; query: { queryName: string } }, enabled: boolean) => {
-      const name = request.query.queryName
-      if (enabled) state.requests.push({ args: request.args, name })
-      return {
-        get data() {
-          return enabled ? (state.rows[name]?.(request.args) ?? []) : []
-        },
-        get details() {
-          return { type: enabled && name !== region.loading ? ('complete' as const) : ('unknown' as const) }
-        },
-        view: { ensureSubscribed() {} },
-      }
-    },
+    names: {} as Record<string, string>,
+    // A watched statement re-answers whenever the rows it reads change, unless its name is loading.
+    query: ({ parameters, sql }: { parameters: Args; sql: string }) => ({
+      watch() {
+        const name = state.names[sql] ?? sql
+        state.requests.push({ args: parameters, name })
+        return {
+          close: async () => {},
+          registerListener: ({ onData }: { onData: (rows: unknown[]) => void }) =>
+            $effect.root(() => {
+              $effect(() => {
+                if (name !== region.loading) onData(state.rows[name]?.(parameters) ?? [])
+              })
+            }),
+        }
+      },
+    }),
     requests: [] as { args: Args; name: string }[],
     rows: {} as Record<string, (args: Args) => unknown[]>,
   }
   return state
 })
 
-// Zero's client is the one thing faked: the real resources, mappers and matcher all run.
-vi.mock('$lib/zero/z.svelte', () => ({ getZ: () => ({ createQuery: client.createQuery }) }))
-vi.mock('$lib/zero/ttlSource.svelte', () => ({ ttlSource: () => ({ createQuery: client.createQuery }) }))
+// PowerSync's database is the one thing faked: the real resources, statements' callers, mappers and matcher run.
+vi.mock('$lib/powersync/db.svelte', () => ({
+  getPowerSync: () => ({ query: client.query }),
+  powerSyncStatus: () => ({ forStream: () => ({ subscription: { hasSynced: true } }) }),
+  streamConfirmed: () => true,
+}))
 vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => true }))
 vi.mock('$lib/state/device.svelte', () => ({ isFieldDevice: () => false }))
 vi.mock('$lib/state/sync.svelte', () => ({ lastSyncedAt: () => null, localStoreLoaded: () => true }))
 
-const block = { areaFk: 10, id: 1, regionFk: 2 }
+const current = $state({ block: { areaFk: 10, id: 1, regionFk: 2 } })
 
 const input = $state({ focused: false, name: '' })
 const region = $state({
@@ -44,7 +52,16 @@ const region = $state({
 let cleanup: () => void
 let list: ReturnType<typeof similarRoutes>
 
-const fullRow = (route: { id: number; name: string }) => ({ blockFk: 1, regionFk: 2, tags: [], ...route })
+const fullRow = ({ id, name }: { id: number; name: string }) => ({
+  block: null,
+  block_fk: 1,
+  first_ascents: '[]',
+  name,
+  nid: id,
+  region_fk: 2,
+  tags: '[]',
+  topo_routes: '[]',
+})
 
 const type = (name: string) => {
   input.name = name
@@ -58,6 +75,7 @@ const shownIds = () => list.rows.map((row) => row.route.id)
 beforeEach(() => {
   vi.useFakeTimers()
   client.requests.length = 0
+  current.block = { areaFk: 10, id: 1, regionFk: 2 }
   input.focused = false
   input.name = ''
   region.pending = []
@@ -65,16 +83,17 @@ beforeEach(() => {
     { id: 7, name: 'Karma' },
     { id: 8, name: 'Zecke' },
   ]
+  client.names = { [ROUTE_MAP_SQL]: 'listRoutesForMap', [ROUTES_BY_ID_SQL]: 'listRoutes' }
   client.rows = {
-    listRoutes: (args) =>
+    listRoutes: ([ids]) =>
       region.names
-        .filter(({ id }) => (args.routeId as number[]).includes(id) && !region.pending.includes(id))
+        .filter(({ id }) => (JSON.parse(ids as string) as number[]).includes(id) && !region.pending.includes(id))
         .map(fullRow),
-    listRoutesForMap: () => region.names.map((route) => ({ areaIds: '^10$', blockFk: 1, ...route })),
+    listRoutesForMap: () => region.names.map((route) => ({ area_ids: '^10$', block_fk: 1, ...route })),
   }
   region.loading = undefined
   cleanup = $effect.root(() => {
-    list = similarRoutes({ block: () => block, focused: () => input.focused, name: () => input.name })
+    list = similarRoutes({ block: () => current.block, focused: () => input.focused, name: () => input.name })
     // What the list component does: reading the rows is what subscribes.
     $effect(() => void list.rows)
   })
@@ -92,7 +111,16 @@ it('reads nothing until the name field first has focus, then this region', () =>
   input.focused = true
   flushSync()
 
-  expect(client.requests).toEqual([{ args: { regionFk: 2 }, name: 'listRoutesForMap' }])
+  expect(client.requests).toEqual([{ args: [2, ...Array(8).fill(null)], name: 'listRoutesForMap' }])
+})
+
+it('keeps its region watch when the block is replaced by an equal one', () => {
+  input.focused = true
+  flushSync()
+  current.block = { ...current.block }
+  flushSync()
+
+  expect(client.requests.filter(({ name }) => name === 'listRoutesForMap')).toHaveLength(1)
 })
 
 it('lists a matching route once the typing settles', () => {
@@ -115,9 +143,7 @@ it('asks for display rows once while the top ids stay the same', () => {
   type('Karmaa')
   type('Karma')
 
-  expect(client.requests.filter(({ name }) => name === 'listRoutes')).toEqual([
-    { args: { routeId: [7] }, name: 'listRoutes' },
-  ])
+  expect(client.requests.filter(({ name }) => name === 'listRoutes')).toEqual([{ args: ['[7]'], name: 'listRoutes' }])
 })
 
 it('holds the list after focus leaves, and catches up when it returns', () => {

@@ -36,3 +36,61 @@ describe('every raw statement joins through an index', () => {
     expect((await innerSteps(sql)).filter((step) => LARGE.test(step))).toEqual([])
   })
 })
+
+describe('the route statements', () => {
+  // Off, as `filterParameters` binds an unset filter.
+  const off = Array<unknown>(9).fill(null)
+  const ids = async (sql: string, parameters: unknown[]) =>
+    (await db.getAll<{ id?: number; nid?: number }>(sql, parameters)).map((row) => row.nid ?? row.id)
+
+  beforeAll(async () => {
+    await db.execute(`insert into areas (id, nid, name) values ('5', 5, 'Sector')`)
+    await db.execute(`insert into blocks (id, nid, name, "order", area_fk) values ('40', 40, 'Boulder', 2, 5)`)
+    for (const [nid, grade, rating] of [
+      [1, 10, 1],
+      [2, 12, 3],
+      [3, 14, 2],
+    ]) {
+      await db.execute(
+        `insert into routes (id, nid, name, block_fk, region_fk, area_ids, user_grade_fk, user_rating)
+          values (?, ?, ?, 40, 18, '^5$', ?, ?)`,
+        [String(nid), nid, `Route ${nid}`, grade, rating],
+      )
+    }
+    await db.execute(`insert into routes_to_tags (id, route_fk, tag_fk) values ('1-crimpy', 1, 'crimpy')`)
+    await db.execute(`insert into first_ascensionists (id, nid, name, user_fk) values ('7', 7, 'Ada', 3)`)
+    await db.execute(`insert into routes_to_first_ascensionists (id, nid, route_fk, first_ascensionist_fk)
+      values ('8', 8, 2, 7)`)
+    await db.execute(`insert into files (id, path, width, height) values ('f1', 't/1', 600, 800)`)
+    await db.execute(`insert into topos (id, nid, block_fk, file_fk) values ('9', 9, 40, 'f1')`)
+    await db.execute(`insert into topo_routes (id, nid, route_fk, topo_fk, path) values ('30', 30, 3, 9, 'M0,0')`)
+    await db.execute(`insert into files (id, route_fk, bunny_stream_fk) values ('v1', 1, 's1')`)
+    await db.execute(`insert into ascents (id, nid, route_fk) values ('50', 50, 2)`)
+    await db.execute(`insert into files (id, ascent_fk, bunny_stream_fk) values ('v2', 50, 's2')`)
+  })
+
+  it('filter as listRoutes did, each off when null', async () => {
+    const list = (at: number, value: unknown) => ids(statements.ROUTE_MAP_SQL, off.with(at, value))
+    expect(await ids(statements.ROUTE_MAP_SQL, off)).toEqual([1, 2, 3])
+    expect(await list(0, 19)).toEqual([])
+    expect(await list(1, '^5$')).toEqual([1, 2, 3])
+    expect(await list(1, '^55$')).toEqual([])
+    expect(await list(2, 12)).toEqual([2, 3])
+    expect(await list(3, 12)).toEqual([1, 2])
+    expect(await list(4, 2)).toEqual([2, 3])
+    expect(await list(5, '["crimpy","roof"]')).toEqual([1])
+    expect(await list(6, '[7]')).toEqual([2])
+    expect(await list(7, 1)).toEqual([3])
+    expect(await list(8, 1)).toEqual([1, 2])
+  })
+
+  it('hand back the related rows as Zero nested them', async () => {
+    const [two, three] = await db.getAll<Record<string, string>>(statements.ROUTES_BY_ID_SQL, ['[3,2]'])
+    expect(JSON.parse(two!.first_ascents)).toEqual([{ firstAscensionist: { name: 'Ada', userFk: 3 } }])
+    expect(JSON.parse(two!.block)).toEqual({ area: { name: 'Sector' }, name: 'Boulder', order: 2 })
+    expect(JSON.parse(three!.topo_routes)).toEqual([
+      { path: 'M0,0', topo: { file: { height: 800, path: 't/1', width: 600 } } },
+    ])
+    expect(JSON.parse(three!.tags)).toEqual([])
+  })
+})

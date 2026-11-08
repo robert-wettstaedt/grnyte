@@ -35,7 +35,7 @@ export function similarRoutes({ block, focused, name }: SimilarRoutesOptions) {
   // A string, so the display query only rebuilds when the ids really change.
   const idsKey = $derived(matches.map(({ id }) => id).join(','))
 
-  const routes = quietly(() => routesByIds(() => (idsKey === '' ? [] : idsKey.split(',').map(Number)), { ttl: 'none' }))
+  const routes = quietly(() => routesByIds(() => (idsKey === '' ? [] : idsKey.split(',').map(Number))))
 
   let rows = $state.raw<SimilarRoute[]>([])
 
