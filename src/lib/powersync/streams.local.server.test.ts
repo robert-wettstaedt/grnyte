@@ -120,9 +120,14 @@ describe.skipIf(!ENABLED)('the sync service as a device sees it', () => {
       await sql`update public.routes set name = ${'v' + round} || '-' || id where id = any(${routeIds})`
     }
     await new Promise((resolve) => setTimeout(resolve, 3000))
-    execFileSync('docker', ['exec', 'grnyte-powersync-powersync-1', 'node', 'service/lib/entry.js', 'compact'], {
-      stdio: 'ignore',
-    })
+    // `compact` starts its own server, so beside the running service it needs ports of its own.
+    const compact = [
+      'rm -rf /tmp/compact',
+      'cp -r /config /tmp/compact',
+      "sed -i -e 's/^port: 8080/port: 8091/' -e 's/prometheus_port: 9464/prometheus_port: 9465/' /tmp/compact/service.yaml",
+      'node service/lib/entry.js compact -c /tmp/compact/service.yaml',
+    ].join(' && ')
+    execFileSync('docker', ['exec', 'grnyte-powersync-powersync-1', 'sh', '-c', compact], { stdio: 'ignore' })
 
     await device.connect()
     const routes = device.table('routes').filter((row) => Number(row.region_fk) === region)

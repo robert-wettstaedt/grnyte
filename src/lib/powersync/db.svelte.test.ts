@@ -1,3 +1,4 @@
+import { stubIndexedDb } from '$lib/state/indexedDbStub'
 import type { PowerSyncBackendConnector } from '@powersync/web'
 import type { Session } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,20 +14,6 @@ const engine = vi.hoisted(() => ({
   status: { connected: false } as object,
 }))
 
-/** IndexedDB holding these databases (without `databases()` when undefined); returns what got deleted. */
-function stubIndexedDb(databases: string[] | undefined): string[] {
-  const deleted: string[] = []
-  vi.stubGlobal('indexedDB', {
-    ...(databases && { databases: async () => databases.map((name) => ({ name })) }),
-    deleteDatabase: (name: string) => {
-      deleted.push(name)
-      const request = {} as IDBOpenDBRequest
-      queueMicrotask(() => request.onsuccess?.({} as Event))
-      return request
-    },
-  })
-  return deleted
-}
 vi.mock('$app/environment', () => ({ browser: true, dev: true }))
 vi.mock('@powersync/web', async (original) => ({
   ...(await original<object>()),

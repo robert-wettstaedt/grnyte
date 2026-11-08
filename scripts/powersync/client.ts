@@ -116,8 +116,13 @@ export class PsClient {
   }
 
   /** Rows of one table the client holds. */
+  // fallow-ignore-next-line unused-class-member -- read by streams.local.server.test.ts, which fallow does not see
   table(name: string): Data[] {
     return [...this.rows].filter(([key]) => key.startsWith(`${name}/`)).map(([, row]) => row.data)
+  }
+
+  #addBuckets(buckets: Iterable<string>) {
+    for (const bucket of buckets) if (!this.buckets.has(bucket)) this.buckets.set(bucket, '0')
   }
 
   // Rows remember which buckets hold them, so leaving a bucket removes only what no other bucket still holds.
@@ -132,6 +137,12 @@ export class PsClient {
     }
   }
 
+  #data(data: NonNullable<Line['data']>) {
+    this.ops += data.data.length
+    for (const op of data.data) this.#apply(data.bucket, op)
+    this.buckets.set(data.bucket, data.next_after)
+  }
+
   #dropBucket(bucket: string) {
     this.buckets.delete(bucket)
     for (const [key, row] of this.rows) {
@@ -140,19 +151,17 @@ export class PsClient {
     }
   }
 
+  // fallow-ignore-next-line complexity -- one branch per sync line kind; streams.local.server.test.ts drives it, unseen by fallow
   #line(message: Line) {
     if (message.checkpoint) {
       const keep = new Set(message.checkpoint.buckets.map((b) => b.bucket))
-      for (const bucket of keep) if (!this.buckets.has(bucket)) this.buckets.set(bucket, '0')
+      this.#addBuckets(keep)
       for (const bucket of [...this.buckets.keys()]) if (!keep.has(bucket)) this.#dropBucket(bucket)
     } else if (message.checkpoint_diff) {
-      for (const b of message.checkpoint_diff.updated_buckets)
-        if (!this.buckets.has(b.bucket)) this.buckets.set(b.bucket, '0')
+      this.#addBuckets(message.checkpoint_diff.updated_buckets.map((b) => b.bucket))
       for (const bucket of message.checkpoint_diff.removed_buckets) this.#dropBucket(bucket)
     } else if (message.data) {
-      this.ops += message.data.data.length
-      for (const op of message.data.data) this.#apply(message.data.bucket, op)
-      this.buckets.set(message.data.bucket, message.data.next_after)
+      this.#data(message.data)
     } else if (message.checkpoint_complete) {
       this.#complete?.()
     } else if (message.error) {
