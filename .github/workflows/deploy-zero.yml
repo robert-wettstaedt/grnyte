@@ -77,39 +77,32 @@ jobs:
     needs: setup-repo
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      matrix:
-        environment:
-          # `secret_ids` is the allowlist for this leg, and the reason it is here rather than in a
-          # GitHub variable: the canary runs under the prod environment too but needs a completely
-          # different set. An allowlist nobody can review in a diff is not one.
-          #
-          # Deliberately not every ZERO_* the project holds, and deliberately not a count either:
-          # the step below writes whichever ones are listed here, so this list grows by one line and
-          # a number in a comment would be wrong the first time it did.
-          #
-          # `docker-compose.zero.yml` still sets ZERO_REPLICA_FILE and ZERO_SCHEMA_PATH itself, and
-          # correctly: they are the other half of the volume and bind mounts declared beside them,
-          # so the vault has no business holding a second opinion. The tunables used to be there
-          # too, which meant editing them in the vault did nothing, because `environment:` overrides
-          # `env_file:`.
-          - name: prod
-            env_name: 'Production – grnyte.rocks'
-            secret_ids: |
-              76a2770c-07be-43cf-9e3b-b4b1008f6fea > ZERO_UPSTREAM_DB
-              58b5ae86-d1fd-4f35-a2c4-b4b1008f77b3 > ZERO_AUTH_SECRET
-              51211711-cad0-4fb0-8b1f-b4b1008ea602 > ZERO_ADMIN_PASSWORD
-              400816f4-0057-445e-918e-b4b1008e2bb0 > ZERO_GET_QUERIES_URL
-              771a3ac5-99f8-443f-b067-b4e700b0af23 > ZERO_MUTATE_URL
-              987da712-d3a3-4a2c-a2fb-b4cb014e9092 > ZERO_CVR_DB
-              201ace10-29dd-4501-9727-b4f6009f81dc > ZERO_CVR_GARBAGE_COLLECTION_INACTIVITY_THRESHOLD_HOURS
-              db33aff4-7994-4cfe-bc01-b4b1008ddc21 > ZERO_NUM_SYNC_WORKERS
-              a6c1d4f6-a8b8-47bc-b3a0-b4b1008dd02d > ZERO_CVR_MAX_CONNS
-              cc7bb4d8-6654-4b89-b306-b4b1008dd661 > ZERO_UPSTREAM_MAX_CONNS
-              00050332-e579-440d-981b-b4b100937e3b > VPS_SSH_KEY
-              1e8728fb-6dc4-436f-beeb-b4b10092ea48 > VPS_HOST
-              3669b3d5-cdce-4964-84f1-b4b10092e14d > VPS_USER
-    environment: ${{ matrix.environment.env_name }}
+    environment: 'Production – grnyte.rocks'
+    env:
+      # The allowlist, reviewable in a diff. Deliberately not every ZERO_* the project holds, and not
+      # a count either: the step below writes whichever ones are listed here.
+      #
+      # `docker-compose.zero.yml` still sets ZERO_REPLICA_FILE and ZERO_SCHEMA_PATH itself, and
+      # correctly: they are the other half of the volume and bind mounts declared beside them, so the
+      # vault has no business holding a second opinion. The tunables used to be there too, which meant
+      # editing them in the vault did nothing, because `environment:` overrides `env_file:`.
+      SECRET_IDS: |
+        76a2770c-07be-43cf-9e3b-b4b1008f6fea > ZERO_UPSTREAM_DB
+        58b5ae86-d1fd-4f35-a2c4-b4b1008f77b3 > ZERO_AUTH_SECRET
+        51211711-cad0-4fb0-8b1f-b4b1008ea602 > ZERO_ADMIN_PASSWORD
+        400816f4-0057-445e-918e-b4b1008e2bb0 > ZERO_GET_QUERIES_URL
+        771a3ac5-99f8-443f-b067-b4e700b0af23 > ZERO_MUTATE_URL
+        987da712-d3a3-4a2c-a2fb-b4cb014e9092 > ZERO_CVR_DB
+        201ace10-29dd-4501-9727-b4f6009f81dc > ZERO_CVR_GARBAGE_COLLECTION_INACTIVITY_THRESHOLD_HOURS
+        db33aff4-7994-4cfe-bc01-b4b1008ddc21 > ZERO_NUM_SYNC_WORKERS
+        a6c1d4f6-a8b8-47bc-b3a0-b4b1008dd02d > ZERO_CVR_MAX_CONNS
+        cc7bb4d8-6654-4b89-b306-b4b1008dd661 > ZERO_UPSTREAM_MAX_CONNS
+        cbc7c9dd-a224-4d65-b472-b4fc015d3af2 > PS_DATA_SOURCE_URI
+        04cf6598-893b-4a83-ba88-b4fc015de793 > PS_SUPABASE_JWT_SECRET
+        0fbd9c6d-1363-489e-aec9-b4fc015e1e80 > PS_ADMIN_TOKEN
+        00050332-e579-440d-981b-b4b100937e3b > VPS_SSH_KEY
+        1e8728fb-6dc4-436f-beeb-b4b10092ea48 > VPS_HOST
+        3669b3d5-cdce-4964-84f1-b4b10092e14d > VPS_USER
     steps:
       # First, because tailscaled runs under `sudo -E` and must not inherit the vault's values. No
       # cache: a hit skips the checksum, and the no-secrets CI job can write that cache scope.
@@ -129,11 +122,11 @@ jobs:
       # Replaces `curl https://bws.bitwarden.com/install | sh`, which fetched an unpinned script over
       # the network into a job holding an access token to the whole project. The action is pinned by
       # commit, and it masks every value it retrieves, which the bare CLI does not.
-      - name: Load ${{ matrix.environment.name }} secrets from Bitwarden
+      - name: Load prod secrets from Bitwarden
         uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
         with:
           access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
-          secrets: ${{ matrix.environment.secret_ids }}
+          secrets: ${{ env.SECRET_IDS }}
 
       - name: Setup SSH
         run: |
@@ -144,16 +137,14 @@ jobs:
 
       # The access token is the only thing that says which environment this is: its machine account
       # can read the grnyte-prod project and nothing else.
-      - name: Prepare ${{ matrix.environment.name }} environment
-        env:
-          SECRET_IDS: ${{ matrix.environment.secret_ids }}
+      - name: Prepare prod environment
         run: |
           # Only the Zero server's half reaches the VPS: the app's secrets (DATABASE_URL, the
           # service role key) have no business sitting there, and now they are never fetched at all
           # rather than fetched and filtered.
           #
           # Which keys to send is READ OFF THE ALLOWLIST rather than repeated here. A second copy
-          # of the list is a copy that drifts, and it did within a day: a ZERO_* added to the matrix
+          # of the list is a copy that drifts, and it did within a day: a ZERO_* added to SECRET_IDS
           # above but not to a hardcoded list here would be fetched and then silently dropped, so
           # the VPS would run without it and nothing would say so.
           #
@@ -161,20 +152,25 @@ jobs:
           # keeps the exact shape docker compose already reads. A missing value fails here instead
           # of writing an empty one, which the old `grep || exit` could not catch per key.
           : > env.zero
-          for key in $(printf '%s\n' "$SECRET_IDS" | awk '/>/ { print $NF }' | grep '^ZERO_'); do
+          for key in $(printf '%s\n' "$SECRET_IDS" | awk '/>/ { print $NF }' | grep -E '^(ZERO|PS)_'); do
             value="${!key}"
             if [ -z "$value" ]; then
-              echo "❌ $key is empty: the ${{ matrix.environment.name }} mapping in the matrix is missing it"
+              echo "❌ $key is empty: its SECRET_IDS mapping is missing"
               exit 1
             fi
             printf '%s="%s"\n' "$key" "$value" >> env.zero
           done
 
           ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" \
-            "cat > \$HOME/zero-deployment/deployment/.env.${{ matrix.environment.name }}" < env.zero
-          rm -f env.zero
+            "cat > \$HOME/zero-deployment/deployment/.env.prod" < env.zero
 
-          echo "✅ Environment configured for ${{ matrix.environment.name }}"
+          # sync-health-prod gets the admin token and nothing else; empty until PS_ADMIN_TOKEN is allowlisted.
+          grep '^PS_ADMIN_TOKEN=' env.zero > env.health || true
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" \
+            "cat > \$HOME/zero-deployment/deployment/.env.health" < env.health
+          rm -f env.zero env.health
+
+          echo "✅ Environment configured for prod"
 
       - name: Cleanup
         if: always()
@@ -262,7 +258,7 @@ jobs:
 
             # Clean up Docker resources
             docker network prune -f || true
-            docker rm -f zero-server-prod zero-cvr-prod nginx-main certbot-main || true
+            docker rm -f zero-server-prod zero-cvr-prod nginx-main || true
 
             # Start services
             echo "Starting Zero servers and nginx..."

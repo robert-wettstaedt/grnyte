@@ -1,0 +1,37 @@
+# PowerSync service. Every value that differs per environment comes from a `PS_*` variable (the service refuses any
+# other prefix in `!env`).
+telemetry:
+  disable_telemetry_sharing: true
+  # Exposed on the docker network only; no compose file publishes it.
+  prometheus_port: 9464
+
+healthcheck:
+  probes:
+    use_http: true
+
+replication:
+  connections:
+    - type: postgresql
+      uri: !env PS_DATA_SOURCE_URI
+      sslmode: !env PS_DATA_SOURCE_SSLMODE
+
+# Bucket storage: derived state, rebuilt from Postgres if lost, so it is not backed up.
+storage:
+  type: mongodb
+  uri: !env PS_MONGO_URI
+
+port: 8080
+
+sync_config:
+  path: sync-config.yaml
+
+client_auth:
+  supabase: true
+  supabase_jwt_secret: !env PS_SUPABASE_JWT_SECRET
+  audience: ['authenticated']
+
+# Connection and bucket limits stay at the documented defaults (200 per process, 1000 buckets): `members` costs one
+# bucket per co-member, so raise the bucket limits only from a measured member count.
+api:
+  tokens:
+    - !env PS_ADMIN_TOKEN
