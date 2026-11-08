@@ -17,7 +17,7 @@
     type MergeKind,
     type MergeSide,
   } from '$lib/entities/merge/sides'
-  import { toRouteDetail } from '$lib/entities/route/mapper'
+  import { routeDetailList } from '$lib/entities/route/resources.svelte'
   import { mergeRoutes } from '$lib/entities/route/writes'
   import { nameCollator } from '$lib/i18n/collator'
   import { resolveMessage } from '$lib/i18n/message'
@@ -27,8 +27,6 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { quietly } from '$lib/state/pill.svelte'
   import { notifyError } from '$lib/state/toast'
-  import { queries } from '$lib/zero/queries'
-  import { createResource } from '$lib/zero/resource.svelte'
   import { untrack } from 'svelte'
   import type { PickerItem } from './GuidebookPicker.svelte'
   import MergePanel, { type MergeQuestion } from './MergePanel.svelte'
@@ -65,16 +63,14 @@
 
   const areas = areaMapList()
   const blocks = blockMapList()
-  // Routes are not all on the device, so the region is searched by name and the sector lists the siblings.
+  // The sector lists the siblings; a typed name searches the region, matched in JS (D1).
   const { matches, siblings } = quietly(() => ({
-    matches: createResource(
-      () => queries.listRoutes({ content: query.trim(), pageSize: 50, regionFk: source.regionFk, sort: 'name' }),
-      (rows) => rows.map(toRouteDetail),
+    matches: routeDetailList(
+      () => ({ content: query.trim(), pageSize: 50, regionFk: source.regionFk, sort: 'name', sortOrder: 'asc' }),
       { enabled: () => kind === 'routes' && query.trim() !== '' },
     ),
-    siblings: createResource(
-      () => queries.listRoutes({ areaId: sectorId, pageSize: 200, regionFk: source.regionFk, sort: 'name' }),
-      (rows) => rows.map(toRouteDetail),
+    siblings: routeDetailList(
+      () => ({ areaId: sectorId, pageSize: 200, regionFk: source.regionFk, sort: 'name', sortOrder: 'asc' }),
       { enabled: () => kind === 'routes' && sectorId != null },
     ),
   }))
