@@ -46,6 +46,13 @@
     return new Intl.NumberFormat(getLocale(), format).format(value / 1000 ** power)
   }
 
+  // An unparseable time is itself why the row failed: shown as sent, never formatted.
+  const checkpointLabel = (at: null | string | undefined) => {
+    if (!at) return m.settings_syncNever()
+    const time = Date.parse(at)
+    return Number.isFinite(time) ? formatUploadedAt(time, Date.now(), getLocale()) : at
+  }
+
   const rows = (h: SyncHealth) => [
     { failed: h.reasons.includes('lag'), label: m.settings_syncLag(), value: bytes(h.lagBytes) },
     { failed: h.reasons.includes('walHeadroom'), label: m.settings_syncWalHeadroom(), value: bytes(h.safeWalSize) },
@@ -53,9 +60,7 @@
     {
       failed: h.reasons.includes('checkpoint'),
       label: m.settings_syncLastCheckpoint(),
-      value: h.lastCheckpoint
-        ? formatUploadedAt(Date.parse(h.lastCheckpoint), Date.now(), getLocale())
-        : m.settings_syncNever(),
+      value: checkpointLabel(h.lastCheckpoint),
     },
     { failed: h.reasons.includes('errors'), label: m.settings_syncErrors(), value: String(h.errorCount ?? 0) },
   ]

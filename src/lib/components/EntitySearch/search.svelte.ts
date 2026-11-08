@@ -212,6 +212,12 @@ export function entitySearch({ limit, open, query, regionCrumb, regionFks }: Ent
   let placedTerm: string | undefined
   let shown: EntityGroup[] = []
   let shownTerm = ''
+  // `groups` is read only while open, so a close is seen here: the next opening starts from nothing.
+  $effect(() => {
+    if (open()) return
+    shown = []
+    shownTerm = ''
+  })
 
   const candidates = $derived<Record<EntityType, EntityCandidate[]>>({
     areas: areas.data.map(map.areas),

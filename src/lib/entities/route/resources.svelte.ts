@@ -186,14 +186,13 @@ function routeRows<T extends { id: number }>(
     { enabled: () => !text && enabled() },
   )
   const hits = sqlResource(
-    () => `${ROUTE_MAP_SQL} ${order}`,
+    // By name, JS orders the rows; SQLite would sort the region by bytes only for that to be thrown away.
+    () => `${ROUTE_MAP_SQL} ${byName ? 'order by r.nid' : order}`,
     () => filterParameters(filter()),
     (rows: MapRow[]) => {
       const matched = rows.filter(matchesText(filter()))
-      const named = byName ? sortByName(matched) : matched
-      return (byName && filter().sortOrder === 'desc' ? named.toReversed() : named)
-        .slice(0, filter().pageSize)
-        .map((row) => row.id)
+      const named = byName ? sortByName(matched, (row) => row.id, filter().sortOrder) : matched
+      return named.slice(0, filter().pageSize).map((row) => row.id)
     },
     () => streamsOf(filter()),
     { enabled: () => text && enabled() },

@@ -58,10 +58,15 @@ export function healthServer(url, token, now = Date.now) {
 export function verdict(diagnostics, now) {
   const rules = diagnostics?.data?.active_sync_rules ?? {}
   const connections = rules.connections ?? []
+  // A sync config that failed to deploy leaves the old one serving, so only its errors tell.
+  const deploying = diagnostics?.data?.deploying_sync_rules ?? {}
   const errorCount =
     errorsOf(diagnostics?.data?.connections).length +
-    fatal(rules.errors).length +
-    errorsOf(connections.flatMap((c) => c.tables ?? [])).length
+    [rules, deploying].reduce(
+      (sum, set) =>
+        sum + fatal(set.errors).length + errorsOf((set.connections ?? []).flatMap((c) => c.tables ?? [])).length,
+      0,
+    )
   const {
     last_checkpoint_ts: lastCheckpoint = null,
     max_slot_wal_keep_size: keepSize = null,
