@@ -38,6 +38,13 @@ describe('the built service worker', () => {
     // prerendering it would take offline with it: silently, because nothing else would fail.
     expect(readFileSync(BUILT_WORKER, 'utf-8')).toContain('"url":"offline"')
   })
+
+  withBuild('precaches the SQLite build the PowerSync worker loads', () => {
+    // Without it a cold offline start has a shell and no database; over Workbox's size cap it is skipped silently.
+    expect(readFileSync(BUILT_WORKER, 'utf-8')).toMatch(
+      /_app\/immutable\/workers\/assets\/wa-sqlite-async-[\w-]+\.wasm/,
+    )
+  })
 })
 
 /** Comments in this repo quote both of the literals below, so match on code only. */

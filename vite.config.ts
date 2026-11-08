@@ -169,7 +169,14 @@ export default defineConfig({
       },
       filename: 'sw.ts',
       injectManifest: {
-        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
+        // The async SQLite build PowerSync's database worker loads, or a cold offline start opens no store.
+        // Only that copy: the build also emits the main-thread and encrypted variants, which never load here.
+        globPatterns: [
+          'client/**/*.{js,css,ico,png,svg,webp,woff,woff2}',
+          'client/_app/immutable/workers/assets/wa-sqlite-async-*.wasm',
+        ],
+        // It is 2.3 MB; Workbox skips anything over its 2 MiB default without failing the build.
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       kit: {
         includeVersionFile: true,

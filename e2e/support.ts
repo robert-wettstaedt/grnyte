@@ -9,6 +9,8 @@ import { expect, type Browser, type Page } from '@playwright/test'
 /** The same default the config resolves `baseURL` from. */
 export const APP = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
 export const ZERO = 'http://localhost:4848'
+// Guidebook reads come from PowerSync; writes, the feed and comments still go through zero-cache.
+const POWERSYNC = 'http://localhost:58100/probes/liveness'
 
 /**
  * Prerequisites named out loud, so a missing service reads as "start this". `extra` is for a spec
@@ -29,6 +31,9 @@ export async function assertLocalStack(dbReachable: boolean, password: string, e
   if (!dbReachable) missing.push('local Supabase Postgres (DATABASE_URL is unreachable)')
   if (!(await reachableUrl(APP))) missing.push(`the app on ${APP} (npm run dev)`)
   if (!(await reachableUrl(ZERO))) missing.push('zero-cache on :4848 (npm run dev:zero)')
+  if (!(await reachableUrl(POWERSYNC))) {
+    missing.push('PowerSync on :58100 (deployment/docker-compose.powersync.local.yml)')
+  }
   if (!password) missing.push('E2E_PASSWORD in .env (the shared seed-login password)')
 
   if (missing.length > 0) {
