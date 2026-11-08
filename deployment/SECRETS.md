@@ -35,9 +35,20 @@ Which half of a project goes where:
   Anything in BOTH places is a knob you cannot turn, because `environment:` overrides `env_file:`.
   That was true of the two connection limits until 2026-08-25, so editing them in the vault did
   nothing at all.
+- `PS_*` is the PowerSync service's, and travels exactly like `ZERO_*` (the service refuses any other
+  prefix in `!env`). The vault holds `PS_DATA_SOURCE_URI` (prod Postgres over the direct connection,
+  never the pooler), `PS_SUPABASE_JWT_SECRET` (the Supabase JWT secret) and `PS_ADMIN_TOKEN` (any long
+  random string; it guards the admin API, which nginx already refuses from outside). `PS_MONGO_URI`
+  and `PS_DATA_SOURCE_SSLMODE` stay in `docker-compose.zero.yml`, beside the containers they describe.
+  Until these three are in `deploy-zero.yml`'s allowlist, `powersync-prod` exits on a missing variable.
+  `sync-health-prod` reads `PS_ADMIN_TOKEN` from `.env.health`, which `deploy-zero.yml` writes beside
+  `.env.prod` with that one line and nothing else; the app never holds it, and reads
+  the sidecar's verdict at the public `/health/sync`. `SYNC_HEALTH_URL` is a local override only and
+  belongs in no vault project.
 - `VPS_SSH_KEY`, `VPS_HOST` and `VPS_USER` are the deploy's, and live in grnyte-prod. Point
   `VPS_HOST` at the box's tailnet address, not its public one.
-- Everything else is the app's. It goes to Vercel. `PUBLIC_ZERO_URL` is the app's, not the server's.
+- Everything else is the app's. It goes to Vercel. `PUBLIC_ZERO_URL` and `PUBLIC_POWERSYNC_URL` are the
+  app's, not the servers'.
 - Local development gets both halves, because it runs both. `VPS_*` is not in grnyte-dev: nothing
   local talks to the VPS.
 
@@ -100,19 +111,8 @@ Then, in GitHub:
 
 **This is the only secret GitHub stores.** There are no repository secrets, and the only Actions
 variables are the two above; every other value is read from Bitwarden at run time by
-`bitwarden/sm-action`, pinned by commit in each workflow. Delete the rest **after the v2 cutover, not before** — `main` still reads
-`ZERO_UPSTREAM_DB`, `ZERO_AUTH_SECRET`, `ZERO_ADMIN_PASSWORD` and `VPS_SSH_KEY` as `secrets.*`, and
-Zero deploys from `main`:
-
-- Repository secrets `E2E_PASSWORD`, `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`,
-  `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `RESEND_SENDER_EMAIL`, `VPS_SSH_KEY`,
-  `ZERO_ADMIN_PASSWORD`; environment secrets `ZERO_UPSTREAM_DB`, `ZERO_AUTH_SECRET`.
-- Variables `VPS_HOST`, `VPS_USER`, `E2E_BASE_URL`, `ZERO_DOMAIN`, `ZERO_GET_QUERIES_URL`,
-  `CERTBOT_EMAIL`. `ZERO_DOMAIN` and `CERTBOT_EMAIL` are read by nothing in the repository at all;
-  the rest moved into the projects.
-- `PRIVATE_VAPID_KEY` and `PUBLIC_VAPID_KEY` can go **immediately** rather than at the cutover:
-  `main`'s `ci.yml` sets both to `foobar`, so nothing on any branch reads them once `ci.yml`
-  generates its own pair.
+`bitwarden/sm-action`, pinned by commit in each workflow. Any other secret or variable still in the
+repository's GitHub settings is left over from before the vault and read by nothing.
 
 Finally downgrade both machine accounts to **Can read**. The workflows only read, and the
 difference is not academic: the tokens live in GitHub, this repository is public, and a leaked
@@ -145,8 +145,7 @@ The mappings live next to the jobs rather than in a GitHub variable, because `de
 review in a diff is not one. `node deployment/secrets.mjs ids` prints them in the exact input format;
 uuids are identifiers rather than credentials, so they belong in a public workflow file.
 
-Uuids are per project. `deploy-zero.yml` keeps the mapping in its matrix entry beside the
-environment name.
+Uuids are per project. `deploy-zero.yml` keeps the mapping in its `prepare-envs` job's `SECRET_IDS`.
 
 `node deployment/secrets.mjs verify` checks those mappings against what the project actually holds.
 Run it with the prod token; every uuid in the workflows is prod's, so one reported as not in
@@ -168,8 +167,9 @@ bws run -- npm run dev
 BWS_ACCESS_TOKEN=<prod token> node deployment/secrets.mjs vercel grnyte
 ```
 
-The VPS half is automatic: `deploy-zero.yml` pulls the project on the runner, keeps the `ZERO_*`
-lines and writes them to `deployment/.env.<environment>` over SSH. The token never reaches the VPS.
+The VPS half is automatic: `deploy-zero.yml` reads its allowlist through `sm-action` on the runner,
+keeps the `ZERO_*` values and writes them to `deployment/.env.prod` over SSH. The token never reaches
+the VPS.
 `post-deploy.yml` reads its nine values through `sm-action`, which writes them to `$GITHUB_ENV` for
 the steps that follow. That is broader than `bws run`'s single child process, and the trade is
 deliberate: the allowlist means the job never holds anything but those nine, and every one of them is
@@ -229,4 +229,3 @@ machine account's **Access tokens** tab.
   permission problem is indistinguishable from a wrong id or a wrong token until you separate them:
   `bws project list` says which project the token reaches, and `bws secret get <id>` says whether it
   can see the secret at all. Read succeeding while edit 404s means the account is `Can read`.
-- `bws` is pinned to 2.1.0 in the workflows. A deploy is a bad place to meet a new CLI.

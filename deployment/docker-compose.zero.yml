@@ -86,6 +86,107 @@ services:
       - zero_network
       - cvr_network
 
+  # PowerSync bucket storage. Derived state rebuilt from Postgres, so one node and no backup (D5); cache sized in facts.md.
+  mongo-prod:
+    image: mongo:7
+    container_name: powersync-mongo-prod
+    command: ['--replSet', 'rs0', '--bind_ip_all', '--wiredTigerCacheSizeGB', '0.5']
+    mem_limit: 1g
+    volumes:
+      - mongo_data_prod:/data/db
+    restart: unless-stopped
+    healthcheck:
+      # Initiates the single-node replica set on first start; PowerSync needs one for change streams.
+      test: >-
+        echo "try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo-prod:27017' }] }) }"
+        | mongosh --quiet
+      interval: 10s
+      retries: 20
+      start_period: 20s
+    networks:
+      - powersync_network
+
+  # One unified process: the box has no memory for API containers beside zero-cache (facts.md). Secrets are the
+  # `PS_*` keys in `.env.prod`; the service refuses any other prefix in `!env`.
+  powersync-prod:
+    # Moves with the `@powersync/*` client packages; `service.yaml` and `sync-config.yaml` are read at start.
+    image: journeyapps/powersync-service:1.27.2
+    container_name: powersync-prod
+    command: ['start', '-r', 'unified']
+    expose:
+      - '8080'
+    env_file:
+      - .env.prod
+    environment:
+      - POWERSYNC_CONFIG_PATH=/config/service.yaml
+      - PS_MONGO_URI=mongodb://mongo-prod:27017/powersync?replicaSet=rs0
+      - PS_DATA_SOURCE_SSLMODE=verify-full
+      - NODE_OPTIONS=--max-old-space-size=768
+    mem_limit: 1g
+    volumes:
+      - ./powersync:/config:ro
+    restart: unless-stopped
+    depends_on:
+      mongo-prod:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8080/probes/liveness').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - zero_network
+      - powersync_network
+
+  # Hourly compaction, owned by the deploy rather than a host cron.
+  powersync-compact-prod:
+    image: journeyapps/powersync-service:1.27.2
+    container_name: powersync-compact-prod
+    entrypoint: ['sh', '-c', 'while true; do sleep 3600; node service/lib/entry.js compact; done']
+    env_file:
+      - .env.prod
+    environment:
+      - POWERSYNC_CONFIG_PATH=/config/service.yaml
+      - PS_MONGO_URI=mongodb://mongo-prod:27017/powersync?replicaSet=rs0
+      - PS_DATA_SOURCE_SSLMODE=verify-full
+    mem_limit: 512m
+    volumes:
+      - ./powersync:/config:ro
+    restart: unless-stopped
+    depends_on:
+      mongo-prod:
+        condition: service_healthy
+    networks:
+      - zero_network
+      - powersync_network
+
+  # Serves GET /health/sync from the diagnostics API (`powersync/health.mjs`). `.env.health` holds only
+  # `PS_ADMIN_TOKEN`, written beside `.env.prod` by deploy-zero.yml.
+  sync-health-prod:
+    image: journeyapps/powersync-service:1.27.2
+    container_name: sync-health-prod
+    entrypoint: ['node', '/health/health.mjs']
+    expose:
+      - '8080'
+    env_file:
+      - .env.health
+    environment:
+      - POWERSYNC_URL=http://powersync-prod:8080
+      - PORT=8080
+    mem_limit: 128m
+    volumes:
+      - ./powersync/health.mjs:/health/health.mjs:ro
+    restart: unless-stopped
+    networks:
+      - zero_network
+
   nginx:
     image: nginx:alpine
     container_name: nginx-main
@@ -110,7 +211,12 @@ networks:
   cvr_network:
     driver: bridge
     internal: true
+  # MongoDB has no auth, so only the PowerSync containers reach it.
+  powersync_network:
+    driver: bridge
+    internal: true
 
 volumes:
   zero_data_prod:
   cvr_data_prod:
+  mongo_data_prod:
