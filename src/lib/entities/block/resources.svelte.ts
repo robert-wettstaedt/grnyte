@@ -1,5 +1,6 @@
 import { areaChain } from '$lib/entities/area/resources.svelte'
 import { toDisplayName } from '$lib/entities/displayName'
+import { byNameOrder, sortByName } from '$lib/i18n/collator'
 import { collections } from '$lib/powersync/collections'
 import { psResource, sqlResource, treeList, waitForSynced } from '$lib/powersync/resource.svelte'
 import { json, toZeroRow, unwrapParents } from '$lib/powersync/rows'
@@ -124,7 +125,7 @@ export function blockList(filter: () => BlockListFilter = () => ({}), opts?: { e
         if (references != null) query = query.where(({ b }) => ilike(b.description, `%${references}%`))
         if (sort === 'createdAt') query = query.orderBy(({ b }) => b.created_at, 'desc')
         for (const key of areaId === undefined ? acrossAreasKeys : inAreaKeys) {
-          query = query.orderBy(({ b }) => b[key], 'asc')
+          query = query.orderBy(({ b }) => b[key], key === 'name' ? byNameOrder() : 'asc')
         }
         return query
       },
@@ -147,7 +148,8 @@ export function blockMapList() {
   return sqlResource(
     () => MAP_SQL,
     () => [],
-    (rows: MapBlockRow[]) => rows.map(toMapBlock),
+    // Sorted here: SQLite orders names by bytes, every other list by the reader's language.
+    (rows: MapBlockRow[]) => sortByName(rows as (MapBlockRow & { id: number; name: null | string })[]).map(toMapBlock),
     () => 'guidebook',
   )
 }

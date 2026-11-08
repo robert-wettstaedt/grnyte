@@ -1,4 +1,5 @@
 import { areaToken } from '$lib/entities/area/areaIds'
+import { sortByName } from '$lib/i18n/collator'
 import { narrowedList, sqlResource, waitForSynced } from '$lib/powersync/resource.svelte'
 import { json, toZeroRow } from '$lib/powersync/rows'
 import { ROUTE_LIST_SQL, ROUTE_MAP_SQL, ROUTES_BY_ID_SQL } from '$lib/powersync/sql'
@@ -171,7 +172,9 @@ function routeRows<T extends { id: number }>(
     const by = sort != null && sortOrder != null && Object.hasOwn(SORTS, sort) ? SORTS[sort] : undefined
     return by == null ? 'order by r.nid' : `order by ${by[0]} ${sortOrder === 'desc' ? 'desc' : 'asc'}${by[1]}, r.nid`
   })
-  const text = $derived(hasText(filter()))
+  // Text, and names in the reader's language (SQLite compares bytes), are matched and ordered in JS over bare rows.
+  const byName = $derived(filter().sort === 'name')
+  const text = $derived(hasText(filter()) || byName)
   const enabled = () => opts?.enabled?.() !== false
   const toItems = (rows: SyncedRoute[]) => rows.map((row) => map(toRouteRow(row)))
 
@@ -185,11 +188,13 @@ function routeRows<T extends { id: number }>(
   const hits = sqlResource(
     () => `${ROUTE_MAP_SQL} ${order}`,
     () => filterParameters(filter()),
-    (rows: MapRow[]) =>
-      rows
-        .filter(matchesText(filter()))
+    (rows: MapRow[]) => {
+      const matched = rows.filter(matchesText(filter()))
+      const named = byName ? sortByName(matched) : matched
+      return (byName && filter().sortOrder === 'desc' ? named.toReversed() : named)
         .slice(0, filter().pageSize)
-        .map((row) => row.id),
+        .map((row) => row.id)
+    },
     () => streamsOf(filter()),
     { enabled: () => text && enabled() },
   )
