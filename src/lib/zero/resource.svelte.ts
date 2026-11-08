@@ -1,9 +1,8 @@
 import { powerSyncOnly } from '$lib/powersync/db.svelte'
 import { isOnline } from '$lib/state/online.svelte'
-import { holdsPill, pillSurface, type PillSurface } from '$lib/state/pill.svelte'
-import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
+import { holdsPill, pillSurface } from '$lib/state/pill.svelte'
 import type { HumanReadable, QueryOrQueryRequest, ReadonlyJSONValue } from '@rocicorp/zero'
-import { offlinePolicyOf, type OfflinePolicy } from './offline'
+import { offlinePolicyOf } from './offline'
 import { getZ } from './z.svelte'
 import type { Schema } from './zero-schema'
 
@@ -26,26 +25,11 @@ export interface QueryResource<TOut> {
   readonly phase: QueryPhase
 }
 
-/** The one thing a resource needs from the Zero client, injectable so a test can build one. */
-export interface QuerySource {
-  createQuery(
-    request: QueryRequest,
-    enabled: boolean,
-  ): {
-    readonly data: unknown
-    readonly details: { readonly type: 'complete' | 'error' | 'unknown' }
-    readonly view?: { ensureSubscribed(): void }
-  }
-}
-
 export type ResourceStatus = 'error' | 'loading' | 'ready'
 
 // The registry's requests share no argument or row types, and only their names and hashes are read.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type QueryRequest = QueryOrQueryRequest<any, any, any, Schema, any, any>
-
-// Read inside the resource's derived, so a client swapped on login re-targets the query.
-const zeroSource: QuerySource = { createQuery: (request, enabled) => getZ().createQuery(request, enabled) }
 
 class Resource<
   TTable extends keyof Schema['tables'] & string,
@@ -64,7 +48,7 @@ class Resource<
 
   get phase(): QueryPhase {
     return resolvePhase({
-      excluded: this.#keptInput().policy === 'excluded',
+      excluded: this.#policy === 'excluded',
       online: zeroOnline(),
       rawEmpty: this.#rawEmpty,
       settled: this.#settled,
@@ -76,14 +60,12 @@ class Resource<
 
   #request: () => QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>
 
-  #source: QuerySource
-
   // Recreated whenever the request getter's dependencies change (route params,
   // filters) or the Zero client is swapped on login/logout: `getZ()` is a
   // reactive read. The ViewStore inside zero-svelte dedupes identical queries
   // and defers cleanup, so this is cheap.
   #query = $derived.by(() => {
-    const query = this.#source.createQuery(this.#request(), this.#enabled())
+    const query = getZ().createQuery(this.#request(), this.#enabled())
 
     // Subscribe from here rather than relying on zero-svelte to do it.
     //
@@ -108,7 +90,6 @@ class Resource<
 
   #data = $derived.by(() => this.#select(this.#query.data as HumanReadable<TReturn>))
 
-  #offline: (() => OfflinePolicy | undefined) | OfflinePolicy | undefined
   #policy = $derived.by(() => {
     return offlinePolicyOf(queryNameOf(this.#request()))
   })
@@ -124,26 +105,16 @@ class Resource<
   // view on the request, so two `Query` wrappers for one request share a view that may already be
   // complete. Derived, never an effect: a trailing reset would leave `settled` true for one flush
   // over the next request's rows.
-  #settledViews: unknown[] = []
-
-  #keptInput = () => ({
-    guidebookSynced: lastSyncedAt('guidebook') != null,
-    personalSynced: lastSyncedAt('personal') != null,
-    policy: (typeof this.#offline === 'function' ? this.#offline() : this.#offline) ?? this.#policy,
-    referenceSynced: lastSyncedAt('reference') != null,
-    storeLoaded: localStoreLoaded(),
-  })
+  #settledView: unknown
 
   #settled = $derived.by(() => {
-    const views = [this.#query.view]
+    const view = this.#query.view
     const next = resolveSettled({
-      // Offline, a kept query is answered by its preload; latched like a server answer, so the
-      // reconnect does not drop a form to `arriving` and remount its fields over the edits.
-      complete: this.isComplete || (!zeroOnline() && !powerSyncOnly() && resolveKept(this.#keptInput())),
+      complete: this.isComplete,
       latched: this.#settledLatch,
-      sameView: sameViews(views, this.#settledViews),
+      sameView: view === this.#settledView,
     })
-    this.#settledViews = views
+    this.#settledView = view
     this.#settledLatch = next
     return next
   })
@@ -160,30 +131,11 @@ class Resource<
     request: () => QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>,
     select: (data: HumanReadable<TReturn>) => TOut,
     enabled: () => boolean,
-    offline: (() => OfflinePolicy | undefined) | OfflinePolicy | undefined,
-    source: QuerySource,
-    surface: PillSurface | undefined,
   ) {
-    this.#source = source
     this.#request = request
     this.#select = select
     this.#enabled = enabled
-    this.#offline = offline
-
-    // Resolved now, during component init, so it is the surface this resource renders on. Built
-    // outside a component there is none, and it holds no pill rather than throwing.
-    const pill = holdsPill() ? (surface ?? pillSurface()) : undefined
-    if (pill != null) {
-      try {
-        $effect(() => {
-          if (this.phase.kind === 'arriving') {
-            return pill.hold(this)
-          }
-        })
-      } catch {
-        // effect_orphan: no component or effect root owns this resource.
-      }
-    }
+    holdWhileArriving(this)
   }
 }
 
@@ -198,10 +150,6 @@ class Resource<
  * @param select maps the raw Zero rows to DTOs; runs memoized inside
  *   `$derived`, keeping Zero's reactivity.
  * @param opts.enabled gate for dependent queries that aren't ready to run yet.
- * @param opts.offline overrides the query's offline policy for this usage, for one that depends on
- *   its arguments (your own logbook is kept, somebody else's is not).
- * @param opts.source the Zero client; tests pass a fake.
- * @param opts.surface the pill to hold while arriving; tests pass one, components read context.
  */
 export function createResource<
   TTable extends keyof Schema['tables'] & string,
@@ -213,21 +161,9 @@ export function createResource<
 >(
   request: () => QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>,
   select: (data: HumanReadable<TReturn>) => TOut,
-  opts?: {
-    enabled?: () => boolean
-    offline?: (() => OfflinePolicy | undefined) | OfflinePolicy
-    source?: QuerySource
-    surface?: PillSurface
-  },
+  opts?: { enabled?: () => boolean },
 ): QueryResource<TOut> {
-  return new Resource(
-    request,
-    select,
-    opts?.enabled ?? (() => true),
-    opts?.offline,
-    opts?.source ?? zeroSource,
-    opts?.surface,
-  )
+  return new Resource(request, select, opts?.enabled ?? (() => true))
 }
 
 /** More rows may still come, the first included: a held space is worth keeping. */
@@ -236,27 +172,21 @@ export function expectingMore(phase: QueryPhase): boolean {
 }
 
 /**
- * Whether this device holds the whole answer without asking: the policy keeps it and the preload
- * that fills it finished. The reference stamp does not vouch for the guidebook, which lands later.
+ * Holds the nearest pill while `resource` arrives. Call during component init, so it is the surface the
+ * resource renders on; built outside a component, or `quietly`, it holds none rather than throwing.
  */
-export function resolveKept(input: {
-  guidebookSynced: boolean
-  personalSynced: boolean
-  policy: OfflinePolicy | undefined
-  referenceSynced: boolean
-  storeLoaded: boolean
-}): boolean {
-  // Until the replica is read back, kept rows are empty because they are loading, or gone.
-  if (!input.storeLoaded) {
-    return false
+export function holdWhileArriving(resource: QueryResource<unknown>, surface = pillSurface()): void {
+  if (!holdsPill() || surface == null) return
+  try {
+    $effect(() => {
+      if (resource.phase.kind === 'arriving') return surface.hold(resource)
+    })
+  } catch {
+    // effect_orphan: no component or effect root owns this resource.
   }
-  if (input.policy === 'always') {
-    return input.referenceSynced
-  }
-  return input.policy === 'field' ? input.guidebookSynced : input.policy === 'personal' && input.personalSynced
 }
 
-/** What a screen may say. Order is load-bearing: `settled` already folds in "offline and kept", and
+/** What a screen may say. Order is load-bearing: `settled` already folds in "offline from disk", and
  *  `loading` implies no rows, so neither needs its own offline check. */
 export function resolvePhase({
   excluded,
@@ -312,11 +242,6 @@ export function resolveStatus({
 }): ResourceStatus {
   if (errored) return 'error'
   return !complete && rawEmpty ? 'loading' : 'ready'
-}
-
-/** Whether a composite still watches the same views, in order. Any change is a new request. */
-export function sameViews(next: unknown[], previous: unknown[]): boolean {
-  return next.length === previous.length && next.every((view, i) => view === previous[i])
 }
 
 /** A summary of a collection (a count, tallies, a sibling list) once it may show: answered, or
