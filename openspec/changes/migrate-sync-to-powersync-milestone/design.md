@@ -160,7 +160,7 @@ Alternatives: trust `hasSynced` (the bug above); wait a fixed delay after a sync
 
 Milestone only; nothing deploys to users.
 
-1. Infra on the VPS beside zero-cache, service reachable at `sync.grnyte.rocks`, syncing prod data to a test account.
+1. Infra on the VPS beside zero-cache, service reachable at `sync.grnyte.rocks`, syncing prod data to the user's own prod account.
 2. Branch `feature/powersync` in a fresh worktree off `develop`; trial code ported by file, not merged.
 3. Reads and shell land per task group with a review loop after reads.
 4. Remeasure on the user's iPhone (home-screen app, preview build over Tailscale, switch on): rule 1 cold start and reopen to map-ready, rule 2 screens, rule 8 one-hour soak, each against today's Zero build. Pass means no worse. iOS checks run in the iOS Simulator first; the iPhone carries only what the Simulator cannot measure: the rule 1 and 2 timings and the rule 8 soak.
