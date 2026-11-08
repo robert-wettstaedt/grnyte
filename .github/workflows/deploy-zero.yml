@@ -97,6 +97,9 @@ jobs:
         db33aff4-7994-4cfe-bc01-b4b1008ddc21 > ZERO_NUM_SYNC_WORKERS
         a6c1d4f6-a8b8-47bc-b3a0-b4b1008dd02d > ZERO_CVR_MAX_CONNS
         cc7bb4d8-6654-4b89-b306-b4b1008dd661 > ZERO_UPSTREAM_MAX_CONNS
+        cbc7c9dd-a224-4d65-b472-b4fc015d3af2 > PS_DATA_SOURCE_URI
+        04cf6598-893b-4a83-ba88-b4fc015de793 > PS_SUPABASE_JWT_SECRET
+        0fbd9c6d-1363-489e-aec9-b4fc015e1e80 > PS_ADMIN_TOKEN
         00050332-e579-440d-981b-b4b100937e3b > VPS_SSH_KEY
         1e8728fb-6dc4-436f-beeb-b4b10092ea48 > VPS_HOST
         3669b3d5-cdce-4964-84f1-b4b10092e14d > VPS_USER
