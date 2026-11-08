@@ -2,14 +2,13 @@ import { compareNames } from '$lib/i18n/collator'
 import { collections } from '$lib/powersync/collections'
 import { psResource, signedInAuthId } from '$lib/powersync/resource.svelte'
 import { toZeroRow } from '$lib/powersync/rows'
-import { queries } from '$lib/zero/queries'
-import { createResource } from '$lib/zero/resource.svelte'
-import { and, eq, toArray } from '@tanstack/db'
+import { and, eq, toArray, type InitialQueryBuilder } from '@tanstack/db'
 import {
   toRegionDetail,
   toRegionMemberItem,
   toRegionMembership,
   type RegionDetailRow,
+  type RegionMemberListRow,
   type RegionMemberRow,
 } from './mapper'
 
@@ -43,9 +42,26 @@ export function regionDetail(id: () => number) {
  * and without a sort a role change re-syncs the row to a different position.
  */
 export function regionMemberList(regionFk: () => number) {
-  return createResource(
-    () => queries.listRegionMembers({ regionFk: regionFk() }),
-    (rows) => rows.map(toRegionMemberItem).sort((a, b) => compareNames(a.username, b.username)),
+  const user = (q: InitialQueryBuilder, fk: unknown) =>
+    toArray(q.from({ u: collections().users }).where(({ u }) => eq(u.nid, fk)))
+  return psResource(
+    (q) =>
+      q
+        .from({ m: collections().region_members })
+        .where(({ m }) => and(eq(m.region_fk, regionFk()), eq(m.is_active, 1)))
+        .select(({ m }) => ({ ...m, invitedBy: user(q, m.invited_by), user: user(q, m.user_fk) })),
+    [regionFk],
+    (rows) =>
+      rows
+        .map((row) =>
+          toRegionMemberItem({
+            ...toZeroRow<RegionMemberListRow>('region_members', row),
+            invitedBy: row.invitedBy[0] && toZeroRow<RegionMemberListRow['invitedBy']>('users', row.invitedBy[0]),
+            user: row.user[0] && toZeroRow<RegionMemberListRow['user']>('users', row.user[0]),
+          }),
+        )
+        .sort((a, b) => compareNames(a.username, b.username)),
+    ['region_activity', 'members'],
   )
 }
 

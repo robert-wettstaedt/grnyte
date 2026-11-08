@@ -56,7 +56,7 @@ const ROUTE_TREE = `select r.*,
 export const ROUTE_LIST_SQL = `${ROUTE_TREE} from routes r ${ROUTE_FILTERS}`
 
 /** `listRoutes` by id: the ids (a JSON array) drive, so a route page reads one route, not the region. */
-export const ROUTES_BY_ID_SQL = `${ROUTE_TREE} from json_each(?1) j join routes r on r.nid = j.value order by r.nid`
+export const ROUTES_BY_ID_SQL = `${ROUTE_TREE} from (select distinct value from json_each(?1)) j join routes r on r.nid = j.value order by r.nid`
 
 /** `listRoutesForMap`: the bare columns the map and its search read, filtered as {@link ROUTE_FILTERS}. */
 export const ROUTE_MAP_SQL = `select r.nid as id, r.area_ids, r.block_fk, r.description, r.name, r.user_grade_fk

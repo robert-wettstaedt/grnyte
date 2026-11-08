@@ -103,11 +103,13 @@ export function userList(filter: () => UserListFilter, opts?: { enabled?: () => 
 }
 
 export function usersByIds(ids: () => number[]) {
+  // A string, so a caller's fresh but equal array does not recompile the query.
+  const key = $derived(ids().join(','))
   return psResource(
-    (q) => q.from({ u: collections().users }).where(({ u }) => inArray(u.nid, ids())),
-    [ids],
+    (q) => q.from({ u: collections().users }).where(({ u }) => inArray(u.nid, key.split(',').map(Number))),
+    [() => key],
     (rows) => rows.map((row) => toUserRef(toZeroRow<UserRefRow>('users', row))),
     'members',
-    { enabled: () => ids().length > 0 },
+    { enabled: () => key !== '' },
   )
 }

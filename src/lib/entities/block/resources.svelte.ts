@@ -183,12 +183,14 @@ export function blockTree<T>(id: () => number, map: (row: BlockRow | undefined) 
 
 /** Several blocks' trees at once: the feed draws topos across a window of rows. */
 export function blockTreesByIds<T>(ids: () => number[], map: (rows: BlockRow[]) => T) {
+  // A string, so a caller's fresh but equal array does not recompile the query.
+  const key = $derived(ids().join(','))
   return psResource(
-    (q) => blockTrees(q, (b) => inArray(b.nid, ids())),
-    [ids],
+    (q) => blockTrees(q, (b) => inArray(b.nid, key.split(',').map(Number))),
+    [() => key],
     (rows) => map(rows.map(toBlockRow)),
     'guidebook',
-    { enabled: () => ids().length > 0 },
+    { enabled: () => key !== '' },
   )
 }
 

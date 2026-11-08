@@ -36,7 +36,8 @@ export function createSaveState(
     // 0 (no badge) until it is whole: your own row alone read as "1".
     get count() {
       const synced = count.phase.kind === 'answered' ? count.data : 0
-      return unsynced == null ? synced : synced + (unsynced ? 1 : -1)
+      // Only the difference the read has not seen yet: it may already hold the write, or be a tap behind.
+      return unsynced == null ? synced : synced + Number(unsynced) - Number(favorited.data)
     },
     /** Loading only, not unanswered: Zero clears `complete` on its own background-tab disconnect. */
     get pending() {

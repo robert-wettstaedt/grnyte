@@ -231,6 +231,8 @@ export function entitySearch({ limit, open, query, regionCrumb, regionFks }: Ent
         placed = []
         placedTerm = query()
       }
+      // Local reads answer a frame apart: placing the first groups before all have would order them by arrival.
+      if (placed.length === 0 && this.outcome === 'pending') return []
       placed = placeGroups(
         placed,
         GROUP_ORDER.filter((type) => all[type].length > 0),
