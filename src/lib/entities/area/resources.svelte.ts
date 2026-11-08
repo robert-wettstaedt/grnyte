@@ -21,7 +21,7 @@ export interface AreaListFilter {
   sort?: 'createdAt'
 }
 
-type MapAreaRow = Record<string, unknown> & { parent: null | string; parking: string }
+type MapAreaRow = Record<string, unknown> & { name: null | string; nid: number; parent: null | string; parking: string }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the builder's ref types do not survive a helper
 type Ref = any
 
@@ -94,7 +94,7 @@ export function areaMapList() {
     () => AREA_MAP_SQL,
     () => [],
     // Sorted here: SQLite orders names by bytes, every other list by the reader's language.
-    (rows: MapAreaRow[]) => sortByName(rows as (MapAreaRow & { id: number; name: null | string })[]).map(toMapArea),
+    (rows: MapAreaRow[]) => sortByName(rows, (row) => row.nid).map(toMapArea),
     () => 'guidebook',
   )
 }

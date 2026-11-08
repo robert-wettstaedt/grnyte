@@ -1,7 +1,7 @@
 import { recordView, VIEWED_KEY } from '$lib/components/EntitySearch/recent.svelte'
 import { dropAllDatabases } from '@rocicorp/zero'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { stubIndexedDb } from './indexedDbStub'
+import { stubIndexedDb } from './indexedDbStub.test-helper'
 import { loadHistory, saveHistory } from './searchHistory'
 import { markSynced, trackSyncFor } from './sync.svelte'
 import { wipeDeviceData } from './wipe'

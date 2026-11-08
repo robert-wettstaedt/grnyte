@@ -1,4 +1,4 @@
-import { stubIndexedDb } from '$lib/state/indexedDbStub'
+import { stubIndexedDb } from '$lib/state/indexedDbStub.test-helper'
 import type { PowerSyncBackendConnector } from '@powersync/web'
 import type { Session } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

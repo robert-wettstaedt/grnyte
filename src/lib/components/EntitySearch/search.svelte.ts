@@ -239,9 +239,12 @@ export function entitySearch({ limit, open, query, regionCrumb, regionFks }: Ent
         (phase) => phase.kind === 'loading',
       )
       // Only for the same search typed on: another term, or a reopen, never sees the previous results.
-      const related = query().startsWith(shownTerm) || shownTerm.startsWith(query())
-      if (placed.length === 0 && loading) return open() && shownTerm !== '' && query() !== '' && related ? shown : []
-      shownTerm = query()
+      const term = query()
+      if (placed.length === 0 && loading) {
+        const related = term.startsWith(shownTerm) || shownTerm.startsWith(term)
+        return open() && shownTerm !== '' && term !== '' && related ? shown : []
+      }
+      shownTerm = term
       placed = placeGroups(
         placed,
         GROUP_ORDER.filter((type) => all[type].length > 0),

@@ -19,7 +19,6 @@ export const CACHE_MS = 15_000
 const fatal = (errors) => (errors ?? []).filter((error) => (error?.level ?? 'fatal') === 'fatal')
 const errorsOf = (items) => (items ?? []).flatMap((item) => fatal(item.errors))
 
-/** Asks the service; anything but a diagnostics answer in time is `unreachable`. */
 export async function diagnose(url, token, now = Date.now) {
   try {
     const response = await fetch(`${url}/api/admin/v1/diagnostics`, {
@@ -36,7 +35,6 @@ export async function diagnose(url, token, now = Date.now) {
   return { reasons: ['unreachable'], status: 'unreachable' }
 }
 
-/** The public endpoint: concurrent requests share one diagnostics call, and its verdict serves for `CACHE_MS`. */
 export function healthServer(url, token, now = Date.now) {
   let cached
   return createServer(async (request, response) => {
