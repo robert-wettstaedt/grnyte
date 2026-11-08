@@ -111,48 +111,17 @@ export function routeDetail(id: () => number, opts?: { enabled?: () => boolean }
   return holdWhileDeleting(route, 'routes', id)
 }
 
+/** {@link routeList} with each route's first ascents and raw values, for the merge sheet. */
+export function routeDetailList(filter: () => RouteListFilter, opts?: { enabled?: () => boolean }) {
+  return routeRows(filter, toRouteDetail, opts)
+}
+
 /**
  * Routes with tags, first ascents, block and topo. A text search matches the bare rows in JS, then reads the related
  * rows of the hits only: building them for the whole region cost 300 ms at 4x throttle, the bare rows 60 (D1).
  */
-export function routeList(
-  filter: () => RouteListFilter = () => ({}),
-  opts?: { enabled?: () => boolean },
-): QueryResource<ReturnType<typeof toRouteListItem>[]> {
-  const order = $derived.by(() => {
-    const { sort, sortOrder } = filter()
-    const by = sort != null && sortOrder != null && Object.hasOwn(SORTS, sort) ? SORTS[sort] : undefined
-    return by == null ? 'order by r.nid' : `order by ${by[0]} ${sortOrder === 'desc' ? 'desc' : 'asc'}${by[1]}, r.nid`
-  })
-  const text = $derived(hasText(filter()))
-  const enabled = () => opts?.enabled?.() !== false
-  const toItems = (rows: SyncedRoute[]) => rows.map((row) => toRouteListItem(toRouteRow(row)))
-
-  const all = sqlResource(
-    () => `${ROUTE_LIST_SQL} ${order} limit ?10`,
-    () => [...filterParameters(filter()), filter().pageSize ?? -1],
-    toItems,
-    () => streamsOf(filter()),
-    { enabled: () => !text && enabled() },
-  )
-  const hits = sqlResource(
-    () => `${ROUTE_MAP_SQL} ${order}`,
-    () => filterParameters(filter()),
-    (rows: MapRow[]) =>
-      rows
-        .filter(matchesText(filter()))
-        .slice(0, filter().pageSize)
-        .map((row) => row.id),
-    () => streamsOf(filter()),
-    { enabled: () => text && enabled() },
-  )
-  const found = byIds(
-    () => hits.data,
-    toItems,
-    () => text && enabled() && hits.data.length > 0,
-  )
-
-  return narrowedList(() => text, all, hits, found)
+export function routeList(filter: () => RouteListFilter = () => ({}), opts?: { enabled?: () => boolean }) {
+  return routeRows(filter, toRouteListItem, opts)
 }
 
 /** Slim route rows for the map (no related rows). `name` is raw, for search matching only. */
@@ -190,4 +159,45 @@ export function routesByIds(ids: () => number[], opts?: { enabled?: () => boolea
 /** Resolve once the route row for `id` has synced, or after `timeoutMs`. See {@link waitForSynced}. */
 export function waitForRoute(id: number, timeoutMs = 5000): Promise<void> {
   return waitForSynced('routes', id, timeoutMs)
+}
+
+function routeRows<T extends { id: number }>(
+  filter: () => RouteListFilter,
+  map: (row: RouteListRow) => T,
+  opts?: { enabled?: () => boolean },
+): QueryResource<T[]> {
+  const order = $derived.by(() => {
+    const { sort, sortOrder } = filter()
+    const by = sort != null && sortOrder != null && Object.hasOwn(SORTS, sort) ? SORTS[sort] : undefined
+    return by == null ? 'order by r.nid' : `order by ${by[0]} ${sortOrder === 'desc' ? 'desc' : 'asc'}${by[1]}, r.nid`
+  })
+  const text = $derived(hasText(filter()))
+  const enabled = () => opts?.enabled?.() !== false
+  const toItems = (rows: SyncedRoute[]) => rows.map((row) => map(toRouteRow(row)))
+
+  const all = sqlResource(
+    () => `${ROUTE_LIST_SQL} ${order} limit ?10`,
+    () => [...filterParameters(filter()), filter().pageSize ?? -1],
+    toItems,
+    () => streamsOf(filter()),
+    { enabled: () => !text && enabled() },
+  )
+  const hits = sqlResource(
+    () => `${ROUTE_MAP_SQL} ${order}`,
+    () => filterParameters(filter()),
+    (rows: MapRow[]) =>
+      rows
+        .filter(matchesText(filter()))
+        .slice(0, filter().pageSize)
+        .map((row) => row.id),
+    () => streamsOf(filter()),
+    { enabled: () => text && enabled() },
+  )
+  const found = byIds(
+    () => hits.data,
+    toItems,
+    () => text && enabled() && hits.data.length > 0,
+  )
+
+  return narrowedList(() => text, all, hits, found)
 }
