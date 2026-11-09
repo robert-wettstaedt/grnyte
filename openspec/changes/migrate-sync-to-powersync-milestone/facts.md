@@ -26,7 +26,7 @@ Read by the user on prod and on the VPS; pasted verbatim, decisions below.
 
 ## Prod and first-sync measurements (2026-11-09)
 
-Prod, read by the user: `max_slot_wal_keep_size` 512MB; slots `zero_0_a` and `powersync_1_f5de`, both active and `reserved`. First replication: engine started 14:44:44 UTC, first checkpoint 14:45:00. The user's account synced headlessly from prod in 1,466 ms (37,513 rows, 2.6 MB, 8 regions).
+Prod, read by the user: `max_slot_wal_keep_size` 512MB; slots `zero_0_a` and `powersync_1_f5de`, both active and `reserved`. First replication: engine started 14:44:44 UTC, first checkpoint 14:45:00. The user's account synced headlessly from prod in 1,466 ms (37,513 rows, 2.6 MB, 8 regions), of which the map's tables are areas 1,339, blocks 2,703 and geolocations 2,442 (~6,500).
 
 First sync of `admin@` on the dev stack (30,008 operations, 12.4 MB; `guidebook[18]` alone 27,844), time for the big stream from connect to synced:
 
@@ -39,4 +39,4 @@ First sync of `admin@` on the dev stack (30,008 operations, 12.4 MB; `guidebook[
 | iOS 27.2 Simulator, `SimpleOpfsVFS` (2.7.0)            | 19.6, then no reconnect after a reload |
 | User's iPhone, prod, home-screen app (user's account)  | 45 to 60, pill to done; Zero 4         |
 
-Web Inspector recording of an iOS first sync: the page's main thread at 65 to 80% for the whole sync, the database worker at ~5%, and only 0.35 s of JavaScript sampled. Service defaults: `DEFAULT_DOCUMENT_BATCH_LIMIT` 1,000 operations and `DEFAULT_DOCUMENT_CHUNK_LIMIT_BYTES` 1 MiB per line. `wa-sqlite-jspi.wasm` (742 KB) contains no `powersync_init`; `wa-sqlite-async.wasm` (2.3 MB) does. Cause and decisions: design D12.
+Web Inspector recording of an iOS first sync: the page's main thread at 65 to 80% for the whole sync, the database worker at ~5%, and only 0.35 s of JavaScript sampled. Service defaults: `DEFAULT_DOCUMENT_BATCH_LIMIT` 1,000 operations and `DEFAULT_DOCUMENT_CHUNK_LIMIT_BYTES` 1 MiB per line. `wa-sqlite-jspi.wasm` (742 KB) contains no `powersync_init`; `wa-sqlite-async.wasm` (2.3 MB) and the cipher build `mc-wa-sqlite-jspi.wasm` (1.3 MB, with `powersync_init_static`) do. Swapping the plain JSPI build into PowerSync's worker failed at open (`TypeError: s is not a function`). Cause and decisions: design D12.
