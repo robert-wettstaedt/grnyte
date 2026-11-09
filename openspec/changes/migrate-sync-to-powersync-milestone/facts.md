@@ -40,3 +40,21 @@ First sync of `admin@` on the dev stack (30,008 operations, 12.4 MB; `guidebook[
 | User's iPhone, prod, home-screen app (user's account)  | 45 to 60, pill to done; Zero 4         |
 
 Web Inspector recording of an iOS first sync: the page's main thread at 65 to 80% for the whole sync, the database worker at ~5%, and only 0.35 s of JavaScript sampled. Service defaults: `DEFAULT_DOCUMENT_BATCH_LIMIT` 1,000 operations and `DEFAULT_DOCUMENT_CHUNK_LIMIT_BYTES` 1 MiB per line. `wa-sqlite-jspi.wasm` (742 KB) contains no `powersync_init`; `wa-sqlite-async.wasm` (2.3 MB) and the cipher build `mc-wa-sqlite-jspi.wasm` (1.3 MB, with `powersync_init_static`) do. Swapping the plain JSPI build into PowerSync's worker failed at open (`TypeError: s is not a function`). Sources for the cause: WebKit bug 329813, as reported for wa-sqlite at https://github.com/lalexdotcom/browser-sqlite/issues/11 (Safari 27.2), and powersync-js #808 for the OPFS reload hang. Cause and decisions: design D12.
+
+## Task 8.6: JSPI with PowerSync (2026-11-09)
+
+`admin@` on the dev stack, a first sync read from the sync timeline (big stream, connect to synced):
+
+| Client and setting                                                                              | Seconds |
+| ----------------------------------------------------------------------------------------------- | ------- |
+| Chrome, Asyncify (before)                                                                       | 3.3     |
+| Chrome, JSPI (`mc-wa-sqlite-jspi`; the new Chrome baseline)                                     | 1.8     |
+| iOS 27.2 Simulator, Asyncify, Profile (before)                                                  | 23.1    |
+| iOS 27.2 Simulator, JSPI, Profile                                                               | 20.6    |
+| iOS 27.2 Simulator, JSPI, Sync health, collections lazy (`PUBLIC_POWERSYNC_SKIP_COLLECTIONS=1`) | 20.4    |
+
+The build probe (`select sqlite3mc_version()`) answered "SQLite3 Multiple Ciphers 2.3.3" in both Chrome and the Simulator, so JSPI ran in both. A store the Asyncify build wrote opened on the JSPI build in the Simulator, synced. The production build's `sw.size.test.ts` went red without the new precache glob and green with it.
+
+Reading: D12's hypothesis does not hold. JSPI saves ~11% in WebKit (and ~45% in Chrome), and the TanStack collections cost nothing measurable (the "taken in" steps follow within 0.1 to 0.3 s). The time is spent inside PowerSync's own engine in WebKit, whatever the SQLite build, storage or screen.
+
+Side observation: the page-load counter did not count the reload that the "new version" banner triggered in the Simulator (23 entries before and after). To check before the 8.4 soak.
