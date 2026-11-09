@@ -16,6 +16,8 @@ const ZERO_DROPPED_KEY = 'grnyte.zeroStoreDropped'
  *  both from the environment, which only exists inside SvelteKit's runtime. */
 export interface PowerSyncSettings {
   endpoint: string
+  /** Syncs in a shared worker instead of the page; PowerSync turns it off on Safari by default. */
+  multiTabs?: boolean
   only: boolean
   /** The storage under test for the remeasure; unset keeps the default IndexedDB. */
   vfs?: WASQLiteVFS
@@ -89,7 +91,11 @@ export function initPowerSync(
   // The default IndexedDB store, not OPFS: on iOS Safari a reload left the previous page holding the OPFS file and
   // the new page never finished a sync (design D5, client store).
   const opened = new PowerSyncDatabase({
-    database: { dbFilename: fileName(session.user.id), ...(settings.vfs == null ? {} : { vfs: settings.vfs }) },
+    database: {
+      dbFilename: fileName(session.user.id),
+      ...(settings.vfs == null ? {} : { vfs: settings.vfs }),
+      ...(settings.multiTabs == null ? {} : { enableMultiTabs: settings.multiTabs }),
+    },
     schema: appSchema,
   })
   db = opened
@@ -107,7 +113,7 @@ export function initPowerSync(
       // Open is not read: the live queries take seconds more on a phone, and offline that gap looked like a cold store.
       const row = current() ? await opened.getOptional('select 1 from users where auth_user_fk = ?', [authId]) : null
       if (!current()) return
-      syncMark(`store open (${settings.vfs ?? 'IndexedDB'})`)
+      syncMark(`store open (${settings.vfs ?? 'IndexedDB'}${settings.multiTabs ? ', shared worker' : ''})`)
       if (row != null) markStoreWarm()
       markStoreLoaded()
     })

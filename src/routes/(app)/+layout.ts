@@ -34,6 +34,7 @@ export const load = (async ({ depends, fetch }) => {
   initPowerSync(session, async () => (await supabase.auth.getSession()).data.session?.access_token, {
     // shortcut: dev falls back to the local service until PUBLIC_POWERSYNC_URL is in every .env.
     endpoint: env.PUBLIC_POWERSYNC_URL || (dev ? 'http://localhost:58100' : ''),
+    multiTabs: env.PUBLIC_POWERSYNC_MULTITABS === '1' ? true : undefined,
     only: env.PUBLIC_SYNC_ONLY_POWERSYNC === '1',
     // shortcut: a storage experiment for the remeasure; goes with the switch in R1.
     vfs: Object.values(WASQLiteVFS).find((vfs) => vfs === env.PUBLIC_POWERSYNC_VFS),
