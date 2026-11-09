@@ -5,6 +5,7 @@ import { markStoreLoaded, markStoreWarm, markSynced, trackSyncFor, type SyncStam
 import { PowerSyncDatabase, type PowerSyncBackendConnector, type SyncStatus } from '@powersync/web'
 import { dropAllDatabases } from '@rocicorp/zero'
 import type { Session } from '@supabase/supabase-js'
+import { syncMark } from './marks'
 import { appSchema } from './schema'
 
 /** Every account file starts with this, so a sign-out can find the ones it did not open. */
@@ -101,6 +102,7 @@ export function initPowerSync(
       // Open is not read: the live queries take seconds more on a phone, and offline that gap looked like a cold store.
       const row = current() ? await opened.getOptional('select 1 from users where auth_user_fk = ?', [authId]) : null
       if (!current()) return
+      syncMark('store open')
       if (row != null) markStoreWarm()
       markStoreLoaded()
     })
@@ -161,9 +163,12 @@ function confirmStreams(next: SyncStatus): void {
     if (lastSyncedAt == null || lastSyncedAt.getTime() < openedAt) continue
     if (confirmed.includes(name) || confirming.includes(name)) continue
     confirming.push(name)
+    syncMark(`synced: ${name}`)
     copiedIn(opened)
       .then(() => {
-        if (db === opened) confirmed = [...confirmed, name]
+        if (db !== opened) return
+        confirmed = [...confirmed, name]
+        syncMark(`taken in: ${name}`)
       })
       .catch(() => {
         if (db === opened) confirming = confirming.filter((other) => other !== name)
@@ -203,6 +208,10 @@ function deleteDatabase(name: string): Promise<boolean> {
 function observe(next: SyncStatus): void {
   if (next === status) return
   status = next
+  if (next.connected) syncMark('connected')
+  if (next.dataFlowStatus?.downloading) syncMark('downloading')
+  if (next.statusForPriority(0)?.hasSynced) syncMark('synced: priority 0')
+  if (next.hasSynced) syncMark('synced: all')
   confirmStreams(next)
   // While Zero syncs, the online signal is Zero's. The stamps are PowerSync's: Zero keeps nothing offline any more.
   if (powerSyncOnly()) reportSyncStatus(next)
