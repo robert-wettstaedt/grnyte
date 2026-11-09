@@ -3,6 +3,9 @@
 const KEY = 'grnyte:pageLoads'
 const KEEP = 50
 
+// Module state lives exactly one document. Not a timeOrigin comparison: WebKit counted one document three times.
+let recorded = false
+
 /** Document start times (epoch ms), oldest first. */
 export function pageLoads(): number[] {
   try {
@@ -13,13 +16,12 @@ export function pageLoads(): number[] {
   }
 }
 
-/** Idempotent per document: the layout load runs again on every auth change. */
+/** Once per document: the layout load runs again on every auth change. */
 export function recordPageLoad(): void {
-  const at = Math.round(performance.timeOrigin)
-  const loads = pageLoads()
-  if (loads.includes(at)) return
+  if (recorded) return
+  recorded = true
   try {
-    localStorage.setItem(KEY, JSON.stringify([...loads, at].slice(-KEEP)))
+    localStorage.setItem(KEY, JSON.stringify([...pageLoads(), Math.round(performance.timeOrigin)].slice(-KEEP)))
   } catch {
     // Storage refused (private mode): the counter is only a measurement aid.
   }
