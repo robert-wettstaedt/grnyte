@@ -2245,6 +2245,8 @@
   "settings_syncLag": "Replication lag",
   "settings_syncLastCheckpoint": "Last checkpoint",
   "settings_syncNever": "Never",
+  "settings_syncPageLoads": "Page loads",
+  "settings_syncPageLoadsHint": "Every start or reload of this app on this device, newest first. The remeasure soak expects no new entry.",
   "settings_syncUnauthorized": "The sync service refused the health check's token.",
   "settings_syncUnhealthy": "Unhealthy",
   "settings_syncUnreachable": "Unreachable",

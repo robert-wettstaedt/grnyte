@@ -8,6 +8,8 @@
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
+  import { powerSyncOnly } from '$lib/powersync/db.svelte'
+  import { pageLoads } from '$lib/powersync/loads'
   import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { notifyError } from '$lib/state/toast'
@@ -35,6 +37,8 @@
     unhealthy: { badge: 'preset-tonal-warning', label: m.settings_syncUnhealthy },
     unreachable: { badge: 'preset-tonal-error', label: m.settings_syncUnreachable },
   }
+
+  const loadTime = new Intl.DateTimeFormat(getLocale(), { dateStyle: 'short', timeStyle: 'medium' })
 
   const UNITS = ['byte', 'kilobyte', 'megabyte', 'gigabyte'] as const
 
@@ -116,4 +120,21 @@
       </div>
     {/snippet}
   </QueryState>
+
+  {#if powerSyncOnly()}
+    <!-- The remeasure's reload counter; read once per visit, which is all a soak check needs. -->
+    {@const loads = pageLoads()}
+    <div class="border-surface-200-800 space-y-2 rounded-xl border p-4">
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-sm font-semibold">{m.settings_syncPageLoads()}</span>
+        <span class="text-sm tabular-nums">{loads.length}</span>
+      </div>
+      <p class="text-surface-600-400 text-sm">{m.settings_syncPageLoadsHint()}</p>
+      <ol class="text-surface-600-400 text-sm tabular-nums">
+        {#each [...loads].reverse().slice(0, 10) as at (at)}
+          <li>{loadTime.format(at)}</li>
+        {/each}
+      </ol>
+    </div>
+  {/if}
 </div>

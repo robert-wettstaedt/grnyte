@@ -2254,6 +2254,8 @@
   "settings_syncLag": "Replikationsrückstand",
   "settings_syncLastCheckpoint": "Letzter Checkpoint",
   "settings_syncNever": "Nie",
+  "settings_syncPageLoads": "Seitenaufrufe",
+  "settings_syncPageLoadsHint": "Jeder Start oder Neuladen dieser App auf diesem Gerät, neueste zuerst. Beim Dauertest der Messung darf kein neuer Eintrag dazukommen.",
   "settings_syncUnauthorized": "Der Sync-Dienst hat das Token des Statuschecks abgelehnt.",
   "settings_syncUnhealthy": "Gestört",
   "settings_syncUnreachable": "Nicht erreichbar",

@@ -2,6 +2,7 @@ import { dev } from '$app/environment'
 import { env } from '$env/dynamic/public'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { dropZeroStoreOnce, initPowerSync, powerSyncOnly } from '$lib/powersync/db.svelte'
+import { recordPageLoad } from '$lib/powersync/loads'
 import { initZero } from '$lib/zero/z.svelte'
 import { createBrowserClient } from '@supabase/ssr'
 import type { LayoutLoad } from './$types'
@@ -34,7 +35,10 @@ export const load = (async ({ depends, fetch }) => {
     endpoint: env.PUBLIC_POWERSYNC_URL || (dev ? 'http://localhost:58100' : ''),
     only: env.PUBLIC_SYNC_ONLY_POWERSYNC === '1',
   })
-  if (powerSyncOnly()) void dropZeroStoreOnce()
+  if (powerSyncOnly()) {
+    void dropZeroStoreOnce()
+    recordPageLoad()
+  }
 
   // Sets up the Zero client singleton before any (app) page reads getZ().
   initZero(session)
