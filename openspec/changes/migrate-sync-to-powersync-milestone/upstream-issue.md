@@ -1,6 +1,6 @@
 # Draft: issue to powersync-js (task 8.8)
 
-Post only after task 8.6, with its result filled in below. Before posting, check the text holds no auth UUID, token, bucket name, hostname, region name or region id.
+Post only after task 8.6, with its result filled in below. Before posting, check the text and any attachment (screenshot, recording, log) for an auth UUID (also in `grnyte-<uuid>.sqlite` file names), token, bucket name, hostname, region name or region id.
 
 ---
 
@@ -21,7 +21,7 @@ Small streams at the start sync in ~0.3 s; the time goes into the large one.
 **Ruled out:**
 
 - Network and server: the stream arrives quickly, in ~30 to 40 lines (the 1,000-op / 1 MiB chunk limits).
-- UI work: the same time with no list or map mounted.
+- Rendering: the same time with no list or map mounted. Note the app uses TanStack DB collections over every synced table, which take rows in on the main thread during the sync; _8.6 result: whether a first sync without them differs_.
 - `enableMultiTabs: true` (sync in a SharedWorker): no better (25.6 s).
 - OPFS: `OPFSWriteAheadVFS` is Chromium-only; `OPFSCoopSyncVFS` (2.6.0) and `SimpleOpfsVFS` (2.7.0) sync once (~19.6 s), but after any page reload the new page never opens a sync stream (similar to #808).
 
