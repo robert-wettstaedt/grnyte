@@ -60,7 +60,7 @@ Account switch keeps the reload contract (`wipeAndLeave` reloads). `clearPowerSy
 
 `deployment/powersync/sync-config.yaml` starts from `trial3-setup/powersync-mongo/sync-config.yaml`, with priorities (user, 2026-11-07): `essentials` at 0 (grades, role_permissions, my regions, my own user row and my role: what Zero's `KEPT.reference` held; the trial's name `reference` is retired), `guidebook`, `region_activity` (everyone's ascents and `region_members`), `members` (users of my regions, former members included since 2026-11-07: their ascents stay in the region's activity and need the name they were logged under) and `personal` (favorites, user_settings own rows) at 1, `bunny_streams` at 2. `members` stays the trial's subquery, one bucket per co-member, shared by everyone who sees that user: at 12 to 25 buckets per reader it is far from the 1,000 limit, and a per-region bucket would need profile fields copied onto `region_members` by a trigger (user, 2026-11-07). Removed for this milestone: `feed*`, `thread`, `profile_user`, `region_reactions` (R2). Added: `favorites` region-wide for the save count (`listEntityFavorites`), `user_settings`, `user_roles`, `bunny_streams` by region (route media on the ascent list; auto-subscribed unless day 1's count shows over 2,000 rows in a region, then on demand; task 2.1 records the choice), `routes_to_tags` with its composite text id. Every synced table has a primary key (`routes_to_tags` a composite one), so no replica identity change is needed.
 
-A region's guidebook arrives as one unit, so a screen opened before its region has synced once shows arriving, and once synced no screen of that region ever waits (the `sync/query-readiness` delta). Rule 2 of the remeasure is what checks that the first open is no worse than today.
+A region's guidebook arrives as one unit, so a screen opened before its region has synced once shows arriving, and once synced no screen of that region ever waits (the `sync/query-readiness` delta). D12 plans to split the map's tables ahead of the rest, pending its measurement (task 8.6). Rule 2 of the remeasure is what checks that the first open is no worse than today.
 
 The predicates are the whole boundary: RLS does not see the sync path. So the review loop runs with `+security` against the 39 cases in `src/lib/db/regionPolicies.test.ts` (deactivated membership, soft-deleted regions, `files.visibility`, content_removed rows), and D7 adds a test that runs on every `npm test`.
 
@@ -88,7 +88,7 @@ Docs review (2026-11-07, against docs.powersync.com and the service source). Eac
 - MongoDB sizing (7.2): the docs ask for a three-node replica set with 2 GB or more each in production and call a single 2 GB node the minimal setup. The planned single node with a 1 GB cache is below both. Bucket storage is derived and rebuildable from Postgres, so a single node is a defensible choice, but it is stated here as one, and the cache cap is raised to 2 GB unless the VPS memory says otherwise.
 - Defragmentation (after 7.4): compaction cannot shrink a bucket whose rows are inserted and deleted often. Once metrics exist, compare operation counts with row counts for the `favorites` and `ascents` buckets; if they diverge, a pg_cron job touching every row of the table shortly before a compact rewrites them. Never redeploy the config to clean history.
 - JWT (with the deferred signing-key migration): when Supabase moves to asymmetric keys, drop `supabase_jwt_secret` and keep `supabase: true`, which configures JWKS itself.
-- Client store (7.5): the client keeps the default IndexedDB store (`IDBBatchAtomicVFS`). The docs recommend OPFS (`OPFSCoopSyncVFS`) for Safari and for several tabs, and it was tried on 2026-11-07: in the iOS 27.2 Simulator a cold Safari opened, synced and confirmed on OPFS, but a reload in the same Safari left the previous page's instance holding the file (two `.ahp-` folders), and the new page stayed connected without ever completing a sync, still `arriving` after 45 s. The same reload on IndexedDB confirmed every stream. Revisit OPFS only with a reload test that passes on WebKit. The service worker precaches the async `wa-sqlite` wasm and raises Workbox's 2 MiB `maximumFileSizeToCacheInBytes`, which its 2.26 MB build exceeds. Check the emitted names in a real build.
+- Client store (7.5): the client keeps the default IndexedDB store (`IDBBatchAtomicVFS`). The docs recommend OPFS (`OPFSCoopSyncVFS`) for Safari and for several tabs, and it was tried on 2026-11-07: in the iOS 27.2 Simulator a cold Safari opened, synced and confirmed on OPFS, but a reload in the same Safari left the previous page's instance holding the file (two `.ahp-` folders), and the new page stayed connected without ever completing a sync, still `arriving` after 45 s. The same reload on IndexedDB confirmed every stream. Revisit OPFS only with a reload test that passes on WebKit. Retested 2026-11-09 in the iOS 27.2 Simulator, every OPFS VFS still fails in WebKit: `OPFSWriteAheadVFS` needs the Chromium-only `readwrite-unsafe` handles and never connects; `OPFSCoopSyncVFS` (2.6.0) and `SimpleOpfsVFS` (2.7.0, released that day) sync once, but after any page reload the new page never opens a sync stream (powersync-js #808). OPFS would only have shortened the iOS first sync by ~17% (D12). IndexedDB stays. The service worker precaches the async `wa-sqlite` wasm and raises Workbox's 2 MiB `maximumFileSizeToCacheInBytes`, which its 2.26 MB build exceeds. Check the emitted names in a real build.
 
 Recorded for 7.2 (2026-11-08, taken overnight without the user, open to reversal):
 
@@ -145,7 +145,29 @@ Alternatives: trust `hasSynced` (the bug above); wait a fixed delay after a sync
 - Checkpoint requests: alpha (no beta or GA date published). Only ever a UI gate (releasing an optimistic state, waiting before showing a just-created row), always behind our own timeout and a fallback, never for correctness. They need `checkpointMode: 'requests'` on connect, and a failing checkpoint-request call fails the whole sync attempt, so force that failure in dev before relying on it.
 - The favorite overlay (`save.svelte.ts`) is retired by that PR: a local write stays visible until the server's checkpoint replaces it.
 
+### D12. iOS first sync (found during 8.1, 2026-11-09)
+
+A first sync on iOS takes far longer than anywhere else, for the same ~30,000 operations (12.4 MB; one bucket of 27,844):
+
+| Client                             | Big bucket, synced to done |
+| ---------------------------------- | -------------------------- |
+| Node, headless, prod               | ~1.5 s                     |
+| Chrome, same build                 | ~3.3 s                     |
+| iOS 27.2 Simulator, Safari         | 23 to 26 s                 |
+| The user's iPhone, home-screen app | 45 to 60 s (Zero: 4 s)     |
+
+The cause is in PowerSync's web client under WebKit, not in this app: the time is the same with no screen mounted (23.1 s on Profile against 23.7 s on the map), with the sync in a shared worker (`enableMultiTabs`, 25.6 s), and the stream is only ~30 to 40 lines (the service's 1,000-op / 1 MB chunk limits), so not per-line overhead. `IDBBatchAtomicVFS` always loads wa-sqlite's Asyncify build, and WebKit bug 329813 makes Asyncify code ~10x slower after a few seconds of work, permanently for that worker: the small `essentials` stream syncs in 0.3 s, the large one does not. Safari 27 supports JSPI, which avoids it, but `@journeyapps/wa-sqlite` 2.0.10's JSPI build lacks the PowerSync core (`powersync_init_static`), so swapping it in fails at open. OPFS is out (D5).
+
+Decisions (user, 2026-11-09). The iOS web experience must not get worse than Zero's while the Expo app (which runs on native SQLite and is unaffected) is months away:
+
+- **Map first (task 8.6).** The map's tables (`areas`, `blocks`, `geolocations`, ~6,500 operations for the user's account) move into a stream ahead of the rest of the guidebook, so they arrive before the slowdown sets in, and routes, topos and files follow behind. Rule 1 measures to map-ready. A route opened in that first minute shows arriving, as any screen does today before its stream confirms. The `region-sync` spec gains the requirement once the measurement confirms it.
+- **JSPI benchmark before any custom build (task 8.7).** Plain wa-sqlite in the Simulator, ~30,000 inserts into IndexedDB in sync-sized batches, Asyncify against JSPI. Only if JSPI stays flat is a self-built wasm (JSPI plus the PowerSync core) worth its upkeep, and it would still leave iOS 26 and older on Asyncify.
+- **Upstream (task 8.8).** An issue to powersync-js with these numbers, asking for a JSPI build with the core.
+- The experiment switches `PUBLIC_POWERSYNC_VFS` and `PUBLIC_POWERSYNC_MULTITABS` go in R1 with the measurement switch, as do the page-load counter and the sync timeline on Sync health.
+
 ## Risks / Trade-offs
+
+- [iOS first sync, D12] → map-first priorities and the JSPI benchmark; the remeasure records whatever remains.
 
 - [nginx has never fronted the stream] → the block is proven locally against `trial-ps-mongo` with a 10-minute idle connection before the VPS deploy.
 - [Replication slot headroom on prod] → read before day 1; if only one slot is free, the overlap release shortens to days with a forced service-worker reload.

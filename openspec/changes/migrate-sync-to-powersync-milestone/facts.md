@@ -23,3 +23,20 @@ Read by the user on prod and on the VPS; pasted verbatim, decisions below.
 ## Sync-rules evaluator (task 1.3)
 
 `@powersync/service-sync-rules` 0.44.0 (the version bundled in `journeyapps/powersync-service:1.27.2`; 0.45.0 is on npm but under the 7-day release-age policy). Installed as a dev dependency and probed against the trial config (a throwaway script, since deleted): it parses in node. API: `SqlSyncRules.validate(yaml, { defaultSchema })` returns the service's own warnings (on the trial config: five, the `*` after an aliased `id`, and the four client-parameter streams flagged as unsuitable for authorization, which is exactly the check 2.4 wants), `SqlSyncRules.fromYaml(yaml, options).config` is a `SyncConfig` whose `hydrate(params)` gives the `HydratedSyncConfig` with `getBucketParameterQuerier({ globalParameters, hasDefaultStreams, ... })` for the parameter half and `evaluateRow({ sourceTable, record, ... })` for the data half. The membership test (2.4) runs both against rows read from the test Postgres. `@powersync/node` is installed for the EXPLAIN guard (6.1).
+
+## Prod and first-sync measurements (2026-11-09)
+
+Prod, read by the user: `max_slot_wal_keep_size` 512MB; slots `zero_0_a` and `powersync_1_f5de`, both active and `reserved`. First replication: engine started 14:44:44 UTC, first checkpoint 14:45:00. The user's account synced headlessly from prod in 1,466 ms (37,513 rows, 2.6 MB, 8 regions).
+
+First sync of `admin@` on the dev stack (30,008 operations, 12.4 MB; `guidebook[18]` alone 27,844), time for the big stream from connect to synced:
+
+| Client and setting                                     | Seconds                                |
+| ------------------------------------------------------ | -------------------------------------- |
+| Chrome, IndexedDB (and `SimpleOpfsVFS`)                | 3.3                                    |
+| iOS 27.2 Simulator, IndexedDB, map page                | 23.7                                   |
+| iOS 27.2 Simulator, IndexedDB, Profile page            | 23.1                                   |
+| iOS 27.2 Simulator, IndexedDB, sync in a shared worker | 25.6                                   |
+| iOS 27.2 Simulator, `SimpleOpfsVFS` (2.7.0)            | 19.6, then no reconnect after a reload |
+| User's iPhone, prod, home-screen app (user's account)  | 45 to 60, pill to done; Zero 4         |
+
+Web Inspector recording of an iOS first sync: the page's main thread at 65 to 80% for the whole sync, the database worker at ~5%, and only 0.35 s of JavaScript sampled. Service defaults: `DEFAULT_DOCUMENT_BATCH_LIMIT` 1,000 operations and `DEFAULT_DOCUMENT_CHUNK_LIMIT_BYTES` 1 MiB per line. `wa-sqlite-jspi.wasm` (742 KB) contains no `powersync_init`; `wa-sqlite-async.wasm` (2.3 MB) does. Cause and decisions: design D12.
