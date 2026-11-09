@@ -12,6 +12,8 @@ const engine = vi.hoisted(() => ({
   /** Rows the collections have not taken in yet, across their tracking tables. */
   pending: 0,
   status: { connected: false } as object,
+  /** Whether the signed-in user's row is in the local database. */
+  userRow: false,
 }))
 
 vi.mock('$app/environment', () => ({ browser: true, dev: true }))
@@ -32,6 +34,7 @@ vi.mock('@powersync/web', async (original) => ({
       return Promise.resolve()
     }
     disconnectAndClear = () => Promise.resolve()
+    getOptional = async () => (engine.userRow ? { 1: 1 } : null)
     registerListener = (listener: { statusChanged: (status: object) => void }) => {
       engine.listeners.set(this.file, listener.statusChanged)
       return () => engine.listeners.delete(this.file)
@@ -72,6 +75,7 @@ describe('the PowerSync shell', () => {
       listeners: new Map(),
       pending: 0,
       status: synced([], false),
+      userRow: false,
     })
     localStorage.clear()
   })
@@ -163,6 +167,25 @@ describe('the PowerSync shell', () => {
 
     announce(synced([0, 1, 2], true))
     expect(lastSyncedAt('guidebook')).not.toBeNull()
+  })
+
+  it('calls the store warm once a local read finds the signed-in user, so offline it is never taken for cold', async () => {
+    engine.userRow = true
+    const { initPowerSync } = await import('./db.svelte')
+    const { localStoreLoaded, localStoreWarm } = await import('$lib/state/sync.svelte')
+    initPowerSync(session('a'), async () => 'token', { ...settings, only: true })
+    await settle()
+    expect(localStoreLoaded()).toBe(true)
+    expect(localStoreWarm()).toBe(true)
+  })
+
+  it('leaves an open store without the user cold-capable: nothing was ever synced to it', async () => {
+    const { initPowerSync } = await import('./db.svelte')
+    const { localStoreLoaded, localStoreWarm } = await import('$lib/state/sync.svelte')
+    initPowerSync(session('a'), async () => 'token', { ...settings, only: true })
+    await settle()
+    expect(localStoreLoaded()).toBe(true)
+    expect(localStoreWarm()).toBe(false)
   })
 
   it('stamps while Zero still syncs too, since Zero keeps nothing offline to vouch for', async () => {
