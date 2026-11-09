@@ -1,7 +1,7 @@
 import { browser } from '$app/environment'
 import { reportSyncStatus } from '$lib/state/online.svelte'
 import { storage } from '$lib/state/storage'
-import { markStoreLoaded, markSynced, trackSyncFor, type SyncStamp } from '$lib/state/sync.svelte'
+import { markStoreLoaded, markStoreWarm, markSynced, trackSyncFor, type SyncStamp } from '$lib/state/sync.svelte'
 import { PowerSyncDatabase, type PowerSyncBackendConnector, type SyncStatus } from '@powersync/web'
 import { dropAllDatabases } from '@rocicorp/zero'
 import type { Session } from '@supabase/supabase-js'
@@ -94,7 +94,17 @@ export function initPowerSync(
   trackSyncFor(session.user.id)
   // Every late callback checks it still belongs to the open account: a switch closes this one asynchronously.
   const current = () => db === opened
-  void opened.waitForReady().then(() => current() && markStoreLoaded())
+  const authId = session.user.id
+  void opened
+    .waitForReady()
+    .then(async () => {
+      // Open is not read: the live queries take seconds more on a phone, and offline that gap looked like a cold store.
+      const row = current() ? await opened.getOptional('select 1 from users where auth_user_fk = ?', [authId]) : null
+      if (!current()) return
+      if (row != null) markStoreWarm()
+      markStoreLoaded()
+    })
+    .catch((error: unknown) => console.error('[powersync] local read failed', error))
   observe(opened.currentStatus)
   stopWatching = opened.registerListener({ statusChanged: (next) => current() && observe(next) })
 

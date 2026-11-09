@@ -12,7 +12,7 @@ import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelt
 import { powerSyncStatus } from '$lib/powersync/db.svelte'
 import { isOnline } from '$lib/state/online.svelte'
 import { quietly } from '$lib/state/pill.svelte'
-import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
+import { lastSyncedAt, localStoreLoaded, localStoreWarm } from '$lib/state/sync.svelte'
 import { isTerminal } from '$lib/zero/connection'
 import type { QueryResource } from '$lib/zero/resource.svelte'
 import { getZ } from '$lib/zero/z.svelte'
@@ -143,6 +143,10 @@ export function setGlobalState(): GlobalState | undefined {
       // exactly the same way and deserves the same escape. The stamp only decides the wording,
       // "reconnect to restore" against "connect to get started", which the layout reads separately.
       if (!this.isLoading) {
+        return false
+      }
+      // The signed-in user's row was read locally: rows are there and still being read, not missing.
+      if (localStoreWarm()) {
         return false
       }
       // A replica still being read back looks the same as none for its first seconds offline.
