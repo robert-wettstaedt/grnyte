@@ -41,13 +41,18 @@ export interface TierLook {
 export const AREA_TIER_LOOK: TierLook = { donut: 36, fill: 'rgba(248, 250, 252, 0.15)', stroke: '#1f2937' }
 export const SECTOR_TIER_LOOK: TierLook = { donut: 32, fill: 'rgba(255, 255, 255, 0.2)', stroke: '#313944' }
 
-export function buildBlockFeatures(geoBlocks: BlockDetail[], routeCountByBlock: Map<number, number>): Feature[] {
+export function buildBlockFeatures(
+  geoBlocks: BlockDetail[],
+  routeCountByBlock: Map<number, number>,
+  countsUnknown = false,
+): Feature[] {
   const features: Feature[] = []
 
   for (const block of geoBlocks) {
     const geo = block.geolocation!
     const feature = new Feature({
       blockId: block.id,
+      countUnknown: countsUnknown,
       estimated: geo.estimated,
       geometry: new Point(fromLonLat([geo.long, geo.lat])),
       name: block.name,
@@ -123,7 +128,7 @@ export function buildPathFeatures(uniqueLineStrings: string[]): Feature[] {
 
 // One rect per area or sector around its blocks, with a donut of its routes by grade. The area tier
 // draws zoomed out, then the sector rects (types.ts has the zooms), then the block markers.
-export function buildTierFeatures(tier: TierEntry[], look: TierLook): Feature[] {
+export function buildTierFeatures(tier: TierEntry[], look: TierLook, countsUnknown = false): Feature[] {
   return tier.map(({ area, bounds, gradeCounts, routeCount }) => {
     const [minLat, minLng, maxLat, maxLng] = bounds
     const extent = [...fromLonLat([minLng, minLat]), ...fromLonLat([maxLng, maxLat])]
@@ -133,7 +138,7 @@ export function buildTierFeatures(tier: TierEntry[], look: TierLook): Feature[] 
     feature.set('areaId', area.id)
     feature.setStyle([
       new Style({ fill: new Fill({ color: look.fill }), stroke: new Stroke({ color: look.stroke, width: 1 }) }),
-      ...createDonutMarkerStyles(area.name, routeCount, gradeCounts, look.donut),
+      ...createDonutMarkerStyles(area.name, countsUnknown ? null : routeCount, gradeCounts, look.donut),
     ])
     return feature
   })
@@ -146,17 +151,14 @@ export function createBlockLayer(mapInstance: OlMap, getSelectedId: () => number
     style: (feature) => {
       const zoom = mapInstance.getView().getZoom() ?? 0
       const showLabel = zoom >= BLOCK_LABEL_ZOOM
-      const routeCount = feature.get('routeCount') as number
-      // An estimated pin shows "?" instead of the route count: the block is somewhere
-      // around here, expect to search for it.
-      const estimated = feature.get('estimated') as boolean
+      const label = countLabel(feature)
       const selected = feature.get('blockId') === getSelectedId()
       // Lift the selected block's styles above every other feature in the layer.
       const zIndex = selected ? 1000 : undefined
       const fill = new Fill({ color: selected ? primaryColor() : '#ef4444' })
       const styles: Style[] = []
 
-      if (routeCount > 0 || estimated) {
+      if (label != null) {
         styles.push(
           new Style({
             image: new CircleStyle({
@@ -167,7 +169,7 @@ export function createBlockLayer(mapInstance: OlMap, getSelectedId: () => number
             text: new Text({
               fill: new Fill({ color: 'white' }),
               font: 'bold 10px sans-serif',
-              text: estimated ? '?' : String(routeCount),
+              text: label,
             }),
             zIndex,
           }),
@@ -273,12 +275,22 @@ export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
   )
 }
 
+/** The text inside a block's full-size marker, or undefined for the small dot of a block without routes. */
+function countLabel(feature: FeatureLike): string | undefined {
+  // An estimated pin shows "?": the block is somewhere around here, expect to search for it.
+  if (feature.get('estimated')) return '?'
+  // Routes not loaded yet: the counted size with no number, so the marker neither grows nor claims a 0.
+  if (feature.get('countUnknown')) return ''
+  const routeCount = feature.get('routeCount') as number
+  return routeCount > 0 ? String(routeCount) : undefined
+}
+
 // Marker showing the area/sector's grade histogram as a small donut with the route
 // count in the center. Built once per feature (the data-URI icon is expensive to
 // regenerate) and anchored at the polygon's interior point.
 function createDonutMarkerStyles(
   name: string,
-  count: number,
+  count: null | number,
   gradeCounts: Map<number, number>,
   donutSize: number,
 ): Style[] {

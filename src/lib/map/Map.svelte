@@ -56,6 +56,9 @@
     get blocks() {
       return props.blocks
     },
+    get countsUnknown() {
+      return props.countsUnknown
+    },
     get gradeCountByBlock() {
       return props.gradeCountByBlock
     },
@@ -198,9 +201,11 @@
   }
 
   for (const [i, { look, tier }] of TIERS.entries()) {
-    $effect(() => syncFeatures(tierLayers[i], buildTierFeatures(tier(), look)))
+    $effect(() => syncFeatures(tierLayers[i], buildTierFeatures(tier(), look, props.countsUnknown)))
   }
-  $effect(() => syncFeatures(blockLayer, buildBlockFeatures(data.geoBlocks, data.routeCountByBlock)))
+  $effect(() =>
+    syncFeatures(blockLayer, buildBlockFeatures(data.geoBlocks, data.routeCountByBlock, props.countsUnknown)),
+  )
 
   // Re-style the block layer when the selected block changes so the highlight + z-index follow.
   $effect(() => {

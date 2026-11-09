@@ -155,7 +155,7 @@ export function blockMapList() {
     () => [],
     // Sorted here: SQLite orders names by bytes, every other list by the reader's language.
     (rows: MapBlockRow[]) => sortByName(rows, (row) => row.nid).map(toMapBlock),
-    () => 'guidebook',
+    () => 'map',
   )
 }
 

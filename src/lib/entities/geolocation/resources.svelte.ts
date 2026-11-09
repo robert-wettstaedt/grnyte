@@ -28,6 +28,7 @@ export function parkingDetail(id: () => number) {
     [id],
     // A parking is a geolocation on a live area: a block's (no area) or a deleted area's has none here.
     ([row]) => (row == null || row.area.length === 0 ? undefined : toSyncedParking(row)),
+    'map',
   )
   return holdWhileDeleting(parking, 'parking', id)
 }

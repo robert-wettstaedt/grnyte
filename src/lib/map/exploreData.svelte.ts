@@ -127,10 +127,10 @@ export function createExploreMapData(
   const parkingLocations = $derived(areasResult.data.flatMap((area) => area.parkingLocations))
   const lineStrings = $derived(areasResult.data.flatMap((area) => area.geoPaths))
 
-  // True only while nothing is renderable yet: the cold-load case (no markers).
-  const isLoading = $derived(
-    routes.phase.kind === 'loading' || blocksResult.phase.kind === 'loading' || areasResult.phase.kind === 'loading',
-  )
+  // True only while nothing is renderable yet: the cold-load case (no markers). Routes are not waited for: markers show
+  // as soon as areas and blocks are in, and their counts fill in when routes land (`countsUnknown`).
+  const isLoading = $derived(blocksResult.phase.kind === 'loading' || areasResult.phase.kind === 'loading')
+  const countsUnknown = $derived(routes.phase.kind === 'loading')
 
   const matches = $derived.by((): MatchTest => {
     if (!isParsedFilterActive(filters())) return null
@@ -157,6 +157,9 @@ export function createExploreMapData(
     },
     get blocks() {
       return blocks
+    },
+    get countsUnknown() {
+      return countsUnknown
     },
     /** What the filter sheet counts and draws its grade bars from; `matchPhase` says what may be said. */
     get filterCounts() {
@@ -186,6 +189,7 @@ export function createExploreMapData(
       return routeCountByBlock
     },
   } satisfies MapData & {
+    countsUnknown: boolean
     filterCounts: { countByGrade: Map<number, number>; total: number }
     isLoading: boolean
     matches: MatchTest

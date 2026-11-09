@@ -48,6 +48,21 @@ The reference data every screen depends on (the reader's profile and role, grade
 - **WHEN** a device with no local data connects
 - **THEN** the first screen renders once the reference data is confirmed, while the guidebook is still arriving
 
+### Requirement: The map's places arrive before the rest of the guidebook
+
+A region's areas, blocks and their locations SHALL be delivered and confirmed ahead of its routes, media and activity, under the same membership gate, so the map shows where the climbing is while the rest is still arriving. Until routes land, a marker SHALL NOT claim a route count it does not have.
+
+#### Scenario: First sign-in on a phone
+
+- **WHEN** a member signs in on a device with no local data and opens the map
+- **THEN** the region's area and block markers appear once places are confirmed, sized as counted markers and without a number
+- **AND** the counts fill in when the routes arrive, without the markers moving
+
+#### Scenario: A route filter is active before routes arrive
+
+- **WHEN** the map has places but no routes yet and a route filter is set
+- **THEN** no block is drawn as matching until the routes arrive
+
 ### Requirement: A device catches up without starting over
 
 A device that reconnects after time away SHALL receive only what changed since its last sync, and SHALL NOT download its regions again unless its local data was removed. Compaction of the server's history SHALL NOT force a full download.

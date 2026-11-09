@@ -54,6 +54,7 @@ export function psResource<TContext extends Context, TOut>(
   query: (q: InitialQueryBuilder) => QueryBuilder<TContext>,
   deps: (() => unknown)[],
   select: (rows: InferResultType<TContext>) => TOut,
+  // A query mixing map and guidebook tables names `guidebook` alone: the map stream syncs at a higher priority.
   stream: string | string[] = 'guidebook',
   opts?: { enabled?: () => boolean },
 ): QueryResource<TOut> {
@@ -129,6 +130,8 @@ export function treeList<F extends TextFilter, T extends { id: number }>(
     byIds: (q: InitialQueryBuilder, ids: number[]) => AnyQuery
     /** The bare rows, filtered and ordered by everything but text and limit. */
     rows: (q: InitialQueryBuilder, filter: F) => AnyQuery
+    /** The stream the rows come from; `guidebook` unless they are all on the map stream. */
+    stream?: 'guidebook' | 'map'
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a tree row's shape is the caller's
     toItem: (row: any) => T
     /** A bare query with its related rows. */
@@ -142,8 +145,9 @@ export function treeList<F extends TextFilter, T extends { id: number }>(
   const shape = $derived(JSON.stringify({ ...filter(), content: undefined, limit: undefined }))
   const bare = (q: InitialQueryBuilder) => query.rows(q, JSON.parse(shape) as F)
   const toItems = (rows: unknown[]) => rows.map(query.toItem)
+  const stream = query.stream ?? 'guidebook'
 
-  const all = psResource((q) => query.trees(q, bare(q)), [() => shape], toItems, 'guidebook', {
+  const all = psResource((q) => query.trees(q, bare(q)), [() => shape], toItems, stream, {
     enabled: () => !narrowed && on,
   })
   const hits = psResource(
@@ -154,7 +158,7 @@ export function treeList<F extends TextFilter, T extends { id: number }>(
         .filter(matchesText(filter()))
         .slice(0, filter().limit)
         .map((row) => row.nid),
-    'guidebook',
+    stream,
     { enabled: () => narrowed && on },
   )
   const ids = $derived(hits.data.join())
@@ -162,7 +166,7 @@ export function treeList<F extends TextFilter, T extends { id: number }>(
     (q) => query.trees(q, query.byIds(q, ids.split(',').map(Number))),
     [() => ids],
     toItems,
-    'guidebook',
+    stream,
     { enabled: () => narrowed && on && ids !== '' },
   )
   return narrowedList(() => narrowed, all, hits, found)
