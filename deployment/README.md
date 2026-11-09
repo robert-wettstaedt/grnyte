@@ -151,6 +151,9 @@ curl -s -w ' %{http_code}\n' http://localhost:58101/health/sync
 `powersync-compact-prod` compacts bucket storage hourly; its log is the place to look when MongoDB
 grows.
 
+First prod replication: 2026-11-09, engine started 14:44:44 UTC, first checkpoint 14:45:00 (the initial
+snapshot of prod took under 16 s). Its slot is `powersync_1_f5de`, beside `zero_0_a`.
+
 ## Troubleshooting
 
 ### Common Issues
