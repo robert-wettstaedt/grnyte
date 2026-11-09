@@ -169,23 +169,18 @@ describe('the PowerSync shell', () => {
     expect(lastSyncedAt('guidebook')).not.toBeNull()
   })
 
-  it('calls the store warm once a local read finds the signed-in user, so offline it is never taken for cold', async () => {
-    engine.userRow = true
+  // Warm once a local read finds the signed-in user, so offline it is never taken for cold.
+  it.each([
+    { userRow: true, warm: true },
+    { userRow: false, warm: false },
+  ])('calls an open store warm exactly when it holds the signed-in user ($userRow)', async ({ userRow, warm }) => {
+    engine.userRow = userRow
     const { initPowerSync } = await import('./db.svelte')
     const { localStoreLoaded, localStoreWarm } = await import('$lib/state/sync.svelte')
     initPowerSync(session('a'), async () => 'token', { ...settings, only: true })
     await settle()
     expect(localStoreLoaded()).toBe(true)
-    expect(localStoreWarm()).toBe(true)
-  })
-
-  it('leaves an open store without the user cold-capable: nothing was ever synced to it', async () => {
-    const { initPowerSync } = await import('./db.svelte')
-    const { localStoreLoaded, localStoreWarm } = await import('$lib/state/sync.svelte')
-    initPowerSync(session('a'), async () => 'token', { ...settings, only: true })
-    await settle()
-    expect(localStoreLoaded()).toBe(true)
-    expect(localStoreWarm()).toBe(false)
+    expect(localStoreWarm()).toBe(warm)
   })
 
   it('stamps while Zero still syncs too, since Zero keeps nothing offline to vouch for', async () => {

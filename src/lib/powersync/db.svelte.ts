@@ -96,7 +96,7 @@ export function initPowerSync(
     database: {
       dbFilename: fileName(session.user.id),
       ...(settings.vfs == null ? {} : { vfs: settings.vfs }),
-      ...(settings.multiTabs == null ? {} : { enableMultiTabs: settings.multiTabs }),
+      ...(settings.multiTabs ? { enableMultiTabs: true } : {}),
     },
     schema: appSchema,
   })
@@ -227,14 +227,18 @@ function deleteDatabase(name: string): Promise<boolean> {
   })
 }
 
-/** Takes a status in and writes the stamps the shell reads: the essentials (priority 0), then everything. */
-function observe(next: SyncStatus): void {
-  if (next === status) return
-  status = next
+function markTimeline(next: SyncStatus): void {
   if (next.connected) syncMark('connected')
   if (next.dataFlowStatus?.downloading) syncMark('downloading')
   if (next.statusForPriority(0)?.hasSynced) syncMark('synced: priority 0')
   if (next.hasSynced) syncMark('synced: all')
+}
+
+/** Takes a status in and writes the stamps the shell reads: the essentials (priority 0), then everything. */
+function observe(next: SyncStatus): void {
+  if (next === status) return
+  status = next
+  markTimeline(next)
   confirmStreams(next)
   // While Zero syncs, the online signal is Zero's. The stamps are PowerSync's: Zero keeps nothing offline any more.
   if (powerSyncOnly()) reportSyncStatus(next)
