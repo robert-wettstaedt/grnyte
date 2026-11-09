@@ -2256,6 +2256,8 @@
   "settings_syncNever": "Nie",
   "settings_syncPageLoads": "Seitenaufrufe",
   "settings_syncPageLoadsHint": "Jeder Start oder Neuladen dieser App auf diesem Gerät, neueste zuerst. Beim Dauertest der Messung darf kein neuer Eintrag dazukommen.",
+  "settings_syncTimeline": "Sync-Verlauf",
+  "settings_syncTimelineHint": "Wann die Synchronisierung dieser Seite welchen Schritt erreicht hat, in Sekunden seit dem Laden.",
   "settings_syncUnauthorized": "Der Sync-Dienst hat das Token des Statuschecks abgelehnt.",
   "settings_syncUnhealthy": "Gestört",
   "settings_syncUnreachable": "Nicht erreichbar",

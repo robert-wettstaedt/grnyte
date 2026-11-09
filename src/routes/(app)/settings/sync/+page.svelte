@@ -10,6 +10,7 @@
   import { getLocale } from '$lib/paraglide/runtime'
   import { powerSyncOnly } from '$lib/powersync/db.svelte'
   import { pageLoads } from '$lib/powersync/loads'
+  import { syncMarks } from '$lib/powersync/marks'
   import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { notifyError } from '$lib/state/toast'
@@ -133,6 +134,20 @@
       <ol class="text-surface-600-400 text-sm tabular-nums">
         {#each [...loads].reverse().slice(0, 10) as at (at)}
           <li>{loadTime.format(at)}</li>
+        {/each}
+      </ol>
+    </div>
+
+    <!-- The latest page's sync steps, for finding where a slow first sync spends its time. -->
+    <div class="border-surface-200-800 space-y-2 rounded-xl border p-4">
+      <span class="text-sm font-semibold">{m.settings_syncTimeline()}</span>
+      <p class="text-surface-600-400 text-sm">{m.settings_syncTimelineHint()}</p>
+      <ol class="text-surface-600-400 text-sm tabular-nums">
+        {#each syncMarks() as [name, at] (name)}
+          <li class="flex justify-between gap-3">
+            <span>{name}</span>
+            <span>{(at / 1000).toFixed(1)} s</span>
+          </li>
         {/each}
       </ol>
     </div>
