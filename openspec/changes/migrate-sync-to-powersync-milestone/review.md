@@ -75,3 +75,21 @@ Ruling on the paraphrases: both match the plan.
 | P36 | security          | tasks.md 8.8, upstream-issue   | the scrub check covers the text only, not attachments                                                                           | nit    | fixed in both                                                                                                                       |
 
 ## Round 3
+
+Snapshot: 9834c219. Reviewers: reader (fresh), grounding and security (resumed). Security clean; all earlier fixes confirmed except P24.
+
+**Reader's paraphrase:** matches the plan (8.6 swaps in `mc-wa-sqlite-jspi` and measures; 8.7 map first only if needed; 8.9 config before app; existing system as in round 2, verified against `sync-config.yaml` and `vfs.js`).
+
+| #   | raised by         | file:line                      | claim                                                                                                         | status | reason/evidence                                                                                            |
+| --- | ----------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------- |
+| P37 | grounding, reader | tasks.md 8.6 (P24 reopened)    | a `syncMark` cannot see what the worker loaded: the choice happens in the worker, which has no `localStorage` | fixed  | 8.6 probes the open database from the page with `select sqlite3mc_version()` and marks the answer          |
+| P38 | reader            | tasks.md 8.6, 8.7              | 8.7's trigger ("well above Chrome") has no number and measures a different thing than rule 1                  | fixed  | 8.6 is measured on the iPhone; 8.7 runs if the first marker after a first sign-in is later than Zero's 4 s |
+| P39 | reader            | tasks.md 8.6, sw.size.test.ts  | the precache test skips without a production build; the offline cold start names no build                     | fixed  | 8.6 runs a production build, sees `sw.size.test.ts` red then green, and cold-starts that build offline     |
+| P40 | reader            | tasks.md 8.7, layers.svelte.ts | "count unknown" could reuse `estimated`'s "?"; a 0-route block still shrinks later                            | nit    | fixed in the text: no text on the marker; the later shrink accepted as rare (D12)                          |
+| P41 | grounding, reader | tasks.md 8.6                   | the no-collections fallback has no mechanism                                                                  | nit    | fixed: `PUBLIC_POWERSYNC_SKIP_COLLECTIONS`, listed for removal in R1                                       |
+| P42 | reader            | tasks.md 8.6                   | Firefox may get the JSPI build untested                                                                       | nit    | fixed: Firefox opens and syncs in 8.6's checks                                                             |
+| P43 | reader            | upstream-issue.md, facts.md    | "no list mounted" is inaccurate; the cause's sources are not in facts.md                                      | nit    | fixed in both                                                                                              |
+| P44 | reader            | tasks.md 9.5                   | 9.5 assumes 8.7 runs                                                                                          | nit    | fixed: "and 8.7 if it ran"                                                                                 |
+| P45 | reader            | streams.local.server.test.ts   | the live foreign-region case names only `guidebook`                                                           | nit    | fixed: 8.7 adds `map` there                                                                                |
+
+Round 3: 9 findings, all fixed in the artifacts, none rejected, no decisions. The cap of three rounds is reached with round 3's fixes not yet re-reviewed, so the status stays open.
