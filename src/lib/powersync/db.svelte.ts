@@ -16,6 +16,8 @@ const ZERO_DROPPED_KEY = 'grnyte.zeroStoreDropped'
  *  both from the environment, which only exists inside SvelteKit's runtime. */
 export interface PowerSyncSettings {
   endpoint: string
+  /** Collections take rows in only once subscribed (task 8.6 measurement); goes in R1. */
+  lazyCollections?: boolean
   /** Syncs in a shared worker instead of the page; PowerSync turns it off on Safari by default. */
   multiTabs?: boolean
   only: boolean
@@ -116,6 +118,11 @@ export function initPowerSync(
       syncMark(`store open (${settings.vfs ?? 'IndexedDB'}${settings.multiTabs ? ', shared worker' : ''})`)
       if (row != null) markStoreWarm()
       markStoreLoaded()
+      // Which SQLite build the worker loaded, asked of the database itself: only the cipher (JSPI) build has this function.
+      void opened.get<{ v: string }>('select sqlite3mc_version() as v').then(
+        ({ v }) => syncMark(`sqlite build: JSPI (mc ${v})`),
+        () => syncMark('sqlite build: Asyncify'),
+      )
     })
     .catch((error: unknown) => console.error('[powersync] local read failed', error))
   observe(opened.currentStatus)
@@ -134,9 +141,14 @@ export function initPowerSync(
     .catch((error: unknown) => console.error('[powersync] connect failed', error))
 }
 
-/** shortcut: the measurement build starts only PowerSync; goes when Zero leaves the client. */
 export function powerSyncOnly(): boolean {
   return settings.only
+}
+
+/** shortcut: the measurement build starts only PowerSync; goes when Zero leaves the client. */
+/** The settings the layout passed in, for the measurement switches read elsewhere. */
+export function powerSyncSettings(): Readonly<PowerSyncSettings> {
+  return settings
 }
 
 export function powerSyncStatus(): SyncStatus | undefined {

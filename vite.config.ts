@@ -8,6 +8,28 @@ import { fileURLToPath } from 'node:url'
 import { loadEnv, type Plugin } from 'vite'
 import { configDefaults, defineConfig } from 'vitest/config'
 
+const ASYNC_SQLITE_IMPORT = "await import('@journeyapps/wa-sqlite/dist/wa-sqlite-async.mjs')"
+
+/**
+ * PowerSync loads wa-sqlite's Asyncify build for IndexedDB unconditionally, and Safari 27 runs it ~10x slower after a
+ * few seconds of work (WebKit 329813). Where the browser has JSPI the worker loads the cipher JSPI build instead, the
+ * one JSPI build that carries the PowerSync core. Two literal imports: Vite does not rewrite a computed specifier.
+ */
+const powerSyncJspi = (): Plugin => ({
+  enforce: 'pre',
+  name: 'grnyte:powersync-jspi',
+  transform(code, id) {
+    if (!id.includes('@powersync/web/lib/db/adapters/wa-sqlite/vfs.js')) return
+    if (!code.includes(ASYNC_SQLITE_IMPORT)) {
+      this.error('PowerSync no longer imports wa-sqlite-async.mjs as expected; recheck the JSPI swap')
+    }
+    return code.replace(
+      ASYNC_SQLITE_IMPORT,
+      "await (typeof WebAssembly.Suspending === 'function' ? import('@journeyapps/wa-sqlite/dist/mc-wa-sqlite-jspi.mjs') : import('@journeyapps/wa-sqlite/dist/wa-sqlite-async.mjs'))",
+    )
+  },
+})
+
 /**
  * Tests that carry `// @vitest-environment node`. The pragma alone is not enough: `svelteTesting()`
  * injects Testing Library's auto-cleanup into every file of the jsdom PROJECT, and that cleanup
@@ -150,6 +172,7 @@ export default defineConfig({
   // PowerSync's workers and wasm must not be pre-bundled.
   optimizeDeps: { exclude: ['@powersync/web'] },
   plugins: [
+    powerSyncJspi(),
     paraglideVitePlugin({
       outdir: './src/lib/paraglide',
       project: './project.inlang',
@@ -170,11 +193,12 @@ export default defineConfig({
       },
       filename: 'sw.ts',
       injectManifest: {
-        // The async SQLite build PowerSync's database worker loads, or a cold offline start opens no store.
-        // Only that copy: the build also emits the main-thread and encrypted variants, which never load here.
+        // The SQLite builds PowerSync's database worker loads (JSPI where the browser has it, else async), or a cold
+        // offline start opens no store. Only those: the main-thread and other cipher variants never load here.
         globPatterns: [
           'client/**/*.{js,css,ico,png,svg,webp,woff,woff2}',
           'client/_app/immutable/workers/assets/wa-sqlite-async-*.wasm',
+          'client/_app/immutable/workers/assets/mc-wa-sqlite-jspi-*.wasm',
         ],
         // It is 2.3 MB; Workbox skips anything over its 2 MiB default without failing the build.
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
@@ -356,5 +380,6 @@ export default defineConfig({
       },
     ],
   },
-  worker: { format: 'es' },
+  // The worker bundle gets only these plugins, and the SQLite build is chosen inside the worker.
+  worker: { format: 'es', plugins: () => [powerSyncJspi()] },
 })
