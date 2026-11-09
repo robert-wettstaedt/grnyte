@@ -45,6 +45,12 @@ describe('the built service worker', () => {
       /_app\/immutable\/workers\/assets\/wa-sqlite-async-[\w-]+\.wasm/,
     )
   })
+
+  withBuild('precaches the JSPI build the worker loads where the browser has JSPI', () => {
+    expect(readFileSync(BUILT_WORKER, 'utf-8')).toMatch(
+      /_app\/immutable\/workers\/assets\/mc-wa-sqlite-jspi-[\w-]+\.wasm/,
+    )
+  })
 })
 
 /** Comments in this repo quote both of the literals below, so match on code only. */

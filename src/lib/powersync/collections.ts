@@ -1,21 +1,23 @@
 import type { PowerSyncDatabase } from '@powersync/web'
 import { BasicIndex, createCollection } from '@tanstack/db'
 import { powerSyncCollectionOptions } from '@tanstack/powersync-db-collection'
-import { getPowerSync, registerCollections } from './db.svelte'
+import { getPowerSync, powerSyncSettings, registerCollections } from './db.svelte'
 import { appSchema } from './schema'
 
 type Tables = typeof appSchema.props
 
 // Indexed as queries filter: joins and lookups by `nid` or a foreign key otherwise scan the whole collection.
 const make = <K extends keyof Tables>(database: PowerSyncDatabase, table: K) =>
-  createCollection(
-    powerSyncCollectionOptions({
+  createCollection({
+    ...powerSyncCollectionOptions({
       autoIndex: 'eager',
       database,
       defaultIndexType: BasicIndex,
       table: appSchema.props[table],
     }),
-  )
+    // A measurement switch for task 8.6: only subscribed collections take rows in.
+    ...(powerSyncSettings().lazyCollections ? { startSync: false } : {}),
+  })
 
 type Collections = { [K in keyof Tables]: ReturnType<typeof make<K>> }
 

@@ -41,6 +41,13 @@
 
   const loadTime = new Intl.DateTimeFormat(getLocale(), { dateStyle: 'short', timeStyle: 'medium' })
 
+  // Re-read each second, so a sync can be watched from this page while it runs.
+  let marks = $state(syncMarks())
+  $effect(() => {
+    const timer = setInterval(() => (marks = syncMarks()), 1000)
+    return () => clearInterval(timer)
+  })
+
   const UNITS = ['byte', 'kilobyte', 'megabyte', 'gigabyte'] as const
 
   // SI steps, which is what Intl's kilobyte and megabyte mean; abs so a negative safe_wal_size scales.
@@ -143,7 +150,7 @@
       <span class="text-sm font-semibold">{m.settings_syncTimeline()}</span>
       <p class="text-surface-600-400 text-sm">{m.settings_syncTimelineHint()}</p>
       <ol class="text-surface-600-400 text-sm tabular-nums">
-        {#each syncMarks() as [name, at] (name)}
+        {#each marks as [name, at] (name)}
           <li class="flex justify-between gap-3">
             <span>{name}</span>
             <span>{(at / 1000).toFixed(1)} s</span>
