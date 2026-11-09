@@ -4,6 +4,7 @@ import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/publi
 import { dropZeroStoreOnce, initPowerSync, powerSyncOnly } from '$lib/powersync/db.svelte'
 import { recordPageLoad } from '$lib/powersync/loads'
 import { initZero } from '$lib/zero/z.svelte'
+import { WASQLiteVFS } from '@powersync/web'
 import { createBrowserClient } from '@supabase/ssr'
 import type { LayoutLoad } from './$types'
 
@@ -34,6 +35,8 @@ export const load = (async ({ depends, fetch }) => {
     // shortcut: dev falls back to the local service until PUBLIC_POWERSYNC_URL is in every .env.
     endpoint: env.PUBLIC_POWERSYNC_URL || (dev ? 'http://localhost:58100' : ''),
     only: env.PUBLIC_SYNC_ONLY_POWERSYNC === '1',
+    // shortcut: a storage experiment for the remeasure; goes with the switch in R1.
+    vfs: Object.values(WASQLiteVFS).find((vfs) => vfs === env.PUBLIC_POWERSYNC_VFS),
   })
   if (powerSyncOnly()) {
     void dropZeroStoreOnce()

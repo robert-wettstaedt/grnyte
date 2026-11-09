@@ -2,7 +2,7 @@ import { browser } from '$app/environment'
 import { reportSyncStatus } from '$lib/state/online.svelte'
 import { storage } from '$lib/state/storage'
 import { markStoreLoaded, markStoreWarm, markSynced, trackSyncFor, type SyncStamp } from '$lib/state/sync.svelte'
-import { PowerSyncDatabase, type PowerSyncBackendConnector, type SyncStatus } from '@powersync/web'
+import { PowerSyncDatabase, type PowerSyncBackendConnector, type SyncStatus, type WASQLiteVFS } from '@powersync/web'
 import { dropAllDatabases } from '@rocicorp/zero'
 import type { Session } from '@supabase/supabase-js'
 import { syncMark } from './marks'
@@ -17,6 +17,8 @@ const ZERO_DROPPED_KEY = 'grnyte.zeroStoreDropped'
 export interface PowerSyncSettings {
   endpoint: string
   only: boolean
+  /** The storage under test for the remeasure; unset keeps the default IndexedDB. */
+  vfs?: WASQLiteVFS
 }
 
 let settings: PowerSyncSettings = { endpoint: '', only: false }
@@ -86,7 +88,10 @@ export function initPowerSync(
 
   // The default IndexedDB store, not OPFS: on iOS Safari a reload left the previous page holding the OPFS file and
   // the new page never finished a sync (design D5, client store).
-  const opened = new PowerSyncDatabase({ database: { dbFilename: fileName(session.user.id) }, schema: appSchema })
+  const opened = new PowerSyncDatabase({
+    database: { dbFilename: fileName(session.user.id), ...(settings.vfs == null ? {} : { vfs: settings.vfs }) },
+    schema: appSchema,
+  })
   db = opened
   stamped = []
   openedAt = Date.now()
@@ -102,7 +107,7 @@ export function initPowerSync(
       // Open is not read: the live queries take seconds more on a phone, and offline that gap looked like a cold store.
       const row = current() ? await opened.getOptional('select 1 from users where auth_user_fk = ?', [authId]) : null
       if (!current()) return
-      syncMark('store open')
+      syncMark(`store open (${settings.vfs ?? 'IndexedDB'})`)
       if (row != null) markStoreWarm()
       markStoreLoaded()
     })
