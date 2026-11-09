@@ -58,3 +58,5 @@ The build probe (`select sqlite3mc_version()`) answered "SQLite3 Multiple Cipher
 Reading: D12's hypothesis does not hold. JSPI saves ~11% in WebKit (and ~45% in Chrome), and the TanStack collections cost nothing measurable (the "taken in" steps follow within 0.1 to 0.3 s). The time is spent inside PowerSync's own engine in WebKit, whatever the SQLite build, storage or screen.
 
 Side observation: the page-load counter did not count the reload that the "new version" banner triggered in the Simulator (23 entries before and after). To check before the 8.4 soak.
+
+iPhone, prod, the user's account, the Vercel preview with the JSPI swap (2026-11-09): the timeline names "JSPI (mc SQLite3 Multiple Ciphers 2.3.3)", so the iPhone's WebKit has JSPI. First block marker after the "Sign in" tap, from a screen recording: 30, 27 and 27 s (three runs). Guidebook stream: 23.4 s (connected 13.9 s, synced 37.8 s after the page loaded). Zero: 4 s. By 8.7's trigger, map first is due.
