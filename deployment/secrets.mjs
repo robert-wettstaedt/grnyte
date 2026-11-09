@@ -68,6 +68,8 @@ const render = (secrets) => [HEADER, ...secrets.map((secret) => `${secret.key}="
 // PS_* (PowerSync) are the VPS's half. deploy-zero.yml sends exactly those to the VPS, so exactly those stay
 // off Vercel. The app reads PUBLIC_ZERO_URL and PUBLIC_POWERSYNC_URL and nothing else of either.
 const isVpsOnly = (key) => key.startsWith('ZERO_') || key.startsWith('PS_')
+// Also kept off Vercel: the deploy workflows' SSH access to the VPS and the e2e login; the app reads neither.
+const isOffVercel = (key) => isVpsOnly(key) || key.startsWith('VPS_') || key.startsWith('E2E_')
 
 /**
  * The project's secrets as `<uuid> > KEY` lines, which is exactly the input format
@@ -117,7 +119,7 @@ function pull(file = '.env', force = false) {
 function pushToVercel(project, target = 'production') {
   if (project == null) die('Usage: node deployment/secrets.mjs vercel <vercel-project> [target]')
 
-  for (const secret of listSecrets().filter((secret) => !isVpsOnly(secret.key))) {
+  for (const secret of listSecrets().filter((secret) => !isOffVercel(secret.key))) {
     // Vercel rejects --sensitive for development, and a sensitive PUBLIC_* var only means nobody can
     // read a value in the dashboard that ships to the browser anyway.
     const sensitivity =
@@ -222,6 +224,10 @@ async function selftest() {
       'DATABASE_URL',
     ].filter(isVpsOnly),
     ['ZERO_UPSTREAM_DB', 'ZERO_AUTH_SECRET', 'PS_ADMIN_TOKEN'],
+  )
+  assert.deepEqual(
+    ['VPS_SSH_KEY', 'E2E_PASSWORD', 'NEXTCLOUD_URL', 'PUBLIC_ZERO_URL', 'DATABASE_URL'].filter(isOffVercel),
+    ['VPS_SSH_KEY', 'E2E_PASSWORD'],
   )
 
   console.error('selftest ok')
