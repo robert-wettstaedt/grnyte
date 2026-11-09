@@ -20,10 +20,11 @@ export interface DonutSegment {
  * colors and a white backing disc so it reads on top of the map, and draws the
  * centered count inside the SVG rather than as an overlaid element.
  *
+ * @param total null while the routes are not loaded: an empty ring with no number, never a false 0.
  * @param size diameter in pixels.
  */
-export function buildGradeDonutSvg(countByGrade: Map<number, number>, total: number, size: number): string {
-  const segments = computeDonutSegments(countByGrade, total)
+export function buildGradeDonutSvg(countByGrade: Map<number, number>, total: null | number, size: number): string {
+  const segments = total == null ? [] : computeDonutSegments(countByGrade, total)
   const c = DONUT_CENTER
   const r = DONUT_RADIUS
   const sw = DONUT_STROKE_WIDTH
@@ -40,16 +41,19 @@ export function buildGradeDonutSvg(countByGrade: Map<number, number>, total: num
     .join('')
 
   // Dark backing ring (visible through the gaps between arcs) plus a white disc precisely big
-  // enough to fill the hole behind the count, so it reads on top of the map. The ring is
+  // enough to fill the hole behind the count, so it reads on top of the map (opaque with no count, or the tiny outline of
+  // an area whose blocks sit together would show through like a broken glyph). The ring is
   // dark so the light end of the grade scale (very-easy peach) still contrasts against it.
   const hole = r - sw / 2
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${c * 2} ${c * 2}">` +
     `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#52525b" stroke-width="${sw}"/>` +
-    `<circle cx="${c}" cy="${c}" r="${hole}" fill="#ffffff" fill-opacity="0.8"/>` +
+    `<circle cx="${c}" cy="${c}" r="${hole}" fill="#ffffff" fill-opacity="${total == null ? 1 : 0.8}"/>` +
     ring +
-    `<text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" ` +
-    `font-weight="700" font-size="${fontSize}" fill="#1f2937">${total}</text>` +
+    (total == null
+      ? ''
+      : `<text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" ` +
+        `font-weight="700" font-size="${fontSize}" fill="#1f2937">${total}</text>`) +
     `</svg>`
   )
 }

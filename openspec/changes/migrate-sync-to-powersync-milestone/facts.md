@@ -60,3 +60,11 @@ Reading: D12's hypothesis does not hold. JSPI saves ~11% in WebKit (and ~45% in 
 Side observation: the page-load counter did not count the reload that the "new version" banner triggered in the Simulator (23 entries before and after). To check before the 8.4 soak.
 
 iPhone, prod, the user's account, the Vercel preview with the JSPI swap (2026-11-09): the timeline names "JSPI (mc SQLite3 Multiple Ciphers 2.3.3)", so the iPhone's WebKit has JSPI. First block marker after the "Sign in" tap, from a screen recording: 30, 27 and 27 s (three runs). Guidebook stream: 23.4 s (connected 13.9 s, synced 37.8 s after the page loaded). Zero: 4 s. By 8.7's trigger, map first is due.
+
+## Task 8.7: map first (2026-11-09)
+
+Dev stack, `admin@`, the local service on this branch's config (the `map` stream active), a production build previewed on a fresh origin.
+
+iOS 27.2 Simulator: the first block markers drew as count-unknown rings about 6 s after the page loaded (read off screenshots, not a recording), an area sheet opened meanwhile showed its skeletons, and the counts and the grade histogram filled in at about 26 to 30 s with no marker moving.
+
+Chrome, fresh isolated profile per run, downloading to "synced: all": 2.6 s on the first run after the service restart, then 1.7 and 1.7 s, against 8.6's 1.8 s. `map` was confirmed and taken in 0.7 s after downloading began.

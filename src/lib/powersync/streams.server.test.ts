@@ -211,9 +211,29 @@ describe.skipIf(!reachable)('synced reads never cross the region boundary', () =
 
   it('ignores a region the client names in its subscription', async () => {
     const asking: RequestedStream[] = [{ opaque_id: 1, parameters: { region_id: regionA }, priorityOverride: null }]
-    const held = regionsByTable(await holdings(users.outsider.authId, { guidebook: asking, region_activity: asking }))
+    const streams = Object.fromEntries(
+      ['guidebook', 'map', 'media', 'members', 'region_activity'].map((name) => [name, asking]),
+    )
+    const held = regionsByTable(await holdings(users.outsider.authId, streams))
 
     expect(Object.values(held).flat()).not.toContain(regionA)
+  })
+
+  it('keeps a deleted area or block off the device', async () => {
+    await sql`update public.areas set deleted_at = now() where region_fk = ${regionA}`
+    await sql`update public.blocks set deleted_at = now() where region_fk = ${regionA}`
+    try {
+      await replicate()
+      const held = regionsByTable(await holdings(users.insider.authId))
+
+      expect(held.areas).toBeUndefined()
+      expect(held.blocks).toBeUndefined()
+      expect(held.routes).toEqual([regionA])
+    } finally {
+      await sql`update public.areas set deleted_at = null where region_fk = ${regionA}`
+      await sql`update public.blocks set deleted_at = null where region_fk = ${regionA}`
+      await replicate()
+    }
   })
 
   it('stops syncing a region once the membership is deactivated', async () => {

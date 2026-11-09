@@ -56,6 +56,7 @@ export function areaDetail(id: () => number) {
       const row = (rows as SyncedArea[])[0]
       return row == null ? undefined : toAreaDetail(toAreaRow(row))
     },
+    'map',
   )
   return holdWhileDeleting(area, 'areas', id)
 }
@@ -80,6 +81,7 @@ export function areaList(filter: () => AreaListFilter = () => ({}), opts?: { ena
             : query.orderBy(({ a }) => a.name, byNameOrder())
         return query.orderBy(({ a }) => a.nid, 'asc')
       },
+      stream: 'map',
       toItem: (row: SyncedArea) => toAreaDetail(toAreaRow(row)),
       trees: (q, rows) => areaTrees(q, rows, 1),
     },
@@ -95,7 +97,7 @@ export function areaMapList() {
     () => [],
     // Sorted here: SQLite orders names by bytes, every other list by the reader's language.
     (rows: MapAreaRow[]) => sortByName(rows, (row) => row.nid).map(toMapArea),
-    () => 'guidebook',
+    () => 'map',
   )
 }
 

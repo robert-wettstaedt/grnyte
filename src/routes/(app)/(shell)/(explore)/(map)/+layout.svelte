@@ -278,6 +278,7 @@
     parkingLocations={explore.parkingLocations}
     lineStrings={explore.lineStrings}
     routeCountByBlock={explore.routeCountByBlock}
+    countsUnknown={explore.countsUnknown}
     gradeCountByBlock={explore.gradeCountByBlock}
     {selectedBlockId}
     focus={effectiveFocus}

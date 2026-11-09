@@ -99,10 +99,10 @@ describe.skipIf(!ENABLED)('the sync service as a device sees it', () => {
 
   it('answers a subscription naming a foreign region the same as one naming no region at all', async () => {
     const named = client('anon@grnyte.rocks', {
-      subscriptions: [{ parameters: { region_id: region }, stream: 'guidebook' }],
+      subscriptions: ['guidebook', 'map'].map((stream) => ({ parameters: { region_id: region }, stream })),
     })
     const unknown = client('anon@grnyte.rocks', {
-      subscriptions: [{ parameters: { region_id: 2_000_000_000 }, stream: 'guidebook' }],
+      subscriptions: ['guidebook', 'map'].map((stream) => ({ parameters: { region_id: 2_000_000_000 }, stream })),
     })
     await Promise.allSettled([named.connect(), unknown.connect()])
 
@@ -111,7 +111,7 @@ describe.skipIf(!ENABLED)('the sync service as a device sees it', () => {
   })
 
   it('catches up with only what changed after the server compacted its history', async () => {
-    const device = client('user@grnyte.rocks', { streams: ['guidebook'] })
+    const device = client('user@grnyte.rocks', { streams: ['guidebook', 'map'] })
     await device.connect()
     await waitFor(() => regionRows(device).length >= 5)
     device.disconnect()

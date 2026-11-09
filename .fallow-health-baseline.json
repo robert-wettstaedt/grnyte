@@ -530,9 +530,6 @@
       }
     },
     "src/lib/map/layers.svelte.ts": {
-      "complexity_moderate": {
-        "count": 1
-      },
       "crap_moderate": {
         "count": 1
       }

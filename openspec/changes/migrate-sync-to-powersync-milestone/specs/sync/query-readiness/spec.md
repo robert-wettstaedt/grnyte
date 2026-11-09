@@ -4,7 +4,7 @@
 
 ### Requirement: The visible screen is answered before background sync
 
-On a device that keeps data for offline use, opening the application SHALL NOT make the visible screen wait behind data it does not show. Reference data is delivered first; a region's guidebook arrives as one unit, so a guidebook screen opened before its region has synced once indicates that data is arriving, and once a region has synced, reopening the application SHALL answer every screen of that region from local data without waiting for any sync.
+On a device that keeps data for offline use, opening the application SHALL NOT make the visible screen wait behind data it does not show. Reference data is delivered first, then a region's map places, then the rest of its guidebook. A guidebook screen opened before the data it shows has synced once indicates that data is arriving, and once a region has synced, reopening the application SHALL answer every screen of that region from local data without waiting for any sync.
 
 This exists because a device away for more than a few seconds catches up on return, and a screen requested behind that must not wait for all of it.
 
