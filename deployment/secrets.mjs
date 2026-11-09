@@ -118,6 +118,7 @@ function pull(file = '.env', force = false) {
 
 function pushToVercel(project, target = 'production', branch) {
   if (project == null) die('Usage: node deployment/secrets.mjs vercel <vercel-project> [target] [preview branch]')
+  const scope = vercelScope(target, branch)
 
   for (const secret of listSecrets().filter((secret) => !isOffVercel(secret.key))) {
     // Vercel rejects --sensitive for development, and a sensitive PUBLIC_* var only means nobody can
@@ -125,16 +126,7 @@ function pushToVercel(project, target = 'production', branch) {
     const sensitivity =
       target === 'development' ? [] : [secret.key.startsWith('PUBLIC_') ? '--no-sensitive' : '--sensitive']
 
-    // Only preview prompts for a git branch, and it exits 0 having written nothing when stdin (the
-    // value) is already consumed. `--yes` takes the default, every preview branch; a named branch skips the prompt.
-    const where = target === 'preview' && branch != null ? [target, branch] : [target]
-    const prompts = target === 'preview' && branch == null ? ['--yes'] : []
-
-    run(
-      'vercel',
-      ['env', 'add', secret.key, ...where, '--force', '--project', project, ...prompts, ...sensitivity],
-      secret.value,
-    )
+    run('vercel', ['env', 'add', secret.key, ...scope, '--force', '--project', project, ...sensitivity], secret.value)
     console.error(`${project}/${target}: ${secret.key}`)
   }
 }
@@ -232,6 +224,13 @@ async function selftest() {
   )
 
   console.error('selftest ok')
+}
+
+/** Only preview prompts for a git branch, and it exits 0 having written nothing when stdin (the value) is
+ *  already consumed. `--yes` takes the default, every preview branch; a named branch skips the prompt. */
+function vercelScope(target, branch) {
+  if (target !== 'preview') return [target]
+  return branch == null ? [target, '--yes'] : [target, branch]
 }
 
 /**
