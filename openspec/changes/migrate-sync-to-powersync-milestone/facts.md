@@ -118,3 +118,5 @@ Modes behind `PUBLIC_POWERSYNC_COLLECTIONS` (measurement switch, goes in R1), Si
 | Route  | 1.22 s | 0.63 s    | 1.24 s                | 0.46 s |
 
 On-demand (`syncMode: 'on-demand'` in `@tanstack/powersync-db-collection` 0.2.12) loads only the rows a query asks for and renders every screen checked. Preload does not help a screen opened at start, its background loads compete with it. Raw SQL for the remaining collection reads was not built: the remaining gap sits in reads that are raw SQL already (the map's place and route queries, the route list).
+
+On demand by default (b6613a2f), with the map's place queries run once (the create flow reads its own copies only while open, the empty-region check reads one row), same setup: area 1.15 s, block 1.14 s, route 0.63 s (Zero 0.57, 0.59, 0.46). Map cold start: places ready 0.9 s after page load (1.1 s lazy, 1.6 s eager). The reconnect's priority 0 and 1 streams now confirm within ~0.5 s of connecting; only the full checkpoint still takes ~19 s.
