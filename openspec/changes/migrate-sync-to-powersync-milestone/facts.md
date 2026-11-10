@@ -68,3 +68,13 @@ Dev stack, `admin@`, the local service on this branch's config (the `map` stream
 iOS 27.2 Simulator: the first block markers drew as count-unknown rings about 6 s after the page loaded (read off screenshots, not a recording), an area sheet opened meanwhile showed its skeletons, and the counts and the grade histogram filled in at about 26 to 30 s with no marker moving.
 
 Chrome, fresh isolated profile per run, downloading to "synced: all": 2.6 s on the first run after the service restart, then 1.7 and 1.7 s, against 8.6's 1.8 s. `map` was confirmed and taken in 0.7 s after downloading began.
+
+iPhone, prod, the user's account, the Vercel preview with map first and the `map` stream live on prod (2026-11-10), timed from the "Sign in" tap on a screen recording, website data deleted before each run:
+
+| Run | First block marker (count unknown) | Counts filled in |
+| --- | ---------------------------------- | ---------------- |
+| 1   | 3 s                                | 27 s             |
+| 2   | 3 s                                | 28 s             |
+| 3   | 3 s                                | 28 s             |
+
+Zero's build: first marker 4 s. Before map first (8.6, JSPI): 27 to 30 s. Timeline of the last run, from connecting: `map` synced 1.2 s and taken in 1.8 s after it, `guidebook` synced 24.6 s and taken in 25.1 s after it. The guidebook's first sync itself is unchanged; map first moves the map out from behind it.
