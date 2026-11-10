@@ -90,3 +90,17 @@ The server answered the Simulator's reconnect with 0 operations and about 5 KB, 
 Collections loaded on first use (`startSync: false`, 2026-11-10), same setups: map places ready 1.1 s after page load on a Simulator cold start (1.6 s eager, one run each), 0.55 s after a Chrome reload (0.97 s). Block, route, area, profile and search pages render in full, with no console errors.
 
 iPhone, prod, collections on first use (00a77420), cold start of a synced store to the first block marker: 2.4, 2.2, 2.2 s, median 2.2 s against Zero's 2.5 s (4.0 s with eager collections). Timeline: store open 0.8 s, map places ready 1.6 s after page load; the reconnect's empty checkpoint still completes at 20.7 s.
+
+## Task 8.3 in the Simulator (2026-11-10)
+
+iOS 27.2 Simulator, `admin@`, both sides production builds on the dev stack: PowerSync is this branch (collections on first use) on `vite preview`, Zero is `develop` (7bf05b7a) built the same way against the local zero-cache. Each run is a Safari cold start straight onto the screen's URL, screen-recorded; times are from the first page paint to the screen's content, read off the frames where the screen changed (three runs each, median). Safari's own launch, ~4.2 s to the first paint, is the same on both and left out.
+
+| Screen                          | Zero   | PowerSync             | What PowerSync shows meanwhile                 |
+| ------------------------------- | ------ | --------------------- | ---------------------------------------------- |
+| Block                           | 0.59 s | 1.00 s                | header, then the route list                    |
+| Area                            | 0.57 s | 2.57 s (1.64 to 2.68) | header and a grades skeleton until routes load |
+| Route                           | 0.46 s | 1.53 s                | header, then ascents                           |
+| Another member's profile        | 0.48 s | 1.14 s                | name, stats as dashes                          |
+| Map with a filter (`hasTopo=1`) | 0.51 s | 1.04 s                | map, then the filtered markers                 |
+
+Search was not measured (its query is not in the URL). Reading: on a cold start the first screen that reads `routes` or `ascents` waits for the whole table to load from SQLite into its collection; with collections loaded at startup (before 00a77420) that cost sat on the map instead (rule 1). The Simulator and the iPhone agreed within 70 to 100 % wherever both were measured.
