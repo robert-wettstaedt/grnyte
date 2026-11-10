@@ -6,6 +6,7 @@ import { debouncedQuery } from '$lib/components/EntitySearch/search.svelte'
 import { areaMapList } from '$lib/entities/area/resources.svelte'
 import { blockList, blockMapList } from '$lib/entities/block/resources.svelte'
 import { routeMapList } from '$lib/entities/route/resources.svelte'
+import { syncMark } from '$lib/powersync/marks'
 import { quietly } from '$lib/state/pill.svelte'
 import type { MatchTest } from '$lib/state/searchQuery.svelte'
 import type { QueryPhase } from '$lib/zero/resource.svelte'
@@ -123,6 +124,10 @@ export function createExploreMapData(
       routeCountByBlock,
       search: narrowSearch.text,
     }))
+  })
+  // Measurement mark for the remeasure; goes in R1 with the timeline.
+  $effect(() => {
+    if (areasResult.data.length > 0 || blocksResult.data.length > 0) syncMark('map: places ready')
   })
   const parkingLocations = $derived(areasResult.data.flatMap((area) => area.parkingLocations))
   const lineStrings = $derived(areasResult.data.flatMap((area) => area.geoPaths))
