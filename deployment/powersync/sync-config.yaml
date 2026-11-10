@@ -26,7 +26,9 @@ streams:
       - SELECT *, id AS nid FROM regions WHERE id IN (SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active)
         AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
 
-  guidebook:
+  # What the map draws its markers from, ahead of the rest of the guidebook: a first sync on iOS WebKit is slow
+  # (design D12), and the map should not wait for every route.
+  map:
     auto_subscribe: true
     priority: 1
     with:
@@ -35,9 +37,17 @@ streams:
     queries:
       - SELECT *, id AS nid FROM areas WHERE region_fk IN my_regions AND deleted_at IS NULL
       - SELECT *, id AS nid FROM blocks WHERE region_fk IN my_regions AND deleted_at IS NULL
+      - SELECT *, id AS nid FROM geolocations WHERE region_fk IN my_regions
+
+  guidebook:
+    auto_subscribe: true
+    priority: 2
+    with:
+      my_regions: SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
+    queries:
       - SELECT *, id AS nid FROM routes WHERE region_fk IN my_regions AND deleted_at IS NULL
       - SELECT *, id AS nid FROM first_ascensionists WHERE region_fk IN my_regions
-      - SELECT *, id AS nid FROM geolocations WHERE region_fk IN my_regions
       - SELECT *, id AS nid FROM routes_to_first_ascensionists WHERE region_fk IN my_regions
       - SELECT *, route_fk || '-' || tag_fk AS id FROM routes_to_tags WHERE region_fk IN my_regions
       - SELECT *, id AS nid FROM topo_routes WHERE region_fk IN my_regions
@@ -48,7 +58,7 @@ streams:
   # Everyone's ascents, the members list and everyone's saves: route pages, profiles and save counts read them.
   region_activity:
     auto_subscribe: true
-    priority: 1
+    priority: 2
     with:
       my_regions: SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active
         AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
@@ -61,7 +71,7 @@ streams:
   # region's activity, and Zero resolved their names.
   members:
     auto_subscribe: true
-    priority: 1
+    priority: 2
     with:
       my_regions: SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active
         AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
@@ -70,7 +80,7 @@ streams:
 
   media:
     auto_subscribe: true
-    priority: 2
+    priority: 3
     with:
       my_regions: SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active
         AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
