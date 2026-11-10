@@ -28,6 +28,18 @@ type Ref = any
 // `areaTrees` takes an untyped builder, so its rows are asserted here.
 type SyncedArea = { description?: null | string; name?: null | string; parent: Ref[]; parking: object[] }
 
+/** Every area in your regions with two levels of parents and its parking, for the map and the pickers. Raw SQL:
+ *  a live query building that tree per area held the map's first draw back by about 1.5 s at 4x throttle. */
+/** Whether the reader's regions hold any area, for the empty-region state: one row, not the whole map list. */
+export function anyArea() {
+  return sqlResource(
+    () => 'select 1 as found from areas limit 1',
+    () => [],
+    (rows: { found: number }[]) => rows,
+    () => 'map',
+  )
+}
+
 /** The area chain a breadcrumb reads, each `parent` a one-row array for `unwrapParents`. */
 export function areaChain(q: InitialQueryBuilder, fk: Ref, depth: number): Ref {
   return toArray(
@@ -89,15 +101,14 @@ export function areaList(filter: () => AreaListFilter = () => ({}), opts?: { ena
   )
 }
 
-/** Every area in your regions with two levels of parents and its parking, for the map and the pickers. Raw SQL:
- *  a live query building that tree per area held the map's first draw back by about 1.5 s at 4x throttle. */
-export function areaMapList() {
+export function areaMapList(opts?: { enabled?: () => boolean }) {
   return sqlResource(
     () => AREA_MAP_SQL,
     () => [],
     // Sorted here: SQLite orders names by bytes, every other list by the reader's language.
     (rows: MapAreaRow[]) => sortByName(rows, (row) => row.nid).map(toMapArea),
     () => 'map',
+    opts,
   )
 }
 

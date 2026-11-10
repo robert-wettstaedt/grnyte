@@ -1,7 +1,7 @@
 import type { PowerSyncDatabase } from '@powersync/web'
 import { BasicIndex, createCollection } from '@tanstack/db'
 import { powerSyncCollectionOptions } from '@tanstack/powersync-db-collection'
-import { getPowerSync, powerSyncSettings, registerCollections } from './db.svelte'
+import { getPowerSync, registerCollections } from './db.svelte'
 import { syncMark } from './marks'
 import { appSchema } from './schema'
 
@@ -14,10 +14,11 @@ const make = <K extends keyof Tables>(database: PowerSyncDatabase, table: K) =>
       autoIndex: 'eager',
       database,
       defaultIndexType: BasicIndex,
+      // A query's own rows only: a whole table taken in on a screen's first read cost a cold start 0.4 to 0.6 s.
+      syncMode: 'on-demand',
       table: appSchema.props[table],
-      ...(powerSyncSettings().collections === 'ondemand' ? { syncMode: 'on-demand' as const } : {}),
     }),
-    // Loaded on first use: an eager load of every table held a cold start's first map query back by ~1 s on iOS.
+    // Started on first use: an eager start held a cold start's first map query back by ~1 s on iOS.
     startSync: false,
   })
 
@@ -39,11 +40,4 @@ export function collections(): Collections {
       collection.onFirstReady(() => syncMark(`collection ${table}`))
   }
   return built.collections
-}
-
-/** Measurement switch `preload`: every collection loads in the background, one table at a time; goes in R1. */
-export async function preloadCollections(): Promise<void> {
-  if (powerSyncSettings().collections !== 'preload') return
-  for (const collection of Object.values(collections())) await collection.preload()
-  syncMark('collections preloaded')
 }

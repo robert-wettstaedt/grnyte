@@ -149,13 +149,14 @@ export function blockList(filter: () => BlockListFilter = () => ({}), opts?: { e
 
 /** Every block in your regions for the map, with its area, parent and pin: raw SQL, as a live query building that
  *  tree per block is the map's slowest read. */
-export function blockMapList() {
+export function blockMapList(opts?: { enabled?: () => boolean }) {
   return sqlResource(
     () => MAP_SQL,
     () => [],
     // Sorted here: SQLite orders names by bytes, every other list by the reader's language.
     (rows: MapBlockRow[]) => sortByName(rows, (row) => row.nid).map(toMapBlock),
     () => 'map',
+    opts,
   )
 }
 

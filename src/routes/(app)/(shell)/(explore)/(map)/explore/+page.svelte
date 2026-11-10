@@ -4,7 +4,7 @@
   import EmptyState, { EMPTY_CTA_PRIMARY } from '$lib/components/EmptyState/EmptyState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { canAddArea } from '$lib/entities/area/permissions'
-  import { areaMapList } from '$lib/entities/area/resources.svelte'
+  import { anyArea } from '$lib/entities/area/resources.svelte'
   import { regionDisplayName } from '$lib/entities/region/mapper'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -20,7 +20,7 @@
   // `isEmpty` rather than a length check, so this cannot flash while Zero is still syncing. The
   // same read CreateOnMap and the map run, over the guidebook queries they all register.
   const global = getGlobalState()
-  const areas = areaMapList()
+  const areas = anyArea()
 
   const addable = $derived(
     global.userRegions.filter((region) => canAddArea(global.userRegions, { regionFk: region.regionFk, type: 'area' })),

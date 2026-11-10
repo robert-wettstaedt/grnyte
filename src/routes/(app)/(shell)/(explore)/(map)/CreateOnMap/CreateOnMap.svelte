@@ -37,8 +37,13 @@
   let { center, onrequestcenter, placing = $bindable(), visible }: Props = $props()
 
   const global = getGlobalState()
-  const areas = areaMapList()
-  const blocks = blockMapList()
+  let optionsOpen = $state(false)
+  let pickerOpen = $state(false)
+  let areaPickerOpen = $state(false)
+  // Read while the create flow is open only: mounted with the map, they doubled its two place queries on every start.
+  const flowOpen = $derived(optionsOpen || pickerOpen || areaPickerOpen || placing != null)
+  const areas = areaMapList({ enabled: () => flowOpen })
+  const blocks = blockMapList({ enabled: () => flowOpen })
   // "Nothing found" and "no sector nearby" are claims about every area and block.
   const places = $derived(searchOutcome([areas.phase, blocks.phase]))
   const placesSettled = $derived(places === 'answered')
@@ -47,10 +52,6 @@
     pending: m.common_syncing,
     unavailable: m.error_offline_title,
   }
-
-  let optionsOpen = $state(false)
-  let pickerOpen = $state(false)
-  let areaPickerOpen = $state(false)
   let search = $state('')
   let areaSearch = $state('')
   /** Manual override from the sector picker; wins over the proximity match. */
