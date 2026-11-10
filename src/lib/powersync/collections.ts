@@ -2,6 +2,7 @@ import type { PowerSyncDatabase } from '@powersync/web'
 import { BasicIndex, createCollection } from '@tanstack/db'
 import { powerSyncCollectionOptions } from '@tanstack/powersync-db-collection'
 import { getPowerSync, powerSyncSettings, registerCollections } from './db.svelte'
+import { syncMark } from './marks'
 import { appSchema } from './schema'
 
 type Tables = typeof appSchema.props
@@ -32,6 +33,9 @@ export function collections(): Collections {
     built = { collections: made, database }
     const all = Object.values(made)
     registerCollections(database, () => all.map((collection) => collection.utils.getMeta().trackedTableName))
+    void Promise.all(all.map((collection) => new Promise<void>((resolve) => collection.onFirstReady(resolve)))).then(
+      () => syncMark('collections ready'),
+    )
   }
   return built.collections
 }
