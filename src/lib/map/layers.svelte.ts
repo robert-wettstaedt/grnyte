@@ -279,7 +279,6 @@ export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
 function countLabel(feature: FeatureLike): string | undefined {
   // An estimated pin shows "?": the block is somewhere around here, expect to search for it.
   if (feature.get('estimated')) return '?'
-  // Routes not loaded yet: the counted size with no number, so the marker neither grows nor claims a 0.
   if (feature.get('countUnknown')) return ''
   const routeCount = feature.get('routeCount') as number
   return routeCount > 0 ? String(routeCount) : undefined

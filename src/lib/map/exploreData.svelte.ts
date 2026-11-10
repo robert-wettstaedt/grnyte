@@ -127,10 +127,16 @@ export function createExploreMapData(
   const parkingLocations = $derived(areasResult.data.flatMap((area) => area.parkingLocations))
   const lineStrings = $derived(areasResult.data.flatMap((area) => area.geoPaths))
 
-  // True only while nothing is renderable yet: the cold-load case (no markers). Routes are not waited for: markers show
-  // as soon as areas and blocks are in, and their counts fill in when routes land (`countsUnknown`).
-  const isLoading = $derived(blocksResult.phase.kind === 'loading' || areasResult.phase.kind === 'loading')
-  const countsUnknown = $derived(routes.phase.kind === 'loading')
+  // True while nothing is renderable yet, or while a filter hides every block until routes land.
+  const isLoading = $derived.by(() => {
+    const loading = (phase: QueryPhase) => phase.kind === 'loading'
+    return (
+      [blocksResult.phase, areasResult.phase].some(loading) ||
+      (isParsedFilterActive(filters()) && loading(routes.phase))
+    )
+  })
+  // Offline with routes never synced is `unavailable`: no count is known there either.
+  const countsUnknown = $derived(['loading', 'unavailable'].includes(routes.phase.kind))
 
   const matches = $derived.by((): MatchTest => {
     if (!isParsedFilterActive(filters())) return null
@@ -148,9 +154,8 @@ export function createExploreMapData(
     return { countByGrade, total }
   })
 
-  // A stable object with per-field reactive getters. Callers bind each field to `<Map>`
-  // individually (never spread), so a field whose source query didn't change keeps a
-  // stable reference and its map layer's effect doesn't re-run: only the changed layer does.
+  // Per-field getters: bound one by one (or spread as getters), an unchanged field keeps its
+  // reference and only the changed map layer re-runs. A spread of plain values re-runs them all.
   return {
     get areas() {
       return areasResult.data
@@ -194,5 +199,30 @@ export function createExploreMapData(
     isLoading: boolean
     matches: MatchTest
     matchPhase: QueryPhase
+  }
+}
+
+/** The props a location picker hands `<Map>`: the explore dataset without its area donuts. Getters, so a
+ *  spread prop tracks only its own field. */
+export function pickerMapProps(data: MapData): Omit<MapData, 'areas'> {
+  return {
+    get blocks() {
+      return data.blocks
+    },
+    get countsUnknown() {
+      return data.countsUnknown
+    },
+    get gradeCountByBlock() {
+      return data.gradeCountByBlock
+    },
+    get lineStrings() {
+      return data.lineStrings
+    },
+    get parkingLocations() {
+      return data.parkingLocations
+    },
+    get routeCountByBlock() {
+      return data.routeCountByBlock
+    },
   }
 }
