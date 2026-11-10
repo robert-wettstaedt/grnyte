@@ -43,6 +43,7 @@
 
   // Re-read each second, so a sync can be watched from this page while it runs.
   let marks = $state(syncMarks())
+  const previousMarks = syncMarks(true)
   $effect(() => {
     const timer = setInterval(() => (marks = syncMarks()), 1000)
     return () => clearInterval(timer)
@@ -139,7 +140,7 @@
       </div>
       <p class="text-surface-600-400 text-sm">{m.settings_syncPageLoadsHint()}</p>
       <ol class="text-surface-600-400 text-sm tabular-nums">
-        {#each [...loads].reverse().slice(0, 10) as at (at)}
+        {#each [...loads].reverse().slice(0, 10) as at, i (i)}
           <li>{loadTime.format(at)}</li>
         {/each}
       </ol>
@@ -150,13 +151,21 @@
       <span class="text-sm font-semibold">{m.settings_syncTimeline()}</span>
       <p class="text-surface-600-400 text-sm">{m.settings_syncTimelineHint()}</p>
       <ol class="text-surface-600-400 text-sm tabular-nums">
-        {#each marks as [name, at] (name)}
-          <li class="flex justify-between gap-3">
-            <span>{name}</span>
-            <span>{(at / 1000).toFixed(1)} s</span>
-          </li>
-        {/each}
+        {@render timeline(marks)}
+      </ol>
+      <span class="block pt-2 text-sm font-semibold">{m.settings_syncTimelinePrevious()}</span>
+      <ol class="text-surface-600-400 text-sm tabular-nums">
+        {@render timeline(previousMarks)}
       </ol>
     </div>
   {/if}
 </div>
+
+{#snippet timeline(list: [string, number][])}
+  {#each list as [name, at], i (i)}
+    <li class="flex justify-between gap-3">
+      <span>{name}</span>
+      <span>{(at / 1000).toFixed(1)} s</span>
+    </li>
+  {/each}
+{/snippet}

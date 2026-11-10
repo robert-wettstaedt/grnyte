@@ -15,6 +15,9 @@ const ZERO_DROPPED_KEY = 'grnyte.zeroStoreDropped'
 /** Where the service is, and whether it is the only engine running (the measurement build). The layout reads
  *  both from the environment, which only exists inside SvelteKit's runtime. */
 export interface PowerSyncSettings {
+  /** How collections take rows in (remeasure switch, goes in R1): on first use (default), a query's subset only,
+   *  or every table in the background once the map is drawn. */
+  collections?: 'ondemand' | 'preload'
   endpoint: string
   /** Syncs in a shared worker instead of the page; PowerSync turns it off on Safari by default. */
   multiTabs?: boolean
@@ -142,6 +145,10 @@ export function initPowerSync(
 /** shortcut: the measurement build starts only PowerSync; goes when Zero leaves the client. */
 export function powerSyncOnly(): boolean {
   return settings.only
+}
+
+export function powerSyncSettings(): Readonly<PowerSyncSettings> {
+  return settings
 }
 
 export function powerSyncStatus(): SyncStatus | undefined {

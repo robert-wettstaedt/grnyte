@@ -5,6 +5,7 @@ import { eq, type Context, type InferResultType, type InitialQueryBuilder, type 
 import { useLiveQuery } from '@tanstack/svelte-db'
 import { collections } from './collections'
 import { getPowerSync, powerSyncStatus, streamConfirmed } from './db.svelte'
+import { syncMark } from './marks'
 import { changedRows } from './rows'
 import { matchesText } from './text'
 
@@ -99,8 +100,19 @@ export function sqlResource<Row, TOut>(
     const watched = getPowerSync()
       .query<Row>({ parameters: values, sql: statement })
       .watch({ comparator: changedRows<Row>() })
+    // Measurement mark for the remeasure; goes in R1 with the timeline.
+    const started = performance.now()
+    let marked = false
     const stop = watched.registerListener({
-      onData: (data) => void (live = { data: [...data], isReady: true }),
+      onData: (data) => {
+        if (!marked) {
+          marked = true
+          syncMark(
+            `sql ${statement.replace(/\s+/g, ' ').trim().slice(0, 48)} (${Math.round(performance.now() - started)} ms)`,
+          )
+        }
+        live = { data: [...data], isReady: true }
+      },
       onError: (error) => console.error('PowerSync watched query failed', error),
     })
     return () => {

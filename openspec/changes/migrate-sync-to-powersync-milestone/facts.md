@@ -104,3 +104,17 @@ iOS 27.2 Simulator, `admin@`, both sides production builds on the dev stack: Pow
 | Map with a filter (`hasTopo=1`) | 0.51 s | 1.04 s                | map, then the filtered markers                 |
 
 Search was not measured (its query is not in the URL). Reading: on a cold start the first screen that reads `routes` or `ascents` waits for the whole table to load from SQLite into its collection; with collections loaded at startup (before 00a77420) that cost sat on the map instead (rule 1). The Simulator and the iPhone agreed within 70 to 100 % wherever both were measured.
+
+## What a cold-start screen waits on, and three collection modes (2026-11-10)
+
+Timeline marks per SQL query and per collection load (Simulator, area cold start): every read goes through the one database worker in turn. Lazy collections: small collections 0.7 to 1.3 s after page load, then the map's place queries (each run twice), then the area's route queries until 2.1 s. The sub-area rows each ran the full route-list query (tags, first ascents, topos as JSON) for a grade donut; they now read the slim map rows (`AreaListItem.svelte`). With the service paused (no reconnect) the area still took ~1.6 s; the reconnect's 19 s checkpoint adds up to ~1 s on top while it runs. A Chrome trace under DevTools was no use for this: async stack capture for every promise dominated it.
+
+Modes behind `PUBLIC_POWERSYNC_COLLECTIONS` (measurement switch, goes in R1), Simulator, first paint to content, median of three cold starts, after the sub-area fix:
+
+| Screen | lazy   | on-demand | preload after the map | Zero   |
+| ------ | ------ | --------- | --------------------- | ------ |
+| Area   | 1.63 s | 1.25 s    | 1.67 s                | 0.57 s |
+| Block  | 1.76 s | 1.31 s    | 1.80 s                | 0.59 s |
+| Route  | 1.22 s | 0.63 s    | 1.24 s                | 0.46 s |
+
+On-demand (`syncMode: 'on-demand'` in `@tanstack/powersync-db-collection` 0.2.12) loads only the rows a query asks for and renders every screen checked. Preload does not help a screen opened at start, its background loads compete with it. Raw SQL for the remaining collection reads was not built: the remaining gap sits in reads that are raw SQL already (the map's place and route queries, the route list).

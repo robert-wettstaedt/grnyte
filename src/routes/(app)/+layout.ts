@@ -32,6 +32,7 @@ export const load = (async ({ depends, fetch }) => {
 
   // Before Zero: whether Zero syncs at all is decided by the measurement switch PowerSync holds.
   initPowerSync(session, async () => (await supabase.auth.getSession()).data.session?.access_token, {
+    collections: (['ondemand', 'preload'] as const).find((mode) => mode === env.PUBLIC_POWERSYNC_COLLECTIONS),
     // shortcut: dev falls back to the local service until PUBLIC_POWERSYNC_URL is in every .env.
     endpoint: env.PUBLIC_POWERSYNC_URL || (dev ? 'http://localhost:58100' : ''),
     multiTabs: env.PUBLIC_POWERSYNC_MULTITABS === '1',
