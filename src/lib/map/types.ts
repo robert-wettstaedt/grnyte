@@ -70,7 +70,7 @@ export type MapCameraClaim = { key: string; kind: 'entity' | 'reader' }
 /** The map-data subset produced by `createExploreMapData`, spread into `<Map>`. */
 export type MapData = Pick<
   BlocksMapProps,
-  'areas' | 'blocks' | 'gradeCountByBlock' | 'lineStrings' | 'parkingLocations' | 'routeCountByBlock'
+  'areas' | 'blocks' | 'countsUnknown' | 'gradeCountByBlock' | 'lineStrings' | 'parkingLocations' | 'routeCountByBlock'
 >
 
 export interface MapFocus {

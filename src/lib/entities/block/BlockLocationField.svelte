@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import { pickerMapProps } from '$lib/map/exploreData.svelte'
   import Map from '$lib/map/Map.svelte'
   import type { MapData } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
@@ -96,16 +97,7 @@
   {:else}
     <div class="border-surface-200-800 bg-surface-100-900 overflow-hidden rounded-2xl border">
       <div class="relative h-36">
-        <Map
-          blocks={mapData.blocks}
-          gradeCountByBlock={mapData.gradeCountByBlock}
-          lineStrings={mapData.lineStrings}
-          parkingLocations={mapData.parkingLocations}
-          routeCountByBlock={mapData.routeCountByBlock}
-          static
-          focus={{ center: [location.lat, location.long], zoom: 15 }}
-          pickMode
-        />
+        <Map {...pickerMapProps(mapData)} static focus={{ center: [location.lat, location.long], zoom: 15 }} pickMode />
 
         <div
           class="text-primary-500 pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-full drop-shadow"

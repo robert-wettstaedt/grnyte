@@ -130,7 +130,6 @@ export function treeList<F extends TextFilter, T extends { id: number }>(
     byIds: (q: InitialQueryBuilder, ids: number[]) => AnyQuery
     /** The bare rows, filtered and ordered by everything but text and limit. */
     rows: (q: InitialQueryBuilder, filter: F) => AnyQuery
-    /** The stream the rows come from; `guidebook` unless they are all on the map stream. */
     stream?: 'guidebook' | 'map'
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a tree row's shape is the caller's
     toItem: (row: any) => T
