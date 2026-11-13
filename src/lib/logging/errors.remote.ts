@@ -8,6 +8,9 @@ import { MAX_ERROR_LENGTH } from './stringify'
 
 const MAX_NAVIGATOR_BYTES = 4096
 
+// `bot/` and `bot;`, not bare `bot`: a real phone ships as "CUBOT".
+const CRAWLER_AGENT = /bot[/;]|spider|crawler|Google-Read-Aloud|HeadlessChrome/i
+
 // Persists a client-side error. Deliberately not `authedCommand`: errors can happen
 // logged-out, and the table has RLS on with no insert policy, so we use the
 // privileged db client and take `createdBy` from the server session, never the client.
@@ -23,6 +26,11 @@ export const logClientError = command(
   }),
   async ({ error, navigator, pathname }) => {
     const { locals } = getRequestEvent()
+
+    const agent = (navigator as null | undefined | { userAgent?: unknown })?.userAgent
+    if (typeof agent === 'string' && CRAWLER_AGENT.test(agent)) {
+      return
+    }
 
     await pinnedTx((tx) =>
       tx.insert(clientErrorLogs).values({

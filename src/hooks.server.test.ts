@@ -44,6 +44,13 @@ describe('handleError', () => {
     expect(insert).not.toHaveBeenCalled()
   })
 
+  it('ignores wrong methods', async () => {
+    const error = new Error('POST method not allowed. No form actions exist for this page')
+    await handleError({ error, event: event('/'), message: '', status: 405 })
+
+    expect(insert).not.toHaveBeenCalled()
+  })
+
   it('never lets a failing write mask the error it reports', async () => {
     values.mockReturnValueOnce(Promise.reject(new Error('db is down')))
 

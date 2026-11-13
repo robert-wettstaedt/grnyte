@@ -15,8 +15,8 @@ export const handle: Handle = sequence(rateLimit, paraglide, supabase, authGuard
 export const handleError: HandleServerError = async ({ error, event, status }) => {
   console.error(error)
 
-  // Missing routes land here too, and are noise rather than incidents.
-  if (status !== 404) {
+  // Missing routes and wrong methods (scanners POSTing to `/`) land here too, and are noise.
+  if (status !== 404 && status !== 405) {
     // Pinned, because this handler records a 42P01 from an inherited `search_path` and must not
     // break on the same poisoned connection.
     await pinnedTx((tx) =>

@@ -23,6 +23,22 @@ describe.skipIf(!reachable)('logClientError', () => {
     expect(await count()).toBe(1)
   })
 
+  it('drops crawlers but keeps a phone whose model contains "bot"', async () => {
+    const before = await count()
+    await log({
+      userAgent: 'Mozilla/5.0 (Linux; Android 5.0) (compatible; Bytespider; https://zhanzhang.toutiao.com/)',
+    })
+    await log({
+      userAgent: 'Mozilla/5.0 (compatible; Google-Read-Aloud; +https://support.google.com/webmasters/answer/1061943)',
+    })
+    expect(await count()).toBe(before)
+
+    await log({
+      userAgent: 'Mozilla/5.0 (Linux; Android 13; CUBOT X70) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36',
+    })
+    expect(await count()).toBe(before + 1)
+  })
+
   it('refuses an oversized navigator blob and writes nothing', async () => {
     const before = await count()
     expect(await statusOf(() => log({ blob: 'x'.repeat(5000) }))).toBe(400)
