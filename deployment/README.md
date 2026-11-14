@@ -42,7 +42,7 @@ cd ~/zero-deployment/deployment
 # your machine, not on the VPS: no access token belongs on that box.
 BWS_ACCESS_TOKEN=<prod token> node deployment/secrets.mjs pull env.all
 # zero-cache takes exactly one ZERO_AUTH_* option, as deploy-zero.yml checks: KEEP names it.
-KEEP=ZERO_AUTH_SECRET
+KEEP=ZERO_AUTH_JWKS_URL
 grep -E '^(ZERO|PS)_' env.all | grep -v '^ZERO_AUTH_' > env.zero
 grep "^$KEEP=" env.all >> env.zero
 [ "$(grep -c '^ZERO_AUTH_' env.zero)" = 1 ] || { echo "env.all holds no $KEEP"; exit 1; }
