@@ -9,7 +9,8 @@
  * Reads only, writes nothing, sends nothing. Reuses the normal env var names, so pointing it at
  * production is a matter of which values are in the environment:
  *
- *   PUBLIC_SUPABASE_URL=https://<ref>.supabase.co PUBLIC_SUPABASE_ANON_KEY=... \
+ *   PUBLIC_SUPABASE_URL=https://<ref>.supabase.co PUBLIC_SUPABASE_PUBLISHABLE_KEY=... \
+ *   SUPABASE_JWT_JWKS_URL=https://<ref>.supabase.co/auth/v1/.well-known/jwks.json \
  *   RESEND_API_KEY=... RESEND_SENDER_EMAIL='grnyte <no-reply@grnyte.rocks>' npm run check:prod
  *
  * ponytail: no check that migrations are applied. That needs the production DATABASE_URL and a
@@ -26,13 +27,37 @@ function check(ok: boolean, message: string) {
 }
 
 const supabaseUrl = required('PUBLIC_SUPABASE_URL')
-const anonKey = required('PUBLIC_SUPABASE_ANON_KEY')
+const publishableKey = required('PUBLIC_SUPABASE_PUBLISHABLE_KEY')
+const jwksUrl = required('SUPABASE_JWT_JWKS_URL')
 
 console.log(`checking ${supabaseUrl}\n`)
 
+// A legacy anon key (a JWT) is expected here until the new keys are created, so it warns instead of failing.
+if (publishableKey.startsWith('sb_publishable_')) {
+  check(true, 'PUBLIC_SUPABASE_PUBLISHABLE_KEY is a publishable key')
+} else if (/^eyJ[\w-]*\.[\w-]+\.[\w-]+$/.test(publishableKey)) {
+  console.log('warn  PUBLIC_SUPABASE_PUBLISHABLE_KEY still holds the legacy anon key')
+} else {
+  check(false, 'PUBLIC_SUPABASE_PUBLISHABLE_KEY is a publishable key or the legacy anon key')
+}
+
+if (supabaseUrl.startsWith('https://')) {
+  check(jwksUrl.startsWith('https://'), 'SUPABASE_JWT_JWKS_URL is https')
+}
+const jwks = await fetch(jwksUrl)
+  .then((r) => r.json())
+  .catch(() => ({}))
+const keys: { alg?: string; kty?: string }[] = Array.isArray(jwks.keys) ? jwks.keys : []
+check(
+  keys.some((k) => k.alg === 'ES256' || k.alg === 'RS256' || k.kty === 'EC' || k.kty === 'RSA'),
+  'the JWKS holds an asymmetric signing key (ES256 or RS256)',
+)
+
 // The public GoTrue settings endpoint. Everything sign-up depends on that is a switch rather than
-// code lives here, and it is readable with the anon key alone.
-const auth = await fetch(`${supabaseUrl}/auth/v1/settings`, { headers: { apikey: anonKey } }).then((r) => r.json())
+// code lives here, and it is readable with the publishable key alone.
+const auth = await fetch(`${supabaseUrl}/auth/v1/settings`, { headers: { apikey: publishableKey } }).then((r) =>
+  r.json(),
+)
 
 // Public sign-up stays off: accounts are created through the admin API, after the bot checks, so the
 // published anon key cannot skip them.
