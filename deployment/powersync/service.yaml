@@ -26,9 +26,6 @@ sync_config:
   path: sync-config.yaml
 
 client_auth:
-  supabase: true
-  supabase_jwt_secret: !env PS_SUPABASE_JWT_SECRET
-  # Explicit: auto-detection cannot read the project from every connection string.
   jwks_uri: !env PS_JWKS_URI
   audience: ['authenticated']
 
