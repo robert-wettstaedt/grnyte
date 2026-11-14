@@ -4,7 +4,7 @@ import { secretKeyFetch } from '$lib/db/supabaseAdmin.server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { RequestEvent } from '@sveltejs/kit'
 
-/** The auth calls grnyte makes under the secret key; each later method arrives with its first caller. */
+/** The auth calls grnyte makes under the secret key. */
 export type AuthServer = Pick<SupabaseClient['auth'], 'resend'>
 
 /**

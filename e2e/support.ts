@@ -7,7 +7,6 @@
 import { expect, type Browser, type Page } from '@playwright/test'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-/** GoTrue's admin API for test cleanup, or undefined when the environment lacks the key. */
 export function adminClient(): SupabaseClient | undefined {
   const url = process.env.PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SECRET_KEY

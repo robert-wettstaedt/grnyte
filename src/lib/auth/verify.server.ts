@@ -9,8 +9,9 @@ import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } 
 export type VerifyResult =
   { claims: VerifiedClaims; ok: true } | { ok: false; reason: 'absent' | 'expired' | 'invalid' | 'unavailable' }
 
-/** The key set could not be fetched: an outage, which callers must not treat as a forged token. */
 class JwksUnavailable extends Error {}
+
+const errorCode = (thrown: unknown) => (thrown as { code?: string }).code
 
 // jose's codes for a set that answered but holds no key for this token: a bad token, not an outage.
 const NO_KEY_FOR_TOKEN = new Set(['ERR_JWKS_MULTIPLE_MATCHING_KEYS', 'ERR_JWKS_NO_MATCHING_KEY'])
@@ -55,7 +56,7 @@ export function createAccessTokenVerifier({ issuer, jwks, secret }: VerifierConf
       return await jwks(header, token)
     } catch (thrown) {
       // Classified by place: whatever the key getter throws is an outage unless the set answered without this key.
-      if (NO_KEY_FOR_TOKEN.has((thrown as { code?: string }).code ?? '')) {
+      if (NO_KEY_FOR_TOKEN.has(errorCode(thrown) ?? '')) {
         throw thrown
       }
       throw new JwksUnavailable('[auth] the JWKS could not be fetched', { cause: thrown })
@@ -102,10 +103,11 @@ function isSession(payload: JWTPayload): boolean {
 
 function rejection(thrown: unknown): VerifyResult {
   if (thrown instanceof JwksUnavailable) {
+    warnOnJwksOutage(thrown.cause)
     return { ok: false, reason: 'unavailable' }
   }
 
-  const code = (thrown as { code?: string }).code
+  const code = errorCode(thrown)
   if (code === 'ERR_JWT_EXPIRED') {
     return { ok: false, reason: 'expired' }
   }
@@ -123,6 +125,20 @@ export const verifyAccessToken = createAccessTokenVerifier({
   jwks: jwksUrl.length === 0 ? undefined : createRemoteJWKSet(new URL(jwksUrl)),
   secret: configuredSecret.length >= 32 ? new TextEncoder().encode(configuredSecret) : undefined,
 })
+
+/** Once per process: a wrong or unreachable JWKS URL otherwise shows only as 503s and Zero retries. */
+let jwksOutageWarned = false
+function warnOnJwksOutage(cause: unknown): void {
+  if (jwksOutageWarned) {
+    return
+  }
+
+  jwksOutageWarned = true
+  console.error(
+    '[auth] the JWKS could not be fetched from SUPABASE_JWT_JWKS_URL; ES256 tokens answer unavailable.',
+    cause,
+  )
+}
 
 /** Once per process: key drift otherwise fails every request silently and loops the user through sign-in. */
 let keyMismatchWarned = false
