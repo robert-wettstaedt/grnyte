@@ -113,7 +113,9 @@ export function initPowerSync(
       // Open is not read: the live queries take seconds more on a phone, and offline that gap looked like a cold store.
       const row = current() ? await opened.getOptional('select 1 from users where auth_user_fk = ?', [authId]) : null
       if (!current()) return
-      syncMark(`store open (${settings.vfs ?? 'IndexedDB'}${settings.multiTabs ? ', shared worker' : ''})`)
+      syncMark(
+        `store open (${settings.vfs ?? 'IndexedDB'}${settings.multiTabs ? ', shared worker' : ''}, ${row == null ? 'cold' : 'warm'})`,
+      )
       if (row != null) markStoreWarm()
       markStoreLoaded()
       // Which SQLite build the worker loaded, asked of the database itself: only the cipher (JSPI) build has this function.

@@ -134,3 +134,41 @@ First valid run (2026-11-14, both previews built for the local stack, Safari dat
 - Expo spike (trial 3, 2026-11-06): a throwaway Expo app on the user's real iPhone, PowerSync with native SQLite and TanStack DB. Cold sync 0.8 to 2.2 s. An ascent logged offline went into an intent queue and reached the server through Zero's mutate endpoint after reconnecting.
 - Server cost and load: trial 1, 50 clients, PowerSync 4.8x faster with 8.5x less server memory; trial 3, PowerSync ~16 to 29x less server memory per device, Zero's full-scale reconnect storm aborted at 10.5 GiB. PowerSync on Postgres bucket storage was CPU-hungry (updates 4 to 5 s at 0.4 CPU); on MongoDB storage, which production uses, it was the cheapest setup (~50 ms updates) but needs ~1 CPU for reconnect storms.
 - Live updates (trial 2): PowerSync 108 ms against Zero's 16 ms.
+
+## Task 8.11: desktop measurement (2026-11-14)
+
+`BROWSER=chrome npm run measure:screens -- 3`: Playwright's bundled Chromium 151 (Google Chrome is not installed on the measuring Mac), a kept profile per build, so each run is a cold start of a warm store; both production builds on the local stack, `admin@`; the PowerSync preview served PowerSync-only. 24 `/sync/stream` connections from Chromium during the run; route 203's name restored afterwards. Median of 3, first paint to settled (the map: to `map: places ready`):
+
+| Screen  | PowerSync | Zero   | D13 bar (under 1 s) |
+| ------- | --------- | ------ | ------------------- |
+| Area    | 0.90 s    | 0.06 s | pass                |
+| Block   | 0.79 s    | 0.03 s | pass                |
+| Route   | 0.41 s    | 0.05 s | pass                |
+| Profile | 1.27 s    | 0.06 s | fail                |
+| Map     | 0.31 s    | n/a    | pass                |
+
+Live update (a `psql` rename of route 203 shown on the open route page): PowerSync 0.07 s, within the 5 s bar. Zero's never showed within 30 s in any of the three runs, cause not investigated (Zero's numbers are context only). Route 203 settled at 0.41 s in Chromium, so its empty votes row did not wait for a reconnect stall there, unlike WebKit's 20.6 s. Zero's 0.03 to 0.06 s means its warm store already has the content at first paint.
+
+Corrected the same day (probe version 4, `ONLY=PowerSync`). The first table overstated the profile and is void for Zero:
+
+- Chromium had served area, block and route from its HTTP cache, so those runs never reached the proxy; once the cache was cleared before each run, the proxy failed on Kit's `Link` preload header (over Node's 16 KB default, now raised).
+- About 0.8 s of the profile's 1.27 s was dev photos failing to load (the seeded files do not exist); the probe now ignores image boxes.
+- Zero's Chromium profile never got past the full-screen loading spinner (screenshot), which the probe read as settled; a spinner now counts as still loading. Zero's desktop numbers and its failed live update are void until Zero syncs in that profile.
+
+PowerSync, median of 3, Playwright's Chromium, warm store:
+
+| Screen  | First paint to settled | Navigation to settled |
+| ------- | ---------------------- | --------------------- |
+| Area    | 0.87 s                 | 1.21 s                |
+| Block   | 0.78 s                 | 1.14 s                |
+| Route   | 0.41 s                 | 0.74 s                |
+| Profile | 0.46 s                 | 0.74 s                |
+| Map     | 0.28 s                 | 0.64 s                |
+
+Live update 0.06 s. Measured from first paint, every screen passes D13's 1 s bar; measured from navigation, which the user chose as the bar's reference (2026-11-14), area and block miss it by 0.21 s and 0.14 s. The profile's remaining time is its first-ascent route list, run as four route-list SQL statements of 190 to 330 ms each.
+
+Area and block, traced the same day in Firefox with the SQL tracer (`TRACE_SQL`, which records each worker message with its parameters): both are sheets over the explore map, and the one SQLite worker runs every read in turn, the sync's own included. On `/areas/26` with a warm store, the map's blocks (141 ms) and areas (52 ms) and the sheet's route list (107 ms) ran before the sync's first read, so "connected" came 338 ms after the store opened, against 73 ms on the profile, which has no map behind it. An earlier note blamed a region-wide route scan (`ROUTE_MAP_SQL`) before the connect: the trace shows it starts after "connected", so that was wrong. Holding the map's reads until the guidebook is taken in moved "connected" on the block from 1.0 to 1.2 s to 0.43 to 0.51 s and the guidebook's confirmation to 0.55 to 0.70 s from navigation. The probe then ended on the map drawing behind the sheet (block 1.04 to 1.13 s), so the user chose to time sheet screens by the sheet (design D13). The map screen itself was unchanged (0.56 s from navigation).
+
+Remeasured with the probe ignoring the map (median of 3, from navigation): area 1.16 s, block 1.22 s, map 0.64 s. The sheets' data is confirmed at 0.62 to 0.72 s; what still changes until about 1.15 s is the sheet's action bar (`ActionBar.svelte`), whose trailing group gains a button just after the map's data lands, likely an action that reads the map's data (not confirmed). The user accepted this (2026-11-14): the sheet's content is in place well under 1 s, only a late action button exceeds it.
+
+Also on 2026-11-14: the dev Postgres crashed into recovery mode once during a live-update check (cause not visible: the container log is empty). Route 203's name was restored by hand. The live-update check now runs only on full measurements.

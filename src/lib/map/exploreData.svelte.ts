@@ -6,10 +6,13 @@ import { debouncedQuery } from '$lib/components/EntitySearch/search.svelte'
 import { areaMapList } from '$lib/entities/area/resources.svelte'
 import { blockList, blockMapList } from '$lib/entities/block/resources.svelte'
 import { routeMapList } from '$lib/entities/route/resources.svelte'
+import { powerSyncStatus, streamConfirmed } from '$lib/powersync/db.svelte'
 import { syncMark } from '$lib/powersync/marks'
+import { isOnline } from '$lib/state/online.svelte'
 import { quietly } from '$lib/state/pill.svelte'
 import type { MatchTest } from '$lib/state/searchQuery.svelte'
 import type { QueryPhase } from '$lib/zero/resource.svelte'
+import { untrack } from 'svelte'
 import { blockBounds } from './data.svelte'
 import { isParsedFilterActive, parseRouteFilter, type ParsedRouteFilter } from './filter'
 import { filteredRouteList } from './filteredRoutes.svelte'
@@ -45,11 +48,27 @@ export function createExploreMapData(
   search: () => string = () => '',
   open: () => OpenEntity = () => null,
 ) {
-  const blocksResult = blockMapList()
-  const areasResult = areaMapList()
+  // Opened on a sheet, the map's reads wait up to 1.5 s for the guidebook: the one SQLite worker runs reads in turn,
+  // so the map's would hold back the sync, and with it the sheet. Offline or refused, nothing is coming to wait for.
+  const sheetFirst = untrack(open) != null
+  let patient = $state(sheetFirst)
+  $effect(() => {
+    const timer = setTimeout(() => (patient = false), 1500)
+    return () => clearTimeout(timer)
+  })
+  const held = $derived(
+    patient && isOnline() && powerSyncStatus()?.dataFlowStatus.downloadError == null && !streamConfirmed('guidebook'),
+  )
+  const reads = { enabled: () => !held }
+  $effect(() => {
+    if (sheetFirst && !held) syncMark('map: reads released')
+  })
+
+  const blocksResult = blockMapList(reads)
+  const areasResult = areaMapList(reads)
   // Slim rows (no related trees): the map reads id/blockFk/gradeFk per route.
   const routes = filteredRouteList(
-    routeMapList(() => filters().filter),
+    routeMapList(() => filters().filter, reads),
     filters,
     userId,
   )
