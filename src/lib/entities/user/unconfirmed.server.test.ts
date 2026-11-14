@@ -25,6 +25,9 @@ let keptIds: string[] = []
 let signedUpId = ''
 const nonces: string[] = []
 
+vi.mock('$lib/auth/authServer.server', () => ({
+  supabaseAuthServer: () => ({ resend: async () => ({ error: null }) }),
+}))
 vi.mock('$lib/db/supabaseAdmin.server', () => ({
   supabaseAdmin: () => ({
     auth: {
@@ -104,8 +107,7 @@ describe.skipIf(!reachable)('an expired sign-up', () => {
     signedUpId = id
     const { encoded, nonce } = await solvedProofOfWork()
     nonces.push(nonce)
-    const supabase = { auth: { resend: async () => ({ error: null }) } }
-    const { result } = await asAnonymousRequest(supabase, () =>
+    const { result } = await asAnonymousRequest({}, () =>
       callForm<{ result: unknown }>(signUp, {
         altcha: encoded,
         confirmPassword: 'correct-horse',
