@@ -5,10 +5,8 @@
  * resolves inside SvelteKit's request store. Kit exposes `with_request_store` for exactly this, and
  * it is backed by `AsyncLocalStorage`, so the store survives the awaits inside a handler.
  *
- * One fake, and it is a real token. The harness signs an HS256 token with the dev secret and runs
- * it through `verifyAccessToken`, so what reaches `createRlsClient` came out of the same function
- * production uses. This file used to mint an `alg: 'none'` token, which worked precisely because
- * nothing checked one, and its own comment documented that as the mechanism.
+ * One fake, and it is a real token: an HS256 token signed with the dev secret and run through
+ * `verifyAccessToken`, so what reaches `createRlsClient` came out of the function production uses.
  *
  * Everything else is real: the permissions come from `getUserPermissions` against the actual
  * database, the handler runs in a real RLS transaction, and the statements it issues are the
@@ -19,7 +17,7 @@
  * (`vite.config.ts`). They cannot run in the jsdom project: `$app/paths` resolves to its client
  * build under the `browser` condition and touches `window` at import time.
  */
-import { SUPABASE_JWT_SECRET } from '$env/static/private'
+import { env } from '$env/dynamic/private'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { db } from '$lib/db/db.server'
 import { getUserPermissions, loadSessionUser } from '$lib/hooks/auth.server'
@@ -135,7 +133,7 @@ export function signAccessToken(authUserId: string, email: string | undefined): 
     .setSubject(authUserId)
     .setIssuedAt()
     .setExpirationTime('1h')
-    .sign(new TextEncoder().encode(SUPABASE_JWT_SECRET))
+    .sign(new TextEncoder().encode(env.SUPABASE_JWT_SECRET))
 }
 
 /**

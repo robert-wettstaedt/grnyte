@@ -8,13 +8,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // below.
 vi.mock('$lib/db/db.server', () => ({ db: {} }))
 vi.mock('$lib/entities/region/invite.server', () => ({ findLiveInvitationByEmail: vi.fn() }))
-vi.mock('@supabase/ssr', () => ({ createServerClient: vi.fn(() => ({})) }))
+vi.mock('$lib/auth/verify.server', () => ({ verifyAccessToken: vi.fn() }))
+const getSession = vi.fn()
+vi.mock('@supabase/ssr', () => ({ createServerClient: vi.fn(() => ({ auth: { getSession } })) }))
 
 const { findLiveInvitationByEmail } = await import('$lib/entities/region/invite.server')
+const { verifyAccessToken } = await import('$lib/auth/verify.server')
 const { createServerClient } = await import('@supabase/ssr')
 const { authGuard, supabase } = await import('$lib/hooks/auth.server')
 
 const lookup = vi.mocked(findLiveInvitationByEmail)
+const verify = vi.mocked(verifyAccessToken)
 
 interface Session {
   email?: string
@@ -52,6 +56,30 @@ const redirectFrom = async (event: RequestEvent): Promise<string | undefined> =>
 
   return undefined
 }
+
+describe('safeGetSession', () => {
+  /** Runs the real `supabase` handle and returns what its `safeGetSession` resolves for a cookie session. */
+  async function sessionFor(reason: 'invalid' | 'unavailable') {
+    getSession.mockResolvedValue({ data: { session: { access_token: 'a.cookie.token' } }, error: null })
+    verify.mockResolvedValue({ ok: false, reason })
+    const event = {
+      cookies: { getAll: () => [], set: vi.fn() },
+      locals: {},
+      setHeaders: vi.fn(),
+      url: new URL('https://grnyte.rocks/explore'),
+    } as unknown as RequestEvent
+    await supabase({ event, resolve: () => Promise.resolve(new Response('OK')) })
+    return event.locals.safeGetSession()
+  }
+
+  it('reports an outage, not a sign-out, when the signing keys cannot be fetched', async () => {
+    expect(await sessionFor('unavailable')).toMatchObject({ backendUnavailable: true, claims: undefined })
+  })
+
+  it('treats a forged token as a plain anonymous request', async () => {
+    expect(await sessionFor('invalid')).toMatchObject({ backendUnavailable: false, claims: undefined })
+  })
+})
 
 describe('supabase', () => {
   const clientsBuiltFor = async (path: string) => {
