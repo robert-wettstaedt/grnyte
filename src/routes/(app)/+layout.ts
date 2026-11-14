@@ -1,4 +1,4 @@
-import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
+import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { initZero } from '$lib/zero/z.svelte'
 import { createBrowserClient } from '@supabase/ssr'
 import type { LayoutLoad } from './$types'
@@ -17,7 +17,7 @@ export const load = (async ({ depends, fetch }) => {
 
   // Called per run and that is fine: `createBrowserClient` returns one cached client per document
   // unless `isSingleton` says otherwise, so this cannot stack up auto-refresh timers.
-  const supabase = createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+  const supabase = createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
     global: { fetch },
   })
 
