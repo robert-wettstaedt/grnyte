@@ -29,18 +29,20 @@ Which half of a project goes where:
   adding a `ZERO_*` is one line rather than two that can disagree.
   Two exceptions stay in `docker-compose.zero.yml`, and belong there: `ZERO_REPLICA_FILE` and
   `ZERO_SCHEMA_PATH` are the other half of the volume and bind mounts declared beside them, so a
-  second opinion in the vault could only contradict the mount. `ZERO_GET_QUERIES_FORWARD_COOKIES` is
-  there for a different reason: it is a correctness requirement rather than a knob, true in every
-  environment or authentication through get-queries breaks.
+  second opinion in the vault could only contradict the mount.
   Anything in BOTH places is a knob you cannot turn, because `environment:` overrides `env_file:`.
   That was true of the two connection limits until 2026-08-25, so editing them in the vault did
   nothing at all.
+  Exactly one of `ZERO_AUTH_SECRET`, `ZERO_AUTH_JWKS_URL` and `ZERO_AUTH_JWK` may be allowlisted:
+  zero-cache checks tokens only when one is set, and with two it checks nothing. `deploy-zero.yml`
+  fails before writing `.env.prod` otherwise.
 - `PS_*` is the PowerSync service's, and travels exactly like `ZERO_*` (the service refuses any other
   prefix in `!env`). The vault holds `PS_DATA_SOURCE_URI` (prod Postgres over the direct connection,
-  never the pooler), `PS_SUPABASE_JWT_SECRET` (the Supabase JWT secret) and `PS_ADMIN_TOKEN` (any long
+  never the pooler), `PS_JWKS_URI` (the project's `https://<ref>.supabase.co/auth/v1/.well-known/jwks.json`),
+  `PS_SUPABASE_JWT_SECRET` (the legacy JWT secret, only while HS256 tokens are still accepted) and `PS_ADMIN_TOKEN` (any long
   random string; it guards the admin API, which nginx already refuses from outside). `PS_MONGO_URI`
   and `PS_DATA_SOURCE_SSLMODE` stay in `docker-compose.zero.yml`, beside the containers they describe.
-  Until these three are in `deploy-zero.yml`'s allowlist, `powersync-prod` exits on a missing variable.
+  Until these are in `deploy-zero.yml`'s allowlist, `powersync-prod` exits on a missing variable.
   `sync-health-prod` reads `PS_ADMIN_TOKEN` from `.env.health`, which `deploy-zero.yml` writes beside
   `.env.prod` with that one line and nothing else; the app never holds it, and reads
   the sidecar's verdict at the public `/health/sync`. `SYNC_HEALTH_URL` is a local override only and

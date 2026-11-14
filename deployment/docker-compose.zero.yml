@@ -51,10 +51,8 @@ services:
     # The two paths stay because they are half of a fact stated below: `/data` is the named volume
     # and `/opt/app/zero-schema.ts` is the bind mount. Split them into the vault and it could disagree
     # with the mount, and the container would die on a missing file for a reason invisible from
-    # either side alone. FORWARD_COOKIES stays because it is a correctness requirement rather than a
-    # preference: zero-cache has to forward the browser cookie for the get-queries endpoint to
-    # authenticate at all (see `auth.server.ts`), so it is true in every environment or none.
-    # CRUD_MUTATIONS likewise: writes go through `ZERO_MUTATE_URL` only, so zero-cache's own CRUD path is
+    # either side alone. CRUD_MUTATIONS stays because it is a correctness requirement rather than a
+    # preference: writes go through `ZERO_MUTATE_URL` only, so zero-cache's own CRUD path is
     # shut in every environment.
     #
     # Tunables are NOT here. ZERO_CVR_MAX_CONNS, ZERO_UPSTREAM_MAX_CONNS and ZERO_NUM_SYNC_WORKERS
@@ -62,7 +60,6 @@ services:
     environment:
       - ZERO_REPLICA_FILE=/data/sync-replica.db
       - ZERO_SCHEMA_PATH=/opt/app/zero-schema.ts
-      - ZERO_GET_QUERIES_FORWARD_COOKIES=true
       - ZERO_ENABLE_CRUD_MUTATIONS=false
     volumes:
       # Under /opt/app, the image's WORKDIR, because the gen file imports `@rocicorp/zero` for
