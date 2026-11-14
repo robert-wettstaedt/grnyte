@@ -122,7 +122,9 @@ export const supabase: Handle = async ({ event, resolve }) => {
   // `locals` a prerendered page could read. Building the client anyway made the whole build depend
   // on PUBLIC_SUPABASE_URL parsing as a URL, which is how `/offline` took CI down: the value there
   // is the placeholder `foobar`. `rateLimit` bails on the same condition for the same reason.
-  if (building) {
+  // A zero-cache callback too: building the client starts a session load in the background, and with an
+  // expired forwarded cookie its refresh writes that cookie after the response, which crashes the server.
+  if (building || event.url.pathname.startsWith(ZERO_API_PREFIX)) {
     Object.assign(event.locals, anonymous(), { backendUnavailable: false })
     return resolve(event)
   }

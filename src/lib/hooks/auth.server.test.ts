@@ -8,9 +8,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // below.
 vi.mock('$lib/db/db.server', () => ({ db: {} }))
 vi.mock('$lib/entities/region/invite.server', () => ({ findLiveInvitationByEmail: vi.fn() }))
+vi.mock('@supabase/ssr', () => ({ createServerClient: vi.fn(() => ({})) }))
 
 const { findLiveInvitationByEmail } = await import('$lib/entities/region/invite.server')
-const { authGuard } = await import('$lib/hooks/auth.server')
+const { createServerClient } = await import('@supabase/ssr')
+const { authGuard, supabase } = await import('$lib/hooks/auth.server')
 
 const lookup = vi.mocked(findLiveInvitationByEmail)
 
@@ -50,6 +52,21 @@ const redirectFrom = async (event: RequestEvent): Promise<string | undefined> =>
 
   return undefined
 }
+
+describe('supabase', () => {
+  const clientsBuiltFor = async (path: string) => {
+    vi.mocked(createServerClient).mockClear()
+    const event = { locals: {}, url: new URL(`https://grnyte.rocks${path}`) } as unknown as RequestEvent
+    await supabase({ event, resolve: () => Promise.resolve(new Response('OK')) })
+    return vi.mocked(createServerClient).mock.calls.length
+  }
+
+  // Building one starts a session load whose late cookie write crashed the server on an expired cookie.
+  it('builds no client for a zero-cache callback', async () => {
+    expect(await clientsBuiltFor('/api/zero/get-queries')).toBe(0)
+    expect(await clientsBuiltFor('/explore')).toBe(1)
+  })
+})
 
 describe('authGuard', () => {
   beforeEach(() => {
