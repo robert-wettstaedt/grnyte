@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/private'
 import { isContested, type VerifiedClaims } from '$lib/auth'
-import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose'
+import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose'
 
 /**
  * `expired` is the one rejection a caller may act on: the cookie's `expires_at` and the token's `exp`
@@ -84,33 +84,34 @@ export function createAccessTokenVerifier({ issuer, jwks, secret }: VerifierConf
         ...(issuer == null ? {} : { issuer }),
       })
 
-      // `requiredClaims` asserts presence only; a claim set without the `authenticated` role is not a session.
-      if (typeof payload.sub !== 'string' || payload.sub.length === 0 || payload.role !== 'authenticated') {
-        return { ok: false, reason: 'invalid' }
-      }
-
-      // GoTrue's password grant is public, so a contested account's token is refused wherever it came from.
-      if (isContested(payload.app_metadata)) {
-        return { ok: false, reason: 'invalid' }
-      }
-
       // The only cast that produces the brand, in the only module allowed to.
-      return { claims: payload as unknown as VerifiedClaims, ok: true }
+      return isSession(payload)
+        ? { claims: payload as unknown as VerifiedClaims, ok: true }
+        : { ok: false, reason: 'invalid' }
     } catch (thrown) {
-      if (thrown instanceof JwksUnavailable) {
-        return { ok: false, reason: 'unavailable' }
-      }
-
-      const code = (thrown as { code?: string }).code
-
-      if (code === 'ERR_JWT_EXPIRED') {
-        return { ok: false, reason: 'expired' }
-      }
-
-      warnOnProbableKeyMismatch(code)
-      return { ok: false, reason: 'invalid' }
+      return rejection(thrown)
     }
   }
+}
+
+/** `requiredClaims` asserts presence only. GoTrue's password grant is public, so a contested account is refused too. */
+function isSession(payload: JWTPayload): boolean {
+  const hasSubject = typeof payload.sub === 'string' && payload.sub.length > 0
+  return hasSubject && payload.role === 'authenticated' && !isContested(payload.app_metadata)
+}
+
+function rejection(thrown: unknown): VerifyResult {
+  if (thrown instanceof JwksUnavailable) {
+    return { ok: false, reason: 'unavailable' }
+  }
+
+  const code = (thrown as { code?: string }).code
+  if (code === 'ERR_JWT_EXPIRED') {
+    return { ok: false, reason: 'expired' }
+  }
+
+  warnOnProbableKeyMismatch(code)
+  return { ok: false, reason: 'invalid' }
 }
 
 // Below 32 bytes (GoTrue's own minimum) the secret counts as absent, which fails closed.
