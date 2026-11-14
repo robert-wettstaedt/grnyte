@@ -1,4 +1,5 @@
 import { form, getRequestEvent } from '$app/server'
+import { supabaseAuthServer, type AuthServer } from '$lib/auth/authServer.server'
 import { flagContestedSignup } from '$lib/auth/contested.server'
 import { mailSignupConfirmation } from '$lib/auth/mail.server'
 import { db } from '$lib/db/db.server'
@@ -34,9 +35,7 @@ export const signUp = form(signUpSchema, async (submitted) => {
   }
   const { email, password, username } = submitted
 
-  const {
-    locals: { supabase },
-  } = getRequestEvent()
+  const authServer = supabaseAuthServer(getRequestEvent())
 
   // GoTrue's public sign-up is switched off, so the published anon key cannot skip the checks above.
   const { data, error } = await supabaseAdmin().auth.admin.createUser({ email, email_confirm: false, password })
@@ -53,7 +52,7 @@ export const signUp = form(signUpSchema, async (submitted) => {
     }
     // Same answer as a new address. Resend mails only an unconfirmed account, and its per-address
     // limit would show one was mailed a minute ago, which a new address can never hit.
-    await sendConfirmation(supabase, email, { quietRateLimit: true })
+    await sendConfirmation(authServer, email, { quietRateLimit: true })
     return { success: true }
   }
   if (error != null) {
@@ -80,7 +79,7 @@ export const signUp = form(signUpSchema, async (submitted) => {
   })
 
   // A failure here leaves the account in place; a retry takes the email_exists path and resends.
-  await sendConfirmation(supabase, email)
+  await sendConfirmation(authServer, email)
 
   // No redirect: Supabase may require email confirmation before the first sign-in, so we
   // surface a success message and let the user head to the sign-in tab.
@@ -88,12 +87,8 @@ export const signUp = form(signUpSchema, async (submitted) => {
 })
 
 /** The admin API creates without mailing; GoTrue still renders and sends the confirmation. */
-async function sendConfirmation(
-  supabase: App.Locals['supabase'],
-  email: string,
-  { quietRateLimit = false } = {},
-): Promise<void> {
-  const { error } = await mailSignupConfirmation(supabase, email)
+async function sendConfirmation(authServer: AuthServer, email: string, { quietRateLimit = false } = {}): Promise<void> {
+  const { error } = await mailSignupConfirmation(authServer, email)
   if (error != null && !(quietRateLimit && error.code === 'over_email_send_rate_limit')) {
     invalid(authError(error))
   }
