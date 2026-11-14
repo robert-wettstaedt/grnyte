@@ -88,7 +88,7 @@ jobs:
       # editing them in the vault did nothing, because `environment:` overrides `env_file:`.
       SECRET_IDS: |
         76a2770c-07be-43cf-9e3b-b4b1008f6fea > ZERO_UPSTREAM_DB
-        58b5ae86-d1fd-4f35-a2c4-b4b1008f77b3 > ZERO_AUTH_SECRET
+        7a043971-9431-44ed-a111-b50200ef7428 > ZERO_AUTH_JWKS_URL
         51211711-cad0-4fb0-8b1f-b4b1008ea602 > ZERO_ADMIN_PASSWORD
         400816f4-0057-445e-918e-b4b1008e2bb0 > ZERO_GET_QUERIES_URL
         771a3ac5-99f8-443f-b067-b4e700b0af23 > ZERO_MUTATE_URL
