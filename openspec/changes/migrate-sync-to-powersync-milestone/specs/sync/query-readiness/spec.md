@@ -4,7 +4,7 @@
 
 ### Requirement: The visible screen is answered before background sync
 
-On a device that keeps data for offline use, opening the application SHALL NOT make the visible screen wait behind data it does not show. Reference data is delivered first, then a region's map places, then the rest of its guidebook. A guidebook screen opened before the data it shows has synced once indicates that data is arriving, and once a region has synced, reopening the application SHALL answer every screen of that region from local data without waiting for any sync.
+On a device that keeps data for offline use, opening the application SHALL NOT make the visible screen wait behind data it does not show. Reference data is delivered first, then a region's map places, then the rest of its guidebook. A guidebook screen opened before the data it shows has synced once indicates that data is arriving, and once a region has synced, reopening the application SHALL answer every screen of that region from local data without waiting for any sync, except that while online a part of a screen that would claim "none" (an empty list, a zero count) MAY wait until its stream confirms in this session.
 
 This exists because a device away for more than a few seconds catches up on return, and a screen requested behind that must not wait for all of it.
 
@@ -24,3 +24,4 @@ This exists because a device away for more than a few seconds catches up on retu
 
 - **WHEN** the application is reopened on a device whose regions synced once before
 - **THEN** every guidebook screen renders from local data at once, and catching up on changes happens behind it
+- **AND** while online, a part of a screen that would claim "none" (an empty list, a zero count) waits until its stream confirms in this session (offline it answers from disk), which in WebKit can take as long as the reconnect's full checkpoint
