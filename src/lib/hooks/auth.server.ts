@@ -1,6 +1,6 @@
 import { building } from '$app/environment'
 import type { Pathname } from '$app/types'
-import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
+import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { AUTH_PATH, signedInRedirectTarget } from '$lib/auth'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { pinnedTx } from '$lib/db/pinned.server'
@@ -141,7 +141,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
   // `setHeaders` throws on a repeat of the same key, and `setAll` can fire more than once.
   const headersApplied = new Set<string>()
 
-  event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+  event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
     cookies: {
       getAll: () => event.cookies.getAll(),
       // SvelteKit's cookies API requires `path` to be set explicitly; '/' matches previous/standard behavior.
@@ -215,7 +215,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
     }
 
     if (!verified.ok) {
-      return { ...anonymous(), backendUnavailable }
+      return { ...anonymous(), backendUnavailable: backendUnavailable || verified.reason === 'unavailable' }
     }
 
     try {

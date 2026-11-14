@@ -102,6 +102,61 @@ const noDrizzleMassAssignment = [
   },
 ]
 
+/** The global import restrictions minus the secret key, so the files allowed that key keep the rest. */
+const restrictedImports = {
+  paths: [
+    {
+      // Classic zod keeps every method on a prototype, so one `z.string()` pulls the whole
+      // library: 225 KB minified into the chunk every app route imports. And `zod/mini`
+      // direct is the subtler half of the same rule - it ships no locale, so a schema built
+      // from it says `Invalid input` and nothing else. `$lib/forms/zod` is the only spelling
+      // that is both small and legible. See the doc comment there.
+      message: "Import from '$lib/forms/zod'. Classic zod is not tree-shakeable.",
+      name: 'zod',
+    },
+    {
+      message: "Import from '$lib/forms/zod', which registers the locale `zod/mini` omits.",
+      name: 'zod/mini',
+    },
+    {
+      // Every navigation is one of three things and the difference is the back button:
+      // `push` adds an entry, `replaceUrl` swaps it, `exit` retires a finished screen.
+      // A raw `goto` is a push by default, which is how a saved form stayed reachable by
+      // back. The doc comment that used to say this was ignored in four places.
+      importNames: ['goto'],
+      message: "Use `push`, `replaceUrl` or `exit` from '$lib/state/navigation.svelte'.",
+      name: '$app/navigation',
+    },
+  ],
+  patterns: [
+    {
+      message: "Use the '$lib' alias instead of a relative path into the lib folder.",
+      regex: '^(\\.\\./)+lib/',
+    },
+  ],
+}
+
+// The secret key bypasses RLS: only the admin client, the auth-only client and the key derivation read it.
+const SECRET_KEY_MESSAGE =
+  'SUPABASE_SECRET_KEY bypasses RLS. Use supabaseAdmin(), supabaseAuthServer() or proofOfWork instead.'
+const noSecretKeyImport = {
+  importNames: ['SUPABASE_SECRET_KEY'],
+  message: SECRET_KEY_MESSAGE,
+  name: '$env/static/private',
+}
+const noDynamicPrivateEnv = [
+  {
+    message: SECRET_KEY_MESSAGE,
+    selector: "ImportExpression[source.value='$env/static/private']",
+  },
+]
+const SECRET_KEY_READERS = [
+  'src/lib/auth/authServer.server.ts',
+  'src/lib/db/supabaseAdmin.server.ts',
+  'src/lib/forms/proofOfWork.server.ts',
+  'e2e/**',
+]
+
 export default defineConfig(
   includeIgnoreFile(gitignorePath),
   { ignores: ['build/', 'drizzle/', 'src/lib/paraglide/', 'src/lib/zero/zero-schema.gen.ts'] },
@@ -118,39 +173,10 @@ export default defineConfig(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'no-restricted-imports': [
         'error',
-        {
-          paths: [
-            {
-              // Classic zod keeps every method on a prototype, so one `z.string()` pulls the whole
-              // library: 225 KB minified into the chunk every app route imports. And `zod/mini`
-              // direct is the subtler half of the same rule - it ships no locale, so a schema built
-              // from it says `Invalid input` and nothing else. `$lib/forms/zod` is the only spelling
-              // that is both small and legible. See the doc comment there.
-              message: "Import from '$lib/forms/zod'. Classic zod is not tree-shakeable.",
-              name: 'zod',
-            },
-            {
-              message: "Import from '$lib/forms/zod', which registers the locale `zod/mini` omits.",
-              name: 'zod/mini',
-            },
-            {
-              // Every navigation is one of three things and the difference is the back button:
-              // `push` adds an entry, `replaceUrl` swaps it, `exit` retires a finished screen.
-              // A raw `goto` is a push by default, which is how a saved form stayed reachable by
-              // back. The doc comment that used to say this was ignored in four places.
-              importNames: ['goto'],
-              message: "Use `push`, `replaceUrl` or `exit` from '$lib/state/navigation.svelte'.",
-              name: '$app/navigation',
-            },
-          ],
-          patterns: [
-            {
-              message: "Use the '$lib' alias instead of a relative path into the lib folder.",
-              regex: '^(\\.\\./)+lib/',
-            },
-          ],
-        },
+        { ...restrictedImports, paths: [...restrictedImports.paths, noSecretKeyImport] },
       ],
+      // Property-only, so `env.`, `process.env.` and a namespace import's read are all caught.
+      'no-restricted-properties': ['error', { message: SECRET_KEY_MESSAGE, property: 'SUPABASE_SECRET_KEY' }],
       // typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.
       // see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
       'no-undef': 'off',
@@ -194,7 +220,7 @@ export default defineConfig(
   },
   {
     rules: {
-      'no-restricted-syntax': ['error', ...noDrizzleMassAssignment],
+      'no-restricted-syntax': ['error', ...noDrizzleMassAssignment, ...noDynamicPrivateEnv],
     },
   },
   {
@@ -202,7 +228,7 @@ export default defineConfig(
     // config replaces a rule's options wholesale rather than merging them.
     files: ['**/*.remote.ts', 'src/lib/entities/**/*.ts', 'src/lib/remote/**/*.ts'],
     rules: {
-      'no-restricted-syntax': ['error', ...noDrizzleMassAssignment, ...noRawErrorMessage],
+      'no-restricted-syntax': ['error', ...noDrizzleMassAssignment, ...noRawErrorMessage, ...noDynamicPrivateEnv],
     },
   },
   {
@@ -215,6 +241,7 @@ export default defineConfig(
         'error',
         ...noDrizzleMassAssignment,
         ...noRawErrorMessage,
+        ...noDynamicPrivateEnv,
         {
           message: "Avoid barrel files: don't re-export a folder's modules from index.ts. Import the modules directly.",
           selector: 'ExportAllDeclaration',
@@ -224,6 +251,16 @@ export default defineConfig(
           selector: 'ExportNamedDeclaration[source]',
         },
       ],
+    },
+  },
+  {
+    // The modules allowed the secret key. Each rule is re-listed without the key, because a later
+    // flat-config block replaces an earlier one's options.
+    files: SECRET_KEY_READERS,
+    rules: {
+      'no-restricted-imports': ['error', restrictedImports],
+      'no-restricted-properties': 'off',
+      'no-restricted-syntax': ['error', ...noDrizzleMassAssignment],
     },
   },
   {

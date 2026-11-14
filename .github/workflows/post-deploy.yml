@@ -66,8 +66,9 @@ jobs:
           access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
           secrets: |
             a745eae4-8d02-4503-9499-b4b1008ee797 > PUBLIC_SUPABASE_URL
-            6803688b-5ff2-431f-9546-b4b1008ef3fc > PUBLIC_SUPABASE_ANON_KEY
-            a83f5fa3-aa14-41a8-af91-b4b1008fd57d > SUPABASE_SERVICE_ROLE_KEY
+            f91e6239-4916-4c83-a843-b50200fbdc20 > SUPABASE_JWT_JWKS_URL
+            8c9ec654-c6ae-405f-bb07-b50200fc8435 > PUBLIC_SUPABASE_PUBLISHABLE_KEY
+            ff6ea372-f0a8-406e-a466-b50200fcab4d > SUPABASE_SECRET_KEY
             7822b897-399d-4e45-843b-b4b1008da86f > RESEND_API_KEY
             0e0c4c10-656b-4d47-b0bb-b4b1008d9c93 > RESEND_SENDER_EMAIL
             229dfd0e-2cc6-4727-b289-b4b1008db12f > PUBLIC_VAPID_KEY

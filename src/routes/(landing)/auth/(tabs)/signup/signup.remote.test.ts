@@ -49,14 +49,17 @@ vi.mock('$lib/entities/notification/signup.server', () => ({
   },
 }))
 
-const supabase = {
-  auth: {
+// The confirmation goes out through the auth-only client, so GoTrue's per-IP limit sees the visitor.
+vi.mock('$lib/auth/authServer.server', () => ({
+  supabaseAuthServer: () => ({
     resend: async ({ email }: { email: string }) => {
       resent.push(email)
       return { error: resendError }
     },
-  },
-}
+  }),
+}))
+
+const supabase = { auth: {} }
 
 interface Outcome {
   issues?: { message: string }[]

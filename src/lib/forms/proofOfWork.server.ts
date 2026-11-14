@@ -1,4 +1,4 @@
-import { SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private'
+import { SUPABASE_SECRET_KEY } from '$env/static/private'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { spentChallenges } from '$lib/db/schema'
 import { createChallenge, verifySolution, type Challenge, type Payload } from 'altcha-lib'
@@ -14,7 +14,7 @@ const COUNTER_MIN = 1_500
 const COUNTER_MAX = 3_000
 
 /** Derived, not a secret of its own: domain-separated from its parent and as secret as it. */
-const derive = (label: string) => createHmac('sha256', SUPABASE_SERVICE_ROLE_KEY).update(label).digest('hex')
+const derive = (label: string) => createHmac('sha256', SUPABASE_SECRET_KEY).update(label).digest('hex')
 const secrets = {
   hmacKeySignatureSecret: derive('altcha-key-signature'),
   hmacSignatureSecret: derive('altcha-challenge-signature'),

@@ -21,18 +21,17 @@
  * Run it against production with the production values in the environment:
  *
  *   E2E_BASE_URL=... DATABASE_URL=... PUBLIC_SUPABASE_URL=... \
- *   SUPABASE_SERVICE_ROLE_KEY=... E2E_PASSWORD=... npm run test:e2e prod-signup
+ *   SUPABASE_SECRET_KEY=... E2E_PASSWORD=... npm run test:e2e prod-signup
  *
  * `E2E_BASE_URL` and `DATABASE_URL` have to name the same environment; nothing checks that. With
  * neither set it runs against the local stack, which is also how it stays honest.
  */
 import { expect, test } from '@playwright/test'
-import { createClient } from '@supabase/supabase-js'
 // Relative, not `$lib`: the Playwright process has no vite aliases. `testAccounts`, not `testDb`,
 // which opens a pool of its own at import.
 import { connect, deleteAccountRows } from '../src/lib/db/testAccounts'
 import { REGION_CREATE_PATH } from '../src/lib/entities/region/paths'
-import { reachableUrl, visit } from './support'
+import { adminClient, reachableUrl, visit } from './support'
 
 // Playwright does not read `.env`; CI passes the real values as environment variables instead,
 // and those win, because `loadEnvFile` never overwrites what is already set.
@@ -56,9 +55,7 @@ const username = `e2e${stamp}`
 /** GoTrue's admin API only. The Data API is off in every environment
  *  (`pgrst.db_schemas = rest_disabled` on `authenticator`), so app tables need a postgres
  *  connection. */
-const admin = createClient(process.env.PUBLIC_SUPABASE_URL ?? '', process.env.SUPABASE_SERVICE_ROLE_KEY ?? '', {
-  auth: { persistSession: false },
-})
+const admin = adminClient()
 
 const sql = connect()
 
@@ -73,7 +70,7 @@ test.beforeAll(async () => {
 
   if (!(await reachableUrl(BASE))) missing.push(`the app at ${BASE}`)
   if (!process.env.PUBLIC_SUPABASE_URL) missing.push('PUBLIC_SUPABASE_URL')
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY (the account is deleted again)')
+  if (admin == null) missing.push('SUPABASE_SECRET_KEY (the account is deleted again)')
   if (!PASSWORD) missing.push('E2E_PASSWORD')
   // Probed, not just read: a dead connection string otherwise fails mid-journey, with an account
   // already created.
@@ -101,7 +98,7 @@ test.afterAll(async () => {
     // Through the admin API rather than a delete on `auth.users`, so GoTrue tidies up its own
     // bookkeeping (identities, sessions) with it. Attempted even when the rows above failed, so a
     // teardown that trips does not also leave a usable login.
-    const { error } = await admin.auth.admin.deleteUser(authUserId)
+    const { error } = await admin!.auth.admin.deleteUser(authUserId)
     if (failed != null) throw failed
     if (error != null) {
       throw new Error(`prod-signup left ${email} behind: ${error.message}`)
@@ -158,7 +155,8 @@ test('a new account can sign up and confirm', async ({ page }) => {
  * every real confirmation mail to the wrong host.
  */
 async function confirmationLink(): Promise<string> {
-  const { data, error } = await admin.auth.admin.generateLink({ email, password: PASSWORD, type: 'signup' })
+  // Present once the prerequisite check above has passed.
+  const { data, error } = await admin!.auth.admin.generateLink({ email, password: PASSWORD, type: 'signup' })
 
   expect(error, 'minting a confirmation link').toBeNull()
 

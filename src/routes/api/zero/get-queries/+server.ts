@@ -11,12 +11,9 @@ export async function POST({ request }) {
   const caller = await zeroCaller(request)
 
   if (!caller.ok) {
-    // 502 for expiry, not 401. zero-cache verifies the token once at connection setup and only
-    // swaps it for one with a strictly newer `iat`, so a long-lived connection keeps forwarding a
-    // token that has since expired; `jwtDecode` ignored `exp`, so that was invisible before. Its
-    // fetch retries only 502 and 504, so 502 gives the client's own refresh a backoff window to
-    // land, where a 401 would throw TransformFailed on the first attempt and kill sync outright.
-    error(caller.reason === 'expired' ? 502 : 401)
+    // zero-cache retries only 502 and 504: an expired token gets a window for the client's refresh,
+    // a JWKS outage one for the keys to come back. A 401 ends sync on the first attempt.
+    error(caller.reason === 'expired' || caller.reason === 'unavailable' ? 502 : 401)
   }
 
   // `regionMemberCan` leaves a query unfiltered when the context carries no memberships (the client

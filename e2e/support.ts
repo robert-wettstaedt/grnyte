@@ -5,6 +5,13 @@
  * Imports no database module, so `prod-signup.spec.ts` does not drag in `testDb`'s pool.
  */
 import { expect, type Browser, type Page } from '@playwright/test'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+
+export function adminClient(): SupabaseClient | undefined {
+  const url = process.env.PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SECRET_KEY
+  return url && key ? createClient(url, key, { auth: { persistSession: false } }) : undefined
+}
 
 /** The same default the config resolves `baseURL` from. */
 export const APP = process.env.E2E_BASE_URL ?? 'http://localhost:3000'

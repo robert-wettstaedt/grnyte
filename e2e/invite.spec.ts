@@ -15,14 +15,13 @@
  * ENABLE_EMAIL_AUTOCONFIRM is false locally and that leg is otherwise untested.
  */
 import { expect, test, type Page } from '@playwright/test'
-import { createClient } from '@supabase/supabase-js'
 // Relative, not `$lib`: this file runs in the Playwright process, which has no vite aliases.
 // `testDb.ts` is plain node plus dotenv, so importing it first also loads `.env`.
 import { deleteAccountRows } from '../src/lib/db/testAccounts'
 import { reachable, seedUsers, sql, type SeedUser } from '../src/lib/db/testDb'
 // Same reason, and it resolves for the same one: `dto.ts` imports nothing at runtime, only types.
 import { acceptPath } from '../src/lib/entities/region/paths'
-import { APP, assertLocalStack, reachableUrl, signIn, visit } from './support'
+import { adminClient, APP, assertLocalStack, reachableUrl, signIn, visit } from './support'
 
 const MAILBOX = 'http://localhost:9010'
 
@@ -214,11 +213,9 @@ async function deleteTestAccounts() {
     rows.map((row) => row.id),
   )
 
-  const url = process.env.PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (url == null || key == null) return
+  const admin = adminClient()
+  if (admin == null) return
 
-  const admin = createClient(url, key, { auth: { persistSession: false } })
   for (const row of rows) {
     await admin.auth.admin.deleteUser(row.id)
   }

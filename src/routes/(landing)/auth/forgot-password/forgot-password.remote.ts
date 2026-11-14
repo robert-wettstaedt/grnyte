@@ -1,4 +1,5 @@
 import { form, getRequestEvent } from '$app/server'
+import { supabaseAuthServer, type AuthServer } from '$lib/auth/authServer.server'
 import { flagContestedSignup } from '$lib/auth/contested.server'
 import { mailPasswordReset, mailSignupConfirmation } from '$lib/auth/mail.server'
 import { db } from '$lib/db/db.server'
@@ -26,9 +27,9 @@ async function findAccount(email: string): Promise<undefined | { confirmed: bool
 }
 
 /** The confirmation, not a reset: confirming a flagged account swaps its password and lands on reset. */
-async function resendConfirmation(supabase: App.Locals['supabase'], email: string, authUserId: string) {
+async function resendConfirmation(authServer: AuthServer, email: string, authUserId: string) {
   if (!(await flagContestedSignup(authUserId))) return { error: null }
-  return mailSignupConfirmation(supabase, email)
+  return mailSignupConfirmation(authServer, email)
 }
 
 // Every branch answers alike, so the form cannot tell anyone whether an address has an account.
@@ -39,14 +40,15 @@ export const forgotPassword = form(forgotPasswordSchema, async (submitted) => {
     return { email, success: true }
   }
 
+  const event = getRequestEvent()
   const {
     locals: { supabase },
     url,
-  } = getRequestEvent()
+  } = event
 
   const { error } = account.confirmed
     ? await mailPasswordReset(supabase, email, url.origin)
-    : await resendConfirmation(supabase, email, account.id)
+    : await resendConfirmation(supabaseAuthServer(event), email, account.id)
   if (error != null && error.code !== 'over_email_send_rate_limit') {
     const mail = account.confirmed ? 'reset' : 'confirmation'
     await logServerFailure('forgot-password', `${mail} mail failed: ${error.code ?? error.message}`)
