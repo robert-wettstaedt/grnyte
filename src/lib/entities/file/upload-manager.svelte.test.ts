@@ -31,6 +31,7 @@ vi.mock('$app/state', () => ({
 }))
 vi.mock('$env/static/public', () => ({
   PUBLIC_BUNNY_STREAM_LIBRARY_ID: '1',
+  PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
   PUBLIC_SUPABASE_URL: 'https://supabase.test',
 }))
 vi.mock('./files.remote', () => ({
@@ -46,12 +47,12 @@ let sent: FakeXhr[] = []
 
 /** Enough of XMLHttpRequest for uploadToStaging: the test decides when bytes land. */
 class FakeXhr {
+  headers: Record<string, string> = {}
   onabort: (() => void) | null = null
   onerror: (() => void) | null = null
   onload: (() => void) | null = null
   status = 200
   upload = { onprogress: null as ((event: ProgressEvent) => void) | null }
-  private headers: Record<string, string> = {}
 
   abort() {
     this.onabort?.()
@@ -93,6 +94,22 @@ afterEach(() => {
 })
 
 describe('transfer', () => {
+  // The new Storage gateway needs the project key as `apikey`; the Bearer is the person's own token.
+  it('sends the publishable key as apikey on the staging upload', async () => {
+    const upload = new ImageUpload(file())
+    upload.start()
+    await flush()
+
+    try {
+      expect(sent[0].headers.apikey).toBe('sb_publishable_test')
+    } finally {
+      // Land it, so no transfer is left holding the page-leave warning for the next test.
+      sent[0].succeed()
+      await flush()
+      await flush()
+    }
+  })
+
   it('reports progress and lands on staged', async () => {
     const upload = new ImageUpload(file())
     upload.start()

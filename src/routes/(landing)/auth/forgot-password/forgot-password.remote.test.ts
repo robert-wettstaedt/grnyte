@@ -37,13 +37,19 @@ vi.mock('$lib/db/supabaseAdmin.server', () => ({
   }),
 }))
 
-const supabase = {
-  auth: {
+// The confirmation resend goes through the auth-only client; the reset mail stays on the cookie client.
+vi.mock('$lib/auth/authServer.server', () => ({
+  supabaseAuthServer: () => ({
     resend: async ({ email }: { email: string }) => {
       resent.push(email)
       order.push(`resend:${email}`)
       return { error: resetError }
     },
+  }),
+}))
+
+const supabase = {
+  auth: {
     resetPasswordForEmail: async (email: string) => {
       sent.push(email)
       return { error: resetError }

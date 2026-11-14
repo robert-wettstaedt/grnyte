@@ -12,7 +12,11 @@
  * any upload is busy.
  */
 import { page } from '$app/state'
-import { PUBLIC_BUNNY_STREAM_LIBRARY_ID, PUBLIC_SUPABASE_URL } from '$env/static/public'
+import {
+  PUBLIC_BUNNY_STREAM_LIBRARY_ID,
+  PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  PUBLIC_SUPABASE_URL,
+} from '$env/static/public'
 import type { File as FileRow } from '$lib/db/schema'
 import { resolveErrorMessage } from '$lib/forms/issue'
 import { m } from '$lib/paraglide/messages'
@@ -238,6 +242,7 @@ export class ImageUpload extends MediaUploadBase {
         this.xhr = xhr
         xhr.open('POST', `${PUBLIC_SUPABASE_URL}/storage/v1/object/${STAGING_BUCKET}/${this.path}`)
         xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+        xhr.setRequestHeader('apikey', PUBLIC_SUPABASE_PUBLISHABLE_KEY)
         // Upsert so a retry after a lost response overwrites instead of 409ing
         // (the object may exist server-side even though the client saw a failure).
         xhr.setRequestHeader('x-upsert', 'true')
