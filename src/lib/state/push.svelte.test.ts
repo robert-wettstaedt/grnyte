@@ -31,12 +31,14 @@ const subscribe = vi.fn()
 
 vi.stubGlobal('Notification', { permission: 'granted' })
 vi.stubGlobal('PushManager', class {})
-Object.defineProperty(navigator, 'serviceWorker', {
-  configurable: true,
-  value: { ready: Promise.resolve({ pushManager: { getSubscription: async () => live, subscribe } }) },
-})
+const registration = { pushManager: { getSubscription: async () => live, subscribe } }
+const worker = {
+  getRegistration: vi.fn(async (): Promise<typeof registration | undefined> => registration),
+  ready: Promise.resolve(registration),
+}
+Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: worker })
 
-const { pushEndpoint, syncPushSubscription } = await import('./push.svelte')
+const { disablePush, pushEndpoint, syncPushSubscription } = await import('./push.svelte')
 
 const ENDPOINT_KEY = 'grnyte.pushEndpoint'
 
@@ -117,4 +119,20 @@ describe('syncPushSubscription', () => {
     expect(subscribeToPush).not.toHaveBeenCalled()
     expect(pushEndpoint()).toBeUndefined()
   })
+})
+
+describe('disablePush', () => {
+  // No worker ever registers (dev-sw.js 404, workers switched off): `ready` never settles, and
+  // sign-out awaits this before it sends anything.
+  it('finishes when no service worker is registered', async () => {
+    const ready = worker.ready
+    worker.ready = new Promise(() => {})
+    worker.getRegistration.mockResolvedValueOnce(undefined)
+
+    try {
+      await expect(disablePush()).resolves.toBeUndefined()
+    } finally {
+      worker.ready = ready
+    }
+  }, 1_000)
 })
