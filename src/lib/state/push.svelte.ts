@@ -72,8 +72,9 @@ export async function disablePush(): Promise<void> {
 
   rememberEndpoint(undefined)
 
-  const registration = await navigator.serviceWorker.ready
-  const subscription = await registration.pushManager.getSubscription()
+  // Not `ready`: it never settles without a worker, and sign-out awaits this.
+  const registration = await navigator.serviceWorker.getRegistration()
+  const subscription = await registration?.pushManager.getSubscription()
   const known = subscription?.endpoint ?? endpoint
 
   await subscription?.unsubscribe()
