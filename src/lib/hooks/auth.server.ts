@@ -289,11 +289,8 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     return resolve(event)
   }
 
-  // zero-cache forwards the browser's cookie alongside the Bearer (ZERO_GET_QUERIES_FORWARD_COOKIES
-  // is set in every compose file), and `handle` runs for /api too. The get-queries handler verifies
-  // its own Authorization header, so loading a session here would be a second, pointless
-  // verification, and worse: `getSession()` can rotate the refresh token onto a response the
-  // browser never sees.
+  // The Zero endpoints verify their own Authorization header; loading a session here could rotate
+  // the refresh token onto a response the browser never sees.
   if (event.url.pathname.startsWith(ZERO_API_PREFIX)) {
     Object.assign(event.locals, anonymous(), { backendUnavailable: false })
     return resolve(event)

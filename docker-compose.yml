@@ -38,7 +38,6 @@ services:
       - ZERO_AUTH_SECRET=${ZERO_AUTH_SECRET}
       - ZERO_ADMIN_PASSWORD=${ZERO_ADMIN_PASSWORD}
       - ZERO_GET_QUERIES_URL=${ZERO_GET_QUERIES_URL:-http://localhost:3000/api/zero/get-queries}
-      - ZERO_GET_QUERIES_FORWARD_COOKIES=${ZERO_GET_QUERIES_FORWARD_COOKIES}
       - ZERO_MUTATE_URL=${ZERO_MUTATE_URL:-http://localhost:3000/api/zero/mutate}
       # Writes go through the mutate endpoint only; zero-cache's own CRUD path stays shut.
       - ZERO_ENABLE_CRUD_MUTATIONS=false
@@ -88,7 +87,6 @@ services:
       - ZERO_ADMIN_PASSWORD=${ZERO_ADMIN_PASSWORD:-perf}
       # A `.localhost` name: Vite's dev server 403s any other host, `host.docker.internal` included.
       - ZERO_GET_QUERIES_URL=http://app.localhost:3000/api/zero/get-queries
-      - ZERO_GET_QUERIES_FORWARD_COOKIES=true
       - ZERO_MUTATE_URL=http://app.localhost:3000/api/zero/mutate
       - ZERO_ENABLE_CRUD_MUTATIONS=false
       - ZERO_REPLICA_FILE=/data/sync-replica.db

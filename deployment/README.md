@@ -13,6 +13,8 @@
 - `nginx.zero.conf` - Domain-based nginx configuration with SSL support
 - `.env.prod` - Instance environment variables (written during deployment)
 - `.env.health` - `PS_ADMIN_TOKEN` alone, for `sync-health-prod` (written during deployment)
+- `powersync/service.yaml` - PowerSync config for the VPS; `powersync/service.local.yaml` is the same
+  without `jwks_uri`, for the shared local stack, which has no JWKS
 
 ## Deployment
 
@@ -39,9 +41,14 @@ cd ~/zero-deployment/deployment
 # Write the environment file from Bitwarden. Run this from a checkout on
 # your machine, not on the VPS: no access token belongs on that box.
 BWS_ACCESS_TOKEN=<prod token> node deployment/secrets.mjs pull env.all
-grep '^ZERO_' env.all | ssh user@your-vps 'cat > ~/zero-deployment/deployment/.env.prod'
+# zero-cache takes exactly one ZERO_AUTH_* option, as deploy-zero.yml checks: KEEP names it.
+KEEP=ZERO_AUTH_SECRET
+grep -E '^(ZERO|PS)_' env.all | grep -v '^ZERO_AUTH_' > env.zero
+grep "^$KEEP=" env.all >> env.zero
+[ "$(grep -c '^ZERO_AUTH_' env.zero)" = 1 ] || { echo "env.all holds no $KEEP"; exit 1; }
+ssh user@your-vps 'cat > ~/zero-deployment/deployment/.env.prod' < env.zero
 grep '^PS_ADMIN_TOKEN=' env.all | ssh user@your-vps 'cat > ~/zero-deployment/deployment/.env.health'
-rm env.all
+rm env.all env.zero
 
 # Clean up any existing deployment
 docker compose -f docker-compose.zero.yml down -v --remove-orphans
@@ -61,7 +68,9 @@ Each instance reads `.env.<instance>`, which holds the `ZERO_*` half of that env
 project and nothing else. The app's own secrets stay off this box.
 
 - `ZERO_UPSTREAM_DB` - Database connection string
-- `ZERO_AUTH_SECRET` - JWT verification secret, shared with Supabase
+- `ZERO_AUTH_SECRET` or `ZERO_AUTH_JWKS_URL` - zero-cache's token check: exactly one of them
+  (with none it serves a client group's stored rows before checking who asks, with two it checks
+  nothing). Rerun that check on a local stack on every Zero upgrade
 - `ZERO_ADMIN_PASSWORD` - Zero admin password
 - `ZERO_GET_QUERIES_URL` - The app's get-queries endpoint for this environment
 - `ZERO_MUTATE_URL` - The app's mutate endpoint for this environment (`/api/zero/mutate`)
