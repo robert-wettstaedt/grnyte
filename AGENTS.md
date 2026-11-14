@@ -1,270 +1,157 @@
 # grnyte
 
-## Project Configuration
-
-- **Language**: TypeScript
-- **Package Manager**: npm
+TypeScript, npm. SvelteKit, Skeleton (<https://www.skeleton.dev/llms.txt>), Paraglide JS (i18n),
+Zero sync (<https://zero.rocicorp.dev/llms.txt>), Supabase, Drizzle ORM.
 
 ## Commands
 
-- `npm run dev`: serves the app on :3000 (also hosts the Zero get-queries endpoint)
-- `npm run check`: svelte-check + tsc. Its `svelte-kit sync` step rewrites `.svelte-kit` under a
-  running `npm run dev` and 500s the shared dev server (the sandbox cannot read `.env`, so the
-  regenerated env module comes back empty; `$env/static` "has no exported member" is the tell).
-  Beside a live server run `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json` instead.
-  `npm run lint` and `npm run format` for prettier/eslint
-- `npm run generate`: regenerate Drizzle + Zero schemas and the GoTrue email templates.
-  `npm run migrate` applies migrations
-- `npm run check:prod`: assert a deployed environment's signup/mail config (reads only, no writes)
-- `npm run secrets:pull`: rewrite `.env` from Bitwarden Secrets Manager, which holds every variable
-  for both environments (dev, prod). `BWS_ACCESS_TOKEN` alone picks the environment. `deployment/SECRETS.md`
-  covers the Vercel push, the VPS half and rotation
-- `npm test`: vitest. `npm run storybook` to eyeball primitives
-- `npm run test:e2e`: Playwright. Needs the local Supabase stack, `npm run dev`, `npm run dev:zero`,
-  a live `RESEND_API_KEY` and `E2E_PASSWORD` in `.env`; the spec names whatever is missing
-- `npm run machine-translate`: fill missing i18n locales from the English source
-
-## Tech Stack
-
-This project uses:
-
-- **Skeleton** (UI toolkit): <https://www.skeleton.dev/llms.txt>
-- **Paraglide JS** (i18n): <https://paraglidejs.com/>
-- **Zero** by Rocicorp (sync engine): <https://zero.rocicorp.dev/llms.txt>
-- **Supabase**: <https://supabase.com/docs>
-- **Drizzle ORM**: <https://orm.drizzle.team/docs/overview>
-- **SvelteKit**
+- `npm run dev`: app on :3000 (also hosts the Zero get-queries endpoint)
+- `npm run check`: svelte-check + tsc. Its `svelte-kit sync` 500s a running dev server (the sandbox
+  cannot read `.env`; tell: `$env/static` "has no exported member"). Beside a live server run
+  `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json` instead. `npm run lint`, `npm run format`
+- `npm run generate`: Drizzle + Zero schemas and GoTrue email templates. `npm run migrate` applies migrations
+- `npm run check:prod`: assert a deployed env's signup/mail config (read-only)
+- `npm run secrets:pull`: rewrite `.env` from Bitwarden Secrets Manager; `BWS_ACCESS_TOKEN` picks the
+  environment. `deployment/SECRETS.md` covers Vercel, the VPS and rotation
+- `npm test`: vitest. `npm run storybook` for primitives
+- `npm run test:e2e`: Playwright. Needs local Supabase, `npm run dev`, `npm run dev:zero`, a live
+  `RESEND_API_KEY` and `E2E_PASSWORD` in `.env`; the spec names whatever is missing
+- `npm run machine-translate`: fill missing locales from English
 
 ## Conventions
 
-- Read `CONTEXT.md` before writing user-facing copy, i18n keys, or naming a domain concept. It is short, and it records distinctions the code depends on (a sector is a typed area and "crag" is prose only, `send` is the umbrella over `flash`/`redpoint`/`repeat`).
-- Writes are Zero custom mutators: a client def in `<entity>/mutators.ts`, a server def in
-  `<entity>/mutators.server.ts`, aggregated in `$lib/zero/mutators*.ts` like the queries. The server
-  def wraps a handler body from `<entity>/*.server.ts` in `asCaller` (RLS) or, only where the body
-  used `pinnedTx` or a merge repoints rows other people own after its caller-run gates,
-  `asPrivileged`; `gates.test.ts` holds both to a named gate. Toggles write the
-  local store optimistically; forms, creates and deletes write nothing on the client and await
-  `.server`, because ids are serial. Remote functions remain for what a mutator cannot answer:
-  auth and account, the upload steps, `sendTestPush`, `replyToFeedback` and remote reads.
-  Components write through the entity's `writes.ts` (one function per write, which owns the
-  destination), never `mutators` or `write` directly, as they read through its resources.
-- A mutation that acts on an existing row gates through `requireRow` / `requireRowForm` (`$lib/remote/require.server`): they fetch the row and hand it to the permission predicate, so the check's subject is always stored data, never request input. Do not hand-roll `findFirst` + 404 + `can*` in a handler. The one exception is a writer of `regions.settings`, which must load its row under a lock `requireRow` cannot express; converting one back silently removes the lock.
-- Every write to `regions.settings` goes through `entities/region/settings.server.ts` and nothing else: it is one
-  jsonb blob with two independently edited keys, so every write locks the row, proves the key read
-  whole, and merges. Read that module before touching any of it. The one exception is a fixture
-  INSERTING a region (`e2e/fixtures.ts`): no other writer exists yet and there is nothing to merge
-  with, so locking buys nothing. It types the blob as `RegionSettings` instead, which is the half
-  that matters: an `attributions` written as a string where the schema wants `string[]` is dropped
-  on read, the form then refuses to seed, and nothing fails until a browser renders it.
-- A form's fields live in a `createFormStore` (`$lib/forms/store.svelte`) made per mount, so
-  nothing leaks between screens or opens. Only the auth pages, invite accept and sign-out still
-  use Kit remote forms.
-- Every add or edit form on a parameterised route seeds per entity: `/areas/1/blocks/add` and
-  `/areas/2/blocks/add` are one route, so anything seeded once follows the reader to the next
-  entity. A form that waits on rows does it through `Form`'s (or `FormGate`'s) `waitFor` and
-  `seed`: the gate runs `seed` once per set of row ids before the fields mount, and `Form` re-keys
-  its `fields` snippet after each seed, so child state seeded from props starts over too. `Form`'s
-  `seed` returns the values and `Form` writes them into the store; `initial` does the same for a
-  form with nothing to wait for. A form that seeds from RELATED rows (tags,
-  first ascensionists, a pin) marks that wait `whole: true`, because "loaded" is not one event: the
-  row is local while its relations are still in flight, and `updateRoute` deletes what the submit
-  leaves out, so an unloaded list is silent data loss, not a blank field (`routes/[id]/edit` is the
-  worked example; `e2e/form-seeding.spec.ts` caught it). Outside a gate, `seedOnKeyChange`
-  (`$lib/forms/seed.svelte.ts`) keys on the route parameter to blank, or the loaded row's id.
-- A handler that REPLACES a list or a related row rather than patching it has to prove what it is
-  replacing: the form posts a `known` fingerprint of what it loaded, and the handler refuses a
-  mismatched submit before its first write. Every handler of that shape carries it
-  (`updateRoute`, `updateBlock`, `saveTopoLines`, `updateRegionMapLayers`). A count is no substitute,
-  since a delete plus an add leaves it unchanged. Keep one hash function
-  (`$lib/forms/fingerprint.ts`): browser and server must agree byte for byte forever, and a second
-  copy is one widened hash away from permanently refusing one entity and nothing else. Two things
-  decide whether the guard is real. Measure it over exactly what the handler can DELETE and no more,
-  or it refuses saves that took nothing away (paths are deliberately absent from the topo one because `erased()`
-  keys on route ids). And capture it where the loaded value stops being observable: the seed for a
-  form, the FIRST EDIT for the topo editor, whose committed set is read live. Computed at submit
-  time it describes whatever has synced by then, matches itself every time, and protects nothing,
-  which no test of the handler can see.
-- Code comments are one or two lines: state the non-obvious fact and stop. Neither this repo's
-  existing long comments nor this file's prose is a model for source comments. Reasoning worth
-  keeping goes here, in `CONTEXT.md`, or as a `schema.ts` column comment. Re-read the comment lines
-  you added and cut them before you typecheck, not after being asked.
-- i18n: add keys to BOTH `messages/en.json` and `messages/de.json` (`domain_camelCase`, kept sorted). One prefix per domain: never split singular and plural (`areas_*`, not `area_*` alongside it). No em-dashes anywhere (UI copy, translations, code comments).
-- Icons: use `<Icon name="...">`; only `icons.ts` and `Icon.svelte` may import lucide.
-- An entity's detail URL comes from `entityHref(kind, id)` (`$lib/entities/href`) and nowhere else,
-  wherever that URL is a VALUE: a handler's `redirectTo`, a form's `cancelTo`, a `back()` / `exit()`
-  / `push()` argument, an href passed as a prop. The one exception is an href
-  `svelte/no-navigation-without-resolve` can actually verify, which keeps its literal `resolve()`:
-  that rule is syntactic, so it recognises a direct `resolve()` call on an `<a href>` or a variable
-  it can trace to one, and nothing else. Anywhere it cannot see (a `<svelte:element>`, a conditional)
-  the helper is fine and no disable comment is needed. That is why both spellings coexist; it is not
-  an oversight to tidy up. Leave `resolve()` alone for routes that take no parameter (`/settings`,
-  `/explore`, `/legal/*`), where a helper would be no shorter and would lose the lint guarantee.
-- A layout that owns a scroll container takes it from `$lib/state/scroll`: `createScrollSurface()`
-  attached to its `<main>` and re-exported as `snapshot`, or `resetOnNavigate` for a surface with no
-  history entry of its own (the explore sheet and panel). Nothing scrolls the window here, so Kit's
-  own handling is inert and a hand-wired container keeps the previous screen's offset. A different
-  screen resets, the same screen does not, and the PATHNAME decides: `trail.exit` replaces to a
-  different screen on every form submit, and the media viewer pushes `?media=` onto the current one.
-  A navigation that only forwards to a canonical URL uses `redirectTo`, so the destination keeps the
-  position it sets for itself. A sheet resets rather than restores, because its snap point and its
-  scroll are one position and restoring half of it is worse than neither.
-- Every OpenLayers instance comes from `createBaseMap` (`$lib/map/base.svelte.ts`): never
-  `new OlMap` elsewhere, and never restyle `.osm-layer` in a component, those rules live in
-  `app.css`. `StaticMap.svelte` is the deliberate exception, drawing raw `<img>` tiles.
-  Never hand a region's map layer its `attributions`: OL renders them as HTML and a region admin
-  writes them, so that is an XSS against everyone in the region. The credits sheet parses them
-  through `$lib/map/attribution` instead, and `base.svelte.test.ts` pins it.
-- Conditional UI animates in and out. An element an `{#if}` adds or removes in response to a press
-  (a disclosure, a toast, an inline form, a sheet) gets a `svelte/transition`, so it reads as growing
-  out of the control that opened it instead of snapping into place. `slide` for a
-  disclosure or list row, `fade` for an overlay or a swap in place, `scale` for a small badge, `fly`
-  for something arriving from an edge. 150ms unless a neighbour already picked another, and always
-  gated on reduced motion, which a Svelte transition ignores on its own: every duration comes from
-  `motion(base)` (`$lib/state/motion.svelte`), so `transition:slide={{ duration: motion() }}`, and
-  `prefersStill()` for the few places that skip an animation rather than shorten it. One shared
-  media query; never construct your own. `EventCard.svelte` is the shortest example.
-  A Tailwind `transition-*` class is no substitute: it cannot animate an element that does not exist
-  yet, so it stays on hover, focus and state changes of things already mounted.
-- A section backed by a query other than its page's primary resource decides its space before it
-  loads. Known from data already on screen: reserve exactly that space or render nothing. Unknown
-  with a real empty state: always render it, skeleton then content or the empty state. Unknown
-  without one: place it low so it appends. Never insert above rendered content, and never collapse
-  reserved space when the answer is "none", which shifts as much as popping in. Skeletons wait
-  ~250 ms; the reasoning is in
-  `openspec/changes/archive/2026-10-08-zero-latency-and-loading-states/design.md`.
-- A summary of a collection (a count, a chart, "n of N", sibling nav) reads `summaryOf(phase, value)`
-  from `$lib/zero/resource.svelte`, never `phase.kind === 'answered'`: it shows from the rows on hand
-  while they arrive and holds back only a zero. `answered` is for absence claims, form seeds and
-  action gates. Nothing draws its own syncing pill: each surface (the screen, every `Modal`) has one
-  (`createPillSurface` in `$lib/state/pill.svelte`), an arriving resource holds the nearest, and a
-  screen offers it an action or status through `pillSurface().offer`. Incidental lookups (search,
-  pickers, markdown references) are built in `quietly` so they never hold it.
-- A page's chrome renders in every state: `PageHeader` and the width container sit outside
-  `QueryState`, the title falling back until the row lands, so a deep link always has a way back. A
-  form screen gets this from `Form`'s `waitFor` (its rows in order, `whole` for one that replaces
-  lists); one whose fields seed at mount outside `Form` (`BlockForm`) is wrapped in `FormGate` by its caller.
-- A nested `Modal` must not unmount the one it opened from in the same flush. Closing the inner
-  dialog unpauses the outer trap, and if that one's DOM went away in the same flush, zag throws out
-  of `getInitialFocusNode`, which aborts the rest of the teardown and leaves the whole app
-  `aria-hidden` until a reload. Nothing is visibly wrong, so only a screen reader sees it. Close,
-  `await tick()`, then set the state that unmounts (`topos/edit`'s `addRouteLine` is the worked
-  example). Navigation is the other way to unmount an outer sheet, and `Modal.svelte` handles that
-  for every caller by closing itself in `beforeNavigate`; that guard compares PATHNAMES, because a
-  page mirroring its own state into the query string (`/feed`) is a real Kit navigation and must
-  leave an open sheet alone. Both halves are desktop-only: the mobile branch is
-  `svelte-bottom-sheet` with no trap, so a pass at 375 proves nothing here, and jsdom cannot cover
-  it either because `tabbable` reads `getClientRects`, which is always empty there.
-  Only `panel` plus `backdrop={true}` traps (a popover defaults to `modal: false`), so a nesting is
-  only exposed when BOTH surfaces are that shape.
-- Reuse before building: grep for an existing component/function first. If one fits but is not reusable, refactor it to be reusable and composable rather than hand-rolling a copy. Promote shared pieces to `$lib`. Prefer passing an entity DTO over a long list of individual props.
-- Entity modules live in `src/lib/entities/<name>/`, mirroring `area/` as the template.
-- An entity's display name comes from its mapper and nowhere else, and that is a TYPE:
-  `entities/displayName.ts` brands `DisplayName`, so a list item's `name` will not take a plain
-  string. Most entities call `toDisplayName`; one earns its own helper only by answering differently
-  (`blockName` falls back to "Block 3"). Names are optional in the DB, so an entity must never render as an
-  empty string: keep the fallback in the mapper, never inline `name ?? ''` or `name || 'Unnamed'`,
-  on the client or the server. Pass `locale` on the
-  server, and build fixture names through the helpers too.
-- Block ordering is stated once in `block/order.ts` (inside an area by slot, across areas by name),
-  with the drizzle half in `order.server.ts` under a deliberately different export name. Read
-  `order.ts` before changing either half; it carries the reasoning, and this file will not repeat it.
-- Check a value at its point of use, not a re-derivation of it. A guard that calls the builder
-  again pins different values than the comparison reads; a comment saying a type is `any` is not
-  the type; a test exercising the helper does not show the call site still calls it. The failure is
-  a sound method aimed one level off the thing that runs, which never feels like carelessness at
-  the time, so green means nothing until the probe is shown to have reached the code. It applies to
-  prose: a count written into a comment is a re-derivation, so name the thing rather than count it.
-- Schema changes go through the pipeline: edit `schema.ts`, `generate:drizzle`, append any backfill SQL, `generate:zero`, `migrate`.
-- `auth.users` and `public.users` are both `users` to drizzle, so a query joining them needs
-  `alias(authUsers, 'auth_user')` from `drizzle-orm/pg-core`. Without it nothing catches it first: it typechecks, it lints, no
-  test covers a handler needing both tables, and it throws `42P09 table reference "users" is
-ambiguous` the first time a person triggers it. Reach for the alias whenever a query wants an address or login record alongside a profile;
-  `adminRecipients.server.ts` is the shortest correct example.
-- A deploy is not atomic on the client: the server updates instantly, the service worker within the hour, and an open document only when it reloads. These break already-loaded tabs across that gap, all of them silently, with no build or type error:
-  - **Moving a `.remote.ts` file or renaming an exported remote function.** The endpoint id is `hash(module path) + '/' + exportName`, a path hash, so any move 404s every call an open tab makes. Reorganising entity modules is the usual way to trip this. `src/lib/state/serviceWorker.ts` gets stale tabs reloaded eventually, but not instantly.
-  - **Changing `manifest.id` in `vite.config.ts`.** It is pinned to `/` (1.0's `start_url`, frozen as an identifier) and must never move: an id a browser does not recognise is a different application, so every installed home-screen app is orphaned beside a new one. Because it is pinned, `start_url` itself is free to change.
-  - **Renaming a mutator or tightening its arguments.** An open tab keeps sending the old name and
-    shape until it reloads, so within one release a mutator's arguments only widen, and a removed
-    remote function or mutator stays deployed for one more release. Deploy zero-cache, then the app.
-  - **Deleting or reshaping a route.** Bookmarks, shared links, push targets and history live outside the database and cannot be migrated. Prefer id-based URLs (`/routes/<id>`); they cost nothing to keep forever, while a slug-based one dies with the column it resolved against.
-- Verify changes by driving the running app, not just typechecking. Drive a UI change at BOTH
-  375x667 and 1280x800: an interaction gated on hover (which a touch device never gets) and a
-  composition that only reads with all of it on screen are one-size defects, and neither typechecks.
-- A new test is not evidence until it has been seen red. Name the one production edit that should
-  break it, make that edit, run it, revert. Vacuity usually sits in the FIXTURE, not the assertion
-  (two entities identical in the dimension asserted on, a value truthy on both branches). Grep the
-  mutated text first: a mutation that never applied looks exactly like one that was not caught.
-  `npm run test:mutation -- --mutate <file>` does the same thing mechanically for every edit at
-  once (`test:mutation:server -- <file>` for the DB-backed half). Read `stryker/README.md` before a
-  run: its traps decide whether a target executes anything at all, and the survivor list, not the
-  score, is the output.
-- Answering clarification or grilling questions is not a go-ahead. After a planning round, write the
-  plan down and stop. Start on an explicit instruction ("start", "do #1-#3"), not on "ok" or "yes".
-- Before handing back, over the paths you touched and nothing else: `npx prettier --write`,
-  `npx eslint`, `npx vitest run --project server` for `*.server.test.ts` and `*.remote.test.ts` or
-  `--project browser` for the rest, then typecheck (see `npm run check` above).
-- Run `npm run lint:unused`, `npm run lint:duplication` and `npm run lint:health` (all fallow,
-  pinned to an exact version, all in CI) BEFORE handing work back, so a late miss still costs you the cheap moment to reuse something.
-  `lint:unused` has no baseline: any unused file, export, dependency or prop and any import cycle
-  fails. The other two fail on a clone or complexity hotspot absent from
-  `.fallow-dupes-baseline.json` / `.fallow-health-baseline.json`, and on a baseline entry that no
-  longer matches. Those baselines only shrink: CI refuses a commit that adds an entry, so
-  `npm run lint:baseline` is for removing stale entries after a fix, never for accepting a new
-  finding. A deliberate one gets an inline `// fallow-ignore-next-line <kind> -- <reason>` instead,
-  which review sees. fallow misses some Svelte template reads (a prop inside `{#each { length }}`, a
-  `<script module>` import used only in markup); suppress those the same way, with that reason.
-- Browser floor: `vite.config.ts` pins `build.target`; check a feature against that pinned list, never
-  against "Baseline Widely" in the abstract. Unpinned it inherits Vite's `baseline-widely-available`
-  default, which is Baseline Widely as of a date frozen per Vite major, so the floor drifts on an
-  upgrade.
-  The target lowers syntax and never polyfills, which decides how a feature may be adopted: a
-  missing CSS feature degrades (`@supports` is enough), while a missing JS built-in
-  (`Object.groupBy`, `Set.prototype.union`, `Intl.DurationFormat`) is a `TypeError` on a user's
-  phone with no build error. Guard those with a feature check and a fallback, or do not use them.
-  Raising the floor was measured and moves zero JS bytes, so raise it only as a product decision
-  about which devices to stop serving, never to save bytes, and never to `safari17.5`, where lightningcss stops lowering
-  `light-dark()` and Skeleton's palette breaks for Safari 16.4 to 17.4. The pin does not reach
-  pre-bundled `node_modules` deps or `src/sw.ts`, which Kit builds with `configFile: false`.
-- Server runtime: `engines.node` mirrors the newest runtime Vercel Functions offers, not a
-  preference; raising it past that fails the build. Kit compiles SSR at `node18.13`, which restricts
-  syntax only and never removes a built-in, so `*.server.ts`, `+server.ts` and `*.remote.ts` may use
-  current-Node built-ins freely. The trap is the other direction: anything under `src/lib/` a client
-  component can reach inherits the browser floor above.
-- `*-PLAN.md` files are scratch for the agent, not repo documentation: never commit one, and never reference one (or a "Decision N" inside it) from code, comments or JSDoc, because the file is deleted when the feature lands and the reference rots. A decision worth keeping moves into the artifact it governs: a column comment in `schema.ts`, a term in `CONTEXT.md`, a line here.
+- Read `CONTEXT.md` before writing user-facing copy, i18n keys, or naming a domain concept (a sector
+  is a typed area and "crag" is prose only; `send` covers `flash`/`redpoint`/`repeat`).
+- Writes are Zero custom mutators: client def in `<entity>/mutators.ts`, server def in
+  `<entity>/mutators.server.ts`, aggregated in `$lib/zero/mutators*.ts`. The server def wraps a
+  handler from `<entity>/*.server.ts` in `asCaller` (RLS), or `asPrivileged` only where the body
+  used `pinnedTx` or a merge repoints other people's rows after caller-run gates; `gates.test.ts`
+  holds both to a named gate. Toggles write optimistically; forms, creates and deletes await
+  `.server` (ids are serial). Remote functions remain for auth/account, upload steps,
+  `sendTestPush`, `replyToFeedback` and remote reads. Components write through the entity's
+  `writes.ts`, never `mutators` or `write` directly.
+- A mutation on an existing row gates through `requireRow` / `requireRowForm`
+  (`$lib/remote/require.server`), so the permission check sees stored data, never request input.
+  Never hand-roll `findFirst` + 404 + `can*`. Exception: writers of `regions.settings`, which need a lock.
+- Every write to `regions.settings` goes through `entities/region/settings.server.ts` (locks, proves
+  the key read whole, merges). Read it first. Only `e2e/fixtures.ts` inserting a region skips it,
+  typing the blob as `RegionSettings` (a mistyped `attributions` is silently dropped on read).
+- Form fields live in a per-mount `createFormStore` (`$lib/forms/store.svelte`). Only auth pages,
+  invite accept and sign-out use Kit remote forms.
+- Add/edit forms on a parameterised route seed per entity (`/areas/1/blocks/add` and
+  `/areas/2/blocks/add` are one route). Wait on rows through `Form`'s (or `FormGate`'s) `waitFor` +
+  `seed`; `initial` when nothing to wait for. A form seeding from RELATED rows (tags, first
+  ascensionists, a pin) marks the wait `whole: true`: relations arrive after the row, and
+  `updateRoute` deletes what the submit omits, so an unloaded list is data loss
+  (`routes/[id]/edit`, `e2e/form-seeding.spec.ts`). Outside a gate use `seedOnKeyChange`
+  (`$lib/forms/seed.svelte.ts`).
+- A handler that REPLACES a list or related row requires a `known` fingerprint of what the form
+  loaded and refuses a mismatch before its first write (`updateRoute`, `updateBlock`,
+  `saveTopoLines`, `updateRegionMapLayers`). One hash function only (`$lib/forms/fingerprint.ts`),
+  never a count. Measure exactly what the handler can DELETE (topo omits paths: `erased()` keys on
+  route ids). Capture it where the loaded value stops being observable: the seed for a form, the
+  FIRST EDIT for the topo editor. Computed at submit time it protects nothing.
+- Code comments are one or two lines: the non-obvious fact, then stop. Existing long comments are
+  not a model. Reasoning goes here, in `CONTEXT.md`, or a `schema.ts` column comment.
+- i18n: keys in BOTH `messages/en.json` and `messages/de.json` (`domain_camelCase`, sorted), one
+  prefix per domain (`areas_*`, never `area_*` beside it). No em-dashes anywhere.
+- Icons: `<Icon name="...">`; only `icons.ts` and `Icon.svelte` import lucide.
+- An entity detail URL used as a VALUE (`redirectTo`, `cancelTo`, `back()`/`exit()`/`push()`, an
+  href prop) comes from `entityHref(kind, id)` (`$lib/entities/href`). An `<a href>` that
+  `svelte/no-navigation-without-resolve` can trace keeps its literal `resolve()`, as do routes
+  without params (`/settings`, `/explore`, `/legal/*`). Both spellings coexist on purpose.
+- Scroll containers come from `$lib/state/scroll`: `createScrollSurface()` on the layout's `<main>`
+  (re-exported as `snapshot`), or `resetOnNavigate` for surfaces without a history entry (explore
+  sheet and panel). The PATHNAME decides reset vs keep. Forwarding to a canonical URL uses
+  `redirectTo`. Sheets reset, never restore.
+- Every OpenLayers map comes from `createBaseMap` (`$lib/map/base.svelte.ts`); `.osm-layer` styles
+  live only in `app.css`. `StaticMap.svelte` is the exception. Never pass a region's
+  `attributions` to an OL layer (admin-written HTML, so XSS); `$lib/map/attribution` parses them.
+- Conditional UI an `{#if}` toggles on a press gets a `svelte/transition`: `slide` disclosure or
+  row, `fade` overlay or swap, `scale` badge, `fly` from an edge. 150ms unless a neighbour differs,
+  duration always from `motion(base)` (`$lib/state/motion.svelte`), `prefersStill()` to skip.
+  Never build your own media query. Tailwind `transition-*` only for already-mounted elements.
+  Example: `EventCard.svelte`.
+- A section backed by a non-primary query decides its space before it loads: known from on-screen
+  data, reserve exactly that or render nothing; unknown with an empty state, always render it;
+  unknown without one, place it low. Never insert above rendered content or collapse reserved
+  space. Skeletons wait ~250 ms
+  (`openspec/changes/archive/2026-10-08-zero-latency-and-loading-states/design.md`).
+- Collection summaries (counts, charts, "n of N", sibling nav) read `summaryOf(phase, value)`
+  (`$lib/zero/resource.svelte`), never `phase.kind === 'answered'`, which is for absence claims,
+  form seeds and action gates. No component draws its own syncing pill: use
+  `createPillSurface` / `pillSurface().offer` (`$lib/state/pill.svelte`); incidental lookups use `quietly`.
+- Page chrome renders in every state: `PageHeader` and the width container sit outside
+  `QueryState`. Form screens get this from `Form`'s `waitFor`; one seeding at mount outside `Form`
+  (`BlockForm`) is wrapped in `FormGate` by its caller.
+- A nested `Modal` must not unmount its opener in the same flush (zag throws, the app stays
+  `aria-hidden`): close, `await tick()`, then unmount (`topos/edit`'s `addRouteLine`).
+  `Modal.svelte` closes itself in `beforeNavigate` on a PATHNAME change only. Desktop-only
+  (`panel` + `backdrop={true}`); neither 375px nor jsdom can show it.
+- Reuse before building: grep first; refactor a near fit into `$lib` instead of copying. Prefer an
+  entity DTO prop over many props. Entity modules live in `src/lib/entities/<name>/`, `area/` as template.
+- Display names come from the mapper only, typed as branded `DisplayName`
+  (`entities/displayName.ts`): `toDisplayName`, or an own helper only if it answers differently
+  (`blockName`). Never inline `name ?? ''`; pass `locale` on the server; fixtures use the helpers.
+- Block ordering lives in `block/order.ts` and `order.server.ts`. Read `order.ts` before changing either.
+- Check a value at its point of use, not a re-derivation of it: green means nothing until the probe
+  is shown to reach the code that runs. In prose too: name the thing, don't count it.
+- Schema changes: edit `schema.ts`, `generate:drizzle`, append backfill SQL, `generate:zero`, `migrate`.
+- Joining `auth.users` and `public.users` needs `alias(authUsers, 'auth_user')`
+  (`drizzle-orm/pg-core`), or it throws `42P09` at runtime with nothing catching it earlier
+  (`adminRecipients.server.ts`).
+- Deploys are not atomic for open tabs. These break them silently:
+  - Moving a `.remote.ts` file or renaming a remote export (the endpoint id hashes the path).
+  - Changing `manifest.id` in `vite.config.ts` (pinned to `/`; changing it orphans installed apps).
+  - Renaming a mutator or narrowing its args: args only widen within a release, removed
+    remotes/mutators stay one more release. Deploy zero-cache, then the app.
+  - Deleting or reshaping a route. Prefer id-based URLs.
+- Verify by driving the running app at BOTH 375x667 and 1280x800, not just typechecking.
+- A new test is evidence only once seen red: make the one production edit that should break it, run,
+  revert. Check the fixture for vacuity, and grep that the mutation applied. `npm run test:mutation
+-- --mutate <file>` (`test:mutation:server` for DB tests) does it mechanically; read
+  `stryker/README.md` first. The survivor list is the output.
+- Answering clarification or grilling questions is not a go-ahead. Write the plan and stop until an
+  explicit "start" / "do #1-#3".
+- Before handing back, over your paths only: `npx prettier --write`, `npx eslint`,
+  `npx vitest run --project server` (`*.server.test.ts`, `*.remote.test.ts`) or `--project browser`,
+  then typecheck.
+- Also run `npm run lint:unused`, `lint:duplication`, `lint:health` (fallow, in CI). `lint:unused`
+  has no baseline. The other two baselines only shrink: `npm run lint:baseline` removes stale
+  entries, never accepts new ones. A deliberate finding gets
+  `// fallow-ignore-next-line <kind> -- <reason>`, as do Svelte template reads fallow misses.
+- Browser floor: check features against `build.target` pinned in `vite.config.ts`. It lowers syntax
+  but never polyfills, so a missing JS built-in (`Object.groupBy`, `Set.prototype.union`) needs a
+  feature check and fallback. Raise the floor only as a product decision, never to `safari17.5`
+  (breaks Skeleton's `light-dark()`). The pin skips pre-bundled deps and `src/sw.ts`.
+- Server runtime: `engines.node` mirrors Vercel's newest runtime. Server files may use current-Node
+  built-ins; anything under `src/lib/` a client can reach inherits the browser floor.
+- `*-PLAN.md` files are agent scratch: never commit or reference one (nor a "Decision N" in it).
+  Durable decisions go into `schema.ts`, `CONTEXT.md` or here.
 
-Project workflow skills live in `.claude/skills/`; prefer them over generic equivalents. Their names are not listed here: the harness already injects the list, and a hand-copied one goes stale.
+Project workflow skills live in `.claude/skills/`; prefer them over generic ones.
 
 ## Worktrees and parallel agents
 
-Several agents often work this repo at once, each in its own worktree, against one shared local dev stack.
+Several agents share this repo and one local dev stack.
 
-- **Commit only your own files.** Never `git add -A`, `git add .` or `git commit -a`: another agent's edits and the user's untracked files live in the same tree. Stage the paths you touched, by name.
-- **Never migrate the shared dev DB from a worktree.** Only the main checkout writes it. A worktree that needs a database spins a throwaway one and points `DATABASE_URL` at it: `docker run --rm -d -p <free-port>:5432 -e POSTGRES_PASSWORD=postgres postgres:16`, then `psql -f ci/shim.sql`, `npm run migrate`, `psql -f ci/seed.sql` (the same recipe CI uses, see `.github/workflows/ci.yml`).
-- **Coordinate migration numbers.** Two worktrees generating `drizzle/NNNN_*.sql` in parallel collide, and the collision only surfaces at merge. Check what the other branch has generated before running `generate:drizzle`, and renumber on merge rather than shipping two migrations with the same prefix.
-- **Say which worktree you are in and your own `ListAgents` name** when reporting, unprompted, so a
-  relay can be wired without asking. Don't reach into another worktree to "fix" what an agent there
-  is mid-way through.
-- **Sessions often share the one main checkout**, not a worktree each, and a peer applies fixes while
-  your review runs. Review the COMMITTED state: pin `git rev-parse HEAD` plus `git status --short`
-  at the start and read files with `git show <rev>:<path>`. A peer describing code you cannot find is
-  usually a version gap, not a misreading.
-- **Relay findings in full, never a summary.** `SendMessage` the named agent every finding with its
-  `file:line` and failure case, numbered so the user can answer per item, and pin the HEAD and
-  `git status --short` you reviewed beside them.
-- **A review loop runs through `/review-loop`** from the implementing session; offer it in one line
-  after non-trivial work. The rules below still apply when sessions review each other by hand.
-- **A review fanned out to two sessions is one round.** Wait until every reviewer has reported before
-  applying anything, and touch no tracked file until they all have: an edit under an in-flight
-  reviewer forces a reconcile and costs the round. Then merge, dedupe, fix, and request again.
-- **Squash a review round's fixes into the commit they fix**, don't stack fix-of-fix commits.
-- **The browser is exclusive.** One Chrome profile serves every session, so close the pages you
-  opened before handing back and say "browser is free" in the message you relay. A "wedged" browser
-  is usually a leaked session, a peer's or your own. If you could not drive, report the finding as
-  read rather than driven.
-- **Subagent fan-out spends a usage window shared with every other agent on this machine.** Keep it
-  narrow, and delegate through `/efficient-frontier` rather than doing broad analysis inline.
+- **Commit only your own files**, staged by name. Never `git add -A`, `git add .`, `git commit -a`.
+- **Never migrate the shared dev DB from a worktree.** Use a throwaway Postgres on a free port with
+  `ci/shim.sql`, `npm run migrate`, `ci/seed.sql` (the CI recipe, `.github/workflows/ci.yml`).
+- **Coordinate migration numbers** across branches before `generate:drizzle`; renumber on merge.
+- **Report your worktree and `ListAgents` name** unprompted. Don't edit another agent's worktree.
+- **Review the COMMITTED state** in a shared checkout: pin `git rev-parse HEAD` and
+  `git status --short`, read with `git show <rev>:<path>`.
+- **Relay findings in full**: every finding with `file:line` and failure case, numbered, with the
+  pinned HEAD and status.
+- **Review loops run through `/review-loop`**; offer it after non-trivial work. A review fanned to
+  several sessions is one round: touch no tracked file until all have reported. Squash fixes into
+  the commit they fix.
+- **The browser is exclusive**: close your pages and say "browser is free". If you could not drive,
+  report a finding as read, not driven.
+- **Subagent fan-out shares the usage window**: keep it narrow, delegate via `/efficient-frontier`.
 
 ---
 
-Use the Svelte MCP server's docs for non-trivial Svelte 5 / SvelteKit work, and run `svelte-autofixer`
-on Svelte code you write before handing it back.
+Use the Svelte MCP server for non-trivial Svelte 5 / SvelteKit work, and run `svelte-autofixer` on
+Svelte code you write.
