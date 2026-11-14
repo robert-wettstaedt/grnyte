@@ -155,7 +155,6 @@ const SECRET_KEY_READERS = [
   'src/lib/db/supabaseAdmin.server.ts',
   'src/lib/forms/proofOfWork.server.ts',
   'e2e/**',
-  '**/*.test.ts',
 ]
 
 export default defineConfig(
@@ -255,20 +254,13 @@ export default defineConfig(
     },
   },
   {
-    // The modules allowed the secret key, and tests, which mock or read it. Each rule is re-listed
-    // without the key, because a later flat-config block replaces an earlier one's options.
+    // The modules allowed the secret key. Each rule is re-listed without the key, because a later
+    // flat-config block replaces an earlier one's options.
     files: SECRET_KEY_READERS,
     rules: {
       'no-restricted-imports': ['error', restrictedImports],
       'no-restricted-properties': 'off',
       'no-restricted-syntax': ['error', ...noDrizzleMassAssignment],
-    },
-  },
-  {
-    // Tests inside the remote-function folders keep that block's error-message rule.
-    files: ['**/*.remote.test.ts', 'src/lib/entities/**/*.test.ts', 'src/lib/remote/**/*.test.ts'],
-    rules: {
-      'no-restricted-syntax': ['error', ...noDrizzleMassAssignment, ...noRawErrorMessage],
     },
   },
   {

@@ -1,8 +1,9 @@
 /** Challenge keys derive from the secret key: a challenge from before a key switch fails once. */
+import { withSecretKey } from '$lib/db/secretKey.fixture'
 import { reachable, sql } from '$lib/db/testDb'
 import { solveChallenge } from 'altcha-lib'
 import { deriveKey } from 'altcha-lib/algorithms/pbkdf2'
-import { afterAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 
 const nonces: string[] = []
 
@@ -14,11 +15,7 @@ async function solvedUnder(key: string): Promise<string> {
   return Buffer.from(JSON.stringify({ challenge, solution })).toString('base64')
 }
 
-async function withKey(key: string) {
-  vi.resetModules()
-  vi.doMock('$env/static/private', async (original) => ({ ...(await original()), SUPABASE_SECRET_KEY: key }))
-  return import('./proofOfWork.server')
-}
+const withKey = (key: string) => withSecretKey(key, () => import('./proofOfWork.server'))
 
 afterAll(async () => {
   if (reachable) await sql`delete from public.spent_challenges where nonce = any(${nonces})`

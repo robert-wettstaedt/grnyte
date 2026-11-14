@@ -215,7 +215,6 @@ export const supabase: Handle = async ({ event, resolve }) => {
     }
 
     if (!verified.ok) {
-      // The signing keys could not be fetched: an outage `authGuard` must not report as a sign-out.
       return { ...anonymous(), backendUnavailable: backendUnavailable || verified.reason === 'unavailable' }
     }
 

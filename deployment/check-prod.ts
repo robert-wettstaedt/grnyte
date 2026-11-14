@@ -32,7 +32,6 @@ const jwksUrl = required('SUPABASE_JWT_JWKS_URL')
 
 console.log(`checking ${supabaseUrl}\n`)
 
-// A legacy anon key (a JWT) is expected here until the new keys are created, so it warns instead of failing.
 if (publishableKey.startsWith('sb_publishable_')) {
   check(true, 'PUBLIC_SUPABASE_PUBLISHABLE_KEY is a publishable key')
 } else if (/^eyJ[\w-]*\.[\w-]+\.[\w-]+$/.test(publishableKey)) {
@@ -47,9 +46,13 @@ if (supabaseUrl.startsWith('https://')) {
 const jwks = await fetch(jwksUrl)
   .then((r) => r.json())
   .catch(() => ({}))
-const keys: { alg?: string; kty?: string }[] = Array.isArray(jwks.keys) ? jwks.keys : []
+const keys: { alg?: string; crv?: string; kty?: string }[] = Array.isArray(jwks.keys) ? jwks.keys : []
+// The verifier accepts only these two; a key with no `alg` counts by its type and curve.
+const VERIFIER_ALGS = new Set(['ES256', 'RS256'])
+const impliedAlg = (k: (typeof keys)[number]) =>
+  k.kty === 'RSA' ? 'RS256' : k.kty === 'EC' && k.crv === 'P-256' ? 'ES256' : undefined
 check(
-  keys.some((k) => k.alg === 'ES256' || k.alg === 'RS256' || k.kty === 'EC' || k.kty === 'RSA'),
+  keys.some((k) => VERIFIER_ALGS.has(k.alg ?? impliedAlg(k) ?? '')),
   'the JWKS holds an asymmetric signing key (ES256 or RS256)',
 )
 
