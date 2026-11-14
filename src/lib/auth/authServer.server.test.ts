@@ -1,9 +1,9 @@
 /** The auth-only client: the secret key only as `apikey`, the caller's address as GoTrue sees it, one method. */
+import { LEGACY, SECRET, spyBaseFetch, withSecretKey } from '$lib/db/secretKey.fixture'
 import type { RequestEvent } from '@sveltejs/kit'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const SECRET = 'sb_secret_test'
-const LEGACY = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.legacy'
+const load = (key: string) => withSecretKey(key, () => import('./authServer.server'))
 
 /** A request whose own forwarding headers are forged; only `getClientAddress` may be trusted. */
 function eventFrom(address: string) {
@@ -13,26 +13,6 @@ function eventFrom(address: string) {
       headers: { 'sb-forwarded-for': '203.0.113.9', 'x-forwarded-for': '203.0.113.1' },
     }),
   } as unknown as RequestEvent
-}
-
-async function load(key: string) {
-  vi.resetModules()
-  vi.doMock('$env/static/private', async (original) => ({ ...(await original()), SUPABASE_SECRET_KEY: key }))
-  vi.doMock('$env/static/public', async (original) => ({
-    ...(await original()),
-    PUBLIC_SUPABASE_URL: 'http://supabase.test',
-  }))
-  return import('./authServer.server')
-}
-
-/** Stubs the base fetch and returns the headers of every request that reached it. */
-function spyBaseFetch(): Headers[] {
-  const seen: Headers[] = []
-  vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
-    seen.push(new Headers(init?.headers))
-    return Response.json({})
-  })
-  return seen
 }
 
 const resend = { email: 'climber@example.com', type: 'signup' } as const
