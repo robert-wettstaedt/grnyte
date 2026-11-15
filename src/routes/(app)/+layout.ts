@@ -1,6 +1,6 @@
 import { dev } from '$app/environment'
 import { env } from '$env/dynamic/public'
-import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
+import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { dropZeroStoreOnce, initPowerSync, powerSyncOnly } from '$lib/powersync/db.svelte'
 import { recordPageLoad } from '$lib/powersync/loads'
 import { initZero } from '$lib/zero/z.svelte'

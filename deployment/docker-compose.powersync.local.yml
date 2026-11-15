@@ -18,7 +18,7 @@ services:
     ports:
       - '127.0.0.1:58100:8080'
     environment:
-      POWERSYNC_CONFIG_PATH: /config/service.yaml
+      POWERSYNC_CONFIG_PATH: /config/service.local.yaml
       PS_DATA_SOURCE_URI: postgresql://postgres:your-super-secret-and-long-postgres-password@supabase-db:5432/postgres
       PS_DATA_SOURCE_SSLMODE: disable
       PS_MONGO_URI: mongodb://powersync-mongo:27017/powersync?replicaSet=rs0

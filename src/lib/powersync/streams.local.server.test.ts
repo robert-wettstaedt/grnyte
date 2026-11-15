@@ -3,7 +3,7 @@
  * when it names a region it does not belong to, and when it catches up after the server compacted its history.
  *
  * Needs the local service (`deployment/docker-compose.powersync.local.yml`) on the shared dev database, so it runs
- * only with POWERSYNC_LOCAL=1, plus DATABASE_URL, E2E_PASSWORD and PUBLIC_SUPABASE_ANON_KEY.
+ * only with POWERSYNC_LOCAL=1, plus DATABASE_URL, E2E_PASSWORD and PUBLIC_SUPABASE_PUBLISHABLE_KEY.
  */
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { execFileSync } from 'node:child_process'
@@ -41,7 +41,7 @@ beforeAll(async () => {
   ;({ member } = await seedUsers({ member: 'user@grnyte.rocks' }))
   for (const email of ['user@grnyte.rocks', 'anon@grnyte.rocks']) {
     tokens[email] = await signIn({
-      anonKey: process.env.PUBLIC_SUPABASE_ANON_KEY ?? '',
+      anonKey: process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '',
       authUrl: process.env.AUTH_URL ?? 'http://localhost:8000',
       email,
       password: process.env.E2E_PASSWORD ?? '',

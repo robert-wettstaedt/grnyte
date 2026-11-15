@@ -21,7 +21,7 @@ import { deleteAccountRows } from '../src/lib/db/testAccounts'
 import { reachable, seedUsers, sql, type SeedUser } from '../src/lib/db/testDb'
 // Same reason, and it resolves for the same one: `dto.ts` imports nothing at runtime, only types.
 import { acceptPath } from '../src/lib/entities/region/paths'
-import { APP, assertLocalStack, reachableUrl, settle, signIn, visit } from './support'
+import { adminClient, APP, assertLocalStack, reachableUrl, settle, signIn, visit } from './support'
 
 const MAILBOX = 'http://localhost:9010'
 
