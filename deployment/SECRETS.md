@@ -168,8 +168,9 @@ bws run -- npm run dev
 # Push an environment to its Vercel project (ZERO_* are skipped)
 BWS_ACCESS_TOKEN=<prod token> node deployment/secrets.mjs vercel grnyte
 
-# The same values for previews of one branch only (the PowerSync remeasure build)
-BWS_ACCESS_TOKEN=<prod token> node deployment/secrets.mjs vercel grnyte preview feature/powersync
+# Prod values for one branch's previews, only on purpose (a dogfood build): every push then deploys
+# with them. Remove them after (`vercel env rm <KEY> preview <branch>`), and re-push a rotated secret there
+BWS_ACCESS_TOKEN=<prod token> node deployment/secrets.mjs vercel grnyte preview <branch>
 ```
 
 The VPS half is automatic: `deploy-zero.yml` reads its allowlist through `sm-action` on the runner,
