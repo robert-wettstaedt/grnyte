@@ -447,7 +447,8 @@ Calls to GoTrue are asserted at the `fetch` edge (the request GoTrue would recei
 > decision: signs up with email and password only, waits for the code step (the account exists then), mints the code with `generateLink({ type: 'signup' })`'s `email_otp` (that call also hands teardown the account id and asserts SITE_URL), enters it, completes the profile step, lands on the region-create screen, then checks the `public.users` row the profile step made. Typechecks and lints.
 > deferred: running it, for the same reason as 14.1: `npm run test:e2e prod-signup` against the second stack with `npm run dev` on it. No other spec breaks on the new screens: `signIn` (bare `/auth/signin`, a non-standalone browser shows the form) keeps its labels.
 
-- [ ] 14.3 On the iPhone, with a mailed code arriving in Apple Mail: check that Safari and the installed PWA offer the code above the keyboard (`autocomplete="one-time-code"`) and that accepting it fills and submits the field; record the result in this change. If autofill fails without Apple's `One-Time-Code:` mail header, stop and raise the decision to send GoTrue's mails through a send-email hook that can set that header.
+- [x] 14.3 On the iPhone, with a mailed code arriving in Apple Mail: check that Safari and the installed PWA offer the code above the keyboard (`autocomplete="one-time-code"`) and that accepting it fills and submits the field; record the result in this change. If autofill fails without Apple's `One-Time-Code:` mail header, stop and raise the decision to send GoTrue's mails through a send-email hook that can set that header.
+> verified 2026-11-16: user decision 2026-11-16: the iPhone check is skipped. On macOS, Chrome and Firefox offered the mailed code from Apple Mail throughout the day's testing; the iPhone keyboard and the installed PWA were not checked.
 
 > user: needs a real iPhone with Apple Mail receiving a code from a reachable deploy; not doable from the sandbox.
 
