@@ -1,10 +1,11 @@
 import { stubIndexedDb } from '$lib/state/indexedDbStub.test-helper'
-import type { PowerSyncBackendConnector } from '@powersync/web'
+import { SyncStreamConnectionMethod, type PowerSyncBackendConnector, type SyncOptions } from '@powersync/web'
 import type { Session } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // The engine and IndexedDB are the external dependencies faked; the shell is read through its exports only.
 const engine = vi.hoisted(() => ({
+  connectOptions: [] as (SyncOptions | undefined)[],
   connectors: [] as PowerSyncBackendConnector[],
   files: [] as string[],
   /** Each database's status listeners, by file, until disposed. */
@@ -29,10 +30,12 @@ vi.mock('@powersync/web', async (original) => ({
       engine.files.push(this.file)
     }
     close = () => Promise.resolve()
-    connect = (connector: PowerSyncBackendConnector) => {
+    connect = (connector: PowerSyncBackendConnector, options?: SyncOptions) => {
       engine.connectors.push(connector)
+      engine.connectOptions.push(options)
       return Promise.resolve()
     }
+    disconnect = () => Promise.resolve()
     disconnectAndClear = () => Promise.resolve()
     getOptional = async () => (engine.userRow ? { 1: 1 } : null)
     registerListener = (listener: { statusChanged: (status: object) => void }) => {
@@ -70,6 +73,7 @@ describe('the PowerSync shell', () => {
     vi.resetModules()
     vi.useFakeTimers()
     Object.assign(engine, {
+      connectOptions: [],
       connectors: [],
       files: [],
       listeners: new Map(),
@@ -105,6 +109,28 @@ describe('the PowerSync shell', () => {
 
     expect(await connector.fetchCredentials()).toEqual({ endpoint: 'https://sync.example', token: 'first' })
     expect(await connector.fetchCredentials()).toEqual({ endpoint: 'https://sync.example', token: 'refreshed' })
+  })
+
+  it('streams over WebSocket, on the first connect and on the restart after a stale return', async () => {
+    const { initPowerSync } = await import('./db.svelte')
+    const visibility = vi.spyOn(document, 'visibilityState', 'get')
+
+    initPowerSync(session('a'), async () => 'token', settings)
+    await settle()
+    const first = engine.connectOptions.length
+    visibility.mockReturnValue('hidden')
+    document.dispatchEvent(new Event('visibilitychange'))
+    vi.advanceTimersByTime(5_000)
+    visibility.mockReturnValue('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+    await settle()
+
+    // Earlier tests' module copies keep their visibility listeners, so a return can restart more than one.
+    expect(first).toBe(1)
+    expect(engine.connectOptions.length).toBeGreaterThan(first)
+    expect(new Set(engine.connectOptions.map((o) => o?.connectionMethod))).toEqual(
+      new Set([SyncStreamConnectionMethod.WEB_SOCKET]),
+    )
   })
 
   it('confirms a stream only once it synced after the file opened and the collections took its rows in', async () => {

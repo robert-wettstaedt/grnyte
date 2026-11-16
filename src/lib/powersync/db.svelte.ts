@@ -2,7 +2,13 @@ import { browser } from '$app/environment'
 import { reportSyncStatus } from '$lib/state/online.svelte'
 import { storage } from '$lib/state/storage'
 import { markStoreLoaded, markStoreWarm, markSynced, trackSyncFor, type SyncStamp } from '$lib/state/sync.svelte'
-import { PowerSyncDatabase, type PowerSyncBackendConnector, type SyncStatus, type WASQLiteVFS } from '@powersync/web'
+import {
+  PowerSyncDatabase,
+  SyncStreamConnectionMethod,
+  type PowerSyncBackendConnector,
+  type SyncStatus,
+  type WASQLiteVFS,
+} from '@powersync/web'
 import { dropAllDatabases } from '@rocicorp/zero'
 import type { Session } from '@supabase/supabase-js'
 import { syncMark } from './marks'
@@ -49,6 +55,8 @@ let resumeTimers: ReturnType<typeof setTimeout>[] = []
 /** Wall-clock: a monotonic clock may stop while the device sleeps, and a locked phone must count as away. */
 let hiddenAt: number | undefined
 let watchingVisibility = false
+// WebKit holds the end of a `fetch` sync stream until more bytes come: the next keepalive, 20 s later.
+const CONNECT = { connectionMethod: SyncStreamConnectionMethod.WEB_SOCKET }
 /** Restarts the open account's sync: a fresh stream always delivers a checkpoint, a frozen one may never. */
 let restartSync = () => {}
 
@@ -148,12 +156,12 @@ export function initPowerSync(
     uploadData: async () => {},
   }
   void cleared
-    .then(() => (current() ? opened.connect(connector) : undefined))
+    .then(() => (current() ? opened.connect(connector, CONNECT) : undefined))
     .catch((error: unknown) => console.error('[powersync] connect failed', error))
   restartSync = () =>
     void opened
       .disconnect()
-      .then(() => (current() ? opened.connect(connector) : undefined))
+      .then(() => (current() ? opened.connect(connector, CONNECT) : undefined))
       .catch((error: unknown) => console.error('[powersync] reconnect failed', error))
   watchVisibility()
 }
