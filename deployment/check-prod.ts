@@ -19,7 +19,14 @@
  * migration ever ships late.
  */
 import 'dotenv/config'
-import { assertAuthConfig, assertGotrueVersion, GOTRUE_CONTRACT_VERSION, unconfiguredProviders } from './authConfig'
+import {
+  assertAppleAssociation,
+  assertAssetLinks,
+  assertAuthConfig,
+  assertGotrueVersion,
+  GOTRUE_CONTRACT_VERSION,
+  unconfiguredProviders,
+} from './authConfig'
 
 const failures: string[] = []
 
@@ -103,6 +110,22 @@ const health = await fetch(`${supabaseUrl}/auth/v1/health`, { headers: { apikey:
   .catch(() => ({}))
 const versionFailure = assertGotrueVersion(health)
 check(versionFailure == null, versionFailure ?? `GoTrue is the tested ${GOTRUE_CONTRACT_VERSION}`)
+
+// Each link file answers 404 until its switch is set (IOS_APP_ASSOCIATION_ENABLED, ANDROID_CERT_SHA256),
+// i.e. until a native app ships.
+async function checkLinkFile(
+  path: string,
+  name: string,
+  assert: typeof assertAppleAssociation | typeof assertAssetLinks,
+) {
+  // A network failure reads as status 0.
+  const res = await fetch(`${required('PUBLIC_ORIGIN')}${path}`).catch(() => Response.error())
+  if (res.status === 404) return console.log(`warn  the ${name} is not configured yet (404)`)
+  const found = res.status === 200 ? assert(await res.json().catch(() => ({}))) : [`the ${name} answers 200 or 404`]
+  check(found.length === 0, found.join('; ') || `the ${name} names only the native app`)
+}
+await checkLinkFile('/.well-known/apple-app-site-association', 'Apple association file', assertAppleAssociation)
+await checkLinkFile('/.well-known/assetlinks.json', 'Android asset links file', assertAssetLinks)
 
 // Resend, via the cheapest authenticated GET there is. A bad key is indistinguishable from "no mail
 // is sent" from the app's side, because sendEmail deliberately never throws: it logs and returns

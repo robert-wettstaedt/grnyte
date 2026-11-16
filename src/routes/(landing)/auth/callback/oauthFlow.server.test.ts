@@ -159,6 +159,15 @@ describe('starting a sign-in', () => {
     expect(url.searchParams.get('redirect_uri')).toBe(`${ORIGIN}/auth/callback/google`)
   })
 
+  it('sends a signed-in caller on through /auth/continue, starting nothing', async () => {
+    const b = browser(ORIGIN, { claims: { sub: 'sub-1' } } as never)
+
+    expect(
+      await locationOf(() => start(b.event('POST', '/auth/oauth/google', { intent: 'signin', next: '/routes/1' }))),
+    ).toBe('/auth/continue?next=%2Froutes%2F1')
+    expect(b.jar.written).toEqual([])
+  })
+
   it.each([
     ['whose env is incomplete', ORIGIN, ''],
     ['on another origin', 'https://preview.vercel.example', 'google-secret'],
@@ -180,7 +189,7 @@ describe.skipIf(!reachable)('the Google round trip', () => {
     const b = browser()
     const { landed } = await signIn(b, 'google', { form: { next: '/invite/accept?token=x' } })
 
-    expect(landed).toBe('/invite/accept?token=x')
+    expect(landed).toBe('/auth/continue?next=%2Finvite%2Faccept%3Ftoken%3Dx')
     const [idToken] = gotrue.filter(({ url }) => url.pathname === '/auth/v1/token')
     expect(idToken.url.searchParams.get('grant_type')).toBe('id_token')
     expect(idToken.body).toMatchObject({ nonce: RAW_NONCE, provider: 'google' })

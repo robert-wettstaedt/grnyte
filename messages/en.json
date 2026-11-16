@@ -169,6 +169,8 @@
   "auth_confirmPasswordPlaceholder": "Re-enter your password",
   "auth_confirmWithApple": "Confirm with Apple",
   "auth_confirmWithAppleRevokes": "This also disconnects grnyte from your Apple ID.",
+  "auth_continueLink": "Continue",
+  "auth_continueTitle": "Taking you there…",
   "auth_continueWithApple": "Continue with Apple",
   "auth_continueWithEmail": "Continue with email",
   "auth_continueWithGoogle": "Continue with Google",

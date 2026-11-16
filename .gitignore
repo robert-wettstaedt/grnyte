@@ -211,3 +211,6 @@ __pycache__/
 .stryker-tmp
 /reports/
 .vite-stryker
+
+# The local Expo test app for the native auth handoff (add-native-auth-handoff)
+/expo-auth-test/

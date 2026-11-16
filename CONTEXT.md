@@ -277,6 +277,10 @@ Copy says "Sign in" ("Anmelden") and "Create account" ("Konto erstellen"), never
 One sign-in on one browser or installed app: an auth session (`auth.sessions`) in code. Copy says
 "device" ("Sign out other devices", "This device"), never "session", which means a climbing visit.
 
+**installed app**, **native app**
+The installed app is the PWA, grnyte's web app added to a home screen. The native app is the Expo
+app (`rocks.grnyte`), which signs in through `/api/app/v1/` with a Bearer token, never a cookie.
+
 **sign-in method**
 A way an account can sign in: `email` (a password), Apple or Google (`signInMethods`). Mails that
 name how to get back in list these. The settings screen is "Sign-in methods".
@@ -307,6 +311,14 @@ collide with "confirmation" of an email address.
 
 **confirmer**
 A way to produce a **grant**: the mailed code today, "Confirm with Apple" in a later change.
+
+**handoff**
+A browser sign-in the **native app** starts (`oauth/start`) and finishes through the app carrier on
+`/auth/callback/<provider>`, which hands the app a one-time code it exchanges for a session.
+
+**return channel**
+Where a **handoff** hands its code back: `/app-return` on iOS (an https URL iOS gives only to the
+app), `rocks.grnyte:/auth` on Android. The app names it at the start.
 
 **contested**
 An unconfirmed account that a second sign-up or a password reset reached before its owner

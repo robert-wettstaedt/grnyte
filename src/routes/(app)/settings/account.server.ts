@@ -68,14 +68,11 @@ export async function confirmEmailChangeCode(
   if (session == null || user?.email?.toLowerCase() === claims.email?.toLowerCase()) return { step: 'next' as const }
 
   await voidReauth(claims.sub)
-  // The app keeps its own session (the code's ends as one of the others) and refreshes at GoTrue.
-  if (!refresh) {
-    await callerAuthServer().signOut({ scope: 'others' })
-    return { refreshRequired: true, step: 'done' as const }
-  }
-  // As the code's new session, which this browser keeps; unverifiable, as the old one (ending both).
+  // As the code's new session, which the caller keeps; unverifiable, as the old one (ending both).
   const kept = await verifyAccessToken(session.access_token)
   await (kept.ok ? supabaseAuthServerAs(event, kept.token) : callerAuthServer()).signOut({ scope: 'others' })
+  // The app has no cookie jar: it takes the session from the answer.
+  if (!refresh) return { session, step: 'done' as const }
   await supabase.auth.setSession(session)
   return { step: 'done' as const }
 }

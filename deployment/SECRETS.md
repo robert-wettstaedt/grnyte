@@ -211,10 +211,11 @@ minted per request from the key, so nothing rotates on a schedule; a revoked `.p
 and both `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY`. The same Services ID and the Google web client ID
 also go first in GoTrue's Apple and Google client ID lists on the hosted project.
 
-The native app: `IOS_APP_ASSOCIATION_ENABLED` (`true` serves the Apple association file) and
-`APP_MIN_VERSION` (the oldest app build `/api/app/v1` still serves, as `MAJOR.MINOR.PATCH`) stay
-unset in both environments until a native app ships. They go to Vercel like the provider keys,
-read through `$env/dynamic/private`.
+The native app: `IOS_APP_ASSOCIATION_ENABLED` (`true` serves the Apple association file),
+`ANDROID_CERT_SHA256` (the app's signing certificate fingerprints, a comma list; set serves
+`/.well-known/assetlinks.json`) and `APP_MIN_VERSION` (the oldest app build `/api/app/v1` still
+serves, as `MAJOR.MINOR.PATCH`) stay unset in both environments until a native app ships. They go
+to Vercel like the provider keys, read through `$env/dynamic/private`.
 
 An access token: create the new one first, update the GitHub secret, then revoke the old one in the
 machine account's **Access tokens** tab.

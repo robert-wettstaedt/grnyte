@@ -90,7 +90,10 @@ beforeEach(() => {
 
 describe('signIn', () => {
   it('lets an ordinary account through to where it was headed, with its session in the cookies', async () => {
-    expect(await signInWith()).toEqual({ refusals: undefined, result: { redirectTo: '/settings' } })
+    expect(await signInWith()).toEqual({
+      refusals: undefined,
+      result: { redirectTo: '/auth/continue?next=%2Fsettings' },
+    })
     expect(calls.sessions).toEqual([{ access_token: 'token-1', refresh_token: 'refresh-1' }])
     expect(Object.fromEntries(jar.values)).toEqual({ 'grnyte-last-method': 'email' })
   })

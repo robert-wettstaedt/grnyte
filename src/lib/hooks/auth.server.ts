@@ -1,7 +1,7 @@
 import { building } from '$app/environment'
 import type { Pathname } from '$app/types'
 import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
-import { AUTH_PATH, signedInRedirectTarget } from '$lib/auth'
+import { AUTH_PATH, CONTINUE_PATH, signedInRedirectTarget } from '$lib/auth'
 import { bearerSession } from '$lib/auth/app/bearer.server'
 import { APP_RETURN_PATH } from '$lib/auth/app/constants'
 import { verifyAccessToken } from '$lib/auth/verify.server'
@@ -274,6 +274,8 @@ const HOME_PATH: Pathname = '/'
 const AUTH_PASSTHROUGH_PATHS: string[] = [
   '/auth/callback',
   '/auth/confirm',
+  // Where every sign-in ends (signedInRedirectTarget); bouncing it would loop through that helper.
+  CONTINUE_PATH,
   '/auth/error',
   '/auth/oauth',
   '/auth/reset-password',
@@ -339,6 +341,7 @@ const PUBLIC_PREFIXES = [
   '/offline',
   '/robots.txt',
   '/sitemap.xml',
+  '/.well-known/',
 ]
 
 /**

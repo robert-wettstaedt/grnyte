@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  assertAppleAssociation,
+  assertAssetLinks,
   assertAuthConfig,
   assertGotrueVersion,
   GOTRUE_CONTRACT_VERSION,
@@ -17,7 +19,7 @@ const settings = {
 const config = {
   disable_signup: false,
   external_anonymous_users_enabled: false,
-  external_apple_client_id: 'app.grnyte.web,app.grnyte.ios',
+  external_apple_client_id: 'app.grnyte.web,rocks.grnyte',
   external_apple_enabled: true,
   external_google_client_id: 'web.apps.googleusercontent.com',
   external_google_enabled: true,
@@ -65,7 +67,7 @@ describe('assertAuthConfig', () => {
 
   it('fails when an app client ID comes before the web one', () => {
     expect(
-      assertAuthConfig(settings, { ...config, external_apple_client_id: 'app.grnyte.ios,app.grnyte.web' }, clients),
+      assertAuthConfig(settings, { ...config, external_apple_client_id: 'rocks.grnyte,app.grnyte.web' }, clients),
     ).toEqual(['the Apple client IDs start with APPLE_SERVICES_ID'])
   })
 
@@ -81,6 +83,94 @@ describe('assertAuthConfig', () => {
     const noGoogle = { ...clients, googleClientId: '' }
     expect(assertAuthConfig(settings, config, noGoogle)).toEqual(['the Google client IDs start with GOOGLE_CLIENT_ID'])
     expect(unconfiguredProviders(settings, config, noGoogle)).toEqual([])
+  })
+
+  it("fails without the native app's bundle ID in the Apple client IDs", () => {
+    expect(assertAuthConfig(settings, { ...config, external_apple_client_id: 'app.grnyte.web' }, clients)).toEqual([
+      'the Apple client IDs list the native app (rocks.grnyte)',
+    ])
+  })
+
+  it('finds the bundle ID in the Apple additional client IDs', () => {
+    const split = {
+      ...config,
+      external_apple_additional_client_ids: 'rocks.grnyte',
+      external_apple_client_id: 'app.grnyte.web',
+    }
+    expect(assertAuthConfig(settings, split, clients)).toEqual([])
+  })
+})
+
+describe('assertAppleAssociation', () => {
+  const app = 'TEAM123456.rocks.grnyte'
+  const excludes = [
+    { '/': '/auth/*', exclude: true },
+    { '/': '/api/*', exclude: true },
+  ]
+  const includes = [{ '/': '/routes' }, { '/': '/routes/*' }]
+  const file = (components: object[], apps = [app]) => ({
+    applinks: { details: [{ appIDs: [app], components }] },
+    webcredentials: { apps },
+  })
+
+  it('passes content links behind the /auth and /api excludes, and webcredentials naming only the app', () => {
+    expect(assertAppleAssociation(file([...excludes, ...includes]))).toEqual([])
+  })
+
+  it('fails the webcredentials-only file', () => {
+    expect(assertAppleAssociation({ webcredentials: { apps: [app] } })).toContain(
+      'the Apple association file holds exactly applinks and webcredentials',
+    )
+  })
+
+  it('fails with an exclude after an include', () => {
+    expect(assertAppleAssociation(file([excludes[0], ...includes, excludes[1]]))).toEqual([
+      'the Apple association file excludes /auth/* and /api/* before every include',
+    ])
+  })
+
+  it('fails when it claims the whole site', () => {
+    expect(assertAppleAssociation(file([...excludes, ...includes, { '/': '/*' }]))).toEqual([
+      'the Apple association file claims no /*',
+    ])
+  })
+
+  it('fails with a second app', () => {
+    expect(assertAppleAssociation(file([...excludes, ...includes], [app, 'TEAM123456.other.app']))).toEqual([
+      'the Apple association file names only rocks.grnyte',
+    ])
+  })
+})
+
+describe('assertAssetLinks', () => {
+  const statement = (package_name: string) => ({
+    relation: ['delegate_permission/common.handle_all_urls'],
+    target: { namespace: 'android_app', package_name, sha256_cert_fingerprints: ['AA:BB'] },
+  })
+
+  it('passes one handle_all_urls statement for rocks.grnyte', () => {
+    expect(assertAssetLinks([statement('rocks.grnyte')])).toEqual([])
+  })
+
+  it('fails for another package', () => {
+    expect(assertAssetLinks([statement('com.other.app')])).toEqual([
+      'the Android asset links file delegates to rocks.grnyte with a fingerprint',
+    ])
+  })
+
+  it('fails without a fingerprint', () => {
+    const json = [
+      { ...statement('rocks.grnyte'), target: { ...statement('rocks.grnyte').target, sha256_cert_fingerprints: [] } },
+    ]
+    expect(assertAssetLinks(json)).toEqual([
+      'the Android asset links file delegates to rocks.grnyte with a fingerprint',
+    ])
+  })
+
+  it('fails with a second statement', () => {
+    expect(assertAssetLinks([statement('rocks.grnyte'), statement('com.other.app')])).toEqual([
+      'the Android asset links file holds one statement',
+    ])
   })
 })
 
