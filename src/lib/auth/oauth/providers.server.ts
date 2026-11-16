@@ -82,6 +82,8 @@ export const sha256hex = (value: string): string => createHash('sha256').update(
 /** The provider sees this; Supabase gets the raw value and compares `hex(sha256(raw))` itself. */
 export const providerNonce = (raw: string): string => sha256hex(raw)
 
+const APPLE_REVOKE_TIMEOUT_MS = 5000
+
 /** An ES256 JWT minted per request from the `.p8` key, so nothing ever needs rotating. */
 export async function appleClientSecret(clientId: string): Promise<string> {
   // A one-line env value carries the PEM's newlines escaped.
@@ -95,4 +97,27 @@ export async function appleClientSecret(clientId: string): Promise<string> {
     .setIssuedAt(now)
     .setExpirationTime(now + APPLE_SECRET_LIFETIME_S)
     .sign(key)
+}
+
+/** Ends grnyte's access to the Apple ID behind `refreshToken`; false on any non-200 or a timeout. */
+export async function revokeAppleToken(refreshToken: string, clientId: string): Promise<boolean> {
+  try {
+    const body = new URLSearchParams({
+      client_id: clientId,
+      client_secret: await appleClientSecret(clientId),
+      token: refreshToken,
+      token_type_hint: 'refresh_token',
+    })
+    const response = await providerHttp.fetch(`${ISSUERS.apple}/auth/revoke`, {
+      body,
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      method: 'POST',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(APPLE_REVOKE_TIMEOUT_MS),
+    })
+    return response.status === 200
+  } catch (cause) {
+    console.warn('[oauth] apple revoke failed:', cause)
+    return false
+  }
 }

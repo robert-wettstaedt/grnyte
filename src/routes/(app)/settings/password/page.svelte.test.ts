@@ -1,4 +1,11 @@
-import { confirmWithCode, enterCode, reauthRemote, resetReauthRemote } from '$lib/auth/reauth.fixture'
+import {
+  confirmWithCode,
+  enterCode,
+  methods,
+  reauthRemote,
+  resetReauthRemote,
+  submitNeedingConfirmationWithApple,
+} from '$lib/auth/reauth.fixture'
 import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
 import { fireEvent, render, screen } from '@testing-library/svelte'
@@ -19,6 +26,7 @@ vi.mock('$app/navigation', async (original) => ({ ...(await original<object>()),
 
 vi.mock('../account.remote', () => ({ updatePasswordCommand: command }))
 vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
+vi.mock('$lib/auth/identities.remote', async () => (await import('$lib/auth/reauth.fixture')).identitiesRemote)
 vi.mock('$lib/state/navigation.svelte', async (original) => ({ ...(await original<object>()), exit: vi.fn() }))
 
 const saveButton = () => screen.getByRole('button', { name: 'Save' })
@@ -49,12 +57,42 @@ it('shows the new-password field only once confirmed, and changes nothing on the
   expect(browser.invalidate).toHaveBeenCalledWith('supabase:auth')
 })
 
-it('opens code entry when the change needs a fresh confirmation, keeping the typed password', async () => {
+it('titles itself "Set a password" for an account without one', async () => {
+  methods.hasPassword = false
+  render(Page)
+  await settle()
+
+  expect(screen.getByRole('heading', { name: 'Set a password' })).toBeTruthy()
+})
+
+it('reveals the field on a return from Apple and mails no code', async () => {
   resetReauthRemote(true)
+  methods.apple = true
+  render(Page)
+  await settle()
+
+  expect(newPassword()).toBeTruthy()
+  expect(reauthRemote.requestReauthCode).not.toHaveBeenCalled()
+})
+
+/** A confirmed page with the new password typed, whose save answers that it needs a fresh confirmation. */
+async function typedNeedingConfirmation(apple: boolean) {
+  resetReauthRemote(true)
+  methods.apple = apple
   command.mockRejectedValueOnce({ body: { field: 'code', message: formError('auth_reauthRequired') } })
   render(Page)
   await settle()
   await fireEvent.input(newPassword()!, { target: { value: NEW } })
+}
+
+it('goes back to the choice with Apple when the change needs a fresh confirmation', async () => {
+  await typedNeedingConfirmation(true)
+
+  await submitNeedingConfirmationWithApple(saveButton())
+})
+
+it('opens code entry when the change needs a fresh confirmation, keeping the typed password', async () => {
+  await typedNeedingConfirmation(false)
   await fireEvent.click(saveButton())
   await settle()
 

@@ -466,3 +466,70 @@ describe.skipIf(!reachable)('deleteAccountData', () => {
     }
   })
 })
+
+describe.skipIf(!reachable)('deleteAccount and Apple', () => {
+  /** A fresh account, Apple linked or not, confirmed for deletion; deleted, with its events and mail. */
+  async function deleteWith(apple: boolean, revoked?: { action: string; target: 'self' | string }) {
+    const user = await createThrowawayUser('delete_apple')
+    try {
+      if (apple) {
+        await sql.begin(async (tx) => {
+          await tx`select set_config('grnyte.auth_user_created', ${user.authId}, true)`
+          await tx`insert into auth.identities (user_id, provider, provider_id, identity_data)
+            values (${user.authId}, 'apple', ${`apple-${user.authId}`}, ${tx.json({ email: user.email })})`
+        })
+      }
+      if (revoked != null) {
+        const detail = {
+          ...revoked,
+          provider: 'apple',
+          target: revoked.target === 'self' ? user.authId : revoked.target,
+        }
+        await sql`insert into public.auth_events (auth_user_fk, kind, detail) values (${user.authId}, 'apple_revoked', ${sql.json(detail)})`
+      }
+      const caller = { authUserId: user.authId, sessionId: SESSION }
+      await writeGrant(caller, 'account.delete', user.authId, revoked == null ? 'email_code' : 'apple')
+      mails.length = 0
+      // As GoTrue's delete does: the identities go with the record.
+      auth.deleteUser.mockImplementationOnce(async (id) => {
+        await sql`delete from auth.identities where user_id = ${id}`
+        return { error: null }
+      })
+      expect(await deleteAccount({ authUserFk: user.authId, email: user.email, id: user.userId }, caller)).toEqual({
+        kind: 'deleted',
+      })
+      const skipped = await sql<{ detail: Record<string, string> }[]>`
+        select detail from public.auth_events where auth_user_fk = ${user.authId} and kind = 'apple_revoke_skipped'`
+      return { mail: mails[0].body.join(' '), skipped, user }
+    } finally {
+      await sql`delete from public.auth_events where auth_user_fk = ${user.authId}`
+      await dropThrowawayUser(user)
+    }
+  }
+  const LINE = 'disconnected grnyte from your Apple ID'
+
+  it('records a skipped revocation for a code-confirmed deletion of an Apple-linked account', async () => {
+    const { mail, skipped, user } = await deleteWith(true)
+
+    expect(skipped).toEqual([{ detail: { action: 'account.delete', provider: 'apple', target: user.authId } }])
+    expect(mail).not.toContain(LINE)
+  })
+
+  it('records nothing for an Apple-confirmed one, and its mail says Apple was disconnected', async () => {
+    const { mail, skipped } = await deleteWith(true, { action: 'account.delete', target: 'self' })
+
+    expect(skipped).toEqual([])
+    expect(mail).toContain(LINE)
+  })
+
+  it('counts no revocation made for removing Apple', async () => {
+    const { mail, skipped } = await deleteWith(true, { action: 'identity.unlink', target: 'apple' })
+
+    expect(skipped).toHaveLength(1)
+    expect(mail).not.toContain(LINE)
+  })
+
+  it('records nothing for an account without Apple', async () => {
+    expect((await deleteWith(false)).skipped).toEqual([])
+  })
+})

@@ -2,6 +2,8 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { appleConfirmation } from '$lib/auth/appleConfirmation.svelte'
+  import ConfirmWithApple from '$lib/auth/ConfirmWithApple.svelte'
   import ReauthStep, { withReauth } from '$lib/auth/ReauthStep.svelte'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
@@ -40,6 +42,7 @@
   const seed = () => ({ name: '', regionFk: regionId })
   let confirmed = $state(false)
   let step: ReauthStep | undefined = $state()
+  const apple = appleConfirmation()
 
   // The region is gone, so the form leaves for settings rather than its own `cancelTo`.
   const submit = (values: z.input<typeof deleteRegionSchema>) =>
@@ -55,6 +58,11 @@
 <svelte:head>
   <title>{m.region_delete()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
+
+<!-- Outside <Form>: a snippet inside it would be one of its props. -->
+{#snippet withApple()}
+  <ConfirmWithApple action="region.delete" target={String(regionId)} />
+{/snippet}
 
 <Form
   cancelTo={regionHref}
@@ -79,7 +87,8 @@
         action="region.delete"
         email={page.data.session?.user.email ?? ''}
         target={String(regionId)}
-        ready={preview?.phase.kind === 'answered' || preview?.phase.kind === 'error'}
+        ready={(preview?.phase.kind === 'answered' || preview?.phase.kind === 'error') && apple.settled}
+        alternatives={apple.available ? withApple : undefined}
       />
     {/key}
 

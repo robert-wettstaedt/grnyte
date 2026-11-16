@@ -9,6 +9,7 @@ import { pinnedTx } from '$lib/db/pinned.server'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { refuseCommand } from '$lib/remote/authed.server'
+import type { UserIdentity } from '@supabase/supabase-js'
 import { sql } from 'drizzle-orm'
 
 interface ProviderState {
@@ -67,14 +68,7 @@ export const unlinkProvider = command(z.object({ provider: z.enum(IDENTITY_TARGE
   // Already gone (another device): the screen's next read shows it.
   if (identity == null) return { othersSignedOut: false }
 
-  const { error } = await supabase.auth.unlinkIdentity(identity)
-  if (error != null) {
-    // A dropped answer after GoTrue committed still unlinked it.
-    const again = await supabase.auth.getUserIdentities()
-    const still = again.data?.identities.some((candidate) => candidate.identity_id === identity.identity_id)
-    if (again.error != null || still !== false) refuseCommand(await gotrueRefusal(error, 'unlink'))
-  }
-
+  await unlinkAtGoTrue(supabase, identity)
   await recordAuthEvent('identity_unlinked', { authUserId: caller.authUserId, detail: { provider } })
   if (provider === 'apple' && !(await hasRecentAppleRevocation(caller.authUserId, 'identity.unlink', 'apple'))) {
     await recordAuthEvent('apple_revoke_skipped', {
@@ -85,3 +79,12 @@ export const unlinkProvider = command(z.object({ provider: z.enum(IDENTITY_TARGE
   const others = await supabase.auth.signOut({ scope: 'others' })
   return { othersSignedOut: others.error == null }
 })
+
+/** Unlinks, or refuses the command; a dropped answer after GoTrue committed still unlinked it. */
+async function unlinkAtGoTrue(supabase: App.Locals['supabase'], identity: UserIdentity) {
+  const { error } = await supabase.auth.unlinkIdentity(identity)
+  if (error == null) return
+  const again = await supabase.auth.getUserIdentities()
+  const still = again.data?.identities.some((candidate) => candidate.identity_id === identity.identity_id)
+  if (again.error != null || still !== false) refuseCommand(await gotrueRefusal(error, 'unlink'))
+}

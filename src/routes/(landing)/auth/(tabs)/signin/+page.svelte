@@ -3,7 +3,8 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
-  import ProviderBlock from '$lib/auth/ProviderBlock.svelte'
+  import { authStepHref } from '$lib/auth'
+  import AuthSteps from '$lib/auth/AuthSteps.svelte'
   import TermsAgree from '$lib/auth/TermsAgree.svelte'
   import Banner from '$lib/components/Banner/Banner.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
@@ -32,6 +33,10 @@
   if (invited != null) {
     signIn.fields.set({ email: invited })
   }
+
+  // Leaving a step must not leave a typed password behind, and an invited address always shows.
+  const onswap = () => signIn.fields.set(invited == null ? {} : { email: invited })
+  const failed = $derived((signIn.fields.allIssues() ?? []).some((issue) => issue.path.length === 0))
 
   // `replaceUrl`, so a signed-in reader has no sign-in page behind them to walk back into.
   //
@@ -113,60 +118,68 @@
     {#if page.url.searchParams.get('deleted') === '1'}
       <Banner class="mb-4.5">{m.auth_accountDeleted()}</Banner>
     {/if}
-    <ProviderBlock />
+    <AuthSteps lastUsed={page.data.lastUsed} {onswap} providers={page.data.providers} screen="signin">
+      <form {...signIn.enhance(submitAndLeave)} class="flex flex-col gap-4">
+        <FormError form={signIn} />
+        {#if failed && page.data.providers.length > 0}
+          <p class="text-surface-600-400 -mt-2 text-[13.5px]">
+            {m.auth_providerHint()}
+            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- `authStepHref`: a fixed auth path plus a query -->
+            <a href={authStepHref(page.url, '/auth/signin', false)} class="text-primary-600-400 font-bold">
+              {m.auth_otherWays()}
+            </a>
+          </p>
+        {/if}
+        <input type="hidden" name="codeFlow" value="1" />
 
-    <form {...signIn.enhance(submitAndLeave)} class="flex flex-col gap-4">
-      <FormError form={signIn} />
-      <input type="hidden" name="codeFlow" value="1" />
+        {#if next != null}
+          <input type="hidden" name="next" value={next} />
+        {/if}
 
-      {#if next != null}
-        <input type="hidden" name="next" value={next} />
-      {/if}
+        <AuthField
+          field={signIn.fields.email}
+          label={m.auth_email()}
+          type="email"
+          placeholder="you@example.com"
+          autocomplete="username"
+          autocapitalize="none"
+          enterkeyhint="next"
+          autofocus
+        />
 
-      <AuthField
-        field={signIn.fields.email}
-        label={m.auth_email()}
-        type="email"
-        placeholder="you@example.com"
-        autocomplete="username"
-        autocapitalize="none"
-        enterkeyhint="next"
-        autofocus
-      />
+        <AuthField
+          field={signIn.fields.password}
+          label={m.auth_password()}
+          type="password"
+          reveal
+          placeholder={m.auth_passwordPlaceholder()}
+          autocomplete="current-password"
+          enterkeyhint="go"
+        >
+          {#snippet action()}
+            <a
+              href={resolve('/auth/forgot-password')}
+              class="text-primary-600-400 -mx-1 flex min-h-6 items-center px-1 text-[12.5px] font-semibold"
+            >
+              {m.auth_forgot()}
+            </a>
+          {/snippet}
+        </AuthField>
 
-      <AuthField
-        field={signIn.fields.password}
-        label={m.auth_password()}
-        type="password"
-        reveal
-        placeholder={m.auth_passwordPlaceholder()}
-        autocomplete="current-password"
-        enterkeyhint="go"
-      >
-        {#snippet action()}
-          <a
-            href={resolve('/auth/forgot-password')}
-            class="text-primary-600-400 -mx-1 flex min-h-6 items-center px-1 text-[12.5px] font-semibold"
-          >
-            {m.auth_forgot()}
-          </a>
-        {/snippet}
-      </AuthField>
-
-      <button
-        type="submit"
-        class="btn preset-filled-primary-500 mt-1 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)] disabled:opacity-60"
-        disabled={signIn.pending > 0}
-      >
-        {m.auth_signIn()}
-      </button>
-    </form>
+        <button
+          type="submit"
+          class="btn preset-filled-primary-500 mt-1 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)] disabled:opacity-60"
+          disabled={signIn.pending > 0}
+        >
+          {m.auth_signIn()}
+        </button>
+      </form>
+    </AuthSteps>
 
     <p class="text-surface-600-400 mt-5.5 text-center text-[13.5px]">
       {m.auth_noAccount({ name: PUBLIC_APPLICATION_NAME })}
-      <!-- resolve()'d path plus a query string, which resolve() itself does not take -->
-      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-      <a href={resolve('/auth/signup') + page.url.search} class="text-primary-600-400 font-bold">
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- `authStepHref`: a fixed auth path plus a query -->
+      <a href={authStepHref(page.url, '/auth/signup', false)} class="text-primary-600-400 font-bold">
         {m.auth_createAccount()}
       </a>
     </p>

@@ -1,4 +1,4 @@
-import { confirmWithCode, resetReauthRemote, submitNeedingConfirmation } from '$lib/auth/reauth.fixture'
+import { confirmWithCode, methods, resetReauthRemote, submitNeedingConfirmation } from '$lib/auth/reauth.fixture'
 import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
 import { fireEvent, render, screen } from '@testing-library/svelte'
@@ -21,6 +21,7 @@ vi.mock('../../account.remote', () => ({
   deleteAccountCommand: command,
 }))
 vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
+vi.mock('$lib/auth/identities.remote', async () => (await import('$lib/auth/reauth.fixture')).identitiesRemote)
 vi.mock('$lib/state/push.svelte', () => ({ disablePush: vi.fn(async () => {}) }))
 vi.mock('$lib/state/wipe', () => ({ setLeaving: vi.fn(), wipeAndLeave: vi.fn() }))
 
@@ -88,6 +89,28 @@ it('deletes nothing on a correct code, only on the submit', async () => {
   await fireEvent.click(submitButton())
   await settle()
   expect(command).toHaveBeenCalledOnce()
+})
+
+it.each([
+  [true, ['apple', 'google'], true],
+  [false, ['apple', 'google'], false],
+  [true, ['google'], false],
+])('offers Confirm with Apple (linked %s, configured %j): %s', async (linked, configured, shown) => {
+  Object.assign(methods, { apple: linked, configured })
+  render(Page)
+  await settle()
+
+  expect(screen.queryByRole('button', { name: 'Confirm with Apple' }) != null).toBe(shown)
+  expect(screen.getByRole('button', { name: 'Send code' })).toBeTruthy()
+})
+
+it('settles with no alternative when the sign-in methods cannot be read', async () => {
+  methods.failed = true
+  render(Page)
+  await settle()
+
+  expect(screen.getByRole('button', { name: 'Send code' })).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Confirm with Apple' })).toBeNull()
 })
 
 it('opens code entry when the deletion answers that it needs a confirmation', async () => {

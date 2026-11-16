@@ -215,6 +215,22 @@
   gespeichert. Abschnitt 5 sagt, wer ihn erhält, und Abschnitt 7, wie lange er lebt.
 </p>
 
+<h3>2.10 Anmeldung mit Apple oder Google</h3>
+<p>
+  Wählst du „Weiter mit Apple“ oder „Weiter mit Google“, geht dein Browser zu Apple oder Google, du meldest dich dort
+  an, und sie schicken {name} ein signiertes Token über dich. Wie Apple und Google deine Daten bei dieser Anmeldung
+  behandeln, entscheiden sie selbst: Für diesen Schritt ist jedes der beiden ein eigener Verantwortlicher nach seiner
+  eigenen Datenschutzerklärung, nicht mein Auftragsverarbeiter. Das Token enthält eine Kennung, die für dich bei diesem
+  Anbieter gleich bleibt, deine E-Mail-Adresse (bei Apple womöglich eine private Weiterleitungsadresse, die an deine
+  weiterleitet), ob der Anbieter diese Adresse bestätigt hat, und technische Angaben wie wer das Token ausgestellt hat,
+  für welche App und wann. Der Authentifizierungsdienst aus Abschnitt 5 speichert die Kennung, die Adresse und diese
+  Angaben als Anmeldeidentität an deinem Konto. Mehr frage ich nicht ab: keinen Namen, keine Kontakte, keine Fotos. Die
+  Rechtsgrundlage ist die deines Kontos aus Abschnitt 4. Unter Einstellungen, Anmeldemethoden kannst du Apple oder
+  Google entfernen, was diese Identität löscht, und das Löschen deines Kontos löscht alle. Entfernst du Apple oder
+  löschst ein Konto mit Apple, nachdem du mit Apple bestätigt hast, bittet {name} Apple außerdem, den Zugriff zu
+  beenden.
+</p>
+
 <h2>3. Fotos, Videos und EXIF-Metadaten</h2>
 
 <p>Ein Foto trägt mehr als das Bild. Dieser Abschnitt behandelt die Metadaten in einer hochgeladenen Datei.</p>
@@ -506,6 +522,13 @@
   beschränkten Zone.
 </p>
 
+<p>
+  Die Anmeldung mit Apple oder Google schickt deinen Browser zu Apple Inc. oder Google LLC in den Vereinigten Staaten,
+  beide nach dem EU-US-Datenschutzrahmen (Data Privacy Framework) zertifiziert. Das geschieht nur, wenn du es wählst,
+  und für diesen Schritt sind sie eigene Verantwortliche (Abschnitt 2.10). Was zu {name} zurückkommt, bleibt bei den
+  Auftragsverarbeitern oben.
+</p>
+
 <h2>7. Wie lange ich deine Daten speichere</h2>
 
 <p>Deine Daten leben so lange wie dein Konto: Löschst du das Konto, gehen die Kontodaten mit.</p>
@@ -596,7 +619,8 @@
 <ul>
   <li>
     <strong>Auskunft, Artikel 15:</strong>
-    eine Kopie der Daten, die ich über dich gespeichert habe
+    eine Kopie der Daten, die ich über dich gespeichert habe, einschließlich der Anmeldeidentitäten von Apple oder
+    Google an deinem Konto
   </li>
   <li>
     <strong>Berichtigung, Artikel 16:</strong>
@@ -645,17 +669,22 @@
 
 <h2>9. Was auf deinem Gerät gespeichert wird</h2>
 
-<p>{name} legt vier Dinge in deinem Browser ab, und jedes davon lässt die App funktionieren:</p>
+<p>{name} legt fünf Dinge in deinem Browser ab, und jedes davon lässt die App funktionieren:</p>
 
 <ul>
   <li>eine Anmeldesitzung, damit du zwischen zwei Besuchen angemeldet bleibst</li>
+  <li>
+    zwei Anmelde-Cookies: eines hält eine Anmeldung mit Apple oder Google, solange sie läuft, höchstens 10 Minuten und
+    gelöscht, sobald du zurückkommst, und eines merkt sich, wie du dich zuletzt angemeldet hast (Apple, Google oder
+    E-Mail, sonst nichts), bis zu 400 Tage, damit der Anmeldebildschirm es markieren kann
+  </li>
   <li>deine Einstellungen, etwa Sprache, Einheiten und Anzeigeoptionen</li>
   <li>einen Service Worker, den Code, mit dem die App ohne Verbindung läuft</li>
   <li>einen Offline-Cache mit den Inhalten, die du schon geöffnet hast</li>
 </ul>
 
 <p>
-  Alle vier sind unbedingt erforderlich, um dir den Dienst zu liefern, den du angefordert hast. Paragraph 25 Abs. 2 Nr.
+  Alle fünf sind unbedingt erforderlich, um dir den Dienst zu liefern, den du angefordert hast. Paragraph 25 Abs. 2 Nr.
   2 des Telekommunikation-Digitale-Dienste-Datenschutz-Gesetzes (TDDDG) nimmt diese Speicherung von der Einwilligung
   aus, und deshalb siehst du hier kein Cookie-Banner. Es gibt nichts, worin du einwilligen müsstest.
 </p>

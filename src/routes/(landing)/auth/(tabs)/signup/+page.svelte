@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ProviderBlock from '$lib/auth/ProviderBlock.svelte'
+  import { authStepHref } from '$lib/auth'
+  import AuthSteps from '$lib/auth/AuthSteps.svelte'
   import TermsAgree from '$lib/auth/TermsAgree.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import BotCheck from '$lib/forms/BotCheck.svelte'
@@ -20,8 +20,8 @@
     signUp.fields.set({ email: invited })
   }
 
-  // A bare sign-in link would land on the installed app's welcome fork, not the form.
-  const signInSearch = $derived(page.url.search || '?form=signin')
+  // Leaving a step must not leave a typed password behind, and an invited address always shows.
+  const onswap = () => signUp.fields.set(invited == null ? {} : { email: invited })
 
   // The result outlives the step on the form's singleton, so "Go back" remembers which one it left.
   let left = $state<unknown>()
@@ -51,47 +51,46 @@
   <p class="text-surface-600-400 mb-5.5 text-[14.5px] leading-snug">
     {m.auth_signUpSubtitle()}
   </p>
-  <ProviderBlock />
+  <AuthSteps lastUsed={page.data.lastUsed} {onswap} providers={page.data.providers} screen="signup">
+    <form {...signUp} class="flex flex-col gap-4">
+      <FormError form={signUp} />
+      <BotCheck fields={signUp.fields} />
 
-  <form {...signUp} class="flex flex-col gap-4">
-    <FormError form={signUp} />
-    <BotCheck fields={signUp.fields} />
+      <AuthField
+        field={signUp.fields.email}
+        label={m.auth_email()}
+        type="email"
+        placeholder="you@example.com"
+        autocomplete="username"
+        autocapitalize="none"
+        enterkeyhint="next"
+        autofocus
+      />
+      <AuthField
+        field={signUp.fields.password}
+        label={m.auth_password()}
+        type="password"
+        reveal
+        placeholder={m.auth_passwordPlaceholderNew()}
+        hint={m.auth_passwordHint()}
+        autocomplete="new-password"
+        enterkeyhint="done"
+      />
 
-    <AuthField
-      field={signUp.fields.email}
-      label={m.auth_email()}
-      type="email"
-      placeholder="you@example.com"
-      autocomplete="username"
-      autocapitalize="none"
-      enterkeyhint="next"
-      autofocus
-    />
-    <AuthField
-      field={signUp.fields.password}
-      label={m.auth_password()}
-      type="password"
-      reveal
-      placeholder={m.auth_passwordPlaceholderNew()}
-      hint={m.auth_passwordHint()}
-      autocomplete="new-password"
-      enterkeyhint="done"
-    />
-
-    <button
-      type="submit"
-      class="btn preset-filled-primary-500 mt-1 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)] disabled:opacity-60"
-      disabled={signUp.pending > 0}
-    >
-      {m.auth_createAccount()}
-    </button>
-  </form>
+      <button
+        type="submit"
+        class="btn preset-filled-primary-500 mt-1 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)] disabled:opacity-60"
+        disabled={signUp.pending > 0}
+      >
+        {m.auth_createAccount()}
+      </button>
+    </form>
+  </AuthSteps>
 
   <p class="text-surface-600-400 mt-5.5 text-center text-[13.5px]">
     {m.auth_haveAccount()}
-    <!-- resolve()'d path plus a query string, which resolve() itself does not take -->
-    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-    <a href={resolve('/auth/signin') + signInSearch} class="text-primary-600-400 font-bold">{m.auth_signIn()}</a>
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- `authStepHref`: a fixed auth path plus a query -->
+    <a href={authStepHref(page.url, '/auth/signin', false)} class="text-primary-600-400 font-bold">{m.auth_signIn()}</a>
   </p>
   <TermsAgree />
 {/if}

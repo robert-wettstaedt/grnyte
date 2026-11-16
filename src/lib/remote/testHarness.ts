@@ -32,10 +32,10 @@ export type PushedResult = { data?: unknown; details?: unknown; error?: string; 
 
 /**
  * Runs `fn` as a signed-out visitor, the caller of the auth forms. `supabase` is whatever fake the
- * test wants those forms to reach; they call nothing else on locals.
+ * test wants those forms to reach; `cookies` is a jar for a handler that writes cookies of its own.
  */
-export function asAnonymousRequest<T>(supabase: unknown, fn: () => Promise<T> | T): Promise<T> {
-  return inRequestStore({ claims: null, supabase }, fn)
+export function asAnonymousRequest<T>(supabase: unknown, fn: () => Promise<T> | T, cookies?: unknown): Promise<T> {
+  return inRequestStore({ claims: null, supabase }, fn, cookies)
 }
 
 /**
@@ -169,6 +169,13 @@ export async function statusOf(run: () => Promise<unknown>): Promise<number | un
   }
 }
 
+/** The message key a command refused with (`refuseCommand`), or `undefined` when it resolved. */
+export const commandRefusal = (run: () => Promise<unknown>): Promise<string | undefined> =>
+  run().then(
+    () => undefined,
+    (cause: { body?: { message?: string } }) => JSON.parse(cause.body?.message ?? '{}').message as string,
+  )
+
 /** The message keys of a form's refusal, as `callForm` returns it. */
 export const refusalKeys = ({ issues = [] }: { issues?: { message: string }[] }): string[] =>
   issues.map((issue) => JSON.parse(issue.message).message)
@@ -214,7 +221,7 @@ export function zeroClient(authUserId: string, email?: string) {
   }
 }
 
-function inRequestStore<T>(locals: object, fn: () => Promise<T> | T): Promise<T> {
+function inRequestStore<T>(locals: object, fn: () => Promise<T> | T, cookies?: unknown): Promise<T> {
   // `state.remote.data` is the per-request memo Kit's remote wrappers read through `get_cache`.
   // A real request always has one; without it the first `form`/`query` call dereferences undefined.
   //
@@ -247,5 +254,8 @@ function inRequestStore<T>(locals: object, fn: () => Promise<T> | T): Promise<T>
 
   // `getClientAddress`: the auth-only client forwards it to GoTrue as `sb-forwarded-for`.
   const getClientAddress = () => '127.0.0.1'
-  return with_request_store({ event: { getClientAddress, locals, request, url }, state } as never, fn) as Promise<T>
+  return with_request_store(
+    { event: { cookies, getClientAddress, locals, request, url }, state } as never,
+    fn,
+  ) as Promise<T>
 }

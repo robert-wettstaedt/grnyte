@@ -1,8 +1,8 @@
-import { oauthReturnTarget } from '$lib/auth'
+import { oauthReturnTarget, REAUTH_ACTIONS, type ReauthAction } from '$lib/auth'
 import { startOAuth } from '$lib/auth/oauth/flow.server'
 import type { OAuthProvider } from '$lib/auth/oauth/providers.server'
-import { reauthCaller } from '$lib/auth/reauth.server'
-import { redirect } from '@sveltejs/kit'
+import { boundTarget, reauthCaller } from '$lib/auth/reauth.server'
+import { error, redirect } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
 
 /** A form POST, so Kit's origin check guards it and the buttons work without JavaScript. */
@@ -20,7 +20,15 @@ export const POST: RequestHandler = async (event) => {
     const returnTo = `${oauthReturnTarget(null, 'link')}?step=add-${provider}`
     return startOAuth(event, provider, { caller: await reauthCaller(), kind: 'link' }, null, returnTo)
   }
-  // shortcut: confirm starts with change 2's slice (e); until then nothing starts.
+  if (field('intent') === 'confirm') {
+    const action = field('action') as ReauthAction
+    const sent = field('target')
+    // "Confirm with Apple" only (design decision 7).
+    if (provider !== 'apple' || !REAUTH_ACTIONS.includes(action) || sent == null) error(400)
+    const caller = await reauthCaller()
+    const intent = { action, caller, kind: 'confirm', target: boundTarget(caller, action, sent) } as const
+    return startOAuth(event, provider, intent, null, oauthReturnTarget(field('returnTo'), 'confirm'))
+  }
   if (field('intent') !== 'signin') redirect(303, '/auth/error?reason=failed')
 
   const screen = `/auth/${field('screen') ?? 'signin'}`

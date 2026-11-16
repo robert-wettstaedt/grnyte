@@ -1,4 +1,11 @@
-import { confirmWithCode, enterCode, reauthRemote, resetReauthRemote } from '$lib/auth/reauth.fixture'
+import {
+  confirmWithCode,
+  enterCode,
+  methods,
+  reauthRemote,
+  resetReauthRemote,
+  submitNeedingConfirmationWithApple,
+} from '$lib/auth/reauth.fixture'
 import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
 import { fireEvent, render, screen } from '@testing-library/svelte'
@@ -29,6 +36,7 @@ vi.mock('$lib/entities/region/regions.remote', () => ({
       : { current: state.counts, error: undefined, ready: true },
 }))
 vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
+vi.mock('$lib/auth/identities.remote', async () => (await import('$lib/auth/reauth.fixture')).identitiesRemote)
 vi.mock('$lib/state/global.svelte', () => ({ getGlobalState: () => ({ user: { id: 7 }, userRegions: [] }) }))
 vi.mock('$lib/state/navigation.svelte', async (original) => ({ ...(await original<object>()), exit: vi.fn() }))
 
@@ -98,17 +106,38 @@ it('deletes nothing on a correct code, only on the submit', async () => {
   expect(command).toHaveBeenCalledWith({ name: 'Harz', regionFk: 1 })
 })
 
-it('opens code entry on a confirmation that lapsed, keeping the typed name', async () => {
+/** A confirmed page with the name typed, whose submit answers that the confirmation lapsed. */
+async function typedNeedingConfirmation() {
   command.mockRejectedValueOnce({ body: { field: 'code', message: formError('auth_reauthRequired') } })
   render(Page)
   await settle()
   await fireEvent.input(nameField(), { target: { value: 'Harz' } })
+}
+
+it('opens code entry on a confirmation that lapsed, keeping the typed name', async () => {
+  await typedNeedingConfirmation()
   await fireEvent.click(submitButton())
   await settle()
 
   expect(reauthRemote.requestReauthCode).toHaveBeenCalledOnce()
   await enterCode('123456')
   expect(nameField().value).toBe('Harz')
+})
+
+it('reveals the name field on a return from Apple and mails no code', async () => {
+  methods.apple = true
+  render(Page)
+  await settle()
+
+  expect(nameField()).toBeTruthy()
+  expect(reauthRemote.requestReauthCode).not.toHaveBeenCalled()
+})
+
+it('goes back to the choice with Apple on a confirmation that lapsed', async () => {
+  methods.apple = true
+  await typedNeedingConfirmation()
+
+  await submitNeedingConfirmationWithApple(submitButton())
 })
 
 it('refuses anyone but the owner', () => {

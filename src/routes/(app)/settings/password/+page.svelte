@@ -3,6 +3,8 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { appleConfirmation } from '$lib/auth/appleConfirmation.svelte'
+  import ConfirmWithApple from '$lib/auth/ConfirmWithApple.svelte'
   import ReauthStep, { withReauth } from '$lib/auth/ReauthStep.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'
@@ -20,6 +22,9 @@
   const store = createFormStore(updatePasswordSchema)
   let confirmed = $state(false)
   let step: ReauthStep | undefined = $state()
+  const apple = appleConfirmation()
+  // A social-only account sets its first password here.
+  const title = $derived(apple.hasPassword === false ? m.settings_setPassword() : m.settings_changePassword())
 
   const submit = async (values: z.input<typeof updatePasswordSchema>) => {
     const result = await withReauth(step, () => submitCommand(() => updatePasswordCommand(values)))
@@ -35,8 +40,12 @@
 </script>
 
 <svelte:head>
-  <title>{m.settings_changePassword()} – {PUBLIC_APPLICATION_NAME}</title>
+  <title>{title} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
+
+{#snippet withApple()}
+  <ConfirmWithApple action="password.change" target="self" />
+{/snippet}
 
 <Form
   {store}
@@ -45,7 +54,7 @@
   {onSubmitted}
   submitDisabled={!confirmed}
   submitLabel={m.common_save()}
-  title={m.settings_changePassword()}
+  {title}
 >
   <p class="text-surface-600-400 text-[14.5px] leading-normal">{m.settings_passwordIntro()}</p>
 
@@ -56,6 +65,8 @@
     action="password.change"
     email={page.data.session?.user.email ?? ''}
     target="self"
+    ready={apple.settled}
+    alternatives={apple.available ? withApple : undefined}
   />
 
   {#if confirmed}

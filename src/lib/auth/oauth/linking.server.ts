@@ -1,6 +1,11 @@
+import type { ReauthAction, VerifiedToken } from '$lib/auth'
+import { recordAuthEvent } from '$lib/auth/events.server'
+import { writeGrant, type ReauthCaller } from '$lib/auth/reauth.server'
+import { isSessionLive } from '$lib/auth/session.server'
+import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { sql } from 'drizzle-orm'
-import type { OAuthProvider } from './providers.server'
+import { providerClientId, revokeAppleToken, type OAuthProvider } from './providers.server'
 
 export type LinkDecision = 'alreadyLinked' | 'emailElsewhere' | 'identityElsewhere' | 'ok'
 
@@ -51,4 +56,49 @@ export async function decideSignIn(
   if (email === '' || row.confirmed == null) return { kind: 'new' }
   if (!row.confirmed) return { kind: 'unconfirmed' }
   return { kind: row.owned ? 'providerDomain' : 'refuse' }
+}
+
+/** The request comes from the session that started the flow, still live (the check the trigger cannot make). */
+export async function isStartingCaller(token: VerifiedToken, caller: ReauthCaller): Promise<boolean> {
+  const { claims } = token
+  if (claims.sub !== caller.authUserId || claims.session_id !== caller.sessionId) return false
+  return isSessionLive(db, claims)
+}
+
+/** Apple is revoked before a deletion or Apple's own removal is confirmed (design decision 7). */
+const revokes = (action: ReauthAction, target: string) =>
+  action === 'account.delete' || (action === 'identity.unlink' && target === 'apple')
+
+/**
+ * "Confirm with Apple": the caller's own Apple ID confirms `action` on `target` as a mailed code
+ * would. Revokes first where the action calls for it, and writes the grant either way.
+ */
+export async function acceptAppleConfirmation(
+  token: VerifiedToken,
+  caller: ReauthCaller,
+  action: ReauthAction,
+  target: string,
+  claims: { sub: string },
+  refreshToken?: string,
+): Promise<'expired' | 'granted' | 'wrongAppleId'> {
+  if (!(await isStartingCaller(token, caller))) return 'expired'
+  const { authUserId } = caller
+  const [row] = await pinnedTx((tx) =>
+    tx.execute<{ own: boolean }>(sql`
+      select exists (select 1 from auth.identities i
+        where i.user_id = ${authUserId} and i.provider = 'apple' and i.provider_id = ${claims.sub}) as own`),
+  )
+  if (!row.own) {
+    await recordAuthEvent('oauth_sub_mismatch', { authUserId, detail: { provider: 'apple' } })
+    return 'wrongAppleId'
+  }
+  if (revokes(action, target)) {
+    const revoked = refreshToken != null && (await revokeAppleToken(refreshToken, providerClientId('apple')))
+    await recordAuthEvent(revoked ? 'apple_revoked' : 'apple_revoke_failed', {
+      authUserId,
+      detail: { action, provider: 'apple', target },
+    })
+  }
+  await writeGrant(caller, action, target, 'apple')
+  return 'granted'
 }

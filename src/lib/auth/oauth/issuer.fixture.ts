@@ -65,6 +65,9 @@ const json = (body: unknown, status = 200) =>
 export function fakeIssuer() {
   const discoveries: OAuthProvider[] = []
   const tokenRequests: TokenRequest[] = []
+  const revocations: URLSearchParams[] = []
+  /** Apple's answer status to a revocation; a test may look at the database first. */
+  const revoke = { answer: (_body: URLSearchParams): number | Promise<number> => 200 }
   const state = { claims: {} as IdTokenClaims, nonce: undefined as string | undefined, refreshToken: 'apple-refresh' }
 
   const discover = (provider: OAuthProvider) => {
@@ -94,6 +97,10 @@ export function fakeIssuer() {
   }
   const routes: Record<string, (provider: OAuthProvider, body: URLSearchParams) => Promise<Response> | Response> = {
     '/.well-known/openid-configuration': discover,
+    '/auth/revoke': async (_provider, body) => {
+      revocations.push(body)
+      return new Response(null, { status: await revoke.answer(body) })
+    },
     '/keys': () => json({ keys: [publicJwk] }),
     '/token': token,
   }
@@ -116,6 +123,8 @@ export function fakeIssuer() {
     rememberNonce(nonce: null | string) {
       state.nonce = nonce ?? undefined
     },
+    revocations,
+    revoke,
     tokenRequests,
   }
 }
