@@ -13,6 +13,16 @@ const remote = vi.hoisted(() => ({
 }))
 vi.mock('../account.remote', () => remote)
 
+/** `mailForwardingQuery` as an answered remote query; the address when Apple forwards no mail to it. */
+const forwarding = vi.hoisted(() => ({ address: null as null | string, appleLinked: false }))
+vi.mock('$lib/auth/identities.remote', () => ({
+  mailForwardingQuery: () => ({
+    current: { ...forwarding, id: 'account-1' },
+    error: undefined,
+    ready: true,
+  }),
+}))
+
 const codeFor = (email: string) => screen.queryByLabelText(`Code sent to ${email}`) as HTMLInputElement | null
 const asks = (text: RegExp | string) => screen.queryByText(text)
 
@@ -32,6 +42,36 @@ async function startChange() {
 beforeEach(() => {
   remote.confirmEmailChangeCode.mockClear()
   remote.updateEmailCommand.mockClear()
+  forwarding.address = null
+  forwarding.appleLinked = false
+})
+
+it('shows the form with no banner while the address receives mail', async () => {
+  render(Page)
+  await settle()
+
+  expect(screen.getByLabelText('New email')).toBeTruthy()
+  expect(asks('Mail to this address does not reach you')).toBeNull()
+})
+
+it('says the address receives no mail and to turn forwarding back on first, with Apple linked', async () => {
+  forwarding.address = 'x@privaterelay.appleid.com'
+  forwarding.appleLinked = true
+  render(Page)
+  await settle()
+
+  expect(asks('Mail to this address does not reach you')).toBeTruthy()
+  expect(asks(/x@privaterelay\.appleid\.com is the private address Apple made for grnyte/)).toBeTruthy()
+  expect(asks(/first turn forwarding back on/)).toBeTruthy()
+  expect(screen.getByLabelText('New email')).toBeTruthy()
+})
+
+it('points to support when Apple is no longer linked', async () => {
+  forwarding.address = 'x@privaterelay.appleid.com'
+  render(Page)
+  await settle()
+
+  expect(asks(/send us a message through Feedback while signed in/)).toBeTruthy()
 })
 
 it("asks for the current address's code first under the address, and the new address's only once that one was accepted", async () => {

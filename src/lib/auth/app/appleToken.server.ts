@@ -1,9 +1,9 @@
 import { recordAuthEvent } from '$lib/auth/events.server'
-import { appleClientSecret, providerHttp } from '$lib/auth/oauth/providers.server'
+import { postAppleToken } from '$lib/auth/oauth/providers.server'
 import { JwksUnavailable, taggingJwks } from '$lib/auth/verify.server'
 import { formError } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
-import { createRemoteJWKSet, decodeJwt, jwtVerify, type JWTVerifyGetKey } from 'jose'
+import { createRemoteJWKSet, decodeJwt, errors, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose'
 import type { IDToken } from 'openid-client'
 
 const APPLE_ISSUER = 'https://appleid.apple.com'
@@ -20,20 +20,9 @@ export async function exchangeAppleCode(
   code: string,
   clientId: string,
 ): Promise<null | { refreshToken: string; sub: string }> {
+  const response = await postAppleToken('token', clientId, { code, grant_type: 'authorization_code' })
+  if (response?.status !== 200) return null
   try {
-    const response = await providerHttp.fetch(`${APPLE_ISSUER}/auth/token`, {
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: await appleClientSecret(clientId),
-        code,
-        grant_type: 'authorization_code',
-      }),
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      method: 'POST',
-      redirect: 'manual',
-      signal: AbortSignal.timeout(5000),
-    })
-    if (response.status !== 200) return null
     const answer = (await response.json()) as { id_token?: string; refresh_token?: string }
     // Read from Apple's own TLS answer, so the id_token is trusted without a signature check.
     const sub = answer.id_token == null ? undefined : decodeJwt(answer.id_token).sub
@@ -55,17 +44,33 @@ export async function requireAppleToken(token: string, audience: string, nonceDi
 
 /** A device's Apple ID token, verified before any claim is read. */
 export async function verifyAppleIdToken(token: string, audience: string, nonceDigest: string): Promise<AppleVerdict> {
+  const verdict = await verifyAppleJwt(token, { audience, requiredClaims: ['sub', 'iat', 'exp', 'nonce'] })
+  if (!verdict.ok) return { ok: false, reason: verdict.reason }
+  // Both are public digests; timingSafeEqual would throw on another length.
+  if (verdict.payload.nonce !== nonceDigest) return { ok: false, reason: 'invalid' }
+  return { claims: verdict.payload as IDToken, ok: true }
+}
+
+/**
+ * Any token Apple signs, against Apple's key set; a key-set outage is `unavailable`, every other refusal `invalid`.
+ * `signed`: jose throws these two only after the signature verified, so only Apple can have produced the token.
+ */
+export async function verifyAppleJwt(
+  token: string,
+  options: { audience: string | string[]; clockTolerance?: string; maxTokenAge?: string; requiredClaims: string[] },
+): Promise<{ ok: false; reason: 'invalid' | 'unavailable'; signed: boolean } | { ok: true; payload: JWTPayload }> {
   try {
     const { payload } = await jwtVerify(token, taggingJwks(appleKeys.source), {
       algorithms: ['RS256'],
-      audience,
       issuer: APPLE_ISSUER,
-      requiredClaims: ['sub', 'iat', 'exp', 'nonce'],
+      ...options,
     })
-    // Both are public digests; timingSafeEqual would throw on another length.
-    if (payload.nonce !== nonceDigest) return { ok: false, reason: 'invalid' }
-    return { claims: payload as IDToken, ok: true }
+    return { ok: true, payload }
   } catch (thrown) {
-    return { ok: false, reason: thrown instanceof JwksUnavailable ? 'unavailable' : 'invalid' }
+    return {
+      ok: false,
+      reason: thrown instanceof JwksUnavailable ? 'unavailable' : 'invalid',
+      signed: thrown instanceof errors.JWTClaimValidationFailed || thrown instanceof errors.JWTExpired,
+    }
   }
 }

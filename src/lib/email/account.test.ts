@@ -1,12 +1,13 @@
 /** The account mails by content: the code in the reauth subject, the action or methods named, German in German. */
 import { describe, expect, it } from 'vitest'
-import { accountDeleted, alreadyHasAccount, ownershipHandedOver, reauthCode } from './account'
+import { accountDeleted, alreadyHasAccount, appleRemoved, ownershipHandedOver, reauthCode } from './account'
 import type { EmailContent, EmailLocale } from './shell'
 
 const methods = { hasPassword: true, providers: ['email' as const, 'google' as const] }
 const render: Record<string, (locale: EmailLocale) => EmailContent> = {
   accountDeleted: (locale) => accountDeleted({ locale, methods }),
   alreadyHasAccount: (locale) => alreadyHasAccount({ forgotPasswordUrl: 'https://x.test/f', locale, methods }),
+  appleRemoved: (locale) => appleRemoved({ locale, methods }),
   ownershipHandedOver: (locale) => ownershipHandedOver({ locale, methods, owner: 'Kim', region: 'Elbsandstein' }),
   reauthCode: (locale) => reauthCode({ action: 'region.delete', code: '042917', locale, methods }),
 }

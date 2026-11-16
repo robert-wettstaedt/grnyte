@@ -32,6 +32,13 @@
   // The answered row collapses on refresh, so focus is put back on its trigger instead of `<body>`.
   let summaries = $state<Record<number, HTMLButtonElement | undefined>>({})
 
+  /** The toast for a reply that is done: sent, or closed with nobody or no working address to mail. */
+  const replyTitle = (outcome: object) => {
+    if ('noRecipient' in outcome) return m.feedback_replyNoRecipient()
+    if ('undeliverable' in outcome) return m.feedback_replyUndeliverable()
+    return m.feedback_replySent()
+  }
+
   // The draft, or the stored text of a reply whose mail failed, which survives a reload.
   const send = async (id: number, draft: string) => {
     const reply = draft.trim()
@@ -45,11 +52,11 @@
       // An undelivered reply reopens the row, so the draft stays for another try.
       // A deleted author's report closes with nobody to mail, which is done, not a failed send.
       const outcome = await replyToFeedback({ id, reply })
-      const done = outcome.delivered || 'noRecipient' in outcome
+      const done = outcome.delivered || 'noRecipient' in outcome || 'undeliverable' in outcome
       if (done) {
         drafts = { ...drafts, [id]: '' }
       }
-      const doneTitle = 'noRecipient' in outcome ? m.feedback_replyNoRecipient() : m.feedback_replySent()
+      const doneTitle = replyTitle(outcome)
       notifySend(done, doneTitle, m.feedback_replyNoMail())
       await feedback.refresh()
 

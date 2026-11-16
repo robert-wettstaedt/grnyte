@@ -108,7 +108,7 @@ export const sha256hex = (value: string): string => createHash('sha256').update(
 /** The provider sees this; Supabase gets the raw value and compares `hex(sha256(raw))` itself. */
 export const providerNonce = (raw: string): string => sha256hex(raw)
 
-const APPLE_REVOKE_TIMEOUT_MS = 5000
+const APPLE_TIMEOUT_MS = 5000
 
 /** An ES256 JWT minted per request from the `.p8` key, so nothing ever needs rotating. */
 export async function appleClientSecret(clientId: string): Promise<string> {
@@ -125,25 +125,28 @@ export async function appleClientSecret(clientId: string): Promise<string> {
     .sign(key)
 }
 
-/** Ends grnyte's access to the Apple ID behind `refreshToken`; false on any non-200 or a timeout. */
-export async function revokeAppleToken(refreshToken: string, clientId: string): Promise<boolean> {
+/** A client-authenticated form POST to Apple's `/auth/<path>`; null when it throws or times out. */
+export async function postAppleToken(
+  path: 'revoke' | 'token',
+  clientId: string,
+  params: Record<string, string>,
+): Promise<null | Response> {
   try {
-    const body = new URLSearchParams({
-      client_id: clientId,
-      client_secret: await appleClientSecret(clientId),
-      token: refreshToken,
-      token_type_hint: 'refresh_token',
-    })
-    const response = await providerHttp.fetch(`${ISSUERS.apple}/auth/revoke`, {
-      body,
+    return await providerHttp.fetch(`${ISSUERS.apple}/auth/${path}`, {
+      body: new URLSearchParams({ client_id: clientId, client_secret: await appleClientSecret(clientId), ...params }),
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       method: 'POST',
       redirect: 'manual',
-      signal: AbortSignal.timeout(APPLE_REVOKE_TIMEOUT_MS),
+      signal: AbortSignal.timeout(APPLE_TIMEOUT_MS),
     })
-    return response.status === 200
   } catch (cause) {
-    console.warn('[oauth] apple revoke failed:', cause)
-    return false
+    console.warn(`[oauth] apple ${path} failed:`, cause)
+    return null
   }
+}
+
+/** Ends grnyte's access to the Apple ID behind `refreshToken`; false on any non-200 or a timeout. */
+export async function revokeAppleToken(refreshToken: string, clientId: string): Promise<boolean> {
+  const response = await postAppleToken('revoke', clientId, { token: refreshToken, token_type_hint: 'refresh_token' })
+  return response?.status === 200
 }

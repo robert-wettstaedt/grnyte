@@ -29,7 +29,8 @@
   </header>
 
   <main class="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:py-14">
-    <div class="prose dark:prose-invert max-w-none">
+    <!-- A German compound can outgrow a 375px heading line: the page's &shy; places the break, this only guards. -->
+    <div class="prose dark:prose-invert prose-headings:break-words max-w-none">
       {@render children()}
     </div>
   </main>

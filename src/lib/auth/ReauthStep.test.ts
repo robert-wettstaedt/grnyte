@@ -241,3 +241,47 @@ it('names the address before and after sending, and submits the code with no Con
   expect(screen.getByText('It works for 10 minutes.')).toBeTruthy()
   expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull()
 })
+
+describe('when Apple forwards no mail to the address', () => {
+  const refused = (key: 'auth_mailUndeliverable' | 'auth_mailUndeliverableSupport') => ({
+    body: { message: formError(key) },
+    status: 400,
+  })
+  const appleNow = () => screen.queryByRole('button', { name: 'Confirm with Apple' })
+  // The promise to mail a code would contradict the refusal below it.
+  const hint = () => screen.queryByText(/We’ll email a 6-digit code/)
+
+  it('says no code can arrive beside "Confirm with Apple"', async () => {
+    methods.apple = true
+    remote.requestReauthCode.mockRejectedValueOnce(refused('auth_mailUndeliverable'))
+    mount()
+    await settle()
+
+    await fireEvent.click(sendCode()!)
+    await settle()
+
+    expect(screen.getByText(/We cannot mail you a code: mail forwarding for your address is turned off/)).toBeTruthy()
+    expect(appleNow()).toBeTruthy()
+    expect(hint()).toBeNull()
+
+    // Pressing again clears the refusal while the request runs; the hint must not jump back above the buttons.
+    remote.requestReauthCode.mockReturnValueOnce(new Promise(() => {}))
+    await fireEvent.click(sendCode()!)
+    await settle()
+    expect(hint()).toBeNull()
+  })
+
+  it('points to support, with no Apple to offer', async () => {
+    methods.apple = false
+    remote.requestReauthCode.mockRejectedValueOnce(refused('auth_mailUndeliverableSupport'))
+    mount()
+    await settle()
+
+    await fireEvent.click(screen.getByRole('button', { name: 'require' }))
+    await settle()
+
+    expect(screen.getByText(/send us a message through Feedback/)).toBeTruthy()
+    expect(appleNow()).toBeNull()
+    expect(hint()).toBeNull()
+  })
+})

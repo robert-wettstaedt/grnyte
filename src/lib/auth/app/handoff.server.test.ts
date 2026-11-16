@@ -15,7 +15,14 @@ import {
   type Account,
   type GoTrueCall,
 } from '$lib/auth/oauth/goTrue.fixture'
-import { fakeIssuer, PROVIDER_ENV, publicJwk, RAW_NONCE, signIdToken } from '$lib/auth/oauth/issuer.fixture'
+import {
+  fakeIssuer,
+  PROVIDER_ENV,
+  publicJwk,
+  RAW_NONCE,
+  signIdToken,
+  signWithIssuerKey,
+} from '$lib/auth/oauth/issuer.fixture'
 import { reachable, sql } from '$lib/db/testDb'
 import type { RequestEvent } from '@sveltejs/kit'
 import { createLocalJWKSet, decodeJwt, generateKeyPair, SignJWT } from 'jose'
@@ -58,6 +65,7 @@ const { POST: nativeEndpoint } = await import('../../../routes/api/app/v1/oauth/
 const { POST: linkEndpoint } = await import('../../../routes/api/app/v1/identities/link/apple/+server')
 const { POST: reauthStartEndpoint } = await import('../../../routes/api/app/v1/reauth/apple/start/+server')
 const { POST: reauthConfirmEndpoint } = await import('../../../routes/api/app/v1/reauth/apple/confirm/+server')
+const { POST: appleNotification } = await import('../../../routes/api/webhooks/apple/sign-in/+server')
 
 let gotrue: GoTrueCall[] = []
 let issuer: ReturnType<typeof fakeIssuer>
@@ -883,6 +891,60 @@ describe.skipIf(!reachable)('native Apple', () => {
       expect(issuer.revocations).toEqual([])
       expect(await eventCount('apple_revoked')).toBe(0)
       expect(await handoffFailed('apple_code_mismatch')).toBe(1)
+    })
+
+    describe("Apple's notification after grnyte's own revocation", () => {
+      /** The real event log for this test: the handler reads grnyte's own revocation from it. */
+      beforeEach(async () => {
+        const actual = await vi.importActual<typeof import('$lib/auth/events.server')>('$lib/auth/events.server')
+        recorded.mockImplementation(actual.recordAuthEvent)
+      })
+
+      const outcome = async (id: string) =>
+        (
+          await sql<{ outcome: string }[]>`
+            select detail->>'outcome' as outcome from public.auth_events
+            where auth_user_fk = ${id} and kind = 'apple_notification'`
+        ).map((row) => row.outcome)
+
+      const postRevocation = async (sub: string, type: string) => {
+        const now = Math.floor(Date.now() / 1000)
+        const payload = await signWithIssuerKey({
+          aud: PROVIDER_ENV.APPLE_SERVICES_ID,
+          events: JSON.stringify({ event_time: now + 1, sub, type }),
+          iat: now,
+          iss: 'https://appleid.apple.com',
+        })
+        const request = new Request('https://grnyte.example/api/webhooks/apple/sign-in', {
+          body: JSON.stringify({ payload }),
+          method: 'POST',
+        })
+        return (await appleNotification({ request } as never)).status
+      }
+
+      it.each([
+        ['answered', 200],
+        ['refused, or its answer lost', 400],
+      ])('changes nothing when Apple sends consent-revoked once grnyte started removing Apple (%s)', async (_c, at) => {
+        const who = await appleAccount()
+        issuer.issue({ sub: who.sub })
+        issuer.revoke.answer = () => at
+        await confirmFlow(who, { action: 'identity.unlink', target: 'apple' }, { authorizationCode: 'code-1' })
+
+        expect(await postRevocation(who.sub, 'consent-revoked')).toBe(200)
+
+        expect(await outcome(who.id)).toEqual(['own_revocation'])
+      })
+
+      it('changes nothing when Apple sends account-deleted once grnyte started revoking for a deletion', async () => {
+        const who = await appleAccount()
+        issuer.issue({ sub: who.sub })
+        await confirmFlow(who, { action: 'account.delete', target: 'self' }, { authorizationCode: 'code-1' })
+
+        expect(await postRevocation(who.sub, 'account-deleted')).toBe(200)
+
+        expect(await outcome(who.id)).toEqual(['own_revocation'])
+      })
     })
 
     it('records a failed revocation and still grants', async () => {

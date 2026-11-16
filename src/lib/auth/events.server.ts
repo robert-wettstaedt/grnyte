@@ -11,8 +11,11 @@ import { and, count, eq, gt, gte, sql } from 'drizzle-orm'
 export type AuthEventKind =
   | 'account_deleted'
   | 'alert_sent'
+  | 'apple_notification'
+  | 'apple_notification_invalid'
   | 'apple_revoke_failed'
   | 'apple_revoke_skipped'
+  | 'apple_revoke_started'
   | 'apple_revoked'
   | 'handoff_failed'
   | 'identity_linked'
@@ -30,6 +33,7 @@ const SPIKE = 20
 
 /** The failure kinds a spike alerts on; a kind added later stays quiet until listed here. */
 const FAILURES: ReadonlySet<AuthEventKind> = new Set([
+  'apple_notification_invalid',
   'handoff_failed',
   'oauth_iss_mismatch',
   'oauth_link_refused',
@@ -39,11 +43,18 @@ const FAILURES: ReadonlySet<AuthEventKind> = new Set([
   'reauth_failed',
 ])
 
-/** Whether Apple's token was revoked for exactly this action and target in the last 10 minutes. */
-export async function hasRecentAppleRevocation(
+/** GoTrue's `over_email_send_rate_limit` on one of grnyte's sends: the same stable message as Resend's quota. */
+export async function noteMailRefusal(error: { code?: string; name?: string }): Promise<void> {
+  const name = error.code ?? error.name ?? 'unknown'
+  await logServerFailure('email', `mail quota exhausted (${name})`)
+  await recordAuthEvent('mail_quota', { detail: { name } })
+}
+
+/** Whether the account has a `kind` event in the last 10 minutes, for exactly this action and target when given. */
+export async function recentAppleEvent(
   authUserId: string,
-  action: ReauthAction,
-  target: string,
+  kind: AuthEventKind,
+  filter?: { action: ReauthAction; target: string },
 ): Promise<boolean> {
   const found = await pinnedTx((tx) =>
     tx
@@ -52,21 +63,15 @@ export async function hasRecentAppleRevocation(
       .where(
         and(
           eq(authEvents.authUserFk, authUserId),
-          eq(authEvents.kind, 'apple_revoked'),
-          sql`${authEvents.detail}->>'action' = ${action} and ${authEvents.detail}->>'target' = ${target}`,
+          eq(authEvents.kind, kind),
+          filter &&
+            sql`${authEvents.detail}->>'action' = ${filter.action} and ${authEvents.detail}->>'target' = ${filter.target}`,
           gt(authEvents.createdAt, sql`now() - interval '10 minutes'`),
         ),
       )
       .limit(1),
   )
   return found.length > 0
-}
-
-/** GoTrue's `over_email_send_rate_limit` on one of grnyte's sends: the same stable message as Resend's quota. */
-export async function noteMailRefusal(error: { code?: string; name?: string }): Promise<void> {
-  const name = error.code ?? error.name ?? 'unknown'
-  await logServerFailure('email', `mail quota exhausted (${name})`)
-  await recordAuthEvent('mail_quota', { detail: { name } })
 }
 
 /** Never throws: the request that caused the event is already done. */

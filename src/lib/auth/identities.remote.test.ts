@@ -1,7 +1,7 @@
 import { reachable, sql } from '$lib/db/testDb'
 import { asRequest, commandRefusal } from '$lib/remote/testHarness'
 import { afterAll, describe, expect, it, vi } from 'vitest'
-import { signInMethodsQuery, unlinkProvider } from './identities.remote'
+import { mailForwardingQuery, signInMethodsQuery, unlinkProvider } from './identities.remote'
 import { sessionCaller, writeGrant } from './reauth.server'
 
 // The session client a test passes in stands for the caller's GoTrue client (`callerAuthServer`).
@@ -139,10 +139,36 @@ describe.skipIf(!reachable)('signInMethodsQuery', () => {
   })
 })
 
+describe.skipIf(!reachable)('mailForwardingQuery', () => {
+  // Its lookup fails open inside `notForwarding`, which `suppression.server.test.ts` drives.
+  it('always answers a row naming whether Apple is linked', async () => {
+    const id = await account('fwd', 'example.org', { apple: 'fwd@icloud.com' })
+    expect(await asRequest(id, () => mailForwardingQuery())).toEqual({ address: null, appleLinked: true, id })
+  })
+})
+
 describe.skipIf(!reachable)('unlinkProvider', () => {
   it('refuses the only identity', async () => {
     const id = await account('only', 'example.org', { google: 'only@example.org' })
     const { supabase } = sessionClient(['google'])
+
+    expect(await commandRefusal(() => asRequest(id, confirmedUnlink('google'), supabase))).toBe(
+      'settings_signInMethodsLastMethod',
+    )
+  })
+
+  it('says the last way in, not a service outage, when another removal won the race and GoTrue was refused', async () => {
+    const id = await account('race', 'example.org', { apple: 'race@icloud.com', google: 'race@example.org' })
+    // The other device's Apple removal commits while this one is at GoTrue, whose delete the floor then refuses.
+    const { supabase } = sessionClient(['apple', 'google'], {
+      afterUnlink: () =>
+        sql.begin(async (tx) => {
+          await tx`select set_config('grnyte.auth_user_created', ${id}, true)`
+          await tx`delete from auth.identities where user_id = ${id} and provider = 'apple'`
+        }),
+      failUnlink: true,
+      goneAfterFailure: false,
+    })
 
     expect(await commandRefusal(() => asRequest(id, confirmedUnlink('google'), supabase))).toBe(
       'settings_signInMethodsLastMethod',

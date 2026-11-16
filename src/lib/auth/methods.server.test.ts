@@ -29,11 +29,18 @@ describe.skipIf(!reachable)('signInMethods', () => {
   it('answers a password-only account', async () => {
     expect(await signInMethods(await account('email', '$2a$10$hash'))).toEqual({
       hasPassword: true,
+      identities: 1,
       providers: ['email'],
+      relinks: [],
     })
   })
 
   it('answers a Google account without a password', async () => {
-    expect(await signInMethods(await account('google', null))).toEqual({ hasPassword: false, providers: ['google'] })
+    expect(await signInMethods(await account('google', null))).toEqual({
+      hasPassword: false,
+      identities: 1,
+      providers: ['google'],
+      relinks: [],
+    })
   })
 })

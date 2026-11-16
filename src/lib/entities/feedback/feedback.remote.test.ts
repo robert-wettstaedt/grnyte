@@ -79,6 +79,15 @@ describe.skipIf(!reachable)('replyToFeedback', () => {
     expect(await rowNow()).toEqual({ reply: 'done', status: 'closed' })
   })
 
+  it("tells the admin when the author's address receives no mail, and keeps the row closed", async () => {
+    vi.mocked(sendEmailOutcome).mockResolvedValueOnce('suppressed')
+
+    const reply = await asRequest(admin.authId, () => replyToFeedback({ id: feedbackId, reply: 'noted' }))
+
+    expect(reply).toEqual({ delivered: false, undeliverable: true })
+    expect(await rowNow()).toEqual({ reply: 'noted', status: 'closed' })
+  })
+
   it('closes a report whose author deleted their account, with no mail to send', async () => {
     await sql`update public.feedback set created_by = null where id = ${feedbackId}`
 

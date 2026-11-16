@@ -18,6 +18,8 @@ vi.mock('$lib/logging/failure.server', () => ({
   },
 }))
 vi.mock('$lib/auth/events.server', () => ({ recordAuthEvent: async () => {} }))
+// No database here: every address still forwards (`suppression.server.test.ts` covers the rest).
+vi.mock('$lib/auth/mailForwarding.server', () => ({ notForwarding: async () => new Set() }))
 vi.mock('./shell', () => ({ renderEmailHtml: () => '', renderEmailText: () => '' }))
 // Set here, not inherited: an unset key answers `failed` before the client is ever asked.
 vi.mock('$env/static/private', () => ({ RESEND_API_KEY: 're_test', RESEND_SENDER_EMAIL: 'from@example.test' }))

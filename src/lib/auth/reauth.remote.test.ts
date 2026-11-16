@@ -6,7 +6,7 @@ import { reauthGrantStatus, requestReauthCode } from './reauth.remote'
 import { sessionCaller, writeGrant } from './reauth.server'
 
 const mailed = vi.hoisted(() => ({ count: 0 }))
-vi.mock('$lib/email/send.server', () => ({ sendEmail: async () => ++mailed.count > 0 }))
+vi.mock('$lib/email/send.server', () => ({ sendEmailOutcome: async () => (++mailed.count > 0 ? 'sent' : 'failed') }))
 
 let user: SeedUser
 
