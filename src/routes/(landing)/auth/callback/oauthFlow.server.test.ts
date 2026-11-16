@@ -43,7 +43,8 @@ const { GET: appleCallback, POST: applePost } = await import('./apple/+server')
 const { dispatchIntent } = await import('$lib/auth/oauth/flow.server')
 const { supabaseAuthServer } = await import('$lib/auth/authServer.server')
 const { verifyAccessToken } = await import('$lib/auth/verify.server')
-const { writeGrant } = await import('$lib/auth/reauth.server')
+const { spendGrant, writeGrant } = await import('$lib/auth/reauth.server')
+const { pinnedTx } = await import('$lib/db/pinned.server')
 
 interface GoTrueCall {
   body: Record<string, unknown>
@@ -52,6 +53,9 @@ interface GoTrueCall {
 }
 
 let gotrue: GoTrueCall[] = []
+/** GoTrue refuses the user lookup `setSession` makes, so no cookie session can be written. */
+let refuseUser = false
+const LAST_METHOD = 'grnyte-last-method'
 let issuer: ReturnType<typeof fakeIssuer>
 /** The account GoTrue answers every call with; a refresh answers it without the contested flag. */
 let account: { app_metadata: Record<string, unknown>; id: string }
@@ -67,6 +71,7 @@ const accessToken = (user: typeof account, sessionId: string = crypto.randomUUID
 
 beforeEach(() => {
   gotrue = []
+  refuseUser = false
   issuer = fakeIssuer()
   nonce.fixed = undefined
   account = { app_metadata: {}, id: crypto.randomUUID() }
@@ -79,6 +84,7 @@ beforeEach(() => {
     gotrue.push({ body, headers: request.headers, url })
     if (url.searchParams.get('grant_type') === 'refresh_token') account = { ...account, app_metadata: {} }
     const user = { aud: 'authenticated', email: 'new@example.test', role: 'authenticated', ...account }
+    if (url.pathname === '/auth/v1/user' && refuseUser) return Response.json({ code: 'bad_jwt' }, { status: 401 })
     if (url.pathname === '/auth/v1/user' || url.pathname.startsWith('/auth/v1/admin/')) return Response.json(user)
     return Response.json({
       access_token: await accessToken(account),
@@ -161,9 +167,19 @@ const uniqueEmail = (label: string) => `__oauth_${label}_${crypto.randomUUID().s
 const eventCount = async (kind: string) =>
   (await sql<{ n: number }[]>`select count(*)::int as n from public.auth_events where kind = ${kind}`)[0].n
 
+const reasonOf = (landed: string) => new URL(landed, ORIGIN).searchParams.get('reason')
+
+/** The access token of the session the cookie jar holds. */
+async function cookieAccessToken(b: Browser) {
+  const after = createServerClient(SUPABASE, 'sb_publishable_test', {
+    cookies: { getAll: () => b.jar.cookies.getAll(), setAll: () => {} },
+  })
+  return (await after.auth.getSession()).data.session?.access_token
+}
+
 /** Landed on the error page with `reason`, and one more `kind` event recorded. */
 async function expectRecorded(landed: string, reason: string, kind: string, before: number) {
-  expect(new URL(landed, ORIGIN).searchParams.get('reason')).toBe(reason)
+  expect(reasonOf(landed)).toBe(reason)
   expect(await eventCount(kind)).toBe(before + 1)
 }
 
@@ -214,11 +230,17 @@ describe.skipIf(!reachable)('the Google round trip', () => {
     expect(idToken.headers.get('apikey')).toBe(SECRET)
     expect(idToken.headers.has('authorization')).toBe(false)
 
-    const after = createServerClient(SUPABASE, 'sb_publishable_test', {
-      cookies: { getAll: () => b.jar.cookies.getAll(), setAll: () => {} },
-    })
-    const { data } = await after.auth.getSession()
-    expect(decodeJwt(data.session?.access_token ?? '').sub).toBe(account.id)
+    expect(decodeJwt((await cookieAccessToken(b)) ?? '').sub).toBe(account.id)
+    expect(b.jar.values.get(LAST_METHOD)).toBe('google')
+  })
+
+  it('remembers no method when the session cannot be written', async () => {
+    issuer.issue({ email: uniqueEmail('unwritten'), sub: `sub-${crypto.randomUUID()}` })
+    refuseUser = true
+    const b = browser()
+
+    expect(reasonOf((await signIn(b, 'google')).landed)).toBe('failed')
+    expect(b.jar.values.has(LAST_METHOD)).toBe(false)
   })
 
   it('refuses a deletion-marked account: its session ends, no cookie, back to sign-in', async () => {
@@ -246,11 +268,7 @@ describe.skipIf(!reachable)('the Google round trip', () => {
     const b = browser()
 
     expect((await signIn(b, 'google')).landed).toBe('/explore')
-    const after = createServerClient(SUPABASE, 'sb_publishable_test', {
-      cookies: { getAll: () => b.jar.cookies.getAll(), setAll: () => {} },
-    })
-    const { data } = await after.auth.getSession()
-    expect((await verifyAccessToken(data.session?.access_token)).ok).toBe(true)
+    expect((await verifyAccessToken(await cookieAccessToken(b))).ok).toBe(true)
   })
 
   it('sends redirectUri as the token request redirect_uri, even on another host', async () => {
@@ -435,40 +453,53 @@ describe('dispatchIntent', () => {
   )
 })
 
+const made: string[] = []
+afterEach(async () => {
+  if (made.length > 0) await sql`delete from auth.users where id = any(${made.splice(0)})`
+})
+
+/** A confirmed account; `session()` signs it in on a fresh live session, as the hook verifies it. */
+async function confirmedAccount(email = uniqueEmail('linker')) {
+  const [{ id }] = await sql<{ id: string }[]>`
+    insert into auth.users (id, email, email_confirmed_at) values (gen_random_uuid(), ${email}, now()) returning id`
+  made.push(id)
+  const session = async () => {
+    const [row] = await sql<{ id: string }[]>`insert into auth.sessions (user_id) values (${id}) returning id`
+    const verified = await verifyAccessToken(await accessToken({ app_metadata: {}, id }, row.id))
+    if (!verified.ok) throw new Error(`token did not verify: ${verified.reason}`)
+    return verified.token
+  }
+  return { email, id, session }
+}
+
+const callerOf = (token: VerifiedToken) => ({ authUserId: token.claims.sub, sessionId: token.claims.session_id! })
+
+/** Answers the provider's redirect for `authorizeUrl` with `answer` on its callback. */
+function answerOn(b: Browser, provider: 'apple' | 'google', authorizeUrl: URL, answer: Record<string, string> = {}) {
+  const query = new URLSearchParams({ code: 'c', state: authorizeUrl.searchParams.get('state') ?? '', ...answer })
+  const callback = provider === 'google' ? googleCallback : appleCallback
+  return locationOf(() => callback(b.event('GET', `/auth/callback/${provider}?${query}`)))
+}
+
+/** Presses a settings or re-auth button: the start runs in Kit's request store, as `reauthCaller` needs. */
+function startSignedIn(b: Browser, provider: 'apple' | 'google', form: Record<string, string>) {
+  const event: RequestEvent = b.event('POST', `/auth/oauth/${provider}`, form)
+  return locationOf(() => with_request_store({ event, state: {} } as never, () => start(event as never)))
+}
+
 describe.skipIf(!reachable)('linking from settings', () => {
-  const made: string[] = []
-  afterEach(async () => {
-    await sql`delete from auth.users where id = any(${made.splice(0)})`
-  })
+  /** Presses "Add Google" in settings. */
+  const startLink = (b: Browser, form: Record<string, string> = {}) =>
+    startSignedIn(b, 'google', { intent: 'link', ...form })
 
-  /** A confirmed account; `session()` signs it in on a fresh live session, as the hook verifies it. */
-  async function confirmedAccount(email = uniqueEmail('linker')) {
-    const [{ id }] = await sql<{ id: string }[]>`
-      insert into auth.users (id, email, email_confirmed_at) values (gen_random_uuid(), ${email}, now()) returning id`
-    made.push(id)
-    const session = async () => {
-      const [row] = await sql<{ id: string }[]>`insert into auth.sessions (user_id) values (${id}) returning id`
-      const verified = await verifyAccessToken(await accessToken({ app_metadata: {}, id }, row.id))
-      if (!verified.ok) throw new Error(`token did not verify: ${verified.reason}`)
-      return verified.token
-    }
-    return { email, id, session }
-  }
-
-  const callerOf = (token: VerifiedToken) => ({ authUserId: token.claims.sub, sessionId: token.claims.session_id! })
-
-  /** Presses "Add Google" in settings: the start runs in Kit's request store, as `reauthCaller` needs. */
-  async function startLink(b: Browser, form: Record<string, string> = {}) {
-    const event: RequestEvent = b.event('POST', '/auth/oauth/google', { intent: 'link', ...form })
-    return locationOf(() => with_request_store({ event, state: {} } as never, () => start(event as never)))
-  }
-
-  async function link(b: Browser) {
+  /** Starts a link the fake issuer will answer; the provider's authorize URL. */
+  async function startRemembered(b: Browser) {
     const authorizeUrl = new URL(await startLink(b))
     issuer.rememberNonce(authorizeUrl.searchParams.get('nonce'))
-    const query = new URLSearchParams({ code: 'code-1', state: authorizeUrl.searchParams.get('state') ?? '' })
-    return locationOf(() => googleCallback(b.event('GET', `/auth/callback/google?${query}`)))
+    return authorizeUrl
   }
+
+  const link = async (b: Browser) => answerOn(b, 'google', await startRemembered(b))
 
   const linkCalls = () => gotrue.filter(({ body }) => body.link_identity === true)
 
@@ -484,9 +515,8 @@ describe.skipIf(!reachable)('linking from settings', () => {
     await writeGrant(callerOf(token), 'identity.link', 'google', 'email_code')
     const b = browser(ORIGIN, token)
     const authorizeUrl = new URL(await startLink(b, { returnTo: 'https://evil.example' }))
-    const query = new URLSearchParams({ error: 'access_denied', state: authorizeUrl.searchParams.get('state') ?? '' })
 
-    expect(await locationOf(() => googleCallback(b.event('GET', `/auth/callback/google?${query}`)))).toBe(
+    expect(await answerOn(b, 'google', authorizeUrl, { error: 'access_denied' })).toBe(
       '/settings/sign-in-methods?step=add-google',
     )
   })
@@ -500,7 +530,8 @@ describe.skipIf(!reachable)('linking from settings', () => {
     nonce.fixed = RAW_NONCE
     const before = await eventCount('identity_linked')
 
-    expect(await link(browser(ORIGIN, token))).toBe('/settings/sign-in-methods?step=add-google&linked=google')
+    const b = browser(ORIGIN, token)
+    expect(await link(b)).toBe('/settings/sign-in-methods?step=add-google&linked=google')
     const [call] = linkCalls()
     expect(call.headers.get('authorization')).toBe(`Bearer ${token.accessToken}`)
     expect(call.headers.get('apikey')).toBe(SECRET)
@@ -512,6 +543,7 @@ describe.skipIf(!reachable)('linking from settings', () => {
       { target: `google:${sub}` },
     ])
     expect(await eventCount('identity_linked')).toBe(before + 1)
+    expect(b.jar.written.map(({ name }) => name)).not.toContain(LAST_METHOD)
   })
 
   it('refuses an identity already on another account, recording it, with no GoTrue link', async () => {
@@ -548,13 +580,11 @@ describe.skipIf(!reachable)('linking from settings', () => {
     await writeGrant(callerOf(token), 'identity.link', 'google', 'email_code')
     issuer.issue({ email: uniqueEmail('switched'), sub: `sub-${crypto.randomUUID()}` })
     const b = browser(ORIGIN, token)
-    const authorizeUrl = new URL(await startLink(b))
-    issuer.rememberNonce(authorizeUrl.searchParams.get('nonce'))
+    const authorizeUrl = await startRemembered(b)
     b.as.token = await session()
-    const query = new URLSearchParams({ code: 'c', state: authorizeUrl.searchParams.get('state') ?? '' })
 
-    const landed = await locationOf(() => googleCallback(b.event('GET', `/auth/callback/google?${query}`)))
-    expect(new URL(landed, ORIGIN).searchParams.get('reason')).toBe('expired')
+    const landed = await answerOn(b, 'google', authorizeUrl)
+    expect(reasonOf(landed)).toBe('expired')
     expect(linkCalls()).toEqual([])
   })
 
@@ -563,13 +593,163 @@ describe.skipIf(!reachable)('linking from settings', () => {
     await writeGrant(callerOf(token), 'identity.link', 'google', 'email_code')
     issuer.issue({ email: uniqueEmail('revoked'), sub: `sub-${crypto.randomUUID()}` })
     const b = browser(ORIGIN, token)
-    const authorizeUrl = new URL(await startLink(b))
-    issuer.rememberNonce(authorizeUrl.searchParams.get('nonce'))
+    const authorizeUrl = await startRemembered(b)
     await sql`delete from auth.sessions where id = ${token.claims.session_id!}`
-    const query = new URLSearchParams({ code: 'c', state: authorizeUrl.searchParams.get('state') ?? '' })
 
-    const landed = await locationOf(() => googleCallback(b.event('GET', `/auth/callback/google?${query}`)))
-    expect(new URL(landed, ORIGIN).searchParams.get('reason')).toBe('expired')
+    const landed = await answerOn(b, 'google', authorizeUrl)
+    expect(reasonOf(landed)).toBe('expired')
     expect(linkCalls()).toEqual([])
+  })
+})
+
+describe.skipIf(!reachable)('confirming with Apple', () => {
+  /** An account with Apple linked as `sub`, signed in on a live session. */
+  async function appleAccount(sub = `apple-${crypto.randomUUID()}`) {
+    const account = await confirmedAccount(uniqueEmail('confirmer'))
+    await sql.begin(async (tx) => {
+      await tx`select set_config('grnyte.auth_user_created', ${account.id}, true)`
+      await tx`insert into auth.identities (user_id, provider, provider_id, identity_data)
+        values (${account.id}, 'apple', ${sub}, ${tx.json({ email: account.email })})`
+    })
+    return { ...account, sub, token: await account.session() }
+  }
+
+  /** Presses "Confirm with Apple" for `action` on `target`. */
+  async function startConfirm(b: Browser, form: Record<string, string>) {
+    const authorizeUrl = new URL(await startSignedIn(b, 'apple', { intent: 'confirm', ...form }))
+    issuer.rememberNonce(authorizeUrl.searchParams.get('nonce'))
+    return authorizeUrl
+  }
+
+  /** Confirms with an Apple ID token for `sub`; where the callback landed. */
+  async function confirm(b: Browser, form: Record<string, string>, sub: string) {
+    const authorizeUrl = await startConfirm(b, form)
+    issuer.issue({ sub })
+    return answerOn(b, 'apple', authorizeUrl)
+  }
+
+  const grants = (id: string) =>
+    sql<{ action: string; method: string; target: string }[]>`
+      select action, method, target from public.reauth_grants where auth_user_fk = ${id}`
+  const regionDelete = { action: 'region.delete', returnTo: '/regions/1/delete', target: '1' }
+
+  it('starts nothing for an account without Apple, back to the screen', async () => {
+    const b = browser(ORIGIN, await (await confirmedAccount()).session())
+
+    expect(await startSignedIn(b, 'apple', { intent: 'confirm', ...regionDelete })).toBe('/regions/1/delete')
+    expect(b.jar.written).toEqual([])
+  })
+
+  it('starts for identity.link on a bare provider only', async () => {
+    const b = browser(ORIGIN, (await appleAccount()).token)
+    const form = { action: 'identity.link', intent: 'confirm' }
+
+    await expect(startSignedIn(b, 'apple', { ...form, target: 'google:123' })).rejects.toMatchObject({ status: 400 })
+    expect(b.jar.written).toEqual([])
+    expect(await startSignedIn(b, 'apple', { ...form, target: 'google' })).toMatch(/^https:\/\/appleid\.apple\.com\//)
+  })
+
+  it.each([
+    ['https://evil.example', '/settings'],
+    ['//evil.example', '/settings'],
+    ['/regions/1/delete', '/regions/1/delete'],
+  ])('cancels a posted returnTo of %j to %j', async (returnTo, landed) => {
+    const b = browser(ORIGIN, (await appleAccount()).token)
+    const authorizeUrl = await startConfirm(b, { ...regionDelete, returnTo })
+
+    expect(await answerOn(b, 'apple', authorizeUrl, { error: 'user_cancelled_authorize' })).toBe(landed)
+  })
+
+  it('grants exactly the sealed action and target, by Apple, and revokes nothing for it', async () => {
+    const { id, sub, token } = await appleAccount()
+
+    const b = browser(ORIGIN, token)
+    expect(await confirm(b, regionDelete, sub)).toBe('/regions/1/delete')
+    expect(b.jar.values.has(LAST_METHOD)).toBe(false)
+    expect(await grants(id)).toEqual([{ action: 'region.delete', method: 'apple', target: '1' }])
+    expect(await pinnedTx((tx) => spendGrant(tx, callerOf(token), 'region.delete', '2'))).toBe(false)
+    expect(await grants(id)).toHaveLength(1)
+    expect(issuer.revocations).toEqual([])
+  })
+
+  it('refuses another Apple ID, recording it, with no grant', async () => {
+    const { id, token } = await appleAccount()
+    const before = await eventCount('oauth_sub_mismatch')
+
+    await expectRecorded(
+      await confirm(browser(ORIGIN, token), regionDelete, 'someone-else'),
+      'failed',
+      'oauth_sub_mismatch',
+      before,
+    )
+    expect(await grants(id)).toEqual([])
+  })
+
+  it('writes no grant from another session of the same account', async () => {
+    const { id, session, sub, token } = await appleAccount()
+    const b = browser(ORIGIN, token)
+    const authorizeUrl = await startConfirm(b, regionDelete)
+    issuer.issue({ sub })
+    b.as.token = await session()
+
+    expect(reasonOf(await answerOn(b, 'apple', authorizeUrl))).toBe('expired')
+    expect(await grants(id)).toEqual([])
+  })
+
+  it('writes no grant when the session was revoked after the start', async () => {
+    const { id, sub, token } = await appleAccount()
+    const b = browser(ORIGIN, token)
+    const authorizeUrl = await startConfirm(b, regionDelete)
+    issuer.issue({ sub })
+    await sql`delete from auth.sessions where id = ${token.claims.session_id!}`
+
+    expect(reasonOf(await answerOn(b, 'apple', authorizeUrl))).toBe('expired')
+    expect(await grants(id)).toEqual([])
+  })
+
+  it.each([
+    ['account.delete', 'self'],
+    ['identity.unlink', 'apple'],
+  ])('revokes Apple before granting %s, and records it', async (action, sent) => {
+    const { id, sub, token } = await appleAccount()
+    const target = sent === 'self' ? id : sent
+    let grantedAtRevoke: number | undefined
+    issuer.revoke.answer = async () => {
+      grantedAtRevoke = (await grants(id)).length
+      return 200
+    }
+
+    await confirm(browser(ORIGIN, token), { action, returnTo: '/settings', target: sent }, sub)
+
+    expect(issuer.revocations.map((body) => body.get('token'))).toEqual(['apple-refresh'])
+    expect(grantedAtRevoke).toBe(0)
+    expect(await grants(id)).toEqual([{ action, method: 'apple', target }])
+    expect(
+      await sql`select detail from public.auth_events where auth_user_fk = ${id} and kind = 'apple_revoked'`,
+    ).toEqual([{ detail: { action, provider: 'apple', target } }])
+  })
+
+  it('records a failed revocation and still grants', async () => {
+    const { id, sub, token } = await appleAccount()
+    issuer.revoke.answer = () => 400
+
+    await confirm(browser(ORIGIN, token), { action: 'account.delete', returnTo: '/settings', target: 'self' }, sub)
+
+    expect(
+      await sql`select 1 from public.auth_events where auth_user_fk = ${id} and kind = 'apple_revoke_failed'`,
+    ).toHaveLength(1)
+    expect(await grants(id)).toHaveLength(1)
+  })
+
+  it('lands a confirmation 10 min 1 s late on expired, whose action leads back to the screen', async () => {
+    const { token } = await appleAccount()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const b = browser(ORIGIN, token)
+    const authorizeUrl = await startConfirm(b, regionDelete)
+    vi.setSystemTime(Date.now() + 601_000)
+
+    expect(await answerOn(b, 'apple', authorizeUrl)).toBe(
+      '/auth/error?from=%2Fregions%2F1%2Fdelete&intent=confirm&reason=expired',
+    )
   })
 })

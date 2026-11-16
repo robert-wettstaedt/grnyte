@@ -115,3 +115,36 @@ describe('appleClientSecret', () => {
     }
   })
 })
+
+describe('revokeAppleToken', () => {
+  /** Installs a stub Apple answering `answer`; returns what it was sent. */
+  async function stubbed(answer: () => Promise<Response>) {
+    const module = await providers()
+    const sent: { body: URLSearchParams; url: string }[] = []
+    module.providerHttp.fetch = async (url, options) => {
+      sent.push({ body: new URLSearchParams(String(options.body)), url })
+      return answer()
+    }
+    return { revoke: module.revokeAppleToken, sent }
+  }
+
+  it('posts the refresh token with its hint and a client secret for the given client', async () => {
+    const { revoke, sent } = await stubbed(async () => new Response(null, { status: 200 }))
+
+    expect(await revoke('apple-refresh', 'rocks.grnyte.app')).toBe(true)
+    expect(sent[0].url).toBe('https://appleid.apple.com/auth/revoke')
+    expect(Object.fromEntries(sent[0].body)).toMatchObject({
+      client_id: 'rocks.grnyte.app',
+      token: 'apple-refresh',
+      token_type_hint: 'refresh_token',
+    })
+    const { payload } = await jwtVerify(sent[0].body.get('client_secret')!, appleKey.publicKey)
+    expect(payload.sub).toBe('rocks.grnyte.app')
+  })
+
+  it('answers false on a non-200 and on a timeout', async () => {
+    expect(await (await stubbed(async () => new Response(null, { status: 400 }))).revoke('t', 'c')).toBe(false)
+    const timedOut = await stubbed(() => Promise.reject(new DOMException('timed out', 'TimeoutError')))
+    expect(await timedOut.revoke('t', 'c')).toBe(false)
+  })
+})

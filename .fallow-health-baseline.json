@@ -835,11 +835,6 @@
         "count": 1
       }
     },
-    "src/routes/(landing)/invite/accept/+page.svelte": {
-      "crap_moderate": {
-        "count": 1
-      }
-    },
     "src/routes/f/[id]/+page.server.ts": {
       "complexity_critical": {
         "count": 1

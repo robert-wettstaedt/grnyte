@@ -166,6 +166,19 @@ function appPath(raw: null | string | undefined): null | string {
 const SIGN_IN_SCREENS: Record<string, 'signin' | 'signup'> = { '/auth/signin': 'signin', '/auth/signup': 'signup' }
 
 /**
+ * A link between the auth screens' steps, carrying `url`'s query (`next`, `email`) with `method=email`
+ * set or dropped. A sign-in left with no query gets `form=signin`, so the installed app's fork never catches it.
+ */
+export function authStepHref(url: URL, path: '/auth/signin' | '/auth/signup', email: boolean): string {
+  const query = new URLSearchParams(url.search)
+  if (email) query.set('method', 'email')
+  else query.delete('method')
+  if (path === '/auth/signin' && query.toString() === '') query.set('form', 'signin')
+  const search = query.toString()
+  return search === '' ? path : `${path}?${search}`
+}
+
+/**
  * Where a provider sign-in cancels to and "Try again" leads, decided from one path and the intent,
  * at the start and again wherever it is read back. Client-safe: the error page runs it.
  */

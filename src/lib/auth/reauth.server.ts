@@ -1,5 +1,5 @@
 import { getRequestEvent } from '$app/server'
-import { CODE_LIFETIME_MS, type ReauthAction } from '$lib/auth'
+import { CODE_LIFETIME_MS, IDENTITY_TARGETS, type ReauthAction } from '$lib/auth'
 import { pinnedTx } from '$lib/db/pinned.server'
 import type * as schema from '$lib/db/schema'
 import { reauthChallenges, reauthGrants } from '$lib/db/serverOnly'
@@ -31,6 +31,12 @@ const CODE_KEY = labelledKey('reauth-code')
 const hash = (challengeId: string, code: string) =>
   createHmac('sha256', CODE_KEY).update(`${challengeId}:${code}`).digest()
 
+/** The account's own actions target the caller, whatever the page sent (it sends `self`); 400 for an identity target that is not a bare provider. */
+export function boundTarget(caller: ReauthCaller, action: ReauthAction, target: string): string {
+  if (action.startsWith('identity.') && !(IDENTITY_TARGETS as readonly string[]).includes(target)) error(400)
+  return action === 'account.delete' || action === 'password.change' ? caller.authUserId : target
+}
+
 /** {@link sessionCaller}, once {@link requireLiveSession} found the session still live. */
 export async function reauthCaller(): Promise<ReauthCaller> {
   const caller = sessionCaller()
@@ -58,7 +64,7 @@ const key = (
     eq(table.target, target),
   )
 
-type GrantMethod = 'email_code'
+type GrantMethod = 'apple' | 'email_code'
 
 /**
  * Mails a fresh code, voiding the previous one for this action and target. `limited` after 5 mails

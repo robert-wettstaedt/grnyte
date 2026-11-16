@@ -255,6 +255,54 @@ naming both versions when the hosted one differs from the pin. When it does:
 Until then the hosted project runs code tested against the old release: treat the failures as
 live bugs.
 
+### Sign in with Apple and Google
+
+grnyte runs each provider's code flow on its own server (`src/lib/auth/oauth/`) and reads six
+variables from `$env/dynamic/private`: `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`,
+`APPLE_SERVICES_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (`deployment/SECRETS.md`), plus
+`PUBLIC_ORIGIN`, which builds the one return URL per provider. A provider with any variable empty,
+or a request on another origin, is not offered. Web and the later app share the return URL:
+
+- `https://<PUBLIC_ORIGIN>/auth/callback/apple` (Apple posts it, `response_mode=form_post`)
+- `https://<PUBLIC_ORIGIN>/auth/callback/google`
+
+**Apple.** Enroll in the Apple Developer Program as an Individual. Under Certificates, IDs &
+Profiles: an App ID with Sign in with Apple enabled (primary); a Services ID, whose identifier is
+`APPLE_SERVICES_ID`, with Sign in with Apple configured on that App ID, the origin's domain and the
+return URL above (add the ngrok domain and its return URL for local tests); a key with Sign in with
+Apple enabled, whose ID is `APPLE_KEY_ID` and whose downloaded `.p8` contents are
+`APPLE_PRIVATE_KEY` (Apple shows it once). `APPLE_TEAM_ID` is the membership's Team ID. The app
+mints a 5-minute client secret per exchange; GoTrue needs no Apple secret (if the hosted dashboard
+demands one to enable the provider, mint a 6-month one once and let it lapse).
+
+**Apple private relay.** Under Sign in with Apple for Email Communication, register the From
+domain of `RESEND_SENDER_EMAIL` and Resend's Return-Path subdomain (the `send.` domain in Resend's
+DNS records), each passing SPF; until then mail to `@privaterelay.appleid.com` addresses bounces.
+
+**Google.** In a Google Cloud project: the OAuth consent screen (External, app name grnyte, support
+address, logo, the origin as authorized domain, links to `/legal/privacy` and `/legal/terms`,
+scopes `openid` and `email`), then request brand verification so the consent screen shows the name
+and logo. An OAuth client of type Web application with the Google return URL above as authorized
+redirect URI (and the ngrok one for local tests): its ID is `GOOGLE_CLIENT_ID`, its secret
+`GOOGLE_CLIENT_SECRET`.
+
+**GoTrue.** The provider rows of the table above: both enabled for ID tokens, the web client first
+in each client ID list (the app's bundle IDs follow it), nonce check on, manual linking and the
+identity notices on. `npm run check:prod` asserts these and that the deployed `/auth/signin` offers
+both buttons.
+
+**ngrok for local Apple.** Apple accepts only https return URLs on a registered domain, and Kit
+checks the `form_post`'s origin only in a built server. Reserve an ngrok static domain
+(`<name>.ngrok-free.app`, allowed in `vite.config.ts`), register its return URLs as above, then:
+
+```bash
+PUBLIC_ORIGIN=https://<name>.ngrok-free.app npm run build   # static, so it moves the build's mail links too
+npx vite preview --port 4173
+ngrok http --url=<name>.ngrok-free.app 4173
+```
+
+Never test the Apple return under `npm run dev`, where Kit checks no origin.
+
 ### Migrating hosted databases only at release
 
 Hosted projects are migrated with `npm run migrate` from the merged branch at release, never from a

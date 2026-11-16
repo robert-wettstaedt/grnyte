@@ -278,8 +278,17 @@ One sign-in on one browser or installed app: an auth session (`auth.sessions`) i
 "device" ("Sign out other devices", "This device"), never "session", which means a climbing visit.
 
 **sign-in method**
-A way an account can sign in: `email` (a password) today, a social provider later
-(`signInMethods`). Mails that name how to get back in list these.
+A way an account can sign in: `email` (a password), Apple or Google (`signInMethods`). Mails that
+name how to get back in list these. The settings screen is "Sign-in methods".
+
+**sign-in provider**
+Apple or Google as a **sign-in method** (`OAuthProvider`, `src/lib/auth/oauth/`). Not the video host
+behind `videos/provider.server.ts`, which the code also calls a provider. Copy names the brand
+("Continue with Apple"), never "provider".
+
+**link**, **unlink**
+Adding a **sign-in provider** to an account, or removing it (`identity.link`, `unlinkProvider`). The
+code's terms only: copy says "Add" and "Remove", never "Link" or "Unlink".
 
 **re-authentication**
 Proving it is still you before a sensitive action (password, email, account deletion, region

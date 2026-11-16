@@ -1,4 +1,11 @@
-import { confirmWithCode, reauthRemote, resetReauthRemote, submitNeedingConfirmation } from '$lib/auth/reauth.fixture'
+import {
+  appleButton,
+  confirmWithCode,
+  methods,
+  reauthRemote,
+  resetReauthRemote,
+  submitNeedingConfirmation,
+} from '$lib/auth/reauth.fixture'
 import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
 import { fireEvent, render, screen } from '@testing-library/svelte'
@@ -33,6 +40,7 @@ vi.mock('$lib/entities/region/resources.svelte', () => ({
 const command = vi.hoisted(() => vi.fn(async (_: unknown) => {}))
 vi.mock('$lib/entities/region/regions.remote', () => ({ transferRegionOwnershipCommand: command }))
 vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
+vi.mock('$lib/auth/identities.remote', async () => (await import('$lib/auth/reauth.fixture')).identitiesRemote)
 vi.mock('$lib/state/navigation.svelte', async (original) => ({ ...(await original<object>()), exit: vi.fn() }))
 vi.mock('$lib/state/global.svelte', () => ({ getGlobalState: () => ({ user: { id: 7 }, userRegions: [] }) }))
 
@@ -57,6 +65,28 @@ it('hands nothing over on a correct code, only on the submit', async () => {
   await fireEvent.click(submitButton())
   await settle()
   expect(command).toHaveBeenCalledWith({ regionFk: 1, userFk: 8 })
+})
+
+it.each([
+  [true, true],
+  [false, false],
+])('offers Confirm with Apple only to an Apple-linked account (%s)', async (linked, shown) => {
+  state.recipient = 8
+  methods.apple = linked
+  render(Page)
+  await settle()
+
+  expect(appleButton() != null).toBe(shown)
+})
+
+it('settles with no alternative when the sign-in methods cannot be read', async () => {
+  state.recipient = 8
+  methods.failed = true
+  render(Page)
+  await settle()
+
+  expect(screen.getByRole('button', { name: 'Send code' })).toBeTruthy()
+  expect(appleButton()).toBeNull()
 })
 
 it('opens code entry when the handover answers that it needs a confirmation', async () => {

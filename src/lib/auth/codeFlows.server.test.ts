@@ -6,7 +6,7 @@ import { sessionCaller, writeGrant } from '$lib/auth/reauth.server'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { sql } from '$lib/db/testDb'
 import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
-import { asAnonymousRequest, callForm, withLocals } from '$lib/remote/testHarness'
+import { asAnonymousRequest, callForm, commandRefusal, withLocals } from '$lib/remote/testHarness'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { confirmEmailChangeCode, updateEmailCommand } from '../../routes/(app)/settings/account.remote'
@@ -51,12 +51,6 @@ const signUpSolved = async (email: string, password: string) =>
       }),
     )
   ).result
-const refusalOf = (run: () => Promise<unknown>) =>
-  run().then(
-    () => undefined,
-    (cause: { body?: { message: string } }) => JSON.parse(cause.body?.message ?? '{}').message as string,
-  )
-
 /** Sets the password as a code session and checks the session came from a code. */
 async function choosePassword(client: SupabaseClient, password: string) {
   const { amr, run } = await setPasswordAs(client, password)
@@ -76,7 +70,7 @@ async function setPasswordAs(client: SupabaseClient, password: string) {
 
 const guessWrong = async (email: string) => {
   for (let i = 0; i < 5; i++) {
-    await refusalOf(() => anonymous(publicClient(), () => confirmSignupCode({ code: '00000000', email })))
+    await commandRefusal(() => anonymous(publicClient(), () => confirmSignupCode({ code: '00000000', email })))
   }
 }
 
@@ -171,7 +165,7 @@ describe.skipIf(!gotrueReachable)('mailed codes on GoTrue', { timeout: 20_000 },
 
     const byPassword = publicClient()
     await byPassword.auth.signInWithPassword({ email, password: STRANGER })
-    expect(await refusalOf(async () => (await setPasswordAs(byPassword, OWNER)).run)).toBe('auth_codeExpired')
+    expect(await commandRefusal(async () => (await setPasswordAs(byPassword, OWNER)).run)).toBe('auth_codeExpired')
   })
 
   it('refuses a code session whose otp entry is 11 minutes old', async () => {
@@ -179,9 +173,9 @@ describe.skipIf(!gotrueReachable)('mailed codes on GoTrue', { timeout: 20_000 },
       amr: [{ method: 'otp', timestamp: Math.floor(Date.now() / 1000) - 11 * 60 }],
       sub: crypto.randomUUID(),
     }
-    expect(await refusalOf(() => withLocals({ claims, supabase: {} }, () => setNewPassword({ password: OWNER })))).toBe(
-      'auth_codeExpired',
-    )
+    expect(
+      await commandRefusal(() => withLocals({ claims, supabase: {} }, () => setNewPassword({ password: OWNER }))),
+    ).toBe('auth_codeExpired')
   })
 
   it('lets five wrong codes reach GoTrue, then refuses the sixth try without asking it, even with the right code', async () => {
@@ -193,17 +187,17 @@ describe.skipIf(!gotrueReachable)('mailed codes on GoTrue', { timeout: 20_000 },
     const asked = () => verifies.mock.calls.filter(([url]) => String(url).includes('/auth/v1/verify')).length
 
     for (let i = 0; i < 5; i++) {
-      expect(await refusalOf(() => anonymous(publicClient(), () => confirmSignupCode({ code: wrong, email })))).toBe(
-        'auth_codeWrong',
-      )
+      expect(
+        await commandRefusal(() => anonymous(publicClient(), () => confirmSignupCode({ code: wrong, email }))),
+      ).toBe('auth_codeWrong')
     }
     expect(asked()).toBe(5)
-    expect(await refusalOf(() => anonymous(publicClient(), () => confirmSignupCode({ code, email })))).toBe(
+    expect(await commandRefusal(() => anonymous(publicClient(), () => confirmSignupCode({ code, email })))).toBe(
       'auth_codeLocked',
     )
     expect(asked()).toBe(5)
     // The sign-up code also guards an unconfirmed address's reset, which verifies the same code.
-    expect(await refusalOf(() => anonymous(publicClient(), () => confirmResetCode({ code, email })))).toBe(
+    expect(await commandRefusal(() => anonymous(publicClient(), () => confirmResetCode({ code, email })))).toBe(
       'auth_codeLocked',
     )
     verifies.mockRestore()
@@ -234,7 +228,7 @@ describe.skipIf(!gotrueReachable)('mailed codes on GoTrue', { timeout: 20_000 },
     // Inside GoTrue's 60 seconds per address: refused, so the old code and its count stand.
     expect((await resend()).issues).toHaveLength(1)
     const code = await codeFor(email)
-    expect(await refusalOf(() => anonymous(publicClient(), () => confirmSignupCode({ code, email })))).toBe(
+    expect(await commandRefusal(() => anonymous(publicClient(), () => confirmSignupCode({ code, email })))).toBe(
       'auth_codeLocked',
     )
 
@@ -302,7 +296,7 @@ describe.skipIf(!gotrueReachable)('mailed codes on GoTrue', { timeout: 20_000 },
 
     expect(await confirm(await codeFor(target, seenNew), target)).toEqual({ step: 'next' })
     expect(await addressOf(id)).toBe(email)
-    expect(await refusalOf(() => confirm(first, email))).toBe('auth_codeWrong')
+    expect(await commandRefusal(() => confirm(first, email))).toBe('auth_codeWrong')
     expect(await confirm(await codeFor(email, seenOld), email)).toEqual({ step: 'done' })
     expect(await addressOf(id)).toBe(target)
   })

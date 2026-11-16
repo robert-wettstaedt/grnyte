@@ -24,7 +24,6 @@
   import { notifyError } from '$lib/state/toast'
   import { legalLinks } from '../../(landing)/legal/links'
   import SettingSelect from './SettingSelect.svelte'
-  import SignedInDevices from './SignedInDevices.svelte'
   import ThemeSwitch from './ThemeSwitch.svelte'
 
   const global = getGlobalState()
@@ -139,7 +138,7 @@
     <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
       <SettingLink href={resolve('/settings/username')} label={m.auth_username()} value={global.user?.username} />
       <SettingLink href={resolve('/settings/email')} label={m.auth_email()} value={email} />
-      <SettingLink href={resolve('/settings/password')} label={m.auth_password()} value="••••••••" />
+      <SettingLink href={resolve('/settings/sign-in-methods')} label={m.settings_signInMethods()} />
       <SettingLink href={resolve('/settings/account/delete')} label={m.settings_deleteAccount()} />
     </div>
   </SettingSection>
@@ -290,6 +289,4 @@
     <Icon name="log-out" size={18} />
     {m.settings_signOut()}
   </button>
-
-  <SignedInDevices />
 </div>

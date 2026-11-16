@@ -34,12 +34,17 @@ function methodList({ locale, methods }: AccountEmailInput): string {
 
 const notMe = (input: AccountEmailInput) => m.email_notMe({ methods: methodList(input) }, { locale: input.locale })
 
-export function accountDeleted(input: AccountEmailInput): EmailContent {
+/** `appleRevoked`: Apple confirmed the deletion and its token was revoked (design decision 7). */
+export function accountDeleted(input: AccountEmailInput & { appleRevoked?: boolean }): EmailContent {
   const at = { locale: input.locale }
   const subject = m.email_accountDeletedSubject({}, at)
   const methods = methodList(input)
   return {
-    body: [m.email_accountDeletedBody1({ methods }, at), m.email_accountDeletedBody2({}, at)],
+    body: [
+      m.email_accountDeletedBody1({ methods }, at),
+      ...(input.appleRevoked === true ? [m.email_accountDeletedAppleRevoked({}, at)] : []),
+      m.email_accountDeletedBody2({}, at),
+    ],
     footerReason: 'account',
     footnote: m.email_accountDeletedNotMe({ methods }, at),
     meta: m.email_accountDeletedMeta({}, at),

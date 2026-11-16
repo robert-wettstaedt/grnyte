@@ -36,6 +36,15 @@ describe('account mails', () => {
     expect(render[name]('en').footnote).toContain('Google')
   })
 
+  it.each(['en', 'de'] as const)(
+    'adds the Apple revocation line to the deletion mail only when told (%s)',
+    (locale) => {
+      const line = { de: 'von deiner Apple-ID getrennt', en: 'disconnected grnyte from your Apple ID' }[locale]
+      expect(accountDeleted({ appleRevoked: true, locale, methods }).body.join(' ')).toContain(line)
+      expect(accountDeleted({ locale, methods }).body.join(' ')).not.toContain(line)
+    },
+  )
+
   it('names region and new owner in the handover mail', () => {
     expect(render.ownershipHandedOver('en').body[0]).toMatch(/Elbsandstein.*Kim/)
   })

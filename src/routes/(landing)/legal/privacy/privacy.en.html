@@ -203,6 +203,21 @@
   and section 7 says how long it lives.
 </p>
 
+<h3>2.10 Signing in with Apple or Google</h3>
+<p>
+  If you choose "Continue with Apple" or "Continue with Google", your browser goes to Apple or Google, you sign in
+  there, and they send {name} a signed token about you. How Apple and Google handle your data while you sign in with
+  them is their own decision: for that step each is an independent controller under its own privacy policy, not my
+  processor. The token carries an identifier that stays the same for you at that provider, your email address (with
+  Apple, possibly a private relay address that forwards to yours), whether the provider verified that address, and
+  technical details such as who issued the token, for which app and when. The authentication service in section 5 stores
+  the identifier, the address and those token details as a sign-in identity on your account. I ask for nothing else: no
+  name, no contacts, no photos. The legal basis is the one for your account in section 4. You can remove Apple or Google
+  under Settings, Sign-in methods, which deletes that identity, and deleting your account deletes all of them. When you
+  remove Apple, or delete an account that has Apple, after confirming with Apple, {name} also asks Apple to end its
+  access.
+</p>
+
 <h2>3. Photos, videos and EXIF metadata</h2>
 
 <p>A photograph carries more than the picture. This section covers the metadata inside an uploaded file.</p>
@@ -467,6 +482,12 @@
   than from the restricted zone.
 </p>
 
+<p>
+  Signing in with Apple or Google sends your browser to Apple Inc. or Google LLC in the United States, both certified
+  under the EU-U.S. Data Privacy Framework. That happens only when you choose it, and for that step they act as
+  independent controllers (section 2.10). What comes back to {name} stays with the processors above.
+</p>
+
 <h2>7. How long I keep your data</h2>
 
 <p>Your data lives as long as your account does: delete the account and the account data goes with it.</p>
@@ -551,7 +572,7 @@
 <ul>
   <li>
     <strong>Access, Article 15:</strong>
-    a copy of the data I hold about you
+    a copy of the data I hold about you, the Apple or Google sign-in identities on your account included
   </li>
   <li>
     <strong>Rectification, Article 16:</strong>
@@ -598,17 +619,22 @@
 
 <h2>9. What is stored on your device</h2>
 
-<p>{name} stores four things in your browser, and each one exists to make the app work:</p>
+<p>{name} stores five things in your browser, and each one exists to make the app work:</p>
 
 <ul>
   <li>an authentication session, so you stay signed in between visits</li>
+  <li>
+    two sign-in cookies: one holding a sign-in with Apple or Google while it is under way, for at most 10 minutes and
+    deleted when you return, and one remembering how you last signed in (Apple, Google or email, nothing else) for up to
+    400 days, so the sign-in screen can mark it
+  </li>
   <li>your preferences, such as language, units and display choices</li>
   <li>a service worker, the code that lets the app run without a connection</li>
   <li>an offline cache, holding the content you have already opened</li>
 </ul>
 
 <p>
-  All four are strictly necessary to deliver the service you asked for. Section 25(2) Nr. 2 of the
+  All five are strictly necessary to deliver the service you asked for. Section 25(2) Nr. 2 of the
   Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz (TDDDG) exempts that storage from consent, which is why you see
   no cookie banner here. There is nothing to consent to.
 </p>

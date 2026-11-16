@@ -7,6 +7,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
+  import { toDisplayName } from '$lib/entities/displayName'
   import { acceptPath } from '$lib/entities/region/paths'
   import { acceptRegionInvitation } from '$lib/entities/region/regions.remote'
   import { resolveErrorMessage } from '$lib/forms/issue'
@@ -31,6 +32,13 @@
   const token = $derived(page.url.searchParams.get('token') ?? '')
   const region = $derived(data.regionName ?? '')
   const inviter = $derived(data.inviter ?? PUBLIC_APPLICATION_NAME)
+  const mismatch = $derived.by(() => {
+    const current = data.sessionEmail ?? ''
+    const email = data.inviteEmail ?? ''
+    return data.inviter == null
+      ? m.invite_addressMismatchNoInviter({ current, email, region: toDisplayName(region) })
+      : m.invite_addressMismatch({ current, email, inviter: data.inviter })
+  })
 
   // Sign up and sign in carry the invited address, because the invitation is keyed on it and a
   // mismatched signup silently orphans the invitation, plus `next` so signing in lands back here
@@ -207,7 +215,7 @@
     {:else if data.state === 'wrongAccount'}
       <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.invite_title()}</h1>
       <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">
-        {m.invite_wrongAccount({ current: data.sessionEmail ?? '', email: data.inviteEmail ?? '' })}
+        {mismatch}
       </p>
 
       <form class="flex flex-col" {...leave}>

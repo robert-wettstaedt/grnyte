@@ -141,6 +141,67 @@ describe('a session ended on another device', () => {
   })
 })
 
+describe('with "Confirm with Apple" as the alternative', () => {
+  const apple = () => screen.queryByRole('button', { name: 'Confirm with Apple' })
+  let submitted: HTMLFormElement[] = []
+  beforeEach(() => {
+    submitted = []
+    vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(function (this: HTMLFormElement) {
+      submitted.push(this)
+    })
+  })
+
+  it('shows it above "Send code" in the settled render, and mails nothing', async () => {
+    mount({ apple: true })
+    await settle()
+
+    expect(apple()).toBeTruthy()
+    expect(apple()!.compareDocumentPosition(sendCode()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(remote.requestReauthCode).not.toHaveBeenCalled()
+  })
+
+  it('require() goes back to the choice and mails nothing until "Send code", then confirms without running anything', async () => {
+    remote.reauthGrantStatus.mockImplementation(async () => true)
+    mount({ apple: true })
+    await settle()
+    await fireEvent.click(screen.getByRole('button', { name: 'require' }))
+    await settle()
+
+    expect(confirmed()).toBe('false')
+    expect(apple()).toBeTruthy()
+    expect(remote.requestReauthCode).not.toHaveBeenCalled()
+    await fireEvent.click(sendCode()!)
+    await settle()
+    await enterCode('654321')
+
+    expect(confirmed()).toBe('true')
+    expect(onformsubmit).not.toHaveBeenCalled()
+  })
+
+  it('posts a form of its own to the Apple start, once, and holds both buttons', async () => {
+    mount({ apple: true })
+    await settle()
+    await fireEvent.click(apple()!)
+    await fireEvent.click(apple()!)
+    await settle()
+
+    expect(submitted).toHaveLength(1)
+    const [form] = submitted
+    expect(form.method).toBe('post')
+    expect(new URL(form.action).pathname).toBe('/auth/oauth/apple')
+    expect(form.parentElement).toBe(document.body)
+    expect(Object.fromEntries(new FormData(form))).toEqual({
+      action: 'region.delete',
+      intent: 'confirm',
+      returnTo: '/regions/1/delete',
+      target: '1',
+    })
+    expect(apple()!.hasAttribute('disabled')).toBe(true)
+    expect(sendCode()!.hasAttribute('disabled')).toBe(true)
+    expect(onformsubmit).not.toHaveBeenCalled()
+  })
+})
+
 it('names the address before and after sending, and submits the code with no Continue', async () => {
   mount()
   await settle()

@@ -3,9 +3,9 @@ import { isContested, signedInRedirectTarget, type VerifiedToken } from '$lib/au
 import { supabaseAuthServer, supabaseAuthServerAs, type AuthServer } from '$lib/auth/authServer.server'
 import { clearContestedFlag } from '$lib/auth/contested.server'
 import { recordAuthEvent, type AuthEventKind } from '$lib/auth/events.server'
+import { rememberMethod } from '$lib/auth/lastMethod.server'
+import { signInMethods } from '$lib/auth/methods.server'
 import { bindLinkGrant, hasGrant, type ReauthCaller } from '$lib/auth/reauth.server'
-import { isSessionLive } from '$lib/auth/session.server'
-import { db } from '$lib/db/db.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { hasDeletionMarker } from '$lib/entities/user/provision.server'
 import { getLocale } from '$lib/paraglide/runtime'
@@ -20,7 +20,7 @@ import {
   randomPKCECodeVerifier,
   randomState,
 } from 'openid-client'
-import { decideLink, decideSignIn } from './linking.server'
+import { acceptAppleConfirmation, decideLink, decideSignIn, isStartingCaller } from './linking.server'
 import {
   authorizationParams,
   configuredProviders,
@@ -88,6 +88,10 @@ export async function startOAuth(
   if (intent.kind === 'signin' && event.locals.claims != null) redirect(303, signedInRedirectTarget(next))
   // Back to the step, which asks to confirm first.
   if (intent.kind === 'link' && !(await hasGrant(intent.caller, 'identity.link', provider))) redirect(303, returnTo)
+  // Without Apple there is nothing to confirm with; the screen still offers the code.
+  if (intent.kind === 'confirm' && !(await signInMethods(intent.caller.authUserId)).providers.includes('apple')) {
+    redirect(303, returnTo)
+  }
 
   const tx: OAuthTransaction = {
     carrier: 'web',
@@ -146,14 +150,24 @@ export async function dispatchIntent(
   tx: OAuthTransaction,
   proof: VerifiedProof,
 ): Promise<OAuthOutcome> {
-  const { intent, provider } = tx
-  if (intent.kind !== 'signin') {
-    if (ctx.verifiedToken == null) return EXPIRED
-    if (intent.kind === 'link') return link(ctx.event, ctx.verifiedToken, intent.caller, tx.provider, proof)
-    // shortcut: confirm lands with change 2's slice (e); until then it refuses.
-    return { kind: 'refused', reason: 'failed' }
-  }
+  const { intent } = tx
+  if (intent.kind === 'signin') return signIn(ctx, tx.provider, proof)
+  if (ctx.verifiedToken == null) return EXPIRED
+  if (intent.kind === 'link') return link(ctx.event, ctx.verifiedToken, intent.caller, tx.provider, proof)
+  const { action, caller, target } = intent
+  const answer = await acceptAppleConfirmation(
+    ctx.verifiedToken,
+    caller,
+    action,
+    target,
+    proof.claims,
+    proof.refreshToken,
+  )
+  return answer === 'granted' ? { kind: 'confirmed' } : answer === 'expired' ? EXPIRED : FAILED
+}
 
+/** Signs in through `decideSignIn`, refusing a deletion-marked account. */
+async function signIn(ctx: DispatchContext, provider: OAuthProvider, proof: VerifiedProof): Promise<OAuthOutcome> {
   const decision = await decideSignIn(provider, {
     email: proof.claims.email as string | undefined,
     sub: proof.claims.sub,
@@ -169,29 +183,33 @@ export async function dispatchIntent(
   })
   if (error != null || data.session == null) {
     console.warn(`[oauth] ${provider} signInWithIdToken refused:`, error?.code ?? error?.message)
-    return { kind: 'refused', reason: 'failed' }
+    return FAILED
   }
   const { session, user } = data
-  const endSession = () => supabaseAdmin().auth.admin.signOut(session.access_token, 'local')
   if (await hasDeletionMarker(user.id)) {
-    await endSession()
+    await endSession(session)
     return { kind: 'refused', reason: 'deleted' }
   }
-  if (!isContested(user.app_metadata)) return { kind: 'signedIn', session }
+  return isContested(user.app_metadata) ? takeOver(ctx, user.id, session) : { kind: 'signedIn', session }
+}
 
-  // GoTrue just took the unconfirmed account over; its token still carries the flag `verifyAccessToken` refuses.
-  const cleared = await clearContestedFlag(user.id)
+const endSession = (session: Session) => supabaseAdmin().auth.admin.signOut(session.access_token, 'local')
+
+/** GoTrue just took the unconfirmed account over; its token still carries the flag `verifyAccessToken` refuses. */
+async function takeOver(ctx: DispatchContext, authUserId: string, session: Session): Promise<OAuthOutcome> {
+  const cleared = await clearContestedFlag(authUserId)
   const refreshed =
     cleared.error == null ? await ctx.authServer.refreshSession({ refresh_token: session.refresh_token }) : undefined
   if (refreshed?.data.session == null) {
     console.warn(`[oauth] contested take-over failed:`, (cleared.error ?? refreshed?.error)?.message)
-    await endSession()
-    return { kind: 'refused', reason: 'failed' }
+    await endSession(session)
+    return FAILED
   }
   return { kind: 'signedIn', session: refreshed.data.session }
 }
 
 const EXPIRED = { kind: 'refused', reason: 'expired' } as const
+const FAILED = { kind: 'refused', reason: 'failed' } as const
 
 /** The code grant; `openid-client` checks `state`, `iss`, `aud` and the nonce (design decision 4). */
 async function exchange(event: RequestEvent, tx: OAuthTransaction): Promise<CallbackResult> {
@@ -225,9 +243,7 @@ async function link(
   provider: OAuthProvider,
   proof: VerifiedProof,
 ): Promise<OAuthOutcome> {
-  const { claims } = token
-  if (claims.sub !== caller.authUserId || claims.session_id !== caller.sessionId) return EXPIRED
-  if (!(await isSessionLive(db, claims))) return EXPIRED
+  if (!(await isStartingCaller(token, caller))) return EXPIRED
 
   const decision = await decideLink(caller.authUserId, provider, {
     email: proof.claims.email as string | undefined,
@@ -241,7 +257,12 @@ async function link(
   }
   // Without this session's grant (none, or spent) the settings step asks to confirm again.
   if (!(await bindLinkGrant(caller, provider, proof.claims.sub))) return EXPIRED
+  if (!(await linkAtGoTrue(event, token, provider, proof))) return FAILED
+  await recordAuthEvent('identity_linked', { authUserId: caller.authUserId, detail: { provider } })
+  return { kind: 'linked' }
+}
 
+async function linkAtGoTrue(event: RequestEvent, token: VerifiedToken, provider: OAuthProvider, proof: VerifiedProof) {
   const { data, error } = await supabaseAuthServerAs(event, token).linkIdentity({
     nonce: proof.rawNonce,
     provider,
@@ -249,12 +270,11 @@ async function link(
   })
   if (error != null || data.session == null) {
     console.warn(`[oauth] ${provider} linkIdentity refused:`, error?.code ?? error?.message)
-    return { kind: 'refused', reason: 'failed' }
+    return false
   }
   // The ID-token link answers with a fresh session nobody holds; its refresh token would live on.
-  await supabaseAdmin().auth.admin.signOut(data.session.access_token, 'local')
-  await recordAuthEvent('identity_linked', { authUserId: caller.authUserId, detail: { provider } })
-  return { kind: 'linked' }
+  await endSession(data.session)
+  return true
 }
 
 const MISMATCHES: Record<string, AuthEventKind> = {
@@ -302,7 +322,9 @@ const webCarrier: TransactionCarrier = {
       redirect(303, outcome.reason === 'deleted' ? '/auth/signin?deleted=1' : errorPage(tx, outcome.reason))
     }
     const { error } = await locals.supabase.auth.setSession(outcome.session)
-    redirect(303, error == null ? signedInRedirectTarget(tx.next) : errorPage(tx, 'failed'))
+    if (error != null) redirect(303, errorPage(tx, 'failed'))
+    rememberMethod(event.cookies, tx.provider)
+    redirect(303, signedInRedirectTarget(tx.next))
   },
   take: (event) => takeWebTransaction(event),
 }

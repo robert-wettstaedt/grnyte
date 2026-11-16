@@ -1,60 +1,64 @@
-import '$lib/forms/screen.fixture'
+import { at } from '$lib/forms/page.fixture.svelte'
+import { settle } from '$lib/forms/screen.fixture'
 import { render, screen } from '@testing-library/svelte'
 import { beforeEach, expect, it, vi } from 'vitest'
 import SignIn from './signin/+page.svelte'
+import { signIn } from './signin/signin.remote'
 import SignUp from './signup/+page.svelte'
+import { signUp } from './signup/signup.remote'
 
-const at = vi.hoisted(() => ({ url: new URL('http://localhost/auth/signin') }))
-vi.mock('$app/state', () => ({ page: at }))
+vi.mock('$app/state', async () => ({ page: (await import('$lib/forms/page.fixture.svelte')).at }))
 vi.mock('$lib/state/navigation.svelte', () => ({ replaceUrl: vi.fn() }))
-
-/** A Kit remote form as the pages read it: attributes, fields, no result. */
-const fakeForm = vi.hoisted(() => () => {
-  const field = { as: (type: string) => ({ name: 'field', type }), issues: () => undefined }
-  const fields = new Proxy({ allIssues: () => [], set: () => {} } as Record<string, unknown>, {
-    get: (target, key: string) => target[key] ?? field,
-  })
-  // Only `action` and `method` enumerable: `<form {...signUp}>` spreads the rest away, as Kit's does.
-  return Object.defineProperties(
-    { action: '', method: 'POST' },
-    {
-      enhance: { value: () => ({ action: '', method: 'POST' }) },
-      fields: { value: fields },
-      pending: { value: 0 },
-      result: { value: undefined },
-    },
-  )
-})
-vi.mock('./signin/signin.remote', () => ({ signIn: fakeForm() }))
+vi.mock('./signin/signin.remote', async () => ({
+  signIn: (await import('$lib/forms/page.fixture.svelte')).fakeRemoteForm(),
+}))
 vi.mock('$lib/auth/password.remote', () => ({ setNewPassword: vi.fn() }))
-vi.mock('./signup/signup.remote', () => ({ resendSignupCode: fakeForm(), signUp: fakeForm() }))
+vi.mock('./signup/signup.remote', async () => {
+  const { fakeRemoteForm } = await import('$lib/forms/page.fixture.svelte')
+  return { resendSignupCode: fakeRemoteForm(), signUp: fakeRemoteForm() }
+})
 
 const INVITE = '?email=invitee%40example.test&next=%2Finvite%2Fabc'
-const link = (name: string) => screen.getByRole('link', { name }).getAttribute('href')
+const link = (name: string) => screen.getAllByRole('link', { name })[0].getAttribute('href')
+const choice = () => screen.queryByRole('button', { name: 'Continue with Apple' })
+const emailField = () => document.querySelector<HTMLInputElement>('input[type="email"]')
+const fake = (form: unknown) => form as ReturnType<typeof import('$lib/forms/page.fixture.svelte').fakeRemoteForm>
+
+/** Follows a link as Kit would: the URL changes, the page component stays. */
+async function follow(name: string) {
+  at.url = new URL(link(name)!, at.url)
+  await settle()
+}
+
+function visit(path: string, providers: string[] = [], lastUsed: null | string = null) {
+  at.url = new URL(`http://localhost${path}`)
+  at.data = { lastUsed, providers }
+}
 
 beforeEach(() => {
-  at.url = new URL('http://localhost/auth/signin')
+  visit('/auth/signin')
+  for (const form of [signIn, signUp]) fake(form).set.mockClear()
 })
 
 it('carries the invitation across both switch lines', () => {
-  at.url = new URL(`http://localhost/auth/signin${INVITE}`)
+  visit(`/auth/signin${INVITE}`)
   render(SignIn)
   expect(link('Create account')).toBe(`/auth/signup${INVITE}`)
 })
 
 it('carries the invitation back to sign-in, and lands a plain switch on the form', () => {
-  at.url = new URL(`http://localhost/auth/signup${INVITE}`)
+  visit(`/auth/signup${INVITE}`)
   const { unmount } = render(SignUp)
   expect(link('Sign in')).toBe(`/auth/signin${INVITE}`)
   unmount()
 
-  at.url = new URL('http://localhost/auth/signup')
+  visit('/auth/signup')
   render(SignUp)
   expect(link('Sign in')).toBe('/auth/signin?form=signin')
 })
 
 it('asks create account for one password with Show, and no username or repeat', () => {
-  at.url = new URL('http://localhost/auth/signup')
+  visit('/auth/signup')
   render(SignUp)
   expect(document.querySelectorAll('input[type="password"]')).toHaveLength(1)
   expect(screen.getByRole('button', { name: 'Show' })).toBeTruthy()
@@ -62,6 +66,7 @@ it('asks create account for one password with Show, and no username or repeat', 
 })
 
 it('renders the welcome fork on a bare sign-in only, hidden until the standalone rule shows it', () => {
+  visit('/auth/signin', ['apple', 'google'])
   render(SignIn)
   const fork = document.querySelector('.welcome-fork')!
   expect(fork.classList.contains('hidden')).toBe(true)
@@ -71,8 +76,107 @@ it('renders the welcome fork on a bare sign-in only, hidden until the standalone
 })
 
 it.each(['?form=signin', '?next=/x', '?deleted=1'])('shows the sign-in form and no fork for %s', (search) => {
-  at.url = new URL(`http://localhost/auth/signin${search}`)
+  visit(`/auth/signin${search}`)
   render(SignIn)
   expect(document.querySelector('.welcome-fork')).toBeNull()
   expect(document.querySelector('.signin-content form')).toBeTruthy()
+})
+
+it('opens on the choice with a provider, the title above it, and badges email on sign-in only', () => {
+  visit('/auth/signin?form=signin', ['apple', 'google'], 'email')
+  const { unmount } = render(SignIn)
+  expect(emailField()).toBeNull()
+  expect(screen.getByRole('heading').compareDocumentPosition(choice()!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  expect(choice()!.closest('.signin-content')).toBeTruthy()
+  expect(screen.getByRole('link', { name: 'Continue with email' }).getAttribute('aria-describedby')).toBeTruthy()
+  unmount()
+
+  visit('/auth/signup', ['apple', 'google'], 'email')
+  render(SignUp)
+  expect(screen.queryByText('Last used')).toBeNull()
+})
+
+it('hands an invitation to the provider forms and fills the email step', async () => {
+  visit(`/auth/signin${INVITE}`, ['apple', 'google'])
+  render(SignIn)
+  expect(document.querySelector<HTMLInputElement>('form[action="/auth/oauth/apple"] input[name="next"]')?.value).toBe(
+    '/invite/abc',
+  )
+
+  await follow('Continue with email')
+  expect(at.url.search).toBe(`${INVITE}&method=email`)
+  expect(fake(signIn).set).toHaveBeenLastCalledWith({ email: 'invitee@example.test' })
+  await follow('Other ways to sign in')
+  await follow('Continue with email')
+  expect(fake(signIn).set).toHaveBeenLastCalledWith({ email: 'invitee@example.test' })
+})
+
+it('moves focus into each step and back, in one container of one height', async () => {
+  visit('/auth/signin?form=signin', ['apple', 'google'])
+  render(SignIn)
+  const container = document.querySelector('.auth-steps')!
+
+  await follow('Continue with email')
+  expect(document.activeElement).toBe(emailField())
+  expect(document.querySelector('.auth-steps')).toBe(container)
+  expect(container.className).toContain('min-h-')
+
+  at.url = new URL('http://localhost/auth/signin?form=signin')
+  await settle()
+  expect(document.activeElement).toBe(choice())
+})
+
+it('shows the form at once without a provider, and on a no-JS submit URL', () => {
+  visit('/auth/signin?form=signin')
+  const { unmount } = render(SignIn)
+  expect(emailField()).toBeTruthy()
+  expect(screen.queryByRole('link', { name: 'Other ways to sign in' })).toBeNull()
+  unmount()
+
+  visit('/auth/signin?/remote=abc', ['apple', 'google'])
+  render(SignIn)
+  expect(emailField()).toBeTruthy()
+})
+
+it('shows the deletion message on the choice', () => {
+  visit('/auth/signin?deleted=1', ['apple', 'google'])
+  render(SignIn)
+  expect(screen.getByRole('alert').textContent).toContain('deleted')
+  expect(choice()).toBeTruthy()
+})
+
+it('opens create account on its choice from the sign-in email step, and sign-in on the form from create account', () => {
+  visit('/auth/signin?method=email', ['apple', 'google'])
+  const { unmount } = render(SignIn)
+  expect(link('Create account')).toBe('/auth/signup')
+  unmount()
+
+  visit('/auth/signup?method=email', ['apple', 'google'])
+  render(SignUp)
+  expect(link('Sign in')).toBe('/auth/signin?form=signin')
+})
+
+it('clears a failed sign-in on the way back, with the hint only when a provider exists', async () => {
+  visit('/auth/signin?method=email', ['apple', 'google'])
+  render(SignIn)
+  fake(signIn).fail('auth_invalidCredentials')
+  await settle()
+  expect(screen.getByText('Wrong email or password')).toBeTruthy()
+  expect(screen.getByText(/Signed up with Apple or Google/)).toBeTruthy()
+
+  await follow('Other ways to sign in')
+  expect(screen.queryByText('Wrong email or password')).toBeNull()
+  expect(choice()).toBeTruthy()
+  await follow('Continue with email')
+  expect(screen.queryByText('Wrong email or password')).toBeNull()
+  expect(fake(signIn).set).toHaveBeenLastCalledWith({})
+})
+
+it('gives no hint without a provider', async () => {
+  visit('/auth/signin?form=signin')
+  render(SignIn)
+  fake(signIn).fail('auth_invalidCredentials')
+  await settle()
+  expect(screen.getByText('Wrong email or password')).toBeTruthy()
+  expect(screen.queryByText(/Signed up with Apple or Google/)).toBeNull()
 })

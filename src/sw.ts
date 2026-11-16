@@ -181,6 +181,11 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     fetch(event.request).catch(async () => {
+      // A provider's return reached offline: the shell at the callback URL would render a 404.
+      const { pathname } = new URL(event.request.url)
+      if (pathname.startsWith('/auth/callback/') || pathname.startsWith('/auth/oauth/')) {
+        return Response.redirect(new URL('/auth/error?reason=offline', self.location.origin).href, 303)
+      }
       // By name, out of the precache, with no second copy behind it. A bare `caches.match` was
       // scanning every cache in creation order and answering from whichever held the shell first,
       // which worked only because a duplicate copy happened to exist; "works by cache creation

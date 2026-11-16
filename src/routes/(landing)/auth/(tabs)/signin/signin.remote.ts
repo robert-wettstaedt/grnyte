@@ -3,6 +3,7 @@ import { form, getRequestEvent } from '$app/server'
 import { isContested, signedInRedirectTarget } from '$lib/auth'
 import { supabaseAuthServer } from '$lib/auth/authServer.server'
 import { issueResendToken } from '$lib/auth/contested.server'
+import { rememberMethod } from '$lib/auth/lastMethod.server'
 import { gotrueRefusal, sendCode } from '$lib/auth/mail.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { hasDeletionMarker } from '$lib/entities/user/provision.server'
@@ -62,6 +63,7 @@ export const signIn = form(signInSchema, async ({ codeFlow, email, next, passwor
   }
 
   await event.locals.supabase.auth.setSession(data.session)
+  rememberMethod(event.cookies, 'email')
 
   // Returned rather than redirected: a 303 becomes a pushing `goto` in Kit's remote-form client,
   // which leaves this sign-in page in history for a signed-in reader to walk back into. The page

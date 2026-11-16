@@ -1,6 +1,6 @@
 /** Sign-in methods and unlinking through the harness: identities seeded by SQL, GoTrue's user endpoints faked on the session client. */
 import { reachable, sql } from '$lib/db/testDb'
-import { asRequest } from '$lib/remote/testHarness'
+import { asRequest, commandRefusal } from '$lib/remote/testHarness'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { signInMethodsQuery, unlinkProvider } from './identities.remote'
 import { sessionCaller, writeGrant } from './reauth.server'
@@ -77,12 +77,6 @@ function sessionClient(providers: Method[], { failUnlink = false, goneAfterFailu
   }
 }
 
-const refusal = (run: () => Promise<unknown>) =>
-  run().then(
-    () => undefined,
-    (cause: { body?: { message?: string } }) => JSON.parse(cause.body?.message ?? '{}').message as string,
-  )
-
 const events = async (id: string, kind: string) =>
   (
     await sql<
@@ -125,7 +119,7 @@ describe.skipIf(!reachable)('unlinkProvider', () => {
     const id = await account('only', 'example.org', { google: 'only@example.org' })
     const { supabase } = sessionClient(['google'])
 
-    expect(await refusal(() => asRequest(id, confirmedUnlink('google'), supabase))).toBe(
+    expect(await commandRefusal(() => asRequest(id, confirmedUnlink('google'), supabase))).toBe(
       'settings_signInMethodsLastMethod',
     )
   })
@@ -134,7 +128,7 @@ describe.skipIf(!reachable)('unlinkProvider', () => {
     const id = await account('nopw', 'example.org', { email: 'nopw@example.org', google: 'nopw@example.org' })
     const { calls, supabase } = sessionClient(['email', 'google'])
 
-    expect(await refusal(() => asRequest(id, confirmedUnlink('google'), supabase))).toBe(
+    expect(await commandRefusal(() => asRequest(id, confirmedUnlink('google'), supabase))).toBe(
       'settings_signInMethodsLastMethod',
     )
     expect(calls).toEqual([])
@@ -144,7 +138,7 @@ describe.skipIf(!reachable)('unlinkProvider', () => {
     const id = await account('nogrant', 'example.org', { email: 'nogrant@example.org', google: 'g@example.org' }, 'h')
     const { supabase } = sessionClient(['email', 'google'])
 
-    expect(await refusal(() => asRequest(id, () => unlinkProvider({ provider: 'google' }), supabase))).toBe(
+    expect(await commandRefusal(() => asRequest(id, () => unlinkProvider({ provider: 'google' }), supabase))).toBe(
       'auth_reauthRequired',
     )
   })
@@ -171,7 +165,9 @@ describe.skipIf(!reachable)('unlinkProvider', () => {
     const id = await account('kept', 'example.org', { email: 'kept@example.org', google: 'kept@example.org' }, 'h')
     const { calls, supabase } = sessionClient(['email', 'google'], { failUnlink: true, goneAfterFailure: false })
 
-    expect(await refusal(() => asRequest(id, confirmedUnlink('google'), supabase))).toBe('auth_serviceUnavailable')
+    expect(await commandRefusal(() => asRequest(id, confirmedUnlink('google'), supabase))).toBe(
+      'auth_serviceUnavailable',
+    )
     expect(calls).toEqual(['unlink:id-google'])
     expect(await events(id, 'identity_unlinked')).toBe(0)
   })

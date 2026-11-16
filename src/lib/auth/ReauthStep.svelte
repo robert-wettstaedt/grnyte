@@ -1,6 +1,15 @@
 <script lang="ts" module>
   import { serverMessage } from '$lib/forms/issue'
   import { formError } from '$lib/forms/schemas'
+  import { getContext, setContext } from 'svelte'
+
+  /** An alternative that leaves the page ("Confirm with Apple") marks the step, so "Send code" holds still. */
+  export interface ReauthLeaving {
+    leaving: boolean
+  }
+  const LEAVING = Symbol('reauth-leaving')
+  // fallow-ignore-next-line unprovided-inject -- provided by `setContext(LEAVING, ...)` in the instance script below
+  export const reauthLeaving = (): ReauthLeaving | undefined => getContext<ReauthLeaving | undefined>(LEAVING)
 
   /** Whether a screen's command was refused for want of a confirmation: the screen then calls `require()`. */
   export const isReauthRequired = (cause: unknown): boolean => serverMessage(cause) === formError('auth_reauthRequired')
@@ -38,7 +47,7 @@
   // Callers key it on action and target, so a new target starts over.
   interface Props {
     action: ReauthAction
-    /** "Confirm with Apple" and the like, beside "Send code" and the code field. */
+    /** "Confirm with Apple" and the like, above "Send code" and beside the code field. Present means one exists. */
     alternatives?: Snippet
     confirmed?: boolean
     /** The signed-in address the code goes to, named before and after sending. */
@@ -60,6 +69,8 @@
   let fresh = $state(false)
   let requesting = $state(false)
   let error = $state<null | string>(null)
+  const leaving: ReauthLeaving = $state({ leaving: false })
+  setContext(LEAVING, leaving)
 
   const issues = $derived(error == null ? [] : [{ message: error, path: [] }])
   const view = $derived(phase === 'peeking' || !ready ? 'waiting' : phase)
@@ -119,7 +130,9 @@
   export function require() {
     confirmed = false
     fresh = true
-    void request()
+    // With an alternative the person picks; otherwise the code is the only way, so it goes at once.
+    if (alternatives == null) void request()
+    else phase = 'idle'
   }
 
   const body = 'text-surface-600-400 text-[14.5px] leading-normal'
@@ -171,11 +184,18 @@
       </div>
     {:else}
       <p class={body}>{m.auth_reauthHint({ email })}</p>
-      {@render alternatives?.()}
+      {#if alternatives != null}
+        {@render alternatives()}
+        <p class="text-surface-600-400 flex items-center gap-3 text-xs" aria-hidden="true">
+          <span class="bg-surface-200-800 h-px flex-1"></span>
+          {m.auth_or()}
+          <span class="bg-surface-200-800 h-px flex-1"></span>
+        </p>
+      {/if}
       <button
         type="button"
         class="btn preset-outlined-surface-300-700 h-12 w-full rounded-[10px] text-[15px] font-semibold"
-        disabled={requesting}
+        disabled={requesting || leaving.leaving}
         onclick={request}
       >
         {#if requesting}

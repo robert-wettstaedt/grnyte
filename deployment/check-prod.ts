@@ -74,9 +74,22 @@ const authConfig =
       })
         .then((r) => r.json())
         .catch(() => ({}))
-const authFailures = assertAuthConfig(auth, authConfig)
+const authFailures = assertAuthConfig(auth, authConfig, {
+  appleServicesId: process.env.APPLE_SERVICES_ID ?? '',
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
+})
 for (const failure of authFailures) check(false, failure)
-if (authFailures.length === 0) check(true, 'GoTrue auth config (hook, codes, sessions, notices, limits)')
+if (authFailures.length === 0) check(true, 'GoTrue auth config (hook, codes, sessions, notices, limits, providers)')
+
+// The deployed sign-in screen offers both providers: `configuredProviders` drops one whose env is incomplete.
+const signInHtml = await fetch(`${required('PUBLIC_ORIGIN')}/auth/signin?form=signin`, {
+  headers: { 'accept-language': 'en' },
+})
+  .then((r) => r.text())
+  .catch(() => '')
+for (const label of ['Continue with Apple', 'Continue with Google']) {
+  check(signInHtml.includes(label), `the deployed /auth/signin offers "${label}"`)
+}
 
 // Hosted GoTrue upgrades without notice; the behaviours grnyte relies on were tested on one release.
 const health = await fetch(`${supabaseUrl}/auth/v1/health`, { headers: { apikey: publishableKey } })
