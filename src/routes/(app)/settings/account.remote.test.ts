@@ -4,6 +4,7 @@ import { hasGrant, issueReauthCode, sessionCaller, writeGrant } from '$lib/auth/
 import {
   createThrowawayUser,
   dropThrowawayUser,
+  identityProviders,
   makeProviderOnly,
   reachable,
   seedUsers,
@@ -297,9 +298,15 @@ describe.skipIf(!reachable)('updatePasswordCommand', () => {
     await makeProviderOnly(user, 'google')
 
     await change({ password: NEW }, confirmed)
-    const providers = await sql<{ provider: string }[]>`
-      select provider from auth.identities where user_id = ${user.authId} order by provider`
-    expect(providers.map((row) => row.provider)).toEqual(['email', 'google'])
+    expect(await identityProviders(user.authId)).toEqual(['email', 'google'])
+  })
+
+  it('gives a provider-only account its email identity after a timed-out call, which may have set the password', async () => {
+    await makeProviderOnly(user, 'apple')
+    admin.error = { message: 'The operation was aborted due to timeout', name: 'AuthRetryableFetchError' }
+
+    await change({ password: NEW }, confirmed)
+    expect(await identityProviders(user.authId)).toEqual(['apple', 'email'])
   })
 
   it.each([

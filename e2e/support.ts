@@ -15,7 +15,8 @@ export function adminClient(): SupabaseClient | undefined {
 
 /** The same default the config resolves `baseURL` from. */
 export const APP = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
-export const ZERO = 'http://localhost:4848'
+/** `E2E_ZERO_URL` for a stack beside the shared one. */
+export const ZERO = process.env.E2E_ZERO_URL ?? 'http://localhost:4848'
 
 /**
  * Prerequisites named out loud, so a missing service reads as "start this". `extra` is for a spec
@@ -35,7 +36,7 @@ export async function assertLocalStack(dbReachable: boolean, password: string, e
 
   if (!dbReachable) missing.push('local Supabase Postgres (DATABASE_URL is unreachable)')
   if (!(await reachableUrl(APP))) missing.push(`the app on ${APP} (npm run dev)`)
-  if (!(await reachableUrl(ZERO))) missing.push('zero-cache on :4848 (npm run dev:zero)')
+  if (!(await reachableUrl(ZERO))) missing.push(`zero-cache on ${ZERO} (npm run dev:zero)`)
   if (!password) missing.push('E2E_PASSWORD in .env (the shared seed-login password)')
 
   if (missing.length > 0) {
@@ -75,7 +76,10 @@ export function field(page: Page, name: string) {
 }
 
 export async function fillCredentials(page: Page, path: string, email: string, password: string) {
-  await visit(page, path)
+  // The screens open on the provider choice; `method=email` is its email step.
+  const url = new URL(path, 'http://step.invalid')
+  url.searchParams.set('method', 'email')
+  await visit(page, `${url.pathname}${url.search}`)
 
   // Precise hydration signal: `autofocus` here is a Svelte attachment, so focus only lands once the
   // component is alive.

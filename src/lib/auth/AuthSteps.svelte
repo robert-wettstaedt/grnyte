@@ -34,17 +34,20 @@
       return
     }
     const isEmail = email
-    void tick().then(() => {
+    void tick().then(async () => {
       // Kit keeps the remote form's issues across steps; the form's `reset` event is what clears them.
       node.querySelector('form')?.reset()
+      // Kit re-reads the emptied form a tick after `reset`, so the reseed has to come after that.
+      await tick()
       onswap()
-      node.querySelector<HTMLElement>(isEmail ? 'input:not([type="hidden"])' : 'button')?.focus()
+      // The address by type: the bot trap's inputs come first in the form.
+      node.querySelector<HTMLElement>(isEmail ? 'input[type="email"]' : 'button')?.focus()
     })
   }
 </script>
 
 <!-- One minimum height for both steps, so the swap never moves what sits below. -->
-<div class="auth-steps min-h-[17.5rem]">
+<div class="auth-steps min-h-[18.5rem]">
   {#key email}
     <div in:fade={{ duration: motion(150) }} {@attach entered}>
       {#if email}

@@ -129,6 +129,7 @@ export async function changePassword(
   if (refused != null) {
     // A refusal or a timeout may still have changed the password at GoTrue.
     await voidReauthCodes(caller.authUserId)
+    await addEmailIdentity(caller.authUserId)
     refuse(await gotrueRefusal(refused, 'admin/users'))
   }
   await addEmailIdentity(caller.authUserId)

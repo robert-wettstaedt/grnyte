@@ -105,10 +105,19 @@ it('hands an invitation to the provider forms and fills the email step', async (
 
   await follow('Continue with email')
   expect(at.url.search).toBe(`${INVITE}&method=email`)
-  expect(fake(signIn).set).toHaveBeenLastCalledWith({ email: 'invitee@example.test' })
+  // The values the form ends with, after Kit's re-read of the reset form: not just a `set` call.
+  expect(fake(signIn).values).toEqual({ email: 'invitee@example.test' })
   await follow('Other ways to sign in')
   await follow('Continue with email')
-  expect(fake(signIn).set).toHaveBeenLastCalledWith({ email: 'invitee@example.test' })
+  expect(fake(signIn).values).toEqual({ email: 'invitee@example.test' })
+})
+
+it('keeps an invited address on the create-account email step', async () => {
+  visit(`/auth/signup${INVITE}`, ['apple', 'google'])
+  render(SignUp)
+
+  await follow('Continue with email')
+  expect(fake(signUp).values).toEqual({ email: 'invitee@example.test' })
 })
 
 it('moves focus into each step and back, in one container of one height', async () => {

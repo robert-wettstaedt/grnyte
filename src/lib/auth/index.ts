@@ -181,7 +181,16 @@ export function signedInRedirectTarget(next: null | string | undefined): string 
  *  loosely, because that is what the guard treats as the auth subtree. */
 function appPath(raw: null | string | undefined): null | string {
   const path = raw == null ? null : sameOriginPath(raw)
-  return path == null || path.startsWith(AUTH_PATH) ? null : path
+  return path == null || decoded(path).startsWith(AUTH_PATH) ? null : path
+}
+
+/** The path as Kit routes it (`/%61uth` is `/auth`); a malformed escape stays, and Kit answers it 500. */
+function decoded(path: string): string {
+  try {
+    return decodeURI(path)
+  } catch {
+    return path
+  }
 }
 
 const SIGN_IN_SCREENS: Record<string, 'signin' | 'signup'> = { '/auth/signin': 'signin', '/auth/signup': 'signup' }

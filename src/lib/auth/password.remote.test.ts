@@ -1,7 +1,15 @@
 /** `setNewPassword` on a code session: the policy before the write, every code and grant void after it. */
 import { getRequestEvent } from '$app/server'
 import { hasGrant, sessionCaller, writeGrant } from '$lib/auth/reauth.server'
-import { createThrowawayUser, dropThrowawayUser, makeProviderOnly, reachable, sql, type SeedUser } from '$lib/db/testDb'
+import {
+  createThrowawayUser,
+  dropThrowawayUser,
+  identityProviders,
+  makeProviderOnly,
+  reachable,
+  sql,
+  type SeedUser,
+} from '$lib/db/testDb'
 import { formError } from '$lib/forms/schemas'
 import { asRequest } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -81,8 +89,6 @@ describe.skipIf(!reachable)('setNewPassword', () => {
 
     await run()
     await run()
-    const providers = await sql<{ provider: string }[]>`
-      select provider from auth.identities where user_id = ${user.authId} order by provider`
-    expect(providers.map((row) => row.provider)).toEqual(['apple', 'email'])
+    expect(await identityProviders(user.authId)).toEqual(['apple', 'email'])
   })
 })

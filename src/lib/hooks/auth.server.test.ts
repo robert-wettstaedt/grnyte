@@ -222,6 +222,12 @@ describe('authGuard', () => {
     expect(location).toBe('/auth/signin')
   })
 
+  it('sends a signed-out visitor from a deep link to sign-in, carrying the page as next', async () => {
+    expect(await redirectFrom(mockEvent('/settings/sign-in-methods?tab=a', { signedIn: false }))).toBe(
+      '/auth/signin?next=%2Fsettings%2Fsign-in-methods%3Ftab%3Da',
+    )
+  })
+
   describe('the public root', () => {
     it('lets a signed-out visitor read it', async () => {
       expect(await redirectFrom(mockEvent('/', { signedIn: false }))).toBeUndefined()

@@ -60,25 +60,40 @@ async function account(
 }
 
 /** The session client's user endpoints: what GoTrue lists before and after the unlink. */
-function sessionClient(providers: Method[], { failUnlink = false, goneAfterFailure = true, movesAddressOf = '' } = {}) {
+function sessionClient(
+  providers: Method[],
+  {
+    afterUnlink = async () => {},
+    failUnlink = false,
+    goneAfterFailure = true,
+    movesAddressOf = '',
+    relistFails = false,
+  } = {},
+) {
   let listed = providers.map((provider) => ({ identity_id: `id-${provider}`, provider }))
+  let unlinked = false
   const calls: string[] = []
   return {
     calls,
     supabase: {
       auth: {
-        getUserIdentities: async () => ({ data: { identities: listed }, error: null }),
+        getUserIdentities: async () =>
+          relistFails && unlinked
+            ? { data: null, error: { message: 'down', status: 503 } }
+            : { data: { identities: listed }, error: null },
         signOut: async ({ scope }: { scope: string }) => {
           calls.push(`signOut:${scope}`)
           return { error: null }
         },
         unlinkIdentity: async ({ identity_id }: { identity_id: string }) => {
           calls.push(`unlink:${identity_id}`)
-          // GoTrue's rule (gotrue.contract): the address moves to a remaining identity's.
+          // GoTrue's rule (gotrue.contract): the address moves to a remaining identity's, here one not reporting it verified.
           if (movesAddressOf !== '') {
-            await sql`update auth.users u set email = i.identity_data->>'email' from auth.identities i
-              where u.id = ${movesAddressOf} and i.user_id = u.id and i.provider = 'apple'`
+            await sql`update auth.users u set email = i.identity_data->>'email', email_confirmed_at = null
+              from auth.identities i where u.id = ${movesAddressOf} and i.user_id = u.id and i.provider = 'apple'`
           }
+          await afterUnlink()
+          unlinked = true
           if (!failUnlink || goneAfterFailure) listed = listed.filter((i) => i.identity_id !== identity_id)
           return { data: {}, error: failUnlink ? { message: 'dropped', status: 0 } : null }
         },
@@ -203,13 +218,38 @@ describe.skipIf(!reachable)('unlinkProvider', () => {
     expect(await events(id, 'apple_revoke_skipped')).toBe(skipped)
   })
 
-  it('keeps the address when GoTrue moves it to the remaining identity', async () => {
+  it('keeps the address and its confirmation when GoTrue moves it to the remaining identity', async () => {
     const id = await account('moved', 'gmail.com', { apple: 'moved@icloud.com', google: 'moved@gmail.com' })
-    const [before] = await sql<{ email: string }[]>`select email from auth.users where id = ${id}`
+    const [{ email }] = await sql<{ email: string }[]>`select email from auth.users where id = ${id}`
     const { supabase } = sessionClient(['apple', 'google'], { movesAddressOf: id })
 
     await asRequest(id, confirmedUnlink('google'), supabase)
+    expect(
+      await sql`select email, email_confirmed_at is not null as confirmed from auth.users where id = ${id}`,
+    ).toEqual([{ confirmed: true, email }])
+  })
+
+  it('keeps the address when the unlink answer is lost and GoTrue cannot be asked again', async () => {
+    const id = await account('relist', 'gmail.com', { apple: 'relist@icloud.com', google: 'relist@gmail.com' })
+    const [before] = await sql<{ email: string }[]>`select email from auth.users where id = ${id}`
+    const { supabase } = sessionClient(['apple', 'google'], { failUnlink: true, movesAddressOf: id, relistFails: true })
+
+    await commandRefusal(() => asRequest(id, confirmedUnlink('google'), supabase))
     const [after] = await sql<{ email: string }[]>`select email from auth.users where id = ${id}`
     expect(after.email).toBe(before.email)
+  })
+
+  it('leaves an address changed on another device during the unlink', async () => {
+    const id = await account('changed', 'gmail.com', { apple: 'changed@icloud.com', google: 'changed@gmail.com' })
+    const next = `changed-${run}@example.org`
+    const { supabase } = sessionClient(['apple', 'google'], {
+      afterUnlink: async () => {
+        await sql`update auth.users set email = ${next} where id = ${id}`
+      },
+    })
+
+    await asRequest(id, confirmedUnlink('google'), supabase)
+    const [after] = await sql<{ email: string }[]>`select email from auth.users where id = ${id}`
+    expect(after.email).toBe(next)
   })
 })
