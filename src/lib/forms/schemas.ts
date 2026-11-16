@@ -71,7 +71,13 @@ export const nameSchema = z
   .string({ error: formError('form_required') })
   .check(z.trim(), z.minLength(3, { error: formError('form_charsMin', { count: 3 }) }))
 
-/** The one form a password is stored and compared in (design decision 11). */
+/** A mailed code and the address it was sent to. */
+export const mailedCodeSchema = z.object({
+  code: z.string({ error: formError('form_required') }),
+  email: z.email({ error: formError('form_required') }),
+})
+
+/** The one form a password is stored and compared in. */
 export const normalizePassword = (password: string): string => password.normalize('NFC')
 
 const noSurroundingSpace = (password: string) => !/^\s|\s$/.test(password)

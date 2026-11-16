@@ -1,4 +1,4 @@
--- Auth guards (harden-auth-codes, design decisions 3 and 4). Idempotent: every hosted project gets
+-- Auth guards Idempotent: every hosted project gets
 -- it through `npm run migrate`, and re-running it by hand must succeed.
 
 -- Allows an email sign-up only with grnyte's marker (`SIGNUP_MARKER` in `$lib/auth`), and social ones.
@@ -15,7 +15,7 @@ CREATE OR REPLACE FUNCTION public.before_user_created_hook(event jsonb) RETURNS 
 REVOKE ALL ON FUNCTION public.before_user_created_hook(jsonb) FROM PUBLIC, anon, authenticated, service_role;--> statement-breakpoint
 GRANT EXECUTE ON FUNCTION public.before_user_created_hook(jsonb) TO supabase_auth_admin;--> statement-breakpoint
 
--- The one list of domains a provider owns; `add-social-sign-in` reads it from here.
+-- The one list of domains a provider owns.
 CREATE OR REPLACE FUNCTION public.provider_owned_domains(provider text) RETURNS text[]
   LANGUAGE sql IMMUTABLE SET search_path = ''
   AS $$

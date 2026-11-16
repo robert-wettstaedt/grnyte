@@ -8,7 +8,7 @@ import type { RequestEvent } from '@sveltejs/kit'
 
 /**
  * Verifies a mailed GoTrue code on grnyte's path: each try is counted per address before GoTrue
- * sees it (`kinds`, design decision 5), and a correct code clears those counts.
+ * sees it (`kinds`), and a correct code clears those counts.
  */
 export async function verifyCode(
   event: Pick<RequestEvent, 'getClientAddress'>,
@@ -23,6 +23,6 @@ export async function verifyCode(
       'code',
     )
   }
-  for (const kind of kinds) await clearCodeTries(email, kind)
+  await clearCodeTries(email, kinds)
   return data
 }

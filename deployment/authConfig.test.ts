@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assertAuthConfig, HOOK_URI } from './authConfig'
+import { assertAuthConfig, assertGotrueVersion, GOTRUE_CONTRACT_VERSION, HOOK_URI } from './authConfig'
 
 const settings = { disable_signup: false, external: { email: true }, mailer_autoconfirm: false }
 const config = {
@@ -35,5 +35,24 @@ describe('assertAuthConfig', () => {
     expect(assertAuthConfig(settings, { ...config, mailer_otp_length: 6 })).toEqual([
       'email codes have 8 digits (mailer_otp_length 8)',
     ])
+  })
+})
+
+describe('assertGotrueVersion', () => {
+  // `/auth/v1/health` as the second stack answers it.
+  const health = { description: 'GoTrue is a user registration and authentication API', name: 'GoTrue' }
+
+  it('passes the tested release', () => {
+    expect(assertGotrueVersion({ ...health, version: GOTRUE_CONTRACT_VERSION })).toBeNull()
+  })
+
+  it('names both versions and the runbook when hosted GoTrue moved', () => {
+    expect(assertGotrueVersion({ ...health, version: 'v2.198.0' })).toBe(
+      `GoTrue is v2.198.0, the contract was tested on ${GOTRUE_CONTRACT_VERSION}: see deployment/README.md "New GoTrue version"`,
+    )
+  })
+
+  it('fails when the health answer carries no version', () => {
+    expect(assertGotrueVersion({})).toMatch(/^GoTrue is unknown, /)
   })
 })

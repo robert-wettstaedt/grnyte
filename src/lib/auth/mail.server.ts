@@ -1,8 +1,7 @@
 import type { AuthServer } from '$lib/auth/authServer.server'
-import { countTry } from '$lib/auth/codeAttempts.server'
+import { clearCodeTries, countTry } from '$lib/auth/codeAttempts.server'
 import { noteMailRefusal } from '$lib/auth/events.server'
 import { signInMethods } from '$lib/auth/methods.server'
-import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { userSettings } from '$lib/db/schema'
 import { alreadyHasAccount, passwordChanged } from '$lib/email/account'
@@ -11,6 +10,7 @@ import { authError, formError, type FormMessage } from '$lib/forms/schemas'
 import { contactLocale } from '$lib/i18n/message'
 import { logServerFailure } from '$lib/logging/failure.server'
 import type { AuthError } from '@supabase/supabase-js'
+import { invalid } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 
 export const mailPasswordReset = (authServer: AuthServer, email: string) => authServer.resetPasswordForEmail(email)
@@ -19,7 +19,7 @@ export const mailSignupConfirmation = (authServer: AuthServer, email: string) =>
   authServer.resend({ email, type: 'signup' })
 
 /**
- * A GoTrue refusal on a send or a code step, as the person sees it (design decision 9). Every 429
+ * A GoTrue refusal on a send or a code step, as the person sees it. Every 429
  * is logged with one stable message per endpoint; the send limit also counts as a mail refusal.
  */
 export async function gotrueRefusal(error: AuthError, endpoint: string): Promise<FormMessage> {
@@ -65,11 +65,24 @@ export async function noticePasswordChanged(account: { email: string; id: string
   return sendEmail({ ...passwordChanged({ locale, methods }), locale, template: 'password-changed', to: account.email })
 }
 
+/** Mails a sign-up code (the admin API creates without mailing; GoTrue renders it). A sent code resets the guesses. */
+export async function sendCode(authServer: AuthServer, email: string, { quietRateLimit = false } = {}): Promise<void> {
+  const { error } = await mailSignupConfirmation(authServer, email)
+  if (error == null) {
+    await clearCodeTries(email, ['signup'])
+    return
+  }
+  if (quietRateLimit && error.code === 'over_email_send_rate_limit') return
+  invalid(await gotrueRefusal(error, 'resend'))
+}
+
 async function recipient(authUserId: string) {
-  const [settings] = await db
-    .select({ locale: userSettings.contactLocale })
-    .from(userSettings)
-    .where(eq(userSettings.authUserFk, authUserId))
-    .limit(1)
+  const [settings] = await pinnedTx((tx) =>
+    tx
+      .select({ locale: userSettings.contactLocale })
+      .from(userSettings)
+      .where(eq(userSettings.authUserFk, authUserId))
+      .limit(1),
+  )
   return { locale: contactLocale(settings?.locale), methods: await signInMethods(authUserId) }
 }

@@ -1,7 +1,6 @@
 import { command, form, getRequestEvent } from '$app/server'
 import { SIGNUP_MARKER } from '$lib/auth'
-import { supabaseAuthServer, type AuthServer } from '$lib/auth/authServer.server'
-import { clearCodeTries } from '$lib/auth/codeAttempts.server'
+import { supabaseAuthServer } from '$lib/auth/authServer.server'
 import { verifyCode } from '$lib/auth/codes.server'
 import {
   checkResendToken,
@@ -10,12 +9,12 @@ import {
   flagContestedSignup,
   issueResendToken,
 } from '$lib/auth/contested.server'
-import { gotrueRefusal, mailSignupConfirmation, noticeAlreadyHasAccount } from '$lib/auth/mail.server'
+import { gotrueRefusal, noticeAlreadyHasAccount, sendCode } from '$lib/auth/mail.server'
 import { checkPassword } from '$lib/auth/passwordPolicy.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { botFields } from '$lib/forms/botCheck'
 import { screenSubmit } from '$lib/forms/botCheck.server'
-import { formError, passwordSchema } from '$lib/forms/schemas'
+import { formError, mailedCodeSchema, passwordSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { refuseCommand } from '$lib/remote/authed.server'
 import { invalid } from '@sveltejs/kit'
@@ -26,11 +25,6 @@ const signUpSchema = z.object({
   confirmPassword: z.optional(z.string()),
   email: z.email({ error: formError('form_required') }),
   password: passwordSchema,
-})
-
-const codeSchema = z.object({
-  code: z.string({ error: formError('form_required') }),
-  email: z.email({ error: formError('form_required') }),
 })
 
 const resendSchema = z.object({
@@ -77,8 +71,7 @@ export const signUp = form(signUpSchema, async (submitted, issue) => {
   return answer
 })
 
-/** The 8-digit confirmation code from the sign-up mail. */
-export const confirmSignupCode = command(codeSchema, async ({ code, email }) => {
+export const confirmSignupCode = command(mailedCodeSchema, async ({ code, email }) => {
   const event = getRequestEvent()
   const { session, user } = await verifyCode(event, { code, email, kinds: ['signup'], type: 'signup' })
   if (session == null || user == null) return refuseCommand(formError('auth_unexpectedError'), 'code')
@@ -100,14 +93,3 @@ export const resendSignupCode = form(resendSchema, async (submitted) => {
   await sendCode(supabaseAuthServer(getRequestEvent()), email)
   return { success: true }
 })
-
-/** The admin API creates without mailing; GoTrue renders and sends the code. A sent code resets the guesses. */
-async function sendCode(authServer: AuthServer, email: string, { quietRateLimit = false } = {}): Promise<void> {
-  const { error } = await mailSignupConfirmation(authServer, email)
-  if (error == null) {
-    await clearCodeTries(email, 'signup')
-    return
-  }
-  if (quietRateLimit && error.code === 'over_email_send_rate_limit') return
-  invalid(await gotrueRefusal(error, 'resend'))
-}

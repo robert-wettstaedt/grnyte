@@ -5,7 +5,6 @@
   import { resolveIssueMessage } from './issue'
 
   interface Props {
-    /** Replaces the default error text style. */
     errorClass?: string
     hint?: string
     id?: null | string

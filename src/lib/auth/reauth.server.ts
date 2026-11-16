@@ -1,5 +1,5 @@
 import { getRequestEvent } from '$app/server'
-import type { ReauthAction } from '$lib/auth'
+import { CODE_LIFETIME_MS, type ReauthAction } from '$lib/auth'
 import { pinnedTx } from '$lib/db/pinned.server'
 import type * as schema from '$lib/db/schema'
 import { reauthChallenges, reauthGrants } from '$lib/db/serverOnly'
@@ -23,8 +23,6 @@ export interface ReauthCaller {
 }
 type Tx = PostgresJsDatabase<typeof schema>
 
-/** The ASVS ceiling for out-of-band codes. */
-export const CODE_LIFETIME_MS = 10 * 60 * 1000
 export const GRANT_LIFETIME_MS = 5 * 60 * 1000
 /** The fifth wrong entry voids the code. */
 const MAX_WRONG = 5
@@ -143,11 +141,15 @@ export async function verifyReauthCode(
       await upsertGrant(tx, caller, action, target, 'email_code')
       return 'granted'
     }
-    if (row.attempts >= MAX_WRONG) await drop()
+    if (row.attempts >= MAX_WRONG) {
+      await drop()
+      return 'spent'
+    }
     return 'wrong'
   })
-  if (answer === 'wrong') await recordAuthEvent('reauth_failed', { authUserId: caller.authUserId, detail: { action } })
-  return answer
+  if (answer === 'wrong' || answer === 'spent')
+    await recordAuthEvent('reauth_failed', { authUserId: caller.authUserId, detail: { action } })
+  return answer === 'spent' ? 'void' : answer
 }
 
 /** A confirmation for this caller, action and target, valid for {@link GRANT_LIFETIME_MS}. */

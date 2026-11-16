@@ -21,8 +21,8 @@
  */
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { asRequest } from '$lib/remote/testHarness'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { subscribeToPush } from './notifications.remote'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { markNotificationsRead, subscribeToPush } from './notifications.remote'
 
 /** One endpoint per case, so no test depends on what another one left behind. */
 const STOLEN = 'https://push.grnyte.test/__notifications_remote_stolen__'
@@ -122,5 +122,15 @@ describe.skipIf(!reachable)('subscribeToPush', () => {
       select auth, user_fk as "userFk" from public.push_subscriptions where endpoint = ${OWN}`
     expect(row.userFk).toBe(other.userId)
     expect(row.auth).toBe('__notifications_remote_rotated_auth__')
+  })
+})
+
+describe.skipIf(!reachable)('a revoked session', () => {
+  it('is refused by an authed write and signed out', async () => {
+    const signOut = vi.fn(async () => ({}))
+    const call = asRequest(owner.authId, () => markNotificationsRead(), { auth: { signOut } }, { session: false })
+
+    await expect(call).rejects.toMatchObject({ status: 401 })
+    expect(signOut).toHaveBeenCalled()
   })
 })

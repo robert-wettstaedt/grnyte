@@ -21,7 +21,7 @@ const SITE = '{{ .SiteURL }}'
 
 /**
  * Only the invite still links, through our own `/auth/confirm` with `token_hash`: only the Supabase
- * dashboard sends it, and once that handler retires its link lands on the `/auth/error` redirect.
+ * dashboard sends it.
  * `next` must be a path, never `{{ .RedirectTo }}`, since the handler assigns it to the pathname.
  */
 const confirmUrl = (type: string, next: Pathname) =>

@@ -56,7 +56,6 @@ export async function assertSameDocument(page: Page, hop: string) {
   ).toBe(true)
 }
 
-/** On the code step after "Create account": enters the code, then finishes the profile step. */
 export async function confirmAndCompleteProfile(page: Page, code: () => Promise<string>, username: string) {
   // Awaited before `code()`, so a code minted by the admin API finds the account already made.
   await expect(page.getByLabel('Code')).toBeVisible()
@@ -75,7 +74,6 @@ export function field(page: Page, name: string) {
   return page.locator(`input[name="${name}"], select[name="${name}"], textarea[name="${name}"]`)
 }
 
-/** Opens a sign-in or create-account screen and fills its email and password. */
 export async function fillCredentials(page: Page, path: string, email: string, password: string) {
   await visit(page, path)
 

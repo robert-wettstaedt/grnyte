@@ -3,7 +3,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ReauthStep, { isReauthRequired } from '$lib/auth/ReauthStep.svelte'
+  import ReauthStep, { withReauth } from '$lib/auth/ReauthStep.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'
   import Form from '$lib/forms/Form.svelte'
@@ -22,16 +22,11 @@
   let step: ReauthStep | undefined = $state()
 
   const submit = async (values: z.input<typeof updatePasswordSchema>) => {
-    try {
-      const result = await submitCommand(() => updatePasswordCommand(values))
-      // The change ended this device's session: adopt the new one before Zero's next write.
-      await page.data.supabase?.auth.setSession(result.session)
-      await invalidate('supabase:auth')
-      return result
-    } catch (cause) {
-      if (isReauthRequired(cause)) step?.require()
-      throw cause
-    }
+    const result = await withReauth(step, () => submitCommand(() => updatePasswordCommand(values)))
+    // The change ended this device's session: adopt the new one before Zero's next write.
+    await page.data.supabase?.auth.setSession(result.session)
+    await invalidate('supabase:auth')
+    return result
   }
 
   const onSubmitted = () => {

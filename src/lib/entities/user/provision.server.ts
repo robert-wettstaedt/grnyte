@@ -7,7 +7,6 @@ export interface ProfileInput {
   authUserId: string
   contactLocale: string
   gradingScale: 'FB' | 'V'
-  /** Absolute origin for the admin alert's mail. */
   origin: string
   username: string
 }

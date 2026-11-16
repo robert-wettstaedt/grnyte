@@ -1,4 +1,5 @@
 import { command } from '$app/server'
+import { requireLiveSession } from '$lib/auth/session.server'
 import { applyRls } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { pushSubscriptions, userSettings } from '$lib/db/schema'
@@ -30,8 +31,9 @@ export const markEventFeedSeen = authedCommand(z.object({ seenAt: z.int().check(
 )
 
 /** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
-export const subscribeToPush = command(subscriptionSchema, (subscription) => {
+export const subscribeToPush = command(subscriptionSchema, async (subscription) => {
   const { claims, user } = requireAuthed()
+  await requireLiveSession()
   return pinnedTx((db) => subscribeToPushRow(subscription, { db, dropToCaller: () => applyRls(db, claims), user }))
 })
 

@@ -115,7 +115,8 @@ Zero sync (<https://zero.rocicorp.dev/llms.txt>), Supabase, Drizzle ORM.
   explicit "start" / "do #1-#3".
 - Before handing back, over your paths only: `npx prettier --write`, `npx eslint`,
   `npx vitest run --project server` (`*.server.test.ts`, `*.remote.test.ts`) or `--project browser`,
-  then typecheck.
+  then typecheck. Tests that count rows across a whole table run alone in `--project server-serial`
+  (`SERIAL_TESTS` in `vite.config.ts`); a new such test goes there.
 - Also run `npm run lint:unused`, `lint:duplication`, `lint:health` (fallow, in CI). `lint:unused`
   has no baseline. The other two baselines only shrink: `npm run lint:baseline` removes stale
   entries, never accepts new ones. A deliberate finding gets

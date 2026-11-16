@@ -1,9 +1,19 @@
 <script lang="ts" module>
+  import { serverMessage } from '$lib/forms/issue'
   import { formError } from '$lib/forms/schemas'
 
   /** Whether a screen's command was refused for want of a confirmation: the screen then calls `require()`. */
-  export const isReauthRequired = (cause: unknown): boolean =>
-    (cause as undefined | { body?: { message?: string } })?.body?.message === formError('auth_reauthRequired')
+  export const isReauthRequired = (cause: unknown): boolean => serverMessage(cause) === formError('auth_reauthRequired')
+
+  /** Runs a screen's command and, when it is refused for want of a confirmation, opens the `step`. */
+  export async function withReauth<T>(step: undefined | { require(): void }, run: () => Promise<T>): Promise<T> {
+    try {
+      return await run()
+    } catch (cause) {
+      if (isReauthRequired(cause)) step?.require()
+      throw cause
+    }
+  }
 </script>
 
 <script lang="ts">
@@ -91,7 +101,7 @@
       await resend()
       phase = 'code'
     } catch (cause) {
-      error = (cause as { body?: { message?: string } })?.body?.message ?? formError('auth_unexpectedError')
+      error = serverMessage(cause) ?? formError('auth_unexpectedError')
       phase = 'idle'
     } finally {
       requesting = false

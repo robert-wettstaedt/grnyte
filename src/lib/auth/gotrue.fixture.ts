@@ -3,6 +3,7 @@ import 'dotenv/config'
 import { SIGNUP_MARKER } from '$lib/auth'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
+import { sql } from '$lib/db/testDb'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 const url = process.env.PUBLIC_SUPABASE_URL ?? ''
@@ -56,3 +57,22 @@ export async function createAccount(email: string, init: { confirmed?: boolean; 
   if (error != null) throw error
   return data.user.id
 }
+
+/** Swaps the account's email identity for a `google` one, under the created-user marker. */
+export async function makeSocialOnly(userId: string, email: string): Promise<void> {
+  await sql.begin(async (tx) => {
+    await tx`select set_config('grnyte.auth_user_created', ${userId}, true)`
+    await tx`delete from auth.identities where user_id = ${userId}`
+    await tx`
+      insert into auth.identities (user_id, provider, provider_id, identity_data, created_at, updated_at, last_sign_in_at)
+      values (${userId}, 'google', ${crypto.randomUUID()}, ${tx.json({ email })}, now(), now(), now())`
+  })
+}
+
+const MAILBOX = `${process.env.E2E_MAILBOX ?? 'http://localhost:9010'}/api/v1/mailbox`
+
+/** Subjects of the mails GoTrue sent to `email`, oldest first, from the second stack's mail catcher. */
+export const mailSubjects = async (email: string): Promise<string[]> =>
+  ((await (await fetch(`${MAILBOX}/${email.split('@')[0]}`)).json()) as { subject: string }[]).map(
+    (mail) => mail.subject,
+  )

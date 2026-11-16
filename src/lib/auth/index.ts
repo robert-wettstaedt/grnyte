@@ -24,9 +24,12 @@ export const SIGNUP_MARKER = { signup: 'grnyte' } as const
 export const isContested = (appMetadata: unknown): boolean =>
   (appMetadata as null | Record<string, unknown> | undefined)?.[CONTESTED_SIGNUP] != null
 
+/** The ASVS ceiling for out-of-band codes. */
+export const CODE_LIFETIME_MS = 10 * 60 * 1000
+
 /** Only a code just verified on this session writes a fresh `otp` entry (under 10 minutes). */
 export function isFreshCodeSession(claims: Pick<SupabaseToken, 'amr'>, now = Date.now()): boolean {
-  return (claims.amr ?? []).some((entry) => entry.method === 'otp' && now - entry.timestamp * 1000 < 10 * 60 * 1000)
+  return (claims.amr ?? []).some((entry) => entry.method === 'otp' && now - entry.timestamp * 1000 < CODE_LIFETIME_MS)
 }
 
 /** Only there to give the parser something to resolve a relative path against, see

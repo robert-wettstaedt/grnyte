@@ -34,7 +34,7 @@ describe.skipIf(!reachable)('takeCodeTry', () => {
   it('starts over after clearCodeTries', async () => {
     const email = address()
     for (let i = 0; i < 6; i++) await takeCodeTry(email, ['signup'])
-    await clearCodeTries(email, 'signup')
+    await clearCodeTries(email, ['signup'])
 
     expect(await takeCodeTry(email, ['signup'])).toBe(true)
   })

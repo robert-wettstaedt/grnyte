@@ -20,7 +20,7 @@
   import { isOnline } from '$lib/state/online.svelte'
   import { rootPill } from '$lib/state/pill.svelte'
   import { syncPushSubscription } from '$lib/state/push.svelte'
-  import { wipeAndLeave } from '$lib/state/wipe'
+  import { isLeaving, wipeAndLeave } from '$lib/state/wipe'
   import {
     authRetryDelay,
     isDefinitiveRefusal,
@@ -176,7 +176,7 @@
 
   // The client twin of authGuard's profile gate: a full load, so the server decides a deletion marker.
   $effect(() => {
-    if (answeredNone(globalState?.userResource)) {
+    if (answeredNone(globalState?.userResource) && !isLeaving()) {
       location.href = `${resolve('/auth/profile')}?${new URLSearchParams({ next: page.url.pathname + page.url.search })}`
     }
   })

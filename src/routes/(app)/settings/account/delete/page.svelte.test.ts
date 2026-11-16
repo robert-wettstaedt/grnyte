@@ -22,7 +22,7 @@ vi.mock('../../account.remote', () => ({
 }))
 vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
 vi.mock('$lib/state/push.svelte', () => ({ disablePush: vi.fn(async () => {}) }))
-vi.mock('$lib/state/wipe', () => ({ wipeAndLeave: vi.fn() }))
+vi.mock('$lib/state/wipe', () => ({ setLeaving: vi.fn(), wipeAndLeave: vi.fn() }))
 
 const submitButton = () => screen.getByRole('button', { name: 'Delete' })
 

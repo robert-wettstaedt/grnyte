@@ -38,7 +38,7 @@ describe('authRetryDelay', () => {
   })
 })
 
-/** No newer cookie session and no sign-out: the chain as it ran before definitive refusals. */
+/** No newer cookie session and no sign-out. */
 const quiet = { reread: async () => null, signOut: () => {} }
 
 describe('the recovery chain', () => {
@@ -63,7 +63,6 @@ describe('the recovery chain', () => {
     vi.useRealTimers()
   })
 
-  /** Starts for a wanted identity and lets the first ask go out. */
   async function started(onSession = vi.fn()) {
     startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
     await vi.advanceTimersByTimeAsync(0)

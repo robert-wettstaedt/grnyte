@@ -1,9 +1,18 @@
 /**
- * The GoTrue switches sign-up, codes and account changes depend on (design decision 15), as one pure
+ * The GoTrue switches sign-up, codes and account changes depend on, as one pure
  * function so a test can feed it literal JSON. `settings` is the public `/auth/v1/settings` answer,
  * `config` the Management API's `GET /v1/projects/{ref}/config/auth`.
  */
 type Json = Record<string, unknown>
+
+/** The GoTrue release `npm run test:gotrue` last passed against; README "New GoTrue version" bumps it. */
+export const GOTRUE_CONTRACT_VERSION = 'v2.197.0'
+
+/** A failure line when hosted GoTrue (its `/auth/v1/health` answer) is not the tested release, else null. */
+export function assertGotrueVersion(health: Json): null | string {
+  if (health.version === GOTRUE_CONTRACT_VERSION) return null
+  return `GoTrue is ${String(health.version ?? 'unknown')}, the contract was tested on ${GOTRUE_CONTRACT_VERSION}: see deployment/README.md "New GoTrue version"`
+}
 
 export const HOOK_URI = 'pg-functions://postgres/public/before_user_created_hook'
 /** Supabase's own default for custom SMTP; the built-in mailer's 2 an hour would starve sign-up. */

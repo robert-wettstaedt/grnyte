@@ -1,10 +1,9 @@
 import { pinnedTx } from '$lib/db/pinned.server'
 import type * as schema from '$lib/db/schema'
 import { authCodeAttempts } from '$lib/db/serverOnly'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
-/** The GoTrue code type being guessed. */
 export type CodeKind = 'email_change' | 'recovery' | 'signup'
 type CounterKind = 'already_has_account' | 'reauth_issue' | CodeKind
 
@@ -19,11 +18,11 @@ const WINDOW: Record<CounterKind, string> = {
   signup: '10 minutes',
 }
 
-export async function clearCodeTries(email: string, kind: CodeKind): Promise<void> {
+export async function clearCodeTries(email: string, kinds: CodeKind[]): Promise<void> {
   await pinnedTx((tx) =>
     tx
       .delete(authCodeAttempts)
-      .where(and(eq(authCodeAttempts.subject, email.toLowerCase()), eq(authCodeAttempts.kind, kind))),
+      .where(and(eq(authCodeAttempts.subject, email.toLowerCase()), inArray(authCodeAttempts.kind, kinds))),
   )
 }
 

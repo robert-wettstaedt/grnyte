@@ -1,5 +1,6 @@
 import { command, form, getRequestEvent, query } from '$app/server'
 import { reauthCaller } from '$lib/auth/reauth.server'
+import { requireLiveSession } from '$lib/auth/session.server'
 import { regionInvitations } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -89,6 +90,7 @@ export const createRegion = form(
   regionCreateSchema,
   async ({ name }): Promise<MutationResult<{ regionId: number }>> => {
     const { user } = requireAuthed()
+    await requireLiveSession()
 
     // The friendly version of the cap. `createRegionForUser` re-checks it and enforces it.
     if ((await listOwnedRegions(user.id)).length >= MAX_OWNED_REGIONS) {
@@ -187,6 +189,7 @@ export const acceptRegionInvitation = command(
   z.object({ token: z.uuid() }),
   async ({ token }): Promise<MutationResult<{ regionFk: number; regionName: string }>> => {
     const { claims } = requireAuthed()
+    await requireLiveSession()
 
     if (claims.email == null) {
       error(401, formError('auth_notSignedIn'))

@@ -1,6 +1,5 @@
 import { query } from '$app/server'
 import { APP_PERMISSION_ADMIN } from '$lib/auth'
-import { requireLiveSession } from '$lib/auth/session.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -49,7 +48,6 @@ export const listAllRegions = query(async (): Promise<RegionSummary[]> => {
   const { userPermissions } = await authedRls()
 
   requireAppAdmin(userPermissions)
-  await requireLiveSession()
 
   return pinnedTx((tx) => collectRegionSummaries(tx, getLocale()))
 })

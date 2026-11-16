@@ -15,10 +15,9 @@ import {
   createAccount as createGrnyteAccount,
   codeDevice as device,
   gotrueReachable,
+  makeSocialOnly,
   publicClient,
 } from './gotrue.fixture'
-
-const INBUCKET = 'http://127.0.0.1:19010/api/v1/mailbox'
 
 // grnyte's own mails go through Resend, never the stack's mail catcher: recorded here instead.
 const sent = vi.hoisted(() => [] as { template: string; to: string }[])
@@ -46,8 +45,6 @@ const changeAs = (locals: object, authUserId: string, password: string) =>
   })
 
 const works = async (client: SupabaseClient) => (await client.auth.getUser()).error == null
-const subjects = async (email: string) =>
-  ((await (await fetch(`${INBUCKET}/${email.split('@')[0]}`)).json()) as { subject: string }[]).map((m) => m.subject)
 
 /** `signIn` as a fresh browser would submit it, answering its result or its refusal key. */
 const signInAs = (email: string, password: string) =>
@@ -89,28 +86,21 @@ describe.skipIf(!gotrueReachable)('passwords on GoTrue', { timeout: 20_000 }, ()
     expect((await publicClient().auth.signInWithPassword({ email, password: next })).error).toBeNull()
   })
 
-  it("sends exactly one password-changed mail: GoTrue's admin update sends none, grnyte sends its own", async () => {
+  // GoTrue's admin update sends none of its own: gotrue.contract.server.test.ts.
+  it('sends its own password-changed mail', async () => {
     const email = address('notice')
     const id = await createAccount(email, { password: strong() })
     const { locals } = await device(email)
 
     await changeAs(locals, id, strong())
-    await new Promise((resolve) => setTimeout(resolve, 1500))
 
-    expect((await subjects(email)).filter((subject) => subject === 'Your password changed')).toEqual([])
     expect(sent.filter((mail) => mail.to === email)).toEqual([{ template: 'password-changed', to: email }])
   })
 
   it("sets a social-only account's first password, which signs in; GoTrue adds no email identity for it", async () => {
     const email = address('social')
     const id = await createAccount(email)
-    await sql.begin(async (tx) => {
-      await tx`select set_config('grnyte.auth_user_created', ${id}, true)`
-      await tx`delete from auth.identities where user_id = ${id}`
-      await tx`
-        insert into auth.identities (user_id, provider, provider_id, identity_data, created_at, updated_at, last_sign_in_at)
-        values (${id}, 'google', ${crypto.randomUUID()}, ${tx.json({ email })}, now(), now(), now())`
-    })
+    await makeSocialOnly(id, email)
     const { locals } = await device(email)
 
     const answer = (await changeAs(locals, id, strong())) as {

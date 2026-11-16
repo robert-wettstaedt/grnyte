@@ -53,11 +53,12 @@ describe.skipIf(!reachable)('reauth codes', () => {
     expect(await verifyReauthCode(me, 'account.delete', me.authUserId, lastCode())).toBe('expired')
   })
 
-  it('voids the code on the fifth wrong try, so the right one after it is void', async () => {
+  it('voids the code on the fifth wrong try, which answers void at once', async () => {
     const me = await caller()
     await issueReauthCode(me, 'region.delete', '1', mail)
     const code = lastCode()
-    for (let i = 0; i < 5; i++) await verifyReauthCode(me, 'region.delete', '1', wrong(code))
+    for (let i = 0; i < 4; i++) expect(await verifyReauthCode(me, 'region.delete', '1', wrong(code))).toBe('wrong')
+    expect(await verifyReauthCode(me, 'region.delete', '1', wrong(code))).toBe('void')
 
     expect(await verifyReauthCode(me, 'region.delete', '1', code)).toBe('void')
   })

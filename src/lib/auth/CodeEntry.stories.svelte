@@ -27,10 +27,8 @@
 <!-- grnyte's own re-auth code: no Continue, it submits on the last digit. -->
 <Story name="Six digits" args={{ continueButton: false, length: 6 }} />
 
-<!-- Past its 10 minutes: the expired banner and "Send a new code". -->
 <Story name="Expired" args={{ expiresAt: now - 1000, sentAt: now - 11 * 60_000 }} />
 
-<!-- A wrong code: the error under the field, the digits selected. -->
 <Story
   name="Wrong code"
   args={{

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ReauthStep, { isReauthRequired } from '$lib/auth/ReauthStep.svelte'
+  import ReauthStep, { withReauth } from '$lib/auth/ReauthStep.svelte'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import { entityHref } from '$lib/entities/href'
   import { ownerOnlyDenied, regionDenied } from '$lib/entities/region/adminScreen.svelte'
@@ -53,12 +53,7 @@
   const seed = () => ({ regionFk: regionId, userFk: userId })
   const submit = async (values: z.input<typeof handOverSchema>) => {
     handingTo = recipient.data?.username ?? ''
-    try {
-      return await submitCommand(() => transferRegionOwnershipCommand(values))
-    } catch (cause) {
-      if (isReauthRequired(cause)) step?.require()
-      throw cause
-    }
+    return withReauth(step, () => submitCommand(() => transferRegionOwnershipCommand(values)))
   }
   const onSubmitted = () => {
     toaster.create({ title: m.region_handedOver({ name: handingTo }), type: 'success' })

@@ -1,6 +1,5 @@
 import { signInMethods } from '$lib/auth/methods.server'
 import { spendGrant, type ReauthCaller } from '$lib/auth/reauth.server'
-import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { activities } from '$lib/db/retired'
 import * as schema from '$lib/db/schema'
@@ -62,10 +61,9 @@ export const ERASED_COMMENT = '…'
 export async function deleteAccount(account: Account, caller: ReauthCaller): Promise<DeleteAccountResult> {
   // Read first: the identities and settings are gone once the deletion ran.
   const methods = await signInMethods(account.authUserFk)
-  const [settings] = await db
-    .select({ locale: userSettings.contactLocale })
-    .from(userSettings)
-    .where(eq(userSettings.userFk, account.id))
+  const [settings] = await pinnedTx((tx) =>
+    tx.select({ locale: userSettings.contactLocale }).from(userSettings).where(eq(userSettings.userFk, account.id)),
+  )
 
   const outcome = await pinnedTx(async (tx) => {
     const { blocks: blocking, deletes } = await classifyRegions(tx, account.id)

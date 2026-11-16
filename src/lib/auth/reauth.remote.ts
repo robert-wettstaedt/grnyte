@@ -1,6 +1,6 @@
 import { command, getRequestEvent, query } from '$app/server'
 import { REAUTH_ACTIONS, type ReauthAction } from '$lib/auth'
-import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { userSettings } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -20,18 +20,19 @@ const subject = z.object({
 const boundTo = (caller: ReauthCaller, action: ReauthAction, target: string) =>
   action === 'account.delete' || action === 'password.change' ? caller.authUserId : target
 
-/** Mails a code for this action and target to the session's own verified address. */
 export const requestReauthCode = command(subject, async ({ action, target: sent }) => {
   const caller = await reauthCaller()
   const target = boundTo(caller, action, sent)
   const email = getRequestEvent().locals.claims?.email
   if (email == null) error(401, formError('auth_notSignedIn'))
 
-  const [settings] = await db
-    .select({ contactLocale: userSettings.contactLocale })
-    .from(userSettings)
-    .where(eq(userSettings.authUserFk, caller.authUserId))
-    .limit(1)
+  const [settings] = await pinnedTx((tx) =>
+    tx
+      .select({ contactLocale: userSettings.contactLocale })
+      .from(userSettings)
+      .where(eq(userSettings.authUserFk, caller.authUserId))
+      .limit(1),
+  )
   const locale = settings?.contactLocale == null ? getLocale() : contactLocale(settings.contactLocale)
 
   const issued = await issueReauthCode(caller, action, target, { email, locale })

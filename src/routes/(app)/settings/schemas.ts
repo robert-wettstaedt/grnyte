@@ -1,14 +1,11 @@
-import { formError, passwordSchema } from '$lib/forms/schemas'
+import { formError, mailedCodeSchema, passwordSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 
 // Beside `account.remote.ts`, which may export only remote functions: the store forms need these too.
 
 export const updateEmailSchema = z.object({ email: z.email({ error: formError('form_required') }) })
 
-export const emailChangeCodeSchema = z.object({
-  code: z.string({ error: formError('form_required') }),
-  email: z.email({ error: formError('form_required') }),
-})
+export const emailChangeCodeSchema = mailedCodeSchema
 
 // `currentPassword` and `confirmPassword` stay optional for one release: a tab from before
 // re-authentication still sends them, and the handler answers it with "reload this page".

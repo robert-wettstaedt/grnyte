@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { CODE_LIFETIME_MS } from '$lib/auth'
   import CodeEntry from '$lib/auth/CodeEntry.svelte'
   import Banner from '$lib/components/Banner/Banner.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
@@ -17,7 +18,6 @@
   import { confirmEmailChangeCode, updateEmailCommand } from '../account.remote'
   import { updateEmailSchema } from '../schemas'
 
-  const CODE_LIFETIME_MS = 10 * 60 * 1000
   const CHANGED = 'changed'
 
   const store = createFormStore(updateEmailSchema)
@@ -60,7 +60,6 @@
   const currentEmail = $derived(change?.current ?? page.data.session?.user.email ?? '')
   const currentId = $props.id()
 
-  // Send codes, then Confirm greyed while the codes are asked for, then Save greyed once changed.
   const header = $derived.by((): { icon?: 'send'; label: string } => {
     if (change != null) return { label: m.settings_emailConfirm() }
     return changed ? { label: m.common_save() } : { icon: 'send', label: m.settings_emailSendCodes() }

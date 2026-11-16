@@ -4,11 +4,11 @@ import commonPasswords from './common-passwords.txt?raw'
 const RANGE_URL = 'https://api.pwnedpasswords.com/range/'
 const TIMEOUT_MS = 1500
 
-// shortcut: a hand-picked list of well-known passwords, not the top 10,000; swap in the full file before release.
+// SecLists' `10k-most-common.txt` (MIT), lowercased: the fallback while the range service is out.
 const common = new Set(commonPasswords.split('\n').filter(Boolean))
 
 /**
- * A breached or common password is refused (design decision 11). Only a SHA-1 prefix leaves the
+ * A breached or common password is refused. Only a SHA-1 prefix leaves the
  * server; when the range service is slow or down, the bundled list decides instead.
  */
 export async function checkPassword(password: string): Promise<'breached' | 'ok'> {

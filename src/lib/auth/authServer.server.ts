@@ -12,7 +12,6 @@ export type AuthServer = Pick<
   'resend' | 'resetPasswordForEmail' | 'signInWithPassword' | 'verifyOtp'
 >
 
-/** The auth calls grnyte makes as the signed-in person, under the secret key. */
 export type AuthServerAs = Pick<SupabaseClient['auth'], 'linkIdentity' | 'updateUser'>
 
 /**
