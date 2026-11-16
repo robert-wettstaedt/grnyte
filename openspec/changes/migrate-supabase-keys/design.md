@@ -214,7 +214,7 @@ export function supabaseAuthServer(event: Pick<RequestEvent, 'getClientAddress'>
 
 `src/lib/auth/server/mail.server.ts`'s `mailSignupConfirmation` takes an `AuthServer`, and its two callers
 (`signup.remote.ts:96`, `forgot-password.remote.ts:31`) pass `supabaseAuthServer(getRequestEvent())`;
-their tests mock `$lib/auth/authServer.server`. `resend({ type: 'signup' })` sends no PKCE challenge,
+their tests mock `$lib/auth/server/authServer.server`. `resend({ type: 'signup' })` sends no PKCE challenge,
 so the flow type does not change the mail. `mailPasswordReset` stays on `locals.supabase` (PKCE
 today; `harden-auth-codes` moves it). `proofOfWork.server.ts` derives from the same
 `SUPABASE_SECRET_KEY`; `harden-auth-codes` extracts that derivation as `labelledKey(label)`.
