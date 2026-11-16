@@ -198,3 +198,17 @@ WebSocket under a slow network and a slow CPU, 2026-11-16, same WebSocket build.
 No ACK timeout, idle timeout or reconnect in any run. The 8.14 resume case at 512 kbit/s (route 203, 60 s in the background, renamed): the new name by 1.4 s after the return and no status bar in any frame. Not run: the same cases over HTTP, and a network slower than 512 kbit/s.
 
 Dev server, Chromium, 2026-11-16: the PowerSync sync never connects. On Chromium the SDK runs sync in a shared worker by default (the app passes `enableMultiTabs` only when `PUBLIC_POWERSYNC_MULTITABS=1`), and there the WebSocket connect fails every few seconds with `PowerSyncMissingRejectionReason` (the reason is lost relaying it from the worker); the service sees no connection, so the page stays on the store spinner. The endpoint is `localhost:58100`, and the worker's `@powersync/shared-internals/websockets` import resolves and loads (200, about 1 MB). Fine: the production build in Chromium (the first-sync runs above, one stream each), and the dev server in desktop Safari (dedicated worker) and Firefox. Cause not found; Chromium on the dev server before D15 was not checked. Developers use Safari or Firefox against the dev server until then.
+
+D13's iOS inputs re-measured on the WebSocket build, 2026-11-16 (5696c201, iOS 27.2 Simulator, iPhone 17, Safari, dev stack, `admin@`, both production builds served by `measure:screens`; Zero's build from `../measure-zero`). Cold starts of a synced store, median of 3, against the 2026-11-14 run D13 cites (first paint to settled; navigation to settled in brackets):
+
+| Screen  | PowerSync     | Zero          | Gap     | 2026-11-14: PowerSync / Zero |
+| ------- | ------------- | ------------- | ------- | ---------------------------- |
+| Area    | 1.75 s (2.77) | 0.71 s (1.36) | 1.04 s  | 1.39 / 0.54 s                |
+| Block   | 1.43 s (2.08) | 0.72 s (1.27) | 0.71 s  | 1.36 / 0.56 s                |
+| Route   | 0.76 s (1.31) | 0.47 s (1.01) | 0.29 s  | 20.62 / 2.80 s               |
+| Profile | 1.12 s (1.65) | 1.47 s (1.97) | -0.35 s | 0.93 / 0.39 s                |
+| Map     | 0.69 s (1.29) | n/a           |         |                              |
+
+Route 203, the screen that must claim "none" and waited for the reconnect, fell from 20.62 s to 0.76 s. Area and block stay behind Zero (0.7 to 1.0 s from first paint), profile is now ahead. Zero's own times are higher than on 2026-11-14 (0.71 against 0.54 s on area), so this run's environment was slower; compare within a row.
+
+Cold first sync, same Simulator and build, each run on a new origin (an empty store, the sign-in kept), no throttling, 3 runs: connected 0.9 to 1.4 s, essentials 1.1 to 1.7 s, every stream synced 4.1 to 4.4 s, one stream per run. D12 measured 23 to 26 s on this setup over HTTP (Chrome 3.3 s), so most of D12's iOS first-sync time was the WebKit `fetch` stall (D15). The iPhone figure in D12 (45 to 60 s on the user's prod account, Zero 4 s) is not re-measured.
