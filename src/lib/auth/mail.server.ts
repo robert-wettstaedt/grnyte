@@ -1,9 +1,64 @@
 import type { AuthServer } from '$lib/auth/authServer.server'
+import { countTry } from '$lib/auth/codeAttempts.server'
+import { noteMailRefusal } from '$lib/auth/events.server'
+import { signInMethods } from '$lib/auth/methods.server'
+import { db } from '$lib/db/db.server'
+import { pinnedTx } from '$lib/db/pinned.server'
+import { userSettings } from '$lib/db/schema'
+import { alreadyHasAccount } from '$lib/email/account'
+import { sendEmail } from '$lib/email/send.server'
+import { authError, formError, type FormMessage } from '$lib/forms/schemas'
+import { contactLocale } from '$lib/i18n/message'
+import { logServerFailure } from '$lib/logging/failure.server'
+import type { AuthError } from '@supabase/supabase-js'
+import { eq } from 'drizzle-orm'
 
-type Supabase = App.Locals['supabase']
-
-export const mailPasswordReset = (supabase: Supabase, email: string, origin: string) =>
-  supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/auth/reset-password` })
+export const mailPasswordReset = (authServer: AuthServer, email: string) => authServer.resetPasswordForEmail(email)
 
 export const mailSignupConfirmation = (authServer: AuthServer, email: string) =>
   authServer.resend({ email, type: 'signup' })
+
+/**
+ * A GoTrue refusal on a send or a code step, as the person sees it (design decision 9). Every 429
+ * is logged with one stable message per endpoint; the send limit also counts as a mail refusal.
+ */
+export async function gotrueRefusal(error: AuthError, endpoint: string): Promise<FormMessage> {
+  if (error.status === 429) await logServerFailure('auth', `GoTrue rate limit hit (${endpoint})`)
+  if (error.code === 'over_email_send_rate_limit') {
+    await noteMailRefusal(error)
+    return formError('auth_mailUnavailable')
+  }
+  if (error.status === 429) return formError('auth_tooManyTries')
+  if (error.code === 'signup_disabled' || error.message === 'Signup is not allowed') {
+    return formError('auth_signupRefused')
+  }
+  // No status: GoTrue never answered.
+  if (error.status == null || error.status === 0 || error.status >= 500) return formError('auth_serviceUnavailable')
+  return authError(error)
+}
+
+/**
+ * Tells the owner of a taken address that somebody tried it, at most once a minute per address.
+ * False only when the mail could not be sent.
+ */
+export async function noticeAlreadyHasAccount(
+  account: { email: string; id: string },
+  origin: string,
+): Promise<boolean> {
+  const tries = await pinnedTx((tx) => countTry(tx, account.email.toLowerCase(), 'already_has_account'))
+  if (tries > 1) return true
+
+  const [settings] = await db
+    .select({ locale: userSettings.contactLocale })
+    .from(userSettings)
+    .where(eq(userSettings.authUserFk, account.id))
+    .limit(1)
+  const locale = contactLocale(settings?.locale)
+  const methods = await signInMethods(account.id)
+  return sendEmail({
+    ...alreadyHasAccount({ forgotPasswordUrl: `${origin}/auth/forgot-password`, locale, methods }),
+    locale,
+    template: 'already-has-account',
+    to: account.email,
+  })
+}

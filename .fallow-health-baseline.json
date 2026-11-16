@@ -692,9 +692,6 @@
       }
     },
     "src/routes/(app)/+layout.svelte": {
-      "crap_high": {
-        "count": 1
-      },
       "crap_moderate": {
         "count": 2
       }

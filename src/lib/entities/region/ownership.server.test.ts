@@ -1,12 +1,18 @@
 // @vitest-environment node
+import { hasGrant, writeGrant } from '$lib/auth/reauth.server'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { transferRegionOwnership } from './ownership.server'
 
-const auth = vi.hoisted(() => ({ password: vi.fn(async () => true) }))
 const notice = vi.hoisted(() => ({ notify: vi.fn(async () => {}) }))
-vi.mock('../user/password.server', () => ({ verifyPassword: auth.password }))
+const mails = vi.hoisted(() => [] as { body: string[]; to: string }[])
 vi.mock('../notification/notification.server', () => ({ notify: notice.notify }))
+vi.mock('$lib/email/send.server', () => ({
+  sendEmail: async (mail: { body: string[]; to: string }) => {
+    mails.push(mail)
+    return true
+  },
+}))
 
 const PREFIX = '__ownership__'
 
@@ -17,8 +23,18 @@ let regionId = 0
 
 const ownerOf = async () =>
   (await sql<{ created_by: number }[]>`select created_by from public.regions where id = ${regionId}`)[0].created_by
-const handOver = (to: SeedUser, by = owner) =>
-  transferRegionOwnership({ email: by.email, id: by.userId }, { regionFk: regionId, userFk: to.userId }, 'pw')
+const SESSION = crypto.randomUUID()
+const callerOf = (by: SeedUser) => ({ authUserId: by.authId, sessionId: SESSION })
+const confirm = (to: SeedUser, by = owner) =>
+  writeGrant(callerOf(by), 'region.transfer', `${regionId}:${to.userId}`, 'email_code')
+const handOver = async (to: SeedUser, by = owner) => {
+  await confirm(to, by)
+  return transferRegionOwnership(
+    { email: by.email, id: by.userId },
+    { regionFk: regionId, userFk: to.userId },
+    callerOf(by),
+  )
+}
 
 beforeAll(async () => {
   if (!reachable) return
@@ -35,10 +51,11 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  auth.password.mockResolvedValue(true)
   notice.notify.mockClear()
-  auth.password.mockClear()
-  if (reachable) await sql`update public.regions set created_by = ${owner.userId} where id = ${regionId}`
+  mails.length = 0
+  if (!reachable) return
+  await sql`update public.regions set created_by = ${owner.userId} where id = ${regionId}`
+  await sql`delete from public.reauth_grants where session_id = ${SESSION}`
 })
 
 afterAll(async () => {
@@ -68,21 +85,29 @@ describe.skipIf(!reachable)('transferRegionOwnership', () => {
     )
   })
 
-  it('changes nothing for a wrong password', async () => {
-    auth.password.mockResolvedValue(false)
+  it('mails the previous owner, naming the region and the new owner', async () => {
+    await handOver(admin)
 
-    expect(await handOver(admin)).toEqual({ kind: 'wrongPassword' })
+    expect(mails.map((mail) => mail.to)).toEqual([owner.email])
+    expect(mails[0].body.join(' ')).toContain(PREFIX + 'region')
+  })
+
+  it('refuses a confirmation for another recipient and changes nothing', async () => {
+    await confirm(maintainer)
+    const result = await transferRegionOwnership(
+      { email: owner.email, id: owner.userId },
+      { regionFk: regionId, userFk: admin.userId },
+      callerOf(owner),
+    )
+
+    expect(result).toEqual({ kind: 'reauthRequired' })
     expect(await ownerOf()).toBe(owner.userId)
   })
 
-  it('refuses an admin who is not the owner', async () => {
+  it('refuses an admin who is not the owner, keeping the confirmation', async () => {
     await expect(handOver(maintainer, admin)).rejects.toMatchObject({ status: 403 })
     expect(await ownerOf()).toBe(owner.userId)
-  })
-
-  it('refuses a non-owner before asking for the password', async () => {
-    await expect(handOver(maintainer, admin)).rejects.toMatchObject({ status: 403 })
-    expect(auth.password).not.toHaveBeenCalled()
+    expect(await hasGrant(callerOf(admin), 'region.transfer', `${regionId}:${maintainer.userId}`)).toBe(true)
   })
 
   it('refuses handing the region to yourself', async () => {

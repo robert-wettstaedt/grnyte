@@ -1,11 +1,19 @@
 import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
 import { isContested, signedInRedirectTarget } from '$lib/auth'
-import { authError, formError } from '$lib/forms/schemas'
+import { supabaseAuthServer } from '$lib/auth/authServer.server'
+import { clearCodeTries } from '$lib/auth/codeAttempts.server'
+import { issueResendToken } from '$lib/auth/contested.server'
+import { gotrueRefusal, mailSignupConfirmation } from '$lib/auth/mail.server'
+import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
+import { hasDeletionMarker } from '$lib/entities/user/provision.server'
+import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { invalid } from '@sveltejs/kit'
 
 const signInSchema = z.object({
+  /** Sent by pages that can show the code step; an older tab gets the form-level message instead. */
+  codeFlow: z.optional(z.string()),
   email: z
     .string({ error: formError('form_required') })
     .check(z.trim(), z.minLength(1, { error: formError('form_required') })),
@@ -20,24 +28,36 @@ const signInSchema = z.object({
     .check(z.minLength(1, { error: formError('form_required') })),
 })
 
-export const signIn = form(signInSchema, async ({ email, next, password }) => {
-  const {
-    locals: { supabase },
-  } = getRequestEvent()
+export const signIn = form(signInSchema, async ({ codeFlow, email, next, password }) => {
+  const event = getRequestEvent()
+  const authServer = supabaseAuthServer(event)
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await authServer.signInWithPassword({ email, password })
 
-  // Supabase only speaks English, so its error code is mapped onto our copy and surfaced as a
-  // form-level issue (FormError).
-  if (error != null) {
-    invalid(authError(error))
+  // GoTrue checks the password first, so this is the owner: a new code, without flagging.
+  if (error?.code === 'email_not_confirmed') {
+    const sent = await mailSignupConfirmation(authServer, email)
+    if (sent.error != null) invalid(await gotrueRefusal(sent.error, 'resend'))
+    await clearCodeTries(email, 'signup')
+    if (codeFlow == null) invalid(formError('auth_emailNotConfirmed'))
+    return { confirm: email, resendToken: issueResendToken(email) }
   }
+  if (error != null) invalid(await gotrueRefusal(error, 'token'))
 
-  // Still contested means `/auth/confirm` could not replace the password, so it may be a stranger's.
-  if (isContested(data.user?.app_metadata)) {
-    await supabase.auth.signOut({ scope: 'local' })
+  // Decided before any cookie is written; the GoTrue session ends unused.
+  const endSession = () => supabaseAdmin().auth.admin.signOut(data.session.access_token, 'local')
+  // What an account deletion left: the right password signs nothing in.
+  if (await hasDeletionMarker(data.user.id)) {
+    await endSession()
+    invalid(formError('auth_accountDeleted'))
+  }
+  // Still contested means its password may be a stranger's.
+  if (isContested(data.user.app_metadata)) {
+    await endSession()
     return { redirectTo: `${resolve('/auth/forgot-password')}?contested=1` }
   }
+
+  await event.locals.supabase.auth.setSession(data.session)
 
   // Returned rather than redirected: a 303 becomes a pushing `goto` in Kit's remote-form client,
   // which leaves this sign-in page in history for a signed-in reader to walk back into. The page

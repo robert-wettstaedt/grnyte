@@ -2,7 +2,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import CurrentPasswordField from '$lib/auth/CurrentPasswordField.svelte'
+  import ReauthStep, { isReauthRequired } from '$lib/auth/ReauthStep.svelte'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import { entityHref } from '$lib/entities/href'
@@ -36,11 +36,20 @@
 
   const shown = holdWhileDeleting(region, 'regions', () => regionId)
 
-  const seed = () => ({ name: '', password: '', regionFk: regionId })
+  // No `password`: a present key marks a tab from before re-authentication.
+  const seed = () => ({ name: '', regionFk: regionId })
+  let confirmed = $state(false)
+  let step: ReauthStep | undefined = $state()
+
   // The region is gone, so the form leaves for settings rather than its own `cancelTo`.
   const submit = (values: z.input<typeof deleteRegionSchema>) =>
     whileDeleting('regions', regionId, async () => {
-      await submitCommand(() => deleteRegionCommand(values))
+      try {
+        await submitCommand(() => deleteRegionCommand(values))
+      } catch (cause) {
+        if (isReauthRequired(cause)) step?.require()
+        throw cause
+      }
       return { redirectTo: resolve('/settings') }
     })
   const onSubmitted = () => {
@@ -60,7 +69,7 @@
   {seed}
   {store}
   {submit}
-  submitDisabled={preview?.phase.kind !== 'answered'}
+  submitDisabled={preview?.phase.kind !== 'answered' || !confirmed}
   submitLabel={m.region_deleteSubmit()}
   title={m.region_delete()}
   waitFor={[{ notFound: m.region_notFound(), resource: shown, whole: false }]}
@@ -68,15 +77,17 @@
   {#snippet fields([detail])}
     <p class="text-error-700-300 font-semibold">{m.region_deleteIntro({ region: detail.name })}</p>
 
-    <AuthField
-      field={store.fields.name}
-      label={m.region_deleteNameLabel({ region: detail.name })}
-      type="text"
-      autocomplete="off"
-      enterkeyhint="next"
-    />
-    <CurrentPasswordField field={store.fields.password} enterkeyhint="go" />
+    {#key regionId}
+      <ReauthStep
+        bind:this={step}
+        bind:confirmed
+        action="region.delete"
+        target={String(regionId)}
+        ready={preview?.phase.kind === 'answered' || preview?.phase.kind === 'error'}
+      />
+    {/key}
 
+    <!-- Intro, step, preview, then the name: a late preview and the revealed field both land below. -->
     {#if preview?.phase.kind === 'error'}
       <QueryError />
     {/if}
@@ -90,6 +101,18 @@
         {#if counts.ascents > 0}
           <p>{m.region_deleteAscents({ count: counts.ascents })}</p>
         {/if}
+      </div>
+    {/if}
+
+    {#if confirmed}
+      <div transition:slide={{ duration: motion(150) }}>
+        <AuthField
+          field={store.fields.name}
+          label={m.region_deleteNameLabel({ region: detail.name })}
+          type="text"
+          autocomplete="off"
+          enterkeyhint="go"
+        />
       </div>
     {/if}
   {/snippet}

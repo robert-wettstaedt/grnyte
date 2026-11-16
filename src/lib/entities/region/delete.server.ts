@@ -1,3 +1,4 @@
+import { spendGrant, type ReauthCaller } from '$lib/auth/reauth.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { activities } from '$lib/db/retired'
 import * as schema from '$lib/db/schema'
@@ -35,7 +36,6 @@ import { alias } from 'drizzle-orm/pg-core'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { authUsers } from 'drizzle-orm/supabase'
 import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../file/cleanup.server'
-import { verifyPassword } from '../user/password.server'
 import { lockRegionMembers, requireOwner } from './guards.server'
 
 type Db = PostgresJsDatabase<typeof schema>
@@ -104,9 +104,9 @@ export async function deleteRegionRows(tx: Db, regionFk: number): Promise<FileSt
 /** `auth.users` is named `users` too: without the alias the join fails at runtime with 42P09. */
 const authUser = alias(authUsers, 'auth_user')
 
-export type DeleteRegionResult = { kind: 'deleted' } | { kind: 'wrongName' } | { kind: 'wrongPassword' }
+export type DeleteRegionResult = { kind: 'deleted' } | { kind: 'reauthRequired' } | { kind: 'wrongName' }
 
-type Owner = { email: string; id: number }
+type Owner = { id: number }
 
 const RATE_LIMIT_PAUSE_MS = 1000
 
@@ -118,16 +118,16 @@ const otherActiveMembers = (regionFk: number, ownerFk: number) =>
 export async function deleteRegion(
   owner: Owner,
   { name, regionFk }: { name: string; regionFk: number },
-  password: string,
+  caller: ReauthCaller,
   origin: string,
 ): Promise<DeleteRegionResult> {
   const region = await pinnedTx((tx) => requireOwner(tx, regionFk, owner.id))
   if (region.name.trim() !== name.trim()) return { kind: 'wrongName' }
-  if (!(await verifyPassword(owner.email, password))) return { kind: 'wrongPassword' }
 
-  const { recipients, targets } = await pinnedTx(async (tx) => {
+  const deleted = await pinnedTx(async (tx) => {
     await lockRegionMembers(tx, regionFk)
     await requireOwner(tx, regionFk, owner.id)
+    if (!(await spendGrant(tx, caller, 'region.delete', String(regionFk)))) return null
     // Read before the rows go: afterwards nothing says who was in it.
     const recipients = await tx
       .select({ email: authUser.email, locale: userSettings.contactLocale })
@@ -137,6 +137,8 @@ export async function deleteRegion(
       .where(otherActiveMembers(regionFk, owner.id))
     return { recipients, targets: await deleteRegionRows(tx, regionFk) }
   })
+  if (deleted == null) return { kind: 'reauthRequired' }
+  const { recipients, targets } = deleted
 
   await removeFileStorage(targets)
   // One at a time: Resend rate-limits a burst, and a rate-limited send gets one more try.

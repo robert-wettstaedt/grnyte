@@ -17,6 +17,7 @@ vi.mock('$lib/logging/failure.server', () => ({
     logged.push(message)
   },
 }))
+vi.mock('$lib/auth/events.server', () => ({ recordAuthEvent: async () => {} }))
 vi.mock('./shell', () => ({ renderEmailHtml: () => '', renderEmailText: () => '' }))
 // Set here, not inherited: an unset key answers `failed` before the client is ever asked.
 vi.mock('$env/static/private', () => ({ RESEND_API_KEY: 're_test', RESEND_SENDER_EMAIL: 'from@example.test' }))

@@ -1,19 +1,23 @@
-import { form, getRequestEvent } from '$app/server'
+import { command, form, getRequestEvent } from '$app/server'
+import { SIGNUP_MARKER } from '$lib/auth'
 import { supabaseAuthServer, type AuthServer } from '$lib/auth/authServer.server'
-import { flagContestedSignup } from '$lib/auth/contested.server'
-import { mailSignupConfirmation } from '$lib/auth/mail.server'
-import { db } from '$lib/db/db.server'
-import { pinnedTx } from '$lib/db/pinned.server'
-import * as schema from '$lib/db/schema'
+import { clearCodeTries } from '$lib/auth/codeAttempts.server'
+import { verifyCode } from '$lib/auth/codes.server'
+import {
+  checkResendToken,
+  contestedNext,
+  findAccount,
+  flagContestedSignup,
+  issueResendToken,
+} from '$lib/auth/contested.server'
+import { gotrueRefusal, mailSignupConfirmation, noticeAlreadyHasAccount } from '$lib/auth/mail.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { botFields } from '$lib/forms/botCheck'
 import { screenSubmit } from '$lib/forms/botCheck.server'
-import { authError, formError, passwordSchema, passwordsMatch, usernameSchema } from '$lib/forms/schemas'
+import { formError, passwordSchema, passwordsMatch } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
-import { getLocale } from '$lib/paraglide/runtime'
+import { refuseCommand } from '$lib/remote/authed.server'
 import { invalid } from '@sveltejs/kit'
-import { and, eq, isNull, sql } from 'drizzle-orm'
-import { authUsers } from 'drizzle-orm/supabase'
 
 const signUpSchema = z
   .object({
@@ -21,75 +25,88 @@ const signUpSchema = z
     confirmPassword: z.string({ error: formError('form_required') }),
     email: z.email({ error: formError('form_required') }),
     password: passwordSchema,
-    username: usernameSchema,
   })
   .check(passwordsMatch)
 
-// No username-uniqueness check here on purpose: a fresh account belongs to no region yet, so there
-// is nothing it could collide with, and an unauthenticated "taken" answer would turn sign-up into a
-// username oracle for regions the caller can't see. Collisions are resolved where they are visible
-// (updateUsername checks the caller's regions).
+const codeSchema = z.object({
+  code: z.string({ error: formError('form_required') }),
+  email: z.email({ error: formError('form_required') }),
+})
+
+const resendSchema = z.object({
+  ...botFields,
+  email: z.email({ error: formError('form_required') }),
+  resendToken: z.optional(z.string()),
+})
+
+// The profile (username, grading scale) comes after confirmation, at `/auth/profile`. Every
+// address answers alike, with a resend token, so the answer says nothing about the address.
 export const signUp = form(signUpSchema, async (submitted) => {
-  if ((await screenSubmit(submitted)) === 'bot') {
-    return { success: true }
-  }
-  const { email, password, username } = submitted
+  const { email, password } = submitted
+  const answer = { email, resendToken: issueResendToken(email), success: true }
+  if ((await screenSubmit(submitted)) === 'bot') return answer
 
-  const authServer = supabaseAuthServer(getRequestEvent())
+  const event = getRequestEvent()
+  const authServer = supabaseAuthServer(event)
 
-  // GoTrue's public sign-up is switched off, so the published anon key cannot skip the checks above.
-  const { data, error } = await supabaseAdmin().auth.admin.createUser({ email, email_confirm: false, password })
-  if (error?.code === 'email_exists') {
-    // Either password for an unproven address may be a stranger's, so whoever confirms picks a new
-    // one (`/auth/confirm`). The first username stays; the latest is no likelier to be the owner's.
-    const [unconfirmed] = await db
-      .select({ id: authUsers.id })
-      .from(authUsers)
-      .where(and(eq(authUsers.email, sql`lower(${email})`), isNull(authUsers.emailConfirmedAt)))
-      .limit(1)
-    if (unconfirmed != null && !(await flagContestedSignup(unconfirmed.id))) {
-      return { success: true }
-    }
-    // Same answer as a new address. Resend mails only an unconfirmed account, and its per-address
-    // limit would show one was mailed a minute ago, which a new address can never hit.
-    await sendConfirmation(authServer, email, { quietRateLimit: true })
-    return { success: true }
-  }
-  if (error != null) {
-    invalid(authError(error))
-  }
-  if (data.user == null) {
-    invalid(formError('auth_signUpFailed'))
-  }
-
-  // The base client, not RLS, because sign-up has no session yet. All three statements in one
-  // transaction: the GoTrue account exists by now, so a half-written pair leaves an address that
-  // can neither sign in nor sign up again.
-  // Read out here, because TypeScript drops the null narrowing inside the callback.
-  const authUserFk = data.user.id
-  await pinnedTx(async (tx) => {
-    const [user] = await tx.insert(schema.users).values({ authUserFk, username }).returning()
-    // `contactLocale` is seeded from the request locale: the best guess on the device the account
-    // was made on, and the only signal we have until they pick a language in settings.
-    const [settings] = await tx
-      .insert(schema.userSettings)
-      .values({ authUserFk, contactLocale: getLocale(), userFk: user.id })
-      .returning()
-    await tx.update(schema.users).set({ userSettingsFk: settings.id }).where(eq(schema.users.id, user.id))
+  // The hook refuses a public sign-up, so the published key cannot skip the checks above.
+  const { data, error } = await supabaseAdmin().auth.admin.createUser({
+    app_metadata: SIGNUP_MARKER,
+    email,
+    email_confirm: false,
+    password,
   })
+  if (error?.code === 'email_exists') {
+    const account = await findAccount(email)
+    if (account?.confirmed === true) {
+      if (!(await noticeAlreadyHasAccount(account, event.url.origin))) invalid(formError('auth_mailUnavailable'))
+      return answer
+    }
+    // Either password for an unproven address may be a stranger's, so whoever confirms picks a new one.
+    if (account != null && !(await flagContestedSignup(account.id))) return answer
+    // Resend's per-address limit would show one was mailed a minute ago, which a new address never hits.
+    await sendCode(authServer, email, { quietRateLimit: true })
+    return answer
+  }
+  if (error != null) invalid(await gotrueRefusal(error, 'admin/users'))
+  if (data.user == null) invalid(formError('auth_signUpFailed'))
 
   // A failure here leaves the account in place; a retry takes the email_exists path and resends.
-  await sendConfirmation(authServer, email)
+  await sendCode(authServer, email)
+  return answer
+})
 
-  // No redirect: Supabase may require email confirmation before the first sign-in, so we
-  // surface a success message and let the user head to the sign-in tab.
+/** The 8-digit confirmation code from the sign-up mail. */
+export const confirmSignupCode = command(codeSchema, async ({ code, email }) => {
+  const event = getRequestEvent()
+  const { session, user } = await verifyCode(event, { code, email, kinds: ['signup'], type: 'signup' })
+  if (session == null || user == null) return refuseCommand(formError('auth_unexpectedError'), 'code')
+  await event.locals.supabase.auth.setSession(session)
+  return { next: (await contestedNext(event.locals.supabase, user)) ?? ('profile' as const) }
+})
+
+/**
+ * A new confirmation code. Without the sign-up's token for this address it may be a stranger's
+ * resend, so the account is flagged first and whoever confirms picks a new password.
+ */
+export const resendSignupCode = form(resendSchema, async (submitted) => {
+  if ((await screenSubmit(submitted)) === 'bot') return { success: true }
+  const { email, resendToken } = submitted
+  const account = await findAccount(email)
+  if (account == null || account.confirmed) return { success: true }
+  if (!checkResendToken(email, resendToken) && !(await flagContestedSignup(account.id))) return { success: true }
+
+  await sendCode(supabaseAuthServer(getRequestEvent()), email)
   return { success: true }
 })
 
-/** The admin API creates without mailing; GoTrue still renders and sends the confirmation. */
-async function sendConfirmation(authServer: AuthServer, email: string, { quietRateLimit = false } = {}): Promise<void> {
+/** The admin API creates without mailing; GoTrue renders and sends the code. A sent code resets the guesses. */
+async function sendCode(authServer: AuthServer, email: string, { quietRateLimit = false } = {}): Promise<void> {
   const { error } = await mailSignupConfirmation(authServer, email)
-  if (error != null && !(quietRateLimit && error.code === 'over_email_send_rate_limit')) {
-    invalid(authError(error))
+  if (error == null) {
+    await clearCodeTries(email, 'signup')
+    return
   }
+  if (quietRateLimit && error.code === 'over_email_send_rate_limit') return
+  invalid(await gotrueRefusal(error, 'resend'))
 }

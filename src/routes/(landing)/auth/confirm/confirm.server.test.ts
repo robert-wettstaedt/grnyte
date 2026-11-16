@@ -1,6 +1,4 @@
-/**
- * Admins hear about a sign-up when its email is confirmed, once, and never from another link type.
- */
+/** The legacy emailed links: a contested confirmation replaces the password. */
 import { CONTESTED_SIGNUP } from '$lib/auth'
 import { deleteAccountRows } from '$lib/db/testAccounts'
 import { deleteStaleFixtureAccounts, fixtureRun, reachable, sql } from '$lib/db/testDb'
@@ -11,13 +9,6 @@ const RUN = fixtureRun()
 
 const EMAIL = `__confirm_alert_${RUN}__@example.test`
 const USERNAME = `ca${RUN}`
-
-const alerted: string[] = []
-vi.mock('$lib/entities/notification/signup.server', () => ({
-  notifyAdminsOfSignup: async ({ username }: { username: string }) => {
-    alerted.push(username)
-  },
-}))
 
 /** What the handler changed, through the session and through the admin API. */
 const passwords: string[] = []
@@ -104,7 +95,6 @@ beforeAll(async () => {
 })
 
 beforeEach(() => {
-  alerted.length = 0
   passwords.length = 0
   refreshes = 0
   adminCalls.length = 0
@@ -118,13 +108,8 @@ afterAll(async () => {
 })
 
 describe.skipIf(!reachable)('GET /auth/confirm', () => {
-  it('alerts admins once when a sign-up confirms', async () => {
-    expect(await confirm('signup', true)).toBe('http://localhost/')
-    expect(alerted).toEqual([USERNAME])
-  })
-
   it('leaves an uncontested sign-up its password', async () => {
-    await confirm('signup', true)
+    expect(await confirm('signup', true)).toBe('http://localhost/')
     expect(passwords).toEqual([])
     expect(adminCalls).toEqual([])
   })
@@ -176,13 +161,7 @@ describe.skipIf(!reachable)('GET /auth/confirm', () => {
     expect(passwords).toHaveLength(1)
   })
 
-  it('does not alert for an email change', async () => {
-    await confirm('email_change', true)
-    expect(alerted).toEqual([])
-  })
-
-  it('does not alert when verification fails', async () => {
+  it('sends a failed verification to the error page', async () => {
     expect(await confirm('signup', false)).toContain('/auth/error')
-    expect(alerted).toEqual([])
   })
 })

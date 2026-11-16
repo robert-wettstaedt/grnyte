@@ -2,14 +2,20 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import MailedCodeStep from '$lib/auth/MailedCodeStep.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import BotCheck from '$lib/forms/BotCheck.svelte'
   import FormError from '$lib/forms/FormError.svelte'
+  import HiddenBotForm from '$lib/forms/HiddenBotForm.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { forgotPassword } from './forgot-password.remote'
+  import { confirmResetCode, forgotPassword } from './forgot-password.remote'
 
-  // Set by /auth/confirm when it could not keep a contested sign-up's session.
+  // Set when a contested sign-up's password could not be replaced; the address comes along.
   const contested = $derived(page.url.searchParams.has('contested'))
+  const prefilled = page.url.searchParams.get('email')
+  if (prefilled != null) forgotPassword.fields.set({ email: prefilled })
+
+  let resendForm: HiddenBotForm | undefined = $state()
 </script>
 
 <svelte:head>
@@ -17,15 +23,18 @@
 </svelte:head>
 
 {#if forgotPassword.result?.success}
-  <div class="card preset-tonal-success px-4 py-6 text-center text-sm" role="status">
-    <p class="font-bold">{m.auth_resetLinkSent()}</p>
-    <p class="text-surface-600-400 mt-1">{m.auth_resetLinkSentIfAccount({ email: forgotPassword.result.email })}</p>
-    <a href={resolve('/auth/signin')} class="text-primary-400 mt-3 inline-block font-bold">{m.auth_backToSignIn()}</a>
-  </div>
+  {@const email = forgotPassword.result.email}
+  <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_codeTitle()}</h1>
+  <MailedCodeStep
+    {email}
+    confirm={(code) => confirmResetCode({ code, email })}
+    resend={() => resendForm?.send() ?? Promise.resolve()}
+  />
+  <HiddenBotForm bind:this={resendForm} form={forgotPassword} values={{ email }} />
 {:else}
   <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_forgotTitle()}</h1>
   <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">
-    {contested ? m.auth_forgotContestedSubtitle() : m.auth_forgotSubtitle()}
+    {contested ? m.auth_forgotContestedSubtitle() : m.auth_forgotCodeSubtitle()}
   </p>
 
   <form {...forgotPassword} class="flex flex-col gap-4">
@@ -48,7 +57,7 @@
       class="btn preset-filled-primary-500 mt-1 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)] disabled:opacity-60"
       disabled={forgotPassword.pending > 0}
     >
-      {m.auth_sendResetLink()}
+      {m.auth_sendResetCode()}
     </button>
   </form>
 

@@ -127,9 +127,14 @@ export const regionFkSchema = z.object({ regionFk: z.number() })
 
 const requiredText = () => z.string({ error: formError('form_required') })
 
-export const handOverSchema = z.object({ ...memberSchema.shape, password: requiredText() })
+// `password` only from a tab from before re-authentication, answered with "reload this page".
+export const handOverSchema = z.object({ ...memberSchema.shape, password: z.optional(z.string()) })
 
-export const deleteRegionSchema = z.object({ ...regionFkSchema.shape, name: requiredText(), password: requiredText() })
+export const deleteRegionSchema = z.object({
+  ...regionFkSchema.shape,
+  name: requiredText(),
+  password: z.optional(z.string()),
+})
 
 export interface RemovedMemberSnapshot {
   regionFk: number

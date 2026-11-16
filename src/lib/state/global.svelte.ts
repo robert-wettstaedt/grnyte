@@ -58,6 +58,8 @@ export interface GlobalState {
   /** The user's active region memberships, each with the permissions its role grants. */
   readonly userRegions: UserRegion[]
   readonly userRegionsResource: QueryResource<RegionMembership[]>
+  /** Answered empty: the account has no profile yet. */
+  readonly userResource: QueryResource<undefined | User>
   /** The user's app/region role, or `undefined` if they have none. */
   readonly userRole: AppRole | undefined
 }
@@ -186,6 +188,9 @@ export function setGlobalState(): GlobalState | undefined {
     get userRegionsResource() {
       return userRegionsResource
     },
+    get userResource() {
+      return userResource
+    },
     get userRole() {
       return userRoleResource.data
     },
@@ -250,6 +255,7 @@ export function staticGlobalState(
     userPermissions: data.userPermissions,
     userRegions,
     userRegionsResource: ready(userRegions),
+    userResource: ready(data.user),
     userRole: data.userRole,
   }
 }

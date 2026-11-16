@@ -18,7 +18,8 @@ const CONFIRMED = `__unconfirmed_confirmed_${RUN}__@example.test`
 const SIGNED_UP = `__unconfirmed_signed_up_${RUN}__@example.test`
 const LONE = `__unconfirmed_lone_${RUN}__@example.test`
 const LONE_FRESH = `__unconfirmed_lone_fresh_${RUN}__@example.test`
-const EMAILS = [EXPIRED, RECENT, CONFIRMED, SIGNED_UP, LONE, LONE_FRESH]
+const MARKED = `__unconfirmed_marked_${RUN}__@example.test`
+const EMAILS = [EXPIRED, RECENT, CONFIRMED, SIGNED_UP, LONE, LONE_FRESH, MARKED]
 
 const deleted: string[] = []
 let keptIds: string[] = []
@@ -61,6 +62,7 @@ async function account(email: string, ageDays: number, confirmed: boolean): Prom
 const cleanup = async () => {
   await deleteStaleFixtureAccounts('__unconfirmed_')
   const ids = await sql<{ id: string }[]>`select id from auth.users where email = any(${EMAILS})`
+  await sql`delete from public.auth_events where auth_user_fk = any(${ids.map((row) => row.id)}::uuid[])`
   await deleteAccountRows(
     sql,
     ids.map((row) => row.id),
@@ -113,10 +115,9 @@ describe.skipIf(!reachable)('an expired sign-up', () => {
         confirmPassword: 'correct-horse',
         email: SIGNED_UP,
         password: 'correct-horse',
-        username: 'signedupexpired',
       }),
     )
-    expect(result).toEqual({ success: true })
+    expect(result).toMatchObject({ success: true })
 
     await sql`update auth.users set created_at = now() - interval '8 days' where id = ${id}`
     await sweepUnconfirmedAccounts(new Date(Date.now() - UNCONFIRMED_MAX_AGE_MS))
@@ -129,20 +130,25 @@ describe.skipIf(!reachable)('an expired sign-up', () => {
   })
 })
 
-// What an account deletion leaves behind when GoTrue failed after the rows were gone.
 describe.skipIf(!reachable)('a sign-in record with no profile', () => {
-  it('is deleted once it is an hour old, and left alone while a sign-up may still be writing it', async () => {
-    const [lone] = await sql<{ id: string }[]>`
-      insert into auth.users (id, email, created_at, email_confirmed_at)
-      values (gen_random_uuid(), ${LONE}, now() - interval '2 hours', now()) returning id`
-    const [fresh] = await sql<{ id: string }[]>`
-      insert into auth.users (id, email, created_at, email_confirmed_at)
-      values (gen_random_uuid(), ${LONE_FRESH}, now(), now()) returning id`
+  const lone = async (email: string, ageDays: number) =>
+    (
+      await sql<{ id: string }[]>`
+        insert into auth.users (id, email, created_at, email_confirmed_at)
+        values (gen_random_uuid(), ${email}, now() - make_interval(days => ${ageDays}), now()) returning id`
+    )[0].id
+
+  it('waits 7 days for the profile step, but goes at once when an account deletion left it', async () => {
+    const day3 = await lone(LONE_FRESH, 3)
+    const day8 = await lone(LONE, 8)
+    const marked = await lone(MARKED, 0)
+    await sql`insert into public.auth_events (auth_user_fk, kind) values (${marked}, 'account_deleted')`
 
     await sweepUnconfirmedAccounts(new Date(Date.now() - UNCONFIRMED_MAX_AGE_MS))
 
-    expect(deleted).toContain(lone.id)
-    expect(deleted).not.toContain(fresh.id)
+    expect(deleted).toContain(day8)
+    expect(deleted).toContain(marked)
+    expect(deleted).not.toContain(day3)
     expect(deleted).not.toContain(keptIds[1])
   })
 })

@@ -7,6 +7,7 @@
   import FormError from '$lib/forms/FormError.svelte'
   import { m } from '$lib/paraglide/messages'
   import { signUp } from './signup.remote'
+  import SignupCodeStep from './SignupCodeStep.svelte'
 
   // An invitation is keyed on the address, so signing up with a different one silently orphans it.
   // The accept screen sends `?email=` for exactly this.
@@ -21,15 +22,11 @@
 </svelte:head>
 
 {#if signUp.result?.success}
-  <div class="card preset-tonal-success px-4 py-6 text-center text-sm" role="status">
-    <p class="font-bold">{m.auth_accountCreated()}</p>
-    <p class="text-surface-600-400 mt-1">{m.auth_accountCreatedBody()}</p>
-    <!-- resolve()'d path plus a query string, which resolve() itself does not take -->
-    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-    <a href={resolve('/auth/signin') + page.url.search} class="text-primary-400 mt-3 inline-block font-bold">
-      {m.auth_goToSignIn()}
-    </a>
-  </div>
+  <SignupCodeStep
+    email={signUp.result.email}
+    next={page.url.searchParams.get('next')}
+    resendToken={signUp.result.resendToken}
+  />
 {:else}
   <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_signUpTitle()}</h1>
   <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">
@@ -49,15 +46,6 @@
       autocapitalize="none"
       enterkeyhint="next"
       autofocus
-    />
-    <AuthField
-      field={signUp.fields.username}
-      label={m.auth_username()}
-      type="text"
-      placeholder={m.auth_usernamePlaceholder()}
-      autocomplete="nickname"
-      autocapitalize="none"
-      enterkeyhint="next"
     />
     <AuthField
       field={signUp.fields.password}

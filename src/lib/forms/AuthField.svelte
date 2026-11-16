@@ -17,10 +17,16 @@
     /** Mobile keyboard's enter-key label: 'next' for non-final fields, 'go'/'done' for the last. */
     enterkeyhint?: HTMLInputAttributes['enterkeyhint']
     field: RemoteFormField<string> | StoreField<string>
+    inputmode?: HTMLInputAttributes['inputmode']
     label: string
+    maxlength?: number
+    oninput?: HTMLInputAttributes['oninput']
+    pattern?: string
     /** Omit on pre-filled fields, where it only ever repeats the label. */
     placeholder?: string
+    readonly?: boolean
     required?: boolean
+    spellcheck?: 'false' | 'true'
     type: 'email' | 'password' | 'text'
   }
 
@@ -31,9 +37,15 @@
     autofocus = false,
     enterkeyhint,
     field,
+    inputmode,
     label,
+    maxlength,
+    oninput,
+    pattern,
     placeholder,
+    readonly,
     required = true,
+    spellcheck = 'false',
     type,
   }: Props = $props()
 
@@ -41,23 +53,30 @@
 
   // One read for the hint and the input's aria.
   const issues = $derived(field.issues() ?? [])
+  const attributes = $derived(field.as(type))
 </script>
 
 <div class="relative flex flex-col gap-1.5">
   <label for={id} class="text-surface-950-50 self-start text-[13px] font-semibold">{label}</label>
 
   <input
-    {...field.as(type)}
+    {...attributes}
     {@attach (node) => {
       if (autofocus) node.focus()
     }}
+    name={attributes.name || undefined}
     {id}
     {autocomplete}
     {autocapitalize}
     {enterkeyhint}
+    {inputmode}
+    {maxlength}
+    {oninput}
+    {pattern}
+    {readonly}
     {required}
     autocorrect="off"
-    spellcheck="false"
+    {spellcheck}
     aria-invalid={issues.length === 0 ? undefined : 'true'}
     aria-errormessage={issues.length === 0 ? undefined : `${id}-error`}
     class="input h-12 px-3.5"

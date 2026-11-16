@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import CurrentPasswordField from '$lib/auth/CurrentPasswordField.svelte'
+  import ReauthStep, { isReauthRequired } from '$lib/auth/ReauthStep.svelte'
   import { entityHref } from '$lib/entities/href'
   import { ownerOnlyDenied, regionDenied } from '$lib/entities/region/adminScreen.svelte'
   import { handOverSchema } from '$lib/entities/region/dto'
@@ -46,10 +46,18 @@
   const denied = $derived(ownerOnlyDenied(region.data, global.user?.id) ?? refusal)
 
   let handingTo = ''
-  const seed = () => ({ password: '', regionFk: regionId, userFk: userId })
-  const submit = (values: z.input<typeof handOverSchema>) => {
+  let confirmed = $state(false)
+  let step: ReauthStep | undefined = $state()
+  // No `password`: a present key marks a tab from before re-authentication.
+  const seed = () => ({ regionFk: regionId, userFk: userId })
+  const submit = async (values: z.input<typeof handOverSchema>) => {
     handingTo = recipient.data?.username ?? ''
-    return submitCommand(() => transferRegionOwnershipCommand(values))
+    try {
+      return await submitCommand(() => transferRegionOwnershipCommand(values))
+    } catch (cause) {
+      if (isReauthRequired(cause)) step?.require()
+      throw cause
+    }
   }
   const onSubmitted = () => {
     toaster.create({ title: m.region_handedOver({ name: handingTo }), type: 'success' })
@@ -67,6 +75,7 @@
   {seed}
   {store}
   {submit}
+  submitDisabled={!confirmed}
   submitLabel={m.region_handOver()}
   title={m.region_handOver()}
   waitFor={[
@@ -77,6 +86,9 @@
   {#snippet fields([detail, member])}
     <p>{m.region_handOverIntro({ name: member.username, region: detail.name })}</p>
 
-    <CurrentPasswordField field={store.fields.password} enterkeyhint="go" autofocus />
+    <!-- One route serves every recipient, so the step starts over per region and member. -->
+    {#key `${regionId}:${userId}`}
+      <ReauthStep bind:this={step} bind:confirmed action="region.transfer" target={`${regionId}:${userId}`} />
+    {/key}
   {/snippet}
 </Form>

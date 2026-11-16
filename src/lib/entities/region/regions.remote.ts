@@ -1,4 +1,5 @@
 import { command, form, getRequestEvent, query } from '$app/server'
+import { reauthCaller } from '$lib/auth/reauth.server'
 import { regionInvitations } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -245,9 +246,11 @@ export const restoreRegionMember = authedCommand(memberRoleSchema, (args, ctx) =
 export const leaveRegion = authedCommand(regionFkSchema, (args, ctx) => leaveRegionRow(args, ctx))
 
 export const transferRegionOwnershipCommand = command(handOverSchema, async ({ password, ...target }) => {
+  // Only a tab from before re-authentication sends a password.
+  if (password !== undefined) refuseCommand(formError('auth_reloadPage'))
   const { email, user } = requireVerifiedEmail()
-  const result = await transferRegionOwnership({ email, id: user.id }, target, password)
-  if (result.kind === 'wrongPassword') refuseCommand(formError('settings_passwordIncorrect'), 'password')
+  const result = await transferRegionOwnership({ email, id: user.id }, target, reauthCaller())
+  if (result.kind === 'reauthRequired') refuseCommand(formError('auth_reauthRequired'), 'code')
 })
 
 export const regionDeletionPreview = query(regionFkSchema, ({ regionFk }) =>
@@ -255,8 +258,9 @@ export const regionDeletionPreview = query(regionFkSchema, ({ regionFk }) =>
 )
 
 export const deleteRegionCommand = command(deleteRegionSchema, async ({ name, password, regionFk }) => {
-  const { email, user } = requireVerifiedEmail()
-  const result = await deleteRegion({ email, id: user.id }, { name, regionFk }, password, getRequestEvent().url.origin)
+  if (password !== undefined) refuseCommand(formError('auth_reloadPage'))
+  const { user } = requireAuthed()
+  const result = await deleteRegion({ id: user.id }, { name, regionFk }, reauthCaller(), getRequestEvent().url.origin)
   if (result.kind === 'wrongName') refuseCommand(formError('region_deleteWrongName'), 'name')
-  if (result.kind === 'wrongPassword') refuseCommand(formError('settings_passwordIncorrect'), 'password')
+  if (result.kind === 'reauthRequired') refuseCommand(formError('auth_reauthRequired'), 'code')
 })

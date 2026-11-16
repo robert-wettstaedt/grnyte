@@ -1,7 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import CurrentPasswordField from '$lib/auth/CurrentPasswordField.svelte'
+  import ReauthStep, { isReauthRequired } from '$lib/auth/ReauthStep.svelte'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import { submitCommand } from '$lib/forms/command'
@@ -23,8 +23,19 @@
   const deletes = $derived(preview.data?.deletes ?? [])
   // Held until the preview answers: the server re-checks the block, but nothing confirms a region that goes.
   const held = $derived(preview.phase.kind !== 'answered' || blocks.length > 0)
+  const settled = $derived(preview.phase.kind === 'answered' || preview.phase.kind === 'error')
 
-  const submit = (values: z.input<typeof deleteAccountSchema>) => submitCommand(() => deleteAccountCommand(values))
+  let confirmed = $state(false)
+  let step: ReauthStep | undefined = $state()
+
+  const submit = async (values: z.input<typeof deleteAccountSchema>) => {
+    try {
+      return await submitCommand(() => deleteAccountCommand(values))
+    } catch (cause) {
+      if (isReauthRequired(cause)) step?.require()
+      throw cause
+    }
+  }
 
   const onSubmitted = async () => {
     await disablePush().catch(() => undefined)
@@ -54,7 +65,7 @@
   destructive
   {onSubmitted}
   stayOnSubmit
-  submitDisabled={held}
+  submitDisabled={held || !confirmed}
   submitLabel={m.settings_deleteAccountSubmit()}
   title={m.settings_deleteAccount()}
 >
@@ -70,9 +81,17 @@
     <p class="text-surface-600-400 text-sm">{m.settings_deleteAccountStays()}</p>
   </section>
 
-  <CurrentPasswordField field={store.fields.password} enterkeyhint="go" />
+  <!-- One action and target on this route, so no {#key} is needed. -->
+  <ReauthStep
+    bind:this={step}
+    bind:confirmed
+    action="account.delete"
+    target="self"
+    ready={settled}
+    blocked={blocks.length > 0}
+  />
 
-  <!-- Below the field: the regions arrive from a query, and must never push the field down. -->
+  <!-- Below the step: the regions arrive from a query, and must never push it down. -->
   {#if preview.phase.kind === 'error'}
     <QueryError />
   {/if}

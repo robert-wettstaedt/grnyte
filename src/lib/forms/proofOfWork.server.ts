@@ -1,10 +1,10 @@
-import { SUPABASE_SECRET_KEY } from '$env/static/private'
+import { labelledKey } from '$lib/auth/keys.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { spentChallenges } from '$lib/db/schema'
 import { createChallenge, verifySolution, type Challenge, type Payload } from 'altcha-lib'
 import { deriveKey } from 'altcha-lib/algorithms/pbkdf2'
 import { lt } from 'drizzle-orm'
-import { createHmac, randomInt } from 'node:crypto'
+import { randomInt } from 'node:crypto'
 
 const ALGORITHM = 'PBKDF2/SHA-256'
 const CHALLENGE_TTL_MS = 10 * 60 * 1000
@@ -13,11 +13,9 @@ const COST = 1_000
 const COUNTER_MIN = 1_500
 const COUNTER_MAX = 3_000
 
-/** Derived, not a secret of its own: domain-separated from its parent and as secret as it. */
-const derive = (label: string) => createHmac('sha256', SUPABASE_SECRET_KEY).update(label).digest('hex')
 const secrets = {
-  hmacKeySignatureSecret: derive('altcha-key-signature'),
-  hmacSignatureSecret: derive('altcha-challenge-signature'),
+  hmacKeySignatureSecret: labelledKey('altcha-key-signature'),
+  hmacSignatureSecret: labelledKey('altcha-challenge-signature'),
 }
 
 export function issueChallenge(): Promise<Challenge> {

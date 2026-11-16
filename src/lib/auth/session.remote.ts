@@ -1,8 +1,10 @@
 import { resolve } from '$app/paths'
 import { command, form, getRequestEvent } from '$app/server'
 import { isSameOriginPath } from '$lib/auth'
-import { mailPasswordReset } from '$lib/auth/mail.server'
-import { authError, formError } from '$lib/forms/schemas'
+import { supabaseAuthServer } from '$lib/auth/authServer.server'
+import { clearCodeTries } from '$lib/auth/codeAttempts.server'
+import { gotrueRefusal, mailPasswordReset } from '$lib/auth/mail.server'
+import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { refuseCommand } from '$lib/remote/authed.server'
 import { error, redirect } from '@sveltejs/kit'
@@ -41,19 +43,18 @@ export const signOut = form(z.object({ redirectTo: returnPath }), async ({ redir
 })
 
 export const sendPasswordReset = command(async () => {
-  const {
-    locals: { claims, supabase },
-    url,
-  } = getRequestEvent()
+  const event = getRequestEvent()
+  const { claims } = event.locals
 
   if (claims?.email == null) {
     error(401, formError('auth_notSignedIn'))
   }
 
-  const { error: resetError } = await mailPasswordReset(supabase, claims.email, url.origin)
+  const { error: resetError } = await mailPasswordReset(supabaseAuthServer(event), claims.email)
   if (resetError != null) {
-    refuseCommand(authError(resetError))
+    refuseCommand(await gotrueRefusal(resetError, 'recover'))
   }
+  await clearCodeTries(claims.email, 'recovery')
 
   return { email: claims.email }
 })

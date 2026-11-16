@@ -4,7 +4,7 @@
 import { CONTESTED_SIGNUP } from '$lib/auth'
 import { deleteStaleFixtureAccounts, fixtureRun, reachable, sql } from '$lib/db/testDb'
 import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
-import { asAnonymousRequest, callForm } from '$lib/remote/testHarness'
+import { asAnonymousRequest, callForm, refusalKeys } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { forgotPassword } from './forgot-password.remote'
 
@@ -20,7 +20,7 @@ let resent: string[] = []
 let order: string[] = []
 let unconfirmedId = ''
 /** What GoTrue answers either mail with; its rate limit is one only a known address can hit. */
-let resetError: null | { code: string; message: string } = null
+let resetError: null | { code: string; message: string; status: number } = null
 let flagError: null | { code: string; message: string } = null
 const nonces: string[] = []
 
@@ -45,17 +45,21 @@ vi.mock('$lib/auth/authServer.server', () => ({
       order.push(`resend:${email}`)
       return { error: resetError }
     },
-  }),
-}))
-
-const supabase = {
-  auth: {
     resetPasswordForEmail: async (email: string) => {
       sent.push(email)
       return { error: resetError }
     },
+  }),
+}))
+
+const quota = vi.hoisted(() => [] as unknown[])
+vi.mock('$lib/auth/events.server', () => ({
+  noteMailRefusal: async (error: { code?: string }) => {
+    quota.push(error.code)
   },
-}
+}))
+
+const supabase = { auth: {} }
 
 interface Outcome {
   issues?: { message: string }[]
@@ -65,8 +69,7 @@ interface Outcome {
 const submitRaw = (data: Record<string, unknown>) =>
   asAnonymousRequest(supabase, () => callForm<Outcome>(forgotPassword, data))
 
-/** The message keys a refusal carries. */
-const refusals = ({ issues = [] }: Outcome) => issues.map((issue) => JSON.parse(issue.message).message)
+const refusals = refusalKeys
 
 /** Submits with a fresh genuine solve, the way the widget does. */
 const submit = async (data: Record<string, unknown>) => {
@@ -115,9 +118,13 @@ describe.skipIf(!reachable)('forgotPassword', () => {
     expect(sent).toHaveLength(1)
   })
 
-  it('answers a confirmed account GoTrue refuses exactly like any other address', async () => {
-    resetError = { code: 'over_email_send_rate_limit', message: 'rate limited' }
-    expect(await submit({ email: CONFIRMED })).toEqual({ email: CONFIRMED, success: true })
+  it('says the mail could not go out when GoTrue refuses the send, and records the quota', async () => {
+    resetError = { code: 'over_email_send_rate_limit', message: 'rate limited', status: 429 }
+    quota.length = 0
+    const { encoded, nonce } = await solvedProofOfWork()
+    nonces.push(nonce)
+    expect(refusals(await submitRaw({ altcha: encoded, email: CONFIRMED }))).toEqual(['auth_mailUnavailable'])
+    expect(quota).toEqual(['over_email_send_rate_limit'])
   })
 
   it('sends an unconfirmed account its confirmation again, never a reset, and answers the same', async () => {
@@ -143,9 +150,14 @@ describe.skipIf(!reachable)('forgotPassword', () => {
     expect(order).toEqual([])
   })
 
-  it('answers an unconfirmed account GoTrue rate-limits exactly like any other address', async () => {
-    resetError = { code: 'over_email_send_rate_limit', message: 'rate limited' }
-    expect(await submit({ email: UNCONFIRMED })).toEqual({ email: UNCONFIRMED, success: true })
+  it('answers a confirmed, an unconfirmed and an unknown address with the same body', async () => {
+    const bodies = [
+      await submit({ email: CONFIRMED }),
+      await submit({ email: UNCONFIRMED }),
+      await submit({ email: UNKNOWN }),
+    ]
+    expect(bodies.map((body) => body?.success)).toEqual([true, true, true])
+    expect(bodies.map((body) => Object.keys(body ?? {}).sort())).toEqual(Array(3).fill(['email', 'success']))
   })
 
   it('sends nothing to an unknown address and answers the same', async () => {

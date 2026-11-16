@@ -1,5 +1,7 @@
 import { RESEND_API_KEY, RESEND_SENDER_EMAIL } from '$env/static/private'
 import { PUBLIC_ORIGIN, PUBLIC_TOPO_EMAIL } from '$env/static/public'
+// fallow-ignore-next-line circular-dependency -- events.server imports the admin alert (which mails) only lazily, inside the spike check
+import { recordAuthEvent } from '$lib/auth/events.server'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { Resend } from 'resend'
 import { makeBrand } from './brand'
@@ -43,6 +45,9 @@ const TRANSIENT = new Set([
   'internal_server_error',
   'rate_limit_exceeded',
 ])
+
+/** Resend refusing for quota: one stable message without the template, so the error alert groups them. */
+const QUOTA = new Set(['daily_quota_exceeded', 'rate_limit_exceeded'])
 
 /** {@link sendEmailOutcome}'s answer: `retry` only when sending again could succeed. */
 export type SendOutcome = 'failed' | 'retry' | 'sent'
@@ -106,8 +111,13 @@ export async function sendEmailOutcome(
   const outcome = TRANSIENT.has(error.name) ? 'retry' : 'failed'
   // Name and template only. Not the recipient, not the rendered subject, and not `error.message`:
   // that is an unvalidated parse of Resend's body, and its validation errors quote the address.
+  const quota = QUOTA.has(error.name)
+  if (quota) await recordAuthEvent('mail_quota', { detail: { name: error.name, template } })
   if (!(quietRetry && outcome === 'retry')) {
-    await logServerFailure('email', `send failed (${String(error.name)}) for ${template}`)
+    const reason = quota
+      ? `mail quota exhausted (${error.name})`
+      : `send failed (${String(error.name)}) for ${template}`
+    await logServerFailure('email', reason)
   }
   return outcome
 }

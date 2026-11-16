@@ -1,20 +1,32 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import CurrentPasswordField from '$lib/auth/CurrentPasswordField.svelte'
+  import ReauthStep, { isReauthRequired } from '$lib/auth/ReauthStep.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'
   import Form from '$lib/forms/Form.svelte'
   import { createFormStore } from '$lib/forms/store.svelte'
   import type * as z from '$lib/forms/zod'
   import { m } from '$lib/paraglide/messages'
+  import { motion } from '$lib/state/motion.svelte'
   import { toaster } from '$lib/state/toast'
+  import { slide } from 'svelte/transition'
   import { updatePasswordCommand } from '../account.remote'
   import { updatePasswordSchema } from '../schemas'
 
   // A store per visit, so no password typed on an earlier one is still there.
   const store = createFormStore(updatePasswordSchema)
-  const submit = (values: z.input<typeof updatePasswordSchema>) => submitCommand(() => updatePasswordCommand(values))
+  let confirmed = $state(false)
+  let step: ReauthStep | undefined = $state()
+
+  const submit = async (values: z.input<typeof updatePasswordSchema>) => {
+    try {
+      return await submitCommand(() => updatePasswordCommand(values))
+    } catch (cause) {
+      if (isReauthRequired(cause)) step?.require()
+      throw cause
+    }
+  }
 
   const onSubmitted = () => {
     toaster.create({ title: m.auth_passwordUpdated(), type: 'success' })
@@ -30,27 +42,23 @@
   {submit}
   cancelTo={resolve('/settings')}
   {onSubmitted}
+  submitDisabled={!confirmed}
   submitLabel={m.common_save()}
   title={m.settings_changePassword()}
 >
-  <!-- The current password is what stops a stolen session from taking the account over for good. -->
-  <CurrentPasswordField field={store.fields.currentPassword} enterkeyhint="next" autofocus />
+  <!-- A confirmed code, not the current password, stops a stolen session from taking the account. -->
+  <ReauthStep bind:this={step} bind:confirmed action="password.change" target="self" />
 
-  <AuthField
-    field={store.fields.password}
-    label={m.auth_newPassword()}
-    type="password"
-    placeholder={m.auth_passwordPlaceholderNew()}
-    autocomplete="new-password"
-    enterkeyhint="next"
-  />
-
-  <AuthField
-    field={store.fields.confirmPassword}
-    label={m.auth_confirmPassword()}
-    type="password"
-    placeholder={m.auth_confirmPasswordPlaceholder()}
-    autocomplete="new-password"
-    enterkeyhint="go"
-  />
+  {#if confirmed}
+    <div transition:slide={{ duration: motion(150) }}>
+      <AuthField
+        field={store.fields.password}
+        label={m.auth_newPassword()}
+        type="password"
+        placeholder={m.auth_passwordPlaceholderNew()}
+        autocomplete="new-password"
+        enterkeyhint="go"
+      />
+    </div>
+  {/if}
 </Form>
