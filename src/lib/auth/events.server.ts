@@ -14,6 +14,7 @@ export type AuthEventKind =
   | 'apple_revoke_failed'
   | 'apple_revoke_skipped'
   | 'apple_revoked'
+  | 'handoff_failed'
   | 'identity_linked'
   | 'identity_unlinked'
   | 'mail_quota'

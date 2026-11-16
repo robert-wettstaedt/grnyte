@@ -10,7 +10,8 @@ export type VerifyResult =
   | { claims: VerifiedClaims; ok: true; token: VerifiedToken }
   | { ok: false; reason: 'absent' | 'expired' | 'invalid' | 'unavailable' }
 
-class JwksUnavailable extends Error {}
+/** Thrown by a {@link taggingJwks} getter for an outage, never for a token the set has no key for. */
+export class JwksUnavailable extends Error {}
 
 const errorCode = (thrown: unknown) => (thrown as { code?: string }).code
 
@@ -41,6 +42,7 @@ export function createAccessTokenVerifier({ issuer, jwks, secret }: VerifierConf
     )
   }
 
+  const taggedJwks = jwks == null ? undefined : taggingJwks(jwks)
   const resolveKey: JWTVerifyGetKey = async (header, token) => {
     if (header.alg === 'HS256') {
       if (secret == null) {
@@ -49,19 +51,11 @@ export function createAccessTokenVerifier({ issuer, jwks, secret }: VerifierConf
       return secret
     }
 
-    if (jwks == null) {
+    if (taggedJwks == null) {
       throw new Error('[auth] asymmetric token but no JWKS is configured')
     }
 
-    try {
-      return await jwks(header, token)
-    } catch (thrown) {
-      // Classified by place: whatever the key getter throws is an outage unless the set answered without this key.
-      if (NO_KEY_FOR_TOKEN.has(errorCode(thrown) ?? '')) {
-        throw thrown
-      }
-      throw new JwksUnavailable('[auth] the JWKS could not be fetched', { cause: thrown })
-    }
+    return taggedJwks(header, token)
   }
 
   /**
@@ -103,6 +97,21 @@ export function createAccessTokenVerifier({ issuer, jwks, secret }: VerifierConf
 export function parseBearer(request: Request): string | undefined {
   const match = /^bearer ([^\s]+)$/i.exec(request.headers.get('authorization') ?? '')
   return match?.[1]
+}
+
+/** `jwks`, with whatever its key getter throws tagged as an outage unless the set answered without this token's key. */
+export function taggingJwks(jwks: JWTVerifyGetKey): JWTVerifyGetKey {
+  return async (header, token) => {
+    try {
+      return await jwks(header, token)
+    } catch (thrown) {
+      // Classified by place, not by error.
+      if (NO_KEY_FOR_TOKEN.has(errorCode(thrown) ?? '')) {
+        throw thrown
+      }
+      throw new JwksUnavailable('[auth] the JWKS could not be fetched', { cause: thrown })
+    }
+  }
 }
 
 /** `requiredClaims` asserts presence only. GoTrue's password grant is public, so a contested account is refused too. */

@@ -130,6 +130,11 @@ describe('supabase', () => {
     expect(await clientsBuiltFor('/api/zero/get-queries')).toBe(0)
     expect(await clientsBuiltFor('/explore')).toBe(1)
   })
+
+  // An app return carries the browser's web cookies: only the web carrier may load that session.
+  it('builds no cookie client on an OAuth callback before a carrier reads it', async () => {
+    expect(await clientsBuiltFor('/auth/callback/google?state=s')).toBe(0)
+  })
 })
 
 describe('authGuard', () => {
@@ -214,6 +219,11 @@ describe('authGuard', () => {
       expect(await redirectFrom(mockEvent('/', { signedIn: false }))).toBeUndefined()
     })
 
+    it("lets a signed-out visitor read the native app's iOS return", async () => {
+      const code = 'a'.repeat(43)
+      expect(await redirectFrom(mockEvent(`/app-return?code=${code}`, { signedIn: false }))).toBeUndefined()
+    })
+
     // Both roots, spelled out rather than read off the constant, since the constant is the thing
     // under test: the signup mail sends a confirmed account to '/', so losing this strands it.
     it.each(['/', '/explore'])('bounces a regionless member off %s to the create screen', async (path) => {
@@ -235,7 +245,7 @@ describe('authGuard', () => {
       )
     })
 
-    it.each(['/auth/profile', '/legal/privacy', '/auth/confirm'])('may open %s', async (path) => {
+    it.each(['/auth/profile', '/legal/privacy', '/auth/confirm', '/app-return?code=x'])('may open %s', async (path) => {
       expect(await redirectFrom(mockEvent(path, noProfile))).toBeUndefined()
     })
 

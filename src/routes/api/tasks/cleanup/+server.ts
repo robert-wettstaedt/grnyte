@@ -1,3 +1,4 @@
+import { APP_AUTH_FLOW_GRACE_MS, sweepAppAuthFlows } from '$lib/auth/app/carrier.server'
 import { AUTH_LOG_MAX_AGE_MS, CODE_ATTEMPT_MAX_AGE_MS, sweepAuthLogs } from '$lib/auth/retention.server'
 import { FEEDBACK_MAX_AGE_MS, sweepFeedback } from '$lib/entities/feedback/retention.server'
 import { reportBunnyOrphans } from '$lib/entities/file/cleanup.server'
@@ -39,6 +40,7 @@ export const POST: RequestHandler = async ({ request }) => {
     reportRows,
     readinessRows,
     authLogRows,
+    handoffRows,
   ] = await Promise.all([
     sweepStaging(new Date(now - STAGING_MAX_AGE_MS)),
     sweepBunny(new Date(now - BUNNY_MAX_AGE_MS)),
@@ -52,12 +54,13 @@ export const POST: RequestHandler = async ({ request }) => {
     closeGoneReports(),
     reconcileReadiness(getVideoProvider()),
     sweepAuthLogs(new Date(now - AUTH_LOG_MAX_AGE_MS), new Date(now - CODE_ATTEMPT_MAX_AGE_MS)),
+    sweepAppAuthFlows(new Date(now - APP_AUTH_FLOW_GRACE_MS)),
     // Alongside the deletes, not ahead of them: it walks the whole Bunny library, and its own
     // failure must never cost a retention delete this job promises.
     reportBunnyOrphans(new Date(now - BUNNY_MAX_AGE_MS)),
   ])
   console.log(
-    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback, ${errorRows} error logs, ${challengeRows} spent challenges, ${accountRows} unconfirmed accounts, ${decisionRows} moderation decisions, erased ${commentRows} deleted comments, closed ${reportRows} reports on content that is gone, corrected ${readinessRows} video readiness, removed ${authLogRows} auth log rows`,
+    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback, ${errorRows} error logs, ${challengeRows} spent challenges, ${accountRows} unconfirmed accounts, ${decisionRows} moderation decisions, erased ${commentRows} deleted comments, closed ${reportRows} reports on content that is gone, corrected ${readinessRows} video readiness, removed ${authLogRows} auth log rows, ${handoffRows} app sign-in flows`,
   )
   return json({
     accounts: accountRows,
@@ -68,6 +71,7 @@ export const POST: RequestHandler = async ({ request }) => {
     decisions: decisionRows,
     errorLogs: errorRows,
     feedback: feedbackRows,
+    handoffs: handoffRows,
     notifications: notificationRows,
     readiness: readinessRows,
     reports: reportRows,

@@ -14,6 +14,8 @@ export interface IdTokenClaims {
   aud?: string
   email?: string
   email_verified?: boolean
+  /** Seconds since the epoch; ten minutes from now by default. */
+  exp?: number
   iss?: string
   nonce?: string
   sub?: string
@@ -25,7 +27,8 @@ export interface TokenRequest {
 }
 
 const signing = await generateKeyPair('RS256', { extractable: true })
-const publicJwk: JWK = { ...(await exportJWK(signing.publicKey)), alg: 'RS256', kid: 'fake-1', use: 'sig' }
+/** The fake issuer's public key, for a test serving its own key set. */
+export const publicJwk: JWK = { ...(await exportJWK(signing.publicKey)), alg: 'RS256', kid: 'fake-1', use: 'sig' }
 
 export const appleKey = await generateKeyPair('ES256', { extractable: true })
 export const applePrivateKeyPem = await exportPKCS8(appleKey.privateKey)
@@ -47,7 +50,7 @@ export function signIdToken(provider: OAuthProvider, claims: IdTokenClaims, clie
     .setAudience(claims.aud ?? clientId)
     .setSubject(claims.sub ?? 'provider-sub-1')
     .setIssuedAt(now)
-    .setExpirationTime(now + 600)
+    .setExpirationTime(claims.exp ?? now + 600)
     .sign(signing.privateKey)
 }
 
@@ -97,6 +100,8 @@ export function fakeIssuer() {
       revocations.push(body)
       return new Response(null, { status: await revoke.answer(body) })
     },
+    // Apple's token endpoint; the discovery document names the other.
+    '/auth/token': token,
     '/keys': () => json({ keys: [publicJwk] }),
     '/token': token,
   }

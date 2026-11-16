@@ -16,7 +16,7 @@
  * shape; nothing but a test that drives the handler covers the general one.
  */
 import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
@@ -331,30 +331,42 @@ function callees(node: ts.Node, into: Set<string>): Set<string> {
   return into
 }
 
-function parseHandlers(file: string): Handler[] {
-  const text = readFileSync(file, 'utf8')
-  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
-
-  // Same-file helpers, so one hop of indirection counts: `regionTagUsage` reaching `assertCanEdit`
-  // through `editableTags` is asking permission every bit as much as calling it directly.
-  const helpers = new Map<string, ts.Node>()
+/** A file's top-level functions and initialised variables, by name. */
+function declarations(source: ts.SourceFile): Map<string, ts.Node> {
+  const found = new Map<string, ts.Node>()
   ts.forEachChild(source, (node) => {
-    if (ts.isFunctionDeclaration(node) && node.name != null) helpers.set(node.name.text, node)
+    if (ts.isFunctionDeclaration(node) && node.name != null) found.set(node.name.text, node)
     if (ts.isVariableStatement(node)) {
       for (const decl of node.declarationList.declarations) {
-        if (ts.isIdentifier(decl.name) && decl.initializer != null) helpers.set(decl.name.text, decl.initializer)
+        if (ts.isIdentifier(decl.name) && decl.initializer != null) found.set(decl.name.text, decl.initializer)
       }
     }
   })
+  return found
+}
+
+const parse = (file: string) => ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true)
+
+function parseHandlers(file: string): Handler[] {
+  const source = parse(file)
+
+  // Same-file helpers, so one hop of indirection counts: `regionTagUsage` reaching `assertCanEdit`
+  // through `editableTags` is asking permission every bit as much as calling it directly.
+  const helpers = declarations(source)
+  const bodies = serverBodies(file, source)
 
   const handlers: Handler[] = []
   const add = (name: string, init: ts.Node) => {
     const direct = callees(init, new Set<string>())
+    const referenced = references(init)
     // One hop: pull in what each same-file helper this handler calls itself calls.
     for (const called of [...direct]) {
       const helper = helpers.get(called)
-      if (helper != null) callees(helper, direct)
+      if (helper == null) continue
+      callees(helper, direct)
+      references(helper, referenced)
     }
+    for (const reference of referenced) for (const call of bodies.get(reference) ?? []) direct.add(call)
     handlers.push({
       calls: direct,
       file: file.replace(/^src\//, ''),
@@ -396,6 +408,28 @@ function parseHandlers(file: string): Handler[] {
   return handlers
 }
 
+/** What `name` calls, plus one hop into the same module's helpers. */
+function reach(decls: Map<string, ts.Node>, name: string): Set<string> {
+  const decl = decls.get(name)
+  if (decl == null) return new Set<string>()
+  const calls = callees(decl, new Set<string>())
+  for (const called of [...calls]) {
+    const helper = decls.get(called)
+    if (helper != null) callees(helper, calls)
+  }
+  return calls
+}
+
+/** Every identifier and `namespace.member` beneath `node`, called or passed. */
+function references(node: ts.Node, into = new Set<string>()): Set<string> {
+  if (ts.isIdentifier(node)) into.add(node.text)
+  if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
+    into.add(`${node.expression.text}.${node.name.text}`)
+  }
+  ts.forEachChild(node, (child) => void references(child, into))
+  return into
+}
+
 function remoteFiles(dir: string, found: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name)
@@ -403,6 +437,32 @@ function remoteFiles(dir: string, found: string[] = []): string[] {
     else if (entry.name.endsWith('.remote.ts') || entry.name === 'mutators.server.ts') found.push(path)
   }
   return found
+}
+
+/** A handler body lifted into a `.server` module (`command(body.x)`, `command(signOutOthers)`): its
+ *  callees plus one hop into that module's own helpers, so the lift hides no gate. */
+function serverBodies(file: string, source: ts.SourceFile): Map<string, Set<string>> {
+  const bodies = new Map<string, Set<string>>()
+  for (const node of source.statements) {
+    const target = serverImport(file, node)
+    const bindings = target == null ? undefined : (node as ts.ImportDeclaration).importClause?.namedBindings
+    if (target == null || bindings == null) continue
+    const decls = declarations(parse(target))
+    const names: [string, string][] = ts.isNamespaceImport(bindings)
+      ? [...decls.keys()].map((name) => [`${bindings.name.text}.${name}`, name])
+      : bindings.elements.map((element) => [element.name.text, (element.propertyName ?? element.name).text])
+    for (const [local, name] of names) bodies.set(local, reach(decls, name))
+  }
+  return bodies
+}
+
+/** The file a `$lib/` or relative `.server` import names, else null. */
+function serverImport(file: string, node: ts.Node): null | string {
+  if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier)) return null
+  const spec = node.moduleSpecifier.text
+  if (!spec.endsWith('.server')) return null
+  if (spec.startsWith('$lib/')) return `src/lib/${spec.slice(5)}.ts`
+  return spec.startsWith('.') ? join(dirname(file), `${spec}.ts`) : null
 }
 
 const handlers = remoteFiles('src').flatMap(parseHandlers)

@@ -3,6 +3,8 @@ import type { RequestEvent, RequestHandler } from '@sveltejs/kit'
 import { with_request_store } from '@sveltejs/kit/internal/server'
 
 interface AppCall {
+  /** What `getClientAddress` answers. */
+  address?: string
   body?: unknown
   /** The jar the request carries; an empty one by default. */
   cookies?: object
@@ -15,7 +17,7 @@ interface AppCall {
 export async function appCall(
   handler: RequestHandler,
   path: string,
-  { body = {}, cookies, headers = {}, locals = {}, method = 'POST' }: AppCall = {},
+  { address = '198.51.100.7', body = {}, cookies, headers = {}, locals = {}, method = 'POST' }: AppCall = {},
 ): Promise<Response> {
   const url = new URL(`https://grnyte.example/api/app/v1/${path}`)
   const request = new Request(url, {
@@ -25,7 +27,7 @@ export async function appCall(
   })
   const event = {
     cookies: cookies ?? { get: () => undefined, getAll: () => [], set: () => {} },
-    getClientAddress: () => '198.51.100.7',
+    getClientAddress: () => address,
     locals: { backendUnavailable: false, claims: undefined, user: undefined, userRegions: [], ...locals },
     request,
     setHeaders: () => {},

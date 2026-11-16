@@ -43,6 +43,8 @@ const codeAnswer = z.object({
 })
 const subject = z.object({ action: z.enum(REAUTH_ACTIONS), target: z.string() })
 const providerState = z.object({ canUnlink: z.boolean(), linked: z.boolean(), relinks: z.boolean() })
+/** A native Apple ID token and the raw nonce whose digest it carries. */
+const appleToken = z.object({ idToken: z.string(), rawNonce: z.string() })
 const regionRef = z.object({ id: z.number(), name: z.string() })
 
 /** Each endpoint's request and response shape, by path under `/api/app/v1/`. Values are checked by the shared bodies. */
@@ -61,15 +63,36 @@ export const V1 = {
     request: codeEntry,
     response: z.object({ refreshRequired: z.optional(z.boolean()), step: z.enum(['done', 'next']) }),
   },
+  'identities/link/apple': { request: appleToken, response: z.object({ linked: z.literal(true) }) },
   'identities/unlink': {
     request: z.object({ provider: z.enum(IDENTITY_TARGETS) }),
     response: z.object({ ok: z.literal(true), othersSignedOut: z.boolean() }),
+  },
+  'oauth/apple/native': { request: appleToken, response: z.object({ session }) },
+  'oauth/exchange': {
+    request: z.object({ code: z.string(), codeVerifier: z.string() }),
+    response: z.union([z.object({ session }), z.object({ linked: z.literal(true) })]),
+  },
+  'oauth/start': {
+    request: z.object({
+      codeChallenge: z.string(),
+      codeChallengeMethod: z.enum(['S256']),
+      provider: z.enum(['apple', 'google']),
+      purpose: z.enum(['link', 'signin']),
+      returnChannel: z.enum(['android', 'ios']),
+    }),
+    response: z.object({ authorizeUrl: z.string() }),
   },
   'password/change': { request: z.object({ password: z.string() }), response: z.object({ session }) },
   'password/forgot': { request: z.object({ email: z.string(), proofOfWork: z.string() }), response: ok },
   'password/new': { request: z.object({ password: z.string() }), response: ok },
   'password/reset/confirm': { request: codeEntry, response: codeAnswer },
   profile: { request: z.object({ gradingScale: z.enum(['FB', 'V']), username: z.string() }), response: ok },
+  'reauth/apple/confirm': {
+    request: z.object({ authorizationCode: z.optional(z.string()), flowId: z.string(), idToken: z.string() }),
+    response: z.object({ confirmed: z.literal(true) }),
+  },
+  'reauth/apple/start': { request: subject, response: z.object({ flowId: z.string(), nonce: z.string() }) },
   'reauth/confirm': {
     request: z.object({ ...subject.shape, code: z.string() }),
     response: z.object({ confirmed: z.literal(true) }),

@@ -165,6 +165,38 @@
         "additionalProperties": false
       }
     },
+    "identities/link/apple": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string"
+          },
+          "rawNonce": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "idToken",
+          "rawNonce"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "linked": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "linked"
+        ],
+        "additionalProperties": false
+      }
+    },
     "identities/unlink": {
       "request": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -197,6 +229,175 @@
         "required": [
           "ok",
           "othersSignedOut"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "oauth/apple/native": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string"
+          },
+          "rawNonce": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "idToken",
+          "rawNonce"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "session": {
+            "type": "object",
+            "properties": {
+              "access_token": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "number"
+              },
+              "refresh_token": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "access_token",
+              "refresh_token"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "session"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "oauth/exchange": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "codeVerifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "codeVerifier"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "session": {
+                "type": "object",
+                "properties": {
+                  "access_token": {
+                    "type": "string"
+                  },
+                  "expires_at": {
+                    "type": "number"
+                  },
+                  "refresh_token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "access_token",
+                  "refresh_token"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "session"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "linked": {
+                "type": "boolean",
+                "const": true
+              }
+            },
+            "required": [
+              "linked"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "oauth/start": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "codeChallenge": {
+            "type": "string"
+          },
+          "codeChallengeMethod": {
+            "type": "string",
+            "enum": [
+              "S256"
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "apple",
+              "google"
+            ]
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "link",
+              "signin"
+            ]
+          },
+          "returnChannel": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios"
+            ]
+          }
+        },
+        "required": [
+          "codeChallenge",
+          "codeChallengeMethod",
+          "provider",
+          "purpose",
+          "returnChannel"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "authorizeUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorizeUrl"
         ],
         "additionalProperties": false
       }
@@ -391,6 +592,84 @@
         },
         "required": [
           "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reauth/apple/confirm": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "authorizationCode": {
+            "type": "string"
+          },
+          "flowId": {
+            "type": "string"
+          },
+          "idToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "flowId",
+          "idToken"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "confirmed"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reauth/apple/start": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "account.delete",
+              "identity.link",
+              "identity.unlink",
+              "password.change",
+              "region.delete",
+              "region.transfer"
+            ]
+          },
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "target"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "flowId": {
+            "type": "string"
+          },
+          "nonce": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "flowId",
+          "nonce"
         ],
         "additionalProperties": false
       }

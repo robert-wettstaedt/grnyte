@@ -14,7 +14,7 @@ export type OAuthIntent =
   | { kind: 'signin' }
 
 export interface OAuthTransaction {
-  carrier: 'web'
+  carrier: 'app' | 'web'
   codeVerifier: string
   intent: OAuthIntent
   /** Validated again at the final redirect, never trusted from a URL. */
