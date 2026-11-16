@@ -1,6 +1,7 @@
 <script module lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { powerSyncOnly, powerSyncStatus } from '$lib/powersync/db.svelte'
+  import type { ResumeState } from '$lib/powersync/resume'
   import { connectionOf, isOnline } from '$lib/state/online.svelte'
   import { isUpdateReady } from '$lib/state/updateReady.svelte'
   import { isTerminal, RECONNECT_HOLD_MS, type ConnectionName } from '$lib/zero/connection'
@@ -20,6 +21,7 @@
 
 <script lang="ts">
   import { m } from '$lib/paraglide/messages'
+  import { resumeStatus } from '$lib/powersync/db.svelte'
   // These props exist only so the story can show states that are near-impossible to
   // trigger live (`needs-auth`, `closed`, a deploy mid-session). Unset, the bar reads the
   // real device, the real Zero connection and the real service worker.
@@ -29,6 +31,8 @@
      *  10s of blank canvas reads as a broken story rather than as a deliberate delay. */
     holdMs?: number
     online?: boolean
+    /** PowerSync's catch-up after a return to the foreground; it has its own show delay, not the hold below. */
+    resume?: ResumeState
     updateReady?: boolean
   }
 
@@ -60,7 +64,9 @@
 
   const updateReady = $derived(props.updateReady ?? isUpdateReady())
 
-  const status = $derived(resolveStatus(online, settled, updateReady))
+  const resume = $derived(props.resume ?? (powerSyncOnly() ? resumeStatus() : 'idle'))
+
+  const status = $derived(resolveStatus(online, settled, updateReady, resume))
 </script>
 
 {#if status != null}

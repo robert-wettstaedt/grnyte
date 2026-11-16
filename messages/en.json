@@ -2281,6 +2281,7 @@
   "sort_name": "Name",
   "sort_order": "Order",
   "sort_sortBy": "Sort by",
+  "status_catchingUp": "Catching up. You might not see the latest changes yet.",
   "status_notSyncing": "Not getting updates.",
   "status_offline": "You’re offline. Changes won’t save.",
   "status_reconnecting": "Reconnecting. You might not see the latest changes.",

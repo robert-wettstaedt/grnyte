@@ -56,4 +56,23 @@ describe('resolveStatus', () => {
     expect(resolveStatus(false, 'connected', true)).toMatchObject({ message: m.status_offline })
     expect(resolveStatus(true, 'connecting', true)).toMatchObject({ message: m.status_reconnecting })
   })
+
+  it('says catching up after a stale return, unless the sync has not reconnected for the hold', () => {
+    expect(resolveStatus(true, 'connected', true, 'catchingUp')).toMatchObject({ message: m.status_catchingUp })
+    expect(resolveStatus(true, 'connecting', false, 'catchingUp')).toMatchObject({ message: m.status_reconnecting })
+    expect(resolveStatus(true, 'connecting', false, 'stalled')).toMatchObject({ message: m.status_reconnecting })
+  })
+
+  it('shows nothing while the catch-up is still inside its show delay', () => {
+    expect(resolveStatus(true, 'connected', false, 'pending')).toBeNull()
+  })
+
+  it('calls a stalled catch-up not syncing, with the reload, unless offline explains it', () => {
+    expect(resolveStatus(true, 'connected', false, 'stalled')).toMatchObject({
+      action: 'reload',
+      message: m.status_notSyncing,
+    })
+    expect(resolveStatus(false, 'connecting', false, 'stalled')).toMatchObject({ message: m.status_offline })
+    expect(resolveStatus(false, 'connected', false, 'catchingUp')).toMatchObject({ message: m.status_offline })
+  })
 })

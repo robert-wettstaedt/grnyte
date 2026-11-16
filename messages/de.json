@@ -2290,6 +2290,7 @@
   "sort_name": "Name",
   "sort_order": "Reihenfolge",
   "sort_sortBy": "Sortieren nach",
+  "status_catchingUp": "Wird aktualisiert. Du siehst möglicherweise noch nicht die neuesten Änderungen.",
   "status_notSyncing": "Keine Aktualisierungen.",
   "status_offline": "Du bist offline. Änderungen lassen sich gerade nicht speichern.",
   "status_reconnecting": "Verbindung wird wiederhergestellt… Du siehst möglicherweise nicht die neuesten Änderungen.",

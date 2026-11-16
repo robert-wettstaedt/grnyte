@@ -6,6 +6,7 @@ import { PowerSyncDatabase, type PowerSyncBackendConnector, type SyncStatus, typ
 import { dropAllDatabases } from '@rocicorp/zero'
 import type { Session } from '@supabase/supabase-js'
 import { syncMark } from './marks'
+import { isStale, RESUME_SHOW_MS, RESUME_STALL_MS, resumeState, type ResumeState } from './resume'
 import { appSchema } from './schema'
 
 /** Every account file starts with this, so a sign-out can find the ones it did not open. */
@@ -40,6 +41,16 @@ let confirmed = $state.raw<readonly string[]>([])
 let confirming: string[] = []
 /** This tab's collections' own tracking tables. Desktop tabs share one connection; others' stay out of the count. */
 let trackedTables: () => string[] = () => []
+/** `at` is wall-clock, to compare with `lastSyncedAt`; `t` and `connectedT` are `performance.now()`, for durations. */
+let returned = $state.raw<undefined | { at: number; connectedT: number; hiddenFor: number; t: number }>(undefined)
+/** Bumped just after the bar's show delay and the stall limit pass, so `resumeStatus` is read again. */
+let resumeClock = $state(0)
+let resumeTimers: ReturnType<typeof setTimeout>[] = []
+/** Wall-clock: a monotonic clock may stop while the device sleeps, and a locked phone must count as away. */
+let hiddenAt: number | undefined
+let watchingVisibility = false
+/** Restarts the open account's sync: a fresh stream always delivers a checkpoint, a frozen one may never. */
+let restartSync = () => {}
 
 /** Removes every account's local data from this device, open or not. */
 export async function clearPowerSync(): Promise<void> {
@@ -139,6 +150,12 @@ export function initPowerSync(
   void cleared
     .then(() => (current() ? opened.connect(connector) : undefined))
     .catch((error: unknown) => console.error('[powersync] connect failed', error))
+  restartSync = () =>
+    void opened
+      .disconnect()
+      .then(() => (current() ? opened.connect(connector) : undefined))
+      .catch((error: unknown) => console.error('[powersync] reconnect failed', error))
+  watchVisibility()
 }
 
 /** shortcut: the measurement build starts only PowerSync; goes when Zero leaves the client. */
@@ -152,6 +169,20 @@ export function powerSyncStatus(): SyncStatus | undefined {
 
 export function registerCollections(database: PowerSyncDatabase, tables: () => string[]): void {
   if (database === db) trackedTables = tables
+}
+
+/** `idle` unless the open account returned to the foreground stale and has not caught up (design D14). */
+export function resumeStatus(): ResumeState {
+  void resumeClock
+  if (returned == null) return 'idle'
+  const now = performance.now()
+  return resumeState({
+    checkpoint: (status?.lastSyncedAt?.getTime() ?? 0) > returned.at,
+    hiddenFor: returned.hiddenFor,
+    since: now - returned.t,
+    // A dropped stream is the hold's to report as reconnecting, not a stall.
+    sinceConnected: status?.connected === true ? now - returned.connectedT : 0,
+  })
 }
 
 /** Whether `stream` has synced in this session and every collection has taken its rows in: only then is an
@@ -169,6 +200,8 @@ async function closeCurrent(): Promise<void> {
   trackedTables = () => []
   confirmed = []
   confirming = []
+  returned = undefined
+  restartSync = () => {}
   await closing?.disconnectAndClear()
   await closing?.close()
 }
@@ -229,9 +262,17 @@ function markTimeline(next: SyncStatus): void {
   if (next.hasSynced) syncMark('synced: all')
 }
 
+/** The stall limit counts from a re-established connection: offline, nothing can arrive (design D14). */
+function noteReconnect(next: SyncStatus): void {
+  if (returned == null || !next.connected || status?.connected === true) return
+  returned = { ...returned, connectedT: performance.now() }
+  rereadAfter(RESUME_STALL_MS)
+}
+
 /** Takes a status in and writes the stamps the shell reads: the essentials (priority 0), then everything. */
 function observe(next: SyncStatus): void {
   if (next === status) return
+  noteReconnect(next)
   status = next
   markTimeline(next)
   confirmStreams(next)
@@ -245,4 +286,33 @@ function observe(next: SyncStatus): void {
     stamped.push(stamp)
     markSynced(stamp)
   }
+}
+
+/** Past the limit, so a coarsened clock (Firefox rounds to 100 ms) cannot read it just short. */
+function rereadAfter(ms: number): void {
+  resumeTimers.push(setTimeout(() => (resumeClock += 1), ms + 100))
+}
+
+/** Safari freezes a hidden page without the sync noticing, which then reports a dead stream as live (design D14). */
+function watchVisibility(): void {
+  if (watchingVisibility) return
+  watchingVisibility = true
+  document.addEventListener('visibilitychange', () => {
+    for (const timer of resumeTimers) clearTimeout(timer)
+    resumeTimers = []
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = Date.now()
+      returned = undefined
+      return
+    }
+    if (hiddenAt == null || db == null) return
+    const hiddenFor = Date.now() - hiddenAt
+    hiddenAt = undefined
+    const t = performance.now()
+    if (!isStale(hiddenFor)) return
+    returned = { at: Date.now(), connectedT: t, hiddenFor, t }
+    restartSync()
+    rereadAfter(RESUME_SHOW_MS)
+    rereadAfter(RESUME_STALL_MS)
+  })
 }
