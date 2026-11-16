@@ -4,6 +4,14 @@ import { vi } from 'vitest'
 export const SECRET = 'sb_secret_test'
 export const LEGACY = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.legacy'
 
+/** Stubs the base fetch with one that never answers, only rejecting once its request is aborted. */
+export function hangingFetch(): void {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(
+    (_input, init) =>
+      new Promise((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(init.signal?.reason))),
+  )
+}
+
 /** Stubs the base fetch and returns the headers of every request that reached it. */
 export function spyBaseFetch(): Headers[] {
   const seen: Headers[] = []

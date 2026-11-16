@@ -14,6 +14,7 @@ import { countTry, MAX_TRIES } from './codeAttempts.server'
 import { recordAuthEvent } from './events.server'
 import { labelledKey } from './keys.server'
 import { signInMethods } from './methods.server'
+import { requireLiveSession } from './session.server'
 
 export type { ReauthAction } from '$lib/auth'
 export interface ReauthCaller {
@@ -32,8 +33,15 @@ const CODE_KEY = labelledKey('reauth-code')
 const hash = (challengeId: string, code: string) =>
   createHmac('sha256', CODE_KEY).update(`${challengeId}:${code}`).digest()
 
-/** The signed-in caller and its session; 401 without a `session_id` claim. */
-export function reauthCaller(): ReauthCaller {
+/** {@link sessionCaller}, once {@link requireLiveSession} found the session still live. */
+export async function reauthCaller(): Promise<ReauthCaller> {
+  const caller = sessionCaller()
+  await requireLiveSession()
+  return caller
+}
+
+/** The signed-in caller and its session, unchecked; 401 without a `session_id` claim. */
+export function sessionCaller(): ReauthCaller {
   const claims = getRequestEvent().locals.claims
   if (claims?.sub == null || claims.session_id == null) error(401)
   return { authUserId: claims.sub, sessionId: claims.session_id }
@@ -197,4 +205,9 @@ export async function voidReauth(authUserId: string): Promise<void> {
     await tx.delete(reauthChallenges).where(eq(reauthChallenges.authUserFk, authUserId))
     await tx.delete(reauthGrants).where(eq(reauthGrants.authUserFk, authUserId))
   })
+}
+
+/** Deletes the open codes only: a failed change may still have landed, but its grant stays for the retry. */
+export async function voidReauthCodes(authUserId: string): Promise<void> {
+  await pinnedTx((tx) => tx.delete(reauthChallenges).where(eq(reauthChallenges.authUserFk, authUserId)))
 }

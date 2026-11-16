@@ -44,6 +44,7 @@ const mockEvent = (
     userPermissions: undefined,
     userRegions: Array.from({ length: regions }, (_unused, index) => ({ regionFk: index + 1 })),
     userRole: undefined,
+    verifiedToken: signedIn ? { accessToken: 'a.cookie.token' } : undefined,
   }
 
   return {
@@ -70,9 +71,9 @@ const redirectFrom = async (event: RequestEvent): Promise<string | undefined> =>
 
 describe('safeGetSession', () => {
   /** Runs the real `supabase` handle and returns what its `safeGetSession` resolves for a cookie session. */
-  async function sessionFor(reason: 'invalid' | 'unavailable') {
+  async function sessionFor(verified: 'invalid' | 'unavailable' | object) {
     getSession.mockResolvedValue({ data: { session: { access_token: 'a.cookie.token' } }, error: null })
-    verify.mockResolvedValue({ ok: false, reason })
+    verify.mockResolvedValue((typeof verified === 'string' ? { ok: false, reason: verified } : verified) as never)
     const event = {
       cookies: { getAll: () => [], set: vi.fn() },
       locals: {},
@@ -89,6 +90,14 @@ describe('safeGetSession', () => {
 
   it('treats a forged token as a plain anonymous request', async () => {
     expect(await sessionFor('invalid')).toMatchObject({ backendUnavailable: false, claims: undefined })
+    expect((await sessionFor('invalid')).verifiedToken).toBeUndefined()
+  })
+
+  it('keeps the verified token beside its claims', async () => {
+    const claims = { sub: 'auth-user-1' }
+    const token = { accessToken: 'a.cookie.token', claims }
+
+    expect((await sessionFor({ claims, ok: true, token })).verifiedToken).toBe(token)
   })
 })
 
@@ -114,6 +123,11 @@ describe('authGuard', () => {
     marked.mockReset()
     marked.mockResolvedValue(false)
     signOut.mockReset()
+  })
+
+  it('serves a page load on the cookie claims alone, never checking the session is live', async () => {
+    expect(await redirectFrom(mockEvent('/settings'))).toBeUndefined()
+    expect(signOut).not.toHaveBeenCalled()
   })
 
   describe('a signed-in visitor to an auth page', () => {
@@ -203,6 +217,16 @@ describe('authGuard', () => {
         '/auth/profile?next=%2Fexplore',
       )
     })
+  })
+
+  it('puts the verified token on locals, and none for a signed-out visitor', async () => {
+    const signedIn = mockEvent('/explore')
+    const signedOut = mockEvent('/', { signedIn: false })
+    await redirectFrom(signedIn)
+    await redirectFrom(signedOut)
+
+    expect(signedIn.locals.verifiedToken).toEqual({ accessToken: 'a.cookie.token' })
+    expect(signedOut.locals.verifiedToken).toBeUndefined()
   })
 
   it('sends an account that has a profile on from the profile step', async () => {

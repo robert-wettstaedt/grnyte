@@ -1,0 +1,40 @@
+import { getRequestEvent } from '$app/server'
+import type { VerifiedClaims } from '$lib/auth'
+import { db } from '$lib/db/db.server'
+import { formError } from '$lib/forms/schemas'
+import { error } from '@sveltejs/kit'
+import { sql } from 'drizzle-orm'
+
+type Reader = Pick<typeof db, 'execute'>
+
+/** Live while GoTrue still holds the session row; no age limit. A failed read throws, never `false`. */
+export async function isSessionLive(handle: Reader, claims: { session_id?: string; sub: string }): Promise<boolean> {
+  if (claims.session_id == null) return false
+  const rows = await handle.execute(
+    sql`select 1 from auth.sessions where id = ${claims.session_id} and user_id = ${claims.sub}`,
+  )
+  return rows.length > 0
+}
+
+/**
+ * The gate for writes and account actions: a revoked session is refused `auth_sessionEnded` (its
+ * cookies cleared); an outage or a failed read is a 503 that signs nothing out.
+ */
+export async function requireLiveSession(): Promise<VerifiedClaims> {
+  const { backendUnavailable, claims, supabase } = getRequestEvent().locals
+  if (backendUnavailable) error(503, formError('auth_serviceUnavailable'))
+  if (claims == null) error(401, formError('auth_notSignedIn'))
+
+  let live: boolean
+  try {
+    live = await isSessionLive(db, claims)
+  } catch (cause) {
+    console.error('[session] liveness read failed', cause)
+    error(503, formError('auth_serviceUnavailable'))
+  }
+  if (!live) {
+    await supabase.auth.signOut({ scope: 'local' })
+    error(401, formError('auth_sessionEnded'))
+  }
+  return claims
+}

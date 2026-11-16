@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private'
-import { isContested, type VerifiedClaims } from '$lib/auth'
+import { isContested, type VerifiedClaims, type VerifiedToken } from '$lib/auth'
 import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose'
 
 /**
@@ -7,7 +7,8 @@ import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } 
  * can disagree, and a refreshable session must not be treated as a forgery.
  */
 export type VerifyResult =
-  { claims: VerifiedClaims; ok: true } | { ok: false; reason: 'absent' | 'expired' | 'invalid' | 'unavailable' }
+  | { claims: VerifiedClaims; ok: true; token: VerifiedToken }
+  | { ok: false; reason: 'absent' | 'expired' | 'invalid' | 'unavailable' }
 
 class JwksUnavailable extends Error {}
 
@@ -85,10 +86,13 @@ export function createAccessTokenVerifier({ issuer, jwks, secret }: VerifierConf
         ...(issuer == null ? {} : { issuer }),
       })
 
-      // The only cast that produces the brand, in the only module allowed to.
-      return isSession(payload)
-        ? { claims: payload as unknown as VerifiedClaims, ok: true }
-        : { ok: false, reason: 'invalid' }
+      if (!isSession(payload)) {
+        return { ok: false, reason: 'invalid' }
+      }
+
+      // The only casts that produce the brands, in the only module allowed to.
+      const claims = payload as unknown as VerifiedClaims
+      return { claims, ok: true, token: { accessToken, claims } as VerifiedToken }
     } catch (thrown) {
       return rejection(thrown)
     }

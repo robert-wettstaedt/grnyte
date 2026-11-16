@@ -22,7 +22,7 @@ const boundTo = (caller: ReauthCaller, action: ReauthAction, target: string) =>
 
 /** Mails a code for this action and target to the session's own verified address. */
 export const requestReauthCode = command(subject, async ({ action, target: sent }) => {
-  const caller = reauthCaller()
+  const caller = await reauthCaller()
   const target = boundTo(caller, action, sent)
   const email = getRequestEvent().locals.claims?.email
   if (email == null) error(401, formError('auth_notSignedIn'))
@@ -50,7 +50,7 @@ const REFUSAL = {
 export const confirmReauthCode = command(
   z.object({ ...subject.shape, code: z.string().check(z.maxLength(12)) }),
   async ({ action, code, target }) => {
-    const caller = reauthCaller()
+    const caller = await reauthCaller()
     const answer = await verifyReauthCode(caller, action, boundTo(caller, action, target), code)
     if (answer !== 'granted') refuseCommand(formError(REFUSAL[answer]), 'code')
     return { confirmed: true }
@@ -59,6 +59,6 @@ export const confirmReauthCode = command(
 
 /** Whether this session already confirmed this action and target. Spends nothing. */
 export const reauthGrantStatus = query(subject, async ({ action, target }) => {
-  const caller = reauthCaller()
+  const caller = await reauthCaller()
   return hasGrant(caller, action, boundTo(caller, action, target))
 })

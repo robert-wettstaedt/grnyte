@@ -3,7 +3,7 @@ import { reachable, seedUsers, type SeedUser } from '$lib/db/testDb'
 import { asRequest, statusOf } from '$lib/remote/testHarness'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { reauthGrantStatus, requestReauthCode } from './reauth.remote'
-import { reauthCaller, writeGrant } from './reauth.server'
+import { sessionCaller, writeGrant } from './reauth.server'
 
 vi.mock('$lib/email/send.server', () => ({ sendEmail: async () => true }))
 
@@ -26,7 +26,7 @@ describe.skipIf(!reachable)('reauth remotes', () => {
 
   it('answers the status true only for the caller’s own action and target', async () => {
     const answers = await asRequest(user.authId, async () => {
-      await writeGrant(reauthCaller(), 'region.delete', '1', 'email_code')
+      await writeGrant(sessionCaller(), 'region.delete', '1', 'email_code')
       return Promise.all([
         reauthGrantStatus({ action: 'region.delete', target: '1' }),
         reauthGrantStatus({ action: 'region.delete', target: '2' }),
@@ -39,7 +39,7 @@ describe.skipIf(!reachable)('reauth remotes', () => {
 
   it('binds the account’s own actions to the caller, whatever target the page sent', async () => {
     const answer = await asRequest(user.authId, async () => {
-      await writeGrant(reauthCaller(), 'account.delete', user.authId, 'email_code')
+      await writeGrant(sessionCaller(), 'account.delete', user.authId, 'email_code')
       return reauthGrantStatus({ action: 'account.delete', target: 'self' })
     })
 
@@ -47,7 +47,7 @@ describe.skipIf(!reachable)('reauth remotes', () => {
   })
 
   it('answers false in another session of the same account', async () => {
-    await asRequest(user.authId, () => writeGrant(reauthCaller(), 'region.delete', '3', 'email_code'))
+    await asRequest(user.authId, () => writeGrant(sessionCaller(), 'region.delete', '3', 'email_code'))
 
     expect(await asRequest(user.authId, () => reauthGrantStatus({ action: 'region.delete', target: '3' }))).toBe(false)
   })

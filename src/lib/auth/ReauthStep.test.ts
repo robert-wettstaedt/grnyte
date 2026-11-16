@@ -1,10 +1,13 @@
+import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
+import { wipeAndLeave } from '$lib/state/wipe'
 import { fireEvent, render, screen } from '@testing-library/svelte'
-import { beforeEach, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { enterCode, reauthRemote as remote, resetReauthRemote } from './reauth.fixture'
 import Fixture from './ReauthStepFixture.svelte'
 
 vi.mock('./reauth.remote', async () => (await import('./reauth.fixture')).reauthRemote)
+vi.mock('$lib/state/wipe', () => ({ wipeAndLeave: vi.fn(async () => {}) }))
 
 let onformsubmit = vi.fn()
 beforeEach(() => {
@@ -100,6 +103,43 @@ it('keeps its skeleton after the peek answered while not ready', async () => {
 
   expect(step().querySelector('.skeleton-hold')).toBeTruthy()
   expect(sendCode()).toBeNull()
+})
+
+describe('a session ended on another device', () => {
+  const ended = { body: { message: formError('auth_sessionEnded') }, status: 401 }
+  const shown = () => screen.queryByText('You were signed out on this device. Sign in again.')
+  beforeEach(() => vi.mocked(wipeAndLeave).mockClear())
+
+  it('leaves from "Send code" with no error text', async () => {
+    remote.requestReauthCode.mockRejectedValueOnce(ended)
+    mount()
+    await settle()
+    await fireEvent.click(sendCode()!)
+    await settle()
+
+    expect(wipeAndLeave).toHaveBeenCalledOnce()
+    expect(shown()).toBeNull()
+  })
+
+  it('leaves from the code with no error text', async () => {
+    remote.confirmReauthCode.mockRejectedValueOnce(ended)
+    mount()
+    await settle()
+    await fireEvent.click(sendCode()!)
+    await settle()
+    await enterCode('123456')
+
+    expect(wipeAndLeave).toHaveBeenCalledOnce()
+    expect(shown()).toBeNull()
+  })
+
+  it('leaves from the peek', async () => {
+    remote.reauthGrantStatus.mockRejectedValueOnce(ended)
+    mount()
+    await settle()
+
+    expect(wipeAndLeave).toHaveBeenCalledOnce()
+  })
 })
 
 it('settles blocked into one line of the same height, with no "Send code"', async () => {

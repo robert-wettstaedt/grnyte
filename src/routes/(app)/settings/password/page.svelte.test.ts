@@ -5,7 +5,17 @@ import { fireEvent, render, screen } from '@testing-library/svelte'
 import { beforeEach, expect, it, vi } from 'vitest'
 import Page from './+page.svelte'
 
-const command = vi.hoisted(() => vi.fn(async (_: unknown) => ({ redirectTo: '/settings', success: true })))
+const SESSION = { access_token: 'new.access.token', refresh_token: 'new-refresh' }
+const command = vi.hoisted(() =>
+  vi.fn(async (_: unknown) => ({
+    redirectTo: '/settings',
+    session: { access_token: 'new.access.token', refresh_token: 'new-refresh' },
+    success: true,
+  })),
+)
+const browser = vi.hoisted(() => ({ invalidate: vi.fn(async () => {}), setSession: vi.fn(async () => ({})) }))
+vi.mock('$app/state', () => ({ page: { data: { supabase: { auth: { setSession: browser.setSession } } } } }))
+vi.mock('$app/navigation', async (original) => ({ ...(await original<object>()), invalidate: browser.invalidate }))
 
 vi.mock('../account.remote', () => ({ updatePasswordCommand: command }))
 vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
@@ -34,6 +44,8 @@ it('shows the new-password field only once confirmed, and changes nothing on the
   await fireEvent.click(saveButton())
   await settle()
   expect(command).toHaveBeenCalledWith({ password: NEW })
+  expect(browser.setSession).toHaveBeenCalledWith(SESSION)
+  expect(browser.invalidate).toHaveBeenCalledWith('supabase:auth')
 })
 
 it('opens code entry when the change needs a fresh confirmation, keeping the typed password', async () => {

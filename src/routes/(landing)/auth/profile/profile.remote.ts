@@ -1,5 +1,6 @@
 import { command, getRequestEvent } from '$app/server'
 import { signedInRedirectTarget } from '$lib/auth'
+import { requireLiveSession } from '$lib/auth/session.server'
 import { provisionProfile } from '$lib/entities/user/provision.server'
 import { formError } from '$lib/forms/schemas'
 import { getLocale } from '$lib/paraglide/runtime'
@@ -12,6 +13,7 @@ export const completeProfile = command(profileSchema, async ({ gradingScale, nex
   const { locals, url } = getRequestEvent()
   // `claims`, not `requireAuthed`: that demands the `users` row this creates.
   if (locals.claims == null) error(401, formError('auth_notSignedIn'))
+  await requireLiveSession()
 
   const { kind } = await provisionProfile({
     authUserId: locals.claims.sub,

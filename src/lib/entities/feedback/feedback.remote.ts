@@ -1,4 +1,5 @@
 import { command, form, getRequestEvent, query } from '$app/server'
+import { requireLiveSession } from '$lib/auth/session.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { feedback, users, userSettings } from '$lib/db/schema'
 import { feedbackReplyEmailContent } from '$lib/email/feedback'
@@ -47,6 +48,7 @@ export const listFeedback = query(async (): Promise<FeedbackItem[]> => {
   const { locals } = getRequestEvent()
 
   requireAppAdmin(locals.userPermissions)
+  await requireLiveSession()
 
   const rows = await pinnedTx((tx) =>
     tx
@@ -102,6 +104,7 @@ export const replyToFeedback = command(
     const { locals, url } = getRequestEvent()
 
     requireAppAdmin(locals.userPermissions)
+    await requireLiveSession()
 
     const stampedAt = new Date()
 

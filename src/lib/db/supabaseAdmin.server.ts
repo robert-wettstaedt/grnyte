@@ -18,9 +18,17 @@ export const secretKeyFetch: typeof fetch = (input, init) => {
   return fetch(input, { ...init, headers })
 }
 
-/** Bypasses RLS and reaches GoTrue's admin API. Server code only, never per request user. */
-export const supabaseAdmin = () =>
+/**
+ * Bypasses RLS and reaches GoTrue's admin API. Server code only, never per request user.
+ * `timeoutMs` aborts each request; supabase-js then answers `{ error }`.
+ */
+export const supabaseAdmin = ({ timeoutMs }: { timeoutMs?: number } = {}) =>
   createClient(PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
-    global: { fetch: secretKeyFetch },
+    global: {
+      fetch:
+        timeoutMs == null
+          ? secretKeyFetch
+          : (input, init) => secretKeyFetch(input, { ...init, signal: AbortSignal.timeout(timeoutMs) }),
+    },
   })

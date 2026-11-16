@@ -1,9 +1,8 @@
 /** GoTrue tests for migration 0149 and the branch's GoTrue settings, on its local second stack. */
-import { SIGNUP_MARKER } from '$lib/auth'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { sql } from '$lib/db/testDb'
 import { afterAll, describe, expect, it } from 'vitest'
-import { gotrueReachable, publicClient } from './gotrue.fixture'
+import { codeSignedIn, createAccount as createGrnyteAccount, gotrueReachable, publicClient } from './gotrue.fixture'
 
 const run = crypto.randomUUID().slice(0, 8)
 const address = (label: string) => `__gotrue_guard_${label}_${run}@grnyte.test`
@@ -12,15 +11,9 @@ const created: string[] = []
 
 async function createAccount(label: string, init: { confirmed?: boolean; password?: string } = {}) {
   const email = address(label)
-  const { data, error } = await supabaseAdmin().auth.admin.createUser({
-    app_metadata: SIGNUP_MARKER,
-    email,
-    email_confirm: init.confirmed ?? true,
-    password: init.password,
-  })
-  if (error != null) throw error
-  created.push(data.user.id)
-  return { email, id: data.user.id }
+  const id = await createGrnyteAccount(email, init)
+  created.push(id)
+  return { email, id }
 }
 
 /** Swaps the account's email identity for a `google` one, under the created-user marker. */
@@ -34,15 +27,7 @@ async function makeSocialOnly(userId: string, email: string): Promise<void> {
   })
 }
 
-/** A session for an account, through a code GoTrue's admin API hands out instead of mailing. */
-async function signedIn(email: string) {
-  const client = publicClient()
-  const link = await supabaseAdmin().auth.admin.generateLink({ email, type: 'magiclink' })
-  if (link.error != null) throw link.error
-  const { error } = await client.auth.verifyOtp({ email, token: link.data.properties.email_otp, type: 'magiclink' })
-  if (error != null) throw error
-  return client
-}
+const signedIn = codeSignedIn
 
 const identities = async (userId: string) =>
   (

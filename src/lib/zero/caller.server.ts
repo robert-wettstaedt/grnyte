@@ -1,3 +1,4 @@
+import type { VerifiedClaims } from '$lib/auth'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { getUserPermissions } from '$lib/hooks/auth.server'
 import { error } from '@sveltejs/kit'
@@ -9,7 +10,7 @@ import { error } from '@sveltejs/kit'
  */
 export async function zeroCaller<Extra = undefined>(
   request: Request,
-  alongside?: (authUserId: string) => Promise<Extra>,
+  alongside?: (claims: VerifiedClaims) => Promise<Extra>,
 ) {
   const verified = await verifyAccessToken(request.headers.get('authorization')?.replace('Bearer ', ''))
   if (!verified.ok) {
@@ -18,7 +19,7 @@ export async function zeroCaller<Extra = undefined>(
 
   const [permissions, extra] = await Promise.all([
     getUserPermissions(verified.claims.sub),
-    alongside?.(verified.claims.sub),
+    alongside?.(verified.claims),
   ])
 
   // An account with no memberships has `[]`. Missing means unread, and a query scoped by nothing

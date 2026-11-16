@@ -217,6 +217,11 @@ GoTrue fetches self-hosted templates as URLs. The branch's second local stack
 (`<second stack>/`) serves `emails/gotrue/` from an `nginx:alpine` container named
 `grnyte-mail-templates`; re-copy `subjects.json` into its override after the templates change.
 
+GoTrue's per-IP limits count each person only because grnyte forwards `getClientAddress()` as
+`sb-forwarded-for`. On Vercel that is the real client. Any other host runs `adapter-node` behind a
+proxy and must set `ADDRESS_HEADER` (and `XFF_DEPTH` for `X-Forwarded-For`) to the header that proxy
+sets, or every person shares the proxy's address in GoTrue's limits.
+
 ### Migrating hosted databases only at release
 
 Hosted projects are migrated with `npm run migrate` from the merged branch at release, never from a

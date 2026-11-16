@@ -1,6 +1,6 @@
 /** The verifier is a pure function of (token, keys), so it is tested here with no GoTrue at all. */
 import { env } from '$env/dynamic/private'
-import { CONTESTED_SIGNUP } from '$lib/auth'
+import { CONTESTED_SIGNUP, type VerifiedToken } from '$lib/auth'
 import { createAccessTokenVerifier, verifyAccessToken } from '$lib/auth/verify.server'
 import {
   createLocalJWKSet,
@@ -65,6 +65,18 @@ describe('verifyAccessToken', () => {
     expect(result.ok).toBe(true)
     expect(result.ok && result.claims.sub).toBe(SUB)
     expect(result.ok && result.claims.email).toBe('climber@example.com')
+  })
+
+  it('returns the token it checked, branded so a hand-built pair cannot pass for one', async () => {
+    const accessToken = await token()
+    const result = await verifyAccessToken(accessToken)
+
+    expect(result.ok && result.token).toEqual({ accessToken, claims: result.ok && result.claims })
+    if (result.ok) {
+      // @ts-expect-error locals' claims beside a token from elsewhere are not a VerifiedToken
+      const forged: VerifiedToken = { accessToken: 'from.elsewhere.jwt', claims: result.claims }
+      expect(forged).toBeDefined()
+    }
   })
 
   it('refuses a session on a still-contested account, however it was signed in', async () => {

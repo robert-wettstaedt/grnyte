@@ -1,4 +1,5 @@
 /** The auth-only client: the secret key only as `apikey`, the caller's address as GoTrue sees it, no `admin`. */
+import type { VerifiedToken } from '$lib/auth'
 import { LEGACY, SECRET, spyBaseFetch, withSecretKey } from '$lib/db/secretKey.fixture'
 import type { RequestEvent } from '@sveltejs/kit'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -69,5 +70,86 @@ describe('supabaseAuthServer', () => {
     expect(Object.isFrozen(client)).toBe(true)
     // @ts-expect-error the admin API is not part of the type either
     expect(client.admin).toBeUndefined()
+  })
+})
+
+/** Records method, URL and headers of every request that reached the base fetch. */
+function spyRequests() {
+  const seen: { headers: Headers; method: string; url: string }[] = []
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    seen.push({ headers: new Headers(init?.headers), method: init?.method ?? 'GET', url: String(input) })
+    return Response.json({ id: 'auth-user-1' })
+  })
+  return seen
+}
+
+/** A token as `verifyAccessToken` would hand it over; the signature is never checked on this side. */
+function verified(sub: string, exp = Math.floor(Date.now() / 1000) + 3600, claims = { session_id: 'session-1', sub }) {
+  const payload = Buffer.from(JSON.stringify({ exp, session_id: 'session-1', sub })).toString('base64url')
+  return { accessToken: `eyJhbGciOiJIUzI1NiJ9.${payload}.sig`, claims } as unknown as VerifiedToken
+}
+
+describe('supabaseAuthServerAs', () => {
+  it('sends updateUser as the person: their Bearer, the secret key as apikey, the forwarded address', async () => {
+    const seen = spyRequests()
+    const { supabaseAuthServerAs } = await load(SECRET)
+    const token = verified('auth-user-1')
+
+    const { error } = await supabaseAuthServerAs(eventFrom('198.51.100.7'), token).updateUser({
+      email: 'new@example.com',
+    })
+
+    expect(error).toBeNull()
+    expect(seen.map(({ method, url }) => `${method} ${new URL(url).pathname}`)).toEqual(['PUT /auth/v1/user'])
+    expect(seen[0].headers.get('authorization')).toBe(`Bearer ${token.accessToken}`)
+    expect(seen[0].headers.get('apikey')).toBe(SECRET)
+    expect(seen[0].headers.get('sb-forwarded-for')).toBe('198.51.100.7')
+  })
+
+  it('goes through with a token 30 s from expiry, which auth-js would otherwise try to refresh', async () => {
+    const seen = spyRequests()
+    const { supabaseAuthServerAs } = await load(SECRET)
+    const token = verified('auth-user-1', Math.floor(Date.now() / 1000) + 30)
+
+    const { error } = await supabaseAuthServerAs(eventFrom('198.51.100.7'), token).updateUser({
+      email: 'new@example.com',
+    })
+
+    expect(error).toBeNull()
+    expect(seen.map(({ method }) => method)).toEqual(['PUT'])
+  })
+
+  it('keeps each call to its own session', async () => {
+    const seen = spyRequests()
+    const { supabaseAuthServerAs } = await load(SECRET)
+    const first = verified('auth-user-1')
+    const second = verified('auth-user-2')
+
+    await supabaseAuthServerAs(eventFrom('198.51.100.7'), first).updateUser({ email: 'a@example.com' })
+    await supabaseAuthServerAs(eventFrom('198.51.100.7'), second).updateUser({ email: 'b@example.com' })
+
+    expect(seen.map(({ headers }) => headers.get('authorization'))).toEqual([
+      `Bearer ${first.accessToken}`,
+      `Bearer ${second.accessToken}`,
+    ])
+  })
+
+  it('refuses a token whose sub or session differs from the claims beside it', async () => {
+    const { supabaseAuthServerAs } = await load(SECRET)
+    const otherSub = verified('auth-user-1', undefined, { session_id: 'session-1', sub: 'auth-user-2' })
+    const otherSession = verified('auth-user-1', undefined, { session_id: 'session-2', sub: 'auth-user-1' })
+
+    expect(() => supabaseAuthServerAs(eventFrom('198.51.100.7'), otherSub)).toThrow()
+    expect(() => supabaseAuthServerAs(eventFrom('198.51.100.7'), otherSession)).toThrow()
+  })
+
+  it('exposes only the two calls that need a person', async () => {
+    const { supabaseAuthServerAs } = await load(SECRET)
+    const client = supabaseAuthServerAs(eventFrom('198.51.100.7'), verified('auth-user-1'))
+
+    for (const reachable of ['admin', 'from', 'signOut']) {
+      expect(reachable in client).toBe(false)
+    }
+    expect(Object.isFrozen(client)).toBe(true)
   })
 })

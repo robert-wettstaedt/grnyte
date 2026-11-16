@@ -17,6 +17,7 @@
   import * as z from '$lib/forms/zod'
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'
+  import { leaveIfSessionEnded } from '$lib/state/sessionEnded'
   import { onMount, type Snippet } from 'svelte'
   import { fade, scale, slide } from 'svelte/transition'
   import CodeEntry from './CodeEntry.svelte'
@@ -66,14 +67,21 @@
           phase = live ? 'confirmed' : 'idle'
           confirmed = live
         },
-        () => {
+        (cause) => {
+          if (leaveIfSessionEnded(cause)) return
           if (phase === 'peeking') phase = 'idle'
         },
       )
   })
 
+  /** A device signed out elsewhere leaves; the call never settles, so no error text shows meanwhile. */
+  const staying = <T,>(run: () => Promise<T>): Promise<T> =>
+    submitCommand(run).catch((cause) =>
+      leaveIfSessionEnded(cause) ? new Promise<never>(() => {}) : Promise.reject(cause),
+    )
+
   const resend = async () => {
-    sent = await submitCommand(() => requestReauthCode({ action, target }))
+    sent = await staying(() => requestReauthCode({ action, target }))
   }
 
   async function request() {
@@ -92,7 +100,7 @@
   }
 
   async function confirm(code: string) {
-    await submitCommand(() => confirmReauthCode({ action, code, target }))
+    await staying(() => confirmReauthCode({ action, code, target }))
     fresh = false
     phase = 'confirmed'
     confirmed = true

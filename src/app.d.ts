@@ -1,4 +1,4 @@
-import type { AppPermission, RegionPermission, VerifiedClaims } from '$lib/auth'
+import type { AppPermission, RegionPermission, VerifiedClaims, VerifiedToken } from '$lib/auth'
 import type { InferResultType } from '$lib/db/types'
 import type { UserRegion } from '$lib/entities/region/dto'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
@@ -29,8 +29,12 @@ declare global {
        * verified token sitting beside a forged `user` object is the shape of the bug this replaced.
        */
       claims: undefined | VerifiedClaims
-      safeGetSession: () => Promise<SafeSession & { backendUnavailable: boolean; claims: undefined | VerifiedClaims }>
+      safeGetSession: () => Promise<
+        SafeSession & { backendUnavailable: boolean; claims: undefined | VerifiedClaims; verifiedToken?: VerifiedToken }
+      >
       supabase: SupabaseClient
+      /** The token behind `claims`, for a GoTrue call made as this person (`supabaseAuthServerAs`). */
+      verifiedToken?: VerifiedToken
     }
 
     interface PageData {

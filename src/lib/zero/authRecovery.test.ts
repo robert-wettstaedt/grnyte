@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { AUTH_RETRY_COOLDOWN_MS, authRetryDelay, startAuthRecovery, stopAuthRecovery } from './authRecovery'
+import {
+  AUTH_RETRY_COOLDOWN_MS,
+  authRetryDelay,
+  isDefinitiveRefusal,
+  SESSION_GONE,
+  startAuthRecovery,
+  stopAuthRecovery,
+} from './authRecovery'
 
 /** Zero stops retrying in `needs-auth`; only `connect()` with a fresh token revives it. */
 describe('authRetryDelay', () => {
@@ -31,6 +38,9 @@ describe('authRetryDelay', () => {
   })
 })
 
+/** No newer cookie session and no sign-out: the chain as it ran before definitive refusals. */
+const quiet = { reread: async () => null, signOut: () => {} }
+
 describe('the recovery chain', () => {
   let refreshes = 0
   let settle: (session: null | string) => void
@@ -55,7 +65,7 @@ describe('the recovery chain', () => {
 
   it('keeps asking until a token arrives', async () => {
     const onSession = vi.fn()
-    startAuthRecovery(0, { onSession, refresh, wants: () => true })
+    startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
 
     await vi.advanceTimersByTimeAsync(0)
     expect(refreshes).toBe(1)
@@ -76,7 +86,7 @@ describe('the recovery chain', () => {
   it('stays stopped when the teardown lands mid-request and nothing restarts it', async () => {
     // Not cancellable across its own `await`: the resolving attempt can arm a chain nobody owns.
     const onSession = vi.fn()
-    startAuthRecovery(0, { onSession, refresh, wants: () => true })
+    startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
     await vi.advanceTimersByTimeAsync(0)
     expect(refreshes).toBe(1)
 
@@ -92,14 +102,14 @@ describe('the recovery chain', () => {
   it('runs one chain, not two, when it is restarted mid-request', async () => {
     // Stop during the round trip, then start again: only one ask may follow each cooldown.
     const onSession = vi.fn()
-    startAuthRecovery(0, { onSession, refresh, wants: () => true })
+    startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
     await vi.advanceTimersByTimeAsync(0)
 
     stopAuthRecovery()
     settle(null)
     await vi.advanceTimersByTimeAsync(0)
 
-    startAuthRecovery(0, { onSession, refresh, wants: () => true })
+    startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
     await vi.advanceTimersByTimeAsync(0)
     expect(refreshes).toBe(2)
 
@@ -112,8 +122,8 @@ describe('the recovery chain', () => {
   it('replaces a scheduled attempt rather than adding to it', async () => {
     // Only matters to a caller that does not stop first, which the exported API allows.
     const onSession = vi.fn()
-    startAuthRecovery(AUTH_RETRY_COOLDOWN_MS, { onSession, refresh, wants: () => true })
-    startAuthRecovery(0, { onSession, refresh, wants: () => true })
+    startAuthRecovery(AUTH_RETRY_COOLDOWN_MS, { ...quiet, onSession, refresh, wants: () => true })
+    startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
 
     await vi.advanceTimersByTimeAsync(0)
     expect(refreshes).toBe(1)
@@ -126,7 +136,7 @@ describe('the recovery chain', () => {
   it('refuses a token that arrived for an identity that has since changed', async () => {
     // Sign-out racing a refresh: the old user's token would preload their rows after logout.
     const onSession = vi.fn()
-    startAuthRecovery(0, { onSession, refresh, wants: () => false })
+    startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => false })
     await vi.advanceTimersByTimeAsync(0)
 
     settle('token-for-the-previous-user')
@@ -138,7 +148,7 @@ describe('the recovery chain', () => {
   it('still uses a token that arrives after it was stopped', async () => {
     // Discarding it would park Zero for another cooldown for nothing.
     const onSession = vi.fn()
-    startAuthRecovery(0, { onSession, refresh, wants: () => true })
+    startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
     await vi.advanceTimersByTimeAsync(0)
 
     stopAuthRecovery()
@@ -146,5 +156,68 @@ describe('the recovery chain', () => {
     await vi.advanceTimersByTimeAsync(0)
 
     expect(onSession).toHaveBeenCalledWith('late-token')
+  })
+})
+
+describe('a refresh GoTrue refused for good', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => {
+    stopAuthRecovery()
+    vi.useRealTimers()
+  })
+
+  it('counts only a gone refresh token or session as definitive', () => {
+    for (const code of [
+      'refresh_token_not_found',
+      'session_not_found',
+      'refresh_token_already_used',
+      'invalid_grant',
+    ]) {
+      expect(isDefinitiveRefusal({ code })).toBe(true)
+    }
+    // A GoTrue 5xx, a 429, and auth-js's offline error, which carries no code.
+    expect(isDefinitiveRefusal({ code: 'unexpected_failure' })).toBe(false)
+    expect(isDefinitiveRefusal({ code: 'over_request_rate_limit' })).toBe(false)
+    expect(isDefinitiveRefusal({})).toBe(false)
+  })
+
+  it('signs out once and arms nothing more when the cookie holds no newer session', async () => {
+    const refresh = vi.fn(async () => SESSION_GONE)
+    const signOut = vi.fn()
+    startAuthRecovery(0, { onSession: vi.fn(), refresh, reread: async () => null, signOut, wants: () => true })
+
+    await vi.advanceTimersByTimeAsync(AUTH_RETRY_COOLDOWN_MS * 3)
+
+    expect(signOut).toHaveBeenCalledOnce()
+    expect(refresh).toHaveBeenCalledOnce()
+  })
+
+  it('adopts a newer cookie session instead of signing out', async () => {
+    const onSession = vi.fn()
+    const signOut = vi.fn()
+    startAuthRecovery(0, {
+      onSession,
+      refresh: async () => SESSION_GONE,
+      reread: async () => 'other-tab-token',
+      signOut,
+      wants: () => true,
+    })
+
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(onSession).toHaveBeenCalledWith('other-tab-token')
+    expect(signOut).not.toHaveBeenCalled()
+  })
+
+  it('re-arms and signs nothing out on a 503, a 429 or offline', async () => {
+    // The layout maps every non-definitive error, thrown or answered, to `null`.
+    const refresh = vi.fn(async () => null)
+    const signOut = vi.fn()
+    startAuthRecovery(0, { onSession: vi.fn(), refresh, reread: async () => null, signOut, wants: () => true })
+
+    await vi.advanceTimersByTimeAsync(AUTH_RETRY_COOLDOWN_MS * 2)
+
+    expect(refresh).toHaveBeenCalledTimes(3)
+    expect(signOut).not.toHaveBeenCalled()
   })
 })

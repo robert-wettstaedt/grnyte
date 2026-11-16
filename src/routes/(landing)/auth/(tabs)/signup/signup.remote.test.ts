@@ -36,6 +36,9 @@ vi.mock('$lib/auth/authServer.server', () => ({
   }),
 }))
 
+const policy = vi.hoisted(() => ({ breached: false }))
+vi.mock('$lib/auth/passwordPolicy.server', () => ({ checkPassword: async () => (policy.breached ? 'breached' : 'ok') }))
+
 vi.mock('$lib/email/send.server', () => ({
   sendEmail: async (input: { body: string[]; footnote: string; template: string; to: string }) => {
     mailed.push({ template: input.template, text: [...input.body, input.footnote].join(' '), to: input.to })
@@ -101,6 +104,7 @@ const cleanup = async () => {
 }
 
 beforeEach(async () => {
+  policy.breached = false
   created = []
   flagged = []
   resent = []
@@ -132,6 +136,13 @@ describe('signUp', () => {
 })
 
 describe.skipIf(!reachable)('signUp through the admin API', () => {
+  it('refuses a breached password before GoTrue and creates nothing', async () => {
+    policy.breached = true
+
+    expect(refusals(await submit(FIELDS))).toEqual(['auth_passwordBreached'])
+    expect(created).toEqual([])
+  })
+
   it('creates only the marked GoTrue account, then has GoTrue send the code', async () => {
     const id = await unconfirmed()
     adminAnswer = { id }

@@ -71,10 +71,28 @@ export const nameSchema = z
   .string({ error: formError('form_required') })
   .check(z.trim(), z.minLength(3, { error: formError('form_charsMin', { count: 3 }) }))
 
-/** An account password. Length is the only rule we own, Supabase owns the rest (`weak_password`). */
-export const passwordSchema = z
-  .string({ error: formError('form_required') })
-  .check(z.minLength(8, { error: formError('form_charsMin', { count: 8 }) }))
+/** The one form a password is stored and compared in (design decision 11). */
+export const normalizePassword = (password: string): string => password.normalize('NFC')
+
+const noSurroundingSpace = (password: string) => !/^\s|\s$/.test(password)
+// GoTrue's bcrypt reads only the first 72 bytes.
+const within72Bytes = (password: string) => new TextEncoder().encode(password).length <= 72
+
+/** A new password: surrounding whitespace refused (never trimmed), then NFC, then the length rules. */
+export const passwordSchema = z.pipe(
+  z.pipe(
+    z
+      .string({ error: formError('form_required') })
+      .check(z.refine(noSurroundingSpace, { error: formError('auth_passwordSpaces') })),
+    z.transform(normalizePassword),
+  ),
+  z
+    .string()
+    .check(
+      z.minLength(8, { error: formError('form_charsMin', { count: 8 }) }),
+      z.refine(within72Bytes, { error: formError('auth_passwordTooLong') }),
+    ),
+)
 
 /** Object-level check that `confirmPassword` repeats `password`. Apply with `.check()`. */
 export const passwordsMatch = z.refine<{ confirmPassword: string; password: string }>(

@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { invalidate } from '$app/navigation'
   import { resolve } from '$app/paths'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ReauthStep, { isReauthRequired } from '$lib/auth/ReauthStep.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
@@ -21,7 +23,11 @@
 
   const submit = async (values: z.input<typeof updatePasswordSchema>) => {
     try {
-      return await submitCommand(() => updatePasswordCommand(values))
+      const result = await submitCommand(() => updatePasswordCommand(values))
+      // The change ended this device's session: adopt the new one before Zero's next write.
+      await page.data.supabase?.auth.setSession(result.session)
+      await invalidate('supabase:auth')
+      return result
     } catch (cause) {
       if (isReauthRequired(cause)) step?.require()
       throw cause

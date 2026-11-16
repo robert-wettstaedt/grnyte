@@ -5,6 +5,11 @@ import * as z from '$lib/forms/zod'
 
 export const updateEmailSchema = z.object({ email: z.email({ error: formError('form_required') }) })
 
+export const emailChangeCodeSchema = z.object({
+  code: z.string({ error: formError('form_required') }),
+  email: z.email({ error: formError('form_required') }),
+})
+
 // `currentPassword` and `confirmPassword` stay optional for one release: a tab from before
 // re-authentication still sends them, and the handler answers it with "reload this page".
 export const updatePasswordSchema = z.object({

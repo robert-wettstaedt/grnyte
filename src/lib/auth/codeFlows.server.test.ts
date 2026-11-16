@@ -2,12 +2,14 @@
  * GoTrue test: the mailed-code flows end to end on the branch's GoTrue, codes read from its mail
  * catcher. Skips visibly without the stack (always in CI).
  */
+import { sessionCaller, writeGrant } from '$lib/auth/reauth.server'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { sql } from '$lib/db/testDb'
 import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
 import { asAnonymousRequest, callForm, withLocals } from '$lib/remote/testHarness'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, describe, expect, it, vi } from 'vitest'
+import { confirmEmailChangeCode, updateEmailCommand } from '../../routes/(app)/settings/account.remote'
 import { confirmSignupCode, resendSignupCode, signUp } from '../../routes/(landing)/auth/(tabs)/signup/signup.remote'
 import { confirmResetCode, forgotPassword } from '../../routes/(landing)/auth/forgot-password/forgot-password.remote'
 import { gotrueReachable, publicClient } from './gotrue.fixture'
@@ -78,6 +80,22 @@ const guessWrong = async (email: string) => {
     await refusalOf(() => anonymous(publicClient(), () => confirmSignupCode({ code: '00000000', email })))
   }
 }
+
+/** A confirmed account signed in on its own client, with the locals its requests carry. */
+async function signedIn(email: string) {
+  await signUpSolved(email, OWNER)
+  const client = publicClient()
+  await anonymous(client, async () => confirmSignupCode({ code: await codeFor(email), email }))
+  const verified = await verifyAccessToken((await client.auth.getSession()).data.session?.access_token)
+  if (!verified.ok) throw new Error(`session did not verify: ${verified.reason}`)
+  const [{ id }] = await sql<{ id: string }[]>`select id from auth.users where email = ${email}`
+  return { id, locals: { claims: verified.claims, supabase: client, verifiedToken: verified.token } }
+}
+
+const sessionIds = async (id: string) =>
+  (await sql<{ id: string }[]>`select id from auth.sessions where user_id = ${id} order by id`).map((row) => row.id)
+const addressOf = async (id: string) =>
+  (await sql<{ email: string }[]>`select email from auth.users where id = ${id}`)[0].email
 
 const signsIn = async (email: string, password: string) =>
   (await publicClient().auth.signInWithPassword({ email, password })).error == null
@@ -228,4 +246,65 @@ describe.skipIf(!gotrueReachable)('mailed codes on GoTrue', { timeout: 20_000 },
       await anonymous(publicClient(), async () => confirmSignupCode({ code: await codeFor(email, before), email })),
     ).toEqual({ next: 'profile' })
   }, 120_000)
+
+  it('writes the session a confirmed code returns into the request client, where GoTrue accepts it', async () => {
+    const email = address('cookie')
+    await signUpSolved(email, OWNER)
+    const client = publicClient()
+
+    await anonymous(client, async () => confirmSignupCode({ code: await codeFor(email), email }))
+
+    const { data, error } = await client.auth.getUser()
+    expect(error).toBeNull()
+    expect(data.user?.email).toBe(email)
+  })
+
+  it('changes the email only after a code from each address; the first answers next and signs nothing out', async () => {
+    const email = address('change')
+    const target = address('changeto')
+    const { id, locals } = await signedIn(email)
+    await sql`insert into auth.sessions (id, user_id) values (gen_random_uuid(), ${id})`
+    const before = await mailCount(email)
+    const confirm = (code: string, to: string) => withLocals(locals, () => confirmEmailChangeCode({ code, email: to }))
+
+    await withLocals(locals, () => updateEmailCommand({ email: target }))
+    const sessions = await sessionIds(id)
+    expect(await confirm(await codeFor(email, before), email)).toEqual({ step: 'next' })
+    expect(await sessionIds(id)).toEqual(sessions)
+    expect(await addressOf(id)).toBe(email)
+
+    // A grant and an open code from before the change must not count after it.
+    await withLocals(locals, () => writeGrant(sessionCaller(), 'account.delete', id, 'email_code'))
+    await sql`
+      insert into public.reauth_challenges (action, auth_user_fk, code_hash, expires_at, session_id, target)
+      values ('region.delete', ${id}, 'x', now() + interval '10 minutes', gen_random_uuid(), '1')`
+    expect(await confirm(await codeFor(target), target)).toEqual({ step: 'done' })
+    expect(await addressOf(id)).toBe(target)
+    expect(await sessionIds(id)).toHaveLength(1)
+    expect(await sql`select 1 from public.reauth_grants where auth_user_fk = ${id}`).toHaveLength(0)
+    expect(await sql`select 1 from public.reauth_challenges where auth_user_fk = ${id}`).toHaveLength(0)
+  })
+
+  it('mints new codes for both addresses on a resend (GoTrue resets the confirmations), so an accepted first code counts for nothing', async () => {
+    const email = address('resendchange')
+    const target = address('resendto')
+    const { id, locals } = await signedIn(email)
+    const confirm = (code: string, to: string) => withLocals(locals, () => confirmEmailChangeCode({ code, email: to }))
+
+    const before = await mailCount(email)
+    await withLocals(locals, () => updateEmailCommand({ email: target }))
+    const first = await codeFor(email, before)
+    expect(await confirm(first, email)).toEqual({ step: 'next' })
+
+    // Past GoTrue's per-user minute between change mails.
+    await sql`update auth.users set email_change_sent_at = now() - interval '2 minutes' where id = ${id}`
+    const [seenOld, seenNew] = [await mailCount(email), await mailCount(target)]
+    await withLocals(locals, () => updateEmailCommand({ email: target }))
+
+    expect(await confirm(await codeFor(target, seenNew), target)).toEqual({ step: 'next' })
+    expect(await addressOf(id)).toBe(email)
+    expect(await refusalOf(() => confirm(first, email))).toBe('auth_codeWrong')
+    expect(await confirm(await codeFor(email, seenOld), email)).toEqual({ step: 'done' })
+    expect(await addressOf(id)).toBe(target)
+  })
 })

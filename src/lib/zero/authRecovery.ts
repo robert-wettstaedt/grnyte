@@ -3,10 +3,26 @@ import type { ConnectionName } from './connection'
 /** Long enough that a dead refresh family is not hammered, which is what revokes it. */
 export const AUTH_RETRY_COOLDOWN_MS = 30_000
 
+/** A refresh GoTrue refused because the refresh token or its session is gone, not a passing failure. */
+export const SESSION_GONE = Symbol('session gone')
+
+const GONE_CODES = new Set([
+  'invalid_grant',
+  'refresh_token_already_used',
+  'refresh_token_not_found',
+  'session_not_found',
+])
+
+/** Whether a refresh error proves the session is gone; offline, 5xx, 429 and timeouts prove nothing. */
+export const isDefinitiveRefusal = (error: { code?: string }): boolean => GONE_CODES.has(error.code ?? '')
+
 interface Attempt<Session> {
   onSession: (session: Session) => void
-  /** Resolves `null` for any failure, thrown ones included: every outcome here is retryable. */
-  refresh: () => Promise<null | Session>
+  /** `null` for any retryable failure, thrown ones included; {@link SESSION_GONE} for a definitive one. */
+  refresh: () => Promise<null | Session | typeof SESSION_GONE>
+  /** The cookie session when it is newer than the one Zero was refused with, else `null`. */
+  reread: () => Promise<null | Session>
+  signOut: () => void
   /** Asked when the token ARRIVES, so a sign-out mid-refresh cannot hand on the old user's token. */
   wants: (session: Session) => boolean
 }
@@ -47,7 +63,16 @@ export function startAuthRecovery<Session>(delay: number, attempt: Attempt<Sessi
     timer = null
     attemptedAt = Date.now()
 
-    const session = await attempt.refresh()
+    let session = await attempt.refresh()
+
+    // Another tab may hold a newer session (it changed the password); only without one is this a sign-out.
+    if (session === SESSION_GONE) {
+      session = await attempt.reread()
+      if (session == null) {
+        attempt.signOut()
+        return
+      }
+    }
 
     if (session != null) {
       if (attempt.wants(session)) {
