@@ -19,11 +19,9 @@
  */
 import { and, eq, ilike, isNotNull } from 'drizzle-orm'
 import type { AnyPgColumn, AnyPgTable } from 'drizzle-orm/pg-core'
-import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { pathToFileURL } from 'node:url'
-import Database from 'postgres'
-import drizzleConfig from '../../../../../drizzle.config'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../../schema'
+import { runStandalone } from './standalone'
 
 // An `@mention` token: `usernameSchema`'s character set ($lib/forms/schemas) with a leading `@`.
 // Spelled out rather than imported because this script runs under bare tsx, where `$lib` does not
@@ -117,9 +115,4 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   }
 }
 
-// Standalone preview: `npx tsx src/lib/db/scripts/migrations/migrate-mentions.ts [--dry-run]`.
-if (process.argv[1] != null && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
-  await migrate(drizzle(postgres, { schema }), { dryRun: process.argv.includes('--dry-run') })
-  await postgres.end()
-}
+await runStandalone(import.meta.url, migrate)

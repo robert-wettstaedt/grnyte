@@ -11,11 +11,9 @@
  * Idempotent: already-contiguous orders don't change, so re-running is a no-op.
  */
 import { sql } from 'drizzle-orm'
-import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { pathToFileURL } from 'node:url'
-import Database from 'postgres'
-import drizzleConfig from '../../../../../drizzle.config'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../../schema'
+import { runStandalone } from './standalone'
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
   // `row_number()` numbers each area's blocks 1, 2, 3… in their current order (ties broken by id);
@@ -52,9 +50,4 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   console.log(`\n${dryRun ? 'DRY RUN: ' : ''}rearranged ${changes.length} block order(s).`)
 }
 
-// Standalone preview: `npx tsx src/lib/db/scripts/migrations/migrate-block-order.ts [--dry-run]`.
-if (process.argv[1] != null && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
-  await migrate(drizzle(postgres, { schema }), { dryRun: process.argv.includes('--dry-run') })
-  await postgres.end()
-}
+await runStandalone(import.meta.url, migrate)

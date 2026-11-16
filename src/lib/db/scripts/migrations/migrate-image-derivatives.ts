@@ -17,11 +17,8 @@
  * converts nothing at all, silently.
  */
 import { eq } from 'drizzle-orm'
-import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { pathToFileURL } from 'node:url'
-import Database from 'postgres'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import sharp from 'sharp'
-import drizzleConfig from '../../../../../drizzle.config'
 import {
   DERIVATIVE_QUALITY,
   DERIVATIVE_SIZES,
@@ -31,6 +28,7 @@ import {
 } from '../../../images/derivatives'
 import * as schema from '../../schema'
 import { connectNextcloud, listingCache, rethrowUnlessMissing } from '../guidebook/nextcloud'
+import { logSkipped, runStandalone } from './standalone'
 
 /** `/topos/138.jpg` → `/topos` (stored paths always have a leading slash). */
 const parentOf = (path: string): string => path.slice(0, path.lastIndexOf('/'))
@@ -150,14 +148,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   )
 
   console.log(`\n${dryRun ? 'DRY RUN: ' : ''}processed ${processed} of ${paths.length} image path(s).`)
-  for (const [reason, ids] of Object.entries(skipped)) {
-    console.log(`Skipped (${reason}): #${ids.join(', #')}`)
-  }
+  logSkipped(skipped)
 }
 
-// Standalone preview: `npx tsx src/lib/db/scripts/migrations/migrate-image-derivatives.ts [--dry-run]`.
-if (process.argv[1] != null && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
-  await migrate(drizzle(postgres, { schema }), { dryRun: process.argv.includes('--dry-run') })
-  await postgres.end()
-}
+await runStandalone(import.meta.url, migrate)

@@ -14,11 +14,9 @@
  * Idempotent: an empty name doesn't match the pattern, so re-running is a no-op.
  */
 import { sql } from 'drizzle-orm'
-import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { pathToFileURL } from 'node:url'
-import Database from 'postgres'
-import drizzleConfig from '../../../../../drizzle.config'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../../schema'
+import { runStandalone } from './standalone'
 
 // Areas in or nested under any area named "Frankenjura": excluded from the name reset. Reused
 // as a leading CTE so each statement can filter `area_fk not in (select id from frankenjura)`.
@@ -54,9 +52,4 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   console.log(`\n${dryRun ? 'DRY RUN: ' : ''}reset ${matches.length} legacy "Block N" name(s).`)
 }
 
-// Standalone preview: `npx tsx src/lib/db/scripts/migrations/migrate-block-names.ts [--dry-run]`.
-if (process.argv[1] != null && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
-  await migrate(drizzle(postgres, { schema }), { dryRun: process.argv.includes('--dry-run') })
-  await postgres.end()
-}
+await runStandalone(import.meta.url, migrate)
