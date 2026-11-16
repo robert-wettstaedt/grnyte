@@ -5,6 +5,8 @@ import { runCommand, type MutationResult } from '$lib/remote/mutation'
 import { createToaster } from '@skeletonlabs/skeleton-svelte'
 
 const store = createToaster({
+  // For every toast without its own; the library's default lets a success go after 2 s, too fast to read.
+  duration: 5000,
   gap: 8,
   max: 3,
   // Lift the snackbar off the home indicator / sheet edge so it reads as floating.
