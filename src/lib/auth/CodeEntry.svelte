@@ -2,6 +2,7 @@
   import Banner from '$lib/components/Banner/Banner.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
+  import { serverMessage } from '$lib/forms/issue'
   import { formError } from '$lib/forms/schemas'
   import type { StoreField } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -88,7 +89,7 @@
 
   const input = () => wrapper?.querySelector('input') ?? undefined
   const messageOf = (cause: unknown, fallback: Parameters<typeof formError>[0]) =>
-    (cause as { body?: { message?: string } })?.body?.message ?? formError(fallback)
+    serverMessage(cause) ?? formError(fallback)
 
   async function submit(code: string) {
     if (pending || locked) return
@@ -210,18 +211,21 @@
     </button>
   {/if}
 
-  <div class="text-surface-600-400 flex min-h-6 items-center justify-between gap-2 text-[13px]">
-    <!-- The countdown is the same button, off, so the row never changes shape. -->
+  <div class="text-surface-600-400 flex flex-col items-start gap-y-1 text-[13px]">
+    <!-- The countdown is the same button, off, and each item has its own line, so the block never changes shape. -->
     <button
       type="button"
-      class={['py-1.5 font-semibold tabular-nums', canResend ? 'text-primary-600-400' : 'text-surface-500']}
+      class={[
+        'py-1.5 font-semibold whitespace-nowrap tabular-nums disabled:opacity-100',
+        canResend ? 'text-primary-600-400' : 'text-surface-600-400',
+      ]}
       disabled={!canResend}
       onclick={resend}
     >
       {canResend ? m.auth_codeResend() : m.auth_codeResendIn({ time: countdown })}
     </button>
     {#if onback != null}
-      <span>
+      <span class="whitespace-nowrap">
         {m.auth_codeWrongAddress()}
         <button type="button" class="text-primary-600-400 text-[12.5px] font-semibold" onclick={onback}>
           {m.auth_codeGoBack()}

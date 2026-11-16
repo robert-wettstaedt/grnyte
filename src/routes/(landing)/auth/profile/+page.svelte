@@ -50,7 +50,7 @@
 
   // The way out for somebody signed in to an account they did not mean to finish.
   const leave = signOut.enhance(async ({ submit }) => {
-    if (await submit()) await wipeAndLeave()
+    if (await submit()) await wipeAndLeave(resolve('/auth/signin'))
   })
 </script>
 

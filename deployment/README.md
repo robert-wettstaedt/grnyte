@@ -225,6 +225,27 @@ GoTrue's per-IP limits count each person only because grnyte forwards `getClient
 proxy and must set `ADDRESS_HEADER` (and `XFF_DEPTH` for `X-Forwarded-For`) to the header that proxy
 sets, or every person shares the proxy's address in GoTrue's limits.
 
+### New GoTrue version
+
+grnyte relies on GoTrue behaviours that no release promises (an admin password update mails nothing
+and ends every session, the email change order, the send-wait message, and more). They are pinned
+in `src/lib/auth/gotrue.contract.server.test.ts`, each test naming the grnyte code that depends on
+it, and were last measured on `GOTRUE_CONTRACT_VERSION` in `deployment/authConfig.ts`. Hosted
+Supabase upgrades GoTrue without notice, so `npm run check:prod` reads `/auth/v1/health` and fails
+naming both versions when the hosted one differs from the pin. When it does:
+
+1. Point the second local stack (`<second stack>/`) at the hosted version: set
+   the `supabase/gotrue:<version>` image of its `auth` service and recreate that container. Never
+   the shared stack.
+2. With the worktree's `.env` on that stack, run `npm run test:gotrue`. A test that skips means
+   GoTrue was not reachable, not that it passed.
+3. For each failure, fix the grnyte code its comment names (and the design note behind it), then
+   change the test to the new behaviour.
+4. Bump `GOTRUE_CONTRACT_VERSION`, and the version line above, in the same commit.
+
+Until then the hosted project runs code tested against the old release: treat the failures as
+live bugs.
+
 ### Migrating hosted databases only at release
 
 Hosted projects are migrated with `npm run migrate` from the merged branch at release, never from a

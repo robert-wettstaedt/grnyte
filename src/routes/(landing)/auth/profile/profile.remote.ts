@@ -8,7 +8,6 @@ import { refuseCommand } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
 import { profileSchema } from './schemas'
 
-/** The profile step: creates the profile of a signed-in account that has none. */
 export const completeProfile = command(profileSchema, async ({ gradingScale, next, username }) => {
   const { locals, url } = getRequestEvent()
   // `claims`, not `requireAuthed`: that demands the `users` row this creates.

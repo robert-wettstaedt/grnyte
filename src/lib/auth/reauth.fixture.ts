@@ -10,7 +10,6 @@ export const reauthRemote = {
   requestReauthCode: vi.fn(async (_: unknown) => ({ expiresAt: Date.now() + 600_000, sentAt: Date.now() })),
 }
 
-/** Presses "Send code" and enters a code, as a person confirming. */
 export async function confirmWithCode(code = '123456'): Promise<void> {
   await fireEvent.click(screen.getByRole('button', { name: 'Send code' }))
   await settle()

@@ -30,6 +30,10 @@ import { SignJWT } from 'jose'
 /** What a pushed mutation answers: `data` on success, or Zero's error kind with our message. */
 export type PushedResult = { data?: unknown; details?: unknown; error?: string; message?: string }
 
+/**
+ * Runs `fn` as a signed-out visitor, the caller of the auth forms. `supabase` is whatever fake the
+ * test wants those forms to reach; they call nothing else on locals.
+ */
 export function asAnonymousRequest<T>(supabase: unknown, fn: () => Promise<T> | T): Promise<T> {
   return inRequestStore({ claims: null, supabase }, fn)
 }
@@ -165,10 +169,6 @@ export async function statusOf(run: () => Promise<unknown>): Promise<number | un
   }
 }
 
-/**
- * Runs `fn` as a signed-out visitor, the caller of the auth forms. `supabase` is whatever fake the
- * test wants those forms to reach; they call nothing else on locals.
- */
 /** The message keys of a form's refusal, as `callForm` returns it. */
 export const refusalKeys = ({ issues = [] }: { issues?: { message: string }[] }): string[] =>
   issues.map((issue) => JSON.parse(issue.message).message)

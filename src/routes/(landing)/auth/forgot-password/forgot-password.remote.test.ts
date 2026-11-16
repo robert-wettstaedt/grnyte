@@ -144,6 +144,17 @@ describe.skipIf(!reachable)('forgotPassword', () => {
     expect(order).toEqual([`flag:${unconfirmedId}:true`])
   })
 
+  it('keeps the guess counters when nothing was mailed, so the old code gets no fresh guesses', async () => {
+    const subject = UNCONFIRMED.toLowerCase()
+    await sql`insert into auth_code_attempts (subject, kind, tries) values (${subject}, 'signup', 4), (${subject}, 'recovery', 4)
+      on conflict (subject, kind) do update set tries = 4`
+    flagError = { code: 'forgot_test_flag', message: 'admin api down' }
+    await submit({ email: UNCONFIRMED })
+    const rows = await sql`select kind, tries from auth_code_attempts where subject = ${subject} order by kind`
+    await sql`delete from auth_code_attempts where subject = ${subject}`
+    expect(rows.map((r) => `${r.kind}:${r.tries}`)).toEqual(['recovery:4', 'signup:4'])
+  })
+
   it('flags nothing for a confirmed or unknown address', async () => {
     await submit({ email: CONFIRMED })
     await submit({ email: UNKNOWN })

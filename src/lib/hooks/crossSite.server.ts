@@ -16,7 +16,7 @@ const isExempt = (pathname: string) =>
   CROSS_SITE_EXEMPT.some((entry) => (entry.endsWith('/') ? pathname.startsWith(entry) : pathname === entry))
 
 /**
- * Refuses a cookie-authenticated write a browser marked as not same-origin (design decision 16).
+ * Refuses a cookie-authenticated write a browser marked as not same-origin.
  * Matched on `request.url`: Kit rewrites `event.url` to the calling page for a remote function.
  */
 export const crossSiteGuard: Handle = async ({ event, resolve }) => {

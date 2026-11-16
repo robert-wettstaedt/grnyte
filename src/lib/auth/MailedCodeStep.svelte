@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import { signedInRedirectTarget } from '$lib/auth'
+  import { CODE_LIFETIME_MS, signedInRedirectTarget } from '$lib/auth'
   import { createFormStore } from '$lib/forms/store.svelte'
   import * as z from '$lib/forms/zod'
   import { m } from '$lib/paraglide/messages'
@@ -38,7 +38,6 @@
     title,
   }: Props = $props()
 
-  const CODE_LIFETIME_MS = 10 * 60 * 1000
   const store = createFormStore(z.object({ code: z.string() }))
   let sentAt = $state(Date.now())
 

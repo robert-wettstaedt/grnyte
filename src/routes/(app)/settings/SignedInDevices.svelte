@@ -57,8 +57,12 @@
         <SkeletonRows class="p-4" count={1} />
       {/snippet}
       {#snippet ready(rows)}
-        {#each rows as device (device.id)}
-          <div class="flex items-center justify-between gap-4 p-4" out:slide={{ duration: motion(150) }} data-device>
+        {#each rows as device, index (device.id)}
+          <div
+            class={['flex items-center justify-between gap-4 p-4', index > 0 && 'border-surface-200-800 border-t']}
+            out:slide={{ duration: motion(150) }}
+            data-device
+          >
             <span class="min-w-0">
               {#if device.current}
                 <span class="block font-semibold">{m.settings_deviceThis()}</span>

@@ -11,8 +11,6 @@
   })
 </script>
 
-<!-- Nothing confirmed yet: "Send code", nothing mailed. -->
 <Story name="Not confirmed" />
 
-<!-- The screen is still deciding: the reserved skeleton. -->
 <Story name="Waiting for the screen" args={{ ready: false }} />

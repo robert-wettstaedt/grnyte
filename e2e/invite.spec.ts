@@ -23,7 +23,7 @@ import { reachable, seedUsers, sql, type SeedUser } from '../src/lib/db/testDb'
 import { acceptPath } from '../src/lib/entities/region/paths'
 import { adminClient, assertLocalStack, confirmAndCompleteProfile, reachableUrl, signIn, visit } from './support'
 
-/** The stack's mail catcher: `E2E_MAILBOX=http://localhost:19010` for the auth branch's second stack. */
+/** The stack's mail catcher; `E2E_MAILBOX` overrides it. */
 const MAILBOX = process.env.E2E_MAILBOX ?? 'http://localhost:9010'
 
 const REGION = '__e2e_invite__'
@@ -148,7 +148,6 @@ test('an invited address signs up from the link and joins the region', async ({ 
   await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
   await page.getByRole('button', { name: 'Create account' }).click()
 
-  // --- the code, the profile step, then the widened authGuard hook hands them the invitation --
   await confirmAndCompleteProfile(page, () => signupCode(invitee), username)
 
   await page.waitForURL(/\/invite\/accept/)

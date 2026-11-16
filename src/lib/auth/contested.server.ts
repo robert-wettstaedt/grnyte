@@ -1,6 +1,7 @@
 import { CONTESTED_SIGNUP, isContested } from '$lib/auth'
 import { db } from '$lib/db/db.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
+import { DAY_MS } from '$lib/i18n/relativeTime'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { eq, sql } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
@@ -20,14 +21,13 @@ export async function findAccount(
 }
 
 /** As long as an unconfirmed account lives (`UNCONFIRMED_MAX_AGE_MS`). */
-const RESEND_TOKEN_MS = 7 * 24 * 60 * 60 * 1000
+const RESEND_TOKEN_MS = 7 * DAY_MS
 
 const resendMac = (email: string, exp: number) =>
   createHmac('sha256', labelledKey('signup-resend'))
     .update(`signup-resend|${email.toLowerCase()}|${exp}`)
     .digest('base64url')
 
-/** Whether `token` was issued for this address and has not expired. */
 export function checkResendToken(email: string, token: string | undefined, now = Date.now()): boolean {
   const [expText = '', mac = ''] = token?.split('.') ?? []
   const exp = Number(expText)

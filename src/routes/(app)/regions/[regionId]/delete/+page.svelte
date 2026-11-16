@@ -2,7 +2,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ReauthStep, { isReauthRequired } from '$lib/auth/ReauthStep.svelte'
+  import ReauthStep, { withReauth } from '$lib/auth/ReauthStep.svelte'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import { entityHref } from '$lib/entities/href'
@@ -44,12 +44,7 @@
   // The region is gone, so the form leaves for settings rather than its own `cancelTo`.
   const submit = (values: z.input<typeof deleteRegionSchema>) =>
     whileDeleting('regions', regionId, async () => {
-      try {
-        await submitCommand(() => deleteRegionCommand(values))
-      } catch (cause) {
-        if (isReauthRequired(cause)) step?.require()
-        throw cause
-      }
+      await withReauth(step, () => submitCommand(() => deleteRegionCommand(values)))
       return { redirectTo: resolve('/settings') }
     })
   const onSubmitted = () => {

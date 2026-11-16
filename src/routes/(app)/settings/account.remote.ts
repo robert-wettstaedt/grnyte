@@ -48,7 +48,7 @@ async function changeEmail(email: string, refuse: (message: string, field?: 'ema
   const { error: updateError } = await supabaseAuthServerAs(event, verifiedToken).updateUser({ email })
   if (updateError != null) refuse(await gotrueRefusal(updateError, 'user'))
   // GoTrue minted new codes for both addresses.
-  for (const address of [answer.current, email]) await clearCodeTries(address, 'email_change')
+  for (const address of [answer.current, email]) await clearCodeTries(address, ['email_change'])
   return answer
 }
 
@@ -62,10 +62,9 @@ export const updateEmailCommand = command(updateEmailSchema, ({ email }) => chan
  * a single confirmation without a session); `done` once the address changed.
  */
 export const confirmEmailChangeCode = command(emailChangeCodeSchema, async ({ code, email }) => {
-  await requireLiveSession()
+  const claims = await requireLiveSession()
   const event = getRequestEvent()
-  const { claims, supabase } = event.locals
-  if (claims == null) error(401, formError('auth_notSignedIn'))
+  const { supabase } = event.locals
 
   const { session, user } = await verifyCode(event, { code, email, kinds: ['email_change'], type: 'email_change' })
   if (session == null || user?.email?.toLowerCase() === claims.email?.toLowerCase()) return { step: 'next' as const }
@@ -79,7 +78,7 @@ export const confirmEmailChangeCode = command(emailChangeCodeSchema, async ({ co
 const ADMIN_TIMEOUT_MS = 5000
 
 /**
- * Change or set the password, after a confirmation (design decision 6). The admin API needs no
+ * Change or set the password, after a confirmation. The admin API needs no
  * nonce however old the session is; it ends every session, so this device signs back in.
  */
 async function changePassword(

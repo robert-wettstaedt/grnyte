@@ -57,14 +57,13 @@ const refusalOf = (run: () => Promise<unknown>) =>
     (cause: { body?: { message: string } }) => JSON.parse(cause.body?.message ?? '{}').message as string,
   )
 
-/** Sets the password as a code session and checks the session came from a code (design decision 5). */
+/** Sets the password as a code session and checks the session came from a code. */
 async function choosePassword(client: SupabaseClient, password: string) {
   const { amr, run } = await setPasswordAs(client, password)
   expect(amr?.map((entry) => entry.method)).toEqual(['otp'])
   expect(await run).toEqual({ done: true })
 }
 
-/** Runs `setNewPassword` as the session `client` holds. */
 async function setPasswordAs(client: SupabaseClient, password: string) {
   const { session } = (await client.auth.getSession()).data
   const verified = await verifyAccessToken(session?.access_token)

@@ -19,7 +19,7 @@
  * migration ever ships late.
  */
 import 'dotenv/config'
-import { assertAuthConfig } from './authConfig'
+import { assertAuthConfig, assertGotrueVersion, GOTRUE_CONTRACT_VERSION } from './authConfig'
 
 const failures: string[] = []
 
@@ -77,6 +77,13 @@ const authConfig =
 const authFailures = assertAuthConfig(auth, authConfig)
 for (const failure of authFailures) check(false, failure)
 if (authFailures.length === 0) check(true, 'GoTrue auth config (hook, codes, sessions, notices, limits)')
+
+// Hosted GoTrue upgrades without notice; the behaviours grnyte relies on were tested on one release.
+const health = await fetch(`${supabaseUrl}/auth/v1/health`, { headers: { apikey: publishableKey } })
+  .then((r) => r.json())
+  .catch(() => ({}))
+const versionFailure = assertGotrueVersion(health)
+check(versionFailure == null, versionFailure ?? `GoTrue is the tested ${GOTRUE_CONTRACT_VERSION}`)
 
 // Resend, via the cheapest authenticated GET there is. A bad key is indistinguishable from "no mail
 // is sent" from the app's side, because sendEmail deliberately never throws: it logs and returns

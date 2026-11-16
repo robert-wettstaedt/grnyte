@@ -123,7 +123,7 @@
         // `.input` draws its border as an inset ring: a full red 1px ring, then a soft glow outside it.
         // `!` on focus: the app's global focus ring is unlayered and would paint over the error ring.
         issues.length > 0 &&
-          'ring-error-600-400 shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-error-500)_18%,transparent)] ring-1 focus-visible:shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-error-500)_18%,transparent)]!',
+          'ring-error-600-400 focus-visible:ring-error-600-400! shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-error-500)_18%,transparent)] ring-1 focus-visible:shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-error-500)_18%,transparent)]!',
       ]}
       {placeholder}
     />
@@ -150,7 +150,6 @@
     <div class="absolute end-0 top-0 flex h-5 items-center">{@render action()}</div>
   {/if}
 
-  <!-- The error takes the hint's place, as on the boards. -->
   <FormHint {id} {issues} errorClass="text-error-600-400 text-[12.5px] leading-snug font-semibold" />
   {#if hint != null && issues.length === 0}
     <p id="{id}-hint" class="text-surface-600-400 text-[12.5px] leading-snug">{hint}</p>

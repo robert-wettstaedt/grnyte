@@ -23,6 +23,9 @@ const NODE_ENVIRONMENT_TESTS = [
   'src/lib/zero/tenancy.test.ts',
 ]
 
+/** Server tests that count rows across a whole table: they run alone, after everything else. */
+const SERIAL_TESTS = ['src/lib/auth/events.server.test.ts']
+
 const file = fileURLToPath(new URL('package.json', import.meta.url))
 const json = readFileSync(file, 'utf8')
 const pkg = JSON.parse(json)
@@ -340,9 +343,25 @@ export default defineConfig({
         },
         test: {
           environment: 'node',
+          exclude: [...configDefaults.exclude, '**/.claude/**', '**/.stryker-tmp/**', 'e2e/**', ...SERIAL_TESTS],
           include: ['src/**/*.remote.test.ts', 'src/**/*.server.test.ts', ...NODE_ENVIRONMENT_TESTS],
           name: 'server',
           // No `vitest-setup.js`: it only registers jest-dom's DOM matchers, which need a document.
+        },
+      },
+      {
+        extends: true,
+        resolve: {
+          conditions: ['node', 'svelte', 'module', 'import', 'default'],
+        },
+        // Tests that read a table-wide count, which a parallel file writing the same rows would skew:
+        // after every other project, one file at a time.
+        test: {
+          environment: 'node',
+          fileParallelism: false,
+          include: SERIAL_TESTS,
+          name: 'server-serial',
+          sequence: { groupOrder: 1 },
         },
       },
     ],

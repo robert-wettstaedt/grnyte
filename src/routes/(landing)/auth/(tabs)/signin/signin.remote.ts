@@ -2,9 +2,8 @@ import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
 import { isContested, signedInRedirectTarget } from '$lib/auth'
 import { supabaseAuthServer } from '$lib/auth/authServer.server'
-import { clearCodeTries } from '$lib/auth/codeAttempts.server'
 import { issueResendToken } from '$lib/auth/contested.server'
-import { gotrueRefusal, mailSignupConfirmation } from '$lib/auth/mail.server'
+import { gotrueRefusal, sendCode } from '$lib/auth/mail.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { hasDeletionMarker } from '$lib/entities/user/provision.server'
 import { formError, normalizePassword } from '$lib/forms/schemas'
@@ -43,9 +42,7 @@ export const signIn = form(signInSchema, async ({ codeFlow, email, next, passwor
 
   // GoTrue checks the password first, so this is the owner: a new code, without flagging.
   if (error?.code === 'email_not_confirmed') {
-    const sent = await mailSignupConfirmation(authServer, email)
-    if (sent.error != null) invalid(await gotrueRefusal(sent.error, 'resend'))
-    await clearCodeTries(email, 'signup')
+    await sendCode(authServer, email)
     if (codeFlow == null) invalid(formError('auth_emailNotConfirmed'))
     return { confirm: email, resendToken: issueResendToken(email) }
   }

@@ -162,4 +162,34 @@ describe.skipIf(!reachable)('POST /api/tasks/cleanup, auth logs', () => {
       await sql`delete from public.auth_code_attempts where subject like ${`${tag}%`}`
     }
   })
+
+  it('drops re-auth codes and grants a day past their expiry, and keeps fresher ones', async () => {
+    const user = await createThrowawayUser('cleanup_reauth')
+    const session = crypto.randomUUID()
+    const challenge = (target: string, expired: string) => sql`
+      insert into public.reauth_challenges (auth_user_fk, session_id, action, target, code_hash, expires_at)
+      values (${user.authId}, ${session}, 'account.delete', ${target}, 'hash', now() - ${expired}::interval)`
+    const grant = (target: string, expired: string) => sql`
+      insert into public.reauth_grants (auth_user_fk, session_id, action, target, method, expires_at)
+      values (${user.authId}, ${session}, 'account.delete', ${target}, 'email_code', now() - ${expired}::interval)`
+    await Promise.all([
+      challenge('old', '25 hours'),
+      challenge('recent', '1 hour'),
+      grant('old', '25 hours'),
+      grant('live', '-5 minutes'),
+    ])
+
+    try {
+      await runCleanup()
+
+      expect(await sql`select target from public.reauth_challenges where auth_user_fk = ${user.authId}`).toEqual([
+        { target: 'recent' },
+      ])
+      expect(await sql`select target from public.reauth_grants where auth_user_fk = ${user.authId}`).toEqual([
+        { target: 'live' },
+      ])
+    } finally {
+      await dropThrowawayUser(user)
+    }
+  })
 })

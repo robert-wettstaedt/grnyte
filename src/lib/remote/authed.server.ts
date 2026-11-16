@@ -1,4 +1,5 @@
 import { command, form, getRequestEvent, query } from '$app/server'
+import { requireLiveSession } from '$lib/auth/session.server'
 import { createRlsClient, db } from '$lib/db/db.server'
 import type { UserRegion } from '$lib/entities/region/dto'
 import { formError } from '$lib/forms/schemas'
@@ -85,7 +86,8 @@ export async function authedRls(): Promise<{
   userPermissions: App.Locals['userPermissions']
   userRegions: App.Locals['userRegions']
 }> {
-  const { claims, user } = requireAuthed()
+  const { user } = requireAuthed()
+  const claims = await requireLiveSession()
   const { supabase, userPermissions, userRegions } = getRequestEvent().locals
 
   return { rls: createRlsClient(claims), supabase, user, userPermissions, userRegions }
@@ -137,7 +139,9 @@ export function requireVerifiedEmail(): { email: string; user: NonNullable<App.L
 /** before: auth-gate, open an RLS transaction, run the handler inside it; after: drain whatever the
  *  handler deferred to {@link Context.afterCommit}, then log failures. */
 async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
-  const { claims, user } = requireAuthed()
+  const { user } = requireAuthed()
+  // Before the transaction opens: no second connection while one is held.
+  const claims = await requireLiveSession()
   const { userPermissions, userRegions } = getRequestEvent().locals
 
   let returnValue: Awaited<O>

@@ -71,11 +71,10 @@ export const signOutDevice = command(z.object({ id: z.uuid() }), async ({ id }) 
 })
 
 export const sendPasswordReset = command(async () => {
-  await requireLiveSession()
+  const claims = await requireLiveSession()
   const event = getRequestEvent()
-  const { claims } = event.locals
 
-  if (claims?.email == null) {
+  if (claims.email == null) {
     error(401, formError('auth_notSignedIn'))
   }
 
@@ -83,7 +82,7 @@ export const sendPasswordReset = command(async () => {
   if (resetError != null) {
     refuseCommand(await gotrueRefusal(resetError, 'recover'))
   }
-  await clearCodeTries(claims.email, 'recovery')
+  await clearCodeTries(claims.email, ['recovery'])
 
   return { email: claims.email }
 })

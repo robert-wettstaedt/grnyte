@@ -23,9 +23,10 @@ import { submitFeedbackRow } from './submit.server'
 const authUser = alias(authUsers, 'auth_user')
 
 /** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
-export const submitFeedback = form(feedbackSchema, (value) => {
+export const submitFeedback = form(feedbackSchema, async (value) => {
   const { request, url } = getRequestEvent()
   const { user } = requireAuthed()
+  await requireLiveSession()
   const deferred: (() => Promise<void>)[] = []
 
   return pinnedTx((db) =>

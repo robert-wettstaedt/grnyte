@@ -278,15 +278,15 @@ const NO_GATE: Record<string, string> = {
   'routes/(app)/settings/account.remote.ts#confirmEmailChangeCode':
     "Checks a code GoTrue mailed for the session's own pending email change; GoTrue applies it to that account only.",
   'routes/(app)/settings/account.remote.ts#deleteAccountCommand':
-    "Acts only on the session's own account: the ids come from the verified session, the password is re-entered against the token's email, and it names no other account or region.",
+    "Acts only on the session's own account: the ids come from the verified session, a spent re-authentication grant (a mailed code) authorizes it, and it names no other account or region.",
   'routes/(app)/settings/account.remote.ts#updateEmail':
-    "Supabase applies the change to the session's own auth user, so the session cookie authorizes it and the double confirmation mail is what makes the new address prove itself.",
+    "Supabase applies the change to the session's own auth user, so the session cookie authorizes it and the mailed codes are what make the new address prove itself.",
   'routes/(app)/settings/account.remote.ts#updateEmailCommand':
-    'The same body as `updateEmail`: the session cookie authorizes it and the double confirmation mail proves the new address.',
+    'The same body as `updateEmail`: the session cookie authorizes it and the mailed codes prove the new address.',
   'routes/(app)/settings/account.remote.ts#updatePassword':
-    "Authorized by the session cookie plus a re-entry of the current password, checked against the session's own email; it names no account.",
+    "Authorized by the session cookie plus a spent re-authentication grant, bound to the session's own account; it names no account.",
   'routes/(app)/settings/account.remote.ts#updatePasswordCommand':
-    'The same body as `updatePassword`: the session cookie plus a re-entry of the current password, against the session email.',
+    "The same body as `updatePassword`: the session cookie plus a spent re-authentication grant for the session's own account.",
   'routes/(landing)/auth/(tabs)/signin/signin.remote.ts#signIn':
     'Runs before authentication because it is the authentication, and the only path it takes back is validated same-origin.',
   'routes/(landing)/auth/(tabs)/signup/signup.remote.ts#confirmSignupCode':
@@ -405,7 +405,7 @@ const handlers = remoteFiles('src').flatMap(parseHandlers)
 const ungated = handlers.filter((handler) => ![...handler.calls].some((call) => GATES.has(call)))
 
 /** `reauthCaller` calls `requireLiveSession` itself (another file, so the walk cannot see it). */
-const LIVE_CHECKS = ['requireLiveSession', 'reauthCaller']
+const LIVE_CHECKS = ['authedRls', 'reauthCaller', 'requireLiveSession']
 const AUTH_FILES = /^(lib\/auth\/|routes\/\(landing\)\/auth\/|routes\/\(app\)\/settings\/account\.remote\.ts)/
 const liveScope = handlers.filter((handler) => AUTH_FILES.test(handler.file) || handler.calls.has('requireAppAdmin'))
 

@@ -2,7 +2,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ReauthStep, { isReauthRequired } from '$lib/auth/ReauthStep.svelte'
+  import ReauthStep, { withReauth } from '$lib/auth/ReauthStep.svelte'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import { entityHref } from '$lib/entities/href'
@@ -14,7 +14,7 @@
   import { getLocale } from '$lib/paraglide/runtime'
   import { motion } from '$lib/state/motion.svelte'
   import { disablePush } from '$lib/state/push.svelte'
-  import { wipeAndLeave } from '$lib/state/wipe'
+  import { setLeaving, wipeAndLeave } from '$lib/state/wipe'
   import { slide } from 'svelte/transition'
   import { accountDeletionPreview, deleteAccountCommand } from '../../account.remote'
   import { deleteAccountSchema } from '../../schemas'
@@ -35,10 +35,12 @@
   let step: ReauthStep | undefined = $state()
 
   const submit = async (values: z.input<typeof deleteAccountSchema>) => {
+    // Before the command: Zero can drop the user row before the answer lands, and the layout would bounce.
+    setLeaving(true)
     try {
-      return await submitCommand(() => deleteAccountCommand(values))
+      return await withReauth(step, () => submitCommand(() => deleteAccountCommand(values)))
     } catch (cause) {
-      if (isReauthRequired(cause)) step?.require()
+      setLeaving(false)
       throw cause
     }
   }

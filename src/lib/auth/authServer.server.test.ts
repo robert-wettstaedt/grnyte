@@ -73,7 +73,6 @@ describe('supabaseAuthServer', () => {
   })
 })
 
-/** Records method, URL and headers of every request that reached the base fetch. */
 function spyRequests() {
   const seen: { headers: Headers; method: string; url: string }[] = []
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {

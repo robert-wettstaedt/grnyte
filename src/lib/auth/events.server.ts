@@ -12,8 +12,8 @@ export type AuthEventKind = 'account_deleted' | 'alert_sent' | 'mail_quota' | 'r
 /** More than this many events of one failure kind in an hour alerts the admins, once a day. */
 const SPIKE = 20
 
-/** Kinds that are not failures, so never a spike. */
-const NOT_FAILURES: ReadonlySet<AuthEventKind> = new Set(['account_deleted', 'alert_sent', 'mail_quota'])
+/** The failure kinds a spike alerts on; a kind added later stays quiet until listed here. */
+const FAILURES: ReadonlySet<AuthEventKind> = new Set(['reauth_failed'])
 
 /** GoTrue's `over_email_send_rate_limit` on one of grnyte's sends: the same stable message as Resend's quota. */
 export async function noteMailRefusal(error: { code?: string; name?: string }): Promise<void> {
@@ -29,7 +29,7 @@ export async function recordAuthEvent(
 ): Promise<void> {
   try {
     await pinnedTx((tx) => tx.insert(authEvents).values({ authUserFk: input.authUserId, detail: input.detail, kind }))
-    if (!NOT_FAILURES.has(kind)) await alertOnSpike(kind)
+    if (FAILURES.has(kind)) await alertOnSpike(kind)
   } catch (exception) {
     await logServerFailure('authEvents', `${kind} not recorded: ${stringifyError(exception)}`)
   }

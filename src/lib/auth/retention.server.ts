@@ -1,5 +1,5 @@
 import { pinnedTx } from '$lib/db/pinned.server'
-import { authCodeAttempts, authEvents } from '$lib/db/serverOnly'
+import { authCodeAttempts, authEvents, reauthChallenges, reauthGrants } from '$lib/db/serverOnly'
 import { DAY_MS } from '$lib/i18n/relativeTime'
 import { lt, sql } from 'drizzle-orm'
 
@@ -8,7 +8,7 @@ export const AUTH_LOG_MAX_AGE_MS = 90 * DAY_MS
 /** Past every counter's window, so a row this old counts nothing. */
 export const CODE_ATTEMPT_MAX_AGE_MS = DAY_MS
 
-/** Drops both auth logs past `logsBefore` and code counters untouched since `attemptsBefore`; rows removed. */
+/** Drops both auth logs past `logsBefore`, and code counters, re-auth codes and grants dead since `attemptsBefore`; rows removed. */
 export const sweepAuthLogs = async (logsBefore: Date, attemptsBefore: Date): Promise<number> =>
   pinnedTx(async (tx) => {
     const events = await tx.delete(authEvents).where(lt(authEvents.createdAt, logsBefore))
@@ -16,5 +16,7 @@ export const sweepAuthLogs = async (logsBefore: Date, attemptsBefore: Date): Pro
       sql`delete from auth.audit_log_entries where created_at < ${logsBefore.toISOString()}`,
     )
     const attempts = await tx.delete(authCodeAttempts).where(lt(authCodeAttempts.windowStartedAt, attemptsBefore))
-    return events.count + audit.count + attempts.count
+    const challenges = await tx.delete(reauthChallenges).where(lt(reauthChallenges.expiresAt, attemptsBefore))
+    const grants = await tx.delete(reauthGrants).where(lt(reauthGrants.expiresAt, attemptsBefore))
+    return events.count + audit.count + attempts.count + challenges.count + grants.count
   })

@@ -272,8 +272,12 @@ async function deletionMarked(authUserId: string): Promise<boolean> {
 }
 
 /** Signed-in callers leave /auth, minus the emailed-link pages and the profile step while it has work.
- *  Not HOME_PATH: since 2.0 that is the landing page they just pressed "Sign in" on. */
+ *  Not HOME_PATH: that is the landing page they just pressed "Sign in" on. */
 function leaveAuthPages({ locals, url }: Parameters<Handle>[0]['event']): void {
+  // The profile step is for a signed-in account; signed out it is a dead end.
+  if (locals.claims == null && !locals.backendUnavailable && url.pathname === PROFILE_PATH) {
+    redirect(303, SIGN_IN_PATH)
+  }
   if (locals.claims == null || !url.pathname.startsWith(AUTH_PATH)) return
   if (EMAILED_LINK_PATHS.some((path) => url.pathname.startsWith(path))) return
   if (url.pathname === PROFILE_PATH && locals.user == null) return

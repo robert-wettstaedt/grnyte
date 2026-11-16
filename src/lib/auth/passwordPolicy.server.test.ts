@@ -31,7 +31,7 @@ describe('checkPassword', () => {
   it('falls back to the bundled list when the range service does not answer in time', async () => {
     hangingFetch()
 
-    expect(await checkPassword('password123')).toBe('breached')
+    expect(await checkPassword('Qwerty123')).toBe('breached')
   })
 
   it('passes an uncommon password while the range service is unreachable', async () => {

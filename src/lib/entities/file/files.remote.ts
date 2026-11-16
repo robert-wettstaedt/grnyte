@@ -1,4 +1,5 @@
 import { command } from '$app/server'
+import { requireLiveSession } from '$lib/auth/session.server'
 import * as schema from '$lib/db/schema'
 import { bunnyStreams, files, type File } from '$lib/db/schema'
 import { insertEvent } from '$lib/entities/event/event.server'
@@ -219,6 +220,7 @@ export const finalizeImage = command(
  */
 export const createBunnyVideo = command(async () => {
   const { user } = requireAuthed()
+  await requireLiveSession()
   return getVideoProvider().createUpload(user.authUserFk)
 })
 
