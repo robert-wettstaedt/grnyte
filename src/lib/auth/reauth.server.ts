@@ -4,7 +4,7 @@ import { pinnedTx } from '$lib/db/pinned.server'
 import type * as schema from '$lib/db/schema'
 import { reauthChallenges, reauthGrants } from '$lib/db/serverOnly'
 import { reauthCode } from '$lib/email/account'
-import { sendEmail } from '$lib/email/send.server'
+import { sendEmailOutcome } from '$lib/email/send.server'
 import type { EmailLocale } from '$lib/email/shell'
 import { error } from '@sveltejs/kit'
 import { and, eq, gt, sql } from 'drizzle-orm'
@@ -13,6 +13,7 @@ import { createHmac, randomInt, randomUUID, timingSafeEqual } from 'node:crypto'
 import { countTry, MAX_TRIES } from './codeAttempts.server'
 import { recordAuthEvent } from './events.server'
 import { labelledKey } from './keys.server'
+import { notForwarding } from './mailForwarding.server'
 import { signInMethods } from './methods.server'
 import { requireLiveSession } from './session.server'
 
@@ -75,7 +76,9 @@ export async function issueReauthCode(
   action: ReauthAction,
   target: string,
   mail: { email: string; locale: EmailLocale },
-): Promise<'limited' | 'unsent' | { expiresAt: number; sentAt: number }> {
+): Promise<'limited' | 'undeliverable' | 'unsent' | { expiresAt: number; sentAt: number }> {
+  // Before counting a try: `ReauthStep` asks by itself, and five asks would turn into "too many tries".
+  if ((await notForwarding([mail.email])).has(mail.email)) return 'undeliverable'
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
   const id = randomUUID()
   const sentAt = Date.now()
@@ -111,13 +114,14 @@ export async function issueReauthCode(
   if (!issued) return 'limited'
 
   const methods = await signInMethods(caller.authUserId)
-  const sent = await sendEmail({
+  const outcome = await sendEmailOutcome({
     ...reauthCode({ action, code, locale: mail.locale, methods }),
     locale: mail.locale,
     template: 'reauth-code',
     to: mail.email,
   })
-  return sent ? { expiresAt, sentAt } : 'unsent'
+  if (outcome === 'suppressed') return 'undeliverable'
+  return outcome === 'sent' ? { expiresAt, sentAt } : 'unsent'
 }
 
 /** Checks a code; a right one deletes the challenge and writes the grant in the same transaction. */

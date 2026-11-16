@@ -201,6 +201,8 @@ const MUTATOR_WRAPPERS = new Set(['defineServerMutator'])
  * silently carrying its exemption to a different function.
  */
 const NO_GATE: Record<string, string> = {
+  'lib/auth/identities.remote.ts#mailForwardingQuery':
+    "Takes no input: reads only the live caller's own address and whether Apple still forwards to it (`requireLiveSession`).",
   'lib/auth/identities.remote.ts#signInMethodsQuery':
     "Takes no input: reads only the live caller's own identities and password flag (`requireLiveSession`).",
   'lib/auth/identities.remote.ts#unlinkProvider':

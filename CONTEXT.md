@@ -290,6 +290,11 @@ Apple or Google as a **sign-in method** (`OAuthProvider`, `src/lib/auth/oauth/`)
 behind `videos/provider.server.ts`, which the code also calls a provider. Copy names the brand
 ("Continue with Apple"), never "provider".
 
+**mail forwarding**
+Whether Apple still forwards mail sent to the private address it made for grnyte (Apple's private
+relay). The person can turn it off at Apple, and Apple tells grnyte (`apple_mail_forwarding`). Copy
+says "forwarding" and "the private address Apple made for grnyte", never "relay".
+
 **link**, **unlink**
 Adding a **sign-in provider** to an account, or removing it (`identity.link`, `unlinkProvider`). The
 code's terms only: copy says "Add" and "Remove", never "Link" or "Unlink".

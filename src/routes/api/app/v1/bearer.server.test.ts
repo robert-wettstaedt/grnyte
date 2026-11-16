@@ -83,12 +83,12 @@ vi.mock('$lib/auth/authServer.server', () => {
     },
   }
 })
-vi.mock('$lib/email/send.server', () => ({
-  sendEmail: async ({ code, template, to }: { code?: string; template: string; to: string }) => {
-    gotrue.mails.push({ template, to, ...(code == null ? {} : { code }) })
-    return true
-  },
-}))
+vi.mock('$lib/email/send.server', async () =>
+  (await import('$lib/email/send.fixture')).recordingSend(
+    ({ code, template, to }: { code?: string; template: string; to: string }) =>
+      gotrue.mails.push({ template, to, ...(code == null ? {} : { code }) }),
+  ),
+)
 vi.mock('$lib/auth/events.server', () => ({ noteMailRefusal: async () => {}, recordAuthEvent: async () => {} }))
 vi.mock('$lib/logging/failure.server', () => ({ logServerFailure: async () => {} }))
 // The harness token carries no `amr`; the code-session rule has its own GoTrue tests.

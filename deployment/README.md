@@ -400,6 +400,20 @@ ngrok http --url=<name>.ngrok-free.app 4173
 
 Never test the Apple return under `npm run dev`, where Kit checks no origin.
 
+**Apple's account notifications.** grnyte takes Sign in with Apple's server-to-server notifications
+at `/api/webhooks/apple/sign-in` (forwarding off and on, consent revoked, Apple ID deleted). After the
+deploy that ships the endpoint, never before (a notification sent earlier is lost):
+
+1. Apple Developer, Certificates, Identifiers & Profiles, Identifiers, the App ID (`rocks.grnyte`),
+   Sign in with Apple, Configure: set Server-to-Server Notification Endpoint to
+   `https://<prod origin>/api/webhooks/apple/sign-in`. For local testing, the ngrok static domain's
+   same path instead, set back afterwards.
+2. Watch `auth_events` for `apple_notification` rows (their `detail` says the type and outcome) and
+   `apple_notification_invalid` (alerts admins on a spike). A wrong `APPLE_SERVICES_ID` or audience
+   refuses every notification silently: only the console warns.
+
+The URL is registered at Apple, so the route never moves.
+
 ### Migrating hosted databases only at release
 
 Hosted projects are migrated with `npm run migrate` from the merged branch at release, never from a
@@ -422,8 +436,12 @@ worktree's database, or bumping its version, breaks every other session.
 **Dead old mailbox.** A secure email change needs a code from the old address, which no longer
 receives mail.
 
-1. Verify ownership out of band: the person signs in on a known device, or answers what only the
-   owner can (their regions, recent ascents).
+1. Verify ownership from inside the account: give the person a one-time phrase, have them send it
+   through in-app feedback while signed in, and check the feedback row's `created_by` is that
+   account (`select created_by from feedback where body like '%<phrase>%'`). Nothing else counts:
+   regions, ascents and anything else other members of their regions can see is no proof. A person
+   who cannot sign in at all (Apple only, Apple ID deleted) cannot be verified: say so and change
+   nothing.
 2. Change the address by hand with the admin API:
    `updateUserById(id, { email: '<new address>', email_confirm: true })`.
 3. The person uses forgot password at the new address.

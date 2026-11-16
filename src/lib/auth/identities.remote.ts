@@ -5,5 +5,7 @@ import * as body from './identities.server'
 
 export const signInMethodsQuery = query(body.signInMethodsQuery)
 
+export const mailForwardingQuery = query(body.mailForwardingQuery)
+
 /** Removes a provider behind an `identity.unlink` grant, which the identity trigger spends. */
 export const unlinkProvider = command(z.object({ provider: z.enum(IDENTITY_TARGETS) }), body.unlinkProvider)

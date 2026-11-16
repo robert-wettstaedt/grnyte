@@ -8,7 +8,7 @@ import type { EmailContent, EmailLocale } from './shell'
 interface AccountEmailInput {
   /** The RECIPIENT's locale. */
   locale: EmailLocale
-  methods: SignInMethods
+  methods: Pick<SignInMethods, 'hasPassword' | 'providers'>
 }
 
 const ACTIONS: Record<ReauthAction, (at: { locale: EmailLocale }) => string> = {
@@ -64,6 +64,21 @@ export function alreadyHasAccount(input: AccountEmailInput & { forgotPasswordUrl
     footnote: notMe(input),
     meta: m.email_alreadyHasAccountMeta({}, at),
     preheader: m.email_alreadyHasAccountPreheader({}, at),
+    subject,
+    title: subject,
+  }
+}
+
+/** Apple told grnyte the person stopped using Sign in with Apple or deleted their Apple ID, and Apple was removed. */
+export function appleRemoved(input: AccountEmailInput): EmailContent {
+  const at = { locale: input.locale }
+  const subject = m.email_appleRemovedSubject({}, at)
+  return {
+    body: [m.email_appleRemovedBody({ methods: methodList(input) }, at)],
+    footerReason: 'account',
+    footnote: m.email_appleRemovedNotMe({ methods: methodList(input) }, at),
+    meta: m.email_appleRemovedMeta({}, at),
+    preheader: m.email_appleRemovedPreheader({}, at),
     subject,
     title: subject,
   }

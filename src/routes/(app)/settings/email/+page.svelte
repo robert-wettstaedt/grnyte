@@ -4,7 +4,9 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { CODE_LIFETIME_MS } from '$lib/auth'
   import CodeEntry from '$lib/auth/CodeEntry.svelte'
+  import { mailForwardingQuery } from '$lib/auth/identities.remote'
   import Banner from '$lib/components/Banner/Banner.svelte'
+  import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'
   import Form from '$lib/forms/Form.svelte'
@@ -19,6 +21,10 @@
   import { updateEmailSchema } from '../schemas'
 
   const CHANGED = 'changed'
+
+  // The form waits on it, so the banner is there before the fields and never pushes them down.
+  const forwarding = remoteResource(mailForwardingQuery())
+  const deadAddress = $derived(forwarding.data?.address ?? null)
 
   const store = createFormStore(updateEmailSchema)
   const codes = createFormStore(z.object({ code: z.string() }))
@@ -97,7 +103,18 @@
   submitIcon={header.icon}
   submitLabel={header.label}
   title={m.settings_changeEmail()}
+  waitFor={[{ notFound: m.settings_changeEmail(), resource: forwarding, whole: false }]}
 >
+  {#if deadAddress != null}
+    <Banner icon="mail">
+      <strong class="font-semibold">{m.settings_mailForwardingOff()}</strong>
+      <span>
+        {forwarding.data?.appleLinked
+          ? m.settings_mailForwardingOffBody({ address: deadAddress })
+          : m.settings_mailForwardingOffSupportBody({ address: deadAddress })}
+      </span>
+    </Banner>
+  {/if}
   <p class="text-surface-600-400 text-[14.5px] leading-normal">{m.settings_emailIntro()}</p>
 
   <div class="flex flex-col gap-1.5">

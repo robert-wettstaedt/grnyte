@@ -48,7 +48,7 @@ export async function asRequest<T>(
   authUserId: string,
   fn: () => Promise<T> | T,
   supabase?: unknown,
-  options: { session?: boolean } = {},
+  options: { session?: boolean; sessionId?: string } = {},
 ): Promise<T> {
   return inRequestStore(await requestLocals(authUserId, supabase, options), fn)
 }
@@ -94,7 +94,7 @@ export async function redirectOf(run: () => Promise<unknown>): Promise<string | 
 export async function requestLocals(
   authUserId: string,
   supabase?: unknown,
-  { session: withSession = true }: { session?: boolean } = {},
+  { session: withSession = true, sessionId: existing }: { session?: boolean; sessionId?: string } = {},
 ) {
   // `getUserPermissions` deliberately returns `user: undefined`, so the row is loaded alongside it
   // the way the `supabase` handle does. Without it every handler 401s on `user == null`.
@@ -108,7 +108,8 @@ export async function requestLocals(
   ])
 
   // A live `auth.sessions` row per caller, as GoTrue has: re-auth binds to `session_id`.
-  const sessionId = withSession ? await newSession(authUserId) : undefined
+  // `existing`: a session made earlier, so a test can see it ended in between.
+  const sessionId = existing ?? (withSession ? await newSession(authUserId) : undefined)
   const verified = await verifyAccessToken(await signAccessToken(authUserId, authUser?.email ?? undefined, sessionId))
 
   if (!verified.ok) {

@@ -2,6 +2,7 @@ import { RESEND_API_KEY, RESEND_SENDER_EMAIL } from '$env/static/private'
 import { PUBLIC_ORIGIN, PUBLIC_TOPO_EMAIL } from '$env/static/public'
 // fallow-ignore-next-line circular-dependency -- events.server imports the admin alert (which mails) only lazily, inside the spike check
 import { recordAuthEvent } from '$lib/auth/events.server'
+import { notForwarding } from '$lib/auth/mailForwarding.server'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { Resend } from 'resend'
 import { makeBrand } from './brand'
@@ -50,7 +51,7 @@ const TRANSIENT = new Set([
 const QUOTA = new Set(['daily_quota_exceeded', 'rate_limit_exceeded'])
 
 /** {@link sendEmailOutcome}'s answer: `retry` only when sending again could succeed. */
-export type SendOutcome = 'failed' | 'retry' | 'sent'
+export type SendOutcome = 'failed' | 'retry' | 'sent' | 'suppressed'
 
 /**
  * Sends one email, HTML plus plaintext, through Resend.
@@ -75,6 +76,11 @@ export async function sendEmailOutcome(
   { idempotencyKey, template, to, ...content }: SendEmailInput,
   { quietRetry = false } = {},
 ): Promise<SendOutcome> {
+  const dead = await notForwarding([to].flat())
+  const recipients = [to].flat().filter((address) => !dead.has(address))
+  if (recipients.length === 0) return 'suppressed'
+  to = Array.isArray(to) ? recipients : recipients[0]
+
   // `new Resend('')` throws synchronously, which inside this async function becomes a rejected
   // promise and fails the caller's mutation, exactly what the contract above rules out.
   // `.env.example` ships `RESEND_API_KEY=` empty, so this is the default-config path.

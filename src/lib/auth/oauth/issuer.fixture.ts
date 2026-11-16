@@ -54,6 +54,10 @@ export function signIdToken(provider: OAuthProvider, claims: IdTokenClaims, clie
     .sign(signing.privateKey)
 }
 
+/** Any payload signed with the fake issuer's key, for tokens shaped unlike an ID token (Apple's notifications). */
+export const signWithIssuerKey = (payload: Record<string, unknown>, alg: 'RS256' = 'RS256'): Promise<string> =>
+  new SignJWT(payload).setProtectedHeader({ alg, kid: publicJwk.kid }).sign(signing.privateKey)
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' }, status })
 

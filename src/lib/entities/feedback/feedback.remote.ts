@@ -176,6 +176,8 @@ export const replyToFeedback = command(
       )
     }
 
+    // Apple no longer forwards to the author's address: done, as for a deleted author, not a failed send.
+    if (outcome === 'suppressed') return { delivered: false, undeliverable: true }
     return { delivered: outcome === 'sent' }
   },
 )

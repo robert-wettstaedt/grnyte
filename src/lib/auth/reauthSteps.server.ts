@@ -8,6 +8,7 @@ import { getLocale } from '$lib/paraglide/runtime'
 import { refuseCommand } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
+import { signInMethods } from './methods.server'
 import { boundTarget, hasGrant, issueReauthCode, reauthCaller, verifyReauthCode } from './reauth.server'
 
 interface Subject {
@@ -33,6 +34,10 @@ export async function requestReauthCode({ action, target: sent }: Subject) {
   const issued = await issueReauthCode(caller, action, target, { email, locale })
   if (issued === 'limited') return refuseCommand(formError('auth_tooManyTries'))
   if (issued === 'unsent') return refuseCommand(formError('auth_mailUnavailable'))
+  if (issued === 'undeliverable') {
+    const appleLinked = (await signInMethods(caller.authUserId)).providers.includes('apple')
+    return refuseCommand(formError(appleLinked ? 'auth_mailUndeliverable' : 'auth_mailUndeliverableSupport'))
+  }
   return issued
 }
 

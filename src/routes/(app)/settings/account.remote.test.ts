@@ -62,12 +62,11 @@ vi.mock('$lib/auth/authServer.server', () => ({
     },
   }),
 }))
-vi.mock('$lib/email/send.server', () => ({
-  sendEmail: async ({ template, to }: { template: string; to: string }) => {
-    gotrue.mails.push({ template, to })
-    return true
-  },
-}))
+vi.mock('$lib/email/send.server', async () =>
+  (await import('$lib/email/send.fixture')).recordingSend(({ template, to }: { template: string; to: string }) =>
+    gotrue.mails.push({ template, to }),
+  ),
+)
 vi.mock('$lib/auth/events.server', () => ({ noteMailRefusal: async () => {} }))
 vi.mock('$lib/logging/failure.server', () => ({ logServerFailure: async () => {} }))
 

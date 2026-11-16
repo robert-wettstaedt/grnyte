@@ -1,5 +1,6 @@
 import {
   bigint,
+  boolean,
   index,
   jsonb,
   primaryKey,
@@ -99,6 +100,19 @@ export const authEvents = table(
     index('auth_events_auth_user_fk_idx').on(table.authUserFk),
   ],
 ).enableRLS()
+
+/**
+ * Whether Apple still forwards mail to the private address it made for the account, from Apple's
+ * `email-*` notifications. The address is an HMAC (`labelledKey`), so zero-cache's replica holds none.
+ */
+export const appleMailForwarding = table('apple_mail_forwarding', {
+  addressHash: text('address_hash').notNull(),
+  authUserFk: uuid('auth_user_fk')
+    .primaryKey()
+    .references((): AnyColumn => authUsers.id, { onDelete: 'cascade' }),
+  eventAt: timestamp('event_at', { withTimezone: true }).notNull(),
+  forwarding: boolean().notNull(),
+}).enableRLS()
 
 /** Fixed-window counters: guessed GoTrue codes per address, re-auth mails and notices per subject. */
 export const authCodeAttempts = table(

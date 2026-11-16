@@ -1,5 +1,5 @@
 import { revokes, type ReauthAction, type VerifiedToken } from '$lib/auth'
-import { hasRecentAppleRevocation, recordAuthEvent } from '$lib/auth/events.server'
+import { recentAppleEvent, recordAuthEvent } from '$lib/auth/events.server'
 import { writeGrant, type ReauthCaller } from '$lib/auth/reauth.server'
 import { isSessionLive } from '$lib/auth/session.server'
 import { db } from '$lib/db/db.server'
@@ -46,6 +46,8 @@ export async function acceptAppleConfirmation(
     return 'wrongAppleId'
   }
   if (revokes(action, target)) {
+    // Before the call: Apple's consent-revoked can arrive before its answer, or the answer can be lost.
+    await recordAuthEvent('apple_revoke_started', { authUserId, detail: { action, provider: 'apple', target } })
     const revoked = await revoke()
     await recordAuthEvent(revoked ? 'apple_revoked' : 'apple_revoke_failed', {
       authUserId,
@@ -66,7 +68,7 @@ export async function appleRevocation(
   target: string,
   { linked }: { linked: boolean },
 ): Promise<boolean> {
-  const revoked = await hasRecentAppleRevocation(authUserId, action, target)
+  const revoked = await recentAppleEvent(authUserId, 'apple_revoked', { action, target })
   if (linked && !revoked) {
     await recordAuthEvent('apple_revoke_skipped', { authUserId, detail: { action, provider: 'apple', target } })
   }

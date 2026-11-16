@@ -17,9 +17,9 @@ import {
 
 const mailed = vi.hoisted(() => [] as string[])
 vi.mock('$lib/email/send.server', () => ({
-  sendEmail: async ({ subject }: { subject: string }) => {
+  sendEmailOutcome: async ({ subject }: { subject: string }) => {
     mailed.push(subject)
-    return true
+    return 'sent'
   },
 }))
 

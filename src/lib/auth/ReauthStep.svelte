@@ -5,6 +5,12 @@
   /** Whether a screen's command was refused for want of a confirmation: the screen then calls `require()`. */
   export const isReauthRequired = (cause: unknown): boolean => serverMessage(cause) === formError('auth_reauthRequired')
 
+  /** Refusals saying no code can be mailed to the address. */
+  const UNDELIVERABLE: readonly string[] = [
+    formError('auth_mailUndeliverable'),
+    formError('auth_mailUndeliverableSupport'),
+  ]
+
   /** Runs a screen's command and, when it is refused for want of a confirmation, opens the `step`. */
   export async function withReauth<T>(step: undefined | { require(): void }, run: () => Promise<T>): Promise<T> {
     try {
@@ -90,6 +96,8 @@
   const apple = appleConfirmation()
 
   const issues = $derived(error == null ? [] : [{ message: error, path: [] }])
+  // Once no code could be mailed, the hint promising one stays gone: the next press clears `error`.
+  let undeliverable = $state(false)
   const view = $derived(phase === 'peeking' || !ready || !apple.settled ? 'waiting' : phase)
 
   onMount(() => {
@@ -130,6 +138,7 @@
       phase = 'code'
     } catch (cause) {
       error = serverMessage(cause) ?? formError('auth_unexpectedError')
+      if (UNDELIVERABLE.includes(error)) undeliverable = true
       phase = 'idle'
     } finally {
       requesting = false
@@ -163,7 +172,9 @@
 </script>
 
 {#snippet choice()}
-  <p class={body}>{m.auth_reauthHint({ email })}</p>
+  {#if !undeliverable}
+    <p class={body} out:slide={{ duration: motion(150) }}>{m.auth_reauthHint({ email })}</p>
+  {/if}
   {#if apple.available}
     <ConfirmWithApple {action} bind:pending={leaving} {returnTo} {target} />
   {/if}

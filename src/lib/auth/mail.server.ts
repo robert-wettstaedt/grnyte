@@ -4,7 +4,7 @@ import { noteMailRefusal } from '$lib/auth/events.server'
 import { signInMethods } from '$lib/auth/methods.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { userSettings } from '$lib/db/schema'
-import { alreadyHasAccount, passwordChanged } from '$lib/email/account'
+import { alreadyHasAccount, appleRemoved, passwordChanged } from '$lib/email/account'
 import { sendEmail } from '$lib/email/send.server'
 import { authError, formError, type FormMessage } from '$lib/forms/schemas'
 import { contactLocale } from '$lib/i18n/message'
@@ -57,6 +57,12 @@ export async function noticeAlreadyHasAccount(
     template: 'already-has-account',
     to: account.email,
   })
+}
+
+/** GoTrue sends no identity-unlinked notice for the Apple notification's own delete, so grnyte does. */
+export async function noticeAppleRemoved(account: { email: string; id: string }): Promise<boolean> {
+  const { locale, methods } = await recipient(account.id)
+  return sendEmail({ ...appleRemoved({ locale, methods }), locale, template: 'apple-removed', to: account.email })
 }
 
 /** GoTrue's admin update sends no password-changed notice (v2.197.0), so grnyte does. */

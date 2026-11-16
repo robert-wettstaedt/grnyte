@@ -209,7 +209,10 @@ contents, so pass it with `--value=`), `APPLE_SERVICES_ID`, `GOOGLE_CLIENT_ID` a
 `$env/dynamic/private`. A provider missing any of them shows no button. The Apple client secret is
 minted per request from the key, so nothing rotates on a schedule; a revoked `.p8` needs a new key
 and both `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY`. The same Services ID and the Google web client ID
-also go first in GoTrue's Apple and Google client ID lists on the hosted project.
+also go first in GoTrue's Apple and Google client ID lists on the hosted project. Rotating `SUPABASE_SECRET_KEY` also
+changes the key `apple_mail_forwarding` hashes addresses with: every stored forwarding state stops
+matching, and grnyte mails private Apple addresses with forwarding off again until Apple sends their
+next forwarding notification.
 
 The native app: `IOS_APP_ASSOCIATION_ENABLED` (`true` serves the Apple association file),
 `ANDROID_CERT_SHA256` (the app's signing certificate fingerprints, a comma list; set serves

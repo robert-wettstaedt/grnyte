@@ -20,14 +20,15 @@ async function rolledBack(fn: (tx: Tx) => Promise<void>): Promise<void> {
   }
 }
 
+const PASSWORD = '$2a$10$hash'
 const run = crypto.randomUUID().slice(0, 8)
 const address = (local: string, domain: string) => `${local}-${run}@${domain}`
 
 /** An account, with the created-user marker cleared again so the trigger sees a later transaction. */
-async function account(tx: Tx, email: string, confirmed = true): Promise<string> {
+async function account(tx: Tx, email: string, confirmed = true, password: null | string = null): Promise<string> {
   const [row] = await tx<{ id: string }[]>`
-    insert into auth.users (id, email, email_confirmed_at)
-    values (gen_random_uuid(), ${email}, ${confirmed ? new Date() : null}) returning id`
+    insert into auth.users (id, email, email_confirmed_at, encrypted_password)
+    values (gen_random_uuid(), ${email}, ${confirmed ? new Date() : null}, ${password}) returning id`
   await tx`select set_config('grnyte.auth_user_created', '', true)`
   return row.id
 }
@@ -75,9 +76,9 @@ afterAll(() => sql.end())
 
 describe.skipIf(!reachable)('guard_auth_identity', () => {
   /** A confirmed account at example.org with a `google` identity added as a fixture. */
-  async function withGoogle(tx: Tx) {
+  async function withGoogle(tx: Tx, { password = null as null | string } = {}) {
     const email = address('ana', 'example.org')
-    const userId = await account(tx, email)
+    const userId = await account(tx, email, true, password)
     const identityId = await insertIdentity(tx, userId, 'google', email, { asFixture: true })
     const unlink = () => outcome(tx, (sp) => sp`delete from auth.identities where id = ${identityId}`)
     return { email, unlink, userId }
@@ -91,10 +92,113 @@ describe.skipIf(!reachable)('guard_auth_identity', () => {
 
   it('removes it with an unlink grant for that provider, and spends the grant', () =>
     rolledBack(async (tx) => {
-      const { unlink, userId } = await withGoogle(tx)
+      const { unlink, userId } = await withGoogle(tx, { password: PASSWORD })
       await grant(tx, userId, 'identity.unlink', 'google')
       expect(await unlink()).toBe('ok')
       expect(await grantCount(tx, userId)).toBe(0)
+    }))
+
+  it("refuses removing an account's last provider when it has no password, even with a grant", () =>
+    rolledBack(async (tx) => {
+      const { unlink, userId } = await withGoogle(tx)
+      await grant(tx, userId, 'identity.unlink', 'google')
+      expect(await unlink()).toBe('refused')
+      expect(await grantCount(tx, userId)).toBe(1)
+    }))
+
+  it('lets only one of two concurrent provider removals through on an account without a password', async () => {
+    const email = address('race', 'example.org')
+    const { identities, userId } = await sql.begin(async (tx) => {
+      const id = await account(tx, email)
+      const google = await insertIdentity(tx, id, 'google', email, { asFixture: true })
+      const apple = await insertIdentity(tx, id, 'apple', email, { asFixture: true })
+      await grant(tx, id, 'identity.unlink', 'google')
+      await grant(tx, id, 'identity.unlink', 'apple')
+      return { identities: [google, apple], userId: id }
+    })
+    try {
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => (release = resolve))
+      let deleted!: () => void
+      const firstDeleted = new Promise<void>((resolve) => (deleted = resolve))
+      const first = sql.begin(async (tx) => {
+        await tx`delete from auth.identities where id = ${identities[0]}`
+        deleted()
+        await gate
+      })
+      await firstDeleted
+      const second = sql
+        .begin((tx) => tx`delete from auth.identities where id = ${identities[1]}`)
+        .then(
+          () => 'ok',
+          (error: { code?: string }) => (error.code === '42501' ? 'refused' : Promise.reject(error)),
+        )
+      // Long enough for the second delete to reach the floor and wait on the first's lock.
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      release()
+      await first
+      expect(await second).toBe('refused')
+      const [left] = await sql<
+        { n: number }[]
+      >`select count(*)::int as n from auth.identities where user_id = ${userId}`
+      expect(left.n).toBe(1)
+    } finally {
+      await sql`delete from auth.users where id = ${userId}`
+    }
+  })
+
+  describe("an Apple notification's removal marker", () => {
+    /** A confirmed account with an Apple identity for `sub`, and Google too unless `onlyApple`. */
+    async function withApple(tx: Tx, { onlyApple = false, password = PASSWORD as null | string } = {}) {
+      const email = address('apple', 'example.org')
+      const userId = await account(tx, email, true, password)
+      const sub = `sub-${crypto.randomUUID()}`
+      const apple = await insertIdentity(tx, userId, 'apple', email, { asFixture: true, providerId: sub })
+      const google = onlyApple ? '' : await insertIdentity(tx, userId, 'google', email, { asFixture: true })
+      const mark = (value: string) => tx`select set_config('grnyte.apple_identity_removal', ${value}, true)`
+      const remove = (id = apple) => outcome(tx, (sp) => sp`delete from auth.identities where id = ${id}`)
+      return { google, mark, remove, sub, userId }
+    }
+
+    it('lets the marked Apple identity go', () =>
+      rolledBack(async (tx) => {
+        const { mark, remove, sub, userId } = await withApple(tx)
+        await mark(`${userId}:${sub}`)
+        expect(await remove()).toBe('ok')
+      }))
+
+    it('refuses without the marker, with another sub, or for Google', () =>
+      rolledBack(async (tx) => {
+        const { google, mark, remove, sub, userId } = await withApple(tx)
+        expect(await remove()).toBe('refused')
+        await mark(`${userId}:sub-other`)
+        expect(await remove()).toBe('refused')
+        await mark(`${userId}:${sub}`)
+        expect(await remove(google)).toBe('refused')
+      }))
+
+    it('still refuses the last way in', () =>
+      rolledBack(async (tx) => {
+        const { mark, remove, sub, userId } = await withApple(tx, { onlyApple: true, password: null })
+        await mark(`${userId}:${sub}`)
+        expect(await remove()).toBe('refused')
+      }))
+
+    it('is no way in for the authenticated role', () =>
+      rolledBack(async (tx) => {
+        const { mark, remove, sub, userId } = await withApple(tx)
+        await mark(`${userId}:${sub}`)
+        await tx`set local role authenticated`
+        expect(await remove()).toBe('refused')
+      }))
+  })
+
+  it('removes one provider while another remains, without a password', () =>
+    rolledBack(async (tx) => {
+      const { email, unlink, userId } = await withGoogle(tx)
+      await insertIdentity(tx, userId, 'apple', email, { asFixture: true })
+      await grant(tx, userId, 'identity.unlink', 'google')
+      expect(await unlink()).toBe('ok')
     }))
 
   it('refuses it with an unlink grant for another provider or a link grant', () =>

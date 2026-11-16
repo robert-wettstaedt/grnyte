@@ -4,9 +4,12 @@ import { logServerFailure } from '$lib/logging/failure.server'
 import { sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
+/** The handle a `pinnedTx` body gets, for a helper that runs inside one. */
+export type Tx = PostgresJsDatabase<typeof schema>
+
 // `PromiseLike`, not `Promise`: a drizzle query builder is thenable but is not a Promise, so a
 // body that returns one directly would need an extra `await`.
-type Body<T> = (tx: PostgresJsDatabase<typeof schema>) => PromiseLike<T>
+type Body<T> = (tx: Tx) => PromiseLike<T>
 
 /** `broken` cannot resolve `public`, which is the 42P01 outage. `unexpected` resolves but lost
  *  `extensions`. Compare names, never substrings: `public_backup` contains "public". */

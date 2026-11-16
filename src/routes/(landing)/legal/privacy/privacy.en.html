@@ -2,7 +2,7 @@
 
 <p>
   <strong>Last updated:</strong>
-  24 October 2026
+  16 November 2026
 </p>
 
 <p>
@@ -216,6 +216,15 @@
   under Settings, Sign-in methods, which deletes that identity, and deleting your account deletes all of them. When you
   remove Apple, or delete an account that has Apple, after confirming with Apple, {name} also asks Apple to end its
   access.
+</p>
+<p>
+  Apple also tells {name} when you turn mail forwarding for the private address off or back on, stop using Sign in with
+  Apple for {name}, or delete your Apple ID. These messages carry the same identifier and, for forwarding, the address.
+  {name} then keeps whether that private address still forwards (as a keyed hash of the address, not the address
+  itself), stops sending its own mail to it while forwarding is off, and when you stopped using Apple or deleted your
+  Apple ID, removes the Apple sign-in identity if you have another way in and signs out your devices. It never deletes
+  your account because of them. The legal basis is the one for your account in section 4; the forwarding state is
+  deleted with your account.
 </p>
 
 <h2>3. Photos, videos and EXIF metadata</h2>
@@ -556,6 +565,11 @@
     error reports: 90 days. These are the one kind of log I keep myself rather than leaving to a provider (section 2.6),
     and I delete them once they pass that age. Where one names you, the reference to you goes as soon as I delete your
     account, and the rest of the report ages out on its own.
+  </li>
+  <li>
+    Apple mail forwarding (section 2.10): whether your private Apple address still forwards, kept as a keyed hash of the
+    address with the time Apple reported it. Each later report from Apple replaces it, and it is deleted with your
+    account.
   </li>
   <li>
     backups: a daily copy of the database, kept for 30 days on the Hetzner server in Falkenstein that section 5 names.
