@@ -18,7 +18,7 @@ const calls = vi.hoisted(() => ({
   sessions: [] as unknown[],
 }))
 
-vi.mock('$lib/auth/authServer.server', () => ({
+vi.mock('$lib/auth/server/authServer.server', () => ({
   supabaseAuthServer: () => ({
     resend: async ({ email }: { email: string }) => {
       calls.resent.push(email)
@@ -52,7 +52,7 @@ vi.mock('$lib/db/supabaseAdmin.server', () => ({
     },
   }),
 }))
-vi.mock('$lib/auth/codeAttempts.server', () => ({
+vi.mock('$lib/auth/codes/codeAttempts.server', () => ({
   clearCodeTries: async (email: string) => {
     calls.cleared.push(email)
   },

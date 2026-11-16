@@ -1,4 +1,4 @@
-import { appleButton, reauthRemote, resetReauthRemote } from '$lib/auth/reauth.fixture'
+import { appleButton, reauthRemote, resetReauthRemote } from '$lib/auth/reauth/reauth.fixture'
 import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
 import { toaster } from '$lib/state/toast'
@@ -14,14 +14,14 @@ const at = vi.hoisted(() => ({
 }))
 vi.mock('$app/state', () => ({ page: at }))
 vi.mock('$lib/state/navigation.svelte', () => ({ back: vi.fn(), replaceUrl: vi.fn(async () => {}) }))
-vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
+vi.mock('$lib/auth/reauth/reauth.remote', async () => (await import('$lib/auth/reauth/reauth.fixture')).reauthRemote)
 vi.mock('$lib/auth/session.remote', () => ({
   signedInDevices: () => ({ current: [], error: undefined, ready: true, refresh: async () => {} }),
   signOutDevice: vi.fn(),
   signOutOthers: vi.fn(),
 }))
 // Called at render, after `identities` below exists.
-vi.mock('$lib/auth/identities.remote', () => ({
+vi.mock('$lib/auth/methods/identities.remote', () => ({
   signInMethodsQuery: () => identities.signInMethodsQuery(),
   unlinkProvider: (args: { provider: 'apple' | 'google' }) => identities.unlinkProvider(args),
 }))

@@ -1,5 +1,5 @@
 import type { ReauthAction } from '$lib/auth'
-import type { ReauthCaller } from '$lib/auth/reauth.server'
+import type { ReauthCaller } from '$lib/auth/reauth/reauth.server'
 import type { Cookies, RequestEvent } from '@sveltejs/kit'
 import type { IDToken } from 'openid-client'
 import type { OAuthProvider } from './providers.server'

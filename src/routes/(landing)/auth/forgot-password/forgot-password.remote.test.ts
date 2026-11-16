@@ -38,7 +38,7 @@ vi.mock('$lib/db/supabaseAdmin.server', () => ({
 }))
 
 // The confirmation resend goes through the auth-only client; the reset mail stays on the cookie client.
-vi.mock('$lib/auth/authServer.server', () => ({
+vi.mock('$lib/auth/server/authServer.server', () => ({
   supabaseAuthServer: () => ({
     resend: async ({ email }: { email: string }) => {
       resent.push(email)
@@ -53,7 +53,7 @@ vi.mock('$lib/auth/authServer.server', () => ({
 }))
 
 const quota = vi.hoisted(() => [] as unknown[])
-vi.mock('$lib/auth/events.server', () => ({
+vi.mock('$lib/auth/server/events.server', () => ({
   noteMailRefusal: async (error: { code?: string }) => {
     quota.push(error.code)
   },

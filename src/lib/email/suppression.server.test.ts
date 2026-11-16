@@ -30,7 +30,7 @@ vi.mock('$lib/db/pinned.server', async (actual) => {
 })
 
 const { reachable, sql } = await import('$lib/db/testDb')
-const { addressHash } = await import('$lib/auth/mailForwarding.server')
+const { addressHash } = await import('$lib/auth/server/mailForwarding.server')
 const { sendEmail, sendEmailOutcome } = await import('./send.server')
 
 const run = crypto.randomUUID().slice(0, 8)

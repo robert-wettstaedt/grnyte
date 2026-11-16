@@ -1,6 +1,6 @@
 /** `setNewPassword` on a code session: the policy before the write, every code and grant void after it. */
 import { getRequestEvent } from '$app/server'
-import { hasGrant, sessionCaller, writeGrant } from '$lib/auth/reauth.server'
+import { hasGrant, sessionCaller, writeGrant } from '$lib/auth/reauth/reauth.server'
 import {
   createThrowawayUser,
   dropThrowawayUser,
@@ -16,12 +16,17 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { setNewPassword } from './password.remote'
 
 const policy = vi.hoisted(() => ({ breached: false }))
-vi.mock('$lib/auth/passwordPolicy.server', () => ({ checkPassword: async () => (policy.breached ? 'breached' : 'ok') }))
+// fallow-ignore-next-line code-duplication -- vi.mock is hoisted per file: each password test declares its own
+vi.mock('$lib/auth/password/passwordPolicy.server', () => ({
+  checkPassword: async () => (policy.breached ? 'breached' : 'ok'),
+}))
 // The harness token carries no `amr`; the code-session rule has its own GoTrue tests.
 vi.mock('$lib/auth', async (original) => ({ ...(await original<object>()), isFreshCodeSession: () => true }))
 
 // The body acts through the caller's server client; here it answers the request's stub.
-vi.mock('$lib/auth/authServer.server', () => ({ supabaseAuthServerAs: () => getRequestEvent().locals.supabase.auth }))
+vi.mock('$lib/auth/server/authServer.server', () => ({
+  supabaseAuthServerAs: () => getRequestEvent().locals.supabase.auth,
+}))
 
 let user: SeedUser
 

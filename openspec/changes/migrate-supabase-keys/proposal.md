@@ -17,7 +17,7 @@ one change, released on its own before `harden-auth-codes`, `add-social-sign-in`
 
 ## What Changes
 
-- **Token verification accepts asymmetric keys, then only them.** `src/lib/auth/verify.server.ts`
+- **Token verification accepts asymmetric keys, then only them.** `src/lib/auth/server/verify.server.ts`
   already selects HS256 or JWKS by header (`resolveKey`, lines 72-85) but its JWKS path has never run
   or been tested. It gains a testable factory, a distinct `unavailable` result when the JWKS cannot
   be fetched (today that reads as a forgery and signs the person out), and tests for the ES256 path,
@@ -52,7 +52,7 @@ one change, released on its own before `harden-auth-codes`, `add-social-sign-in`
   and the new client alike. A legacy service-role JWT in the same variable (local stacks, prod
   before step 5) keeps its Bearer, which is the only credential the old gateways accept.
 - **New: `supabaseAuthServer(event)`**, an auth-only GoTrue client in
-  `src/lib/auth/authServer.server.ts` that sends the secret key as `apikey` only, sends
+  `src/lib/auth/server/authServer.server.ts` that sends the secret key as `apikey` only, sends
   `Sb-Forwarded-For` from `event.getClientAddress()` and exposes only `resend`, never `auth.admin`. The signup confirmation resend (`mailSignupConfirmation`) moves onto
   it. `security_sb_forwarded_for_enabled` is switched on for the project, with probes recorded in
   the release PR.
@@ -101,8 +101,8 @@ None. `auth/sign-up-protection` keeps its requirements; only the client its rese
 
 ## Impact
 
-- **Modules:** `src/lib/auth/verify.server.ts` (+ test), new `src/lib/auth/authServer.server.ts`
-  (+ test), `src/lib/auth/mail.server.ts`, `src/lib/hooks/auth.server.ts` (+ test),
+- **Modules:** `src/lib/auth/server/verify.server.ts` (+ test), new `src/lib/auth/server/authServer.server.ts`
+  (+ test), `src/lib/auth/server/mail.server.ts`, `src/lib/hooks/auth.server.ts` (+ test),
   new `src/lib/zero/mutateAuth.server.test.ts`, `src/routes/api/zero/get-queries/+server.ts` (+ new
   test), `src/lib/db/supabaseAdmin.server.ts` (+ new test), new `src/lib/db/secretKey.fixture.ts`
   (shared by the two secret-key client tests), `src/lib/entities/user/password.server.ts`,

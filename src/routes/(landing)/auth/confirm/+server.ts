@@ -1,6 +1,6 @@
 import { resolve } from '$app/paths'
 import { AUTH_PATH, isContested, sameOriginPath, signedInRedirectTarget } from '$lib/auth'
-import { revokeContestedPassword } from '$lib/auth/contested.server'
+import { revokeContestedPassword } from '$lib/auth/server/contested.server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { redirect } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'

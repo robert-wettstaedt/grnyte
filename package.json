@@ -18,7 +18,7 @@
     "preview": "PREVIEW_HTTPS=1 vite preview",
     "test": "vitest",
     "test:e2e": "playwright test",
-    "test:gotrue": "vitest run --project server src/lib/auth/gotrue.contract.server.test.ts",
+    "test:gotrue": "vitest run --project server src/lib/auth/server/gotrue.contract.server.test.ts",
     "test:memory": "memlab run --scenario memlab/explore-map.cjs --work-dir .memlab",
     "test:mutation": "PUBLIC_APPLICATION_NAME=stryker stryker run stryker/config.mjs",
     "test:mutation:server": "stryker/server.sh",

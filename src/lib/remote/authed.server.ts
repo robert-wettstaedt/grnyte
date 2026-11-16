@@ -1,5 +1,5 @@
 import { command, form, getRequestEvent, query } from '$app/server'
-import { requireLiveSession } from '$lib/auth/session.server'
+import { requireLiveSession } from '$lib/auth/server/session.server'
 import { createRlsClient, db } from '$lib/db/db.server'
 import type { UserRegion } from '$lib/entities/region/dto'
 import { formError } from '$lib/forms/schemas'

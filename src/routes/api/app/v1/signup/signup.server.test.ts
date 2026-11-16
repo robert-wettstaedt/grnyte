@@ -1,7 +1,7 @@
 /** `GET challenge` and `POST signup`, called with built requests; the account itself needs GoTrue. */
 import { appCall } from '$lib/auth/app/appRequest.fixture'
 import { V1 } from '$lib/auth/app/v1'
-import { gotrueReachable } from '$lib/auth/gotrue.fixture'
+import { gotrueReachable } from '$lib/auth/server/gotrue.fixture'
 import { reachable, sql } from '$lib/db/testDb'
 import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
 import { asAnonymousRequest, callForm } from '$lib/remote/testHarness'

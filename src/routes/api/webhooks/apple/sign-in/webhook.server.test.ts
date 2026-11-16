@@ -28,7 +28,7 @@ const { reachable, sql } = await import('$lib/db/testDb')
 const { appleKeys } = await import('$lib/auth/app/appleToken.server')
 const { crossSiteGuard } = await import('$lib/hooks/crossSite.server')
 const { asRequest, newSession, statusOf } = await import('$lib/remote/testHarness')
-const { mailForwardingQuery, signInMethodsQuery } = await import('$lib/auth/identities.remote')
+const { mailForwardingQuery, signInMethodsQuery } = await import('$lib/auth/methods/identities.remote')
 const { POST } = await import('./+server')
 
 const URL_PATH = 'https://grnyte.rocks/api/webhooks/apple/sign-in'

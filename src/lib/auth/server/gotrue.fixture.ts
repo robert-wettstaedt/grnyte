@@ -1,7 +1,7 @@
 /** For GoTrue tests: the branch's local GoTrue, probed once, and a client on the publishable key. */
 import 'dotenv/config'
 import { SIGNUP_MARKER } from '$lib/auth'
-import { verifyAccessToken } from '$lib/auth/verify.server'
+import { verifyAccessToken } from '$lib/auth/server/verify.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { sql } from '$lib/db/testDb'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'

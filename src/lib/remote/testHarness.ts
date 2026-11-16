@@ -18,7 +18,7 @@
  * build under the `browser` condition and touches `window` at import time.
  */
 import { env } from '$env/dynamic/private'
-import { verifyAccessToken } from '$lib/auth/verify.server'
+import { verifyAccessToken } from '$lib/auth/server/verify.server'
 import { db } from '$lib/db/db.server'
 import { getUserPermissions, loadSessionUser } from '$lib/hooks/auth.server'
 import { handleMutate } from '$lib/zero/mutate.server'

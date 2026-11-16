@@ -1,5 +1,5 @@
 import { APP_AUTH_FLOW_GRACE_MS, sweepAppAuthFlows } from '$lib/auth/app/carrier.server'
-import { AUTH_LOG_MAX_AGE_MS, CODE_ATTEMPT_MAX_AGE_MS, sweepAuthLogs } from '$lib/auth/retention.server'
+import { AUTH_LOG_MAX_AGE_MS, CODE_ATTEMPT_MAX_AGE_MS, sweepAuthLogs } from '$lib/auth/server/retention.server'
 import { FEEDBACK_MAX_AGE_MS, sweepFeedback } from '$lib/entities/feedback/retention.server'
 import { reportBunnyOrphans } from '$lib/entities/file/cleanup.server'
 import { reconcileReadiness } from '$lib/entities/file/readiness.server'

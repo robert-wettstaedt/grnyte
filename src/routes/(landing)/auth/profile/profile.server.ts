@@ -1,5 +1,5 @@
 import { getRequestEvent } from '$app/server'
-import { requireLiveSession } from '$lib/auth/session.server'
+import { requireLiveSession } from '$lib/auth/server/session.server'
 import { provisionProfile } from '$lib/entities/user/provision.server'
 import { formError } from '$lib/forms/schemas'
 import { getLocale } from '$lib/paraglide/runtime'

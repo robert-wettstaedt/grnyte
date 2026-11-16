@@ -17,7 +17,7 @@ const reset = vi.hoisted(() => ({
   error: null as null | { code: string; message: string; status: number },
   sent: [] as string[],
 }))
-vi.mock('$lib/auth/authServer.server', () => ({
+vi.mock('$lib/auth/server/authServer.server', () => ({
   supabaseAuthServer: () => ({
     resetPasswordForEmail: async (email: string) => {
       reset.sent.push(email)

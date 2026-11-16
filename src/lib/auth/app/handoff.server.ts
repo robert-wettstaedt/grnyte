@@ -1,7 +1,4 @@
 import { getRequestEvent } from '$app/server'
-import { supabaseAuthServer } from '$lib/auth/authServer.server'
-import { recordAuthEvent } from '$lib/auth/events.server'
-import { labelledKey } from '$lib/auth/keys.server'
 import { buildAuthorizationUrl, dispatchIntent, type OAuthOutcome } from '$lib/auth/oauth/flow.server'
 import { configuredProviders, providerNonce, sha256hex, type OAuthProvider } from '$lib/auth/oauth/providers.server'
 import { seal, unseal } from '$lib/auth/oauth/seal.server'
@@ -11,7 +8,10 @@ import {
   type OAuthTransaction,
   type VerifiedProof,
 } from '$lib/auth/oauth/transaction.server'
-import { hasGrant, reauthCaller } from '$lib/auth/reauth.server'
+import { hasGrant, reauthCaller } from '$lib/auth/reauth/reauth.server'
+import { supabaseAuthServer } from '$lib/auth/server/authServer.server'
+import { recordAuthEvent } from '$lib/auth/server/events.server'
+import { labelledKey } from '$lib/auth/server/keys.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { appAuthFlows } from '$lib/db/serverOnly'
 import { formError } from '$lib/forms/schemas'

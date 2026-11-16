@@ -12,7 +12,7 @@ vi.mock('$lib/state/navigation.svelte', () => ({ replaceUrl: vi.fn() }))
 vi.mock('./signin/signin.remote', async () => ({
   signIn: (await import('$lib/forms/page.fixture.svelte')).fakeRemoteForm(),
 }))
-vi.mock('$lib/auth/password.remote', () => ({ setNewPassword: vi.fn() }))
+vi.mock('$lib/auth/password/password.remote', () => ({ setNewPassword: vi.fn() }))
 vi.mock('./signup/signup.remote', async () => {
   const { fakeRemoteForm } = await import('$lib/forms/page.fixture.svelte')
   return { resendSignupCode: fakeRemoteForm(), signUp: fakeRemoteForm() }

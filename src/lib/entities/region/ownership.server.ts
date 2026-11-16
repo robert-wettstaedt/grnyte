@@ -1,5 +1,5 @@
-import { signInMethods } from '$lib/auth/methods.server'
-import { spendGrant, type ReauthCaller } from '$lib/auth/reauth.server'
+import { signInMethods } from '$lib/auth/methods/methods.server'
+import { spendGrant, type ReauthCaller } from '$lib/auth/reauth/reauth.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { notifications, regionMembers, regions } from '$lib/db/schema'

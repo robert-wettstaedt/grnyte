@@ -8,7 +8,7 @@ import { getLocale } from '$lib/paraglide/runtime'
 import { refuseCommand } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
-import { signInMethods } from './methods.server'
+import { signInMethods } from '../methods/methods.server'
 import { boundTarget, hasGrant, issueReauthCode, reauthCaller, verifyReauthCode } from './reauth.server'
 
 interface Subject {

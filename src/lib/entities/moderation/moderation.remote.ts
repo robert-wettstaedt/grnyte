@@ -1,5 +1,5 @@
 import { getRequestEvent, query } from '$app/server'
-import { requireLiveSession } from '$lib/auth/session.server'
+import { requireLiveSession } from '$lib/auth/server/session.server'
 import * as z from '$lib/forms/zod'
 import { authedQuery } from '$lib/remote/authed.server'
 import { requireAppAdmin } from '$lib/remote/require.server'

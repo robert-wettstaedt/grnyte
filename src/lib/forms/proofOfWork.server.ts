@@ -1,4 +1,4 @@
-import { labelledKey } from '$lib/auth/keys.server'
+import { labelledKey } from '$lib/auth/server/keys.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { spentChallenges } from '$lib/db/schema'
 import { createChallenge, verifySolution, type Challenge, type Payload } from 'altcha-lib'

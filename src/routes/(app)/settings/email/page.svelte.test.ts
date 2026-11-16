@@ -15,7 +15,7 @@ vi.mock('../account.remote', () => remote)
 
 /** `mailForwardingQuery` as an answered remote query; the address when Apple forwards no mail to it. */
 const forwarding = vi.hoisted(() => ({ address: null as null | string, appleLinked: false }))
-vi.mock('$lib/auth/identities.remote', () => ({
+vi.mock('$lib/auth/methods/identities.remote', () => ({
   mailForwardingQuery: () => ({
     current: { ...forwarding, id: 'account-1' },
     error: undefined,

@@ -4,7 +4,7 @@
   import { revokes, type ReauthAction } from '$lib/auth'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { m } from '$lib/paraglide/messages'
-  import AppleLogo from './AppleLogo.svelte'
+  import AppleLogo from '../methods/AppleLogo.svelte'
 
   interface Props {
     action: ReauthAction

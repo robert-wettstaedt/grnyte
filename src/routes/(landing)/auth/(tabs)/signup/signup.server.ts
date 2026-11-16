@@ -1,16 +1,16 @@
 import { getRequestEvent } from '$app/server'
 import { SIGNUP_MARKER } from '$lib/auth'
-import { supabaseAuthServer } from '$lib/auth/authServer.server'
-import { verifyCode } from '$lib/auth/codes.server'
+import { verifyCode } from '$lib/auth/codes/codes.server'
+import { checkPassword } from '$lib/auth/password/passwordPolicy.server'
+import { supabaseAuthServer } from '$lib/auth/server/authServer.server'
 import {
   checkResendToken,
   findAccount,
   flagContestedSignup,
   holdCodeSession,
   issueResendToken,
-} from '$lib/auth/contested.server'
-import { gotrueRefusal, noticeAlreadyHasAccount, sendCode } from '$lib/auth/mail.server'
-import { checkPassword } from '$lib/auth/passwordPolicy.server'
+} from '$lib/auth/server/contested.server'
+import { gotrueRefusal, noticeAlreadyHasAccount, sendCode } from '$lib/auth/server/mail.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { screenSubmit } from '$lib/forms/botCheck.server'
 import { formError } from '$lib/forms/schemas'

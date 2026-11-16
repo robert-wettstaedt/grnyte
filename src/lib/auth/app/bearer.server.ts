@@ -1,5 +1,5 @@
-import { isSessionLive } from '$lib/auth/session.server'
-import { parseBearer, verifyAccessToken } from '$lib/auth/verify.server'
+import { isSessionLive } from '$lib/auth/server/session.server'
+import { parseBearer, verifyAccessToken } from '$lib/auth/server/verify.server'
 import { db } from '$lib/db/db.server'
 
 type BearerSession = Awaited<ReturnType<App.Locals['safeGetSession']>>

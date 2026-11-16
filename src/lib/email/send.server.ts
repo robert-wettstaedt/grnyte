@@ -1,8 +1,8 @@
 import { RESEND_API_KEY, RESEND_SENDER_EMAIL } from '$env/static/private'
 import { PUBLIC_ORIGIN, PUBLIC_TOPO_EMAIL } from '$env/static/public'
 // fallow-ignore-next-line circular-dependency -- events.server imports the admin alert (which mails) only lazily, inside the spike check
-import { recordAuthEvent } from '$lib/auth/events.server'
-import { notForwarding } from '$lib/auth/mailForwarding.server'
+import { recordAuthEvent } from '$lib/auth/server/events.server'
+import { notForwarding } from '$lib/auth/server/mailForwarding.server'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { Resend } from 'resend'
 import { makeBrand } from './brand'

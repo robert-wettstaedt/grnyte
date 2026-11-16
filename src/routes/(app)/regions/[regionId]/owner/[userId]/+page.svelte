@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ReauthStep, { withReauth } from '$lib/auth/ReauthStep.svelte'
+  import ReauthStep, { withReauth } from '$lib/auth/reauth/ReauthStep.svelte'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import { entityHref } from '$lib/entities/href'
   import { ownerOnlyDenied, regionDenied } from '$lib/entities/region/adminScreen.svelte'

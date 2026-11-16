@@ -1,5 +1,5 @@
 import { command } from '$app/server'
-import { requireLiveSession } from '$lib/auth/session.server'
+import { requireLiveSession } from '$lib/auth/server/session.server'
 import * as schema from '$lib/db/schema'
 import { bunnyStreams, files, type File } from '$lib/db/schema'
 import { insertEvent } from '$lib/entities/event/event.server'

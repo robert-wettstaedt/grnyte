@@ -1,4 +1,4 @@
-import { lastMethod } from '$lib/auth/lastMethod.server'
+import { lastMethod } from '$lib/auth/methods/lastMethod.server'
 import { configuredProviders } from '$lib/auth/oauth/providers.server'
 import type { LayoutServerLoad } from './$types'
 

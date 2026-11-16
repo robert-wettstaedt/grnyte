@@ -1,9 +1,9 @@
 import { getRequestEvent } from '$app/server'
-import { supabaseAuthServer, type AuthServer } from '$lib/auth/authServer.server'
-import { clearCodeTries } from '$lib/auth/codeAttempts.server'
-import { verifyCode } from '$lib/auth/codes.server'
-import { findAccount, flagContestedSignup, holdCodeSession } from '$lib/auth/contested.server'
-import { gotrueRefusal, mailPasswordReset, mailSignupConfirmation } from '$lib/auth/mail.server'
+import { clearCodeTries } from '$lib/auth/codes/codeAttempts.server'
+import { verifyCode } from '$lib/auth/codes/codes.server'
+import { supabaseAuthServer, type AuthServer } from '$lib/auth/server/authServer.server'
+import { findAccount, flagContestedSignup, holdCodeSession } from '$lib/auth/server/contested.server'
+import { gotrueRefusal, mailPasswordReset, mailSignupConfirmation } from '$lib/auth/server/mail.server'
 import { screenSubmit } from '$lib/forms/botCheck.server'
 
 /**

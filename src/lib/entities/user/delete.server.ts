@@ -1,6 +1,6 @@
-import { signInMethods } from '$lib/auth/methods.server'
+import { signInMethods } from '$lib/auth/methods/methods.server'
 import { appleRevocation } from '$lib/auth/oauth/linking.server'
-import { spendGrant, type ReauthCaller } from '$lib/auth/reauth.server'
+import { spendGrant, type ReauthCaller } from '$lib/auth/reauth/reauth.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { activities } from '$lib/db/retired'
 import * as schema from '$lib/db/schema'

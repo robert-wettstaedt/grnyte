@@ -1,4 +1,4 @@
-import { labelledKey } from '$lib/auth/keys.server'
+import { labelledKey } from '$lib/auth/server/keys.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { sql } from 'drizzle-orm'
 import { createHmac } from 'node:crypto'

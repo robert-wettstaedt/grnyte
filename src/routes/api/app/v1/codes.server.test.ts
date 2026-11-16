@@ -6,9 +6,16 @@ import { CONTESTED_SIGNUP } from '$lib/auth'
 import { appCall } from '$lib/auth/app/appRequest.fixture'
 import { bearerSession } from '$lib/auth/app/bearer.server'
 import { V1 } from '$lib/auth/app/v1'
-import { codeDevice, codeFor, createAccount, gotrueReachable, mailCount, publicClient } from '$lib/auth/gotrue.fixture'
-import { sessionCaller, writeGrant } from '$lib/auth/reauth.server'
-import { verifyAccessToken } from '$lib/auth/verify.server'
+import { sessionCaller, writeGrant } from '$lib/auth/reauth/reauth.server'
+import {
+  codeDevice,
+  codeFor,
+  createAccount,
+  gotrueReachable,
+  mailCount,
+  publicClient,
+} from '$lib/auth/server/gotrue.fixture'
+import { verifyAccessToken } from '$lib/auth/server/verify.server'
 import { sql } from '$lib/db/testDb'
 import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
 import { getPageState } from '$lib/hooks/auth.server'

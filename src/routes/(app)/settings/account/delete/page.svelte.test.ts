@@ -1,4 +1,4 @@
-import { confirmWithCode, methods, resetReauthRemote, submitNeedingConfirmation } from '$lib/auth/reauth.fixture'
+import { confirmWithCode, methods, resetReauthRemote, submitNeedingConfirmation } from '$lib/auth/reauth/reauth.fixture'
 import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
 import { fireEvent, render, screen } from '@testing-library/svelte'
@@ -20,8 +20,11 @@ vi.mock('../../account.remote', () => ({
       : { current: preview, error: undefined, ready: true },
   deleteAccountCommand: command,
 }))
-vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
-vi.mock('$lib/auth/identities.remote', async () => (await import('$lib/auth/reauth.fixture')).identitiesRemote)
+vi.mock('$lib/auth/reauth/reauth.remote', async () => (await import('$lib/auth/reauth/reauth.fixture')).reauthRemote)
+vi.mock(
+  '$lib/auth/methods/identities.remote',
+  async () => (await import('$lib/auth/reauth/reauth.fixture')).identitiesRemote,
+)
 vi.mock('$lib/state/push.svelte', () => ({ disablePush: vi.fn(async () => {}) }))
 vi.mock('$lib/state/wipe', () => ({ setLeaving: vi.fn(), wipeAndLeave: vi.fn() }))
 

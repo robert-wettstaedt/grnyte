@@ -1,5 +1,5 @@
 import type { ReauthAction } from '$lib/auth'
-import type { SignInMethods } from '$lib/auth/methods.server'
+import type { SignInMethods } from '$lib/auth/methods/methods.server'
 import { m } from '$lib/paraglide/messages'
 import type { EmailContent, EmailLocale } from './shell'
 

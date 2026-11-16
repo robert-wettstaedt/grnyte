@@ -5,7 +5,7 @@ import {
   reauthRemote,
   resetReauthRemote,
   submitNeedingConfirmationWithApple,
-} from '$lib/auth/reauth.fixture'
+} from '$lib/auth/reauth/reauth.fixture'
 import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
 import { fireEvent, render, screen } from '@testing-library/svelte'
@@ -25,8 +25,12 @@ vi.mock('$app/state', () => ({ page: { data: { supabase: { auth: { setSession: b
 vi.mock('$app/navigation', async (original) => ({ ...(await original<object>()), invalidate: browser.invalidate }))
 
 vi.mock('../account.remote', () => ({ updatePasswordCommand: command }))
-vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
-vi.mock('$lib/auth/identities.remote', async () => (await import('$lib/auth/reauth.fixture')).identitiesRemote)
+// fallow-ignore-next-line code-duplication -- vi.mock is hoisted per file: each re-auth screen test declares its own
+vi.mock('$lib/auth/reauth/reauth.remote', async () => (await import('$lib/auth/reauth/reauth.fixture')).reauthRemote)
+vi.mock(
+  '$lib/auth/methods/identities.remote',
+  async () => (await import('$lib/auth/reauth/reauth.fixture')).identitiesRemote,
+)
 vi.mock('$lib/state/navigation.svelte', async (original) => ({ ...(await original<object>()), exit: vi.fn() }))
 
 const saveButton = () => screen.getByRole('button', { name: 'Save' })

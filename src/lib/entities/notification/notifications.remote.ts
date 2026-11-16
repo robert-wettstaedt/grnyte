@@ -1,5 +1,5 @@
 import { command } from '$app/server'
-import { requireLiveSession } from '$lib/auth/session.server'
+import { requireLiveSession } from '$lib/auth/server/session.server'
 import { applyRls } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { pushSubscriptions, userSettings } from '$lib/db/schema'

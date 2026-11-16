@@ -1,6 +1,6 @@
 import { command, form, getRequestEvent, query } from '$app/server'
-import { reauthCaller } from '$lib/auth/reauth.server'
-import { requireLiveSession } from '$lib/auth/session.server'
+import { reauthCaller } from '$lib/auth/reauth/reauth.server'
+import { requireLiveSession } from '$lib/auth/server/session.server'
 import { regionInvitations } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'

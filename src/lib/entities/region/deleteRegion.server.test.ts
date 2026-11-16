@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { hasGrant, writeGrant } from '$lib/auth/reauth.server'
+import { hasGrant, writeGrant } from '$lib/auth/reauth/reauth.server'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import type { SendEmailInput } from '$lib/email/send.server'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'

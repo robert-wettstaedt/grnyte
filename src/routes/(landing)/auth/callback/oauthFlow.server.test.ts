@@ -40,9 +40,9 @@ const { POST: start } = await import('../oauth/[provider=oauthProvider]/+server'
 const { GET: googleCallback } = await import('./google/+server')
 const { GET: appleCallback, POST: applePost } = await import('./apple/+server')
 const { dispatchIntent } = await import('$lib/auth/oauth/flow.server')
-const { supabaseAuthServer } = await import('$lib/auth/authServer.server')
-const { verifyAccessToken } = await import('$lib/auth/verify.server')
-const { spendGrant, writeGrant } = await import('$lib/auth/reauth.server')
+const { supabaseAuthServer } = await import('$lib/auth/server/authServer.server')
+const { verifyAccessToken } = await import('$lib/auth/server/verify.server')
+const { spendGrant, writeGrant } = await import('$lib/auth/reauth/reauth.server')
 const { pinnedTx } = await import('$lib/db/pinned.server')
 
 let gotrue: GoTrueCall[] = []

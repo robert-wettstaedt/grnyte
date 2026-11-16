@@ -1,5 +1,5 @@
 /** GoTrue faked at fetch, and the helpers the OAuth tracer and the app handoff tests share. */
-import { verifyAccessToken } from '$lib/auth/verify.server'
+import { verifyAccessToken } from '$lib/auth/server/verify.server'
 import { sql } from '$lib/db/testDb'
 import { createServerClient } from '@supabase/ssr'
 import { SignJWT } from 'jose'

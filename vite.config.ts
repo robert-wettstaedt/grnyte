@@ -24,7 +24,7 @@ const NODE_ENVIRONMENT_TESTS = [
 ]
 
 /** Server tests that count rows across a whole table: they run alone, after everything else. */
-const SERIAL_TESTS = ['src/lib/auth/events.server.test.ts']
+const SERIAL_TESTS = ['src/lib/auth/server/events.server.test.ts']
 
 /** ngrok's free static domains, which local Apple sign-in tests need for an https callback. */
 const NGROK_HOSTS = ['.ngrok-free.app', '.ngrok-free.dev']
