@@ -1,6 +1,6 @@
 import { APP_HOME_PATH, AUTH_PATH } from '$lib/auth'
 import { acceptPath, REGION_CREATE_PATH } from '$lib/entities/region/paths'
-import { isRedirect, type RequestEvent } from '@sveltejs/kit'
+import { isRedirect, type Handle, type RequestEvent } from '@sveltejs/kit'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // The module connects to Postgres at import time, and nothing here reaches a query: every session
@@ -8,10 +8,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // below.
 vi.mock('$lib/db/db.server', () => ({ db: {} }))
 vi.mock('$lib/entities/region/invite.server', () => ({ findLiveInvitationByEmail: vi.fn() }))
-vi.mock('$lib/auth/verify.server', () => ({ verifyAccessToken: vi.fn() }))
+vi.mock('$lib/auth/verify.server', async (actual) => ({ ...(await actual()), verifyAccessToken: vi.fn() }))
+const live = vi.hoisted(() => ({ sessions: new Set<string>() }))
+vi.mock('$lib/auth/session.server', () => ({
+  isSessionLive: vi.fn(async (_db: unknown, claims: { session_id?: string }) =>
+    live.sessions.has(claims.session_id ?? ''),
+  ),
+}))
+vi.mock('$lib/db/pinned.server', () => ({
+  pinnedTx: vi.fn(async () => ({ user: { id: 1 }, userPermissions: undefined, userRegions: [], userRole: undefined })),
+}))
 vi.mock('$lib/entities/user/provision.server', () => ({ hasDeletionMarker: vi.fn() }))
 const getSession = vi.fn()
 vi.mock('@supabase/ssr', () => ({ createServerClient: vi.fn(() => ({ auth: { getSession } })) }))
+vi.mock('@supabase/supabase-js', async (actual) => ({ ...(await actual()), createClient: vi.fn(() => ({ auth: {} })) }))
 
 const { findLiveInvitationByEmail } = await import('$lib/entities/region/invite.server')
 const { verifyAccessToken } = await import('$lib/auth/verify.server')
@@ -50,6 +60,7 @@ const mockEvent = (
   return {
     isRemoteRequest: remote,
     locals: { safeGetSession: () => Promise.resolve(session), supabase: { auth: { signOut } } },
+    request: new Request(`https://grnyte.rocks${remote ? '/_app/remote/fn' : path}`),
     url: new URL(`https://grnyte.rocks${path}`),
   } as unknown as RequestEvent
 }
@@ -77,6 +88,7 @@ describe('safeGetSession', () => {
     const event = {
       cookies: { getAll: () => [], set: vi.fn() },
       locals: {},
+      request: new Request('https://grnyte.rocks/explore'),
       setHeaders: vi.fn(),
       url: new URL('https://grnyte.rocks/explore'),
     } as unknown as RequestEvent
@@ -104,7 +116,11 @@ describe('safeGetSession', () => {
 describe('supabase', () => {
   const clientsBuiltFor = async (path: string) => {
     vi.mocked(createServerClient).mockClear()
-    const event = { locals: {}, url: new URL(`https://grnyte.rocks${path}`) } as unknown as RequestEvent
+    const event = {
+      locals: {},
+      request: new Request(`https://grnyte.rocks${path}`),
+      url: new URL(`https://grnyte.rocks${path}`),
+    } as unknown as RequestEvent
     await supabase({ event, resolve: () => Promise.resolve(new Response('OK')) })
     return vi.mocked(createServerClient).mock.calls.length
   }
@@ -123,12 +139,6 @@ describe('authGuard', () => {
     marked.mockReset()
     marked.mockResolvedValue(false)
     signOut.mockReset()
-  })
-
-  it('leaves the app API blind to the session cookie', async () => {
-    const event = mockEvent('/api/app/session')
-    expect(await redirectFrom(event)).toBeUndefined()
-    expect(event.locals.claims).toBeUndefined()
   })
 
   it('serves a page load on the cookie claims alone, never checking the session is live', async () => {
@@ -265,5 +275,103 @@ describe('authGuard', () => {
 
   it('sends an account that has a profile on from the profile step', async () => {
     expect(await redirectFrom(mockEvent('/auth/profile?next=%2Finvite%2Faccept%2Fabc'))).toBe('/invite/accept/abc')
+  })
+})
+
+/** The app API through the real `crossSiteGuard`, `supabase` and `authGuard`, in the app's order. */
+describe('the app API prefix', async () => {
+  const { crossSiteGuard } = await import('$lib/hooks/crossSite.server')
+  // `sequence`, by hand: Kit's needs a request store with tracing, which a test has not got.
+  const handle: Handle = ({ event, resolve }) =>
+    crossSiteGuard({
+      event,
+      resolve: (one) => supabase({ event: one, resolve: (two) => authGuard({ event: two, resolve }) }),
+    })
+  const WEB_COOKIE = 'sb-grnyte-auth-token=web'
+  const claimsOf = (token: string) => ({ session_id: `session-${token}`, sub: `user-${token}` })
+
+  beforeEach(() => {
+    vi.mocked(createServerClient).mockClear()
+    live.sessions = new Set(['session-bearer', 'session-cookie'])
+    // A valid web cookie session, and a valid Bearer, each verifying as its own caller.
+    getSession.mockResolvedValue({ data: { session: { access_token: 'cookie' } }, error: null })
+    verify.mockImplementation(async (token) =>
+      token === 'cookie' || token === 'bearer'
+        ? ({ claims: claimsOf(token), ok: true, token: { accessToken: token, claims: claimsOf(token) } } as never)
+        : token === 'expired'
+          ? { ok: false, reason: 'expired' }
+          : { ok: false, reason: token == null ? 'absent' : 'invalid' },
+    )
+  })
+
+  /** Runs the handle; answers the response and the locals the endpoint saw (undefined if it never ran). */
+  async function serve(
+    path: string,
+    { bearer, method = 'GET', remoteFrom, site }: Partial<Record<string, string>> = {},
+  ) {
+    const headers = new Headers({ 'content-type': 'application/json', cookie: WEB_COOKIE })
+    if (bearer != null) headers.set('authorization', `Bearer ${bearer}`)
+    if (site != null) headers.set('sec-fetch-site', site)
+    const request = new Request(`https://grnyte.rocks${remoteFrom == null ? path : '/_app/remote/fn'}`, {
+      body: method === 'GET' ? undefined : '{}',
+      headers,
+      method,
+    })
+    const event = {
+      cookies: { getAll: () => [{ name: 'sb-grnyte-auth-token', value: 'web' }], set: vi.fn() },
+      getClientAddress: () => '198.51.100.7',
+      isRemoteRequest: remoteFrom != null,
+      locals: {},
+      request,
+      setHeaders: vi.fn(),
+      url: new URL(`https://grnyte.rocks${path}`),
+    } as unknown as RequestEvent
+    let seen: App.Locals | undefined
+    const response = await Promise.resolve(
+      handle({
+        event,
+        resolve: async (resolved) => {
+          seen = resolved.locals
+          return new Response('OK')
+        },
+      }),
+    ).catch((thrown: unknown) => (isRedirect(thrown) ? new Response(null, { status: 303 }) : Promise.reject(thrown)))
+    return { response, seen }
+  }
+
+  it('reads no web cookie session on the prefix, only the Bearer', async () => {
+    expect((await serve('/api/app/v1/profile')).seen?.claims).toBeUndefined()
+    expect(createServerClient).not.toHaveBeenCalled()
+    expect((await serve('/api/app/v1/profile', { bearer: 'bearer' })).seen?.claims).toEqual(claimsOf('bearer'))
+  })
+
+  it('counts a Bearer nowhere else', async () => {
+    getSession.mockResolvedValue({ data: { session: null }, error: null })
+    expect((await serve('/settings', { bearer: 'bearer' })).response.status).toBe(303)
+  })
+
+  it('does not take a remote call that claims the prefix for the prefix', async () => {
+    const { seen } = await serve('/api/app/v1/profile', { bearer: 'bearer', method: 'POST', remoteFrom: 'page' })
+    expect(seen?.claims).toEqual(claimsOf('cookie'))
+  })
+
+  it('is anonymous for a Bearer whose session row is gone, and for an expired one, with no refresh', async () => {
+    live.sessions.delete('session-bearer')
+    expect((await serve('/api/app/v1/profile', { bearer: 'bearer' })).seen?.claims).toBeUndefined()
+    expect((await serve('/api/app/v1/profile', { bearer: 'expired' })).seen?.claims).toBeUndefined()
+    expect(createServerClient).not.toHaveBeenCalled()
+  })
+
+  it('hands the Bearer caller verified token on, for supabaseAuthServerAs and dispatchIntent', async () => {
+    const { seen } = await serve('/api/app/v1/email/change', { bearer: 'bearer', method: 'POST' })
+    expect(seen?.verifiedToken).toEqual({ accessToken: 'bearer', claims: claimsOf('bearer') })
+  })
+
+  it('lets a cross-site JSON POST with a web cookie through, served only as its Bearer caller', async () => {
+    const anonymousCall = await serve('/api/app/v1/profile', { method: 'POST', site: 'cross-site' })
+    expect(anonymousCall.response.status).toBe(200)
+    expect(anonymousCall.seen?.claims).toBeUndefined()
+    const bearerCall = await serve('/api/app/v1/profile', { bearer: 'bearer', method: 'POST', site: 'cross-site' })
+    expect(bearerCall.seen?.claims).toEqual(claimsOf('bearer'))
   })
 })

@@ -1,4 +1,5 @@
 /** `setNewPassword` on a code session: the policy before the write, every code and grant void after it. */
+import { getRequestEvent } from '$app/server'
 import { hasGrant, sessionCaller, writeGrant } from '$lib/auth/reauth.server'
 import { createThrowawayUser, dropThrowawayUser, makeProviderOnly, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { formError } from '$lib/forms/schemas'
@@ -10,6 +11,9 @@ const policy = vi.hoisted(() => ({ breached: false }))
 vi.mock('$lib/auth/passwordPolicy.server', () => ({ checkPassword: async () => (policy.breached ? 'breached' : 'ok') }))
 // The harness token carries no `amr`; the code-session rule has its own GoTrue tests.
 vi.mock('$lib/auth', async (original) => ({ ...(await original<object>()), isFreshCodeSession: () => true }))
+
+// The body acts through the caller's server client; here it answers the request's stub.
+vi.mock('$lib/auth/authServer.server', () => ({ supabaseAuthServerAs: () => getRequestEvent().locals.supabase.auth }))
 
 let user: SeedUser
 

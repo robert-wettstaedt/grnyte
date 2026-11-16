@@ -4,6 +4,7 @@ import { gotrueRefusal } from '$lib/auth/mail.server'
 import { addEmailIdentity } from '$lib/auth/methods.server'
 import { checkPassword } from '$lib/auth/passwordPolicy.server'
 import { voidReauth } from '$lib/auth/reauth.server'
+import { callerAuthServer } from '$lib/auth/session.server'
 import { formError } from '$lib/forms/schemas'
 import { refuseCommand } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
@@ -16,10 +17,11 @@ export async function setNewPassword({ password }: { password: string }) {
   if (!isFreshCodeSession(locals.claims)) refuseCommand(formError('auth_codeExpired'))
   if ((await checkPassword(password)) === 'breached') refuseCommand(formError('auth_passwordBreached'), 'password')
 
-  const { error: updateError } = await locals.supabase.auth.updateUser({ password })
+  const auth = callerAuthServer()
+  const { error: updateError } = await auth.updateUser({ password })
   if (updateError != null) refuseCommand(await gotrueRefusal(updateError, 'user'), 'password')
   await addEmailIdentity(locals.claims.sub)
   await voidReauth(locals.claims.sub)
-  await locals.supabase.auth.signOut({ scope: 'others' })
+  await auth.signOut({ scope: 'others' })
   return { done: true }
 }

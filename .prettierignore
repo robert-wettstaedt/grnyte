@@ -29,3 +29,5 @@ bun.lockb
 
 # Mutation testing output
 /reports/
+# Written by `v1.contract.test.ts`; reformatting it would fight the test.
+/src/lib/auth/app/v1.contract.json

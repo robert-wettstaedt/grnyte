@@ -1,8 +1,11 @@
 import { CONTESTED_SIGNUP, isContested } from '$lib/auth'
 import { db } from '$lib/db/db.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
+import { formError } from '$lib/forms/schemas'
 import { DAY_MS } from '$lib/i18n/relativeTime'
 import { logServerFailure } from '$lib/logging/failure.server'
+import { refuseCommand } from '$lib/remote/authed.server'
+import type { Session, User } from '@supabase/supabase-js'
 import { eq, sql } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
@@ -61,6 +64,22 @@ export async function flagContestedSignup(authUserId: string): Promise<boolean> 
     await logServerFailure('signup-contested', `flag failed for ${authUserId}: ${error.code ?? error.message}`)
   }
   return error == null
+}
+
+/**
+ * Holds a code's session on `client` (the cookie client, or the app path's in-memory one), then
+ * `contestedNext`; the session it ends with, none when the owner must go through reset.
+ */
+export async function holdCodeSession<Next extends string>(
+  client: App.Locals['supabase'],
+  { session, user }: { session: null | Session; user: null | User },
+  otherwise: Next,
+) {
+  if (session == null || user == null) return refuseCommand(formError('auth_unexpectedError'), 'code')
+  await client.auth.setSession(session)
+  const next = (await contestedNext(client, user)) ?? otherwise
+  const held = next === 'forgotPassword' ? null : (await client.auth.getSession()).data.session
+  return { next, session: held }
 }
 
 /** Tokens minted before this still carry the flag; the caller refreshes. */

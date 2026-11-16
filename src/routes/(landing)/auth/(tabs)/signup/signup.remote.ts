@@ -1,9 +1,9 @@
 import { command, form, getRequestEvent } from '$app/server'
-import { contestedNext } from '$lib/auth/contested.server'
+import { holdCodeSession } from '$lib/auth/contested.server'
 import { botFields } from '$lib/forms/botCheck'
 import { formError, mailedCodeSchema, passwordSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
-import { refuseCommand, refuseVia } from '$lib/remote/authed.server'
+import { refuseVia } from '$lib/remote/authed.server'
 import * as body from './signup.server'
 
 // `confirmPassword` is optional for one release: a tab loaded before the single field still sends it.
@@ -23,11 +23,12 @@ const resendSchema = z.object({
 export const signUp = form(signUpSchema, (submitted, issue) => body.signUp(submitted, refuseVia(issue)))
 
 export const confirmSignupCode = command(mailedCodeSchema, async (input) => {
-  const event = getRequestEvent()
-  const { session, user } = await body.confirmSignupCode(input)
-  if (session == null || user == null) return refuseCommand(formError('auth_unexpectedError'), 'code')
-  await event.locals.supabase.auth.setSession(session)
-  return { next: (await contestedNext(event.locals.supabase, user)) ?? ('profile' as const) }
+  const { next } = await holdCodeSession(
+    getRequestEvent().locals.supabase,
+    await body.confirmSignupCode(input),
+    'profile',
+  )
+  return { next }
 })
 
 export const resendSignupCode = form(resendSchema, (submitted, issue) =>

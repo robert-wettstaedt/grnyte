@@ -1,0 +1,885 @@
+{
+  "endpoints": {
+    "account/delete": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {}
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "account/deletion-preview": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {}
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "number"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "deletes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "number"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "blocks",
+          "deletes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "challenge": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {}
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "parameters"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    "email/change": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "email/confirm": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "email"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "refreshRequired": {
+            "type": "boolean"
+          },
+          "step": {
+            "type": "string",
+            "enum": [
+              "done",
+              "next"
+            ]
+          }
+        },
+        "required": [
+          "step"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "identities/unlink": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "apple",
+              "google"
+            ]
+          }
+        },
+        "required": [
+          "provider"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          },
+          "othersSignedOut": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "othersSignedOut"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "password/change": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "session": {
+            "type": "object",
+            "properties": {
+              "access_token": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "number"
+              },
+              "refresh_token": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "access_token",
+              "refresh_token"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "session"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "password/forgot": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "proofOfWork": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "proofOfWork"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "password/new": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "password/reset/confirm": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "email"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "next": {
+            "type": "string",
+            "enum": [
+              "choosePassword",
+              "forgotPassword",
+              "profile"
+            ]
+          },
+          "session": {
+            "type": "object",
+            "properties": {
+              "access_token": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "number"
+              },
+              "refresh_token": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "access_token",
+              "refresh_token"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "next"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "profile": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "gradingScale": {
+            "type": "string",
+            "enum": [
+              "FB",
+              "V"
+            ]
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "gradingScale",
+          "username"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reauth/confirm": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "account.delete",
+              "identity.link",
+              "identity.unlink",
+              "password.change",
+              "region.delete",
+              "region.transfer"
+            ]
+          },
+          "target": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "target",
+          "code"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "confirmed"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reauth/request": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "account.delete",
+              "identity.link",
+              "identity.unlink",
+              "password.change",
+              "region.delete",
+              "region.transfer"
+            ]
+          },
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "target"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "expiresAt": {
+            "type": "number"
+          },
+          "sentAt": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "expiresAt",
+          "sentAt"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reauth/status": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "account.delete",
+              "identity.link",
+              "identity.unlink",
+              "password.change",
+              "region.delete",
+              "region.transfer"
+            ]
+          },
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "target"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirmed"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "sessions/sign-out-others": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {}
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "sign-in-methods": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {}
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "configured": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hasPassword": {
+            "type": "boolean"
+          },
+          "providers": {
+            "type": "object",
+            "properties": {
+              "apple": {
+                "type": "object",
+                "properties": {
+                  "canUnlink": {
+                    "type": "boolean"
+                  },
+                  "linked": {
+                    "type": "boolean"
+                  },
+                  "relinks": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "canUnlink",
+                  "linked",
+                  "relinks"
+                ],
+                "additionalProperties": false
+              },
+              "google": {
+                "type": "object",
+                "properties": {
+                  "canUnlink": {
+                    "type": "boolean"
+                  },
+                  "linked": {
+                    "type": "boolean"
+                  },
+                  "relinks": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "canUnlink",
+                  "linked",
+                  "relinks"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "apple",
+              "google"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "configured",
+          "hasPassword",
+          "providers"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "signin/unconfirmed": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "confirm": {
+                "type": "string"
+              },
+              "resendToken": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "confirm",
+              "resendToken"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "alreadyConfirmed": {
+                "type": "boolean",
+                "const": true
+              }
+            },
+            "required": [
+              "alreadyConfirmed"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "signup": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "proofOfWork": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "proofOfWork"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          },
+          "resendToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "resendToken"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "signup/confirm": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "email"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "next": {
+            "type": "string",
+            "enum": [
+              "choosePassword",
+              "forgotPassword",
+              "profile"
+            ]
+          },
+          "session": {
+            "type": "object",
+            "properties": {
+              "access_token": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "number"
+              },
+              "refresh_token": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "access_token",
+              "refresh_token"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "next"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "signup/resend": {
+      "request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "proofOfWork": {
+            "type": "string"
+          },
+          "resendToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "proofOfWork"
+        ]
+      },
+      "response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "fixedErrors": {
+    "api_version_retired": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "const": "api_version_retired"
+            }
+          },
+          "required": [
+            "code"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "app_update_required": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "const": "app_update_required"
+            },
+            "minVersion": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "minVersion"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "refused_for_security": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "const": "refused_for_security"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
