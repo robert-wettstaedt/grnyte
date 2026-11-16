@@ -8,6 +8,7 @@ import {
   holdGrant,
   issueReauthCode,
   spendGrant,
+  unbindLinkGrant,
   verifyReauthCode,
   voidReauth,
   writeGrant,
@@ -58,6 +59,20 @@ describe.skipIf(!reachable)('bindLinkGrant', () => {
     expect(await hasGrant(me, 'identity.link', 'google:sub-1')).toBe(true)
     expect(await hasGrant(otherSession, 'identity.link', 'google')).toBe(true)
     expect(await hasGrant(me, 'identity.link', 'apple')).toBe(true)
+  })
+
+  it('gives a bound grant back, and leaves both when the session already holds a newer bare one', async () => {
+    const me = await caller()
+    await writeGrant(me, 'identity.link', 'google', 'email_code')
+    await bindLinkGrant(me, 'google', 'sub-2')
+    await unbindLinkGrant(me, 'google', 'sub-2')
+    expect(await hasGrant(me, 'identity.link', 'google')).toBe(true)
+
+    await bindLinkGrant(me, 'google', 'sub-3')
+    await writeGrant(me, 'identity.link', 'google', 'email_code')
+    await expect(unbindLinkGrant(me, 'google', 'sub-3')).resolves.toBeUndefined()
+    expect(await hasGrant(me, 'identity.link', 'google')).toBe(true)
+    expect(await hasGrant(me, 'identity.link', 'google:sub-3')).toBe(true)
   })
 })
 

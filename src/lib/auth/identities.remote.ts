@@ -1,7 +1,8 @@
 import { command, getRequestEvent, query } from '$app/server'
-import { IDENTITY_TARGETS } from '$lib/auth'
-import { hasRecentAppleRevocation, recordAuthEvent } from '$lib/auth/events.server'
+import { IDENTITY_TARGETS, PROVIDER_NAMES } from '$lib/auth'
+import { recordAuthEvent } from '$lib/auth/events.server'
 import { gotrueRefusal } from '$lib/auth/mail.server'
+import { appleRevocation } from '$lib/auth/oauth/linking.server'
 import { configuredProviders, type OAuthProvider } from '$lib/auth/oauth/providers.server'
 import { hasGrant, reauthCaller } from '$lib/auth/reauth.server'
 import { requireLiveSession } from '$lib/auth/session.server'
@@ -47,7 +48,6 @@ async function accountMethods(authUserId: string) {
   return { hasPassword, providers: { apple: state('apple'), google: state('google') } }
 }
 
-/** How the caller can sign in, and which providers this origin offers. */
 export const signInMethodsQuery = query(async () => {
   const { sub } = await requireLiveSession()
   return { ...(await accountMethods(sub)), configured: configuredProviders(getRequestEvent()) }
@@ -58,9 +58,7 @@ export const unlinkProvider = command(z.object({ provider: z.enum(IDENTITY_TARGE
   const caller = await reauthCaller()
   const { supabase } = getRequestEvent().locals
   if (!(await accountMethods(caller.authUserId)).providers[provider].canUnlink) {
-    refuseCommand(
-      formError('settings_signInMethodsLastMethod', { provider: provider === 'apple' ? 'Apple' : 'Google' }),
-    )
+    refuseCommand(formError('settings_signInMethodsLastMethod', { provider: PROVIDER_NAMES[provider] }))
   }
   if (!(await hasGrant(caller, 'identity.unlink', provider))) refuseCommand(formError('auth_reauthRequired'))
 
@@ -70,17 +68,33 @@ export const unlinkProvider = command(z.object({ provider: z.enum(IDENTITY_TARGE
   // Already gone (another device): the screen's next read shows it.
   if (identity == null) return { othersSignedOut: false }
 
+  const address = await accountAddress(caller.authUserId)
   await unlinkAtGoTrue(supabase, identity)
+  await keepAddress(caller.authUserId, address)
   await recordAuthEvent('identity_unlinked', { authUserId: caller.authUserId, detail: { provider } })
-  if (provider === 'apple' && !(await hasRecentAppleRevocation(caller.authUserId, 'identity.unlink', 'apple'))) {
-    await recordAuthEvent('apple_revoke_skipped', {
-      authUserId: caller.authUserId,
-      detail: { action: 'identity.unlink', target: 'apple' },
-    })
+  if (provider === 'apple') {
+    await appleRevocation(caller.authUserId, 'identity.unlink', 'apple', { linked: true })
   }
   const others = await supabase.auth.signOut({ scope: 'others' })
   return { othersSignedOut: others.error == null }
 })
+
+const accountAddress = async (authUserId: string) =>
+  (
+    await pinnedTx((tx) =>
+      tx.execute<{ email: null | string }>(sql`select email from auth.users where id = ${authUserId}`),
+    )
+  )[0]?.email ?? null
+
+/** GoTrue moves the address to a remaining identity's when the unlinked one reported it; the person's address stays. */
+async function keepAddress(authUserId: string, address: null | string) {
+  if (address == null) return
+  await pinnedTx((tx) =>
+    tx.execute(
+      sql`update auth.users set email = ${address} where id = ${authUserId} and email is distinct from ${address}`,
+    ),
+  )
+}
 
 /** Unlinks, or refuses the command; a dropped answer after GoTrue committed still unlinked it. */
 async function unlinkAtGoTrue(supabase: App.Locals['supabase'], identity: UserIdentity) {

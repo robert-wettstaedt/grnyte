@@ -1,5 +1,6 @@
 import { env } from '$env/dynamic/private'
 import { PUBLIC_ORIGIN } from '$env/static/public'
+import { IDENTITY_TARGETS, type OAuthProvider } from '$lib/auth'
 import type { RequestEvent } from '@sveltejs/kit'
 import { importPKCS8, SignJWT } from 'jose'
 import { createHash } from 'node:crypto'
@@ -12,7 +13,7 @@ import {
   type ServerMetadata,
 } from 'openid-client'
 
-export type OAuthProvider = 'apple' | 'google'
+export type { OAuthProvider }
 
 const ISSUERS: Record<OAuthProvider, string> = {
   apple: 'https://appleid.apple.com',
@@ -25,6 +26,36 @@ const ENV_NAMES: Record<OAuthProvider, string[]> = {
   google: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
 }
 
+/** Where the two providers differ; every other code path reads these fields, never the name. */
+export const PROVIDERS: Record<
+  OAuthProvider,
+  {
+    clientId: () => string
+    clientSecret: (clientId: string) => Promise<string>
+    /** Query parameters of the authorization request. */
+    params: (german: boolean) => Record<string, string>
+    /** Apple ignores PKCE; its code is bound by the client secret, `state` and the nonce. */
+    pkce: boolean
+    /** Only Apple's, which `revokeAppleToken` needs. */
+    refreshToken: boolean
+  }
+> = {
+  apple: {
+    clientId: () => env.APPLE_SERVICES_ID ?? '',
+    clientSecret: appleClientSecret,
+    params: (german) => ({ locale: german ? 'de_DE' : 'en_US', response_mode: 'form_post', scope: 'email' }),
+    pkce: false,
+    refreshToken: true,
+  },
+  google: {
+    clientId: () => env.GOOGLE_CLIENT_ID ?? '',
+    clientSecret: async () => env.GOOGLE_CLIENT_SECRET ?? '',
+    params: (german) => ({ hl: german ? 'de' : 'en', prompt: 'select_account', scope: 'openid email' }),
+    pkce: true,
+    refreshToken: false,
+  },
+}
+
 const APPLE_SECRET_LIFETIME_S = 5 * 60
 
 /** The one provider boundary: every call to Apple and Google goes through it. Tests swap it for the fake issuer. */
@@ -35,11 +66,10 @@ const throughProviderHttp: CustomFetch = (url, options) => providerHttp.fetch(ur
 /** Apple first; empty for a request on any origin the providers have not registered. */
 export function configuredProviders(event: Pick<RequestEvent, 'url'>): OAuthProvider[] {
   if (event.url.origin !== new URL(PUBLIC_ORIGIN).origin) return []
-  return (['apple', 'google'] as const).filter((provider) => ENV_NAMES[provider].every((name) => !!env[name]))
+  return IDENTITY_TARGETS.filter((provider) => ENV_NAMES[provider].every((name) => !!env[name]))
 }
 
-export const providerClientId = (provider: OAuthProvider): string =>
-  (provider === 'apple' ? env.APPLE_SERVICES_ID : env.GOOGLE_CLIENT_ID) ?? ''
+export const providerClientId = (provider: OAuthProvider): string => PROVIDERS[provider].clientId()
 
 /** Built from `PUBLIC_ORIGIN`, never the request: the providers allow-list exactly this URL. */
 export const redirectUri = (provider: OAuthProvider): string =>
@@ -47,18 +77,14 @@ export const redirectUri = (provider: OAuthProvider): string =>
 
 const metadata = new Map<OAuthProvider, Promise<ServerMetadata>>()
 
-/** What each provider gets besides the flow's own parameters. */
 export function authorizationParams(provider: OAuthProvider, locale: string): Record<string, string> {
-  const german = locale === 'de'
-  return provider === 'google'
-    ? { hl: german ? 'de' : 'en', prompt: 'select_account', scope: 'openid email' }
-    : { locale: german ? 'de_DE' : 'en_US', response_mode: 'form_post', scope: 'email' }
+  return PROVIDERS[provider].params(locale === 'de')
 }
 
 /** Per exchange: a cached one would freeze Apple's 5-minute client secret. */
 export async function oauthConfiguration(provider: OAuthProvider): Promise<Configuration> {
   const clientId = providerClientId(provider)
-  const secret = provider === 'apple' ? await appleClientSecret(clientId) : (env.GOOGLE_CLIENT_SECRET ?? '')
+  const secret = await PROVIDERS[provider].clientSecret(clientId)
   const config = new Configuration(await providerMetadata(provider), clientId, undefined, ClientSecretPost(secret))
   config[customFetch] = throughProviderHttp
   return config

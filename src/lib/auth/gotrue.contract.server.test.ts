@@ -2,6 +2,7 @@
  * The GoTrue behaviours grnyte relies on, measured on the release `GOTRUE_CONTRACT_VERSION` pins.
  * Each test names the grnyte code that breaks when it fails. `npm run test:gotrue`; skips without the stack.
  */
+import { addEmailIdentity } from '$lib/auth/methods.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { sql } from '$lib/db/testDb'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -51,6 +52,16 @@ async function mailsTo(email: string, match: RegExp, seen = 0): Promise<string[]
 const CHANGE_CODE = /^(\d+) is your grnyte email change code$/
 const newestCode = async (email: string, seen = 0) =>
   CHANGE_CODE.exec((await mailsTo(email, CHANGE_CODE, seen)).at(-1)!)![1]
+
+/** Unlinks Google on the session, behind the grant the identity guard spends; GoTrue's error. */
+async function unlinkGoogle(client: SupabaseClient, id: string) {
+  const session = (await client.auth.getSession()).data.session!
+  const sessionId = JSON.parse(atob(session.access_token.split('.')[1])).session_id
+  await sql`insert into public.reauth_grants (auth_user_fk, session_id, action, target, method, expires_at)
+    values (${id}, ${sessionId}, 'identity.unlink', 'google', 'email_code', now() + interval '5 minutes')`
+  const google = (await client.auth.getUserIdentities()).data?.identities.find((i) => i.provider === 'google')
+  return (await client.auth.unlinkIdentity(google!)).error
+}
 
 afterAll(async () => {
   if (gotrueReachable) for (const id of created) await admin().deleteUser(id)
@@ -144,6 +155,47 @@ describe.skipIf(!gotrueReachable)(
       const providers = await sql<{ provider: string }[]>`
         select provider from auth.identities where user_id = ${id} order by provider`
       expect(providers.map((row) => row.provider)).toEqual(['email', 'google'])
+    })
+
+    // Dependent: `addEmailIdentity` (methods.server.ts), or a provider-only account with a password cannot remove it.
+    it('setting a password on a provider-only account, on the session or by admin, writes no email identity', async () => {
+      const { email, id } = await account('pwonly')
+      await makeSocialOnly(id, email)
+      const client = await codeSignedIn(email)
+
+      expect((await client.auth.updateUser({ password: password() })).error).toBeNull()
+      expect((await admin().updateUserById(id, { password: password() })).error).toBeNull()
+      const providers = await sql<{ provider: string }[]>`select provider from auth.identities where user_id = ${id}`
+      expect(providers.map((row) => row.provider)).toEqual(['google'])
+    })
+
+    it('takes the email identity `addEmailIdentity` writes: the provider unlinks and the password signs in', async () => {
+      const { email, id } = await account('pwunlink')
+      await makeSocialOnly(id, email)
+      const client = await codeSignedIn(email)
+      const secret = password()
+      expect((await client.auth.updateUser({ password: secret })).error).toBeNull()
+      await addEmailIdentity(id)
+
+      expect(await unlinkGoogle(client, id)).toBeNull()
+      expect(await refreshes(await signedIn(email, secret))).toBe(true)
+    })
+
+    // Dependent: `unlinkProvider` (identities.server.ts) puts the address back after an unlink.
+    it("unlinking the identity that reports the account's address moves the address to another identity's", async () => {
+      const { email, id } = await account('moves')
+      await makeSocialOnly(id, email)
+      const other = address('movesapple')
+      await sql.begin(async (tx) => {
+        await tx`select set_config('grnyte.auth_user_created', ${id}, true)`
+        await tx`insert into auth.identities (user_id, provider, provider_id, identity_data, created_at, updated_at)
+          values (${id}, 'apple', ${crypto.randomUUID()}, ${tx.json({ email: other })}, now(), now())`
+      })
+      const client = await codeSignedIn(email)
+
+      expect(await unlinkGoogle(client, id)).toBeNull()
+      const [row] = await sql<{ email: string }[]>`select email from auth.users where id = ${id}`
+      expect(row.email).toBe(other)
     })
 
     // Dependent: the settings email screen (settings/email/+page.svelte), whose resend starts over at the

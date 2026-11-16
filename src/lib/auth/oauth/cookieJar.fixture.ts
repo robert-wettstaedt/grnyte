@@ -5,7 +5,6 @@ type Options = Parameters<Cookies['set']>[2]
 
 export function cookieJar(initial: Record<string, string> = {}) {
   const values = new Map(Object.entries(initial))
-  /** Every `Set-Cookie` the responses carried, in order. */
   const written: { name: string; options: Options; value: string }[] = []
 
   const cookies = {

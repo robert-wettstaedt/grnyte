@@ -19,7 +19,7 @@
  * migration ever ships late.
  */
 import 'dotenv/config'
-import { assertAuthConfig, assertGotrueVersion, GOTRUE_CONTRACT_VERSION } from './authConfig'
+import { assertAuthConfig, assertGotrueVersion, GOTRUE_CONTRACT_VERSION, unconfiguredProviders } from './authConfig'
 
 const failures: string[] = []
 
@@ -74,10 +74,13 @@ const authConfig =
       })
         .then((r) => r.json())
         .catch(() => ({}))
-const authFailures = assertAuthConfig(auth, authConfig, {
+const providerClients = {
   appleServicesId: process.env.APPLE_SERVICES_ID ?? '',
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
-})
+}
+const unconfigured = unconfiguredProviders(auth, authConfig, providerClients)
+for (const label of unconfigured) console.log(`warn  Sign in with ${label} is not set up (no client ID, off in GoTrue)`)
+const authFailures = assertAuthConfig(auth, authConfig, providerClients)
 for (const failure of authFailures) check(false, failure)
 if (authFailures.length === 0) check(true, 'GoTrue auth config (hook, codes, sessions, notices, limits, providers)')
 
@@ -87,8 +90,11 @@ const signInHtml = await fetch(`${required('PUBLIC_ORIGIN')}/auth/signin?form=si
 })
   .then((r) => r.text())
   .catch(() => '')
-for (const label of ['Continue with Apple', 'Continue with Google']) {
-  check(signInHtml.includes(label), `the deployed /auth/signin offers "${label}"`)
+for (const provider of ['Apple', 'Google'].filter((p) => !unconfigured.includes(p))) {
+  check(
+    signInHtml.includes(`Continue with ${provider}`),
+    `the deployed /auth/signin offers "Continue with ${provider}"`,
+  )
 }
 
 // Hosted GoTrue upgrades without notice; the behaviours grnyte relies on were tested on one release.

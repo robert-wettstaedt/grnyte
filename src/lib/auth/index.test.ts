@@ -14,6 +14,11 @@ describe('isSameOriginPath', () => {
     '/\\evil.com',
     '/\t/evil.com',
     '\\\\evil.com',
+    // Dot segments that collapse into a scheme-relative path.
+    '/..//evil.com',
+    '/%2e%2e//evil.com',
+    '/./\\evil.com',
+    '/a/../..//evil.com',
     'javascript:alert(1)',
     'auth',
     '/set\ttings',

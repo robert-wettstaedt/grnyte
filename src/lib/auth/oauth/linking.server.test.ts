@@ -1,4 +1,3 @@
-/** Matching a provider sign-in to an account, on the throwaway DB. */
 import { deleteAccountRows } from '$lib/db/testAccounts'
 import { reachable, sql } from '$lib/db/testDb'
 import { afterAll, describe, expect, it } from 'vitest'

@@ -6,7 +6,6 @@
 
   // Form-level issues only (an empty `path`); field-tied ones render inline via FormHint.
   interface Props {
-    /** More inside the same banner, under the message (sign-in's provider hint). */
     children?: Snippet
     form: { fields: { allIssues(): RemoteFormIssue[] | undefined } }
   }

@@ -1,5 +1,5 @@
-import { hasRecentAppleRevocation, recordAuthEvent } from '$lib/auth/events.server'
 import { signInMethods } from '$lib/auth/methods.server'
+import { appleRevocation } from '$lib/auth/oauth/linking.server'
 import { spendGrant, type ReauthCaller } from '$lib/auth/reauth.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { activities } from '$lib/db/retired'
@@ -93,11 +93,9 @@ export async function deleteAccount(account: Account, caller: ReauthCaller): Pro
   await removeFileStorage(outcome.targets)
 
   // Apple-linkedness from `methods`: GoTrue's delete took the identities.
-  const appleRevoked = await hasRecentAppleRevocation(account.authUserFk, 'account.delete', account.authUserFk)
-  if (methods.providers.includes('apple') && !appleRevoked) {
-    const detail = { action: 'account.delete', provider: 'apple', target: account.authUserFk }
-    await recordAuthEvent('apple_revoke_skipped', { authUserId: account.authUserFk, detail })
-  }
+  const appleRevoked = await appleRevocation(account.authUserFk, 'account.delete', account.authUserFk, {
+    linked: methods.providers.includes('apple'),
+  })
 
   const locale = contactLocale(settings?.locale)
   await sendEmail({

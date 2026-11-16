@@ -3,6 +3,7 @@
  * Skips visibly without the stack (always in CI).
  */
 import { CONTESTED_SIGNUP } from '$lib/auth'
+import { cookieJar } from '$lib/auth/oauth/cookieJar.fixture'
 import { sessionCaller, writeGrant } from '$lib/auth/reauth.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { sql } from '$lib/db/testDb'
@@ -48,12 +49,15 @@ const works = async (client: SupabaseClient) => (await client.auth.getUser()).er
 
 /** `signIn` as a fresh browser would submit it, answering its result or its refusal key. */
 const signInAs = (email: string, password: string) =>
-  asAnonymousRequest({ auth: publicClient().auth }, () =>
-    callForm<{ issues?: { message: string }[]; result?: Record<string, unknown> }>(signIn, {
-      codeFlow: '1',
-      email,
-      password,
-    }),
+  asAnonymousRequest(
+    { auth: publicClient().auth },
+    () =>
+      callForm<{ issues?: { message: string }[]; result?: Record<string, unknown> }>(signIn, {
+        codeFlow: '1',
+        email,
+        password,
+      }),
+    cookieJar().cookies,
   ).then(
     ({ issues, result }) => result ?? JSON.parse(issues?.[0]?.message ?? '{}').message,
     (cause: { body?: { message: string } }) => JSON.parse(cause.body?.message ?? '{}').message as string,

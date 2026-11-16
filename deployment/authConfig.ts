@@ -26,6 +26,11 @@ export interface ProviderClients {
 
 const firstClientId = (value: unknown) => (typeof value === 'string' ? value.split(',')[0].trim() : undefined)
 
+const PROVIDERS = [
+  { clientEnv: 'APPLE_SERVICES_ID', key: 'apple', label: 'Apple', ownId: (c: ProviderClients) => c.appleServicesId },
+  { clientEnv: 'GOOGLE_CLIENT_ID', key: 'google', label: 'Google', ownId: (c: ProviderClients) => c.googleClientId },
+] as const
+
 /** Every expectation that does not hold, as a readable line; empty when the config is right. */
 export function assertAuthConfig(settings: Json, config: Json, clients: ProviderClients): string[] {
   const external = (settings.external ?? {}) as Json
@@ -54,28 +59,36 @@ export function assertAuthConfig(settings: Json, config: Json, clients: Provider
     ],
     [config.external_phone_enabled === false, 'phone sign-up is off'],
     [config.external_anonymous_users_enabled === false, 'anonymous sign-in is off'],
-    // Sign in with Apple and Google (`add-social-sign-in` design decision 12).
-    [external.apple === true && config.external_apple_enabled === true, 'the Apple provider is enabled'],
-    [external.google === true && config.external_google_enabled === true, 'the Google provider is enabled'],
-    [
-      clients.appleServicesId !== '' && firstClientId(config.external_apple_client_id) === clients.appleServicesId,
-      'the Apple client IDs start with APPLE_SERVICES_ID',
-    ],
-    [
-      clients.googleClientId !== '' && firstClientId(config.external_google_client_id) === clients.googleClientId,
-      'the Google client IDs start with GOOGLE_CLIENT_ID',
-    ],
-    [
-      config.external_apple_skip_nonce_check === false,
-      'Apple checks the nonce (external_apple_skip_nonce_check false)',
-    ],
-    [
-      config.external_google_skip_nonce_check === false,
-      'Google checks the nonce (external_google_skip_nonce_check false)',
-    ],
     [config.security_manual_linking_enabled === true, 'manual linking is on (security_manual_linking_enabled)'],
     [config.mailer_notifications_identity_linked_enabled === true, 'the identity-linked notice is on'],
     [config.mailer_notifications_identity_unlinked_enabled === true, 'the identity-unlinked notice is on'],
   ]
+  // Sign in with Apple and Google; half set up still fails.
+  const unconfigured = unconfiguredProviders(settings, config, clients)
+  for (const { clientEnv, key, label, ownId } of PROVIDERS) {
+    if (unconfigured.includes(label)) continue
+    expectations.push(
+      [external[key] === true && config[`external_${key}_enabled`] === true, `the ${label} provider is enabled`],
+      [
+        ownId(clients) !== '' && firstClientId(config[`external_${key}_client_id`]) === ownId(clients),
+        `the ${label} client IDs start with ${clientEnv}`,
+      ],
+    )
+  }
+  // The Management API exposes no Apple skip-nonce switch; Google's is the only one to assert.
+  if (!unconfigured.includes('Google')) {
+    expectations.push([
+      config.external_google_skip_nonce_check === false,
+      'Google checks the nonce (external_google_skip_nonce_check false)',
+    ])
+  }
   return expectations.filter(([ok]) => ok !== true).map(([, message]) => message)
+}
+
+/** Providers with no client ID here and switched off in GoTrue: not set up yet, so check:prod only warns. */
+export function unconfiguredProviders(settings: Json, config: Json, clients: ProviderClients): string[] {
+  const external = (settings.external ?? {}) as Json
+  return PROVIDERS.filter(
+    (p) => p.ownId(clients) === '' && external[p.key] !== true && config[`external_${p.key}_enabled`] !== true,
+  ).map((p) => p.label)
 }

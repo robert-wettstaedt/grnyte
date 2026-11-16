@@ -1,4 +1,5 @@
 import { PUBLIC_ORIGIN } from '$env/static/public'
+import type { ReauthAction } from '$lib/auth'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { authEvents } from '$lib/db/serverOnly'
 import { logServerFailure } from '$lib/logging/failure.server'
@@ -37,7 +38,11 @@ const FAILURES: ReadonlySet<AuthEventKind> = new Set([
 ])
 
 /** Whether Apple's token was revoked for exactly this action and target in the last 10 minutes. */
-export async function hasRecentAppleRevocation(authUserId: string, action: string, target: string): Promise<boolean> {
+export async function hasRecentAppleRevocation(
+  authUserId: string,
+  action: ReauthAction,
+  target: string,
+): Promise<boolean> {
   const found = await pinnedTx((tx) =>
     tx
       .select({ id: authEvents.id })

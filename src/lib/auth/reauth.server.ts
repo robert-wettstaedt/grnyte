@@ -1,5 +1,5 @@
 import { getRequestEvent } from '$app/server'
-import { CODE_LIFETIME_MS, IDENTITY_TARGETS, type ReauthAction } from '$lib/auth'
+import { CODE_LIFETIME_MS, IDENTITY_TARGETS, type OAuthProvider, type ReauthAction } from '$lib/auth'
 import { pinnedTx } from '$lib/db/pinned.server'
 import type * as schema from '$lib/db/schema'
 import { reauthChallenges, reauthGrants } from '$lib/db/serverOnly'
@@ -177,7 +177,7 @@ async function upsertGrant(tx: Tx, caller: ReauthCaller, action: ReauthAction, t
 const live = () => gt(reauthGrants.expiresAt, new Date())
 
 /** Re-targets this session's `identity.link` grant to the verified identity, the only form the trigger spends. */
-export async function bindLinkGrant(caller: ReauthCaller, provider: string, sub: string): Promise<boolean> {
+export async function bindLinkGrant(caller: ReauthCaller, provider: OAuthProvider, sub: string): Promise<boolean> {
   const bound = await pinnedTx((tx) =>
     tx
       .update(reauthGrants)
@@ -217,6 +217,19 @@ export async function spendGrant(tx: Tx, caller: ReauthCaller, action: ReauthAct
     .where(and(key(reauthGrants, caller, action, target), live()))
     .returning({ id: reauthGrants.id })
   return spent.length > 0
+}
+
+/** Undoes {@link bindLinkGrant} after GoTrue certainly did not link, so "Try again" still finds the grant. */
+export async function unbindLinkGrant(caller: ReauthCaller, provider: OAuthProvider, sub: string): Promise<void> {
+  await pinnedTx((tx) =>
+    tx
+      .update(reauthGrants)
+      .set({ target: provider })
+      .where(and(key(reauthGrants, caller, 'identity.link', `${provider}:${sub}`), live())),
+  ).catch((cause: unknown) => {
+    // A newer bare grant from the same session already holds the key: "Try again" has one.
+    if (Object(Object(cause).cause).code !== '23505' && Object(cause).code !== '23505') throw cause
+  })
 }
 
 /** Deletes every open code and grant of the account, after its credentials changed. */

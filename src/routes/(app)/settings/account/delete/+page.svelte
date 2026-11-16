@@ -2,8 +2,6 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { appleConfirmation } from '$lib/auth/appleConfirmation.svelte'
-  import ConfirmWithApple from '$lib/auth/ConfirmWithApple.svelte'
   import ReauthStep, { withReauth } from '$lib/auth/ReauthStep.svelte'
   import QueryError from '$lib/components/QueryState/QueryError.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
@@ -23,7 +21,6 @@
 
   const store = createFormStore(deleteAccountSchema)
   const preview = remoteResource(accountDeletionPreview())
-  const apple = appleConfirmation()
 
   const blocks = $derived(preview.data?.blocks ?? [])
   const deletes = $derived(preview.data?.deletes ?? [])
@@ -59,10 +56,6 @@
 <svelte:head>
   <title>{m.settings_deleteAccount()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
-
-{#snippet withApple()}
-  <ConfirmWithApple action="account.delete" target="self" variant="filled" />
-{/snippet}
 
 <Form
   {store}
@@ -118,8 +111,7 @@
       email={page.data.session?.user.email ?? ''}
       next={m.settings_deleteAccountNext()}
       target="self"
-      ready={settled && apple.settled}
-      alternatives={apple.available ? withApple : undefined}
+      ready={settled}
     />
   {/if}
 

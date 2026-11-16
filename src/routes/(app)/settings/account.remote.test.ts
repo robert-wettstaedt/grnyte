@@ -1,7 +1,15 @@
 import { getRequestEvent } from '$app/server'
 // @vitest-environment node
 import { hasGrant, issueReauthCode, sessionCaller, writeGrant } from '$lib/auth/reauth.server'
-import { createThrowawayUser, dropThrowawayUser, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
+import {
+  createThrowawayUser,
+  dropThrowawayUser,
+  makeProviderOnly,
+  reachable,
+  seedUsers,
+  sql,
+  type SeedUser,
+} from '$lib/db/testDb'
 import { formError } from '$lib/forms/schemas'
 import { asRequest, withLocals } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -283,6 +291,15 @@ describe.skipIf(!reachable)('updatePasswordCommand', () => {
     expect(gotrue.mails.filter((mail) => mail.template === 'password-changed')).toEqual([
       { template: 'password-changed', to: user.email },
     ])
+  })
+
+  it('gives an account that has only a provider its email identity', async () => {
+    await makeProviderOnly(user, 'google')
+
+    await change({ password: NEW }, confirmed)
+    const providers = await sql<{ provider: string }[]>`
+      select provider from auth.identities where user_id = ${user.authId} order by provider`
+    expect(providers.map((row) => row.provider)).toEqual(['email', 'google'])
   })
 
   it.each([

@@ -145,7 +145,6 @@
   <title>{terminal?.title ?? m.invite_title()} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<!-- The mismatch line's addresses and who to ask, bold as the board draws them. -->
 {#snippet bold(text: string)}<b class="text-surface-950-50 font-semibold break-all">{text}</b>{/snippet}
 {#snippet current()}{@render bold(data.sessionEmail ?? '')}{/snippet}
 {#snippet email()}{@render bold(data.inviteEmail ?? '')}{/snippet}

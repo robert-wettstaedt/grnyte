@@ -1,4 +1,5 @@
 import { appleButton, reauthRemote, resetReauthRemote } from '$lib/auth/reauth.fixture'
+import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
 import { toaster } from '$lib/state/toast'
 import { fireEvent, render, screen, within } from '@testing-library/svelte'
@@ -149,6 +150,22 @@ it('reopens Remove Apple from ?step= without sliding, confirmed, and one press r
   expect(toast).toHaveBeenCalledWith(
     expect.objectContaining({ title: 'Apple removed. Your other devices are signed out.' }),
   )
+})
+
+it('sends the step back when Remove answers that it needs a fresh confirmation, and toasts nothing', async () => {
+  resetReauthRemote(true)
+  answer.providers.google = { canUnlink: true, linked: true, relinks: false }
+  identities.unlinkProvider.mockRejectedValueOnce({ body: { message: formError('auth_reauthRequired') } })
+  const toast = vi.spyOn(toaster, 'create')
+  toast.mockClear()
+  await visit('?step=remove-google')
+
+  await fireEvent.click(button('Remove Google')!)
+  await settle()
+
+  expect(button('Remove Google')).toBeNull()
+  expect(reauthRemote.requestReauthCode).toHaveBeenCalledOnce()
+  expect(toast).not.toHaveBeenCalled()
 })
 
 it('offers Change for a set password', async () => {

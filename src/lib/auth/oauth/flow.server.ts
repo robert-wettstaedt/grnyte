@@ -1,12 +1,11 @@
 import { PUBLIC_ORIGIN } from '$env/static/public'
 import { isContested, signedInRedirectTarget, type VerifiedToken } from '$lib/auth'
 import { supabaseAuthServer, supabaseAuthServerAs, type AuthServer } from '$lib/auth/authServer.server'
-import { clearContestedFlag } from '$lib/auth/contested.server'
+import { clearContestedFlag, endSession } from '$lib/auth/contested.server'
 import { recordAuthEvent, type AuthEventKind } from '$lib/auth/events.server'
 import { rememberMethod } from '$lib/auth/lastMethod.server'
 import { signInMethods } from '$lib/auth/methods.server'
-import { bindLinkGrant, hasGrant, type ReauthCaller } from '$lib/auth/reauth.server'
-import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
+import { bindLinkGrant, hasGrant, unbindLinkGrant, type ReauthCaller } from '$lib/auth/reauth.server'
 import { hasDeletionMarker } from '$lib/entities/user/provision.server'
 import { getLocale } from '$lib/paraglide/runtime'
 import type { Session } from '@supabase/supabase-js'
@@ -28,7 +27,9 @@ import {
   providerClientId,
   providerMetadata,
   providerNonce,
+  PROVIDERS,
   redirectUri,
+  revokeAppleToken,
   type OAuthProvider,
 } from './providers.server'
 import {
@@ -69,14 +70,12 @@ export async function buildAuthorizationUrl(
     nonce: providerNonce(tx.nonce),
     redirect_uri: redirectUri(provider),
     state: tx.state,
-    // Apple ignores PKCE; its code is bound by the client secret, `state` and the nonce.
-    ...(provider === 'google'
+    ...(PROVIDERS[provider].pkce
       ? { code_challenge: await calculatePKCECodeChallenge(tx.codeVerifier), code_challenge_method: 'S256' }
       : {}),
   })
 }
 
-/** Sets the transaction and sends the browser to the provider; refuses a provider not configured here. */
 export async function startOAuth(
   event: RequestEvent,
   provider: OAuthProvider,
@@ -86,7 +85,6 @@ export async function startOAuth(
 ): Promise<never> {
   if (!configuredProviders(event).includes(provider)) redirect(303, `${ERROR_PATH}?reason=failed`)
   if (intent.kind === 'signin' && event.locals.claims != null) redirect(303, signedInRedirectTarget(next))
-  // Back to the step, which asks to confirm first.
   if (intent.kind === 'link' && !(await hasGrant(intent.caller, 'identity.link', provider))) redirect(303, returnTo)
   // Without Apple there is nothing to confirm with; the screen still offers the code.
   if (intent.kind === 'confirm' && !(await signInMethods(intent.caller.authUserId)).providers.includes('apple')) {
@@ -111,7 +109,6 @@ export async function startOAuth(
 
 const CANCELLED = new Set(['access_denied', 'user_cancelled_authorize'])
 
-/** One callback for every carrier: take, check, exchange, land. */
 export async function completeOAuth(event: RequestEvent, provider: OAuthProvider): Promise<never> {
   const params = event.url.searchParams
   const state = params.get('state')
@@ -161,17 +158,13 @@ export async function dispatchIntent(
     action,
     target,
     proof.claims,
-    proof.refreshToken,
+    async () => proof.refreshToken != null && revokeAppleToken(proof.refreshToken, providerClientId('apple')),
   )
   return answer === 'granted' ? { kind: 'confirmed' } : answer === 'expired' ? EXPIRED : FAILED
 }
 
-/** Signs in through `decideSignIn`, refusing a deletion-marked account. */
 async function signIn(ctx: DispatchContext, provider: OAuthProvider, proof: VerifiedProof): Promise<OAuthOutcome> {
-  const decision = await decideSignIn(provider, {
-    email: proof.claims.email as string | undefined,
-    sub: proof.claims.sub,
-  })
+  const decision = await decideSignIn(provider, claimsOf(proof))
   if (decision.kind === 'refuse') {
     await recordAuthEvent('oauth_link_refused', { detail: { provider, reason: 'confirmed_account' } })
     return { kind: 'refused', reason: 'exists' }
@@ -193,8 +186,6 @@ async function signIn(ctx: DispatchContext, provider: OAuthProvider, proof: Veri
   return isContested(user.app_metadata) ? takeOver(ctx, user.id, session) : { kind: 'signedIn', session }
 }
 
-const endSession = (session: Session) => supabaseAdmin().auth.admin.signOut(session.access_token, 'local')
-
 /** GoTrue just took the unconfirmed account over; its token still carries the flag `verifyAccessToken` refuses. */
 async function takeOver(ctx: DispatchContext, authUserId: string, session: Session): Promise<OAuthOutcome> {
   const cleared = await clearContestedFlag(authUserId)
@@ -211,7 +202,7 @@ async function takeOver(ctx: DispatchContext, authUserId: string, session: Sessi
 const EXPIRED = { kind: 'refused', reason: 'expired' } as const
 const FAILED = { kind: 'refused', reason: 'failed' } as const
 
-/** The code grant; `openid-client` checks `state`, `iss`, `aud` and the nonce (design decision 4). */
+/** The code grant; openid-client checks state, iss, aud and the nonce. */
 async function exchange(event: RequestEvent, tx: OAuthTransaction): Promise<CallbackResult> {
   // On PUBLIC_ORIGIN, so the token request's redirect_uri is `redirectUri` whatever host this ran on.
   const currentUrl = new URL(event.url.pathname + event.url.search, PUBLIC_ORIGIN)
@@ -220,22 +211,24 @@ async function exchange(event: RequestEvent, tx: OAuthTransaction): Promise<Call
       expectedNonce: providerNonce(tx.nonce),
       expectedState: tx.state,
       idTokenExpected: true,
-      pkceCodeVerifier: tx.provider === 'google' ? tx.codeVerifier : undefined,
+      pkceCodeVerifier: PROVIDERS[tx.provider].pkce ? tx.codeVerifier : undefined,
     })
     const claims = tokens.claims()
     if (claims == null || tokens.id_token == null) return { kind: 'failed', reason: 'failed' }
     const proof: VerifiedProof = { claims, idToken: tokens.id_token, rawNonce: tx.nonce }
-    if (tx.provider === 'apple' && tokens.refresh_token != null) proof.refreshToken = tokens.refresh_token
+    if (PROVIDERS[tx.provider].refreshToken && tokens.refresh_token != null) proof.refreshToken = tokens.refresh_token
     return { kind: 'proof', proof }
   } catch (cause) {
     const kind = mismatchKind(cause)
-    if (kind != null) await recordAuthEvent(kind, { detail: { provider: tx.provider } })
+    const iss = refusedIssuer(cause)
+    if (kind != null)
+      await recordAuthEvent(kind, { detail: { provider: tx.provider, ...(iss == null ? {} : { iss }) } })
     else console.warn(`[oauth] ${tx.provider} exchange failed:`, cause)
     return { kind: 'failed', reason: 'failed' }
   }
 }
 
-/** Adds the verified identity to the caller who started the flow, spending their bound grant (design decision 6). */
+/** Adds the verified identity to the caller who started the flow, spending their bound grant. */
 async function link(
   event: RequestEvent,
   token: VerifiedToken,
@@ -245,10 +238,7 @@ async function link(
 ): Promise<OAuthOutcome> {
   if (!(await isStartingCaller(token, caller))) return EXPIRED
 
-  const decision = await decideLink(caller.authUserId, provider, {
-    email: proof.claims.email as string | undefined,
-    sub: proof.claims.sub,
-  })
+  const decision = await decideLink(caller.authUserId, provider, claimsOf(proof))
   if (decision === 'alreadyLinked') return { kind: 'linked' }
   if (decision !== 'ok') {
     const reason = decision === 'identityElsewhere' ? 'conflict_identity' : 'conflict_email'
@@ -257,12 +247,21 @@ async function link(
   }
   // Without this session's grant (none, or spent) the settings step asks to confirm again.
   if (!(await bindLinkGrant(caller, provider, proof.claims.sub))) return EXPIRED
-  if (!(await linkAtGoTrue(event, token, provider, proof))) return FAILED
+  if (!(await linkAtGoTrue(event, token, provider, proof))) {
+    // A link that happened spent the grant in GoTrue's transaction, so this restores only an unspent one.
+    await unbindLinkGrant(caller, provider, proof.claims.sub)
+    return FAILED
+  }
   await recordAuthEvent('identity_linked', { authUserId: caller.authUserId, detail: { provider } })
   return { kind: 'linked' }
 }
 
-async function linkAtGoTrue(event: RequestEvent, token: VerifiedToken, provider: OAuthProvider, proof: VerifiedProof) {
+async function linkAtGoTrue(
+  event: RequestEvent,
+  token: VerifiedToken,
+  provider: OAuthProvider,
+  proof: VerifiedProof,
+): Promise<boolean> {
   const { data, error } = await supabaseAuthServerAs(event, token).linkIdentity({
     nonce: proof.rawNonce,
     provider,
@@ -283,10 +282,20 @@ const MISMATCHES: Record<string, AuthEventKind> = {
   nonce: 'oauth_nonce_mismatch',
 }
 
+const claimsOf = (proof: VerifiedProof) => ({ email: proof.claims.email as string | undefined, sub: proof.claims.sub })
+
+const causeDetail = (cause: unknown): object => Object(Object(Object(cause).cause).cause)
+
 /** The library names a mismatched claim two causes down; a mismatched `iss` parameter carries the parameters. */
 function mismatchKind(cause: unknown): AuthEventKind | undefined {
-  const detail: { claim?: string; parameters?: unknown } = Object(Object(Object(cause).cause).cause)
+  const detail: { claim?: string; parameters?: unknown } = causeDetail(cause)
   return 'parameters' in detail ? 'oauth_iss_mismatch' : MISMATCHES[detail.claim ?? '']
+}
+
+// The refused token's issuer: Google documents a legacy bare `accounts.google.com`, which the library refuses.
+function refusedIssuer(cause: unknown): string | undefined {
+  const detail: { claim?: string; claims?: { iss?: unknown } } = causeDetail(cause)
+  return detail.claim === 'iss' && typeof detail.claims?.iss === 'string' ? detail.claims.iss : undefined
 }
 
 // A conflict page names the provider ("This Apple ID is on another account"); no other reason does.
@@ -328,12 +337,14 @@ const webCarrier: TransactionCarrier = {
       redirect(303, outcome.reason === 'deleted' ? '/auth/signin?deleted=1' : errorPage(tx, outcome.reason))
     }
     const { error } = await locals.supabase.auth.setSession(outcome.session)
-    if (error != null) redirect(303, errorPage(tx, 'failed'))
+    if (error != null) {
+      await endSession(outcome.session)
+      redirect(303, errorPage(tx, 'failed'))
+    }
     rememberMethod(event.cookies, tx.provider)
     redirect(303, signedInRedirectTarget(tx.next))
   },
   take: (event) => takeWebTransaction(event),
 }
 
-/** Asked in order; change 3 puts its app carrier first, whose miss has no side effect. */
 export const carriers: TransactionCarrier[] = [webCarrier]

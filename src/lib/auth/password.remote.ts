@@ -1,6 +1,7 @@
 import { command, getRequestEvent } from '$app/server'
 import { isFreshCodeSession } from '$lib/auth'
 import { gotrueRefusal } from '$lib/auth/mail.server'
+import { addEmailIdentity } from '$lib/auth/methods.server'
 import { checkPassword } from '$lib/auth/passwordPolicy.server'
 import { voidReauth } from '$lib/auth/reauth.server'
 import { formError, passwordSchema } from '$lib/forms/schemas'
@@ -18,6 +19,7 @@ export const setNewPassword = command(z.object({ password: passwordSchema }), as
 
   const { error: updateError } = await locals.supabase.auth.updateUser({ password })
   if (updateError != null) refuseCommand(await gotrueRefusal(updateError, 'user'), 'password')
+  await addEmailIdentity(locals.claims.sub)
   await voidReauth(locals.claims.sub)
   await locals.supabase.auth.signOut({ scope: 'others' })
   return { done: true }

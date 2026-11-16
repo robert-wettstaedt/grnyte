@@ -1,4 +1,3 @@
-/** Sign-in methods and unlinking through the harness: identities seeded by SQL, GoTrue's user endpoints faked on the session client. */
 import { reachable, sql } from '$lib/db/testDb'
 import { asRequest, commandRefusal } from '$lib/remote/testHarness'
 import { afterAll, describe, expect, it, vi } from 'vitest'
@@ -55,7 +54,7 @@ async function account(
 }
 
 /** The session client's user endpoints: what GoTrue lists before and after the unlink. */
-function sessionClient(providers: Method[], { failUnlink = false, goneAfterFailure = true } = {}) {
+function sessionClient(providers: Method[], { failUnlink = false, goneAfterFailure = true, movesAddressOf = '' } = {}) {
   let listed = providers.map((provider) => ({ identity_id: `id-${provider}`, provider }))
   const calls: string[] = []
   return {
@@ -69,6 +68,11 @@ function sessionClient(providers: Method[], { failUnlink = false, goneAfterFailu
         },
         unlinkIdentity: async ({ identity_id }: { identity_id: string }) => {
           calls.push(`unlink:${identity_id}`)
+          // GoTrue's rule (gotrue.contract): the address moves to a remaining identity's.
+          if (movesAddressOf !== '') {
+            await sql`update auth.users u set email = i.identity_data->>'email' from auth.identities i
+              where u.id = ${movesAddressOf} and i.user_id = u.id and i.provider = 'apple'`
+          }
           if (!failUnlink || goneAfterFailure) listed = listed.filter((i) => i.identity_id !== identity_id)
           return { data: {}, error: failUnlink ? { message: 'dropped', status: 0 } : null }
         },
@@ -191,5 +195,15 @@ describe.skipIf(!reachable)('unlinkProvider', () => {
 
     await asRequest(id, confirmedUnlink('apple'), supabase)
     expect(await events(id, 'apple_revoke_skipped')).toBe(skipped)
+  })
+
+  it('keeps the address when GoTrue moves it to the remaining identity', async () => {
+    const id = await account('moved', 'gmail.com', { apple: 'moved@icloud.com', google: 'moved@gmail.com' })
+    const [before] = await sql<{ email: string }[]>`select email from auth.users where id = ${id}`
+    const { supabase } = sessionClient(['apple', 'google'], { movesAddressOf: id })
+
+    await asRequest(id, confirmedUnlink('google'), supabase)
+    const [after] = await sql<{ email: string }[]>`select email from auth.users where id = ${id}`
+    expect(after.email).toBe(before.email)
   })
 })

@@ -1,4 +1,3 @@
-/** The shared fake Apple and Google: discovery, keys and token endpoint, served through `providerHttp`. */
 import { exportJWK, exportPKCS8, generateKeyPair, SignJWT, type JWK } from 'jose'
 import { providerHttp, type OAuthProvider } from './providers.server'
 
@@ -28,11 +27,9 @@ export interface TokenRequest {
 const signing = await generateKeyPair('RS256', { extractable: true })
 const publicJwk: JWK = { ...(await exportJWK(signing.publicKey)), alg: 'RS256', kid: 'fake-1', use: 'sig' }
 
-/** An ES256 key in `.p8` form for `APPLE_PRIVATE_KEY`, and its public half. */
 export const appleKey = await generateKeyPair('ES256', { extractable: true })
 export const applePrivateKeyPem = await exportPKCS8(appleKey.privateKey)
 
-/** Every provider variable set, for `vi.stubEnv`. */
 export const PROVIDER_ENV = {
   APPLE_KEY_ID: 'APPLEKEY01',
   APPLE_PRIVATE_KEY: applePrivateKeyPem,
@@ -42,7 +39,6 @@ export const PROVIDER_ENV = {
   GOOGLE_CLIENT_SECRET: 'google-secret',
 }
 
-/** An ID token as the provider would sign it; `aud` defaults to the client ID the request names. */
 export function signIdToken(provider: OAuthProvider, claims: IdTokenClaims, clientId = ''): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
   return new SignJWT({ email_verified: true, ...claims })
@@ -115,11 +111,9 @@ export function fakeIssuer() {
 
   return {
     discoveries,
-    /** The next token answer's ID token claims. */
     issue(claims: IdTokenClaims) {
       state.claims = claims
     },
-    /** What the authorization URL asked the provider to echo. */
     rememberNonce(nonce: null | string) {
       state.nonce = nonce ?? undefined
     },

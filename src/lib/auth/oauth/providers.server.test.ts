@@ -1,4 +1,3 @@
-/** Provider configuration: literal vectors, no network. */
 import { decodeProtectedHeader, jwtVerify } from 'jose'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { appleKey, PROVIDER_ENV, RAW_NONCE, RAW_NONCE_DIGEST } from './issuer.fixture'

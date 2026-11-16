@@ -87,6 +87,16 @@ export async function dropThrowawayUser(user: SeedUser): Promise<void> {
   await sql`delete from auth.users where id = ${user.authId}`
 }
 
+/** Confirms a {@link createThrowawayUser} account and gives it one provider identity, as a provider sign-up leaves it. */
+export async function makeProviderOnly(user: SeedUser, provider: 'apple' | 'google'): Promise<void> {
+  await sql.begin(async (tx) => {
+    await tx`update auth.users set email_confirmed_at = now() where id = ${user.authId}`
+    await tx`select set_config('grnyte.auth_user_created', ${user.authId}, true)`
+    await tx`insert into auth.identities (user_id, provider, provider_id, identity_data)
+      values (${user.authId}, ${provider}, ${crypto.randomUUID()}, ${tx.json({ email: user.email })})`
+  })
+}
+
 /**
  * A region owned by one seed login, with that login already a member at `role`.
  *

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { assertAuthConfig, assertGotrueVersion, GOTRUE_CONTRACT_VERSION, HOOK_URI } from './authConfig'
+import {
+  assertAuthConfig,
+  assertGotrueVersion,
+  GOTRUE_CONTRACT_VERSION,
+  HOOK_URI,
+  unconfiguredProviders,
+} from './authConfig'
 
 const clients = { appleServicesId: 'app.grnyte.web', googleClientId: 'web.apps.googleusercontent.com' }
 
@@ -13,7 +19,6 @@ const config = {
   external_anonymous_users_enabled: false,
   external_apple_client_id: 'app.grnyte.web,app.grnyte.ios',
   external_apple_enabled: true,
-  external_apple_skip_nonce_check: false,
   external_google_client_id: 'web.apps.googleusercontent.com',
   external_google_enabled: true,
   external_google_skip_nonce_check: false,
@@ -62,6 +67,20 @@ describe('assertAuthConfig', () => {
     expect(
       assertAuthConfig(settings, { ...config, external_apple_client_id: 'app.grnyte.ios,app.grnyte.web' }, clients),
     ).toEqual(['the Apple client IDs start with APPLE_SERVICES_ID'])
+  })
+
+  it('skips a provider that is not set up at all, and names it', () => {
+    const noGoogle = { ...clients, googleClientId: '' }
+    const off = { ...config, external_google_client_id: '', external_google_enabled: false }
+    const offSettings = { ...settings, external: { apple: true, email: true, google: false } }
+    expect(assertAuthConfig(offSettings, off, noGoogle)).toEqual([])
+    expect(unconfiguredProviders(offSettings, off, noGoogle)).toEqual(['Google'])
+  })
+
+  it('still fails a provider that is half set up', () => {
+    const noGoogle = { ...clients, googleClientId: '' }
+    expect(assertAuthConfig(settings, config, noGoogle)).toEqual(['the Google client IDs start with GOOGLE_CLIENT_ID'])
+    expect(unconfiguredProviders(settings, config, noGoogle)).toEqual([])
   })
 })
 

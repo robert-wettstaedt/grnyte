@@ -1,8 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { appleConfirmation } from '$lib/auth/appleConfirmation.svelte'
-  import ConfirmWithApple from '$lib/auth/ConfirmWithApple.svelte'
   import ReauthStep, { withReauth } from '$lib/auth/ReauthStep.svelte'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import { entityHref } from '$lib/entities/href'
@@ -51,7 +49,6 @@
   let handingTo = ''
   let confirmed = $state(false)
   let step: ReauthStep | undefined = $state()
-  const apple = appleConfirmation()
   // No `password`: a present key marks a tab from before re-authentication.
   const seed = () => ({ regionFk: regionId, userFk: userId })
   const submit = async (values: z.input<typeof handOverSchema>) => {
@@ -66,10 +63,6 @@
 <svelte:head>
   <title>{m.region_handOverTitle()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
-
-{#snippet withApple()}
-  <ConfirmWithApple action="region.transfer" target={`${regionId}:${userId}`} />
-{/snippet}
 
 <Form
   cancelTo={regionHref}
@@ -110,8 +103,6 @@
         email={page.data.session?.user.email ?? ''}
         next={m.region_handOverNext({ name: member.username })}
         target={`${regionId}:${userId}`}
-        ready={apple.settled}
-        alternatives={apple.available ? withApple : undefined}
       />
     {/key}
   {/snippet}

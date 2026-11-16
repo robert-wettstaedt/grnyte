@@ -1,9 +1,7 @@
-/** Reactive stand-ins for a screen test: `$app/state`'s `page` and a Kit remote form. */
 import type { RemoteFormIssue } from '@sveltejs/kit'
 import { createAttachmentKey } from 'svelte/attachments'
 import { vi } from 'vitest'
 
-/** For `vi.mock('$app/state', ...)`: assigning `url` moves the screen as a navigation would. */
 // eslint-disable-next-line svelte/prefer-svelte-reactivity -- replaced whole, never mutated, as Kit's is
 export const at = $state({ data: {} as Record<string, unknown>, url: new URL('http://localhost/') })
 
@@ -27,7 +25,6 @@ export function fakeRemoteForm() {
   // Only `action`, `method` and the attachment enumerable: `<form {...signUp}>` spreads the rest away, as Kit's does.
   return Object.defineProperties(attributes(), {
     enhance: { value: () => attributes() },
-    /** Test handle: a failed submit's form-level message. */
     fail: { value: (message: string) => (state.issues = [{ message, path: [] } as unknown as RemoteFormIssue]) },
     fields: { value: fields },
     pending: { value: 0 },

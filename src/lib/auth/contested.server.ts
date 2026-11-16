@@ -101,3 +101,7 @@ export async function revokeContestedPassword(supabase: App.Locals['supabase'], 
   if (refreshed.error != null) return failed(refreshed.error)
   return true
 }
+
+/** Ends a GoTrue session nobody holds. */
+export const endSession = (session: { access_token: string }) =>
+  supabaseAdmin().auth.admin.signOut(session.access_token, 'local')

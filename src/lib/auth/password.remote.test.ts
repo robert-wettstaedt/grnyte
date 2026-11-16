@@ -1,6 +1,6 @@
 /** `setNewPassword` on a code session: the policy before the write, every code and grant void after it. */
 import { hasGrant, sessionCaller, writeGrant } from '$lib/auth/reauth.server'
-import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
+import { createThrowawayUser, dropThrowawayUser, makeProviderOnly, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { formError } from '$lib/forms/schemas'
 import { asRequest } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -70,5 +70,15 @@ describe.skipIf(!reachable)('setNewPassword', () => {
     expect(outcome).toEqual({ done: true })
     expect(updateUser).toHaveBeenCalledWith({ password: NEW })
     expect([grant, openCodes]).toEqual([false, 0])
+  })
+
+  it('gives an account that has only a provider its email identity, once', async () => {
+    await makeProviderOnly(user, 'apple')
+
+    await run()
+    await run()
+    const providers = await sql<{ provider: string }[]>`
+      select provider from auth.identities where user_id = ${user.authId} order by provider`
+    expect(providers.map((row) => row.provider)).toEqual(['apple', 'email'])
   })
 })

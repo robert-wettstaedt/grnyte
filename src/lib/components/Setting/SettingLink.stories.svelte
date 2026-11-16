@@ -11,7 +11,6 @@
 
 <Story name="Link" />
 
-<!-- The sign-in methods screen's Password row: a status line under the label. -->
 <Story name="With description" args={{ description: 'Not set', label: 'Password', value: 'Set a password' }} />
 
 <Story name="Read-only" args={{ href: undefined }} />

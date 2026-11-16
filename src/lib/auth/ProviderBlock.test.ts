@@ -1,7 +1,8 @@
 import '$lib/forms/screen.fixture'
+import type { LastMethod } from '$lib/auth'
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import ProviderBlock, { type LastMethod } from './ProviderBlock.svelte'
+import ProviderBlock from './ProviderBlock.svelte'
 
 const at = vi.hoisted(() => ({ url: new URL('http://localhost/auth/signin?next=%2Finvite%2Fabc') }))
 vi.mock('$app/state', () => ({ page: at }))
