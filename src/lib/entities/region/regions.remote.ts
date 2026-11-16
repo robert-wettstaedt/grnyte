@@ -249,7 +249,7 @@ export const transferRegionOwnershipCommand = command(handOverSchema, async ({ p
   // Only a tab from before re-authentication sends a password.
   if (password !== undefined) refuseCommand(formError('auth_reloadPage'))
   const { email, user } = requireVerifiedEmail()
-  const result = await transferRegionOwnership({ email, id: user.id }, target, reauthCaller())
+  const result = await transferRegionOwnership({ email, id: user.id }, target, await reauthCaller())
   if (result.kind === 'reauthRequired') refuseCommand(formError('auth_reauthRequired'), 'code')
 })
 
@@ -260,7 +260,12 @@ export const regionDeletionPreview = query(regionFkSchema, ({ regionFk }) =>
 export const deleteRegionCommand = command(deleteRegionSchema, async ({ name, password, regionFk }) => {
   if (password !== undefined) refuseCommand(formError('auth_reloadPage'))
   const { user } = requireAuthed()
-  const result = await deleteRegion({ id: user.id }, { name, regionFk }, reauthCaller(), getRequestEvent().url.origin)
+  const result = await deleteRegion(
+    { id: user.id },
+    { name, regionFk },
+    await reauthCaller(),
+    getRequestEvent().url.origin,
+  )
   if (result.kind === 'wrongName') refuseCommand(formError('region_deleteWrongName'), 'name')
   if (result.kind === 'reauthRequired') refuseCommand(formError('auth_reauthRequired'), 'code')
 })

@@ -77,6 +77,20 @@ export function ownershipHandedOver(input: AccountEmailInput & { owner: string; 
   }
 }
 
+export function passwordChanged(input: AccountEmailInput): EmailContent {
+  const at = { locale: input.locale }
+  const subject = m.email_passwordChangedSubject({}, at)
+  return {
+    body: [m.email_passwordChangedBody({}, at)],
+    footerReason: 'account',
+    footnote: notMe(input),
+    meta: m.email_passwordChangedMeta({}, at),
+    preheader: m.email_passwordChangedPreheader({}, at),
+    subject,
+    title: subject,
+  }
+}
+
 export function reauthCode(input: AccountEmailInput & { action: ReauthAction; code: string }): EmailContent {
   const at = { locale: input.locale }
   return {

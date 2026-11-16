@@ -58,11 +58,7 @@ export async function asRequest<T>(
   ])
 
   // A live `auth.sessions` row per caller, as GoTrue has: re-auth binds to `session_id`.
-  const sessionId = withSession
-    ? (
-        await db.execute<{ id: string }>(sql`insert into auth.sessions (user_id) values (${authUserId}) returning id`)
-      )[0].id
-    : undefined
+  const sessionId = withSession ? await newSession(authUserId) : undefined
   const verified = await verifyAccessToken(await signAccessToken(authUserId, authUser?.email ?? undefined, sessionId))
 
   if (!verified.ok) {
@@ -76,6 +72,7 @@ export async function asRequest<T>(
     backendUnavailable: false,
     claims: verified.claims,
     user,
+    verifiedToken: verified.token,
   }
   const locals = {
     ...session,
@@ -118,6 +115,14 @@ export function callForm<T>(form: unknown, data: Record<string, unknown>): Promi
   return internal.fn(data, { validate_only: false }, new FormData())
 }
 
+/** A live `auth.sessions` row for `authUserId`, as GoTrue writes at sign-in; its id. */
+export async function newSession(authUserId: string): Promise<string> {
+  const [row] = await db.execute<{ id: string }>(
+    sql`insert into auth.sessions (user_id) values (${authUserId}) returning id`,
+  )
+  return row.id
+}
+
 /**
  * Where a `callForm` submit sends the reader: the handler's `redirectTo`, which reaches the client in
  * Kit's result envelope, not as a 303. `undefined` for a refusal, which resolves with issues instead.
@@ -142,6 +147,10 @@ export function signAccessToken(authUserId: string, email: string | undefined, s
     .setExpirationTime('1h')
     .sign(new TextEncoder().encode(env.SUPABASE_JWT_SECRET))
 }
+
+/** {@link signAccessToken} for a fresh live session of `authUserId`. */
+export const sessionToken = async (authUserId: string, email?: string): Promise<string> =>
+  signAccessToken(authUserId, email, await newSession(authUserId))
 
 /**
  * The status `run` rejected with, or `undefined` when it resolved. Kit throws a plain `HttpError`,
@@ -187,7 +196,7 @@ export function zeroClient(authUserId: string, email?: string) {
         await tx.execute(sql`delete from zero_0.clients where "clientGroupID" = ${clientGroupID}`)
       }),
     push: async (name: string, args: unknown): Promise<PushedResult> => {
-      const token = await signAccessToken(authUserId, email)
+      const token = await sessionToken(authUserId, email)
       const request = new Request('http://localhost/api/zero/mutate?schema=zero_0&appID=zero', {
         body: JSON.stringify({
           clientGroupID,

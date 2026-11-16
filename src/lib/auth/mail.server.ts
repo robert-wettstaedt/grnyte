@@ -5,7 +5,7 @@ import { signInMethods } from '$lib/auth/methods.server'
 import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { userSettings } from '$lib/db/schema'
-import { alreadyHasAccount } from '$lib/email/account'
+import { alreadyHasAccount, passwordChanged } from '$lib/email/account'
 import { sendEmail } from '$lib/email/send.server'
 import { authError, formError, type FormMessage } from '$lib/forms/schemas'
 import { contactLocale } from '$lib/i18n/message'
@@ -48,17 +48,26 @@ export async function noticeAlreadyHasAccount(
   const tries = await pinnedTx((tx) => countTry(tx, account.email.toLowerCase(), 'already_has_account'))
   if (tries > 1) return true
 
-  const [settings] = await db
-    .select({ locale: userSettings.contactLocale })
-    .from(userSettings)
-    .where(eq(userSettings.authUserFk, account.id))
-    .limit(1)
-  const locale = contactLocale(settings?.locale)
-  const methods = await signInMethods(account.id)
+  const { locale, methods } = await recipient(account.id)
   return sendEmail({
     ...alreadyHasAccount({ forgotPasswordUrl: `${origin}/auth/forgot-password`, locale, methods }),
     locale,
     template: 'already-has-account',
     to: account.email,
   })
+}
+
+/** GoTrue's admin update sends no password-changed notice (v2.197.0), so grnyte does. */
+export async function noticePasswordChanged(account: { email: string; id: string }): Promise<boolean> {
+  const { locale, methods } = await recipient(account.id)
+  return sendEmail({ ...passwordChanged({ locale, methods }), locale, template: 'password-changed', to: account.email })
+}
+
+async function recipient(authUserId: string) {
+  const [settings] = await db
+    .select({ locale: userSettings.contactLocale })
+    .from(userSettings)
+    .where(eq(userSettings.authUserFk, authUserId))
+    .limit(1)
+  return { locale: contactLocale(settings?.locale), methods: await signInMethods(authUserId) }
 }

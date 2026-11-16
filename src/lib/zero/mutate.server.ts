@@ -1,3 +1,4 @@
+import { isSessionLive } from '$lib/auth/session.server'
 import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { isAuthoredMessage } from '$lib/forms/issue'
@@ -20,7 +21,10 @@ type Failure = { details?: unknown; message?: string }
 /** zero-cache's push endpoint. Auth mirrors `get-queries`: the token arrives as a header. */
 export async function handleMutate(request: Request, registry = serverMutators): Promise<Response> {
   // Pinned like every other read: an unqualified query on a bare pooled connection is the 42P01 outage.
-  const caller = await zeroCaller(request, (authUserId) => pinnedTx((tx) => loadSessionUser(tx, authUserId)))
+  // The session read shares the user load's transaction, so a failed read fails like a failed load.
+  const caller = await zeroCaller(request, (claims) =>
+    pinnedTx(async (tx) => ((await isSessionLive(tx, claims)) ? loadSessionUser(tx, claims.sub) : undefined)),
+  )
 
   // 401 even for expiry, unlike get-queries: `needs-auth` keeps queued writes and resends them after
   // `connect({ auth })`, where the `error` state a 502 ends in rejects them.

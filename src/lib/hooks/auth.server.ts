@@ -224,11 +224,12 @@ export const supabase: Handle = async ({ event, resolve }) => {
         ...(await getPageState(verified.claims.sub)),
         backendUnavailable: false,
         claims: verified.claims,
+        verifiedToken: verified.token,
       }
     } catch {
       // A database failure, not an authentication failure: the flag is what stops `gate()` reporting
       // this as a signed-out caller, since `user` is undefined either way.
-      return { ...anonymous(), backendUnavailable: true, claims: verified.claims }
+      return { ...anonymous(), backendUnavailable: true, claims: verified.claims, verifiedToken: verified.token }
     }
   }
 
@@ -332,11 +333,12 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     return resolve(event)
   }
 
-  const { backendUnavailable, claims, user, userPermissions, userRegions, userRole } =
+  const { backendUnavailable, claims, user, userPermissions, userRegions, userRole, verifiedToken } =
     await event.locals.safeGetSession()
 
   event.locals.backendUnavailable = backendUnavailable
   event.locals.claims = claims
+  event.locals.verifiedToken = verifiedToken
   event.locals.user = user
   event.locals.userPermissions = userPermissions
   event.locals.userRegions = userRegions

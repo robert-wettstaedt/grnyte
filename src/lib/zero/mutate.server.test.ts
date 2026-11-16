@@ -1,8 +1,9 @@
 import { applyRls } from '$lib/db/db.server'
 import { reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
 import { routeListsFingerprint } from '$lib/entities/route/fingerprint'
-import { signAccessToken } from '$lib/remote/testHarness'
+import { newSession, sessionToken, signAccessToken } from '$lib/remote/testHarness'
 import { ApplicationError, defineMutators, mustGetMutator } from '@rocicorp/zero'
+import { isHttpError } from '@sveltejs/kit'
 import { sql as drizzleSql } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -36,7 +37,7 @@ beforeAll(async () => {
 
   const seeded = await seedRegion(REGION, 'region_maintainer')
   user = seeded.user
-  token = await signAccessToken(user.authId, undefined)
+  token = await sessionToken(user.authId)
 
   const [area] = await sql<{ id: number }[]>`
     insert into public.areas (name, type, region_fk, created_by)
@@ -110,6 +111,39 @@ async function push(name: string, args: unknown, registry = serverMutators) {
   }
   return json.mutations[0].result
 }
+
+describe.skipIf(!reachable)('the session check on a synced write', () => {
+  /** What `handleMutate` threw for a favourite pushed with `as`, or `undefined` when it answered. */
+  const thrownFor = async (as: string) => {
+    const kept = token
+    token = as
+    try {
+      await push('favorites.set', { entityId: areaId, entityType: 'area', saved: true, userId: user.userId })
+      return undefined
+    } catch (thrown) {
+      nextId-- // a refused push never reached Zero, which expects the id again
+      return thrown
+    } finally {
+      token = kept
+    }
+  }
+
+  it('answers 401 for a session revoked while its token is still valid, and writes nothing', async () => {
+    const sessionId = await newSession(user.authId)
+    await sql`delete from auth.sessions where id = ${sessionId}`
+
+    expect(await thrownFor(await signAccessToken(user.authId, undefined, sessionId))).toMatchObject({ status: 401 })
+    expect(await favoriteCount(areaId)).toBe(0)
+  })
+
+  it('fails a failed read like a failed user load, a 5xx and never the 401 that signs out', async () => {
+    // Postgres refuses a malformed uuid, so the read itself throws.
+    const thrown = await thrownFor(await signAccessToken(user.authId, undefined, 'not-a-uuid'))
+
+    expect(thrown).toBeDefined()
+    expect(isHttpError(thrown)).toBe(false)
+  })
+})
 
 describe.skipIf(!reachable)('zero mutate endpoint', () => {
   it('sets and clears a favorite, and records each mutation', async () => {

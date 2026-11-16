@@ -1,4 +1,5 @@
 import { command, getRequestEvent, query } from '$app/server'
+import { requireLiveSession } from '$lib/auth/session.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { clientErrorLogs } from '$lib/db/schema'
 import * as z from '$lib/forms/zod'
@@ -62,6 +63,7 @@ export const listErrorLogs = query(async (): Promise<ErrorLogGroup[]> => {
   const { locals } = getRequestEvent()
 
   requireAppAdmin(locals.userPermissions)
+  await requireLiveSession()
 
   const rows = await pinnedTx((tx) =>
     tx

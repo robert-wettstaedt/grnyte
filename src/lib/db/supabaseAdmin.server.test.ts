@@ -1,6 +1,6 @@
 /** A new secret key goes out only as `apikey`, never as a Bearer; a legacy JWT key keeps its Bearer. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { LEGACY, SECRET, spyBaseFetch, withSecretKey } from './secretKey.fixture'
+import { hangingFetch, LEGACY, SECRET, spyBaseFetch, withSecretKey } from './secretKey.fixture'
 
 const load = (key: string) => withSecretKey(key, () => import('./supabaseAdmin.server'))
 
@@ -17,6 +17,18 @@ async function adminAndStorageHeaders(key: string) {
 afterEach(() => vi.restoreAllMocks())
 
 describe('supabaseAdmin', () => {
+  it('answers a hung call with an error once its timeout passes, aborting the request', async () => {
+    hangingFetch()
+    const { supabaseAdmin } = await load(SECRET)
+
+    const { error } = await supabaseAdmin({ timeoutMs: 50 }).auth.admin.updateUserById(
+      '00000000-0000-4000-8000-000000000001',
+      { password: 'irrelevant-1' },
+    )
+
+    expect(error).not.toBeNull()
+  })
+
   it('sends a new secret key as apikey with no Authorization on admin and Storage calls', async () => {
     for (const headers of await adminAndStorageHeaders(SECRET)) {
       expect(headers.get('apikey')).toBe(SECRET)

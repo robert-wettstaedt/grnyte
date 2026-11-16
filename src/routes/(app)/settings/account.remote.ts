@@ -1,46 +1,55 @@
 import { resolve } from '$app/paths'
 import { command, form, getRequestEvent, query } from '$app/server'
-import { holdGrant, reauthCaller, spendGrant } from '$lib/auth/reauth.server'
+import { supabaseAuthServer, supabaseAuthServerAs } from '$lib/auth/authServer.server'
+import { clearCodeTries } from '$lib/auth/codeAttempts.server'
+import { verifyCode } from '$lib/auth/codes.server'
+import { findAccount } from '$lib/auth/contested.server'
+import { gotrueRefusal, noticeAlreadyHasAccount, noticePasswordChanged } from '$lib/auth/mail.server'
+import { checkPassword } from '$lib/auth/passwordPolicy.server'
+import { holdGrant, reauthCaller, spendGrant, voidReauth, voidReauthCodes } from '$lib/auth/reauth.server'
+import { requireLiveSession } from '$lib/auth/session.server'
 import { pinnedTx } from '$lib/db/pinned.server'
+import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { deleteAccount, previewAccountDeletion } from '$lib/entities/user/delete.server'
-import { authError, formError } from '$lib/forms/schemas'
+import { formError } from '$lib/forms/schemas'
 import { refuseCommand, refuseVia, requireAuthed, requireVerifiedEmail } from '$lib/remote/authed.server'
 import type { AuthError } from '@supabase/supabase-js'
 import { error } from '@sveltejs/kit'
-import { deleteAccountSchema, updateEmailSchema, updatePasswordSchema } from './schemas'
+import { deleteAccountSchema, emailChangeCodeSchema, updateEmailSchema, updatePasswordSchema } from './schemas'
 
 /**
- * Start an email change. No password prompt here: Supabase's secure email change mails a link to
- * both the current and the new address and applies the change only once both are opened, so a
- * stolen session can't complete it without the old inbox either way.
+ * Start an email change. No password prompt here: GoTrue's secure email change mails a code to
+ * both addresses and applies the change only once both are entered (`confirmEmailChangeCode`).
+ * A taken address gets a notice instead and the answer reads the same.
  */
 async function changeEmail(email: string, refuse: (message: string, field?: 'email') => never) {
-  const {
-    locals: { claims, supabase },
-    url,
-  } = getRequestEvent()
+  await requireLiveSession()
+  const event = getRequestEvent()
+  const { claims, verifiedToken } = event.locals
 
   // `claims`, deliberately not `requireAuthed`: that also demands a `public.users` row, and an
   // account whose sign-up half-completed must still be able to fix its address.
-  if (claims == null) {
+  if (claims == null || verifiedToken == null) {
     error(401, formError('auth_notSignedIn'))
   }
 
-  // Supabase accepts the current address without error and sends nothing, so the screen would claim a link.
+  // GoTrue accepts the current address without error and sends nothing, so the screen would claim a code.
   if (email.trim().toLowerCase() === claims.email?.toLowerCase()) {
     refuse(formError('settings_emailUnchanged'), 'email')
   }
 
-  const { error: updateError } = await supabase.auth.updateUser(
-    { email },
-    { emailRedirectTo: `${url.origin}/auth/confirm?next=/settings` },
-  )
-
-  if (updateError != null) {
-    refuse(authError(updateError))
+  const answer = { current: claims.email ?? '', email, success: true }
+  const taken = await findAccount(email)
+  if (taken != null) {
+    if (!(await noticeAlreadyHasAccount(taken, event.url.origin))) refuse(formError('auth_mailUnavailable'))
+    return answer
   }
 
-  return { email, success: true }
+  const { error: updateError } = await supabaseAuthServerAs(event, verifiedToken).updateUser({ email })
+  if (updateError != null) refuse(await gotrueRefusal(updateError, 'user'))
+  // GoTrue minted new codes for both addresses.
+  for (const address of [answer.current, email]) await clearCodeTries(address, 'email_change')
+  return answer
 }
 
 /** @public Unused since the store forms; deployed one more release for tabs loaded before them. */
@@ -49,41 +58,79 @@ export const updateEmail = form(updateEmailSchema, ({ email }, issue) => changeE
 export const updateEmailCommand = command(updateEmailSchema, ({ email }) => changeEmail(email, refuseCommand))
 
 /**
- * Change the password. Unlike the email change there is no second inbox in the loop, so the current
- * password is the only thing standing between a stolen session and a permanent account takeover.
+ * One of the two email change codes. `next` while GoTrue waits for the other address (it answers
+ * a single confirmation without a session); `done` once the address changed.
+ */
+export const confirmEmailChangeCode = command(emailChangeCodeSchema, async ({ code, email }) => {
+  await requireLiveSession()
+  const event = getRequestEvent()
+  const { claims, supabase } = event.locals
+  if (claims == null) error(401, formError('auth_notSignedIn'))
+
+  const { session, user } = await verifyCode(event, { code, email, kinds: ['email_change'], type: 'email_change' })
+  if (session == null || user?.email?.toLowerCase() === claims.email?.toLowerCase()) return { step: 'next' as const }
+
+  await voidReauth(claims.sub)
+  await supabase.auth.setSession(session)
+  await supabase.auth.signOut({ scope: 'others' })
+  return { step: 'done' as const }
+})
+
+const ADMIN_TIMEOUT_MS = 5000
+
+/**
+ * Change or set the password, after a confirmation (design decision 6). The admin API needs no
+ * nonce however old the session is; it ends every session, so this device signs back in.
  */
 async function changePassword(
   { currentPassword, password }: { currentPassword?: string; password: string },
-  refuse: (message: string, field?: 'code') => never,
+  refuse: (message: string, field?: 'code' | 'password') => never,
 ) {
   // Only a tab from before re-authentication sends the current password.
   if (currentPassword !== undefined) refuse(formError('auth_reloadPage'))
 
-  const {
-    locals: { claims, supabase },
-  } = getRequestEvent()
+  const event = getRequestEvent()
+  const { claims, supabase } = event.locals
 
   // `claims`, not `requireAuthed`, for the same reason as `updateEmail` above.
-  if (claims == null) {
+  if (claims?.email == null) {
     error(401, formError('auth_notSignedIn'))
   }
-  const caller = reauthCaller()
+  if ((await checkPassword(password)) === 'breached') refuse(formError('auth_passwordBreached'), 'password')
+  const caller = await reauthCaller()
 
   // The grant is held across the GoTrue call and spent only once it succeeded, so a refusal keeps it.
-  // shortcut: no timeout and the session's own `updateUser`; task 8.4a/8.4c move this to the admin API.
+  // The call holds a pooled connection across HTTP, hence the timeout.
   const refused = await pinnedTx(async (tx) => {
     if (!(await holdGrant(tx, caller, 'password.change', caller.authUserId))) return 'reauthRequired' as const
-    // Supabase rejects a password it considers unchanged or too weak; `authError` maps those codes.
-    const { error: updateError } = await supabase.auth.updateUser({ password })
+    const { error: updateError } = await supabaseAdmin({ timeoutMs: ADMIN_TIMEOUT_MS }).auth.admin.updateUserById(
+      caller.authUserId,
+      { password },
+    )
     if (updateError != null) throw updateError
     await spendGrant(tx, caller, 'password.change', caller.authUserId)
     return null
   }).catch((updateError: AuthError) => updateError)
 
   if (refused === 'reauthRequired') refuse(formError('auth_reauthRequired'), 'code')
-  if (refused != null) refuse(authError(refused))
+  if (refused != null) {
+    // A refusal or a timeout may still have changed the password at GoTrue.
+    await voidReauthCodes(caller.authUserId)
+    refuse(await gotrueRefusal(refused, 'admin/users'))
+  }
+  await voidReauth(caller.authUserId)
+  // The change stands either way; a failed send is logged by `sendEmail`.
+  await noticePasswordChanged({ email: claims.email, id: caller.authUserId })
 
-  return { redirectTo: resolve('/(app)/settings'), success: true }
+  // The admin update ended this device's session too: sign back in and hand the page the new one.
+  const { data, error: signInError } = await supabaseAuthServer(event).signInWithPassword({
+    email: claims.email,
+    password,
+  })
+  if (signInError != null || data.session == null) refuse(formError('auth_passwordUpdatedBody'))
+  await supabase.auth.setSession(data.session)
+  const { access_token, refresh_token } = data.session
+  return { redirectTo: resolve('/(app)/settings'), session: { access_token, refresh_token }, success: true }
 }
 
 /** @public Unused since the store forms; deployed one more release for tabs loaded before them. */
@@ -98,7 +145,7 @@ export const deleteAccountCommand = command(deleteAccountSchema, async ({ passwo
   // Only a tab from before re-authentication sends a password.
   if (password !== undefined) refuseCommand(formError('auth_reloadPage'))
   const { email, user } = requireVerifiedEmail()
-  const result = await deleteAccount({ authUserFk: user.authUserFk, email, id: user.id }, reauthCaller())
+  const result = await deleteAccount({ authUserFk: user.authUserFk, email, id: user.id }, await reauthCaller())
 
   if (result.kind === 'reauthRequired') {
     refuseCommand(formError('auth_reauthRequired'), 'code')
@@ -114,6 +161,7 @@ export const deleteAccountCommand = command(deleteAccountSchema, async ({ passwo
 /** What deleting the caller's account would do to their regions, for the screen's warnings. A
  *  server read, so it is the same rule the deletion applies and never a half-synced member list. */
 export const accountDeletionPreview = query(async () => {
+  await requireLiveSession()
   const { user } = requireAuthed()
   return previewAccountDeletion(user.id)
 })

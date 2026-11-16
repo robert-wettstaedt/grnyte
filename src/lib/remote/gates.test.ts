@@ -211,8 +211,14 @@ const NO_GATE: Record<string, string> = {
     "Mails a code to the session's own verified address for its own session (`reauthCaller`), capped at 5 an hour; it grants nothing by itself.",
   'lib/auth/session.remote.ts#sendPasswordReset':
     "Takes no input: mails the standard reset link to the session's own verified address, which only that inbox can use.",
+  'lib/auth/session.remote.ts#signedInDevices':
+    "Reads only the verified caller's own `auth.sessions` rows (`user_id` = `sub`), and never their address or browser.",
   'lib/auth/session.remote.ts#signOut':
     'Acts on whatever session the request already carries and revokes only that one; the sole input is a redirect path, validated same-origin.',
+  'lib/auth/session.remote.ts#signOutDevice':
+    "Deletes a session only where `user_id` is the verified caller's and the id is not the calling session, in one statement.",
+  'lib/auth/session.remote.ts#signOutOthers':
+    "Ends the caller's own other sessions at GoTrue, which any live session of the account may do anyway.",
   'lib/entities/event/events.remote.ts#userContributionCount':
     'Counts on the RLS connection, so the region scope is the "region.read can read events" policy rather than anything the handler restates; the only input is the id of the user whose number is on screen.',
   'lib/entities/feedback/feedback.remote.ts#listFeedback': 'Global, not region scoped; gated on app.admin.',
@@ -269,6 +275,8 @@ const NO_GATE: Record<string, string> = {
     'Errors happen signed out, so this is open on purpose: it names no id, writes only into the global client_error_logs, and takes createdBy from the session rather than the payload.',
   'routes/(app)/settings/account.remote.ts#accountDeletionPreview':
     "Reads only the session's own memberships and their regions' member counts, by the session's id; it names no other account.",
+  'routes/(app)/settings/account.remote.ts#confirmEmailChangeCode':
+    "Checks a code GoTrue mailed for the session's own pending email change; GoTrue applies it to that account only.",
   'routes/(app)/settings/account.remote.ts#deleteAccountCommand':
     "Acts only on the session's own account: the ids come from the verified session, the password is re-entered against the token's email, and it names no other account or region.",
   'routes/(app)/settings/account.remote.ts#updateEmail':
@@ -396,6 +404,27 @@ function remoteFiles(dir: string, found: string[] = []): string[] {
 const handlers = remoteFiles('src').flatMap(parseHandlers)
 const ungated = handlers.filter((handler) => ![...handler.calls].some((call) => GATES.has(call)))
 
+/** `reauthCaller` calls `requireLiveSession` itself (another file, so the walk cannot see it). */
+const LIVE_CHECKS = ['requireLiveSession', 'reauthCaller']
+const AUTH_FILES = /^(lib\/auth\/|routes\/\(landing\)\/auth\/|routes\/\(app\)\/settings\/account\.remote\.ts)/
+const liveScope = handlers.filter((handler) => AUTH_FILES.test(handler.file) || handler.calls.has('requireAppAdmin'))
+
+/** Auth exports that run before a session exists, or on one that cannot be checked this way. */
+const PRE_SESSION: Record<string, string> = {
+  'lib/auth/password.remote.ts#setNewPassword':
+    'Runs on the session a reset code just made, and checks its `amr` for that code instead.',
+  'lib/auth/session.remote.ts#signOut':
+    'Ends the session the request carries; a revoked one must still clear its cookies.',
+  'routes/(landing)/auth/(tabs)/signin/signin.remote.ts#signIn': 'Makes the session.',
+  'routes/(landing)/auth/(tabs)/signup/signup.remote.ts#confirmSignupCode': 'Makes the session.',
+  'routes/(landing)/auth/(tabs)/signup/signup.remote.ts#resendSignupCode': 'Before any session.',
+  'routes/(landing)/auth/(tabs)/signup/signup.remote.ts#signUp': 'Before any session.',
+  'routes/(landing)/auth/forgot-password/forgot-password.remote.ts#confirmResetCode': 'Makes the session.',
+  'routes/(landing)/auth/forgot-password/forgot-password.remote.ts#forgotPassword': 'Before any session.',
+  'routes/(landing)/auth/reset-password/reset-password.remote.ts#resetPassword':
+    'The old link flow, on the session its link made; removed one release after the code flow.',
+}
+
 describe('remote handlers and server mutators', () => {
   it('parses server mutators too', () => {
     // The same vacuity guard for the nested shape: a walk that misses it would pass every mutator.
@@ -417,6 +446,16 @@ describe('remote handlers and server mutators', () => {
   it('has no stale exemptions', () => {
     const keys = new Set(handlers.map((handler) => handler.key))
     expect(Object.keys(NO_GATE).filter((key) => !keys.has(key))).toEqual([])
+  })
+
+  it('checks the session is live in every auth, account and admin export, or says why not', () => {
+    const unchecked = liveScope
+      .filter((handler) => !LIVE_CHECKS.some((check) => handler.calls.has(check)))
+      .map((handler) => handler.key)
+
+    expect(unchecked.filter((key) => PRE_SESSION[key] == null)).toEqual([])
+    expect(Object.keys(PRE_SESSION).filter((key) => !unchecked.includes(key))).toEqual([])
+    expect(liveScope.some((handler) => handler.key.endsWith('#listDecisions'))).toBe(true)
   })
 
   it('exempts nothing that actually gates', () => {

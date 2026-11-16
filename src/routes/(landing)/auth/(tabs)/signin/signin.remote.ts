@@ -7,7 +7,7 @@ import { issueResendToken } from '$lib/auth/contested.server'
 import { gotrueRefusal, mailSignupConfirmation } from '$lib/auth/mail.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { hasDeletionMarker } from '$lib/entities/user/provision.server'
-import { formError } from '$lib/forms/schemas'
+import { formError, normalizePassword } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { invalid } from '@sveltejs/kit'
 
@@ -32,7 +32,14 @@ export const signIn = form(signInSchema, async ({ codeFlow, email, next, passwor
   const event = getRequestEvent()
   const authServer = supabaseAuthServer(event)
 
-  const { data, error } = await authServer.signInWithPassword({ email, password })
+  // Never trimmed: a password set before the whitespace rule keeps working.
+  const normalized = normalizePassword(password)
+  let answer = await authServer.signInWithPassword({ email, password: normalized })
+  // A password stored before NFC normalising may be decomposed; the later checks read this answer.
+  if (answer.error?.code === 'invalid_credentials' && normalized !== password) {
+    answer = await authServer.signInWithPassword({ email, password })
+  }
+  const { data, error } = answer
 
   // GoTrue checks the password first, so this is the owner: a new code, without flagging.
   if (error?.code === 'email_not_confirmed') {

@@ -85,6 +85,15 @@ declare const verified: unique symbol
  */
 export type VerifiedClaims = SupabaseToken & { role: 'authenticated'; sub: string; readonly [verified]: true }
 
+declare const verifiedToken: unique symbol
+
+/** The access token `verifyAccessToken` checked, paired with its claims; only that function builds one. */
+export type VerifiedToken = {
+  readonly accessToken: string
+  readonly claims: VerifiedClaims
+  readonly [verifiedToken]: true
+}
+
 export function canDeleteCreatedRow(
   userRegions: UserRegion[],
   userId: number | undefined,

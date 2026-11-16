@@ -24,6 +24,7 @@
   import { notifyError } from '$lib/state/toast'
   import { legalLinks } from '../../(landing)/legal/links'
   import SettingSelect from './SettingSelect.svelte'
+  import SignedInDevices from './SignedInDevices.svelte'
   import ThemeSwitch from './ThemeSwitch.svelte'
 
   const global = getGlobalState()
@@ -289,4 +290,6 @@
     <Icon name="log-out" size={18} />
     {m.settings_signOut()}
   </button>
+
+  <SignedInDevices />
 </div>

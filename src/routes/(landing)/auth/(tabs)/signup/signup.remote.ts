@@ -11,6 +11,7 @@ import {
   issueResendToken,
 } from '$lib/auth/contested.server'
 import { gotrueRefusal, mailSignupConfirmation, noticeAlreadyHasAccount } from '$lib/auth/mail.server'
+import { checkPassword } from '$lib/auth/passwordPolicy.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { botFields } from '$lib/forms/botCheck'
 import { screenSubmit } from '$lib/forms/botCheck.server'
@@ -41,10 +42,11 @@ const resendSchema = z.object({
 
 // The profile (username, grading scale) comes after confirmation, at `/auth/profile`. Every
 // address answers alike, with a resend token, so the answer says nothing about the address.
-export const signUp = form(signUpSchema, async (submitted) => {
+export const signUp = form(signUpSchema, async (submitted, issue) => {
   const { email, password } = submitted
   const answer = { email, resendToken: issueResendToken(email), success: true }
   if ((await screenSubmit(submitted)) === 'bot') return answer
+  if ((await checkPassword(password)) === 'breached') invalid(issue.password(formError('auth_passwordBreached')))
 
   const event = getRequestEvent()
   const authServer = supabaseAuthServer(event)

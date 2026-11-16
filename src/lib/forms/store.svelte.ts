@@ -1,3 +1,4 @@
+import { leaveIfSessionEnded } from '$lib/state/sessionEnded'
 import type { WriteRejection } from '$lib/zero/write'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { RemoteFormIssue } from '@sveltejs/kit'
@@ -161,6 +162,7 @@ export function createFormStore<Input extends Values, Output = Input>(
         const rejection = cause as Partial<WriteRejection> | undefined
         if (rejection?.body == null) throw cause
         if (rejection.offline) return { kind: 'offline' }
+        if (leaveIfSessionEnded(rejection)) return { kind: 'refused' }
         setIssue(rejection.body.field, rejection.body.message)
         return { kind: 'refused' }
       }

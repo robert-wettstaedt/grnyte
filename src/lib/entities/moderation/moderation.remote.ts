@@ -1,4 +1,5 @@
 import { getRequestEvent, query } from '$app/server'
+import { requireLiveSession } from '$lib/auth/session.server'
 import * as z from '$lib/forms/zod'
 import { authedQuery } from '$lib/remote/authed.server'
 import { requireAppAdmin } from '$lib/remote/require.server'
@@ -16,8 +17,9 @@ export const removalStatement = query(z.int().check(z.positive()), (decisionId) 
   return readStatement(decisionId, locals)
 })
 
-export const listDecisions = query(() => {
+export const listDecisions = query(async () => {
   requireAppAdmin(getRequestEvent().locals.userPermissions)
+  await requireLiveSession()
   return readDecisions()
 })
 

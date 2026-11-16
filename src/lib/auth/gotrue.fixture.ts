@@ -1,5 +1,7 @@
 /** For GoTrue tests: the branch's local GoTrue, probed once, and a client on the publishable key. */
 import 'dotenv/config'
+import { SIGNUP_MARKER } from '$lib/auth'
+import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 const url = process.env.PUBLIC_SUPABASE_URL ?? ''
@@ -20,3 +22,25 @@ export const publicClient = (): SupabaseClient =>
   createClient(url, process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '', {
     auth: { autoRefreshToken: false, persistSession: false },
   })
+
+/** A client signed in by a code the admin API hands out instead of mailing. */
+export async function codeSignedIn(email: string): Promise<SupabaseClient> {
+  const client = publicClient()
+  const link = await supabaseAdmin().auth.admin.generateLink({ email, type: 'magiclink' })
+  if (link.error != null) throw link.error
+  const { error } = await client.auth.verifyOtp({ email, token: link.data.properties.email_otp, type: 'magiclink' })
+  if (error != null) throw error
+  return client
+}
+
+/** A grnyte-made account through the admin API; its id. */
+export async function createAccount(email: string, init: { confirmed?: boolean; password?: string } = {}) {
+  const { data, error } = await supabaseAdmin().auth.admin.createUser({
+    app_metadata: SIGNUP_MARKER,
+    email,
+    email_confirm: init.confirmed ?? true,
+    password: init.password,
+  })
+  if (error != null) throw error
+  return data.user.id
+}

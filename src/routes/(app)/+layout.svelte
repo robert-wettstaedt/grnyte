@@ -21,7 +21,14 @@
   import { rootPill } from '$lib/state/pill.svelte'
   import { syncPushSubscription } from '$lib/state/push.svelte'
   import { wipeAndLeave } from '$lib/state/wipe'
-  import { authRetryDelay, lastAuthAttemptAt, startAuthRecovery, stopAuthRecovery } from '$lib/zero/authRecovery'
+  import {
+    authRetryDelay,
+    isDefinitiveRefusal,
+    lastAuthAttemptAt,
+    SESSION_GONE,
+    startAuthRecovery,
+    stopAuthRecovery,
+  } from '$lib/zero/authRecovery'
   import type { QueryPhase } from '$lib/zero/resource.svelte'
   import { getZ, initZero } from '$lib/zero/z.svelte'
 
@@ -122,6 +129,7 @@
       return
     }
 
+    const refused = data.session?.access_token
     startAuthRecovery(delay, {
       onSession: initZero,
       // `refreshSession`, not `getSession`: the stored token is the one just rejected. Caught
@@ -129,8 +137,17 @@
       refresh: () =>
         supabase.auth
           .refreshSession()
-          .then((result) => result.data.session)
+          .then(({ data: { session }, error }) =>
+            error != null && isDefinitiveRefusal(error) ? SESSION_GONE : session,
+          )
           .catch(() => null),
+      reread: () =>
+        supabase.auth
+          .getSession()
+          .then(({ data: { session } }) => (session != null && session.access_token !== refused ? session : null))
+          .catch(() => null),
+      // Its `SIGNED_OUT` event wipes the device and leaves for `/` (listener above).
+      signOut: () => void supabase.auth.signOut({ scope: 'local' }),
       // The live client, not `data.session`, which still holds the old user mid sign-out.
       wants: (session) => getZ().userID === session.user.id,
     })

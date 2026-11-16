@@ -1,13 +1,16 @@
 import { resolve } from '$app/paths'
-import { command, form, getRequestEvent } from '$app/server'
+import { command, form, getRequestEvent, query } from '$app/server'
 import { isSameOriginPath } from '$lib/auth'
 import { supabaseAuthServer } from '$lib/auth/authServer.server'
 import { clearCodeTries } from '$lib/auth/codeAttempts.server'
 import { gotrueRefusal, mailPasswordReset } from '$lib/auth/mail.server'
+import { requireLiveSession } from '$lib/auth/session.server'
+import { db } from '$lib/db/db.server'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { refuseCommand } from '$lib/remote/authed.server'
 import { error, redirect } from '@sveltejs/kit'
+import { sql } from 'drizzle-orm'
 
 /**
  * A same-origin path to come back to after signing out. Validated rather than trusted: this value
@@ -42,7 +45,33 @@ export const signOut = form(z.object({ redirectTo: returnPath }), async ({ redir
   redirect(303, redirectTo)
 })
 
+/** Ends every other session of the account. No re-authentication: GoTrue lets any live session do this. */
+export const signOutOthers = command(async () => {
+  await requireLiveSession()
+  const { error: signOutError } = await getRequestEvent().locals.supabase.auth.signOut({ scope: 'others' })
+  if (signOutError != null) refuseCommand(await gotrueRefusal(signOutError, 'logout'))
+})
+
+/** The caller's own signed-in devices, most recently active first. Never the IP or the user agent. */
+export const signedInDevices = query(async () => {
+  const { session_id: current, sub } = await requireLiveSession()
+  // GoTrue v2.197.0 has both `refreshed_at` (timestamp, UTC) and `updated_at`.
+  const rows = await db.execute<{ activeAt: Date; id: string; signedInAt: Date }>(sql`
+    select id, created_at as "signedInAt",
+      coalesce(refreshed_at at time zone 'UTC', updated_at, created_at) as "activeAt"
+    from auth.sessions where user_id = ${sub} order by 3 desc`)
+  return rows.map(({ activeAt, id, signedInAt }) => ({ activeAt, current: id === current, id, signedInAt }))
+})
+
+/** Ends one of the caller's other sessions; another account's or the calling one is never touched. */
+export const signOutDevice = command(z.object({ id: z.uuid() }), async ({ id }) => {
+  const { session_id: current, sub } = await requireLiveSession()
+  if (id === current) refuseCommand(formError('form_noPermission'))
+  await db.execute(sql`delete from auth.sessions where id = ${id} and user_id = ${sub} and id <> ${current ?? null}`)
+})
+
 export const sendPasswordReset = command(async () => {
+  await requireLiveSession()
   const event = getRequestEvent()
   const { claims } = event.locals
 

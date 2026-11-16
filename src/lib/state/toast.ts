@@ -3,6 +3,7 @@ import { reportIfOnline } from '$lib/logging/report'
 import { m } from '$lib/paraglide/messages'
 import { runCommand, type MutationResult } from '$lib/remote/mutation'
 import { createToaster } from '@skeletonlabs/skeleton-svelte'
+import { leaveIfSessionEnded } from './sessionEnded'
 
 const store = createToaster({
   // For every toast without its own; the library's default lets a success go after 2 s, too fast to read.
@@ -69,6 +70,7 @@ export interface UndoToastData {
  * a bare `catch {}` (no cause) too.
  */
 export function notifyError(cause?: unknown): void {
+  if (leaveIfSessionEnded(cause)) return
   // Only the ones nobody can explain afterwards. A server-authored message means the app said no
   // on purpose, and offline it was the network, not a defect.
   if (serverMessage(cause) == null) {
