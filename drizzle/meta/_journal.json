@@ -512,6 +512,20 @@
       "when": 1793961155808,
       "tag": "0147_promotion_quarter_and_notification",
       "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1794698388583,
+      "tag": "0148_auth_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1794698489747,
+      "tag": "0149_auth_guards",
+      "breakpoints": true
     }
   ]
 }

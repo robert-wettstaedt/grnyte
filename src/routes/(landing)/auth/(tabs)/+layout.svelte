@@ -1,7 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
-  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { m } from '$lib/paraglide/messages'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
@@ -46,11 +45,3 @@
 </SegmentedControl>
 
 {@render children()}
-
-<p class="text-surface-500 mt-7 text-center text-[11.5px] leading-normal">
-  {m.auth_termsAgree({ name: PUBLIC_APPLICATION_NAME })}
-  <a href={resolve('/legal/terms')} class="text-surface-600-400 underline">{m.legal_terms_title()}</a>
-  &amp;
-  <a href={resolve('/legal/privacy')} class="text-surface-600-400 underline">{m.legal_privacy_title()}</a>
-  .
-</p>

@@ -1,9 +1,11 @@
 import { resolve } from '$app/paths'
 import { command, form, getRequestEvent, query } from '$app/server'
+import { holdGrant, reauthCaller, spendGrant } from '$lib/auth/reauth.server'
+import { pinnedTx } from '$lib/db/pinned.server'
 import { deleteAccount, previewAccountDeletion } from '$lib/entities/user/delete.server'
-import { verifyPassword } from '$lib/entities/user/password.server'
 import { authError, formError } from '$lib/forms/schemas'
 import { refuseCommand, refuseVia, requireAuthed, requireVerifiedEmail } from '$lib/remote/authed.server'
+import type { AuthError } from '@supabase/supabase-js'
 import { error } from '@sveltejs/kit'
 import { deleteAccountSchema, updateEmailSchema, updatePasswordSchema } from './schemas'
 
@@ -51,49 +53,55 @@ export const updateEmailCommand = command(updateEmailSchema, ({ email }) => chan
  * password is the only thing standing between a stolen session and a permanent account takeover.
  */
 async function changePassword(
-  { currentPassword, password }: { currentPassword: string; password: string },
-  refuse: (message: string, field?: 'currentPassword') => never,
+  { currentPassword, password }: { currentPassword?: string; password: string },
+  refuse: (message: string, field?: 'code') => never,
 ) {
+  // Only a tab from before re-authentication sends the current password.
+  if (currentPassword !== undefined) refuse(formError('auth_reloadPage'))
+
   const {
     locals: { claims, supabase },
   } = getRequestEvent()
 
-  // The address comes from the verified token, never from `session.user.email`. That field is
-  // lifted verbatim out of the unsigned cookie, so it used to be attacker-chosen: signing in with
-  // your own account and rewriting it to a victim's address turned the check below, which reports
-  // whether a password is correct, into a guessing oracle against any account in the project.
   // `claims`, not `requireAuthed`, for the same reason as `updateEmail` above.
-  if (claims?.email == null) {
+  if (claims == null) {
     error(401, formError('auth_notSignedIn'))
   }
+  const caller = reauthCaller()
 
-  if (!(await verifyPassword(claims.email, currentPassword))) {
-    refuse(formError('settings_passwordIncorrect'), 'currentPassword')
-  }
+  // The grant is held across the GoTrue call and spent only once it succeeded, so a refusal keeps it.
+  // shortcut: no timeout and the session's own `updateUser`; task 8.4a/8.4c move this to the admin API.
+  const refused = await pinnedTx(async (tx) => {
+    if (!(await holdGrant(tx, caller, 'password.change', caller.authUserId))) return 'reauthRequired' as const
+    // Supabase rejects a password it considers unchanged or too weak; `authError` maps those codes.
+    const { error: updateError } = await supabase.auth.updateUser({ password })
+    if (updateError != null) throw updateError
+    await spendGrant(tx, caller, 'password.change', caller.authUserId)
+    return null
+  }).catch((updateError: AuthError) => updateError)
 
-  // Supabase rejects a password it considers unchanged or too weak; `authError` maps those codes
-  // onto our copy so the rules the server owns still read in the user's language.
-  const { error: updateError } = await supabase.auth.updateUser({ password })
-
-  if (updateError != null) {
-    refuse(authError(updateError))
-  }
+  if (refused === 'reauthRequired') refuse(formError('auth_reauthRequired'), 'code')
+  if (refused != null) refuse(authError(refused))
 
   return { redirectTo: resolve('/(app)/settings'), success: true }
 }
 
 /** @public Unused since the store forms; deployed one more release for tabs loaded before them. */
-export const updatePassword = form(updatePasswordSchema, (value, issue) => changePassword(value, refuseVia(issue)))
+export const updatePassword = form(updatePasswordSchema, (value, issue) =>
+  changePassword(value, (message) => refuseVia(issue)(message)),
+)
 
 export const updatePasswordCommand = command(updatePasswordSchema, (value) => changePassword(value, refuseCommand))
 
 /** Delete the caller's own account. */
 export const deleteAccountCommand = command(deleteAccountSchema, async ({ password }) => {
+  // Only a tab from before re-authentication sends a password.
+  if (password !== undefined) refuseCommand(formError('auth_reloadPage'))
   const { email, user } = requireVerifiedEmail()
-  const result = await deleteAccount({ authUserFk: user.authUserFk, email, id: user.id }, password)
+  const result = await deleteAccount({ authUserFk: user.authUserFk, email, id: user.id }, reauthCaller())
 
-  if (result.kind === 'wrongPassword') {
-    refuseCommand(formError('settings_passwordIncorrect'), 'password')
+  if (result.kind === 'reauthRequired') {
+    refuseCommand(formError('auth_reauthRequired'), 'code')
   }
   if (result.kind === 'blocked') {
     refuseCommand(formError('settings_deleteAccountBlocked', { regions: result.regions.join(', ') }))

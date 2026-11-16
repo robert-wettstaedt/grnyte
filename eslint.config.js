@@ -136,9 +136,9 @@ const restrictedImports = {
   ],
 }
 
-// The secret key bypasses RLS: only the admin client, the auth-only client and the key derivation read it.
+// The secret key bypasses RLS: only the admin client, the auth-only client and labelledKey read it.
 const SECRET_KEY_MESSAGE =
-  'SUPABASE_SECRET_KEY bypasses RLS. Use supabaseAdmin(), supabaseAuthServer() or proofOfWork instead.'
+  'SUPABASE_SECRET_KEY bypasses RLS. Use supabaseAdmin(), supabaseAuthServer() or labelledKey() instead.'
 const noSecretKeyImport = {
   importNames: ['SUPABASE_SECRET_KEY'],
   message: SECRET_KEY_MESSAGE,
@@ -153,7 +153,7 @@ const noDynamicPrivateEnv = [
 const SECRET_KEY_READERS = [
   'src/lib/auth/authServer.server.ts',
   'src/lib/db/supabaseAdmin.server.ts',
-  'src/lib/forms/proofOfWork.server.ts',
+  'src/lib/auth/keys.server.ts',
   'e2e/**',
 ]
 

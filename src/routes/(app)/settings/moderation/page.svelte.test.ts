@@ -1,3 +1,4 @@
+import '$lib/forms/screen.fixture'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte'
 import { beforeEach, expect, it, vi } from 'vitest'
 import Page from './+page.svelte'
@@ -25,17 +26,6 @@ const writes = vi.hoisted(() => ({ undoRemoval: vi.fn(async () => ({})) }))
 
 vi.mock('$lib/entities/moderation/moderation.remote', () => ({ listDecisions: () => remote }))
 vi.mock('$lib/entities/moderation/writes', () => writes)
-vi.mock('$lib/state/motion.svelte', () => ({ motion: () => 0, prefersStill: () => true }))
-vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => true }))
-vi.stubGlobal(
-  'ResizeObserver',
-  class {
-    disconnect() {}
-    observe() {}
-    unobserve() {}
-  },
-)
-vi.stubGlobal('matchMedia', () => ({ addEventListener() {}, matches: false, removeEventListener() {} }))
 
 const undoTheRow = async () => {
   render(Page)

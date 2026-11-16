@@ -1,3 +1,4 @@
+import '$lib/forms/screen.fixture'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte'
 import { expect, it, vi } from 'vitest'
 import Page from './+page.svelte'
@@ -63,17 +64,6 @@ vi.mock('$lib/entities/report/writes', () => ({ dismissReports: reports.dismissR
 vi.mock('$lib/state/global.svelte', () => ({
   getGlobalState: () => ({ user: { id: 3 }, userRegions: [{ permissions: ['region.delete'], regionFk: 1 }] }),
 }))
-vi.mock('$lib/state/motion.svelte', () => ({ motion: () => 0, prefersStill: () => true }))
-vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => true }))
-vi.stubGlobal(
-  'ResizeObserver',
-  class {
-    disconnect() {}
-    observe() {}
-    unobserve() {}
-  },
-)
-vi.stubGlobal('matchMedia', () => ({ addEventListener() {}, matches: false, removeEventListener() {} }))
 
 it('lists the region s decisions without the region and undoes the row s own object', async () => {
   render(Page)

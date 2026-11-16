@@ -1,3 +1,6 @@
+import { signInMethods } from '$lib/auth/methods.server'
+import { spendGrant, type ReauthCaller } from '$lib/auth/reauth.server'
+import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { activities } from '$lib/db/retired'
 import * as schema from '$lib/db/schema'
@@ -25,8 +28,12 @@ import {
   users,
   userSettings,
 } from '$lib/db/schema'
+import { authEvents } from '$lib/db/serverOnly'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
+import { accountDeleted } from '$lib/email/account'
+import { sendEmail } from '$lib/email/send.server'
 import { toDisplayName, type DisplayName } from '$lib/entities/displayName'
+import { contactLocale } from '$lib/i18n/message'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
 import { getLocale } from '$lib/paraglide/runtime'
@@ -37,12 +44,11 @@ import { NOTIFICATION_CONFLICT_TARGET } from '../notification/notification.serve
 import { deleteRegionRows } from '../region/delete.server'
 import { lockRegionMembers } from '../region/guards.server'
 import { recalcUserGradeAndRating } from '../route/user-grade.server'
-import { verifyPassword } from './password.server'
 
 export type Account = { authUserFk: string; email: string; id: number }
 
 export type DeleteAccountResult =
-  { kind: 'blocked'; regions: string[] } | { kind: 'deleted' } | { kind: 'wrongPassword' }
+  { kind: 'blocked'; regions: string[] } | { kind: 'deleted' } | { kind: 'reauthRequired' }
 
 export type RegionRef = { id: number; name: DisplayName }
 
@@ -53,19 +59,28 @@ export const ERASED_COMMENT = '…'
 
 // Refusals come before the first write; rows go in one privileged tx (it crosses regions), then the
 // GoTrue record and stored files, neither of which can roll back.
-export async function deleteAccount(account: Account, password: string): Promise<DeleteAccountResult> {
-  if (!(await verifyPassword(account.email, password))) {
-    return { kind: 'wrongPassword' }
-  }
+export async function deleteAccount(account: Account, caller: ReauthCaller): Promise<DeleteAccountResult> {
+  // Read first: the identities and settings are gone once the deletion ran.
+  const methods = await signInMethods(account.authUserFk)
+  const [settings] = await db
+    .select({ locale: userSettings.contactLocale })
+    .from(userSettings)
+    .where(eq(userSettings.userFk, account.id))
 
   const outcome = await pinnedTx(async (tx) => {
     const { blocks: blocking, deletes } = await classifyRegions(tx, account.id)
     if (blocking.length > 0) return { kind: 'blocked', regions: blocking.map((region) => region.name) } as const
+    if (!(await spendGrant(tx, caller, 'account.delete', account.authUserFk)))
+      return { kind: 'reauthRequired' } as const
     const sole = deletes.map((region) => region.id)
-    return { kind: 'deleted', targets: await deleteAccountData(tx, account, sole) } as const
+    const targets = await deleteAccountData(tx, account, sole)
+    // The deletion marker, on this tx, so it exists exactly when the deletion committed.
+    await tx.insert(authEvents).values({ authUserFk: account.authUserFk, kind: 'account_deleted' })
+    await tx.execute(sql`delete from auth.sessions where user_id = ${account.authUserFk}`)
+    return { kind: 'deleted', targets } as const
   })
 
-  if (outcome.kind === 'blocked') {
+  if (outcome.kind !== 'deleted') {
     return outcome
   }
 
@@ -77,6 +92,9 @@ export async function deleteAccount(account: Account, password: string): Promise
     await logServerFailure('account', `auth delete failed: ${stringifyError(error)}`)
   }
   await removeFileStorage(outcome.targets)
+
+  const locale = contactLocale(settings?.locale)
+  await sendEmail({ ...accountDeleted({ locale, methods }), locale, template: 'account-deleted', to: account.email })
 
   return { kind: 'deleted' }
 }

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { hasGrant, writeGrant } from '$lib/auth/reauth.server'
 import { db } from '$lib/db/db.server'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { sql as drizzleSql } from 'drizzle-orm'
@@ -7,11 +8,17 @@ import { deleteRegionRows } from '../region/delete.server'
 import { lockRegionMembers } from '../region/guards.server'
 import { deleteAccount, deleteAccountData, ERASED_COMMENT, previewAccountDeletion } from './delete.server'
 
-const auth = vi.hoisted(() => ({ deleteUser: vi.fn(async () => ({ error: null })), password: vi.fn(async () => true) }))
+const auth = vi.hoisted(() => ({ deleteUser: vi.fn(async (_id: string) => ({ error: null })) }))
 const storage = vi.hoisted(() => ({ remove: vi.fn(async () => {}) }))
+const mails = vi.hoisted(() => [] as { body: string[]; to: string }[])
 
 vi.mock('$lib/db/supabaseAdmin.server', () => ({ supabaseAdmin: () => ({ auth: { admin: auth } }) }))
-vi.mock('./password.server', () => ({ verifyPassword: auth.password }))
+vi.mock('$lib/email/send.server', () => ({
+  sendEmail: async (mail: { body: string[]; to: string }) => {
+    mails.push(mail)
+    return true
+  },
+}))
 vi.mock('../file/cleanup.server', async (original) => ({
   ...(await original<typeof import('../file/cleanup.server')>()),
   removeFileStorage: storage.remove,
@@ -51,6 +58,26 @@ const references = async (user: SeedUser) => {
 
 /** The session user, as the command hands it over. */
 const account = () => ({ authUserFk: person.authId, email: person.email, id: person.userId })
+const SESSION = crypto.randomUUID()
+const caller = () => ({ authUserId: person.authId, sessionId: SESSION })
+const confirm = () => writeGrant(caller(), 'account.delete', person.authId, 'email_code')
+const markers = async () =>
+  (await sql`select 1 from public.auth_events where kind = 'account_deleted' and auth_user_fk = ${person.authId}`)
+    .length
+
+/** Runs `fn` while a trigger refuses `event` on `table` for the person, as a failure at that point. */
+async function failing(table: string, event: 'DELETE' | 'INSERT', column: string, fn: () => Promise<unknown>) {
+  await sql.unsafe(`
+    create or replace function public.__fail_for_test() returns trigger language plpgsql as $$
+    begin if (case when TG_OP = 'DELETE' then OLD.${column} else NEW.${column} end) = '${person.authId}'
+      then raise exception 'failing on purpose'; end if; return coalesce(NEW, OLD); end $$;
+    create trigger __fail_for_test before ${event} on ${table} for each row execute function public.__fail_for_test()`)
+  try {
+    return await fn().catch((cause: Error) => cause)
+  } finally {
+    await sql.unsafe(`drop trigger __fail_for_test on ${table}; drop function public.__fail_for_test()`)
+  }
+}
 
 const exists = async (table: string, id: number | string) => {
   const [{ count }] = await sql<
@@ -66,6 +93,7 @@ async function removeFixtures() {
   await sql`delete from public.moderation_decisions where reason like ${PREFIX + '%'}`
   for (const user of [person, other]) {
     if (user == null) continue
+    await sql`delete from public.auth_events where auth_user_fk = ${user.authId}`
     await sql`delete from public.user_roles where auth_user_fk = ${user.authId}`
     await sql`delete from public.push_subscriptions where user_fk = ${user.userId}`
     await sql`update public.users set user_settings_fk = null, first_ascentionist_fk = null where id = ${user.userId}`
@@ -215,8 +243,8 @@ beforeAll(async () => {
 
 beforeEach(() => {
   auth.deleteUser.mockClear()
-  auth.password.mockReset().mockResolvedValue(true)
   storage.remove.mockClear()
+  mails.length = 0
 })
 
 afterAll(async () => {
@@ -225,12 +253,31 @@ afterAll(async () => {
 })
 
 describe.skipIf(!reachable)('deleteAccount', () => {
-  it('changes nothing for a wrong password', async () => {
-    auth.password.mockResolvedValue(false)
-
-    expect(await deleteAccount(account(), 'wrong')).toEqual({ kind: 'wrongPassword' })
+  it('changes nothing without a confirmation', async () => {
+    expect(await deleteAccount(account(), caller())).toEqual({ kind: 'reauthRequired' })
     expect(await references(person)).toContain('users')
     expect(auth.deleteUser).not.toHaveBeenCalled()
+    expect(await markers()).toBe(0)
+  })
+
+  it('leaves no marker and no deletion when the marker cannot be written', async () => {
+    await confirm()
+    await failing('public.auth_events', 'INSERT', 'auth_user_fk', () => deleteAccount(account(), caller()))
+
+    expect(await references(person)).toContain('users')
+    expect(await markers()).toBe(0)
+  })
+
+  it('leaves no marker when the deletion fails after the marker insert', async () => {
+    await confirm()
+    await failing('auth.sessions', 'DELETE', 'user_id', async () => {
+      await sql`insert into auth.sessions (user_id) values (${person.authId})`
+      return deleteAccount(account(), caller())
+    })
+
+    expect(await references(person)).toContain('users')
+    expect(await markers()).toBe(0)
+    await sql`delete from public.reauth_grants where auth_user_fk = ${person.authId}`
   })
 
   it('refuses while the person owns a region others still use, even beside a second admin, and names it', async () => {
@@ -238,11 +285,15 @@ describe.skipIf(!reachable)('deleteAccount', () => {
     await sql`update public.regions set created_by = ${person.userId} where id = ${shared}`
 
     const preview = await previewAccountDeletion(person.userId)
-    const result = await deleteAccount(account(), 'pw')
+    await confirm()
+    const result = await deleteAccount(account(), caller())
 
     await sql`update public.regions set created_by = ${other.userId} where id = ${shared}`
     await sql`update public.region_members set role = 'region_maintainer' where region_fk = ${shared} and user_fk = ${person.userId}`
     expect(result).toEqual({ kind: 'blocked', regions: [PREFIX + 'shared'] })
+    expect(await hasGrant(caller(), 'account.delete', person.authId)).toBe(true)
+    expect(await markers()).toBe(0)
+    await sql`delete from public.reauth_grants where auth_user_fk = ${person.authId}`
     // The screen warns from the same rule, and names each region by id, since names repeat.
     expect(preview.blocks).toEqual([{ id: shared, name: PREFIX + 'shared' }])
     expect(preview.deletes).toEqual([{ id: sole, name: PREFIX + 'sole' }])
@@ -275,10 +326,20 @@ describe.skipIf(!reachable)('deleteAccount', () => {
   })
 
   it('removes every link to the person, keeps what the region relies on, and drops what was theirs alone', async () => {
-    expect(await deleteAccount(account(), 'pw')).toEqual({ kind: 'deleted' })
+    await sql`update auth.users set encrypted_password = 'hash' where id = ${person.authId}`
+    // GoTrue's delete takes the sign-in methods with it.
+    auth.deleteUser.mockImplementationOnce(async (id) => {
+      await sql`update auth.users set encrypted_password = null where id = ${id}`
+      return { error: null }
+    })
+    await confirm()
+    expect(await deleteAccount(account(), caller())).toEqual({ kind: 'deleted' })
 
     expect(await references(person)).toEqual([])
     expect(auth.deleteUser).toHaveBeenCalledWith(person.authId)
+    expect(await markers()).toBe(1)
+    expect(mails).toHaveLength(1)
+    expect(mails[0].body.join(' ')).toContain('your password')
 
     // The guidebook stays, unattributed.
     for (const table of ['areas', 'blocks', 'routes', 'files'] as const) {

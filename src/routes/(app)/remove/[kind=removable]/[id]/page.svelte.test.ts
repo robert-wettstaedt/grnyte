@@ -1,3 +1,4 @@
+import '$lib/forms/screen.fixture'
 import { page } from '$app/state'
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -32,17 +33,6 @@ vi.mock('$lib/state/toast', async (original) => ({
   notifyUndo: undo.notifyUndo,
 }))
 vi.mock('$lib/components/Markdown/Markdown.svelte', () => ({ default: () => {} }))
-vi.mock('$lib/state/motion.svelte', () => ({ motion: () => 0, prefersStill: () => true }))
-vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => true }))
-vi.stubGlobal(
-  'ResizeObserver',
-  class {
-    disconnect() {}
-    observe() {}
-    unobserve() {}
-  },
-)
-vi.stubGlobal('matchMedia', () => ({ addEventListener() {}, matches: false, removeEventListener() {} }))
 Element.prototype.scrollIntoView = () => {}
 
 const submitButton = () => screen.getByRole('button', { name: 'Remove and notify' })

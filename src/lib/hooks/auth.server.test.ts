@@ -9,35 +9,46 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('$lib/db/db.server', () => ({ db: {} }))
 vi.mock('$lib/entities/region/invite.server', () => ({ findLiveInvitationByEmail: vi.fn() }))
 vi.mock('$lib/auth/verify.server', () => ({ verifyAccessToken: vi.fn() }))
+vi.mock('$lib/entities/user/provision.server', () => ({ hasDeletionMarker: vi.fn() }))
 const getSession = vi.fn()
 vi.mock('@supabase/ssr', () => ({ createServerClient: vi.fn(() => ({ auth: { getSession } })) }))
 
 const { findLiveInvitationByEmail } = await import('$lib/entities/region/invite.server')
 const { verifyAccessToken } = await import('$lib/auth/verify.server')
+const { hasDeletionMarker } = await import('$lib/entities/user/provision.server')
 const { createServerClient } = await import('@supabase/ssr')
 const { authGuard, supabase } = await import('$lib/hooks/auth.server')
 
 const lookup = vi.mocked(findLiveInvitationByEmail)
 const verify = vi.mocked(verifyAccessToken)
+const marked = vi.mocked(hasDeletionMarker)
+const signOut = vi.fn()
 
 interface Session {
   email?: string
+  profile?: boolean
   regions?: number
+  /** A remote-function call made from the page at `path`. */
+  remote?: boolean
   signedIn?: boolean
 }
 
-const mockEvent = (path: string, { email = 'climber@grnyte.rocks', regions = 1, signedIn = true }: Session = {}) => {
+const mockEvent = (
+  path: string,
+  { email = 'climber@grnyte.rocks', profile = true, regions = 1, remote = false, signedIn = true }: Session = {},
+) => {
   const session = {
     backendUnavailable: false,
     claims: signedIn ? { email, sub: 'auth-user-1' } : undefined,
-    user: undefined,
+    user: profile ? { id: 1 } : undefined,
     userPermissions: undefined,
     userRegions: Array.from({ length: regions }, (_unused, index) => ({ regionFk: index + 1 })),
     userRole: undefined,
   }
 
   return {
-    locals: { safeGetSession: () => Promise.resolve(session) },
+    isRemoteRequest: remote,
+    locals: { safeGetSession: () => Promise.resolve(session), supabase: { auth: { signOut } } },
     url: new URL(`https://grnyte.rocks${path}`),
   } as unknown as RequestEvent
 }
@@ -100,6 +111,9 @@ describe('authGuard', () => {
   beforeEach(() => {
     lookup.mockReset()
     lookup.mockResolvedValue(undefined)
+    marked.mockReset()
+    marked.mockResolvedValue(false)
+    signOut.mockReset()
   })
 
   describe('a signed-in visitor to an auth page', () => {
@@ -153,5 +167,45 @@ describe('authGuard', () => {
 
       expect(await redirectFrom(mockEvent('/', { regions: 0 }))).toBe(acceptPath('abc'))
     })
+  })
+  describe('a signed-in account with no profile', () => {
+    const noProfile = { profile: false }
+
+    it('is sent from an app screen to the profile step, keeping where it was headed', async () => {
+      expect(await redirectFrom(mockEvent('/explore?tab=map', noProfile))).toBe(
+        '/auth/profile?next=%2Fexplore%3Ftab%3Dmap',
+      )
+    })
+
+    it.each(['/auth/profile', '/legal/privacy', '/auth/confirm'])('may open %s', async (path) => {
+      expect(await redirectFrom(mockEvent(path, noProfile))).toBeUndefined()
+    })
+
+    it('is signed out to the sign-in page when an account deletion left a marker', async () => {
+      marked.mockResolvedValue(true)
+      expect(await redirectFrom(mockEvent('/explore', noProfile))).toBe('/auth/signin?deleted=1')
+      expect(signOut).toHaveBeenCalledWith({ scope: 'local' })
+    })
+
+    it('is neither bounced nor gated on a remote call made from an auth page', async () => {
+      expect(await redirectFrom(mockEvent('/auth/forgot-password', { ...noProfile, remote: true }))).toBeUndefined()
+    })
+
+    it('is gated when it opens that same auth page', async () => {
+      expect(await redirectFrom(mockEvent('/auth/forgot-password', noProfile))).toBe(
+        '/auth/profile?next=%2Fauth%2Fforgot-password',
+      )
+    })
+
+    it('reaches the profile step before a pending invitation, which it keeps as next', async () => {
+      lookup.mockResolvedValue({ token: 'abc' } as Awaited<ReturnType<typeof findLiveInvitationByEmail>>)
+      expect(await redirectFrom(mockEvent('/explore', { ...noProfile, regions: 0 }))).toBe(
+        '/auth/profile?next=%2Fexplore',
+      )
+    })
+  })
+
+  it('sends an account that has a profile on from the profile step', async () => {
+    expect(await redirectFrom(mockEvent('/auth/profile?next=%2Finvite%2Faccept%2Fabc'))).toBe('/invite/accept/abc')
   })
 })

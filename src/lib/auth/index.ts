@@ -16,9 +16,18 @@ export const AUTH_PATH = '/auth' satisfies Pathname
  *  password, and no session counts while the key is still set. */
 export const CONTESTED_SIGNUP = 'contested_signup'
 
+/** `app_metadata` on every account grnyte creates; `before_user_created_hook` refuses an email
+ *  sign-up without it, so GoTrue's public sign-up cannot skip grnyte's checks. */
+export const SIGNUP_MARKER = { signup: 'grnyte' } as const
+
 /** The one reading of {@link CONTESTED_SIGNUP}: any value counts, only a removed key clears it. */
 export const isContested = (appMetadata: unknown): boolean =>
   (appMetadata as null | Record<string, unknown> | undefined)?.[CONTESTED_SIGNUP] != null
+
+/** Only a code just verified on this session writes a fresh `otp` entry (under 10 minutes). */
+export function isFreshCodeSession(claims: Pick<SupabaseToken, 'amr'>, now = Date.now()): boolean {
+  return (claims.amr ?? []).some((entry) => entry.method === 'otp' && now - entry.timestamp * 1000 < 10 * 60 * 1000)
+}
 
 /** Only there to give the parser something to resolve a relative path against, see
  *  {@link isSameOriginPath}. Never reachable, so a bug that let one through would 404 rather
@@ -34,7 +43,11 @@ export const REGION_PERMISSION_EDIT = 'region.edit'
 export const REGION_PERMISSION_READ = 'region.read'
 export const REGION_PERMISSION_ADMIN = 'region.admin'
 
+/** Actions behind a re-authentication. Targets: auth user id, auth user id, `regionFk`, `regionFk:userFk`. */
+export const REAUTH_ACTIONS = ['account.delete', 'password.change', 'region.delete', 'region.transfer'] as const
 export type AppPermission = typeof APP_PERMISSION_ADMIN
+
+export type ReauthAction = (typeof REAUTH_ACTIONS)[number]
 
 export type RegionPermission =
   | typeof REGION_PERMISSION_ADMIN
@@ -43,6 +56,8 @@ export type RegionPermission =
   | typeof REGION_PERMISSION_READ
 
 export interface SupabaseToken {
+  /** How the session was made; a code verify writes an `otp` entry (timestamp in seconds). */
+  amr?: { method: string; timestamp: number }[]
   aud?: string | string[]
   /** On every GoTrue access token. The invitation flow and the password re-check key on it, and it
    *  is NOT the same value as the forgeable `session.user.email` they used to read. */

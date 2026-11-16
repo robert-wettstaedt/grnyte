@@ -30,10 +30,6 @@ import { SignJWT } from 'jose'
 /** What a pushed mutation answers: `data` on success, or Zero's error kind with our message. */
 export type PushedResult = { data?: unknown; details?: unknown; error?: string; message?: string }
 
-/**
- * Runs `fn` as a signed-out visitor, the caller of the auth forms. `supabase` is whatever fake the
- * test wants those forms to reach; they call nothing else on locals.
- */
 export function asAnonymousRequest<T>(supabase: unknown, fn: () => Promise<T> | T): Promise<T> {
   return inRequestStore({ claims: null, supabase }, fn)
 }
@@ -44,7 +40,12 @@ export function asAnonymousRequest<T>(supabase: unknown, fn: () => Promise<T> | 
  * Permissions are read live rather than passed in: a test that hand-builds `userRegions` proves the
  * handler agrees with the test's idea of the memberships, not with the database's.
  */
-export async function asRequest<T>(authUserId: string, fn: () => Promise<T> | T, supabase?: unknown): Promise<T> {
+export async function asRequest<T>(
+  authUserId: string,
+  fn: () => Promise<T> | T,
+  supabase?: unknown,
+  { session: withSession = true }: { session?: boolean } = {},
+): Promise<T> {
   // `getUserPermissions` deliberately returns `user: undefined`, so the row is loaded alongside it
   // the way the `supabase` handle does. Without it every handler 401s on `user == null`.
   const [permissions, user, [authUser]] = await Promise.all([
@@ -56,7 +57,13 @@ export async function asRequest<T>(authUserId: string, fn: () => Promise<T> | T,
     db.select({ email: authUsers.email }).from(authUsers).where(eq(authUsers.id, authUserId)).limit(1),
   ])
 
-  const verified = await verifyAccessToken(await signAccessToken(authUserId, authUser?.email ?? undefined))
+  // A live `auth.sessions` row per caller, as GoTrue has: re-auth binds to `session_id`.
+  const sessionId = withSession
+    ? (
+        await db.execute<{ id: string }>(sql`insert into auth.sessions (user_id) values (${authUserId}) returning id`)
+      )[0].id
+    : undefined
+  const verified = await verifyAccessToken(await signAccessToken(authUserId, authUser?.email ?? undefined, sessionId))
 
   if (!verified.ok) {
     // A worktree whose .env carries a different SUPABASE_JWT_SECRET than the one the verifier
@@ -126,8 +133,8 @@ export async function redirectOf(run: () => Promise<unknown>): Promise<string | 
  * No `iss`: this stack's GoTrue sets no `GOTRUE_JWT_ISSUER`, so real local tokens carry none and a
  * fabricated one would diverge from production the moment `SUPABASE_JWT_ISSUER` is set anywhere.
  */
-export function signAccessToken(authUserId: string, email: string | undefined): Promise<string> {
-  return new SignJWT({ email, role: 'authenticated' })
+export function signAccessToken(authUserId: string, email: string | undefined, sessionId?: string): Promise<string> {
+  return new SignJWT({ email, role: 'authenticated', session_id: sessionId })
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setAudience('authenticated')
     .setSubject(authUserId)
@@ -147,6 +154,19 @@ export async function statusOf(run: () => Promise<unknown>): Promise<number | un
   } catch (thrown) {
     return (thrown as { status?: number })?.status
   }
+}
+
+/**
+ * Runs `fn` as a signed-out visitor, the caller of the auth forms. `supabase` is whatever fake the
+ * test wants those forms to reach; they call nothing else on locals.
+ */
+/** The message keys of a form's refusal, as `callForm` returns it. */
+export const refusalKeys = ({ issues = [] }: { issues?: { message: string }[] }): string[] =>
+  issues.map((issue) => JSON.parse(issue.message).message)
+
+/** Runs `fn` with exactly these locals, for a session a GoTrue test made itself. */
+export function withLocals<T>(locals: object, fn: () => Promise<T> | T): Promise<T> {
+  return inRequestStore(locals, fn)
 }
 
 /**
@@ -216,5 +236,7 @@ function inRequestStore<T>(locals: object, fn: () => Promise<T> | T): Promise<T>
   // `Cannot read properties of undefined` instead of exercising the gate it was written for.
   const url = new URL('http://localhost/')
 
-  return with_request_store({ event: { locals, request, url }, state } as never, fn) as Promise<T>
+  // `getClientAddress`: the auth-only client forwards it to GoTrue as `sb-forwarded-for`.
+  const getClientAddress = () => '127.0.0.1'
+  return with_request_store({ event: { getClientAddress, locals, request, url }, state } as never, fn) as Promise<T>
 }

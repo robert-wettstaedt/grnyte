@@ -5,7 +5,10 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { RequestEvent } from '@sveltejs/kit'
 
 /** The auth calls grnyte makes under the secret key. */
-export type AuthServer = Pick<SupabaseClient['auth'], 'resend'>
+export type AuthServer = Pick<
+  SupabaseClient['auth'],
+  'resend' | 'resetPasswordForEmail' | 'signInWithPassword' | 'verifyOtp'
+>
 
 /**
  * GoTrue under the secret key, forwarding the caller's address so its per-IP limits count each
@@ -17,6 +20,12 @@ export function supabaseAuthServer(event: Pick<RequestEvent, 'getClientAddress'>
     auth: { autoRefreshToken: false, detectSessionInUrl: false, flowType: 'implicit', persistSession: false },
     global: { fetch: secretKeyFetch, headers: { 'sb-forwarded-for': event.getClientAddress() } },
   })
+  const { auth } = client
 
-  return Object.freeze({ resend: client.auth.resend.bind(client.auth) })
+  return Object.freeze({
+    resend: auth.resend.bind(auth),
+    resetPasswordForEmail: auth.resetPasswordForEmail.bind(auth),
+    signInWithPassword: auth.signInWithPassword.bind(auth),
+    verifyOtp: auth.verifyOtp.bind(auth),
+  })
 }

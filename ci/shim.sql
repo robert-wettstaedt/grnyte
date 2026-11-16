@@ -43,22 +43,66 @@ create table if not exists auth.users (
 -- Sign-up protection reads confirmation state and account age. `alter`, so a DB shimmed before this gains them.
 alter table auth.users add column if not exists created_at timestamptz default now();
 alter table auth.users add column if not exists email_confirmed_at timestamptz;
+-- The identity guard, sign-in methods and the session check read these. Each statement is a no-op
+-- on a database GoTrue already migrated.
+alter table auth.users add column if not exists encrypted_password text;
+alter table auth.users add column if not exists raw_app_meta_data jsonb not null default '{}';
+alter table auth.users add column if not exists email_change text;
+
+create table if not exists auth.identities (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users on delete cascade,
+  provider text not null,
+  provider_id text not null,
+  identity_data jsonb not null default '{}',
+  email text,
+  created_at timestamptz,
+  updated_at timestamptz,
+  last_sign_in_at timestamptz
+);
+
+create table if not exists auth.sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz,
+  refreshed_at timestamp,
+  user_agent text,
+  ip inet
+);
+
+create table if not exists auth.refresh_tokens (
+  id bigserial primary key,
+  session_id uuid references auth.sessions on delete cascade
+);
+
+create table if not exists auth.audit_log_entries (
+  id uuid primary key,
+  payload json,
+  created_at timestamptz
+);
 
 -- Verbatim Supabase definitions: read request.jwt.claim.sub / request.jwt.claims, set per-transaction
--- by createDrizzle (db.server.ts) and by the RLS test harness.
-create or replace function auth.uid() returns uuid language sql stable as $$
-  select coalesce(
-    nullif(current_setting('request.jwt.claim.sub', true), ''),
-    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
-  )::uuid
-$$;
-
-create or replace function auth.jwt() returns jsonb language sql stable as $$
-  select coalesce(
-    nullif(current_setting('request.jwt.claim', true), ''),
-    nullif(current_setting('request.jwt.claims', true), '')
-  )::jsonb
-$$;
+-- by createDrizzle (db.server.ts) and by the RLS test harness. Created only when missing, so a real
+-- Supabase database keeps its own.
+do $shim$ begin
+  if to_regprocedure('auth.uid()') is null then
+    create function auth.uid() returns uuid language sql stable as $$
+      select coalesce(
+        nullif(current_setting('request.jwt.claim.sub', true), ''),
+        (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+      )::uuid
+    $$;
+  end if;
+  if to_regprocedure('auth.jwt()') is null then
+    create function auth.jwt() returns jsonb language sql stable as $$
+      select coalesce(
+        nullif(current_setting('request.jwt.claim', true), ''),
+        nullif(current_setting('request.jwt.claims', true), '')
+      )::jsonb
+    $$;
+  end if;
+end $shim$;
 
 -- storage schema: just enough for migration 0075 (a `staging` bucket + four RLS policies on
 -- `storage.objects`) to APPLY. Inert in tests - nothing exercises storage-object RLS - but the DDL
@@ -82,9 +126,13 @@ create table if not exists storage.objects (
   created_at timestamptz default now()
 );
 
-create or replace function storage.foldername(name text) returns text[] language sql immutable as $$
-  select string_to_array(name, '/')
-$$;
+do $shim$ begin
+  if to_regprocedure('storage.foldername(text)') is null then
+    create function storage.foldername(name text) returns text[] language sql immutable as $$
+      select string_to_array(name, '/')
+    $$;
+  end if;
+end $shim$;
 
 -- Zero's push bookkeeping, which zero-cache creates on first connect and CI never runs. The mutator
 -- suites push through Zero's real processor, which writes both tables in every mutation's transaction.

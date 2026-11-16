@@ -8,6 +8,7 @@ import * as schema from '$lib/db/schema'
 import { findLiveInvitationByEmail } from '$lib/entities/region/invite.server'
 import { acceptPath, REGION_CREATE_PATH, REGIONLESS_PATHS } from '$lib/entities/region/paths'
 import { readRegionSettings } from '$lib/entities/region/settings'
+import { hasDeletionMarker } from '$lib/entities/user/provision.server'
 import { createServerClient } from '@supabase/ssr'
 import { error, redirect, type Handle } from '@sveltejs/kit'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -254,6 +255,41 @@ const HOME_PATH: Pathname = '/'
  *  the token unprocessed. /auth/error is where an expired one of those lands. */
 const EMAILED_LINK_PATHS: Pathname[] = ['/auth/confirm', '/auth/error', '/auth/reset-password']
 
+const PROFILE_PATH: Pathname = '/auth/profile'
+const SIGN_IN_PATH: Pathname = '/auth/signin'
+/** What a profile-less account may open; sign-out is a remote call, which the gate never sees. */
+const PROFILE_GATE_EXEMPT: string[] = [PROFILE_PATH, '/legal', ...EMAILED_LINK_PATHS]
+
+/** A failed lookup is not a marker: the profile step refuses a marked account on its own. */
+async function deletionMarked(authUserId: string): Promise<boolean> {
+  try {
+    return await hasDeletionMarker(authUserId)
+  } catch (cause) {
+    console.error('[auth] deletion marker lookup failed:', cause)
+    return false
+  }
+}
+
+/** Signed-in callers leave /auth, minus the emailed-link pages and the profile step while it has work.
+ *  Not HOME_PATH: since 2.0 that is the landing page they just pressed "Sign in" on. */
+function leaveAuthPages({ locals, url }: Parameters<Handle>[0]['event']): void {
+  if (locals.claims == null || !url.pathname.startsWith(AUTH_PATH)) return
+  if (EMAILED_LINK_PATHS.some((path) => url.pathname.startsWith(path))) return
+  if (url.pathname === PROFILE_PATH && locals.user == null) return
+  redirect(303, signedInRedirectTarget(url.searchParams.get('next')))
+}
+
+/** A signed-in account with no profile opens nothing but the profile step until it has one. */
+async function profileGate({ locals, url }: Parameters<Handle>[0]['event']): Promise<void> {
+  if (locals.claims == null || locals.user != null || locals.backendUnavailable) return
+  if (PROFILE_GATE_EXEMPT.some((path) => url.pathname.startsWith(path))) return
+  if (await deletionMarked(locals.claims.sub)) {
+    await locals.supabase.auth.signOut({ scope: 'local' })
+    redirect(303, `${SIGN_IN_PATH}?deleted=1`)
+  }
+  redirect(303, `${PROFILE_PATH}?${new URLSearchParams({ next: url.pathname + url.search })}`)
+}
+
 /** Prefixes rather than pathnames, deliberately: each stands for a whole subtree (`/f/abc`,
  *  `/image/a/b/c`, every `/api` endpoint), which is not a thing `Pathname` can express. '/invite'
  *  is public because the emailed link is opened by somebody who may have no account yet, and
@@ -321,14 +357,11 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     redirect(303, AUTH_PATH)
   }
 
-  // Redirect authenticated users away from auth pages, minus the emailed-link ones. Not HOME_PATH:
-  // since 2.0 that is the landing page, so bouncing there returned them to the "Sign in" they pressed.
-  if (
-    event.locals.claims != null &&
-    event.url.pathname.startsWith(AUTH_PATH) &&
-    !EMAILED_LINK_PATHS.some((path) => event.url.pathname.startsWith(path))
-  ) {
-    redirect(303, signedInRedirectTarget(event.url.searchParams.get('next')))
+  // Page navigations only: a remote call's `event.url` is the calling page, and the code and
+  // password steps on /auth must finish before a profile exists.
+  if (!event.isRemoteRequest) {
+    await profileGate(event)
+    leaveAuthPages(event)
   }
 
   // A signed-in user with no regions whose address has a live invitation goes straight to it.

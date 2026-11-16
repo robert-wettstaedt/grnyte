@@ -1,5 +1,8 @@
-import { render, screen } from '@testing-library/svelte'
-import { expect, it, vi } from 'vitest'
+import { confirmWithCode, resetReauthRemote, submitNeedingConfirmation } from '$lib/auth/reauth.fixture'
+import { formError } from '$lib/forms/schemas'
+import { settle } from '$lib/forms/screen.fixture'
+import { fireEvent, render, screen } from '@testing-library/svelte'
+import { beforeEach, expect, it, vi } from 'vitest'
 import Page from './+page.svelte'
 
 type Region = { id: number; name: string }
@@ -8,52 +11,51 @@ const preview = vi.hoisted(() => ({
   deletes: [] as Region[],
   failed: false,
 }))
+const command = vi.hoisted(() => vi.fn(async (_: unknown) => {}))
 
 vi.mock('../../account.remote', () => ({
   accountDeletionPreview: () =>
     preview.failed
       ? { current: undefined, error: new Error('down'), ready: false }
       : { current: preview, error: undefined, ready: true },
-  deleteAccountCommand: vi.fn(),
+  deleteAccountCommand: command,
 }))
-vi.mock('$lib/state/motion.svelte', () => ({ motion: () => 0, prefersStill: () => true }))
-vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => true }))
-vi.mock('$lib/state/push.svelte', () => ({ disablePush: vi.fn() }))
+vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
+vi.mock('$lib/state/push.svelte', () => ({ disablePush: vi.fn(async () => {}) }))
 vi.mock('$lib/state/wipe', () => ({ wipeAndLeave: vi.fn() }))
-// jsdom has no ResizeObserver; nothing here depends on a measured size.
-vi.stubGlobal(
-  'ResizeObserver',
-  class {
-    disconnect() {}
-    observe() {}
-    unobserve() {}
-  },
-)
-vi.stubGlobal('matchMedia', () => ({ addEventListener() {}, matches: false, removeEventListener() {} }))
 
 const submitButton = () => screen.getByRole('button', { name: 'Delete my account' })
-vi.mock('$lib/auth/session.remote', () => ({ sendPasswordReset: vi.fn() }))
 
-it('names a region that blocks the deletion, and will not submit while it does', () => {
-  preview.blocks = [{ id: 1, name: 'Harz' }]
+beforeEach(() => {
+  preview.blocks = []
   preview.deletes = []
+  preview.failed = false
+  command.mockClear()
+  resetReauthRemote(false)
+})
+
+it('names a region that blocks the deletion, offers no code, and will not submit while it does', async () => {
+  preview.blocks = [{ id: 1, name: 'Harz' }]
   render(Page)
+  await settle()
 
   expect(screen.getByText('Harz')).toBeTruthy()
+  expect(screen.getByText('Hand over the regions below first')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Send code' })).toBeNull()
   expect(submitButton().hasAttribute('disabled')).toBe(true)
 })
 
-it('warns which regions go with the account, and lets the deletion through', () => {
-  preview.blocks = []
+it('warns which regions go with the account, and lets a confirmed deletion through', async () => {
+  resetReauthRemote(true)
   preview.deletes = [{ id: 2, name: 'Elbsandstein' }]
   render(Page)
+  await settle()
 
   expect(screen.getByText('Elbsandstein')).toBeTruthy()
   expect(submitButton().hasAttribute('disabled')).toBe(false)
 })
 
 it('lists two regions that share a name, since names are not unique', () => {
-  preview.blocks = []
   preview.deletes = [
     { id: 3, name: 'Elbsandstein' },
     { id: 4, name: 'Elbsandstein' },
@@ -69,5 +71,23 @@ it('says the check failed and holds the deletion, since a region that goes is ne
 
   expect(screen.getByRole('alert')).toBeTruthy()
   expect(submitButton().hasAttribute('disabled')).toBe(true)
-  preview.failed = false
+})
+
+it('deletes nothing on a correct code, only on the submit', async () => {
+  render(Page)
+  await settle()
+  await confirmWithCode()
+
+  expect(command).not.toHaveBeenCalled()
+  await fireEvent.click(submitButton())
+  await settle()
+  expect(command).toHaveBeenCalledOnce()
+})
+
+it('opens code entry when the deletion answers that it needs a confirmation', async () => {
+  resetReauthRemote(true)
+  command.mockRejectedValueOnce({ body: { field: 'code', message: formError('auth_reauthRequired') } })
+  render(Page)
+
+  await submitNeedingConfirmation(submitButton())
 })

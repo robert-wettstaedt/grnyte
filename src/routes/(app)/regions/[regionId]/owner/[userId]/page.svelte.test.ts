@@ -1,4 +1,7 @@
-import { render, screen } from '@testing-library/svelte'
+import { confirmWithCode, reauthRemote, resetReauthRemote, submitNeedingConfirmation } from '$lib/auth/reauth.fixture'
+import { formError } from '$lib/forms/schemas'
+import { settle } from '$lib/forms/screen.fixture'
+import { fireEvent, render, screen } from '@testing-library/svelte'
 import { beforeEach, expect, it, vi } from 'vitest'
 import Page from './+page.svelte'
 
@@ -26,23 +29,41 @@ vi.mock('$lib/entities/region/resources.svelte', () => ({
     phase: { empty: false, kind: 'answered' },
   }),
 }))
-vi.mock('$lib/entities/region/regions.remote', () => ({ transferRegionOwnershipCommand: vi.fn() }))
+const command = vi.hoisted(() => vi.fn(async (_: unknown) => {}))
+vi.mock('$lib/entities/region/regions.remote', () => ({ transferRegionOwnershipCommand: command }))
+vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
+vi.mock('$lib/state/navigation.svelte', async (original) => ({ ...(await original<object>()), exit: vi.fn() }))
 vi.mock('$lib/state/global.svelte', () => ({ getGlobalState: () => ({ user: { id: 7 }, userRegions: [] }) }))
-vi.mock('$lib/state/motion.svelte', () => ({ motion: () => 0, prefersStill: () => true }))
-vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => true }))
-vi.stubGlobal(
-  'ResizeObserver',
-  class {
-    disconnect() {}
-    observe() {}
-    unobserve() {}
-  },
-)
-vi.stubGlobal('matchMedia', () => ({ addEventListener() {}, matches: false, removeEventListener() {} }))
-vi.mock('$lib/auth/session.remote', () => ({ sendPasswordReset: vi.fn() }))
+
+const submitButton = () => screen.getByRole('button', { name: 'Make owner' })
 
 beforeEach(() => {
   state.recipient = 9
+  command.mockClear()
+  resetReauthRemote(false)
+})
+
+it('hands nothing over on a correct code, only on the submit', async () => {
+  state.recipient = 8
+  render(Page)
+  await settle()
+  expect(reauthRemote.reauthGrantStatus).toHaveBeenCalledWith({ action: 'region.transfer', target: '1:8' })
+  expect(submitButton().hasAttribute('disabled')).toBe(true)
+  await confirmWithCode()
+
+  expect(command).not.toHaveBeenCalled()
+  await fireEvent.click(submitButton())
+  await settle()
+  expect(command).toHaveBeenCalledWith({ regionFk: 1, userFk: 8 })
+})
+
+it('opens code entry when the handover answers that it needs a confirmation', async () => {
+  state.recipient = 8
+  resetReauthRemote(true)
+  command.mockRejectedValueOnce({ body: { field: 'code', message: formError('auth_reauthRequired') } })
+  render(Page)
+
+  await submitNeedingConfirmation(submitButton())
 })
 
 it('names another admin as the new owner', () => {

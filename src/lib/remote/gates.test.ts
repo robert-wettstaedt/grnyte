@@ -201,6 +201,14 @@ const MUTATOR_WRAPPERS = new Set(['defineServerMutator'])
  * silently carrying its exemption to a different function.
  */
 const NO_GATE: Record<string, string> = {
+  'lib/auth/password.remote.ts#setNewPassword':
+    "Acts only on the caller's own session and refuses unless a code was verified on it within 10 minutes (`amr`).",
+  'lib/auth/reauth.remote.ts#confirmReauthCode':
+    'Writes a grant bound to the verified caller and its session (`reauthCaller`, 401 without `session_id`); the action that later spends it gates itself.',
+  'lib/auth/reauth.remote.ts#reauthGrantStatus':
+    "Reads only the caller's own grant for its own session (`reauthCaller`), answering confirmed or not.",
+  'lib/auth/reauth.remote.ts#requestReauthCode':
+    "Mails a code to the session's own verified address for its own session (`reauthCaller`), capped at 5 an hour; it grants nothing by itself.",
   'lib/auth/session.remote.ts#sendPasswordReset':
     "Takes no input: mails the standard reset link to the session's own verified address, which only that inbox can use.",
   'lib/auth/session.remote.ts#signOut':
@@ -273,10 +281,18 @@ const NO_GATE: Record<string, string> = {
     'The same body as `updatePassword`: the session cookie plus a re-entry of the current password, against the session email.',
   'routes/(landing)/auth/(tabs)/signin/signin.remote.ts#signIn':
     'Runs before authentication because it is the authentication, and the only path it takes back is validated same-origin.',
+  'routes/(landing)/auth/(tabs)/signup/signup.remote.ts#confirmSignupCode':
+    'Runs before authentication: the mailed code is the proof, counted per address before GoTrue sees it.',
+  'routes/(landing)/auth/(tabs)/signup/signup.remote.ts#resendSignupCode':
+    'Runs before authentication, behind proof of work, and only mails the address given; without its token it flags the account first.',
   'routes/(landing)/auth/(tabs)/signup/signup.remote.ts#signUp':
-    'Runs before authentication and can only write rows for the auth user Supabase just returned, never for an id the request stated.',
+    'Runs before authentication and creates only a GoTrue account for the address given; the profile comes later, for the verified caller.',
+  'routes/(landing)/auth/forgot-password/forgot-password.remote.ts#confirmResetCode':
+    'Runs before authentication: the mailed code is the proof, counted per address before GoTrue sees it.',
   'routes/(landing)/auth/forgot-password/forgot-password.remote.ts#forgotPassword':
     'Runs before authentication and answers only into the mailbox it was given, never to the caller.',
+  'routes/(landing)/auth/profile/profile.remote.ts#completeProfile':
+    "Creates only the verified caller's own profile (`claims.sub`), refuses a deleted account, and returns a validated same-origin path.",
   'routes/(landing)/auth/reset-password/reset-password.remote.ts#resetPassword':
     'Changes the password of whichever auth user the recovery session established by the emailed link belongs to, and it names no account.',
 }

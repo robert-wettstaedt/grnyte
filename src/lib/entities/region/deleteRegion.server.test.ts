@@ -1,13 +1,12 @@
 // @vitest-environment node
+import { hasGrant, writeGrant } from '$lib/auth/reauth.server'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import type { SendEmailInput } from '$lib/email/send.server'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { deleteRegion, previewRegionDeletion } from './delete.server'
 
-const auth = vi.hoisted(() => ({ password: vi.fn(async () => true) }))
 const storage = vi.hoisted(() => ({ remove: vi.fn(async () => {}) }))
 const mail = vi.hoisted(() => ({ outcomes: [] as string[], result: 'sent', sent: [] as SendEmailInput[] }))
-vi.mock('../user/password.server', () => ({ verifyPassword: auth.password }))
 vi.mock('../file/cleanup.server', async (original) => ({
   ...(await original<typeof import('../file/cleanup.server')>()),
   removeFileStorage: storage.remove,
@@ -50,11 +49,13 @@ async function seed() {
 }
 
 const regionRows = async () => (await sql`select 1 from public.regions where id = ${regionId}`).length
+const SESSION = crypto.randomUUID()
+const callerOf = (by: SeedUser) => ({ authUserId: by.authId, sessionId: SESSION })
+const confirmed = () => hasGrant(callerOf(owner), 'region.delete', String(regionId))
 const remove = (name = NAME, by = owner) =>
-  deleteRegion({ email: by.email, id: by.userId }, { name, regionFk: regionId }, 'pw', 'https://grnyte.test')
+  deleteRegion({ id: by.userId }, { name, regionFk: regionId }, callerOf(by), 'https://grnyte.test')
 
 beforeEach(async () => {
-  auth.password.mockResolvedValue(true)
   storage.remove.mockClear()
   mail.result = 'sent'
   mail.outcomes = []
@@ -65,6 +66,7 @@ beforeEach(async () => {
   climber ??= await createThrowawayUser('delete_region_climber')
   await cleanup()
   await seed()
+  for (const by of [owner, admin]) await writeGrant(callerOf(by), 'region.delete', String(regionId), 'email_code')
 })
 
 async function cleanup() {
@@ -95,17 +97,23 @@ describe.skipIf(!reachable)('previewRegionDeletion', () => {
 })
 
 describe.skipIf(!reachable)('deleteRegion', () => {
-  it('refuses a name that does not match, before asking for the password', async () => {
+  it('refuses a name that does not match and keeps the confirmation', async () => {
     expect(await remove('Something else')).toEqual({ kind: 'wrongName' })
-    expect(auth.password).not.toHaveBeenCalled()
+    expect(await confirmed()).toBe(true)
     expect(await regionRows()).toBe(1)
   })
 
-  it('changes nothing for a wrong password', async () => {
-    auth.password.mockResolvedValue(false)
+  it('changes nothing without a confirmation', async () => {
+    await sql`delete from public.reauth_grants where auth_user_fk = ${owner.authId}`
 
-    expect(await remove()).toEqual({ kind: 'wrongPassword' })
+    expect(await remove()).toEqual({ kind: 'reauthRequired' })
     expect(await regionRows()).toBe(1)
+  })
+
+  it('spends the confirmation', async () => {
+    await remove()
+
+    expect(await confirmed()).toBe(false)
   })
 
   it('refuses an admin who is not the owner', async () => {

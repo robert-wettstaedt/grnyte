@@ -20,14 +20,9 @@ import type { EmailContent } from './shell'
 const SITE = '{{ .SiteURL }}'
 
 /**
- * Always link through our own `/auth/confirm` handler with `token_hash`, never
- * `{{ .ConfirmationURL }}`: that one hits Supabase's `/auth/v1/verify` and returns the session
- * in the URL *fragment*, which never reaches the server, so SSR cannot see it.
- *
- * `next` must be a path, never `{{ .RedirectTo }}` (an absolute URL), because the handler
- * assigns it straight to `redirectTo.pathname`. Typed as a {@link Pathname} for that reason: these
- * links sit in mail that has already been delivered, so a route renamed here has to fail the build
- * rather than 404 somebody a week later.
+ * Only the invite still links, through our own `/auth/confirm` with `token_hash`: only the Supabase
+ * dashboard sends it, and once that handler retires its link lands on the `/auth/error` redirect.
+ * `next` must be a path, never `{{ .RedirectTo }}`, since the handler assigns it to the pathname.
  */
 const confirmUrl = (type: string, next: Pathname) =>
   `${SITE}/auth/confirm?token_hash={{ .TokenHash }}&type=${type}&next=${next}`
@@ -35,48 +30,44 @@ const confirmUrl = (type: string, next: Pathname) =>
 /** Where an unauthenticated recipient lands to pick a password. Exempt from the signed-in bounce. */
 const SET_PASSWORD: Pathname = '/auth/reset-password'
 
-// The link and OTP lifetime GoTrue is configured with (MAILER_OTP_EXP). Prod is 900s, NOT the
-// 86400s default, so check the project's value rather than assuming: this copy is a promise.
-const EXPIRY = '15 MINUTES'
-const expiry = '15 minutes'
+// The code lifetime GoTrue is configured with (MAILER_OTP_EXP=600). This copy is a promise.
+const EXPIRY = '10 MINUTES'
+const expiry = '10 minutes'
 const expiresIn = `The link works once and expires in ${expiry}.`
+// `{{ .Token }}` is safe in a subject: it is digits, so html/template escaping cannot alter it.
+const CODE = '{{ .Token }}'
+const codeExpires = `The code works once and expires in ${expiry}. Never share it with anyone.`
 
-/** The six authentication templates. All send a link except `reauthentication`, which has no token. */
+/** The six authentication templates. Codes, never links, except the dashboard-only invite. */
 const auth = {
   confirmation: {
-    action: { label: 'Confirm my email', url: confirmUrl('signup', '/') },
     body: [
-      'Somebody signed up for grnyte with this address. Open the link to confirm it and finish setting up your account.',
+      'Somebody signed up for grnyte with this address. Enter this code in grnyte to confirm it and finish setting up your account.',
       'Once you’re in, you can join a region or start one of your own and invite people.',
     ],
+    code: CODE,
     footerReason: 'signup',
-    // Not "no account is created": GoTrue inserts the unconfirmed auth.users row before it
-    // sends this. Ignoring the mail leaves that row unconfirmed, it does not prevent it.
-    footnote: `${expiresIn} If you didn’t sign up, ignore this email. The address stays unconfirmed and the account unusable.`,
-    meta: `SIGN UP · LINK EXPIRES IN ${EXPIRY}`,
-    preheader: 'One link to confirm this address and your grnyte account is live.',
-    subject: 'Confirm your email address',
+    // Not "no account is created": the unconfirmed auth.users row exists before this is sent.
+    footnote: `${codeExpires} If you didn’t sign up, ignore this email. The address stays unconfirmed and the account unusable.`,
+    meta: `SIGN UP · CODE EXPIRES IN ${EXPIRY}`,
+    preheader: 'Enter this code in grnyte to confirm your address.',
+    subject: `${CODE} is your grnyte sign-up code`,
     title: 'Confirm your email',
   },
 
   email_change: {
-    action: { label: 'Confirm the change', url: confirmUrl('email_change', '/settings') },
-    // GoTrue sends this to BOTH the old and the new address with different token hashes, and
-    // nothing changes until both are opened. The copy says so because the first click returns
-    // HTTP 200 with no session, which otherwise looks like it worked.
-    //
-    // The same body goes to both recipients, so the subject, title and button must be
-    // recipient-neutral: "confirm this address" would be wrong for the reader at the old one.
-    // Paragraph one names {{ .NewEmail }}, which is what tells them apart.
+    // GoTrue sends this to BOTH the old and the new address with different codes, and nothing
+    // changes until both are entered. Recipient-neutral: paragraph one names {{ .NewEmail }}.
     body: [
-      'You asked to move your grnyte account to {{ .NewEmail }}. Open the link to confirm this address.',
-      'We sent a link to the old address and to the new one. Open both to complete the change.',
+      'You asked to move your grnyte account to {{ .NewEmail }}. Enter this code in grnyte to confirm this address.',
+      'We sent a code to the old address and to the new one. Enter both to complete the change.',
     ],
+    code: CODE,
     footerReason: 'account',
-    footnote: `${expiresIn} If you didn’t ask to change your email, ignore this email. Nothing changes until you open both links.`,
-    meta: `EMAIL CHANGE · LINK EXPIRES IN ${EXPIRY}`,
-    preheader: 'Open the link at both addresses to finish the change.',
-    subject: 'Confirm your email change',
+    footnote: `${codeExpires} If you didn’t ask to change your email, ignore this email. Nothing changes until both codes are entered.`,
+    meta: `EMAIL CHANGE · CODE EXPIRES IN ${EXPIRY}`,
+    preheader: 'Enter the codes from both addresses to finish the change.',
+    subject: `${CODE} is your grnyte email change code`,
     title: 'Confirm the change',
   },
 
@@ -96,44 +87,42 @@ const auth = {
     title: 'Somebody saved you a seat',
   },
 
+  // grnyte never asks GoTrue for this; if anything does, the mail carries neither link nor code.
   magic_link: {
-    action: { label: 'Sign in to grnyte', url: confirmUrl('magiclink', '/') },
-    body: ['Open the link to sign in to grnyte on this device. No password needed.'],
+    body: ['Somebody asked for a sign-in link to grnyte for this address. grnyte doesn’t sign in by email link.'],
     footerReason: 'account',
-    footnote: `${expiresIn} If you didn’t ask to sign in, ignore this email. Nothing happens.`,
-    meta: `SIGN IN · LINK EXPIRES IN ${EXPIRY}`,
-    preheader: `One link and you’re back in. It works once and expires in ${expiry}.`,
-    subject: 'Your sign-in link',
-    title: 'Your sign-in link',
+    footnote:
+      'To sign in, open grnyte and use your usual sign-in method. If you didn’t ask for this, ignore this email.',
+    meta: 'SIGN IN',
+    preheader: 'grnyte doesn’t sign in by email link.',
+    subject: 'About your grnyte sign-in',
+    title: 'No sign-in link',
   },
 
   reauthentication: {
-    // The only template with no link: it has neither TokenHash nor ConfirmationURL, and the
-    // OTP is passed as the `nonce` option to supabase.auth.updateUser() rather than verified
-    // as a link. `{{ .Token }}` is safe in the subject because it is digits, so html/template
-    // escaping cannot alter it.
+    // The OTP is passed as the `nonce` option to supabase.auth.updateUser() rather than verified.
     body: ['Enter this code in grnyte to confirm the change you started.'],
-    code: '{{ .Token }}',
+    code: CODE,
     footerReason: 'account',
     footnote:
       'The code works once. If you didn’t start a change in grnyte, ignore this email and never share the code with anyone.',
     meta: 'VERIFICATION CODE · ONE TIME USE',
     preheader: 'Enter this code in grnyte to confirm it’s you.',
-    subject: '{{ .Token }} is your grnyte verification code',
+    subject: `${CODE} is your grnyte verification code`,
     title: 'Confirm it’s you',
   },
 
   recovery: {
-    action: { label: 'Set a new password', url: confirmUrl('recovery', SET_PASSWORD) },
     body: [
-      'Somebody asked to reset the password for the grnyte account on this address. Open the link to pick a new one.',
+      'Somebody asked to reset the password for the grnyte account on this address. Enter this code in grnyte to pick a new one.',
       'Your current password keeps working until you set the new one.',
     ],
+    code: CODE,
     footerReason: 'account',
-    footnote: `${expiresIn} If you didn’t ask for this, ignore this email. Your password stays as it is.`,
-    meta: `PASSWORD RESET · LINK EXPIRES IN ${EXPIRY}`,
-    preheader: `Open the link to set a new password. It works once and expires in ${expiry}.`,
-    subject: 'Reset your password',
+    footnote: `${codeExpires} If you didn’t ask for this, ignore this email. Your password stays as it is.`,
+    meta: `PASSWORD RESET · CODE EXPIRES IN ${EXPIRY}`,
+    preheader: 'Enter this code in grnyte to set a new password.',
+    subject: `${CODE} is your grnyte password reset code`,
     title: 'Set a new password',
   },
 } as const satisfies Record<string, EmailContent>
@@ -144,20 +133,21 @@ const auth = {
  * link to settings and the footnote is the recovery path rather than an expiry note.
  */
 const SETTINGS = { label: 'Open your settings', url: `${SITE}/settings` }
-const notMe = 'If this wasn’t you, reset your password right away.'
+// Method-neutral: an account may have no password to reset.
+const notMe = `If this wasn’t you, write to ${BRAND.contactEmail} right away so we can secure your account.`
 
 const notifications = {
   email_changed_notification: {
     action: SETTINGS,
     body: [
       'The address on your grnyte account changed from {{ .OldEmail }} to {{ .Email }}.',
-      'Sign-in links and notifications now go to the new address.',
+      'Codes and notifications now go to the new address.',
     ],
     footerReason: 'account',
     // GoTrue sends this to the OLD address only, so the reader is whoever has now lost the
     // account. Do not tell them to act "from the new address": in the takeover case that is
     // the mailbox the attacker controls, and it is not one they can reach either way.
-    footnote: `If this wasn’t you, somebody else controls the account now. Write to ${BRAND.contactEmail} at once: sign-in links no longer reach you.`,
+    footnote: `If this wasn’t you, somebody else controls the account now. Write to ${BRAND.contactEmail} at once: codes no longer reach you.`,
     meta: 'SECURITY · EMAIL CHANGED',
     preheader: 'The address on your grnyte account changed.',
     subject: 'Your email address changed',

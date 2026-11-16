@@ -182,3 +182,72 @@ docker network prune -f
 
 The prod database is dumped nightly to this VPS by `.github/workflows/backup-db.yml`, thirty days
 deep under `~/backups/grnyte`. Restoring one is [RESTORE.md](RESTORE.md).
+
+## Auth (GoTrue) settings
+
+Sign-up, codes and account changes depend on GoTrue switches as much as on code. `npm run check:prod`
+asserts the ones the public settings endpoint shows: `disable_signup`, `external.email` and
+`mailer_autoconfirm` (false). The rest are set by hand and recorded here.
+
+GoTrue version: `v2.197.0`, the newest release at least two weeks old that is `>= v2.175.0` and has
+the password-changed and email-changed notification switches (on 2026-11-15 only `v2.198.0-rc.*`
+was newer). Hosted projects run Supabase's own version; this pin is for self-hosted stacks.
+
+| Setting                          | Hosted (dashboard or Management API)                                                              | Self-hosted env                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Before-user-created hook         | `hook_before_user_created_enabled`, URI `pg-functions://postgres/public/before_user_created_hook` | `GOTRUE_HOOK_BEFORE_USER_CREATED_ENABLED=true`, `_URI` as hosted        |
+| Email code length                | `mailer_otp_length` = 8                                                                           | `GOTRUE_MAILER_OTP_LENGTH=8`                                            |
+| Email code lifetime              | `mailer_otp_exp` = 600                                                                            | `GOTRUE_MAILER_OTP_EXP=600`                                             |
+| Secure email change (both codes) | `mailer_secure_email_change_enabled` = true                                                       | `GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED=true`                        |
+| Secure password change           | `security_update_password_require_reauthentication` = true                                        | `GOTRUE_SECURITY_UPDATE_PASSWORD_REQUIRE_REAUTHENTICATION=true`         |
+| Password changed notice          | `mailer_notifications_password_changed_enabled` = true                                            | `GOTRUE_MAILER_NOTIFICATIONS_PASSWORD_CHANGED_ENABLED=true`             |
+| Email changed notice             | `mailer_notifications_email_changed_enabled` = true                                               | `GOTRUE_MAILER_NOTIFICATIONS_EMAIL_CHANGED_ENABLED=true`                |
+| Email provider                   | `external_email_enabled` = true                                                                   | `GOTRUE_EXTERNAL_EMAIL_ENABLED=true`                                    |
+| Confirmation required            | `mailer_autoconfirm` = false                                                                      | `GOTRUE_MAILER_AUTOCONFIRM=false`                                       |
+| Phone and anonymous sign-up      | `external_phone_enabled` = false, `external_anonymous_users_enabled` = false                      | `GOTRUE_EXTERNAL_PHONE_ENABLED=false`, `_ANONYMOUS_USERS_ENABLED=false` |
+| Public sign-up                   | `disable_signup` = false, set LAST, once the hook is confirmed active                             | `GOTRUE_DISABLE_SIGNUP=false`                                           |
+| Mail templates and subjects      | `push-templates.ts` after `PUBLIC_ORIGIN=https://grnyte.rocks npm run generate`                   | `GOTRUE_MAILER_TEMPLATES_*` URLs and `GOTRUE_MAILER_SUBJECTS_*`         |
+
+The Apple private relay settings belong to `add-social-sign-in`. The hook refuses every email
+sign-up without grnyte's `SIGNUP_MARKER`, so opening `disable_signup` before the hook is active
+would let the publishable key create accounts past the bot checks. The hook does not run for admin
+creates (GoTrue `v2.197.0`), so the marker on `admin.createUser` is bookkeeping, not a guard.
+
+GoTrue fetches self-hosted templates as URLs. The branch's second local stack
+(`<second stack>/`) serves `emails/gotrue/` from an `nginx:alpine` container named
+`grnyte-mail-templates`; re-copy `subjects.json` into its override after the templates change.
+
+### Migrating hosted databases only at release
+
+Hosted projects are migrated with `npm run migrate` from the merged branch at release, never from a
+feature branch. Drizzle applies only migrations newer than the last one a database recorded, so a
+database migrated early from a branch would silently skip another branch's migration that was
+generated earlier but merged later. Migrations are regenerated last on a branch, just before it
+merges, so their numbers follow whatever merged first. The release order for the auth changes:
+migrate, deploy the app, push the code templates, enable the hook and the switches above, then
+`disable_signup=false` last and `npm run check:prod`.
+
+### Upgrading the shared local stack
+
+After the release, from the main checkout only, as its own announced step: bump
+`<shared stack>/docker-compose.yml` to the GoTrue pin and env above, then migrate the
+shared dev database. Never from a worktree: pointing the shared stack at a hook that exists only in a
+worktree's database, or bumping its version, breaks every other session.
+
+### Support runbooks
+
+**Dead old mailbox.** A secure email change needs a code from the old address, which no longer
+receives mail.
+
+1. Verify ownership out of band: the person signs in on a known device, or answers what only the
+   owner can (their regions, recent ascents).
+2. Change the address by hand with the admin API:
+   `updateUserById(id, { email: '<new address>', email_confirm: true })`.
+3. The person uses forgot password at the new address.
+
+**Lost provider account.** The person can no longer use the Apple or Google account they sign in
+with.
+
+1. Verify ownership the same way.
+2. Change the address by hand to one they control, as above.
+3. The person uses forgot password at that address to add a password.

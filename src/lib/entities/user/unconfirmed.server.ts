@@ -1,11 +1,12 @@
 import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { users } from '$lib/db/schema'
+import { authEvents } from '$lib/db/serverOnly'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { DAY_MS } from '$lib/i18n/relativeTime'
 import { logServerFailure } from '$lib/logging/failure.server'
 import { stringifyError } from '$lib/logging/stringify'
-import { and, eq, isNull, lt, or } from 'drizzle-orm'
+import { and, eq, exists, isNull, lt, or } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { authUsers } from 'drizzle-orm/supabase'
 import { removeFileStorage } from '../file/cleanup.server'
@@ -14,14 +15,11 @@ import { deleteAccountData } from './delete.server'
 /** Unconfirmed accounts older than 7 days, as the confirmation link has long expired. */
 export const UNCONFIRMED_MAX_AGE_MS = 7 * DAY_MS
 
-/** Sign-up creates the sign-in record a moment before the profile, so a younger lone one may be mid-sign-up. */
-const LONE_MIN_AGE_MS = 60 * 60 * 1000
-
 const authUser = alias(authUsers, 'auth_user')
 
 /**
- * Delete accounts created before `before` that never confirmed their email, and sign-in records
- * whose profile is gone, which is what an account deletion leaves when GoTrue failed after commit.
+ * Delete accounts created before `before` that never confirmed their email or never completed the
+ * profile step, and at once a sign-in record an account deletion left when GoTrue failed after commit.
  */
 export async function sweepUnconfirmedAccounts(before: Date): Promise<number> {
   const stale = await db
@@ -31,7 +29,13 @@ export async function sweepUnconfirmedAccounts(before: Date): Promise<number> {
     .where(
       or(
         and(isNull(authUser.emailConfirmedAt), lt(authUser.createdAt, before)),
-        and(isNull(users.id), lt(authUser.createdAt, new Date(Date.now() - LONE_MIN_AGE_MS))),
+        and(isNull(users.id), lt(authUser.createdAt, before)),
+        exists(
+          db
+            .select({ id: authEvents.id })
+            .from(authEvents)
+            .where(and(eq(authEvents.authUserFk, authUser.id), eq(authEvents.kind, 'account_deleted'))),
+        ),
       ),
     )
 

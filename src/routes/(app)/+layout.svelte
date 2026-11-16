@@ -22,6 +22,7 @@
   import { syncPushSubscription } from '$lib/state/push.svelte'
   import { wipeAndLeave } from '$lib/state/wipe'
   import { authRetryDelay, lastAuthAttemptAt, startAuthRecovery, stopAuthRecovery } from '$lib/zero/authRecovery'
+  import type { QueryPhase } from '$lib/zero/resource.svelte'
   import { getZ, initZero } from '$lib/zero/z.svelte'
 
   const { children, data } = $props()
@@ -145,18 +146,21 @@
   // live invitation, and on arrival it redirects to that instead. /explore keeps its own
   // region-less empty state for the case this cannot cover: a replica that never completes
   // (offline, dead sync socket) leaves this effect silent.
+  // Answered online, not merely loaded: a fresh replica reports ready-with-nothing before the server
+  // confirms, and offline an empty answer is the kept copy, where a document navigation fails.
+  const answeredNone = (resource: undefined | { phase: QueryPhase }) =>
+    resource?.phase.kind === 'answered' && resource.phase.empty && isOnline()
+
   $effect(() => {
-    // Answered online, not merely loaded: a fresh replica reports ready-with-nothing before the server
-    // confirms, and offline an empty answer is the kept copy, where a document navigation fails.
-    const regions = globalState?.userRegionsResource
-    const none = regions?.phase.kind === 'answered' && regions.phase.empty && isOnline()
-
-    if (regions == null || !none) {
-      return
-    }
-
-    if (REGIONLESS_PATHS.some((regionless) => regionless === page.url.pathname)) {
+    if (answeredNone(globalState?.userRegionsResource) && REGIONLESS_PATHS.some((path) => path === page.url.pathname)) {
       location.href = resolve('/(app)/regions/new')
+    }
+  })
+
+  // The client twin of authGuard's profile gate: a full load, so the server decides a deletion marker.
+  $effect(() => {
+    if (answeredNone(globalState?.userResource)) {
+      location.href = `${resolve('/auth/profile')}?${new URLSearchParams({ next: page.url.pathname + page.url.search })}`
     }
   })
 
