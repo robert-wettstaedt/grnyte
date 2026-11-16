@@ -63,7 +63,7 @@ edit, grep that it applied, run the test, watch it fail, revert.
 - [x] 3.3 Test: two calls build two clients (the forwarded address of the second differs). Verify: seen red by caching the client at module level.
 - [x] 3.4 Test: `Object.keys(client)` is exactly `['resend']`; `'admin' in client`, `'mfa' in client`, `'from' in client` and `'storage' in client` are false; the object is frozen; a `// @ts-expect-error` on `client.admin`. Verify: seen red by returning `client.auth`.
 - [x] 3.5 `src/lib/auth/server/mail.server.ts`: `mailSignupConfirmation` takes an `AuthServer`; `signup.remote.ts` and `forgot-password.remote.ts` pass `supabaseAuthServer(getRequestEvent())`. Verify: seen with 3.6.
-- [x] 3.6 `signup.remote.test.ts` (lines 52-56) and `forgot-password.remote.test.ts` (lines 40-44) mock `$lib/auth/authServer.server` and assert the resend through that mock. Verify: `npx vitest run --project server "src/routes/(landing)/auth"` passes; seen red by calling `locals.supabase.auth.resend` again in `signup.remote.ts`.
+- [x] 3.6 `signup.remote.test.ts` (lines 52-56) and `forgot-password.remote.test.ts` (lines 40-44) mock `$lib/auth/server/authServer.server` and assert the resend through that mock. Verify: `npx vitest run --project server "src/routes/(landing)/auth"` passes; seen red by calling `locals.supabase.auth.resend` again in `signup.remote.ts`.
 
 ## 4. Browser (merge B)
 
