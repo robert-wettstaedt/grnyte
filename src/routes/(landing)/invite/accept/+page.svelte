@@ -7,6 +7,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
+  import Message from '$lib/components/Message/Message.svelte'
   import { toDisplayName } from '$lib/entities/displayName'
   import { acceptPath } from '$lib/entities/region/paths'
   import { acceptRegionInvitation } from '$lib/entities/region/regions.remote'
@@ -32,13 +33,8 @@
   const token = $derived(page.url.searchParams.get('token') ?? '')
   const region = $derived(data.regionName ?? '')
   const inviter = $derived(data.inviter ?? PUBLIC_APPLICATION_NAME)
-  const mismatch = $derived.by(() => {
-    const current = data.sessionEmail ?? ''
-    const email = data.inviteEmail ?? ''
-    return data.inviter == null
-      ? m.invite_addressMismatchNoInviter({ current, email, region: toDisplayName(region) })
-      : m.invite_addressMismatch({ current, email, inviter: data.inviter })
-  })
+  // A deleted inviter: the region's admins can invite instead.
+  const asked = $derived(data.inviter ?? m.invite_addressMismatchAdmin({ region: toDisplayName(region) }))
 
   // Sign up and sign in carry the invited address, because the invitation is keyed on it and a
   // mismatched signup silently orphans the invitation, plus `next` so signing in lands back here
@@ -149,6 +145,12 @@
   <title>{terminal?.title ?? m.invite_title()} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
+<!-- The mismatch line's addresses and who to ask, bold as the board draws them. -->
+{#snippet bold(text: string)}<b class="text-surface-950-50 font-semibold break-all">{text}</b>{/snippet}
+{#snippet current()}{@render bold(data.sessionEmail ?? '')}{/snippet}
+{#snippet email()}{@render bold(data.inviteEmail ?? '')}{/snippet}
+{#snippet askedPart()}{@render bold(asked)}{/snippet}
+
 <!-- The labelled emergency exit, for the one caller who has somewhere to go: a member of another
      region who opened the emailed link. Nothing is written, because nothing needs to be - the
      invitation stays live and /settings lists it until it is accepted or times out. -->
@@ -214,8 +216,8 @@
       {/if}
     {:else if data.state === 'wrongAccount'}
       <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.invite_title()}</h1>
-      <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">
-        {mismatch}
+      <p class="text-surface-600-400 mb-6 text-[14.5px] leading-normal">
+        <Message key="invite_addressMismatch" parts={{ current, email, inviter: askedPart }} />
       </p>
 
       <form class="flex flex-col" {...leave}>

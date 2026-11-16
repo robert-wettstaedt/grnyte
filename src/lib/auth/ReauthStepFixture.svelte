@@ -8,19 +8,20 @@
     action: ReauthAction
     /** Passes "Confirm with Apple" as the alternative, as a screen does for an Apple-linked account. */
     apple?: boolean
+    appleVariant?: 'filled' | 'plain'
     onformsubmit: () => void
     ready?: boolean
     target: string
   }
 
-  let { action, apple = false, onformsubmit, ready = true, target }: Props = $props()
+  let { action, apple = false, appleVariant = 'plain', onformsubmit, ready = true, target }: Props = $props()
 
   let confirmed = $state(false)
   let step: ReauthStep | undefined = $state()
 </script>
 
 {#snippet withApple()}
-  <ConfirmWithApple {action} {target} returnTo="/regions/1/delete" />
+  <ConfirmWithApple {action} {target} returnTo="/regions/1/delete" variant={appleVariant} />
 {/snippet}
 
 <form

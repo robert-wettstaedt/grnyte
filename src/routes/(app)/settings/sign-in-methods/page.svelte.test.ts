@@ -7,7 +7,10 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import Page from './+page.svelte'
 
 type State = { canUnlink: boolean; linked: boolean; relinks: boolean }
-const at = vi.hoisted(() => ({ url: new URL('http://localhost/settings/sign-in-methods') }))
+const at = vi.hoisted(() => ({
+  data: { session: { user: { email: 'ana@gmail.com' } } },
+  url: new URL('http://localhost/settings/sign-in-methods'),
+}))
 vi.mock('$app/state', () => ({ page: at }))
 vi.mock('$lib/state/navigation.svelte', () => ({ back: vi.fn(), replaceUrl: vi.fn(async () => {}) }))
 vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
@@ -79,12 +82,14 @@ it('shows a Google-only account how to set a password, Google not removable, and
   answer.providers.google = { canUnlink: false, linked: true, relinks: false }
   await visit('', { hasPassword: false })
 
-  expect(screen.getByRole('link', { name: /Password/ }).textContent).toContain('Set a password')
+  expect(screen.getByRole('link', { name: 'Set a password' }).getAttribute('href')).toBe('/settings/password')
+  expect(screen.getByText('Not set')).toBeTruthy()
   expect(row('google').textContent).toContain('Connected')
   expect((button('Remove') as HTMLButtonElement).disabled).toBe(true)
-  expect(row('google').textContent).toContain('Set a password or add another sign-in method first.')
-  expect(button('Sign out other devices')).toBeTruthy()
+  expect(row('google').textContent).toContain('Set a password or add another method before removing Google.')
+  expect(screen.getByText('Other devices')).toBeTruthy()
   expect(screen.getByText('Signed-in devices')).toBeTruthy()
+  expect(screen.queryAllByText('Sign-in methods')).toHaveLength(1)
 })
 
 it('offers Add only for a configured provider', async () => {
@@ -140,7 +145,40 @@ it('reopens Remove Apple from ?step= without sliding, confirmed, and one press r
 
   expect(identities.unlinkProvider).toHaveBeenCalledWith({ provider: 'apple' })
   expect(row('apple').textContent).toContain('Not connected')
-  expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Apple removed' }))
+  expect(toast).toHaveBeenCalledOnce()
+  expect(toast).toHaveBeenCalledWith(
+    expect.objectContaining({ title: 'Apple removed. Your other devices are signed out.' }),
+  )
+})
+
+it('offers Change for a set password', async () => {
+  await visit()
+  expect(screen.getByRole('link', { name: 'Change' }).getAttribute('href')).toBe('/settings/password')
+  expect(screen.getByText('Set')).toBeTruthy()
+})
+
+it('titles the step by its action, keeps the re-link note inside it, and Cancel closes it', async () => {
+  answer.providers.google = { canUnlink: true, linked: true, relinks: true }
+  await visit()
+  await fireEvent.click(button('Remove')!)
+  await settle()
+
+  const step = row('google').querySelector('[data-reauth-step]')!
+  expect(step.querySelector('h2')!.textContent).toBe('Confirm it’s you to remove Google')
+  expect(step.textContent).toContain('You can still sign in with Google, because Google manages this address.')
+  expect(step.textContent).toContain('We’ll email a 6-digit code to ana@gmail.com.')
+  await fireEvent.click(within(step as HTMLElement).getByRole('button', { name: 'Cancel' }))
+  await settle()
+
+  expect(row('google').querySelector('[data-reauth-step]')).toBeNull()
+  expect(button('Remove')!.getAttribute('aria-expanded')).toBe('false')
+})
+
+it('titles Add by its provider', async () => {
+  await visit()
+  await fireEvent.click(within(row('google')).getByRole('button', { name: 'Add' }))
+  await settle()
+  expect(row('google').querySelector('h2')!.textContent).toBe('Confirm it’s you to add Google')
 })
 
 it('reopens Add Google confirmed, whose button starts the link', async () => {

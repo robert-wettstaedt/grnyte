@@ -1,6 +1,6 @@
 import { at } from '$lib/forms/page.fixture.svelte'
 import { settle } from '$lib/forms/screen.fixture'
-import { render, screen } from '@testing-library/svelte'
+import { render, screen, within } from '@testing-library/svelte'
 import { beforeEach, expect, it, vi } from 'vitest'
 import SignIn from './signin/+page.svelte'
 import { signIn } from './signin/signin.remote'
@@ -141,7 +141,7 @@ it('shows the form at once without a provider, and on a no-JS submit URL', () =>
 it('shows the deletion message on the choice', () => {
   visit('/auth/signin?deleted=1', ['apple', 'google'])
   render(SignIn)
-  expect(screen.getByRole('alert').textContent).toContain('deleted')
+  expect(screen.getByRole('status').textContent).toContain('deleted')
   expect(choice()).toBeTruthy()
 })
 
@@ -161,8 +161,12 @@ it('clears a failed sign-in on the way back, with the hint only when a provider 
   render(SignIn)
   fake(signIn).fail('auth_invalidCredentials')
   await settle()
-  expect(screen.getByText('Wrong email or password')).toBeTruthy()
-  expect(screen.getByText(/Signed up with Apple or Google/)).toBeTruthy()
+  const banner = screen.getByRole('alert')
+  expect(banner.textContent).toContain('Wrong email or password')
+  expect(banner.textContent).toContain('Signed up with Apple or Google?')
+  expect(within(banner).getByRole('link', { name: 'Go back and choose it there.' }).getAttribute('href')).toBe(
+    '/auth/signin?form=signin',
+  )
 
   await follow('Other ways to sign in')
   expect(screen.queryByText('Wrong email or password')).toBeNull()
@@ -170,6 +174,18 @@ it('clears a failed sign-in on the way back, with the hint only when a provider 
   await follow('Continue with email')
   expect(screen.queryByText('Wrong email or password')).toBeNull()
   expect(fake(signIn).set).toHaveBeenLastCalledWith({})
+})
+
+it('names the way back by screen: sign in, or sign up', () => {
+  visit('/auth/signup?method=email', ['apple', 'google'])
+  const { unmount } = render(SignUp)
+  expect(link('Other ways to sign up')).toBe('/auth/signup')
+  expect(screen.queryByRole('link', { name: 'Other ways to sign in' })).toBeNull()
+  unmount()
+
+  visit('/auth/signin?method=email', ['apple', 'google'])
+  render(SignIn)
+  expect(link('Other ways to sign in')).toBe('/auth/signin?form=signin')
 })
 
 it('gives no hint without a provider', async () => {

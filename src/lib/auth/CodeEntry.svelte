@@ -7,14 +7,12 @@
   import type { StoreField } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'
-  import { tick, type Snippet } from 'svelte'
+  import { tick } from 'svelte'
   import { slide } from 'svelte/transition'
 
   // One numeric field for a mailed code. It renders no <form> and its input has no name, so a
   // surrounding Form neither submits from it nor copies the digits into its payload.
   interface Props {
-    /** "Confirm with Apple" and the like, under the field. */
-    alternatives?: Snippet
     /** The landing steps keep Continue for a paste; re-auth and email change submit on the last digit only. */
     continueButton?: boolean
     expiresAt: number
@@ -34,7 +32,6 @@
   }
 
   const {
-    alternatives,
     continueButton = true,
     expiresAt,
     field,
@@ -234,6 +231,4 @@
     {/if}
   </div>
   <p class="sr-only" aria-live="polite">{announced}</p>
-
-  {@render alternatives?.()}
 </div>

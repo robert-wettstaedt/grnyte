@@ -58,7 +58,9 @@ export const unlinkProvider = command(z.object({ provider: z.enum(IDENTITY_TARGE
   const caller = await reauthCaller()
   const { supabase } = getRequestEvent().locals
   if (!(await accountMethods(caller.authUserId)).providers[provider].canUnlink) {
-    refuseCommand(formError('settings_signInMethodsLastMethod'))
+    refuseCommand(
+      formError('settings_signInMethodsLastMethod', { provider: provider === 'apple' ? 'Apple' : 'Google' }),
+    )
   }
   if (!(await hasGrant(caller, 'identity.unlink', provider))) refuseCommand(formError('auth_reauthRequired'))
 

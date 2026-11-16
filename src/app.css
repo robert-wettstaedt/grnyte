@@ -4,6 +4,8 @@
    `--heading-font-family` uses are imported. */
 @import '@fontsource/space-grotesk/500.css';
 @import '@fontsource/space-grotesk/700.css';
+/* Google's sign-in button only; fetched on first use. */
+@import '@fontsource/roboto/500.css';
 
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';

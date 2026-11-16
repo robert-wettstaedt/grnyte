@@ -2,6 +2,7 @@
   import { page } from '$app/state'
   import { authStepHref } from '$lib/auth'
   import type { OAuthProvider } from '$lib/auth/oauth/providers.server'
+  import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'
   import { tick, type Snippet } from 'svelte'
@@ -50,10 +51,15 @@
     <div in:fade={{ duration: motion(150) }} {@attach entered}>
       {#if email}
         {#if providers.length > 0}
-          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- `authStepHref`: a fixed auth path plus a query -->
-          <a href={back} class="text-primary-400 mb-4 inline-flex min-h-6 items-center text-[13.5px] font-semibold">
-            {m.auth_otherWays()}
+          <!-- eslint-disable svelte/no-navigation-without-resolve -- `authStepHref`: a fixed auth path plus a query -->
+          <a
+            href={back}
+            class="text-primary-600-400 -mt-1.5 mb-3.5 inline-flex items-center gap-1 py-1.5 text-[13.5px] font-semibold"
+          >
+            <Icon name="chevron-left" size={16} />
+            {screen === 'signup' ? m.auth_otherWaysSignUp() : m.auth_otherWays()}
           </a>
+          <!-- eslint-enable svelte/no-navigation-without-resolve -->
         {/if}
         {@render children()}
       {:else}

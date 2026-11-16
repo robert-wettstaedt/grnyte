@@ -5,6 +5,8 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { authStepHref } from '$lib/auth'
+  import Banner from '$lib/components/Banner/Banner.svelte'
+  import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'
@@ -51,14 +53,15 @@
   const LABELS = { apple: m.auth_continueWithApple, email: m.auth_continueWithEmail, google: m.auth_continueWithGoogle }
   const BRAND = {
     apple: 'bg-black text-white dark:bg-white dark:text-black',
+    // Google's guide: Roboto Medium, self-hosted like the app's other fonts.
     google:
-      'border border-[#747775] bg-white text-[#1F1F1F] dark:border-[#8E918F] dark:bg-[#131314] dark:text-[#E3E3E3]',
+      'border border-[#747775] bg-white font-medium text-[#1F1F1F] [font-family:Roboto,system-ui,sans-serif] dark:border-[#8E918F] dark:bg-[#131314] dark:text-[#E3E3E3]',
   }
   // One height, width and corner radius for all three; labels wrap for 200 % zoom.
   const shape = (method: LastMethod) => [
-    'btn min-h-11 h-auto w-full gap-2.5 rounded-lg py-2.5 text-[15px] font-medium leading-5 whitespace-normal text-balance',
+    'btn min-h-12 h-auto w-full gap-2 rounded-[10px] py-1.5 text-[15px] font-semibold leading-5 whitespace-normal text-balance',
     // A badged button keeps a wrapped label clear of the pill on its trailing corner.
-    badged === method ? 'ps-4 pe-[5.5em]' : 'px-4',
+    badged === method ? 'ps-3.5 pe-[5.5em]' : 'px-3.5',
     pending != null && pending !== method && 'pointer-events-none opacity-50',
   ]
 </script>
@@ -108,11 +111,12 @@
     <!-- eslint-disable svelte/no-navigation-without-resolve -- `authStepHref`: a fixed auth path plus a query -->
     <a
       href={emailHref}
-      class={[shape('email'), 'preset-outlined-surface-300-700']}
+      class={[shape('email'), 'preset-outlined-surface-300-700 bg-surface-50-950']}
       aria-disabled={pending != null ? 'true' : undefined}
       tabindex={pending != null ? -1 : undefined}
       aria-describedby={badged === 'email' ? `${id}-last-used` : undefined}
     >
+      <Icon name="mail" size={18} />
       {LABELS.email()}
     </a>
     <!-- eslint-enable svelte/no-navigation-without-resolve -->
@@ -120,8 +124,8 @@
   </div>
 
   {#if offline}
-    <p class="card preset-tonal-warning px-4 py-3 text-sm" role="alert" in:slide={{ duration: motion(150) }}>
-      {m.auth_offline()}
-    </p>
+    <div in:slide={{ duration: motion(150) }}>
+      <Banner tone="error" icon="cloud-off"><p>{m.auth_offline()}</p></Banner>
+    </div>
   {/if}
 </div>
