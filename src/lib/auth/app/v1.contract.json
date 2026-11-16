@@ -148,19 +148,35 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
-          "refreshRequired": {
-            "type": "boolean"
-          },
-          "step": {
+          "next": {
             "type": "string",
             "enum": [
               "done",
               "next"
             ]
+          },
+          "session": {
+            "type": "object",
+            "properties": {
+              "access_token": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "number"
+              },
+              "refresh_token": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "access_token",
+              "refresh_token"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
-          "step"
+          "next"
         ],
         "additionalProperties": false
       }

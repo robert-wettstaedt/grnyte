@@ -12,6 +12,9 @@ export const APP_HOME_PATH = '/explore' satisfies Pathname
  *  {@link signedInRedirectTarget} has to recognise it too. */
 export const AUTH_PATH = '/auth' satisfies Pathname
 
+/** The page every sign-in with a `next` ends on, under the unclaimed /auth. */
+export const CONTINUE_PATH = '/auth/continue' satisfies Pathname
+
 /** `app_metadata` key on an unconfirmed account signed up for twice; confirming it forces a new
  *  password, and no session counts while the key is still set. */
 export const CONTESTED_SIGNUP = 'contested_signup'
@@ -162,10 +165,16 @@ export function sameOriginPath(raw: string): null | string {
 /** Whether `path` points at this origin, and so is safe to hand to `redirect()`. */
 export const isSameOriginPath = (path: string): boolean => sameOriginPath(path) != null
 
-/** Where an already-signed-in visitor to an auth page lands. `next` carries the invitation mail's
- *  destination; anything else falls back, including a target inside /auth. */
-export function signedInRedirectTarget(next: null | string | undefined): string {
+/** Where a signed-in reader is headed: `next` if it is a same-origin path outside /auth, else home. */
+export function nextDestination(next: null | string | undefined): string {
   return appPath(next) ?? APP_HOME_PATH
+}
+
+/** Where every sign-in ends. A `next` passes through `/auth/continue`, so an installed native app never
+ *  catches the redirect mid-flow (design decision 12); home is unclaimed and needs no hop. */
+export function signedInRedirectTarget(next: null | string | undefined): string {
+  const path = appPath(next)
+  return path == null ? APP_HOME_PATH : `${CONTINUE_PATH}?next=${encodeURIComponent(path)}`
 }
 
 /** A same-origin path outside /auth, which the guard would bounce straight back. `startsWith`,

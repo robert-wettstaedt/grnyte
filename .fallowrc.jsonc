@@ -13,6 +13,8 @@
     "pwa-assets.config.ts",
   ],
   "ignoreFindings": ["brand/**"],
+  // The local Expo test app (gitignored, its own package.json); deleted once the native project has auth.
+  "ignorePatterns": ["expo-auth-test/**"],
   // memlab runs as a binary from `test:memory`; Stryker loads its runner by name.
   "ignoreDependencies": ["memlab", "@stryker-mutator/vitest-runner"],
   "ignoreExportsUsedInFile": true,

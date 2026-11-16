@@ -169,6 +169,8 @@
   "auth_confirmPasswordPlaceholder": "Passwort erneut eingeben",
   "auth_confirmWithApple": "Mit Apple bestätigen",
   "auth_confirmWithAppleRevokes": "Damit trennst du grnyte auch von deiner Apple-ID.",
+  "auth_continueLink": "Weiter",
+  "auth_continueTitle": "Du wirst weitergeleitet…",
   "auth_continueWithApple": "Weiter mit Apple",
   "auth_continueWithEmail": "Weiter mit E-Mail",
   "auth_continueWithGoogle": "Weiter mit Google",

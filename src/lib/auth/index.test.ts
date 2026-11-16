@@ -1,4 +1,4 @@
-import { APP_HOME_PATH, isSameOriginPath, oauthReturnTarget, signedInRedirectTarget } from '$lib/auth'
+import { APP_HOME_PATH, isSameOriginPath, nextDestination, oauthReturnTarget, signedInRedirectTarget } from '$lib/auth'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // The one thing standing between a form-submitted `redirectTo` and an open redirect, so the
@@ -27,22 +27,39 @@ describe('isSameOriginPath', () => {
   })
 })
 
+const foreign: [null | string | undefined][] = [
+  ['//evil.example'],
+  ['https://evil.example'],
+  ['/\\evil.example'],
+  ['/auth'],
+  ['/auth/signin'],
+  ['/auth/signin?next=/explore'],
+  ['/settings\r\n'],
+  ['/set\ttings'],
+  [null],
+  [undefined],
+]
+
 describe('signedInRedirectTarget', () => {
-  it.each([
-    ['//evil.example'],
-    ['https://evil.example'],
-    ['/auth'],
-    ['/auth/signin?next=/explore'],
-    ['/settings\r\n'],
-    ['/set\ttings'],
-    [null],
-    [undefined],
-  ])('falls back to home for %j', (next) => {
+  it.each(foreign)('goes straight home for %j, with no hop', (next) => {
     expect(signedInRedirectTarget(next)).toBe(APP_HOME_PATH)
   })
 
+  it('ends a content destination on /auth/continue, never on the path itself', () => {
+    expect(signedInRedirectTarget('/routes/1')).toBe('/auth/continue?next=%2Froutes%2F1')
+    expect(signedInRedirectTarget('/invite/accept?token=abc#top')).toBe(
+      '/auth/continue?next=%2Finvite%2Faccept%3Ftoken%3Dabc%23top',
+    )
+  })
+})
+
+describe('nextDestination', () => {
+  it.each(foreign)('falls back to home for %j', (next) => {
+    expect(nextDestination(next)).toBe(APP_HOME_PATH)
+  })
+
   it('keeps a valid path with its search and hash', () => {
-    expect(signedInRedirectTarget('/invite/accept?token=abc#top')).toBe('/invite/accept?token=abc#top')
+    expect(nextDestination('/invite/accept?token=abc#top')).toBe('/invite/accept?token=abc#top')
   })
 })
 
@@ -88,7 +105,7 @@ describe('oauthReturnTarget, below the browser floor (no URL.parse)', () => {
   })
 
   it('still keeps a valid next and refuses the bypasses', () => {
-    expect(signedInRedirectTarget('/invite/accept?token=x')).toBe('/invite/accept?token=x')
+    expect(nextDestination('/invite/accept?token=x')).toBe('/invite/accept?token=x')
     expect(isSameOriginPath('/\\evil.example')).toBe(false)
   })
 })

@@ -61,7 +61,7 @@ export const V1 = {
   'email/change': { request: z.object({ email: z.string() }), response: ok },
   'email/confirm': {
     request: codeEntry,
-    response: z.object({ refreshRequired: z.optional(z.boolean()), step: z.enum(['done', 'next']) }),
+    response: z.object({ next: z.enum(['done', 'next']), session: z.optional(session) }),
   },
   'identities/link/apple': { request: appleToken, response: z.object({ linked: z.literal(true) }) },
   'identities/unlink': {

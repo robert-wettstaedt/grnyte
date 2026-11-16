@@ -48,12 +48,17 @@ async function locationOf(run: () => Promise<unknown>): Promise<string | undefin
   }
 }
 
-const confirm = (type: string, verified: boolean, appMetadata: Record<string, unknown> = {}) =>
+const confirm = (
+  type: string,
+  verified: boolean,
+  appMetadata: Record<string, unknown> = {},
+  { claims = null as null | object, next = '/', query = 'token_hash=abc' } = {},
+) =>
   locationOf(
     () =>
       GET({
         locals: {
-          claims: null,
+          claims,
           supabase: {
             auth: {
               refreshSession: async () => {
@@ -71,7 +76,7 @@ const confirm = (type: string, verified: boolean, appMetadata: Record<string, un
             },
           },
         },
-        url: new URL(`http://localhost/auth/confirm?token_hash=abc&type=${type}&next=/`),
+        url: new URL(`http://localhost/auth/confirm?${query}&type=${type}&next=${encodeURIComponent(next)}`),
       } as never) as Promise<unknown>,
   )
 
@@ -109,9 +114,29 @@ afterAll(async () => {
 
 describe.skipIf(!reachable)('GET /auth/confirm', () => {
   it('leaves an uncontested sign-up its password', async () => {
-    expect(await confirm('signup', true)).toBe('http://localhost/')
+    expect(await confirm('signup', true)).toBe('/auth/continue?next=%2F')
     expect(passwords).toEqual([])
     expect(adminCalls).toEqual([])
+  })
+
+  it('ends a verified link with a content next on /auth/continue', async () => {
+    expect(await confirm('signup', true, {}, { next: '/routes/1' })).toBe('/auth/continue?next=%2Froutes%2F1')
+  })
+
+  it('ends a signed-in arrival without a token on /auth/continue', async () => {
+    expect(await confirm('email_change', false, {}, { claims: {}, next: '/routes/1', query: 'x=1' })).toBe(
+      '/auth/continue?next=%2Froutes%2F1',
+    )
+  })
+
+  it('sends the dashboard invite straight to its set-password step under /auth', async () => {
+    expect(await confirm('invite', true, {}, { next: '/auth/reset-password' })).toBe('/auth/reset-password')
+  })
+
+  it('keeps a content next on the contested branch', async () => {
+    expect(await confirm('signup', true, { [CONTESTED_SIGNUP]: true }, { next: '/routes/1' })).toBe(
+      `/auth/reset-password?contested=1&next=%2Froutes%2F1`,
+    )
   })
 
   it('replaces a contested password and sends the inbox owner to pick a new one', async () => {

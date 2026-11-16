@@ -24,7 +24,59 @@ export interface ProviderClients {
   googleClientId: string
 }
 
-const firstClientId = (value: unknown) => (typeof value === 'string' ? value.split(',')[0].trim() : undefined)
+/** `APP_BUNDLE_ID` in `src/lib/auth/app/constants.ts`, which this script cannot import (`$env`). */
+const APP_BUNDLE_ID = 'rocks.grnyte'
+
+const clientIds = (value: unknown) => (typeof value === 'string' ? value.split(',').map((id) => id.trim()) : [])
+const firstClientId = (value: unknown) => clientIds(value)[0]
+
+/** The deployed Apple file (`/.well-known/apple-app-site-association`): content links that never claim
+ *  `/auth` or `/api` (Apple matches in order) or the whole site, and `webcredentials` naming only the app. */
+export function assertAppleAssociation(json: Json): string[] {
+  const apps = ((json.webcredentials ?? {}) as Json).apps
+  const details = ((json.applinks ?? {}) as Json).details
+  const components = (Array.isArray(details) ? details : []).flatMap((d: Json) =>
+    Array.isArray(d.components) ? (d.components as Json[]) : [],
+  )
+  const firstInclude = components.findIndex((c) => c.exclude !== true)
+  const excluded = components.slice(0, firstInclude === -1 ? undefined : firstInclude).map((c) => c['/'])
+  const expectations: [boolean, string][] = [
+    [
+      Object.keys(json).sort().join() === 'applinks,webcredentials',
+      'the Apple association file holds exactly applinks and webcredentials',
+    ],
+    [
+      excluded.includes('/auth/*') && excluded.includes('/api/*'),
+      'the Apple association file excludes /auth/* and /api/* before every include',
+    ],
+    [!components.some((c) => c['/'] === '/*' && c.exclude !== true), 'the Apple association file claims no /*'],
+    [
+      Array.isArray(apps) && apps.length === 1 && /^[A-Z0-9]{10}\.rocks\.grnyte$/.test(String(apps[0])),
+      `the Apple association file names only ${APP_BUNDLE_ID}`,
+    ],
+  ]
+  return expectations.filter(([ok]) => !ok).map(([, message]) => message)
+}
+
+/** The deployed Android file (`/.well-known/assetlinks.json`): one `handle_all_urls` statement for the app. */
+export function assertAssetLinks(json: unknown): string[] {
+  const statements = Array.isArray(json) ? (json as Json[]) : []
+  const target = (statements[0]?.target ?? {}) as Json
+  const fingerprints = target.sha256_cert_fingerprints
+  const expectations: [boolean, string][] = [
+    [statements.length === 1, 'the Android asset links file holds one statement'],
+    [
+      Array.isArray(statements[0]?.relation) &&
+        statements[0].relation.includes('delegate_permission/common.handle_all_urls') &&
+        target.namespace === 'android_app' &&
+        target.package_name === APP_BUNDLE_ID &&
+        Array.isArray(fingerprints) &&
+        fingerprints.length > 0,
+      `the Android asset links file delegates to ${APP_BUNDLE_ID} with a fingerprint`,
+    ],
+  ]
+  return expectations.filter(([ok]) => !ok).map(([, message]) => message)
+}
 
 const PROVIDERS = [
   { clientEnv: 'APPLE_SERVICES_ID', key: 'apple', label: 'Apple', ownId: (c: ProviderClients) => c.appleServicesId },
@@ -81,6 +133,14 @@ export function assertAuthConfig(settings: Json, config: Json, clients: Provider
       config.external_google_skip_nonce_check === false,
       'Google checks the nonce (external_google_skip_nonce_check false)',
     ])
+  }
+  if (!unconfigured.includes('Apple')) {
+    // The API also has an additional-client-IDs field; the docs do not say which one the list lands in.
+    const appleIds = [
+      ...clientIds(config.external_apple_client_id),
+      ...clientIds(config.external_apple_additional_client_ids),
+    ]
+    expectations.push([appleIds.includes(APP_BUNDLE_ID), `the Apple client IDs list the native app (${APP_BUNDLE_ID})`])
   }
   return expectations.filter(([ok]) => ok !== true).map(([, message]) => message)
 }

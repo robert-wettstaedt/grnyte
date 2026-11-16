@@ -157,7 +157,14 @@ describe('authGuard', () => {
     })
 
     it("keeps a `next`, so the invitation mail's sign-in link does not strand the token", async () => {
-      expect(await redirectFrom(mockEvent('/auth/signin?next=%2Finvite%2Faccept%2Fabc'))).toBe('/invite/accept/abc')
+      expect(await redirectFrom(mockEvent('/auth/signin?next=%2Finvite%2Faccept%3Ftoken%3Dx'))).toBe(
+        '/auth/continue?next=%2Finvite%2Faccept%3Ftoken%3Dx',
+      )
+    })
+
+    // Not bounced off /auth: the bounce goes through the same helper, which ends here again.
+    it.each([true, false])('is left alone on /auth/continue (profile: %s)', async (profile) => {
+      expect(await redirectFrom(mockEvent('/auth/continue?next=%2Froutes%2F1', { profile }))).toBeUndefined()
     })
 
     it('refuses a `next` pointing back into /auth, which would bounce straight back here', async () => {
@@ -224,6 +231,13 @@ describe('authGuard', () => {
       expect(await redirectFrom(mockEvent(`/app-return?code=${code}`, { signedIn: false }))).toBeUndefined()
     })
 
+    it.each(['/.well-known/apple-app-site-association', '/.well-known/assetlinks.json'])(
+      "lets the platforms' anonymous fetchers read %s",
+      async (path) => {
+        expect(await redirectFrom(mockEvent(path, { signedIn: false }))).toBeUndefined()
+      },
+    )
+
     // Both roots, spelled out rather than read off the constant, since the constant is the thing
     // under test: the signup mail sends a confirmed account to '/', so losing this strands it.
     it.each(['/', '/explore'])('bounces a regionless member off %s to the create screen', async (path) => {
@@ -284,7 +298,9 @@ describe('authGuard', () => {
   })
 
   it('sends an account that has a profile on from the profile step', async () => {
-    expect(await redirectFrom(mockEvent('/auth/profile?next=%2Finvite%2Faccept%2Fabc'))).toBe('/invite/accept/abc')
+    expect(await redirectFrom(mockEvent('/auth/profile?next=%2Finvite%2Faccept%2Fabc'))).toBe(
+      '/auth/continue?next=%2Finvite%2Faccept%2Fabc',
+    )
   })
 })
 

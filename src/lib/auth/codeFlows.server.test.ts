@@ -2,6 +2,8 @@
  * GoTrue test: the mailed-code flows end to end on the branch's GoTrue, codes read from its mail
  * catcher. Skips visibly without the stack (always in CI).
  */
+import { appCall } from '$lib/auth/app/appRequest.fixture'
+import { V1 } from '$lib/auth/app/v1'
 import { sessionCaller, writeGrant } from '$lib/auth/reauth.server'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { sql } from '$lib/db/testDb'
@@ -10,10 +12,10 @@ import { asAnonymousRequest, callForm, commandRefusal, withLocals } from '$lib/r
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { confirmEmailChangeCode, updateEmailCommand } from '../../routes/(app)/settings/account.remote'
-import { confirmEmailChangeCode as confirmEmailChangeBody } from '../../routes/(app)/settings/account.server'
 import { signInUnconfirmed } from '../../routes/(landing)/auth/(tabs)/signin/signin.server'
 import { confirmSignupCode, resendSignupCode, signUp } from '../../routes/(landing)/auth/(tabs)/signup/signup.remote'
 import { confirmResetCode, forgotPassword } from '../../routes/(landing)/auth/forgot-password/forgot-password.remote'
+import { POST as emailConfirm } from '../../routes/api/app/v1/email/confirm/+server'
 import { codeFor, gotrueReachable, mailCount, publicClient } from './gotrue.fixture'
 import { setNewPassword } from './password.remote'
 
@@ -283,22 +285,32 @@ describe.skipIf(!gotrueReachable)('mailed codes on GoTrue', { timeout: 20_000 },
     expect(await sessionIds(id)).toEqual(sessions)
   })
 
-  it('on the app path signs the others out, keeps the calling session unrefreshed and asks the app to refresh', async () => {
+  it("on the app path answers the code's fresh session and signs every other out, the caller's too", async () => {
     const email = address('appchange')
     const target = address('appchangeto')
     const { id, locals } = await signedIn(email)
     await sql`insert into auth.sessions (id, user_id) values (gen_random_uuid(), ${id})`
     const before = await mailCount(email)
-    const confirm = (code: string, to: string) =>
-      withLocals({ ...locals, supabase: undefined }, () =>
-        confirmEmailChangeBody({ code, email: to }, { refresh: false }),
+    const confirm = async (code: string, to: string) =>
+      V1['email/confirm'].response.parse(
+        await (
+          await appCall(emailConfirm, 'email/confirm', {
+            body: { code, email: to },
+            locals: { ...locals, supabase: undefined, user: {} },
+          })
+        ).json(),
       )
 
     await withLocals(locals, () => updateEmailCommand({ email: target }))
-    expect(await confirm(await codeFor(email, before), email)).toEqual({ step: 'next' })
-    expect(await confirm(await codeFor(target), target)).toEqual({ refreshRequired: true, step: 'done' })
+    expect(await confirm(await codeFor(email, before), email)).toEqual({ next: 'next' })
+    const { next, session } = await confirm(await codeFor(target), target)
+    expect(next).toBe('done')
+    const kept = await verifyAccessToken(session?.access_token)
+    if (!kept.ok) throw new Error(`answered session did not verify: ${kept.reason}`)
+    expect(kept.claims.email).toBe(target)
     expect(await addressOf(id)).toBe(target)
-    expect(await sessionIds(id)).toEqual([locals.claims.session_id])
+    expect(await sessionIds(id)).toEqual([kept.claims.session_id])
+    expect((await publicClient().auth.refreshSession({ refresh_token: session!.refresh_token })).error).toBeNull()
   })
 
   it('mints new codes for both addresses on a resend (GoTrue resets the confirmations), so an accepted first code counts for nothing', async () => {

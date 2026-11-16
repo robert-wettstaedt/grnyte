@@ -28,8 +28,9 @@ Zero sync (<https://zero.rocicorp.dev/llms.txt>), Supabase, Drizzle ORM.
   used `pinnedTx` or a merge repoints other people's rows after caller-run gates; `gates.test.ts`
   holds both to a named gate. Toggles write optimistically; forms, creates and deletes await
   `.server` (ids are serial). Remote functions remain for auth/account, upload steps,
-  `sendTestPush`, `replyToFeedback` and remote reads. Components write through the entity's
-  `writes.ts`, never `mutators` or `write` directly.
+  `sendTestPush`, `replyToFeedback` and remote reads; every new server-owned auth step also gets an
+  `/api/app/v1/` endpoint through `appEndpoint`, over the same handler body. Components write
+  through the entity's `writes.ts`, never `mutators` or `write` directly.
 - A mutation on an existing row gates through `requireRow` / `requireRowForm`
   (`$lib/remote/require.server`), so the permission check sees stored data, never request input.
   Never hand-roll `findFirst` + 404 + `can*`. Exception: writers of `regions.settings`, which need a lock.
@@ -106,6 +107,11 @@ Zero sync (<https://zero.rocicorp.dev/llms.txt>), Supabase, Drizzle ORM.
   - Renaming a mutator or narrowing its args: args only widen within a release, removed
     remotes/mutators stay one more release. Deploy zero-cache, then the app.
   - Deleting or reshaping a route. Prefer id-based URLs.
+  - Narrowing an `/api/app/v1/*` request or response: shapes only widen, a narrowing ships as a new
+    version prefix. The only exceptions are the three fixed answers `refused_for_security`,
+    `app_update_required` and `api_version_retired`. Every app build sends `X-App-Version`, a
+    compatibility lever under `APP_MIN_VERSION`, never a security control.
+    `src/lib/auth/app/v1.contract.json` and its test hold the shapes.
 - Verify by driving the running app at BOTH 375x667 and 1280x800, not just typechecking.
 - A new test is evidence only once seen red: make the one production edit that should break it, run,
   revert. Check the fixture for vacuity, and grep that the mutation applied. `npm run test:mutation

@@ -28,4 +28,17 @@ describe.skipIf(!reachable)('completeProfile', () => {
     expect(answer).toEqual({ redirectTo: '/explore' })
     expect(await sql`select 1 from public.users where auth_user_fk = ${id}`).toHaveLength(1)
   })
+
+  it('ends a content next on /auth/continue', async () => {
+    const [{ id }] = await sql<{ id: string }[]>`
+      insert into auth.users (id, email) values (gen_random_uuid(), ${`__profile_${crypto.randomUUID()}@grnyte.test`})
+      returning id`
+    created.push(id)
+
+    const answer = await asRequest(id, () =>
+      completeProfile({ gradingScale: 'FB', next: '/routes/1', username: `ada${id.slice(0, 8)}` }),
+    )
+
+    expect(answer).toEqual({ redirectTo: '/auth/continue?next=%2Froutes%2F1' })
+  })
 })
