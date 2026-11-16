@@ -13,6 +13,8 @@ interface AccountEmailInput {
 
 const ACTIONS: Record<ReauthAction, (at: { locale: EmailLocale }) => string> = {
   'account.delete': (at) => m.email_reauthActionAccountDelete({}, at),
+  'identity.link': (at) => m.email_reauthActionIdentityLink({}, at),
+  'identity.unlink': (at) => m.email_reauthActionIdentityUnlink({}, at),
   'password.change': (at) => m.email_reauthActionPasswordChange({}, at),
   'region.delete': (at) => m.email_reauthActionRegionDelete({}, at),
   'region.transfer': (at) => m.email_reauthActionRegionTransfer({}, at),

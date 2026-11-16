@@ -169,6 +169,22 @@ describe('authGuard', () => {
     it('is left alone on an emailed-link page, whose token would be dropped by a bounce', async () => {
       expect(await redirectFrom(mockEvent('/auth/confirm'))).toBeUndefined()
     })
+
+    it.each([true, false])(
+      'is left alone on an OAuth callback (profile: %s), whose session no hook loads',
+      async (profile) => {
+        const event = mockEvent('/auth/callback/google?code=c&state=s', { profile })
+        const load = vi.spyOn(event.locals, 'safeGetSession')
+
+        expect(await redirectFrom(event)).toBeUndefined()
+        expect(load).not.toHaveBeenCalled()
+        expect(event.locals.claims).toBeUndefined()
+      },
+    )
+
+    it('is left alone on the error page an OAuth failure lands on', async () => {
+      expect(await redirectFrom(mockEvent('/auth/error?reason=failed'))).toBeUndefined()
+    })
   })
 
   it('sends a signed-out visitor from /explore to a bare sign-in, where the installed app shows the welcome fork', async () => {

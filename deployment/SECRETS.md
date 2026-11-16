@@ -203,6 +203,14 @@ Note the `=`. `bws` parses its arguments with clap, which reads a value beginnin
 flag and fails with `unexpected argument`. Any PEM block hits this, so an SSH key cannot be passed
 with the spaced form at all.
 
+Sign in with Apple and Google: `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (the `.p8`
+contents, so pass it with `--value=`), `APPLE_SERVICES_ID`, `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` are the app's and go to Vercel, read at runtime through
+`$env/dynamic/private`. A provider missing any of them shows no button. The Apple client secret is
+minted per request from the key, so nothing rotates on a schedule; a revoked `.p8` needs a new key
+and both `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY`. The same Services ID and the Google web client ID
+also go first in GoTrue's Apple and Google client ID lists on the hosted project.
+
 An access token: create the new one first, update the GitHub secret, then revoke the old one in the
 machine account's **Access tokens** tab.
 

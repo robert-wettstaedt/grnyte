@@ -252,14 +252,23 @@ export const supabase: Handle = async ({ event, resolve }) => {
 const HOME_PATH: Pathname = '/'
 
 /** Opened while already signed in, so the "authenticated users leave /auth" rule cannot have them:
- *  a settings-initiated email change confirms through /auth/confirm, and bouncing these would drop
- *  the token unprocessed. /auth/error is where an expired one of those lands. */
-const EMAILED_LINK_PATHS: Pathname[] = ['/auth/confirm', '/auth/error', '/auth/reset-password']
+ *  a settings-initiated email change confirms through /auth/confirm, linking and "Confirm with Apple"
+ *  start and return through /auth/oauth and /auth/callback, and /auth/error is where any of them fails. */
+const AUTH_PASSTHROUGH_PATHS: string[] = [
+  '/auth/callback',
+  '/auth/confirm',
+  '/auth/error',
+  '/auth/oauth',
+  '/auth/reset-password',
+]
+
+/** Whose flow a callback is is unknown until a carrier claims its `state`, so no session loads first. */
+const OAUTH_CALLBACK_PREFIX = '/auth/callback/'
 
 const PROFILE_PATH: Pathname = '/auth/profile'
 const SIGN_IN_PATH: Pathname = '/auth/signin'
 /** What a profile-less account may open; sign-out is a remote call, which the gate never sees. */
-const PROFILE_GATE_EXEMPT: string[] = [PROFILE_PATH, '/legal', ...EMAILED_LINK_PATHS]
+const PROFILE_GATE_EXEMPT: string[] = [PROFILE_PATH, '/legal', ...AUTH_PASSTHROUGH_PATHS]
 
 /** A failed lookup is not a marker: the profile step refuses a marked account on its own. */
 async function deletionMarked(authUserId: string): Promise<boolean> {
@@ -279,7 +288,7 @@ function leaveAuthPages({ locals, url }: Parameters<Handle>[0]['event']): void {
     redirect(303, SIGN_IN_PATH)
   }
   if (locals.claims == null || !url.pathname.startsWith(AUTH_PATH)) return
-  if (EMAILED_LINK_PATHS.some((path) => url.pathname.startsWith(path))) return
+  if (AUTH_PASSTHROUGH_PATHS.some((path) => url.pathname.startsWith(path))) return
   if (url.pathname === PROFILE_PATH && locals.user == null) return
   redirect(303, signedInRedirectTarget(url.searchParams.get('next')))
 }
@@ -338,8 +347,8 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   }
 
   // The Zero endpoints verify their own Authorization header; loading a session here could rotate
-  // the refresh token onto a response the browser never sees.
-  if (isHeaderAuthenticated(event.url.pathname)) {
+  // the refresh token onto a response the browser never sees. An OAuth callback loads it in its carrier.
+  if (isHeaderAuthenticated(event.url.pathname) || event.url.pathname.startsWith(OAUTH_CALLBACK_PREFIX)) {
     Object.assign(event.locals, anonymous(), { backendUnavailable: false })
     return resolve(event)
   }

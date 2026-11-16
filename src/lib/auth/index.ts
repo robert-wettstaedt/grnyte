@@ -47,7 +47,16 @@ export const REGION_PERMISSION_READ = 'region.read'
 export const REGION_PERMISSION_ADMIN = 'region.admin'
 
 /** Actions behind a re-authentication. Targets: auth user id, auth user id, `regionFk`, `regionFk:userFk`. */
-export const REAUTH_ACTIONS = ['account.delete', 'password.change', 'region.delete', 'region.transfer'] as const
+export const REAUTH_ACTIONS = [
+  'account.delete',
+  'identity.link',
+  'identity.unlink',
+  'password.change',
+  'region.delete',
+  'region.transfer',
+] as const
+/** An `identity.*` code or start names a bare provider; only `bindLinkGrant` writes `<provider>:<sub>`. */
+export const IDENTITY_TARGETS = ['apple', 'google'] as const
 export type AppPermission = typeof APP_PERMISSION_ADMIN
 
 export type ReauthAction = (typeof REAUTH_ACTIONS)[number]
@@ -121,36 +130,61 @@ export function checkRegionPermission(
 }
 
 /**
- * Whether `path` points at this origin, and so is safe to hand to `redirect()`.
+ * `raw` as a path on this origin, reassembled from the parsed URL, or null.
  *
- * The leading slash keeps it absolute; the URL parser is what makes that check honest, because it
- * reads the value exactly as a browser reads the Location header it ends up in: a backslash counts
- * as a slash, and tabs and newlines are stripped before parsing. `/\evil.com` and `/<tab>/evil.com`
- * both pass a string check and both resolve to `https://evil.com/` in every browser.
+ * Control characters are refused before parsing, because the parser strips tabs and newlines, and
+ * the origin is compared after it, because it reads `/\evil.com` as `https://evil.com/` the way a
+ * browser reads the Location header. `new URL`, since the browser floor lacks the static parse method.
  */
-export function isSameOriginPath(path: string): boolean {
-  return path.startsWith('/') && URL.parse(path, REDIRECT_BASE)?.origin === REDIRECT_BASE
+export function sameOriginPath(raw: string): null | string {
+  if (CONTROL_CHARACTERS.test(raw) || !raw.startsWith('/')) return null
+  let url: URL
+  try {
+    url = new URL(raw, REDIRECT_BASE)
+  } catch {
+    return null
+  }
+  return url.origin === REDIRECT_BASE ? `${url.pathname}${url.search}${url.hash}` : null
 }
 
+/** Whether `path` points at this origin, and so is safe to hand to `redirect()`. */
+export const isSameOriginPath = (path: string): boolean => sameOriginPath(path) != null
+
 /** Where an already-signed-in visitor to an auth page lands. `next` carries the invitation mail's
- *  destination; anything else falls back, including a target inside /auth, which would bounce
- *  straight back here. */
+ *  destination; anything else falls back, including a target inside /auth. */
 export function signedInRedirectTarget(next: null | string | undefined): string {
-  // Refused rather than normalised: the URL parser strips control characters, so a `next` carrying
-  // them would otherwise survive every check below as a garbage path and 404.
-  if (next == null || CONTROL_CHARACTERS.test(next) || !isSameOriginPath(next)) {
-    return APP_HOME_PATH
-  }
+  return appPath(next) ?? APP_HOME_PATH
+}
 
-  const url = URL.parse(next, REDIRECT_BASE)
-  // `startsWith`, loosely, because that is what the guard sending us here treats as the auth
-  // subtree. Refusing more than it does would be safe; refusing less would hand back a `next` it
-  // then swallows anyway.
-  if (url == null || url.pathname.startsWith(AUTH_PATH)) {
-    return APP_HOME_PATH
-  }
+/** A same-origin path outside /auth, which the guard would bounce straight back. `startsWith`,
+ *  loosely, because that is what the guard treats as the auth subtree. */
+function appPath(raw: null | string | undefined): null | string {
+  const path = raw == null ? null : sameOriginPath(raw)
+  return path == null || path.startsWith(AUTH_PATH) ? null : path
+}
 
-  // Reassembled rather than the raw string, so the value handed to `redirect()` is one the parser
-  // produced.
-  return `${url.pathname}${url.search}${url.hash}`
+const SIGN_IN_SCREENS: Record<string, 'signin' | 'signup'> = { '/auth/signin': 'signin', '/auth/signup': 'signup' }
+
+/**
+ * Where a provider sign-in cancels to and "Try again" leads, decided from one path and the intent,
+ * at the start and again wherever it is read back. Client-safe: the error page runs it.
+ */
+export function oauthReturnTarget(path: null | string | undefined, intent: null | string | undefined): string {
+  switch (intent) {
+    case 'confirm':
+      return appPath(path) ?? '/settings'
+    case 'link':
+      return '/settings/sign-in-methods'
+    case 'signin': {
+      const parsed = path == null ? null : sameOriginPath(path)
+      const url = parsed == null ? null : new URL(parsed, REDIRECT_BASE)
+      // `form=`, so the installed app's welcome fork, shown only on a bare /auth/signin, never catches it.
+      const params = new URLSearchParams({ form: SIGN_IN_SCREENS[url?.pathname ?? ''] ?? 'signin' })
+      const next = appPath(url?.searchParams.get('next'))
+      if (url != null && SIGN_IN_SCREENS[url.pathname] != null && next != null) params.set('next', next)
+      return `/auth/${params.get('form')}?${params}`
+    }
+    default:
+      return '/auth/signin?form=signin'
+  }
 }

@@ -20,8 +20,10 @@ const resend = { email: 'climber@example.com', type: 'signup' } as const
 
 type Client = Awaited<ReturnType<typeof load>> extends { supabaseAuthServer: (e: RequestEvent) => infer C } ? C : never
 const CALLS: [string, (client: Client) => Promise<unknown>][] = [
+  ['refreshSession', (client) => client.refreshSession({ refresh_token: 'refresh-1' })],
   ['resend', (client) => client.resend(resend)],
   ['resetPasswordForEmail', (client) => client.resetPasswordForEmail('climber@example.com')],
+  ['signInWithIdToken', (client) => client.signInWithIdToken({ nonce: 'raw', provider: 'google', token: 'id.token' })],
   ['signInWithPassword', (client) => client.signInWithPassword({ email: 'climber@example.com', password: 'pw' })],
   ['verifyOtp', (client) => client.verifyOtp({ email: 'climber@example.com', token: '12345678', type: 'email' })],
 ]

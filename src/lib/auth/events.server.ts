@@ -7,13 +7,53 @@ import { m } from '$lib/paraglide/messages'
 import { and, count, eq, gt, gte, sql } from 'drizzle-orm'
 
 // `kind` is text, so later changes widen this union without a migration.
-export type AuthEventKind = 'account_deleted' | 'alert_sent' | 'mail_quota' | 'reauth_failed'
+export type AuthEventKind =
+  | 'account_deleted'
+  | 'alert_sent'
+  | 'apple_revoke_failed'
+  | 'apple_revoke_skipped'
+  | 'apple_revoked'
+  | 'identity_linked'
+  | 'identity_unlinked'
+  | 'mail_quota'
+  | 'oauth_iss_mismatch'
+  | 'oauth_link_refused'
+  | 'oauth_nonce_mismatch'
+  | 'oauth_state_mismatch'
+  | 'oauth_sub_mismatch'
+  | 'reauth_failed'
 
 /** More than this many events of one failure kind in an hour alerts the admins, once a day. */
 const SPIKE = 20
 
 /** The failure kinds a spike alerts on; a kind added later stays quiet until listed here. */
-const FAILURES: ReadonlySet<AuthEventKind> = new Set(['reauth_failed'])
+const FAILURES: ReadonlySet<AuthEventKind> = new Set([
+  'oauth_iss_mismatch',
+  'oauth_link_refused',
+  'oauth_nonce_mismatch',
+  'oauth_state_mismatch',
+  'oauth_sub_mismatch',
+  'reauth_failed',
+])
+
+/** Whether Apple's token was revoked for exactly this action and target in the last 10 minutes. */
+export async function hasRecentAppleRevocation(authUserId: string, action: string, target: string): Promise<boolean> {
+  const found = await pinnedTx((tx) =>
+    tx
+      .select({ id: authEvents.id })
+      .from(authEvents)
+      .where(
+        and(
+          eq(authEvents.authUserFk, authUserId),
+          eq(authEvents.kind, 'apple_revoked'),
+          sql`${authEvents.detail}->>'action' = ${action} and ${authEvents.detail}->>'target' = ${target}`,
+          gt(authEvents.createdAt, sql`now() - interval '10 minutes'`),
+        ),
+      )
+      .limit(1),
+  )
+  return found.length > 0
+}
 
 /** GoTrue's `over_email_send_rate_limit` on one of grnyte's sends: the same stable message as Resend's quota. */
 export async function noteMailRefusal(error: { code?: string; name?: string }): Promise<void> {

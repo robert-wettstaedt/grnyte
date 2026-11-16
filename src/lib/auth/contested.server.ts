@@ -63,6 +63,10 @@ export async function flagContestedSignup(authUserId: string): Promise<boolean> 
   return error == null
 }
 
+/** Tokens minted before this still carry the flag; the caller refreshes. */
+export const clearContestedFlag = (authUserId: string) =>
+  supabaseAdmin().auth.admin.updateUserById(authUserId, { app_metadata: { [CONTESTED_SIGNUP]: null } })
+
 /** Lets the person who just signed up re-send their code without the resend flagging the account. */
 export function issueResendToken(email: string, now = Date.now()): string {
   const exp = now + RESEND_TOKEN_MS
@@ -76,8 +80,7 @@ export function issueResendToken(email: string, now = Date.now()): string {
 export async function revokeContestedPassword(supabase: App.Locals['supabase'], authUserId: string): Promise<boolean> {
   // Every character class, whatever GoTrue's password policy asks for.
   const password = () => `${randomBytes(32).toString('base64url')}aA1!`
-  const clearFlag = () =>
-    supabaseAdmin().auth.admin.updateUserById(authUserId, { app_metadata: { [CONTESTED_SIGNUP]: null } })
+  const clearFlag = () => clearContestedFlag(authUserId)
   const failed = async (error: { code?: string; message: string }) => {
     await logServerFailure('signup-contested', `revoke step failed: ${error.code ?? error.message}`)
     return false

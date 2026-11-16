@@ -30,6 +30,10 @@ const config = {
     alias: {
       '$storybook/*': '.storybook/*',
     },
+    // Sign in with Apple answers with a cross-origin form POST to /auth/callback/apple.
+    csrf: {
+      trustedOrigins: ['https://appleid.apple.com'],
+    },
     experimental: {
       remoteFunctions: true,
     },

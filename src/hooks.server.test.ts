@@ -126,6 +126,11 @@ describe('handle, cross-site requests', () => {
     expect(await send('/api/app/session', { site: 'cross-site' })).toEqual({ ran: true, status: 200 })
   })
 
+  it("refuses the same cross-site POST to Google's callback and to the sign-in start", async () => {
+    expect(await send('/auth/callback/google', { site: 'cross-site' })).toEqual({ ran: false, status: 403 })
+    expect(await send('/auth/oauth/apple', { site: 'cross-site' })).toEqual({ ran: false, status: 403 })
+  })
+
   it('refuses a remote function called from the exempt page, matching the request, not the page', async () => {
     const call = await send('/_app/remote/abc123/confirm', { page: '/auth/callback/apple', site: 'cross-site' })
     expect(call).toEqual({ ran: false, status: 403 })

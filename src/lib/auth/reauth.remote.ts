@@ -1,5 +1,5 @@
 import { command, getRequestEvent, query } from '$app/server'
-import { REAUTH_ACTIONS, type ReauthAction } from '$lib/auth'
+import { IDENTITY_TARGETS, REAUTH_ACTIONS, type ReauthAction } from '$lib/auth'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { userSettings } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
@@ -17,8 +17,10 @@ const subject = z.object({
 })
 
 /** The account's own actions target the caller, whatever the page sent (it sends `self`). */
-const boundTo = (caller: ReauthCaller, action: ReauthAction, target: string) =>
-  action === 'account.delete' || action === 'password.change' ? caller.authUserId : target
+function boundTo(caller: ReauthCaller, action: ReauthAction, target: string): string {
+  if (action.startsWith('identity.') && !(IDENTITY_TARGETS as readonly string[]).includes(target)) error(400)
+  return action === 'account.delete' || action === 'password.change' ? caller.authUserId : target
+}
 
 export const requestReauthCode = command(subject, async ({ action, target: sent }) => {
   const caller = await reauthCaller()

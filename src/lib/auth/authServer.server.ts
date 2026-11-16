@@ -9,7 +9,7 @@ import { decodeJwt } from 'jose'
 /** The auth calls grnyte makes under the secret key. */
 export type AuthServer = Pick<
   SupabaseClient['auth'],
-  'resend' | 'resetPasswordForEmail' | 'signInWithPassword' | 'verifyOtp'
+  'refreshSession' | 'resend' | 'resetPasswordForEmail' | 'signInWithIdToken' | 'signInWithPassword' | 'verifyOtp'
 >
 
 export type AuthServerAs = Pick<SupabaseClient['auth'], 'linkIdentity' | 'updateUser'>
@@ -27,8 +27,10 @@ export function supabaseAuthServer(event: Pick<RequestEvent, 'getClientAddress'>
   const { auth } = client
 
   return Object.freeze({
+    refreshSession: auth.refreshSession.bind(auth),
     resend: auth.resend.bind(auth),
     resetPasswordForEmail: auth.resetPasswordForEmail.bind(auth),
+    signInWithIdToken: auth.signInWithIdToken.bind(auth),
     signInWithPassword: auth.signInWithPassword.bind(auth),
     verifyOtp: auth.verifyOtp.bind(auth),
   })

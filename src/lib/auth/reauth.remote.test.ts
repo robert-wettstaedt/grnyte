@@ -5,7 +5,8 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { reauthGrantStatus, requestReauthCode } from './reauth.remote'
 import { sessionCaller, writeGrant } from './reauth.server'
 
-vi.mock('$lib/email/send.server', () => ({ sendEmail: async () => true }))
+const mailed = vi.hoisted(() => ({ count: 0 }))
+vi.mock('$lib/email/send.server', () => ({ sendEmail: async () => ++mailed.count > 0 }))
 
 let user: SeedUser
 
@@ -44,6 +45,17 @@ describe.skipIf(!reachable)('reauth remotes', () => {
     })
 
     expect(answer).toBe(true)
+  })
+
+  it('mails an identity.link code only for a bare provider, never a bound target', async () => {
+    mailed.count = 0
+    const bound = () =>
+      asRequest(user.authId, () => requestReauthCode({ action: 'identity.link', target: 'google:123' }))
+
+    expect(await statusOf(bound)).toBe(400)
+    expect(mailed.count).toBe(0)
+    await asRequest(user.authId, () => requestReauthCode({ action: 'identity.link', target: 'google' }))
+    expect(mailed.count).toBe(1)
   })
 
   it('answers false in another session of the same account', async () => {
