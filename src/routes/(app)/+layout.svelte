@@ -155,6 +155,8 @@
     return stopAuthRecovery
   })
 
+  const REGIONLESS_HOLD_MS = 1000
+
   // The client-side twin of authGuard's region-less bounce. That hook only ever sees document
   // loads: this group is `ssr = false` with (almost) no server loads, so navigating to /explore
   // from inside the app never reaches it.
@@ -169,9 +171,14 @@
     resource?.phase.kind === 'answered' && resource.phase.empty && isOnline()
 
   $effect(() => {
-    if (answeredNone(globalState?.userRegionsResource) && REGIONLESS_PATHS.some((path) => path === page.url.pathname)) {
-      location.href = resolve('/(app)/regions/new')
+    if (!answeredNone(globalState?.userRegionsResource) || !REGIONLESS_PATHS.some((path) => path === page.url.pathname)) {
+      return
     }
+
+    // Held a second: "taken in" lands a beat before the live query shows the rows, and leaving the page
+    // in that beat aborted the first sync (seen with OPFS, whose first sync is fast enough to hit it).
+    const leave = setTimeout(() => (location.href = resolve('/(app)/regions/new')), REGIONLESS_HOLD_MS)
+    return () => clearTimeout(leave)
   })
 
   // The client twin of authGuard's profile gate: a full load, so the server decides a deletion marker.
