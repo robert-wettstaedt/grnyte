@@ -1,7 +1,7 @@
 import { building } from '$app/environment'
 import type { Pathname } from '$app/types'
 import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
-import { AUTH_PATH, CONTINUE_PATH, signedInRedirectTarget } from '$lib/auth'
+import { APP_HOME_PATH, AUTH_PATH, CONTINUE_PATH, nextDestination, signedInRedirectTarget } from '$lib/auth'
 import { anonymousSession, bearerSession } from '$lib/auth/app/bearer.server'
 import { APP_RETURN_PATH } from '$lib/auth/app/constants'
 import { APP_ERROR_CODES, appError, NO_STORE } from '$lib/auth/app/v1'
@@ -339,6 +339,12 @@ const PUBLIC_PREFIXES = [
   '/.well-known/',
 ]
 
+/** A deep link comes back after sign-in; home keeps the bare sign-in the installed app's welcome fork catches. */
+function signedOutTarget(url: URL): string {
+  const next = nextDestination(url.pathname + url.search)
+  return next === APP_HOME_PATH ? AUTH_PATH : `${SIGN_IN_PATH}?${new URLSearchParams({ next })}`
+}
+
 /**
  * The zero-cache callbacks, which authenticate off their own Authorization header.
  *
@@ -417,7 +423,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
       error(503, 'Service temporarily unavailable')
     }
 
-    redirect(303, AUTH_PATH)
+    redirect(303, signedOutTarget(event.url))
   }
 
   // Page navigations only: a remote call's `event.url` is the calling page, and the code and

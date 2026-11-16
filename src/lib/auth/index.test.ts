@@ -34,6 +34,7 @@ const foreign: [null | string | undefined][] = [
   ['/auth'],
   ['/auth/signin'],
   ['/auth/signin?next=/explore'],
+  ['/%61uth/signin'],
   ['/settings\r\n'],
   ['/set\ttings'],
   [null],

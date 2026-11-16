@@ -101,7 +101,7 @@ describe.skipIf(!gotrueReachable)('passwords on GoTrue', { timeout: 20_000 }, ()
     expect(sent.filter((mail) => mail.to === email)).toEqual([{ template: 'password-changed', to: email }])
   })
 
-  it("sets a social-only account's first password, which signs in; GoTrue adds no email identity for it", async () => {
+  it("sets a social-only account's first password, which signs in, and gives it the email identity", async () => {
     const email = address('social')
     const id = await createAccount(email)
     await makeSocialOnly(id, email)
@@ -113,7 +113,7 @@ describe.skipIf(!gotrueReachable)('passwords on GoTrue', { timeout: 20_000 }, ()
 
     const providers = await sql<{ provider: string }[]>`
       select provider from auth.identities where user_id = ${id} order by provider`
-    expect(providers.map((row) => row.provider)).toEqual(['google'])
+    expect(providers.map((row) => row.provider)).toEqual(['email', 'google'])
     const adopted = publicClient()
     await adopted.auth.setSession(answer.session)
     expect(await works(adopted)).toBe(true)

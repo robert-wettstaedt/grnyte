@@ -9,9 +9,15 @@ import { hasGrant, reauthCaller } from '$lib/auth/reauth.server'
 import { callerAuthServer, requireLiveSession } from '$lib/auth/session.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { formError } from '$lib/forms/schemas'
+import { logServerFailure } from '$lib/logging/failure.server'
 import { refuseCommand } from '$lib/remote/authed.server'
 import type { UserIdentity } from '@supabase/supabase-js'
 import { sql } from 'drizzle-orm'
+
+interface Address {
+  confirmedAt: null | string
+  email: string
+}
 
 interface ProviderState {
   canUnlink: boolean
@@ -40,7 +46,13 @@ export async function unlinkProvider({ provider }: { provider: OAuthProvider }) 
   // Already gone (another device): the screen's next read shows it.
   if (identity == null) return { othersSignedOut: false }
 
-  await unlinkAtGoTrue(auth, identity)
+  const address = await accountAddress(caller.authUserId)
+  try {
+    await unlinkAtGoTrue(auth, identity)
+  } finally {
+    // Also on a refusal: GoTrue may have committed the unlink before the answer was lost.
+    await keepAddress(caller.authUserId, address)
+  }
   await recordAuthEvent('identity_unlinked', { authUserId: caller.authUserId, detail: { provider } })
   if (provider === 'apple') {
     await appleRevocation(caller.authUserId, 'identity.unlink', 'apple', { linked: true })
@@ -75,6 +87,36 @@ async function accountMethods(authUserId: string) {
     }
   }
   return { hasPassword, providers: { apple: state('apple'), google: state('google') } }
+}
+
+const accountAddress = async (authUserId: string): Promise<Address | null> => {
+  const [row] = await pinnedTx((tx) =>
+    tx.execute<{ confirmed_at: null | string; email: null | string }>(
+      sql`select email, email_confirmed_at::text as confirmed_at from auth.users where id = ${authUserId}`,
+    ),
+  )
+  return row?.email == null ? null : { confirmedAt: row.confirmed_at, email: row.email }
+}
+
+/**
+ * GoTrue moves the address to a remaining identity's when the unlinked one reported it, and drops its confirmation
+ * when that identity reports it unverified; both stay. Only while a provider reports the moved address, so an email
+ * change confirmed meanwhile is kept.
+ */
+async function keepAddress(authUserId: string, address: Address | null) {
+  if (address == null) return
+  try {
+    await pinnedTx((tx) =>
+      tx.execute(sql`
+        update auth.users u set email = ${address.email},
+          email_confirmed_at = coalesce(u.email_confirmed_at, ${address.confirmedAt}::timestamptz)
+        where u.id = ${authUserId} and u.email is distinct from ${address.email}
+          and exists (select 1 from auth.identities i where i.user_id = u.id and i.provider <> 'email'
+            and lower(i.identity_data->>'email') = lower(u.email))`),
+    )
+  } catch (cause) {
+    await logServerFailure('auth', `address not restored for ${authUserId}: ${String(cause)}`)
+  }
 }
 
 /** Unlinks, or refuses the command; a dropped answer after GoTrue committed still unlinked it. */
