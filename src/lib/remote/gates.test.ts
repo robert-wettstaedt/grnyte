@@ -201,6 +201,10 @@ const MUTATOR_WRAPPERS = new Set(['defineServerMutator'])
  * silently carrying its exemption to a different function.
  */
 const NO_GATE: Record<string, string> = {
+  'lib/auth/identities.remote.ts#signInMethodsQuery':
+    "Takes no input: reads only the live caller's own identities and password flag (`requireLiveSession`).",
+  'lib/auth/identities.remote.ts#unlinkProvider':
+    "Removes only the caller's own identity through its own session client, behind an `identity.unlink` grant for its own session (`reauthCaller`, `hasGrant`) that the identity trigger spends.",
   'lib/auth/password.remote.ts#setNewPassword':
     "Acts only on the caller's own session and refuses unless a code was verified on it within 10 minutes (`amr`).",
   'lib/auth/reauth.remote.ts#confirmReauthCode':

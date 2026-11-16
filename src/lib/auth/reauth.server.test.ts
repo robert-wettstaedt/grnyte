@@ -3,6 +3,7 @@ import { pinnedTx } from '$lib/db/pinned.server'
 import { reachable, sql } from '$lib/db/testDb'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  bindLinkGrant,
   hasGrant,
   holdGrant,
   issueReauthCode,
@@ -42,6 +43,22 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers())
 afterAll(async () => {
   if (reachable) await sql`delete from auth.users where id = any(${ids})`
+})
+
+describe.skipIf(!reachable)('bindLinkGrant', () => {
+  it("re-targets only this session's identity.link grant for that provider", async () => {
+    const me = await caller()
+    const otherSession = { ...me, sessionId: crypto.randomUUID() }
+    await writeGrant(otherSession, 'identity.link', 'google', 'email_code')
+    await writeGrant(me, 'identity.link', 'apple', 'email_code')
+
+    expect(await bindLinkGrant(me, 'google', 'sub-1')).toBe(false)
+    await writeGrant(me, 'identity.link', 'google', 'email_code')
+    expect(await bindLinkGrant(me, 'google', 'sub-1')).toBe(true)
+    expect(await hasGrant(me, 'identity.link', 'google:sub-1')).toBe(true)
+    expect(await hasGrant(otherSession, 'identity.link', 'google')).toBe(true)
+    expect(await hasGrant(me, 'identity.link', 'apple')).toBe(true)
+  })
 })
 
 describe.skipIf(!reachable)('reauth codes', () => {

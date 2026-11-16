@@ -26,6 +26,9 @@ const NODE_ENVIRONMENT_TESTS = [
 /** Server tests that count rows across a whole table: they run alone, after everything else. */
 const SERIAL_TESTS = ['src/lib/auth/events.server.test.ts']
 
+/** ngrok's free static domains, which local Apple sign-in tests need for an https callback. */
+const NGROK_HOSTS = ['.ngrok-free.app', '.ngrok-free.dev']
+
 const file = fileURLToPath(new URL('package.json', import.meta.url))
 const json = readFileSync(file, 'utf8')
 const pkg = JSON.parse(json)
@@ -265,7 +268,7 @@ export default defineConfig({
   // Tailscale fronts the preview build with a real cert on a *.ts.net name, so a phone gets a
   // secure context (geolocation, push, the service worker). Vite rejects an unknown Host header.
   preview: {
-    allowedHosts: ['.ts.net'],
+    allowedHosts: ['.ts.net', ...NGROK_HOSTS],
     // Kit reads the preview origin's protocol off this flag alone and ignores X-Forwarded-Proto,
     // so behind a TLS proxy every remote function 403s on the origin mismatch. The cert is only
     // for the proxy hop (`tailscale serve https+insecure://`), which does not verify it.
@@ -282,7 +285,7 @@ export default defineConfig({
   server: {
     // Same reason as preview: Vite rejects a Host header it does not know, and a phone reaches the
     // dev server through a *.ts.net name. `vite dev` skips Kit's origin check, so no TLS is needed.
-    allowedHosts: ['.ts.net'],
+    allowedHosts: ['.ts.net', ...NGROK_HOSTS],
     host: true,
     port: 3000,
   },

@@ -170,6 +170,18 @@ async function upsertGrant(tx: Tx, caller: ReauthCaller, action: ReauthAction, t
 
 const live = () => gt(reauthGrants.expiresAt, new Date())
 
+/** Re-targets this session's `identity.link` grant to the verified identity, the only form the trigger spends. */
+export async function bindLinkGrant(caller: ReauthCaller, provider: string, sub: string): Promise<boolean> {
+  const bound = await pinnedTx((tx) =>
+    tx
+      .update(reauthGrants)
+      .set({ target: `${provider}:${sub}` })
+      .where(and(key(reauthGrants, caller, 'identity.link', provider), live()))
+      .returning({ id: reauthGrants.id }),
+  )
+  return bound.length > 0
+}
+
 /** Peek: spends nothing. */
 export async function hasGrant(caller: ReauthCaller, action: ReauthAction, target: string): Promise<boolean> {
   const found = await pinnedTx((tx) =>
