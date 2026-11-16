@@ -111,6 +111,25 @@ describe('the PowerSync shell', () => {
     expect(await connector.fetchCredentials()).toEqual({ endpoint: 'https://sync.example', token: 'refreshed' })
   })
 
+  it('ends the database worker as the page leaves, so the next page can open the file', async () => {
+    vi.stubGlobal(
+      'Worker',
+      class {
+        terminate = vi.fn()
+        constructor(_url: string, _options?: WorkerOptions) {}
+      },
+    )
+    const { initPowerSync } = await import('./db.svelte')
+    initPowerSync(session('a'), async () => 'token', settings)
+    const database = new Worker('worker.js', { name: 'powersync-grnyte-a.sqlite' })
+    const other = new Worker('worker.js', { name: 'other' })
+
+    dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))
+
+    expect(database.terminate).toHaveBeenCalled()
+    expect(other.terminate).not.toHaveBeenCalled()
+  })
+
   it('streams over WebSocket, on the first connect and on the restart after a stale return', async () => {
     const { initPowerSync } = await import('./db.svelte')
     const visibility = vi.spyOn(document, 'visibilityState', 'get')

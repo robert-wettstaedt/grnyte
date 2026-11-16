@@ -206,6 +206,14 @@ WebKit holds back the end of a `fetch` response stream until more bytes arrive. 
 - Prod nginx already passes the upgrade for `sync.grnyte.rocks` (`nginx.zero.conf`). The SDK loads RSocket on demand; both chunks are in the service worker's precache.
 - Cost: off PowerSync's documented default ("no compelling reason to use WebSockets" on the web), so we carry the less tested transport; the SDK closes a socket after 30 s without data. The native app (D13) picks its transport separately and is measured in the Expo spike. Not measured: the shared-worker path (`PUBLIC_POWERSYNC_MULTITABS=1`, off by default).
 
+### D16. Release the store when a page leaves (found in 9.5, 2026-11-16)
+
+Safari keeps a page it left alive in its back-forward cache, and with it the PowerSync database worker, which keeps the file's lock (`db-lock-<file>`) and the IndexedDB lock. The tab's next page then waits on that lock for as long as the old page stays cached: it never connects and reads offline, and a reload does not help. Seen after a sign-in and a full navigation in the same tab, on both transports; the same family as D5's OPFS note and task 9.3.
+
+- On `pagehide` the shell terminates PowerSync's database workers (`releaseOnPageHide` in `db.svelte.ts`); a page restored from the cache (`pageshow` with `persisted`) reloads. A `close()` cannot do it: it is async, and Safari freezes the page before it finishes (the close never completed in the test). An empty `unload` listener did not keep Safari from caching the page.
+- The workers are found by wrapping the `Worker` constructor and keeping those named `powersync-…`, so the SDK still spawns its own worker and the build and precache stay as they are. The cost is a global constructor wrapped once per page. Only dedicated workers are covered: with multi-tab support on (`PUBLIC_POWERSYNC_MULTITABS=1`, and the SDK default on desktop Chrome and Firefox) the database worker is a SharedWorker, not wrapped, and a page restored then does not reload; that path is neither fixed nor measured.
+- Verified on the dev server in desktop Safari: stuck 3 of 3 before, fixed in 3 runs after, and Back reloads the restored page and syncs. On a production build of the change (the SDK's worker created through Vite's helper, `new Worker(url, { name })`, which the wrapper catches): fixed in 2 of 2 runs and Back works. On iOS 27.2 (Simulator, same build, the navigation driven by a script injected through a proxy): with the fix, the next page connected in the same second and Back restored the cached page (`persisted`), which reloaded and connected. Without it (01a1c990), the forward navigation connected in that one run, but the page Back restored from the cache stayed "offline" with no stream for 24 s: a cached page is dead without the reload.
+
 ## Risks / Trade-offs
 
 - [iOS first sync, D12] → JSPI with PowerSync (8.6), then map-first priorities if needed (8.7); the remeasure records whatever remains.

@@ -55,6 +55,9 @@ let resumeTimers: ReturnType<typeof setTimeout>[] = []
 /** Wall-clock: a monotonic clock may stop while the device sleeps, and a locked phone must count as away. */
 let hiddenAt: number | undefined
 let watchingVisibility = false
+let releasingOnHide = false
+/** PowerSync's database workers, ended as the page leaves: a close is async and Safari freezes the page first. */
+const databaseWorkers: Worker[] = []
 // WebKit holds the end of a `fetch` sync stream until more bytes come: the next keepalive, 20 s later.
 const CONNECT = { connectionMethod: SyncStreamConnectionMethod.WEB_SOCKET }
 /** Restarts the open account's sync: a fresh stream always delivers a checkpoint, a frozen one may never. */
@@ -107,6 +110,7 @@ export function initPowerSync(
   userId = session?.user.id
   if (session == null || db != null) return
 
+  releaseOnPageHide()
   // The default IndexedDB store, not OPFS: on iOS Safari a reload left the previous page holding the OPFS file and
   // the new page never finished a sync (design D5, client store).
   const opened = new PowerSyncDatabase({
@@ -294,6 +298,32 @@ function observe(next: SyncStatus): void {
     stamped.push(stamp)
     markSynced(stamp)
   }
+}
+
+/**
+ * Safari keeps a page it left alive for back and forward, and its database worker keeps the file's lock, so the tab's
+ * next page never opens the store. Ending the worker frees the lock at once; a restored page reloads to open it again.
+ */
+function releaseOnPageHide(): void {
+  if (releasingOnHide || typeof Worker === 'undefined') return
+  releasingOnHide = true
+  const Native = globalThis.Worker
+  // The SDK spawns its worker itself (named `powersync-<file>`); wrapping the constructor keeps its URL and bundling.
+  globalThis.Worker = class extends Native {
+    constructor(url: string | URL, options?: WorkerOptions) {
+      super(url, options)
+      if (options?.name?.startsWith('powersync-')) databaseWorkers.push(this)
+    }
+  }
+  let ended = false
+  addEventListener('pagehide', () => {
+    for (const worker of databaseWorkers.splice(0)) {
+      worker.terminate()
+      ended = true
+    }
+  })
+  // A shared worker (multi-tab, Chrome's default) is not wrapped and survives, so that page needs no reload.
+  addEventListener('pageshow', (event) => event.persisted && ended && location.reload())
 }
 
 /** Past the limit, so a coarsened clock (Firefox rounds to 100 ms) cannot read it just short. */
