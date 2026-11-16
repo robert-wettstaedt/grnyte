@@ -2,7 +2,13 @@ import { getRequestEvent } from '$app/server'
 import { SIGNUP_MARKER } from '$lib/auth'
 import { supabaseAuthServer } from '$lib/auth/authServer.server'
 import { verifyCode } from '$lib/auth/codes.server'
-import { checkResendToken, findAccount, flagContestedSignup, issueResendToken } from '$lib/auth/contested.server'
+import {
+  checkResendToken,
+  findAccount,
+  flagContestedSignup,
+  holdCodeSession,
+  issueResendToken,
+} from '$lib/auth/contested.server'
 import { gotrueRefusal, noticeAlreadyHasAccount, sendCode } from '$lib/auth/mail.server'
 import { checkPassword } from '$lib/auth/passwordPolicy.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
@@ -11,9 +17,12 @@ import { formError } from '$lib/forms/schemas'
 
 type Refuse = (message: string, field?: 'password') => never
 
-/** The confirmation code from the sign-up mail; the session it opened, for the caller to keep. */
+/** The confirmation code from the sign-up mail: the session it opened, held, and the step it leads to. */
 export async function confirmSignupCode({ code, email }: { code: string; email: string }) {
-  return verifyCode(getRequestEvent(), { code, email, kinds: ['signup'], type: 'signup' })
+  return holdCodeSession(
+    await verifyCode(getRequestEvent(), { code, email, kinds: ['signup'], type: 'signup' }),
+    'profile',
+  )
 }
 
 /**

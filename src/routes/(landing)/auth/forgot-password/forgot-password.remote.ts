@@ -1,5 +1,4 @@
-import { command, form, getRequestEvent } from '$app/server'
-import { holdCodeSession } from '$lib/auth/contested.server'
+import { command, form } from '$app/server'
 import { botFields } from '$lib/forms/botCheck'
 import { formError, mailedCodeSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -14,7 +13,6 @@ const forgotPasswordSchema = z.object({
 export const forgotPassword = form(forgotPasswordSchema, (submitted) => body.forgotPassword(submitted, invalid))
 
 export const confirmResetCode = command(mailedCodeSchema, async (input) => {
-  const { locals } = getRequestEvent()
-  const { next } = await holdCodeSession(locals.supabase, await body.confirmResetCode(input), 'choosePassword')
+  const { next } = await body.confirmResetCode(input)
   return { next }
 })

@@ -51,7 +51,9 @@ export function assertAppleAssociation(json: Json): string[] {
     ],
     [!components.some((c) => c['/'] === '/*' && c.exclude !== true), 'the Apple association file claims no /*'],
     [
-      Array.isArray(apps) && apps.length === 1 && /^[A-Z0-9]{10}\.rocks\.grnyte$/.test(String(apps[0])),
+      Array.isArray(apps) &&
+        apps.length === 1 &&
+        new RegExp(`^[A-Z0-9]{10}\\.${APP_BUNDLE_ID.replaceAll('.', '\\.')}$`).test(String(apps[0])),
       `the Apple association file names only ${APP_BUNDLE_ID}`,
     ],
   ]

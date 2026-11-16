@@ -170,8 +170,8 @@ export function nextDestination(next: null | string | undefined): string {
   return appPath(next) ?? APP_HOME_PATH
 }
 
-/** Where every sign-in ends. A `next` passes through `/auth/continue`, so an installed native app never
- *  catches the redirect mid-flow (design decision 12); home is unclaimed and needs no hop. */
+/** Where a sign-in that arrives by redirect ends (provider return, emailed link, the hook's bounce): a `next`
+ *  passes through `/auth/continue`, which no installed app catches. In-page sign-ins use `nextDestination`. */
 export function signedInRedirectTarget(next: null | string | undefined): string {
   const path = appPath(next)
   return path == null ? APP_HOME_PATH : `${CONTINUE_PATH}?next=${encodeURIComponent(path)}`

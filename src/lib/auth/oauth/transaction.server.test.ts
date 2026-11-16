@@ -59,7 +59,7 @@ describe('web transaction cookie', () => {
   })
 })
 
-/** Change 3's carrier contract, through a stub put first in `carriers`. */
+/** The carrier contract, through a stub put first in `carriers`. */
 describe('a carrier ahead of the web carrier', async () => {
   const { carriers, completeOAuth } = await import('./flow.server')
   const STATE = 'app-state'

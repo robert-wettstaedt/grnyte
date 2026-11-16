@@ -47,7 +47,7 @@ export async function confirmReauthCode({ action, code, target }: Subject & { co
   const caller = await reauthCaller()
   const answer = await verifyReauthCode(caller, action, boundTarget(caller, action, target), code)
   if (answer !== 'granted') refuseCommand(formError(REFUSAL[answer]), 'code')
-  return { confirmed: true }
+  return { confirmed: true as const }
 }
 
 /** Whether this session already confirmed this action and target. Spends nothing. */

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import { CODE_LIFETIME_MS, signedInRedirectTarget } from '$lib/auth'
+  import { CODE_LIFETIME_MS, nextDestination } from '$lib/auth'
   import { createFormStore } from '$lib/forms/store.svelte'
   import * as z from '$lib/forms/zod'
   import { m } from '$lib/paraglide/messages'
@@ -41,9 +41,10 @@
   const store = createFormStore(z.object({ code: z.string() }))
   let sentAt = $state(Date.now())
 
-  // A full load: the session is in the cookies, and the server decides the profile step.
+  // A full load (the session is in the cookies, the server decides the profile step), started on
+  // grnyte's own page like /auth/continue's, so it needs no hop through it.
   const leave = () => {
-    location.href = signedInRedirectTarget(next)
+    location.href = nextDestination(next)
   }
 
   async function onsubmit(code: string) {

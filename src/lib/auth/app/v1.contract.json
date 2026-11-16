@@ -136,7 +136,9 @@
             "type": "string"
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           }
         },
         "required": [
@@ -467,7 +469,9 @@
         "type": "object",
         "properties": {
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
           "proofOfWork": {
             "type": "string"
@@ -530,7 +534,9 @@
             "type": "string"
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           }
         },
         "required": [
@@ -664,7 +670,9 @@
             ]
           },
           "target": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
           }
         },
         "required": [
@@ -707,10 +715,13 @@
             ]
           },
           "target": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
           },
           "code": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 12
           }
         },
         "required": [
@@ -751,7 +762,9 @@
             ]
           },
           "target": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
           }
         },
         "required": [
@@ -794,7 +807,9 @@
             ]
           },
           "target": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
           }
         },
         "required": [
@@ -921,7 +936,8 @@
         "type": "object",
         "properties": {
           "email": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "password": {
             "type": "string"
@@ -973,7 +989,9 @@
         "type": "object",
         "properties": {
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
           "password": {
             "type": "string"
@@ -1016,7 +1034,9 @@
             "type": "string"
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           }
         },
         "required": [
@@ -1068,7 +1088,9 @@
         "type": "object",
         "properties": {
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
           "proofOfWork": {
             "type": "string"

@@ -1,3 +1,4 @@
+import { getRequestEvent } from '$app/server'
 import { CONTESTED_SIGNUP, isContested } from '$lib/auth'
 import { db } from '$lib/db/db.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
@@ -67,15 +68,15 @@ export async function flagContestedSignup(authUserId: string): Promise<boolean> 
 }
 
 /**
- * Holds a code's session on `client` (the cookie client, or the app path's in-memory one), then
- * `contestedNext`; the session it ends with, none when the owner must go through reset.
+ * Holds a code's session on the request's client (the cookie client, or the app path's in-memory
+ * one), then `contestedNext`; the session it ends with, none when the owner must go through reset.
  */
 export async function holdCodeSession<Next extends string>(
-  client: App.Locals['supabase'],
   { session, user }: { session: null | Session; user: null | User },
   otherwise: Next,
 ) {
   if (session == null || user == null) return refuseCommand(formError('auth_unexpectedError'), 'code')
+  const client = getRequestEvent().locals.supabase
   await client.auth.setSession(session)
   const next = (await contestedNext(client, user)) ?? otherwise
   const held = next === 'forgotPassword' ? null : (await client.auth.getSession()).data.session

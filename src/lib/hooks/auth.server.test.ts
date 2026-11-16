@@ -1,4 +1,5 @@
 import { APP_HOME_PATH, AUTH_PATH } from '$lib/auth'
+import { appError } from '$lib/auth/app/v1'
 import { acceptPath, REGION_CREATE_PATH } from '$lib/entities/region/paths'
 import { isRedirect, type Handle, type RequestEvent } from '@sveltejs/kit'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -334,6 +335,7 @@ describe('the app API prefix', async () => {
   async function serve(
     path: string,
     { bearer, method = 'GET', remoteFrom, site }: Partial<Record<string, string>> = {},
+    answer = () => new Response('OK'),
   ) {
     const headers = new Headers({ 'content-type': 'application/json', cookie: WEB_COOKIE })
     if (bearer != null) headers.set('authorization', `Bearer ${bearer}`)
@@ -358,7 +360,7 @@ describe('the app API prefix', async () => {
         event,
         resolve: async (resolved) => {
           seen = resolved.locals
-          return new Response('OK')
+          return answer()
         },
       }),
     ).catch((thrown: unknown) => (isRedirect(thrown) ? new Response(null, { status: 303 }) : Promise.reject(thrown)))
@@ -399,5 +401,30 @@ describe('the app API prefix', async () => {
     expect(anonymousCall.seen?.claims).toBeUndefined()
     const bearerCall = await serve('/api/app/v1/profile', { bearer: 'bearer', method: 'POST', site: 'cross-site' })
     expect(bearerCall.seen?.claims).toEqual(claimsOf('bearer'))
+  })
+
+  it("answers Kit's own 404 and 405 in the v1 error shape, uncached, and an endpoint's own refusal as it is", async () => {
+    // Kit's answers: its error page (JSON when the caller accepts it) and `method_not_allowed`.
+    const kitHtml = () => new Response('<html></html>', { headers: { 'content-type': 'text/html' }, status: 404 })
+    const kitJson = () => Response.json({ message: 'Not Found' }, { status: 404 })
+    const kit405 = () =>
+      new Response('POST method not allowed', { headers: { allow: 'GET', 'content-type': 'text/plain' }, status: 405 })
+    const answered = async (path: string, method: string, answer: () => Response) => {
+      const { response } = await serve(path, { method }, answer)
+      const { headers, status } = response
+      return { allow: headers.get('allow'), body: await response.json(), cache: headers.get('cache-control'), status }
+    }
+    const notFound = { allow: null, body: { error: { code: 'not_found' } }, cache: 'no-store', status: 404 }
+    const notAllowed = { allow: 'GET', body: { error: { code: 'method_not_allowed' } }, cache: 'no-store', status: 405 }
+
+    expect(await answered('/api/app/v1/nope', 'GET', kitHtml)).toEqual(notFound)
+    expect(await answered('/api/app/v1/nope', 'GET', kitJson)).toEqual(notFound)
+    expect(await answered('/api/app/v1/challenge', 'POST', kit405)).toEqual(notAllowed)
+    // OPTIONS stays a 405 with no CORS headers (design.md section 1).
+    const { response: options } = await serve('/api/app/v1/challenge', { method: 'OPTIONS' }, kit405)
+    expect(options.status).toBe(405)
+    expect([...options.headers.keys()].filter((name) => name.startsWith('access-control-'))).toEqual([])
+    const own = await answered('/api/app/v1/thing', 'GET', () => appError(404, { code: 'own_code' }))
+    expect(own).toEqual({ ...notFound, body: { error: { code: 'own_code' } } })
   })
 })

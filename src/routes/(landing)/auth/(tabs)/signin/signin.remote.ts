@@ -1,6 +1,6 @@
 import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
-import { isContested, signedInRedirectTarget } from '$lib/auth'
+import { isContested, nextDestination } from '$lib/auth'
 import { endSession } from '$lib/auth/contested.server'
 import { rememberMethod } from '$lib/auth/lastMethod.server'
 import { gotrueRefusal } from '$lib/auth/mail.server'
@@ -54,8 +54,7 @@ export const signIn = form(signInSchema, async ({ codeFlow, email, next, passwor
   rememberMethod(event.cookies, 'email')
 
   // Returned rather than redirected: a 303 becomes a pushing `goto` in Kit's remote-form client,
-  // which leaves this sign-in page in history for a signed-in reader to walk back into. The page
-  // replaces the entry instead. `signedInRedirectTarget` is still shared with the hook's signed-in
-  // bounce: same question, and two copies drifted apart on the CRLF handling once already.
-  return { redirectTo: signedInRedirectTarget(next) }
+  // which leaves this sign-in page in history. The page replaces the entry in-page, which no
+  // installed app catches, so it goes straight to the destination without /auth/continue.
+  return { redirectTo: nextDestination(next) }
 })

@@ -145,7 +145,7 @@ export async function completeOAuth(event: RequestEvent, provider: OAuthProvider
 /** What a proof leads to, the same for every carrier. Writes no session anywhere. */
 export async function dispatchIntent(
   ctx: DispatchContext,
-  tx: OAuthTransaction,
+  tx: Pick<OAuthTransaction, 'intent' | 'provider'>,
   proof: VerifiedProof,
 ): Promise<OAuthOutcome> {
   const { intent } = tx

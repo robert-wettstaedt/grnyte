@@ -29,7 +29,7 @@ describe.skipIf(!reachable)('completeProfile', () => {
     expect(await sql`select 1 from public.users where auth_user_fk = ${id}`).toHaveLength(1)
   })
 
-  it('ends a content next on /auth/continue', async () => {
+  it("moves straight to a content next: the step ran on grnyte's own page", async () => {
     const [{ id }] = await sql<{ id: string }[]>`
       insert into auth.users (id, email) values (gen_random_uuid(), ${`__profile_${crypto.randomUUID()}@grnyte.test`})
       returning id`
@@ -39,6 +39,6 @@ describe.skipIf(!reachable)('completeProfile', () => {
       completeProfile({ gradingScale: 'FB', next: '/routes/1', username: `ada${id.slice(0, 8)}` }),
     )
 
-    expect(answer).toEqual({ redirectTo: '/auth/continue?next=%2Froutes%2F1' })
+    expect(answer).toEqual({ redirectTo: '/routes/1' })
   })
 })

@@ -6,11 +6,9 @@ import { pinnedTx } from '$lib/db/pinned.server'
 import { appAuthFlows } from '$lib/db/serverOnly'
 import { redirect } from '@sveltejs/kit'
 import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
-import { randomBytes } from 'node:crypto'
+import { randomState } from 'openid-client'
 
-/** The seal info of every sealed value in `app_auth_flows`. */
 export const HANDOFF_INFO = 'grnyte app handoff v1'
-/** How long a handoff code may wait for its exchange. */
 export const HANDOFF_CODE_LIFETIME_S = 60
 /** Rows outlive `expires_at` by this, so a late return or a replay is still recognised. */
 export const APP_AUTH_FLOW_GRACE_MS = 60 * 60 * 1000
@@ -28,7 +26,7 @@ export const appCarrier: TransactionCarrier = {
     // completeOAuth already recorded its own event for a failure.
     if (result.kind === 'failed') redirect(303, back(tx, { error: result.reason }))
 
-    const code = randomBytes(32).toString('base64url')
+    const code = randomState()
     // Apple's refresh token stays in memory: no app intent revokes.
     const proof: VerifiedProof = {
       claims: result.proof.claims,
@@ -80,7 +78,6 @@ export const appCarrier: TransactionCarrier = {
   },
 }
 
-/** Deletes rows whose `expires_at` is before `before`; rows removed. */
 export async function sweepAppAuthFlows(before: Date): Promise<number> {
   const removed = await pinnedTx((db) => db.delete(appAuthFlows).where(lt(appAuthFlows.expiresAt, before)))
   return removed.count

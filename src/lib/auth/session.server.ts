@@ -2,7 +2,6 @@ import { getRequestEvent } from '$app/server'
 import type { VerifiedClaims } from '$lib/auth'
 import { db } from '$lib/db/db.server'
 import { formError } from '$lib/forms/schemas'
-import { refuseCommand } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
 import { sql } from 'drizzle-orm'
 import { supabaseAuthServerAs, type AuthServerAs } from './authServer.server'
@@ -53,5 +52,6 @@ export async function requireLiveSession(): Promise<VerifiedClaims> {
 export async function signOutOthers() {
   await requireLiveSession()
   const { error: signOutError } = await callerAuthServer().signOut({ scope: 'others' })
-  if (signOutError != null) refuseCommand(await gotrueRefusal(signOutError, 'logout'))
+  // `refuseCommand`'s shape; importing it would close a cycle with `authed.server`.
+  if (signOutError != null) error(400, { message: await gotrueRefusal(signOutError, 'logout') })
 }

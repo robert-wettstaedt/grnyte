@@ -35,7 +35,7 @@ export async function exchangeAppleCode(
     })
     if (response.status !== 200) return null
     const answer = (await response.json()) as { id_token?: string; refresh_token?: string }
-    // Read from Apple's own TLS answer, as change 2 trusts its code grant.
+    // Read from Apple's own TLS answer, so the id_token is trusted without a signature check.
     const sub = answer.id_token == null ? undefined : decodeJwt(answer.id_token).sub
     return answer.refresh_token == null || sub == null ? null : { refreshToken: answer.refresh_token, sub }
   } catch (cause) {
@@ -53,7 +53,7 @@ export async function requireAppleToken(token: string, audience: string, nonceDi
   error(400, { message: formError('auth_oauthFailedBody') })
 }
 
-/** A device's Apple ID token, verified before any claim is read (design decision 5). */
+/** A device's Apple ID token, verified before any claim is read. */
 export async function verifyAppleIdToken(token: string, audience: string, nonceDigest: string): Promise<AppleVerdict> {
   try {
     const { payload } = await jwtVerify(token, taggingJwks(appleKeys.source), {

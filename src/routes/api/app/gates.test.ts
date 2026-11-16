@@ -1,6 +1,7 @@
+import { V1 } from '$lib/auth/app/v1'
 /**
  * Every app API route is built by `appEndpoint`, so each one gets the JSON-only, version, Bearer
- * and error-shape rules (design decision 1). Static, like `src/lib/remote/gates.test.ts`.
+ * and error-shape rules. Static, like `src/lib/remote/gates.test.ts`.
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -34,6 +35,18 @@ function strayIn(statement: ts.Statement): string[] {
     .map((d) => d.name.getText())
 }
 
+/** The first argument of each `appEndpoint(...)` export, a literal key. */
+const endpointKeys = (source: string): (string | undefined)[] =>
+  ts.createSourceFile('route.ts', source, ts.ScriptTarget.Latest, true).statements.flatMap((statement) =>
+    ts.isVariableStatement(statement)
+      ? statement.declarationList.declarations.map((d) => {
+          const key =
+            d.initializer != null && ts.isCallExpression(d.initializer) ? d.initializer.arguments[0] : undefined
+          return key != null && ts.isStringLiteralLike(key) ? key.text : undefined
+        })
+      : [],
+  )
+
 const builtByAppEndpoint = (init: ts.Expression | undefined): boolean =>
   init != null &&
   ts.isCallExpression(init) &&
@@ -47,6 +60,16 @@ describe('app API routes', () => {
     )
     expect(Object.keys(found).length).toBeGreaterThan(0)
     expect(Object.entries(found).filter(([, stray]) => stray.length > 0)).toEqual([])
+  })
+
+  it('keys each route by its directory under v1', () => {
+    const v1 = join(ROOT, 'v1')
+    const found = routeFiles(v1).map(
+      (path) => [relative(v1, join(path, '..')), endpointKeys(readFileSync(path, 'utf8'))] as const,
+    )
+    expect(found.length).toBeGreaterThan(0)
+    expect(found.filter(([dir, keys]) => keys.length !== 1 || keys[0] !== dir)).toEqual([])
+    expect(found.map(([dir]) => dir).sort()).toEqual(Object.keys(V1).sort())
   })
 
   it('catches a bare handler', () => {
