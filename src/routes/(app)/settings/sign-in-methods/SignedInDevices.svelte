@@ -4,7 +4,6 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import SettingSection from '$lib/components/Setting/SettingSection.svelte'
-  import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -12,6 +11,7 @@
   import { notifyError, toaster } from '$lib/state/toast'
   import { slide } from 'svelte/transition'
   import MethodRow, { rowAction } from './MethodRow.svelte'
+  import MethodRowSkeleton from './MethodRowSkeleton.svelte'
 
   // Last on the screen: its row count is unknown until it loads, so it never pushes content down.
   const query = signedInDevices()
@@ -61,7 +61,7 @@
   <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
     <QueryState resource={devices}>
       {#snippet loading()}
-        <SkeletonRows class="p-4" count={1} />
+        <div class="skeleton-hold" aria-busy="true"><MethodRowSkeleton /></div>
       {/snippet}
       {#snippet ready(rows)}
         {#each rows as device, index (device.id)}

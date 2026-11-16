@@ -2,10 +2,9 @@ import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
 import { isContested, signedInRedirectTarget } from '$lib/auth'
 import { supabaseAuthServer } from '$lib/auth/authServer.server'
-import { issueResendToken } from '$lib/auth/contested.server'
+import { endSession, issueResendToken } from '$lib/auth/contested.server'
 import { rememberMethod } from '$lib/auth/lastMethod.server'
 import { gotrueRefusal, sendCode } from '$lib/auth/mail.server'
-import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { hasDeletionMarker } from '$lib/entities/user/provision.server'
 import { formError, normalizePassword } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -50,15 +49,14 @@ export const signIn = form(signInSchema, async ({ codeFlow, email, next, passwor
   if (error != null) invalid(await gotrueRefusal(error, 'token'))
 
   // Decided before any cookie is written; the GoTrue session ends unused.
-  const endSession = () => supabaseAdmin().auth.admin.signOut(data.session.access_token, 'local')
   // What an account deletion left: the right password signs nothing in.
   if (await hasDeletionMarker(data.user.id)) {
-    await endSession()
+    await endSession(data.session)
     invalid(formError('auth_accountDeleted'))
   }
   // Still contested means its password may be a stranger's.
   if (isContested(data.user.app_metadata)) {
-    await endSession()
+    await endSession(data.session)
     return { redirectTo: `${resolve('/auth/forgot-password')}?contested=1` }
   }
 

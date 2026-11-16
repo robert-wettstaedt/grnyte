@@ -4,7 +4,6 @@
   // A settings row: label, optional current value, and a chevron when it leads somewhere. Shared by
   // the account rows, the legal list and the region screen so all of them stay one row style.
   interface Props {
-    /** A status line under the label ("Set", "Connected"). */
     description?: string
     /** Omit for a read-only row: renders a plain row with no chevron and no hover. Read-only
      *  rather than a disabled control, because a greyed-out field reads as "temporarily

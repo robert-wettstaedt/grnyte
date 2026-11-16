@@ -1,10 +1,6 @@
-<script lang="ts" module>
-  export type LastMethod = 'apple' | 'email' | 'google'
-</script>
-
 <script lang="ts">
   import { page } from '$app/state'
-  import { authStepHref } from '$lib/auth'
+  import { authStepHref, IDENTITY_TARGETS, type LastMethod, type OAuthProvider } from '$lib/auth'
   import Banner from '$lib/components/Banner/Banner.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
@@ -14,19 +10,18 @@
   import AppleLogo from './AppleLogo.svelte'
   import GoogleLogo from './GoogleLogo.svelte'
 
-  // The choice step of sign-in and create account: Apple, Google, then email.
   interface Props {
     lastUsed: LastMethod | null
     next: null | string
     /** Never empty: a page with no provider shows its form instead. */
-    providers: ('apple' | 'google')[]
+    providers: OAuthProvider[]
     screen: 'signin' | 'signup'
   }
 
   const { lastUsed, next, providers, screen }: Props = $props()
 
   const id = $props.id()
-  const ordered = $derived((['apple', 'google'] as const).filter((provider) => providers.includes(provider)))
+  const ordered = $derived(IDENTITY_TARGETS.filter((provider) => providers.includes(provider)))
   // Create account never badges email: its button makes an account rather than signing in.
   const badged = $derived(lastUsed === 'email' && screen === 'signup' ? null : lastUsed)
   const emailHref = $derived(authStepHref(page.url, `/auth/${screen}`, true))
@@ -57,11 +52,9 @@
     google:
       'border border-[#747775] bg-white font-medium text-[#1F1F1F] [font-family:Roboto,system-ui,sans-serif] dark:border-[#8E918F] dark:bg-[#131314] dark:text-[#E3E3E3]',
   }
-  // One height, width and corner radius for all three; labels wrap for 200 % zoom.
+  // The badge sits on the top border, so a centred label never runs under it, even wrapped at 200%.
   const shape = (method: LastMethod) => [
-    'btn min-h-12 h-auto w-full gap-2 rounded-[10px] py-1.5 text-[15px] font-semibold leading-5 whitespace-normal text-balance',
-    // A badged button keeps a wrapped label clear of the pill on its trailing corner.
-    badged === method ? 'ps-3.5 pe-[5.5em]' : 'px-3.5',
+    'btn min-h-12 h-auto w-full gap-2 rounded-[10px] px-3.5 py-1.5 text-[15px] font-semibold leading-5 whitespace-normal text-balance',
     pending != null && pending !== method && 'pointer-events-none opacity-50',
   ]
 </script>
@@ -72,7 +65,7 @@
   {#if badged === method}
     <span
       id="{id}-last-used"
-      class="bg-primary-500 text-primary-contrast-500 pointer-events-none absolute end-3 top-0 -translate-y-1/2 rounded-full px-[0.6em] py-[0.15em] text-[0.6875rem] leading-tight font-semibold"
+      class="bg-primary-500 text-primary-contrast-500 pointer-events-none absolute end-3 top-0 -translate-y-1/2 rounded-full px-[0.6em] py-[0.15em] text-[0.6875rem] leading-tight font-bold ring-2 ring-[light-dark(var(--color-surface-50),var(--color-surface-950))]"
     >
       {m.auth_lastUsed()}
     </span>

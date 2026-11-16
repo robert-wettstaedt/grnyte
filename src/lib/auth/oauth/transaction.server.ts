@@ -14,9 +14,7 @@ export type OAuthIntent =
   | { kind: 'signin' }
 
 export interface OAuthTransaction {
-  /** Change 3 widens this to `'app' | 'web'`. */
   carrier: 'web'
-  /** PKCE toward the provider. */
   codeVerifier: string
   intent: OAuthIntent
   /** Validated again at the final redirect, never trusted from a URL. */
@@ -36,7 +34,6 @@ export interface TransactionCarrier {
   take(event: RequestEvent, state: null | string): Promise<null | OAuthTransaction>
 }
 
-/** What a successful provider return proves. */
 export interface VerifiedProof {
   claims: IDToken
   idToken: string

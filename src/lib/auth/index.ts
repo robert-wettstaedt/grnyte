@@ -55,8 +55,18 @@ export const REAUTH_ACTIONS = [
   'region.delete',
   'region.transfer',
 ] as const
+/** The longest `target` a re-authentication step names; the remotes and the Apple start both hold to it. */
+export const REAUTH_TARGET_MAX = 80
 /** An `identity.*` code or start names a bare provider; only `bindLinkGrant` writes `<provider>:<sub>`. */
 export const IDENTITY_TARGETS = ['apple', 'google'] as const
+export type OAuthProvider = (typeof IDENTITY_TARGETS)[number]
+export const PROVIDER_NAMES: Record<OAuthProvider, string> = { apple: 'Apple', google: 'Google' }
+/** How a browser last signed in, for the "Last used" badge. */
+export type LastMethod = 'email' | OAuthProvider
+
+/** Apple is revoked before a deletion or Apple's own removal is confirmed. */
+export const revokes = (action: ReauthAction, target: string): boolean =>
+  action === 'account.delete' || (action === 'identity.unlink' && target === 'apple')
 export type AppPermission = typeof APP_PERMISSION_ADMIN
 
 export type ReauthAction = (typeof REAUTH_ACTIONS)[number]
@@ -144,7 +154,9 @@ export function sameOriginPath(raw: string): null | string {
   } catch {
     return null
   }
-  return url.origin === REDIRECT_BASE ? `${url.pathname}${url.search}${url.hash}` : null
+  // Dot segments can collapse to `//host` (`/..//evil.com`), which a Location reads as another origin.
+  if (url.origin !== REDIRECT_BASE || url.pathname.startsWith('//')) return null
+  return `${url.pathname}${url.search}${url.hash}`
 }
 
 /** Whether `path` points at this origin, and so is safe to hand to `redirect()`. */
@@ -191,11 +203,12 @@ export function oauthReturnTarget(path: null | string | undefined, intent: null 
     case 'signin': {
       const parsed = path == null ? null : sameOriginPath(path)
       const url = parsed == null ? null : new URL(parsed, REDIRECT_BASE)
+      const screen = url == null ? undefined : SIGN_IN_SCREENS[url.pathname]
       // `form=`, so the installed app's welcome fork, shown only on a bare /auth/signin, never catches it.
-      const params = new URLSearchParams({ form: SIGN_IN_SCREENS[url?.pathname ?? ''] ?? 'signin' })
+      const params = new URLSearchParams({ form: screen ?? 'signin' })
       const next = appPath(url?.searchParams.get('next'))
-      if (url != null && SIGN_IN_SCREENS[url.pathname] != null && next != null) params.set('next', next)
-      return `/auth/${params.get('form')}?${params}`
+      if (screen != null && next != null) params.set('next', next)
+      return `/auth/${screen ?? 'signin'}?${params}`
     }
     default:
       return '/auth/signin?form=signin'

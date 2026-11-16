@@ -1,4 +1,3 @@
-/** Sealing: a value round-trips under its own info and secret, and nothing else opens it. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seal, unseal } from './seal.server'
 

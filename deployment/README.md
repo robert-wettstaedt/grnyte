@@ -211,7 +211,7 @@ was newer). Hosted projects run Supabase's own version; this pin is for self-hos
 | Public sign-up                   | `disable_signup` = false, set LAST, once the hook is confirmed active                             | `GOTRUE_DISABLE_SIGNUP=false`                                                |
 | Apple provider (ID tokens)       | `external_apple_enabled` = true, `external_apple_client_id` = `<APPLE_SERVICES_ID>` first         | `GOTRUE_EXTERNAL_APPLE_ENABLED=true`, `_CLIENT_ID` as hosted                 |
 | Google provider (ID tokens)      | `external_google_enabled` = true, `external_google_client_id` = the web client ID first           | `GOTRUE_EXTERNAL_GOOGLE_ENABLED=true`, `_CLIENT_ID` as hosted                |
-| Nonce check                      | `external_apple_skip_nonce_check` = false, `external_google_skip_nonce_check` = false             | `GOTRUE_EXTERNAL_APPLE_SKIP_NONCE_CHECK=false`, `_GOOGLE_` the same          |
+| Nonce check                      | `external_google_skip_nonce_check` = false (the API has no Apple switch)                          | `GOTRUE_EXTERNAL_APPLE_SKIP_NONCE_CHECK=false`, `_GOOGLE_` the same          |
 | Manual linking (unlink)          | `security_manual_linking_enabled` = true                                                          | `GOTRUE_SECURITY_MANUAL_LINKING_ENABLED=true`                                |
 | Identity linked/unlinked notices | `mailer_notifications_identity_linked_enabled`, `_unlinked_enabled` = true                        | `GOTRUE_MAILER_NOTIFICATIONS_IDENTITY_LINKED_ENABLED=true`, `_UNLINKED_` too |
 | Mail templates and subjects      | `push-templates.ts` after `PUBLIC_ORIGIN=https://grnyte.rocks npm run generate`                   | `GOTRUE_MAILER_TEMPLATES_*` URLs and `GOTRUE_MAILER_SUBJECTS_*`              |
@@ -266,30 +266,127 @@ or a request on another origin, is not offered. Web and the later app share the 
 - `https://<PUBLIC_ORIGIN>/auth/callback/apple` (Apple posts it, `response_mode=form_post`)
 - `https://<PUBLIC_ORIGIN>/auth/callback/google`
 
-**Apple.** Enroll in the Apple Developer Program as an Individual. Under Certificates, IDs &
-Profiles: an App ID with Sign in with Apple enabled (primary); a Services ID, whose identifier is
-`APPLE_SERVICES_ID`, with Sign in with Apple configured on that App ID, the origin's domain and the
-return URL above (add the ngrok domain and its return URL for local tests); a key with Sign in with
-Apple enabled, whose ID is `APPLE_KEY_ID` and whose downloaded `.p8` contents are
-`APPLE_PRIVATE_KEY` (Apple shows it once). `APPLE_TEAM_ID` is the membership's Team ID. The app
-mints a 5-minute client secret per exchange; GoTrue needs no Apple secret (if the hosted dashboard
-demands one to enable the provider, mint a 6-month one once and let it lapse).
+Set up in this order, because Apple enrollment and Google verification take the longest. Each
+deployed origin needs its own return URLs. The steps use the prod origin `https://grnyte.rocks`.
 
-**Apple private relay.** Under Sign in with Apple for Email Communication, register the From
-domain of `RESEND_SENDER_EMAIL` and Resend's Return-Path subdomain (the `send.` domain in Resend's
-DNS records), each passing SPF; until then mail to `@privaterelay.appleid.com` addresses bounces.
+#### 1. Apple: join the Developer Program
 
-**Google.** In a Google Cloud project: the OAuth consent screen (External, app name grnyte, support
-address, logo, the origin as authorized domain, links to `/legal/privacy` and `/legal/terms`,
-scopes `openid` and `email`), then request brand verification so the consent screen shows the name
-and logo. An OAuth client of type Web application with the Google return URL above as authorized
-redirect URI (and the ngrok one for local tests): its ID is `GOOGLE_CLIENT_ID`, its secret
-`GOOGLE_CLIENT_SECRET`.
+1. Turn on two-factor authentication for the Apple Account you will use (iPhone: Settings > your
+   name > Sign-In & Security). Its first and last name must be your legal name, or approval waits.
+2. Enroll at <https://developer.apple.com/programs/enroll/> ("Start your enrollment") or in the
+   Apple Developer app on an iPhone or Mac. Choose Individual / Sole Proprietor. Your legal name
+   becomes the seller name shown in the App Store.
+3. Accept the Program License Agreement and pay the fee (99 USD a year; checkout shows the local
+   price). Apple asks for a card in your own name that can be charged in USD.
+4. Wait for the confirmation email. If none arrives within 24 hours, contact Apple through
+   <https://developer.apple.com/contact/>.
+5. Sign in at <https://developer.apple.com/account>. Membership details shows your Team ID (10
+   characters). That is `APPLE_TEAM_ID`.
 
-**GoTrue.** The provider rows of the table above: both enabled for ID tokens, the web client first
-in each client ID list (the app's bundle IDs follow it), nonce check on, manual linking and the
-identity notices on. `npm run check:prod` asserts these and that the deployed `/auth/signin` offers
-both buttons.
+#### 2. Apple: App ID, Services ID and key
+
+All three live under Certificates, Identifiers & Profiles (<https://developer.apple.com/account/resources>).
+
+1. App ID: Identifiers > the + button > App IDs > Continue > App > Continue.
+   - Description `grnyte`. Bundle ID: Explicit, `rocks.grnyte` (the native app will use it).
+   - Under Capabilities, tick Sign in with Apple, click Configure, choose primary App ID (not
+     grouped), leave the notification endpoint empty, Save.
+   - Continue > Register.
+2. Services ID: Identifiers > + > Services IDs > Continue.
+   - Description `grnyte web`, identifier `rocks.grnyte.web`. That is `APPLE_SERVICES_ID`.
+   - Continue > Register, then open the new Services ID from the list.
+   - Tick Sign in with Apple, click Configure, primary App ID `rocks.grnyte`.
+   - Website URLs: the domain `grnyte.rocks` (no `https://`) and the return URL
+     `https://grnyte.rocks/auth/callback/apple`. Add the ngrok domain and its return URL for local
+     tests. Apple needs no verification file on the server.
+   - Done > Continue > Save.
+3. Key: Keys > the + button.
+   - Key Name `grnyte sign in`. Tick Sign in with Apple, click Configure, pick `rocks.grnyte`, Save.
+   - Continue > Confirm > Download. Apple offers the `AuthKey_<KEY_ID>.p8` file once only. Keep it
+     in the password manager.
+   - The Key ID (10 characters, also in the file name) is `APPLE_KEY_ID`.
+4. `APPLE_PRIVATE_KEY` is the `.p8` on one line with a literal `\n` between lines. The app turns
+   them back into line breaks, and `secrets:pull` skips a value with real newlines:
+
+   ```bash
+   awk 'NF {printf "%s\\n", $0}' AuthKey_<KEY_ID>.p8
+   ```
+
+The app mints a 5-minute client secret from this key per sign-in, so nothing expires on a schedule.
+
+#### 3. Apple: private relay mail
+
+People who hide their email get an `@privaterelay.appleid.com` address. Mail to it bounces until
+you register who sends it.
+
+1. Certificates, Identifiers & Profiles > Services > Sign in with Apple for Email Communication >
+   Configure.
+2. Email Sources > + > `grnyte.rocks, send.grnyte.rocks` > Next > Register. The first is the
+   From domain of `RESEND_SENDER_EMAIL`. The second is where bounces go: Resend > Domains >
+   `grnyte.rocks` lists its MX and SPF records under the name `send`.
+3. Both rows must show a passed SPF check. If one fails, fix its SPF TXT record and check again.
+
+#### 4. Google: project, branding and client
+
+In the Google Cloud console (<https://console.cloud.google.com>), signed in with the account that
+will own the app. None of this needs a billing account: skip the free trial. A refused billing
+sign-up (`OR_BACR2_59`) blocks nothing here.
+
+1. Project picker in the top bar > New project > name `grnyte` > Create, then select it.
+2. Prove you own the domain: in Search Console (<https://search.google.com/search-console>) add a
+   Domain property `grnyte.rocks` and add the TXT record it shows to DNS. Use the same account.
+3. Google Auth Platform (<https://console.cloud.google.com/auth/overview>) > Get started: app
+   name `grnyte`, your support email, Audience External, your contact email, agree > Create.
+4. Branding (<https://console.cloud.google.com/auth/branding>):
+   - Logo: square PNG, 120x120 px, under 1 MB.
+   - Authorized domains: `grnyte.rocks`. Add it before the links below, which must sit on it.
+   - Home page `https://grnyte.rocks`, privacy policy `https://grnyte.rocks/legal/privacy`, terms
+     `https://grnyte.rocks/legal/terms`. Save.
+5. Data Access (<https://console.cloud.google.com/auth/scopes>) > Add or remove scopes > tick
+   `openid` and `.../auth/userinfo.email` > Update > Save. Both are non-sensitive, so the app needs
+   no data access verification.
+6. Clients (<https://console.cloud.google.com/auth/clients>) > Create client:
+   - Application type Web application, name `grnyte web`.
+   - Authorized JavaScript origins: leave empty, the flow runs on the server.
+   - Authorized redirect URIs: `https://grnyte.rocks/auth/callback/google`, plus the ngrok one for
+     local tests.
+   - Create. Copy the client ID (`GOOGLE_CLIENT_ID`) and the secret (`GOOGLE_CLIENT_SECRET`) now:
+     Google shows the secret once. A lost one is replaced with Add secret on the client.
+   - A new or changed redirect URI takes 5 minutes to a few hours to work.
+7. Audience (<https://console.cloud.google.com/auth/audience>) > Publish app > Confirm. The status
+   becomes In production.
+8. Branding > Verify branding. Without it the consent screen shows the domain, not the name and
+   logo. The check usually takes minutes. At Ready to publish, click Publish branding within 7 days.
+
+#### 5. Store the six values
+
+Put `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, `APPLE_SERVICES_ID`, `GOOGLE_CLIENT_ID`
+and `GOOGLE_CLIENT_SECRET` into Bitwarden `grnyte-prod`, sync Vercel and redeploy
+(`deployment/SECRETS.md`, "Rotating"). `grnyte-dev` gets them only once a dev origin is registered
+as above.
+
+#### 6. Supabase: turn the providers on
+
+Hosted dashboard, Authentication > Sign In / Providers
+(<https://supabase.com/dashboard/project/_/auth/providers>):
+
+1. Apple: enable. Client IDs `rocks.grnyte.web`, the Services ID first (the native app adds
+   `rocks.grnyte` after it). Leave the OAuth secret empty: grnyte hands GoTrue only the ID token. If
+   the dashboard will not save without one, mint a 6-month secret once and let it lapse.
+2. Google: enable. Client IDs: the web client ID first. Skip nonce check off. Leave the secret
+   empty, or paste `GOOGLE_CLIENT_SECRET` if the dashboard insists.
+3. Turn on manual linking (Supabase's docs place it with the provider settings).
+4. Turn on the "Sign-in method linked" and "Sign-in method removed" security notifications
+   (Authentication > Emails).
+
+Supabase's docs name the settings in 3 and 4 but not where the toggles sit. If they moved, the
+Management API names in the table above are the ground truth.
+
+#### 7. Check it
+
+`npm run check:prod` (needs `SUPABASE_PROJECT_REF` and `SUPABASE_ACCESS_TOKEN`) asserts the provider
+rows of the table above and that the deployed `/auth/signin` offers each button. A provider with no
+client ID and off in GoTrue only warns; one half set up fails.
 
 **ngrok for local Apple.** Apple accepts only https return URLs on a registered domain, and Kit
 checks the `form_post`'s origin only in a built server. Reserve an ngrok static domain

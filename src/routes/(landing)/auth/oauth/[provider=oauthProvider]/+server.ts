@@ -1,4 +1,4 @@
-import { oauthReturnTarget, REAUTH_ACTIONS, type ReauthAction } from '$lib/auth'
+import { oauthReturnTarget, REAUTH_ACTIONS, REAUTH_TARGET_MAX, type ReauthAction } from '$lib/auth'
 import { startOAuth } from '$lib/auth/oauth/flow.server'
 import type { OAuthProvider } from '$lib/auth/oauth/providers.server'
 import { boundTarget, reauthCaller } from '$lib/auth/reauth.server'
@@ -23,8 +23,8 @@ export const POST: RequestHandler = async (event) => {
   if (field('intent') === 'confirm') {
     const action = field('action') as ReauthAction
     const sent = field('target')
-    // "Confirm with Apple" only (design decision 7).
-    if (provider !== 'apple' || !REAUTH_ACTIONS.includes(action) || sent == null) error(400)
+    if (provider !== 'apple' || !REAUTH_ACTIONS.includes(action) || sent == null || sent.length > REAUTH_TARGET_MAX)
+      error(400)
     const caller = await reauthCaller()
     const intent = { action, caller, kind: 'confirm', target: boundTarget(caller, action, sent) } as const
     return startOAuth(event, provider, intent, null, oauthReturnTarget(field('returnTo'), 'confirm'))

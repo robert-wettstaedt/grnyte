@@ -5,6 +5,7 @@ import { clearCodeTries } from '$lib/auth/codeAttempts.server'
 import { verifyCode } from '$lib/auth/codes.server'
 import { findAccount } from '$lib/auth/contested.server'
 import { gotrueRefusal, noticeAlreadyHasAccount, noticePasswordChanged } from '$lib/auth/mail.server'
+import { addEmailIdentity } from '$lib/auth/methods.server'
 import { checkPassword } from '$lib/auth/passwordPolicy.server'
 import { holdGrant, reauthCaller, spendGrant, voidReauth, voidReauthCodes } from '$lib/auth/reauth.server'
 import { requireLiveSession } from '$lib/auth/session.server'
@@ -117,6 +118,7 @@ async function changePassword(
     await voidReauthCodes(caller.authUserId)
     refuse(await gotrueRefusal(refused, 'admin/users'))
   }
+  await addEmailIdentity(caller.authUserId)
   await voidReauth(caller.authUserId)
   // The change stands either way; a failed send is logged by `sendEmail`.
   await noticePasswordChanged({ email: claims.email, id: caller.authUserId })

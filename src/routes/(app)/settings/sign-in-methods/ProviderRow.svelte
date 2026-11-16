@@ -1,57 +1,70 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { PROVIDER_NAMES, type OAuthProvider } from '$lib/auth'
   import AppleLogo from '$lib/auth/AppleLogo.svelte'
-  import ConfirmWithApple from '$lib/auth/ConfirmWithApple.svelte'
   import GoogleLogo from '$lib/auth/GoogleLogo.svelte'
   import ReauthStep from '$lib/auth/ReauthStep.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'
   import { slide } from 'svelte/transition'
   import MethodRow, { rowAction } from './MethodRow.svelte'
 
-  // One provider on the sign-in methods screen: name, status line, Add or Remove, and its inline step.
+  type ReauthStepApi = ReturnType<typeof ReauthStep>
+
   interface Props {
-    /** The account has Apple and this origin offers it: every step may confirm with Apple. */
-    appleAvailable: boolean
     /** This origin offers the provider, so an unlinked row has "Add". */
     configured: boolean
     identity: { canUnlink: boolean; linked: boolean; relinks: boolean }
-    onremove: () => void
+    /** Gets the step, so a refusal for want of a confirmation can send it back. */
+    onremove: (step: ReauthStepApi | undefined) => void
     ontoggle: () => void
     open: boolean
-    provider: 'apple' | 'google'
+    provider: OAuthProvider
     running: boolean
   }
 
-  const { appleAvailable, configured, identity, onremove, ontoggle, open, provider, running }: Props = $props()
+  const { configured, identity, onremove, ontoggle, open, provider, running }: Props = $props()
 
-  const name = $derived(provider === 'apple' ? 'Apple' : 'Google')
+  const name = $derived(PROVIDER_NAMES[provider])
   const verb = $derived(identity.linked ? 'remove' : 'add')
   const action = $derived(identity.linked ? 'identity.unlink' : 'identity.link')
   // Linked, but nothing else would sign the account in: Remove stays, disabled, with the reason.
   const stuck = $derived(identity.linked && !identity.canUnlink)
   let confirmed = $state(false)
+  let step = $state<ReauthStepApi>()
+  // "Add" leaves for the provider; back through the bfcache the page is live again.
+  let leaving = $state(false)
 </script>
 
-{#snippet withApple()}
-  <ConfirmWithApple
-    {action}
-    target={provider}
-    returnTo="/settings/sign-in-methods?step={verb}-{provider}"
-    variant={verb === 'remove' && provider === 'apple' ? 'filled' : 'plain'}
-  />
-{/snippet}
-
-<!-- The confirmed step's own action. -->
 {#snippet run()}
   {#if verb === 'remove'}
-    <button type="button" class="btn preset-filled-error-500 h-12 w-full" disabled={running} onclick={onremove}>
+    <button
+      type="button"
+      class="btn preset-filled-error-500 h-12 w-full rounded-[10px] text-[15px] font-semibold"
+      disabled={running}
+      onclick={() => onremove(step)}
+    >
       {m.settings_signInMethodsRemoveProvider({ provider: name })}
     </button>
   {:else}
-    <form method="post" action="/auth/oauth/{provider}">
+    <form
+      method="post"
+      action="/auth/oauth/{provider}"
+      onsubmit={(event) => {
+        if (leaving) return event.preventDefault()
+        leaving = true
+      }}
+    >
       <input type="hidden" name="intent" value="link" />
-      <button type="submit" class="btn preset-filled-primary-500 h-12 w-full">
+      <button
+        type="submit"
+        class="btn preset-filled-primary-500 h-12 w-full gap-2 rounded-[10px] text-[15px] font-semibold"
+        disabled={leaving}
+      >
+        {#if leaving}
+          <LoadingIndicator size="18px" />
+        {/if}
         {m.settings_signInMethodsAddProvider({ provider: name })}
       </button>
     </form>
@@ -80,6 +93,8 @@
   {/if}
 {/snippet}
 
+<svelte:window onpageshow={(event) => event.persisted && (leaving = false)} />
+
 <div data-provider={provider}>
   <MethodRow
     action={toggle}
@@ -98,6 +113,7 @@
     {#if open}
       <div in:slide={{ duration: motion(150) }}>
         <ReauthStep
+          bind:this={step}
           bind:confirmed
           {action}
           email={page.data.session?.user.email ?? ''}
@@ -107,7 +123,7 @@
             ? m.settings_signInMethodsConfirmRemove({ provider: name })
             : m.settings_signInMethodsConfirmAdd({ provider: name })}
           note={identity.linked && identity.relinks ? relinks : undefined}
-          alternatives={appleAvailable ? withApple : undefined}
+          returnTo="/settings/sign-in-methods?step={verb}-{provider}"
           next={verb === 'remove'
             ? m.settings_signInMethodsNowRemove({ provider: name })
             : m.settings_signInMethodsNowAdd({ provider: name })}

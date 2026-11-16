@@ -1,15 +1,6 @@
 <script lang="ts" module>
   import { serverMessage } from '$lib/forms/issue'
   import { formError } from '$lib/forms/schemas'
-  import { getContext, setContext } from 'svelte'
-
-  /** An alternative that leaves the page ("Confirm with Apple") marks the step, so "Send code" holds still. */
-  export interface ReauthLeaving {
-    leaving: boolean
-  }
-  const LEAVING = Symbol('reauth-leaving')
-  // fallow-ignore-next-line unprovided-inject -- provided by `setContext(LEAVING, ...)` in the instance script below
-  export const reauthLeaving = (): ReauthLeaving | undefined => getContext<ReauthLeaving | undefined>(LEAVING)
 
   /** Whether a screen's command was refused for want of a confirmation: the screen then calls `require()`. */
   export const isReauthRequired = (cause: unknown): boolean => serverMessage(cause) === formError('auth_reauthRequired')
@@ -40,15 +31,15 @@
   import { leaveIfSessionEnded } from '$lib/state/sessionEnded'
   import { onMount, type Snippet } from 'svelte'
   import { fade, scale, slide } from 'svelte/transition'
+  import { appleConfirmation } from './appleConfirmation.svelte'
   import CodeEntry from './CodeEntry.svelte'
+  import ConfirmWithApple from './ConfirmWithApple.svelte'
   import { confirmReauthCode, reauthGrantStatus, requestReauthCode } from './reauth.remote'
 
   // Confirms only: the screen reveals its fields on `confirmed` and runs its own action on submit.
   // Callers key it on action and target, so a new target starts over.
   interface Props {
     action: ReauthAction
-    /** "Confirm with Apple" and the like, between the address line and "Send code". Present means one exists. */
-    alternatives?: Snippet
     /** Under the "Confirmed" lines: the screen's own action, when it sits inside the step. */
     children?: Snippet
     confirmed?: boolean
@@ -64,6 +55,8 @@
     oncancel?: () => void
     /** False until the screen has what decides it, so "Send code" never shows and then vanishes. */
     ready?: boolean
+    /** Where Apple's return lands; the current path and query by default. */
+    returnTo?: string
     target: string
     /** "Confirm it's you" unless the action names itself. */
     title?: string
@@ -71,7 +64,6 @@
 
   let {
     action,
-    alternatives,
     children,
     // eslint-disable-next-line no-useless-assignment -- `confirmed` is written for the parent, which reads the binding
     confirmed = $bindable(),
@@ -81,6 +73,7 @@
     note,
     oncancel,
     ready = true,
+    returnTo,
     target,
     title = m.auth_reauthTitle(),
   }: Props = $props()
@@ -92,11 +85,12 @@
   let fresh = $state(false)
   let requesting = $state(false)
   let error = $state<null | string>(null)
-  const leaving: ReauthLeaving = $state({ leaving: false })
-  setContext(LEAVING, leaving)
+  // "Confirm with Apple" leaves the page: "Send code" holds still meanwhile.
+  let leaving = $state(false)
+  const apple = appleConfirmation()
 
   const issues = $derived(error == null ? [] : [{ message: error, path: [] }])
-  const view = $derived(phase === 'peeking' || !ready ? 'waiting' : phase)
+  const view = $derived(phase === 'peeking' || !ready || !apple.settled ? 'waiting' : phase)
 
   onMount(() => {
     // Before the peek answers: a reused page must never show the previous target confirmed.
@@ -153,9 +147,9 @@
   export function require() {
     confirmed = false
     fresh = true
-    // With an alternative the person picks; otherwise the code is the only way, so it goes at once.
-    if (alternatives == null) void request()
-    else phase = 'idle'
+    // With Apple the person picks; otherwise the code is the only way, so it goes at once.
+    if (apple.available) phase = 'idle'
+    else void request()
   }
 
   const body = 'text-surface-600-400 text-[14.5px] leading-normal'
@@ -165,8 +159,27 @@
       : 'card border-surface-200-800 border bg-[light-dark(var(--color-surface-50),var(--color-surface-900))] p-4',
   )
   const cancellable = $derived(oncancel != null && view !== 'waiting')
-  const holding = $derived(requesting || leaving.leaving)
+  const holding = $derived(requesting || leaving)
 </script>
+
+{#snippet choice()}
+  <p class={body}>{m.auth_reauthHint({ email })}</p>
+  {#if apple.available}
+    <ConfirmWithApple {action} bind:pending={leaving} {returnTo} {target} />
+  {/if}
+  <button
+    type="button"
+    class="btn preset-outlined-surface-300-700 h-12 w-full rounded-[10px] text-[15px] font-semibold"
+    disabled={holding}
+    onclick={request}
+  >
+    {#if requesting}
+      <LoadingIndicator size="18px" />
+    {/if}
+    {m.auth_reauthSendCode()}
+  </button>
+  <FormHint {issues} />
+{/snippet}
 
 <!-- The skeleton matches the "Send code" card, so nothing below moves when the peek answers. -->
 <div class={['flex flex-col gap-3', frame]} data-reauth-step>
@@ -211,20 +224,7 @@
         />
       </div>
     {:else}
-      <p class={body}>{m.auth_reauthHint({ email })}</p>
-      {@render alternatives?.()}
-      <button
-        type="button"
-        class="btn preset-outlined-surface-300-700 h-12 w-full rounded-[10px] text-[15px] font-semibold"
-        disabled={holding}
-        onclick={request}
-      >
-        {#if requesting}
-          <LoadingIndicator size="18px" />
-        {/if}
-        {m.auth_reauthSendCode()}
-      </button>
-      <FormHint {issues} />
+      {@render choice()}
     {/if}
   {/if}
   {#if cancellable}

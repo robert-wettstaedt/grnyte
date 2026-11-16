@@ -1,5 +1,5 @@
 import { command, getRequestEvent, query } from '$app/server'
-import { REAUTH_ACTIONS } from '$lib/auth'
+import { REAUTH_ACTIONS, REAUTH_TARGET_MAX } from '$lib/auth'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { userSettings } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
@@ -13,7 +13,7 @@ import { boundTarget, hasGrant, issueReauthCode, reauthCaller, verifyReauthCode 
 
 const subject = z.object({
   action: z.enum(REAUTH_ACTIONS),
-  target: z.string().check(z.minLength(1), z.maxLength(80)),
+  target: z.string().check(z.minLength(1), z.maxLength(REAUTH_TARGET_MAX)),
 })
 
 export const requestReauthCode = command(subject, async ({ action, target: sent }) => {

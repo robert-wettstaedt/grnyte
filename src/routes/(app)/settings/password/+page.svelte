@@ -4,7 +4,6 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { appleConfirmation } from '$lib/auth/appleConfirmation.svelte'
-  import ConfirmWithApple from '$lib/auth/ConfirmWithApple.svelte'
   import ReauthStep, { withReauth } from '$lib/auth/ReauthStep.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'
@@ -43,10 +42,6 @@
   <title>{title} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-{#snippet withApple()}
-  <ConfirmWithApple action="password.change" target="self" />
-{/snippet}
-
 <Form
   {store}
   {submit}
@@ -65,8 +60,6 @@
     action="password.change"
     email={page.data.session?.user.email ?? ''}
     target="self"
-    ready={apple.settled}
-    alternatives={apple.available ? withApple : undefined}
   />
 
   {#if confirmed}

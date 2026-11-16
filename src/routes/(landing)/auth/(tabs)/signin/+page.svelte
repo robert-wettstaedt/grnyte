@@ -36,7 +36,6 @@
 
   // Leaving a step must not leave a typed password behind, and an invited address always shows.
   const onswap = () => signIn.fields.set(invited == null ? {} : { email: invited })
-  const failed = $derived((signIn.fields.allIssues() ?? []).some((issue) => issue.path.length === 0))
 
   // `replaceUrl`, so a signed-in reader has no sign-in page behind them to walk back into.
   //
@@ -121,7 +120,7 @@
     <AuthSteps lastUsed={page.data.lastUsed} {onswap} providers={page.data.providers} screen="signin">
       <form {...signIn.enhance(submitAndLeave)} class="flex flex-col gap-4">
         <FormError form={signIn}>
-          {#if failed && page.data.providers.length > 0}
+          {#if page.data.providers.length > 0}
             <p class="text-surface-600-400">
               {m.auth_providerHint()}
               <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- `authStepHref`: a fixed auth path plus a query -->

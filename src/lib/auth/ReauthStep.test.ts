@@ -3,10 +3,11 @@ import { settle } from '$lib/forms/screen.fixture'
 import { wipeAndLeave } from '$lib/state/wipe'
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { enterCode, reauthRemote as remote, resetReauthRemote } from './reauth.fixture'
+import { enterCode, methods, reauthRemote as remote, resetReauthRemote } from './reauth.fixture'
 import Fixture from './ReauthStepFixture.svelte'
 
 vi.mock('./reauth.remote', async () => (await import('./reauth.fixture')).reauthRemote)
+vi.mock('./identities.remote', async () => (await import('./reauth.fixture')).identitiesRemote)
 vi.mock('$lib/state/wipe', () => ({ wipeAndLeave: vi.fn(async () => {}) }))
 
 let onformsubmit = vi.fn()
@@ -19,6 +20,13 @@ const mount = (props: Record<string, unknown> = {}) =>
   render(Fixture, { props: { action: 'region.delete', onformsubmit, target: '1', ...props } })
 const step = () => document.querySelector('[data-reauth-step]')!
 const confirmed = () => screen.getByTestId('confirmed').textContent
+const requireOnConfirmed = async () => {
+  remote.reauthGrantStatus.mockImplementation(async () => true)
+  mount()
+  await settle()
+  await fireEvent.click(screen.getByRole('button', { name: 'require' }))
+  await settle()
+}
 const sendCode = () => screen.queryByRole('button', { name: 'Send code' })
 
 it('holds a skeleton for 250 ms while the peek is pending', async () => {
@@ -67,11 +75,7 @@ it('sets confirmed on a correct code and runs no action', async () => {
 })
 
 it('require() unconfirms, requests at once, and confirms again after the code without running anything', async () => {
-  remote.reauthGrantStatus.mockImplementation(async () => true)
-  mount()
-  await settle()
-  await fireEvent.click(screen.getByRole('button', { name: 'require' }))
-  await settle()
+  await requireOnConfirmed()
 
   expect(confirmed()).toBe('false')
   expect(remote.requestReauthCode).toHaveBeenCalledOnce()
@@ -145,6 +149,7 @@ describe('with "Confirm with Apple" as the alternative', () => {
   const apple = () => screen.queryByRole('button', { name: 'Confirm with Apple' })
   let submitted: HTMLFormElement[] = []
   beforeEach(() => {
+    methods.apple = true
     submitted = []
     vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(function (this: HTMLFormElement) {
       submitted.push(this)
@@ -155,7 +160,7 @@ describe('with "Confirm with Apple" as the alternative', () => {
     (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
 
   it('shows it under the address line and above "Send code", plain with no "or", and mails nothing', async () => {
-    mount({ apple: true })
+    mount()
     await settle()
 
     const hint = screen.getByText('We’ll email a 6-digit code to sam@posteo.de.')
@@ -167,7 +172,7 @@ describe('with "Confirm with Apple" as the alternative', () => {
   })
 
   it('filled leads with its note and an "or" before "Send code"', async () => {
-    mount({ apple: true, appleVariant: 'filled' })
+    mount({ action: 'account.delete', target: 'self' })
     await settle()
 
     const note = screen.getByText('This also disconnects grnyte from your Apple ID.')
@@ -178,7 +183,7 @@ describe('with "Confirm with Apple" as the alternative', () => {
   })
 
   it('leaves Apple out of code entry', async () => {
-    mount({ apple: true })
+    mount()
     await settle()
     await fireEvent.click(sendCode()!)
     await settle()
@@ -188,11 +193,7 @@ describe('with "Confirm with Apple" as the alternative', () => {
   })
 
   it('require() goes back to the choice and mails nothing until "Send code", then confirms without running anything', async () => {
-    remote.reauthGrantStatus.mockImplementation(async () => true)
-    mount({ apple: true })
-    await settle()
-    await fireEvent.click(screen.getByRole('button', { name: 'require' }))
-    await settle()
+    await requireOnConfirmed()
 
     expect(confirmed()).toBe('false')
     expect(apple()).toBeTruthy()
@@ -206,7 +207,7 @@ describe('with "Confirm with Apple" as the alternative', () => {
   })
 
   it('posts a form of its own to the Apple start, once, and holds both buttons', async () => {
-    mount({ apple: true })
+    mount()
     await settle()
     await fireEvent.click(apple()!)
     await fireEvent.click(apple()!)

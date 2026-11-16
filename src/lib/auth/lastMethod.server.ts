@@ -1,13 +1,10 @@
+import type { LastMethod } from '$lib/auth'
 import type { Cookies } from '@sveltejs/kit'
 
-/** How this browser last signed in, for the "Last used" badge (design decision 9). */
-export type LastMethod = (typeof METHODS)[number]
-
 const COOKIE = 'grnyte-last-method'
-const METHODS = ['apple', 'email', 'google'] as const
+const METHODS: readonly LastMethod[] = ['apple', 'email', 'google']
 const MAX_AGE_S = 400 * 24 * 60 * 60
 
-/** Only the three values read back; anything else is no badge. */
 export function lastMethod(cookies: Pick<Cookies, 'get'>): LastMethod | null {
   const value = cookies.get(COOKIE)
   return METHODS.find((method) => method === value) ?? null

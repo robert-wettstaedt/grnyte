@@ -1,15 +1,13 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { authStepHref } from '$lib/auth'
-  import type { OAuthProvider } from '$lib/auth/oauth/providers.server'
+  import { authStepHref, type LastMethod, type OAuthProvider } from '$lib/auth'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'
   import { tick, type Snippet } from 'svelte'
   import { fade } from 'svelte/transition'
-  import ProviderBlock, { type LastMethod } from './ProviderBlock.svelte'
+  import ProviderBlock from './ProviderBlock.svelte'
 
-  // Sign-in and create account: the choice, or the email step (design decision 8). The URL decides.
   interface Props {
     /** The email step: the screen's form. */
     children: Snippet

@@ -160,6 +160,23 @@ registerRoute(
   new StaleWhileRevalidate({ cacheName: OFFLINE_CACHE }),
 )
 
+/** A provider start or return reached offline: the shell at that URL would render a 404. */
+async function offlineAuth(pathname: string, copy: Request): Promise<Response> {
+  const error = new URL('/auth/error?reason=offline', self.location.origin)
+  // Only a start (a POST form) knows where "Back" goes; the callback URL carries no intent.
+  try {
+    if (pathname.startsWith('/auth/oauth/')) {
+      const form = await copy.formData()
+      error.searchParams.set('intent', String(form.get('intent')))
+      // The error page reads `from` through `oauthReturnTarget`, which sanitises it.
+      error.searchParams.set('from', String(form.get('returnTo') || ''))
+    }
+  } catch (cause) {
+    console.warn('[sw] offline start body unreadable:', cause)
+  }
+  return Response.redirect(error.href, 303)
+}
+
 /**
  * Navigations are network-first (so online visitors get fresh SSR), falling back to the cached
  * shell when offline.
@@ -179,12 +196,14 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // The fetch below consumes the original body, which a start's intent and return path ride in.
+  const copy = event.request.clone()
+
   event.respondWith(
     fetch(event.request).catch(async () => {
-      // A provider's return reached offline: the shell at the callback URL would render a 404.
       const { pathname } = new URL(event.request.url)
       if (pathname.startsWith('/auth/callback/') || pathname.startsWith('/auth/oauth/')) {
-        return Response.redirect(new URL('/auth/error?reason=offline', self.location.origin).href, 303)
+        return offlineAuth(pathname, copy)
       }
       // By name, out of the precache, with no second copy behind it. A bare `caches.match` was
       // scanning every cache in creation order and answering from whichever held the shell first,

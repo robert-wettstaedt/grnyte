@@ -1,4 +1,3 @@
-/** The web carrier's transaction cookie: sealed, Lax, ten minutes, single use. */
 import { describe, expect, it } from 'vitest'
 import { cookieJar } from './cookieJar.fixture'
 import { takeWebTransaction, writeWebTransaction, type OAuthTransaction } from './transaction.server'

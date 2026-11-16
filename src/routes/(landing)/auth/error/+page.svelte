@@ -78,7 +78,6 @@
   <title>{title} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<!-- The board spaces this page wider than the forms: 56px under the logo, 40px above the footer. -->
 <div class="mt-6.5 mb-4.5 flex flex-col items-center text-center min-[860px]:mt-0">
   <div
     class="bg-primary-500/16 text-primary-600-400 flex size-19 items-center justify-center rounded-[22px]"
