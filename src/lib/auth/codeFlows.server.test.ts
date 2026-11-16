@@ -14,10 +14,9 @@ import { confirmEmailChangeCode as confirmEmailChangeBody } from '../../routes/(
 import { signInUnconfirmed } from '../../routes/(landing)/auth/(tabs)/signin/signin.server'
 import { confirmSignupCode, resendSignupCode, signUp } from '../../routes/(landing)/auth/(tabs)/signup/signup.remote'
 import { confirmResetCode, forgotPassword } from '../../routes/(landing)/auth/forgot-password/forgot-password.remote'
-import { gotrueReachable, publicClient } from './gotrue.fixture'
+import { codeFor, gotrueReachable, mailCount, publicClient } from './gotrue.fixture'
 import { setNewPassword } from './password.remote'
 
-const INBUCKET = 'http://127.0.0.1:19010/api/v1/mailbox'
 const STRANGER = 'stranger-password-1'
 const OWNER = 'owner-password-2'
 const created: string[] = []
@@ -27,18 +26,6 @@ const address = (label: string) => {
   created.push(`${box}@example.test`)
   return `${box}@example.test`
 }
-
-/** The newest code mailed to `email`, once more than `seen` mails arrived. */
-async function codeFor(email: string, seen = 0): Promise<string> {
-  for (let i = 0; i < 40; i++) {
-    const mails = (await (await fetch(`${INBUCKET}/${email.split('@')[0]}`)).json()) as { subject: string }[]
-    if (mails.length > seen) return /^(\d{8}) /.exec(mails.at(-1)!.subject)![1]
-    await new Promise((resolve) => setTimeout(resolve, 250))
-  }
-  throw new Error(`no code mailed to ${email}`)
-}
-const mailCount = async (email: string) =>
-  ((await (await fetch(`${INBUCKET}/${email.split('@')[0]}`)).json()) as unknown[]).length
 
 const solved = async () => (await solvedProofOfWork()).encoded
 const commandRefusalOf = (message: string): never => {
@@ -69,7 +56,9 @@ async function setPasswordAs(client: SupabaseClient, password: string) {
   if (!verified.ok) throw new Error(`session did not verify: ${verified.reason}`)
   return {
     amr: verified.claims.amr,
-    run: withLocals({ claims: verified.claims, supabase: client }, () => setNewPassword({ password })),
+    run: withLocals({ claims: verified.claims, supabase: client, verifiedToken: verified.token }, () =>
+      setNewPassword({ password }),
+    ),
   }
 }
 

@@ -23,6 +23,7 @@ describe('Rate Limiting Middleware', () => {
   const mockEvent = (ip: string, pathname = '/'): RequestEvent =>
     ({
       getClientAddress: () => ip,
+      request: new Request(`https://grnyte.rocks${pathname}`),
       setHeaders: vi.fn(),
       url: new URL(`https://grnyte.rocks${pathname}`),
     }) as unknown as RequestEvent
@@ -152,4 +153,21 @@ describe('Rate Limiting Middleware', () => {
   // `max - 1` header, all of which the case above already covers, so it tested the reset it
   // shared a window with rather than the cleanup in its name. Pinning the real thing would mean
   // exporting `store` purely for the test, which buys less than it costs.
+
+  it('answers the app API over its limit in its JSON error shape, and everything else as before', async () => {
+    const overLimit = async (ip: string, pathname: string) => {
+      const event = mockEvent(ip, pathname)
+      await Promise.all(Array.from({ length: RATE_LIMIT.max }, () => rateLimit({ event, resolve: mockResolve })))
+      return rateLimit({ event, resolve: mockResolve })
+    }
+
+    const app = await overLimit('10.0.9.1', '/api/app/v1/profile')
+    expect(app.status).toBe(429)
+    expect(app.headers.get('cache-control')).toBe('no-store')
+    expect(await app.json()).toEqual({ error: { code: 'auth_rateLimited' } })
+
+    const web = await overLimit('10.0.9.2', '/settings')
+    expect(web.status).toBe(429)
+    expect(await web.text()).toBe('Too Many Requests')
+  })
 })

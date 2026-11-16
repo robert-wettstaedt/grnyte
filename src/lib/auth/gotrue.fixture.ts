@@ -76,3 +76,15 @@ export const mailSubjects = async (email: string): Promise<string[]> =>
   ((await (await fetch(`${MAILBOX}/${email.split('@')[0]}`)).json()) as { subject: string }[]).map(
     (mail) => mail.subject,
   )
+
+/** The newest code mailed to `email`, once more than `seen` mails arrived. */
+export async function codeFor(email: string, seen = 0): Promise<string> {
+  for (let i = 0; i < 40; i++) {
+    const mails = (await (await fetch(`${MAILBOX}/${email.split('@')[0]}`)).json()) as { subject: string }[]
+    if (mails.length > seen) return /^(\d{8}) /.exec(mails.at(-1)!.subject)![1]
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  throw new Error(`no code mailed to ${email}`)
+}
+export const mailCount = async (email: string) =>
+  ((await (await fetch(`${MAILBOX}/${email.split('@')[0]}`)).json()) as unknown[]).length

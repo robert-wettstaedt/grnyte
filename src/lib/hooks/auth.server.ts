@@ -2,6 +2,7 @@ import { building } from '$app/environment'
 import type { Pathname } from '$app/types'
 import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { AUTH_PATH, signedInRedirectTarget } from '$lib/auth'
+import { bearerSession } from '$lib/auth/app/bearer.server'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
@@ -10,8 +11,17 @@ import { acceptPath, REGION_CREATE_PATH, REGIONLESS_PATHS } from '$lib/entities/
 import { readRegionSettings } from '$lib/entities/region/settings'
 import { hasDeletionMarker } from '$lib/entities/user/provision.server'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { error, redirect, type Handle } from '@sveltejs/kit'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+
+/** The profile and permissions of a verified caller: one pinned transaction, so both reads share a connection. */
+export async function getPageState(authUserId: string): Promise<App.SafeSession> {
+  return pinnedTx(async (tx) => {
+    const [user, permissions] = await Promise.all([loadSessionUser(tx, authUserId), read(tx, authUserId)])
+    return { ...permissions, user }
+  })
+}
 
 /** Takes no handle, because `pinnedTx` opens its own. A caller that passed an RLS `tx` would have
  *  its `search_path` rewritten for everything after this call. */
@@ -125,18 +135,16 @@ export const supabase: Handle = async ({ event, resolve }) => {
   // is the placeholder `foobar`. `rateLimit` bails on the same condition for the same reason.
   // A zero-cache callback too: building the client starts a session load in the background, and with an
   // expired forwarded cookie its refresh writes that cookie after the response, which crashes the server.
-  if (building || isHeaderAuthenticated(event.url.pathname)) {
+  if (building || isHeaderAuthenticated(event)) {
     Object.assign(event.locals, anonymous(), { backendUnavailable: false })
+    if (isAppApi(event)) {
+      // Acts as nobody: a call as the person goes through `supabaseAuthServerAs` (design decision 2).
+      event.locals.supabase = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
+        auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false },
+      }) as unknown as App.Locals['supabase']
+      event.locals.safeGetSession = () => bearerSession(event.request, getPageState)
+    }
     return resolve(event)
-  }
-
-  async function getPageState(authUserId: string): Promise<App.SafeSession> {
-    // One pinned transaction for both, so the profile and the permission reads share a
-    // connection. This runs on every SSR request.
-    return pinnedTx(async (tx) => {
-      const [user, permissions] = await Promise.all([loadSessionUser(tx, authUserId), read(tx, authUserId)])
-      return { ...permissions, user }
-    })
   }
 
   // `setHeaders` throws on a repeat of the same key, and `setAll` can fire more than once.
@@ -335,9 +343,14 @@ export const ZERO_API_PREFIX = '/api/zero/'
 /** The installed app's API: Bearer only. Cookie-blind, which is what makes its cross-site exemption safe. */
 export const APP_API_PREFIX = '/api/app/'
 
+/** On `request.url`: Kit rewrites `event.url` for a remote call from its `x-sveltekit-pathname`. */
+const requestPath = (event: { request: Request }) => new URL(event.request.url).pathname
+
+const isAppApi = (event: { request: Request }) => requestPath(event).startsWith(APP_API_PREFIX)
+
 /** Surfaces that authenticate off their own header, so no hook reads or refreshes a cookie session. */
-const isHeaderAuthenticated = (pathname: string) =>
-  pathname.startsWith(ZERO_API_PREFIX) || pathname.startsWith(APP_API_PREFIX)
+const isHeaderAuthenticated = (event: { request: Request }) =>
+  requestPath(event).startsWith(ZERO_API_PREFIX) || isAppApi(event)
 
 export const authGuard: Handle = async ({ event, resolve }) => {
   // Nothing to guard while prerendering, and `safeGetSession` is not there to call: the hook above
@@ -348,7 +361,22 @@ export const authGuard: Handle = async ({ event, resolve }) => {
 
   // The Zero endpoints verify their own Authorization header; loading a session here could rotate
   // the refresh token onto a response the browser never sees. An OAuth callback loads it in its carrier.
-  if (isHeaderAuthenticated(event.url.pathname) || event.url.pathname.startsWith(OAUTH_CALLBACK_PREFIX)) {
+  // The app API's only session source is its Bearer, never a cookie: what makes its cross-site exemption safe.
+  if (isAppApi(event)) {
+    const { backendUnavailable, claims, user, userPermissions, userRegions, userRole, verifiedToken } =
+      await event.locals.safeGetSession()
+    Object.assign(event.locals, {
+      backendUnavailable,
+      claims,
+      user,
+      userPermissions,
+      userRegions,
+      userRole,
+      verifiedToken,
+    })
+    return resolve(event)
+  }
+  if (isHeaderAuthenticated(event) || event.url.pathname.startsWith(OAUTH_CALLBACK_PREFIX)) {
     Object.assign(event.locals, anonymous(), { backendUnavailable: false })
     return resolve(event)
   }

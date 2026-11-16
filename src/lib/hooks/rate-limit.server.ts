@@ -1,5 +1,6 @@
 import { building } from '$app/environment'
-import { ZERO_API_PREFIX } from '$lib/hooks/auth.server'
+import { APP_ERROR_CODES, appError } from '$lib/auth/app/v1'
+import { APP_API_PREFIX, ZERO_API_PREFIX } from '$lib/hooks/auth.server'
 import type { Handle } from '@sveltejs/kit'
 
 export const RATE_LIMIT = {
@@ -80,6 +81,10 @@ export const rateLimit: Handle = async ({ event, resolve }) => {
   })
 
   if (store[ip].count > max) {
+    // The app reads every refusal as JSON; matched on `request.url`, which a remote call cannot rewrite.
+    if (new URL(event.request.url).pathname.startsWith(APP_API_PREFIX)) {
+      return appError(429, { code: APP_ERROR_CODES.rateLimited }, { 'Retry-After': reset.toString() })
+    }
     return new Response('Too Many Requests', {
       headers: {
         'Retry-After': reset.toString(),

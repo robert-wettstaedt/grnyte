@@ -48,8 +48,54 @@ export async function asRequest<T>(
   authUserId: string,
   fn: () => Promise<T> | T,
   supabase?: unknown,
-  { session: withSession = true }: { session?: boolean } = {},
+  options: { session?: boolean } = {},
 ): Promise<T> {
+  return inRequestStore(await requestLocals(authUserId, supabase, options), fn)
+}
+
+/**
+ * Invokes a `form` remote function with `data`.
+ *
+ * A `command` is callable directly; a form is not, because the thing the module exports is the
+ * object a `<form>` binds to (`{ method, action }`) and the handler hangs off its internal `__`.
+ * Kit's own dispatcher calls `__.fn(data, meta, form_data)`, and `meta.validate_only` is the only
+ * field the wrapper reads.
+ *
+ * This is internal Kit API with no compatibility guarantee, which is why it lives behind one helper:
+ * a Kit upgrade that moves it breaks this file, not every test that drives a form.
+ */
+export function callForm<T>(form: unknown, data: Record<string, unknown>): Promise<T> {
+  const internal = (form as { __?: { fn?: (...args: unknown[]) => Promise<T> } }).__
+  if (typeof internal?.fn !== 'function') {
+    throw new Error('not a form remote function, or Kit moved its internals')
+  }
+
+  return internal.fn(data, { validate_only: false }, new FormData())
+}
+
+/** A live `auth.sessions` row for `authUserId`, as GoTrue writes at sign-in; its id. */
+export async function newSession(authUserId: string): Promise<string> {
+  const [row] = await db.execute<{ id: string }>(
+    sql`insert into auth.sessions (user_id) values (${authUserId}) returning id`,
+  )
+  return row.id
+}
+
+/**
+ * Where a `callForm` submit sends the reader: the handler's `redirectTo`, which reaches the client in
+ * Kit's result envelope, not as a 303. `undefined` for a refusal, which resolves with issues instead.
+ */
+export async function redirectOf(run: () => Promise<unknown>): Promise<string | undefined> {
+  const output = (await run()) as undefined | { result?: { redirectTo?: string } }
+  return output?.result?.redirectTo
+}
+
+/** The locals a signed-in request of `authUserId` carries, whichever transport (the app API passes them to `appCall`). */
+export async function requestLocals(
+  authUserId: string,
+  supabase?: unknown,
+  { session: withSession = true }: { session?: boolean } = {},
+) {
   // `getUserPermissions` deliberately returns `user: undefined`, so the row is loaded alongside it
   // the way the `supabase` handle does. Without it every handler 401s on `user == null`.
   const [permissions, user, [authUser]] = await Promise.all([
@@ -95,45 +141,7 @@ export async function asRequest<T>(
         },
       ),
   }
-
-  return inRequestStore(locals, fn)
-}
-
-/**
- * Invokes a `form` remote function with `data`.
- *
- * A `command` is callable directly; a form is not, because the thing the module exports is the
- * object a `<form>` binds to (`{ method, action }`) and the handler hangs off its internal `__`.
- * Kit's own dispatcher calls `__.fn(data, meta, form_data)`, and `meta.validate_only` is the only
- * field the wrapper reads.
- *
- * This is internal Kit API with no compatibility guarantee, which is why it lives behind one helper:
- * a Kit upgrade that moves it breaks this file, not every test that drives a form.
- */
-export function callForm<T>(form: unknown, data: Record<string, unknown>): Promise<T> {
-  const internal = (form as { __?: { fn?: (...args: unknown[]) => Promise<T> } }).__
-  if (typeof internal?.fn !== 'function') {
-    throw new Error('not a form remote function, or Kit moved its internals')
-  }
-
-  return internal.fn(data, { validate_only: false }, new FormData())
-}
-
-/** A live `auth.sessions` row for `authUserId`, as GoTrue writes at sign-in; its id. */
-export async function newSession(authUserId: string): Promise<string> {
-  const [row] = await db.execute<{ id: string }>(
-    sql`insert into auth.sessions (user_id) values (${authUserId}) returning id`,
-  )
-  return row.id
-}
-
-/**
- * Where a `callForm` submit sends the reader: the handler's `redirectTo`, which reaches the client in
- * Kit's result envelope, not as a 303. `undefined` for a refusal, which resolves with issues instead.
- */
-export async function redirectOf(run: () => Promise<unknown>): Promise<string | undefined> {
-  const output = (await run()) as undefined | { result?: { redirectTo?: string } }
-  return output?.result?.redirectTo
+  return locals
 }
 
 /**
