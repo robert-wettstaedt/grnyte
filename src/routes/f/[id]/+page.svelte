@@ -28,7 +28,7 @@
   import { m } from '$lib/paraglide/messages'
   import { provideGlobalState, staticGlobalState } from '$lib/state/global.svelte'
   import { exit } from '$lib/state/navigation.svelte'
-  import { notifyError, toaster } from '$lib/state/toast'
+  import { notifyError, toaster } from '$lib/state/toast/toast'
   import { onDestroy, untrack } from 'svelte'
 
   const { data } = $props()

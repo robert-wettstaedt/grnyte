@@ -5,7 +5,7 @@
   import Logo from '$lib/assets/logo.svg'
   import UpdateBadge from '$lib/components/UpdateBadge/UpdateBadge.svelte'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { applyUpdateOnClick } from '$lib/state/updateReady.svelte'
+  import { applyUpdateOnClick } from '$lib/state/pwa/updateReady.svelte'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
   import { isNavItemActive, navItems } from './items'
   import NavIcon from './NavIcon.svelte'

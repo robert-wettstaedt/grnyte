@@ -17,7 +17,7 @@
   import { m } from '$lib/paraglide/messages'
   import { createCopyButton } from '$lib/state/clipboard.svelte'
   import { motion } from '$lib/state/motion.svelte'
-  import { notifyError } from '$lib/state/toast'
+  import { notifyError } from '$lib/state/toast/toast'
   import { videoView } from '$lib/videos/view.svelte'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
   import { slide } from 'svelte/transition'

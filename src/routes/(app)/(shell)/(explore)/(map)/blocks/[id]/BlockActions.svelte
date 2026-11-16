@@ -25,7 +25,7 @@
   import { canEditTopo } from '$lib/entities/topo/permissions'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { withUndo } from '$lib/state/toast'
+  import { withUndo } from '$lib/state/toast/toast'
   import EntityTools from '../../EntityTools.svelte'
 
   interface Props {

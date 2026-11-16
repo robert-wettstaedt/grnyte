@@ -20,7 +20,7 @@ import {
 import type { File as FileRow } from '$lib/db/schema'
 import { resolveErrorMessage } from '$lib/forms/issue'
 import { m } from '$lib/paraglide/messages'
-import { toaster } from '$lib/state/toast'
+import { toaster } from '$lib/state/toast/toast'
 import { SvelteMap } from 'svelte/reactivity'
 import { Upload as TusUpload } from 'tus-js-client'
 import { createBunnyVideo, finalizeImage, finalizeVideo } from './files.remote'

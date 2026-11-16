@@ -3,7 +3,7 @@
   import MarkdownEditor from '$lib/components/MarkdownEditor/MarkdownEditor.svelte'
   import { regionDisplayName } from '$lib/entities/region/mapper'
   import EditKeys from '$lib/forms/EditKeys.svelte'
-  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
+  import FieldWrapper from '$lib/forms/fields/FieldWrapper.svelte'
   import type { FormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'

@@ -4,14 +4,14 @@
   import { feedbackKind, feedbackSchema } from '$lib/entities/feedback/dto'
   import { FEEDBACK_KIND_KEYS } from '$lib/entities/feedback/mapper'
   import { submitFeedback } from '$lib/entities/feedback/writes'
-  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
+  import FieldWrapper from '$lib/forms/fields/FieldWrapper.svelte'
   import Form from '$lib/forms/Form.svelte'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { resolveMessage } from '$lib/i18n/message'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { lastAppRoute } from '$lib/state/navigation.svelte'
-  import { toaster } from '$lib/state/toast'
+  import { toaster } from '$lib/state/toast/toast'
 
   // A store per visit. `pathname` is the last non-settings screen, since this form is reached
   // through settings. No `kind`: the inbox triages by it and only the writer can answer it.

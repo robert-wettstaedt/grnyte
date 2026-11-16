@@ -3,7 +3,7 @@ import { isHttpError } from '@sveltejs/kit'
 import { describe, expect, it, vi } from 'vitest'
 
 const zeroCaller = vi.fn()
-vi.mock('$lib/zero/caller.server', () => ({ zeroCaller }))
+vi.mock('$lib/zero/server/caller.server', () => ({ zeroCaller }))
 
 const { POST } = await import('./+server')
 

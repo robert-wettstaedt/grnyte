@@ -107,7 +107,7 @@ missing, and `pg_restore` does not stop for them. Read the errors before moving 
 ## Afterwards
 
 `npm run migrate` is a no-op on the ledger. It re-runs `setup-table-permissions`, which is where the
-`app_writer` grants come from. The one-off data backfills in `src/lib/db/scripts/migrate-*.ts` ran
+`app_writer` grants come from. The one-off data backfills in `src/lib/db/scripts/migrations/migrate-*.ts` ran
 once at the v2 cutover and are no longer part of it; a backup taken after the cutover needs none.
 
 **`grnyte-20260919.dump` and older are 1.0 databases.** The 19th's file is the manual backup taken
@@ -115,7 +115,7 @@ before the cutover's step 3. The last of them goes on the 2026-10-21 run of `bac
 this paragraph after that. On one, `npm run migrate` applies the 2.0 migrations, and the eight
 backfills then have to run in the cutover's order: mentions, block-names, block-order,
 promote-originals, image-derivatives, topo-paths, user-grades, accolades (as wired in
-`git show 6690a640^:src/lib/db/migrate.ts`). Each runs as `npx tsx src/lib/db/scripts/migrate-<name>.ts`,
+`git show 6690a640^:src/lib/db/migrate.ts`). Each runs as `npx tsx src/lib/db/scripts/migrations/migrate-<name>.ts`,
 all but the last two with `--dry-run`. promote-originals and image-derivatives need the Nextcloud
 credentials.
 

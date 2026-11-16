@@ -15,7 +15,7 @@ See proposal.md for why. The current state this design starts from:
   only HS256; the JWKS branch has never executed.
 - **Callers of the verifier.** The `supabase` handle (`src/lib/hooks/auth.server.ts:206-218`) turns
   any non-ok result into `anonymous()` with `backendUnavailable` taken only from GoTrue errors.
-  `zeroCaller` (`src/lib/zero/caller.server.ts:14`) verifies the `Authorization` header zero-cache
+  `zeroCaller` (`src/lib/zero/server/caller.server.ts:14`) verifies the `Authorization` header zero-cache
   forwards to `/api/zero/get-queries` and `/api/zero/mutate`. get-queries answers 502 for `expired`
   (zero-cache retries 502 and 504) and 401 otherwise, and passes `userID: caller.claims.sub` to
   `handleQueryRequest` (`get-queries/+server.ts:26-34`). mutate answers 401 even for expiry, because
@@ -53,7 +53,7 @@ See proposal.md for why. The current state this design starts from:
   token whose `sub` is not the connection's `userID` before any of the group's rows are sent (tasks.md
   5.1(d)).
 - **PowerSync.** `journeyapps/powersync-service:1.27.2` with `client_auth: { supabase: true,
-  supabase_jwt_secret, audience: ['authenticated'] }` (`deployment/powersync/service.yaml:28-31`).
+supabase_jwt_secret, audience: ['authenticated'] }` (`deployment/powersync/service.yaml:28-31`).
   Its config collector adds the static Supabase secret, inline `jwks.keys`, each `jwks_uri` and the
   auto-detected Supabase JWKS to one `CompoundKeyCollector`
   (<https://github.com/powersync-ja/powersync-service/blob/main/packages/service-core/src/util/config/compound-config-collector.ts>),
@@ -288,7 +288,7 @@ old) in `<second stack>/`, compose project `supabase-keys`:
   measured against client groups that hold rows; `ci/seed.sql`'s users cannot sign in to a real
   GoTrue and it seeds no regions.
 - Rotate rehearsal: start with legacy keys only, sign in, then `utils/add-new-auth-keys.sh
-  --update-env` and recreate, which makes GoTrue sign ES256 with the legacy key still accepted; the
+--update-env` and recreate, which makes GoTrue sign ES256 with the legacy key still accepted; the
   earlier HS256 session must keep browsing and syncing.
 - The worktree's database is the stack's Postgres on <db port> (migrated with env inline, never the
   shared DB); its zero-cache runs as compose project `<zero project>` with `!override` ports (<zero port> and

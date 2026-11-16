@@ -18,7 +18,7 @@ const NODE_ENVIRONMENT_TESTS = [
   'deployment/powersync/health.test.mjs',
   'src/lib/components/Markdown/lib/remark-safe-urls.coverage.test.ts',
   'src/lib/db/regionPolicies.test.ts',
-  'src/lib/db/scripts/migrate-promote-originals.test.ts',
+  'src/lib/db/scripts/migrations/migrate-promote-originals.test.ts',
   'src/lib/entities/event/cases/coverage.test.ts',
   'src/lib/zero/tenancy.test.ts',
 ]
@@ -252,7 +252,7 @@ export default defineConfig({
       },
       // Picks which branch of `registerSW` runs, and nothing else: under `injectManifest` the plugin
       // never injects `skipWaiting`/`clientsClaim`, so no worker behaviour changes here. It has to
-      // match `src/sw.ts` skipping waiting, and `src/lib/state/serviceWorker.ts` says why.
+      // match `src/sw.ts` skipping waiting, and `src/lib/state/pwa/serviceWorker.ts` says why.
       // `sw.size.test.ts` fails if the two drift apart.
       registerType: 'autoUpdate',
       scope: '/',

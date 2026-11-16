@@ -1,7 +1,7 @@
 <script lang="ts">
   import Banner from '$lib/components/Banner/Banner.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
-  import AuthField from '$lib/forms/AuthField.svelte'
+  import AuthField from '$lib/forms/fields/AuthField.svelte'
   import { serverMessage } from '$lib/forms/issue'
   import { formError } from '$lib/forms/schemas'
   import type { StoreField } from '$lib/forms/store.svelte'

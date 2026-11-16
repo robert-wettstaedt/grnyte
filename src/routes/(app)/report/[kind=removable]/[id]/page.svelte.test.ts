@@ -24,8 +24,8 @@ vi.mock('$lib/entities/report/resources.svelte', () => ({
   myOpenReport: () => ({ data: mine.report, phase: { empty: mine.report == null, kind: 'answered' } }),
 }))
 vi.mock('$lib/entities/report/writes', () => writes)
-vi.mock('$lib/state/toast', async (original) => ({
-  ...(await original<typeof import('$lib/state/toast')>()),
+vi.mock('$lib/state/toast/toast', async (original) => ({
+  ...(await original<typeof import('$lib/state/toast/toast')>()),
   toaster: toast,
 }))
 vi.mock('$lib/components/Markdown/Markdown.svelte', () => ({ default: () => {} }))

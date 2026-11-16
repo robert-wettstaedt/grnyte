@@ -3,7 +3,7 @@ import { moveBlocks } from '$lib/entities/block/writes'
 import type { MergeKind } from '$lib/entities/merge/sides'
 import { moveRoutes } from '$lib/entities/route/writes'
 import { m } from '$lib/paraglide/messages'
-import { withUndo } from '$lib/state/toast'
+import { withUndo } from '$lib/state/toast/toast'
 
 export type MoveKind = MergeKind
 

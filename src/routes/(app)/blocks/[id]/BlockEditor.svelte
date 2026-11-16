@@ -8,13 +8,13 @@
   import { blockDetail } from '$lib/entities/block/resources.svelte'
   import { setBlockLocation, updateBlock } from '$lib/entities/block/writes'
   import { entityHref } from '$lib/entities/href'
-  import FormGate from '$lib/forms/FormGate.svelte'
-  import { noEditPermission } from '$lib/forms/gate'
+  import FormGate from '$lib/forms/gate/FormGate.svelte'
+  import { noEditPermission } from '$lib/forms/gate/gate'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { notifyError } from '$lib/state/toast'
+  import { notifyError } from '$lib/state/toast/toast'
 
   // Shared body for the two block-editor routes: /edit opens on the form, /move jumps
   // straight to the map picker. Both submit `updateBlock`, so the form must carry the

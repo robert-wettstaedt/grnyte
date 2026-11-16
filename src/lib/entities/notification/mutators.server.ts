@@ -1,5 +1,5 @@
 import { applyRls } from '$lib/db/db.server'
-import { asCaller, asPrivileged, defineServerMutator } from '$lib/zero/serverMutator.server'
+import { asCaller, asPrivileged, defineServerMutator } from '$lib/zero/server/serverMutator.server'
 import { endpointSchema, markFeedSeenSchema, markReadSchema, subscriptionSchema } from './dto'
 import {
   markEventFeedSeenRow,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
+  import FieldWrapper from '$lib/forms/fields/FieldWrapper.svelte'
   import type { RemoteFormIssue } from '@sveltejs/kit'
   import { moderationGround, type ModerationGround } from './dto'
   import { GROUND_LABELS } from './mapper'

@@ -4,7 +4,7 @@
  */
 import { deleteAccountRows } from '$lib/db/testAccounts'
 import { deleteStaleFixtureAccounts, fixtureRun, reachable, sql } from '$lib/db/testDb'
-import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
+import { solvedProofOfWork } from '$lib/forms/bot/proofOfWorkFixture'
 import { asAnonymousRequest, callForm } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { signUp } from '../../../routes/(landing)/auth/(tabs)/signup/signup.remote'

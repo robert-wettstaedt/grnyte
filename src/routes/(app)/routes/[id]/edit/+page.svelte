@@ -10,7 +10,7 @@
   import RouteFormFields from '$lib/entities/route/RouteFormFields.svelte'
   import { updateRoute } from '$lib/entities/route/writes'
   import Form from '$lib/forms/Form.svelte'
-  import { noEditPermission } from '$lib/forms/gate'
+  import { noEditPermission } from '$lib/forms/gate/gate'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'

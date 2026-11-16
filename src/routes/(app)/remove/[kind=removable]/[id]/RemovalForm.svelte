@@ -23,13 +23,13 @@
   import { deleteComment } from '$lib/entities/reaction/writes'
   import { deleteRoute } from '$lib/entities/route/writes'
   import { deleteTopo } from '$lib/entities/topo/writes'
-  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
+  import FieldWrapper from '$lib/forms/fields/FieldWrapper.svelte'
   import Form from '$lib/forms/Form.svelte'
   import { isAuthoredMessage, resolveIssueMessage, serverMessage } from '$lib/forms/issue'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { back, exit } from '$lib/state/navigation.svelte'
-  import { notifyUndo, toaster } from '$lib/state/toast'
+  import { notifyUndo, toaster } from '$lib/state/toast/toast'
 
   interface Props {
     /** Preselected, from a report; the reason stays the admin's own. */

@@ -28,8 +28,8 @@ vi.mock('$lib/state/navigation.svelte', async (original) => ({
   exit: nav.exit,
 }))
 vi.mock('$lib/entities/moderation/writes', () => ({ undoRemoval: undo.undoRemoval }))
-vi.mock('$lib/state/toast', async (original) => ({
-  ...(await original<typeof import('$lib/state/toast')>()),
+vi.mock('$lib/state/toast/toast', async (original) => ({
+  ...(await original<typeof import('$lib/state/toast/toast')>()),
   notifyUndo: undo.notifyUndo,
 }))
 vi.mock('$lib/components/Markdown/Markdown.svelte', () => ({ default: () => {} }))

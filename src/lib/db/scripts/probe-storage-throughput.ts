@@ -20,7 +20,7 @@ import { pathToFileURL } from 'node:url'
 import sharp from 'sharp'
 import type { FileStat } from 'webdav'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, isDerivableImage, orientedDimensions } from '../../images/derivatives'
-import { connectNextcloud, inParallel, rethrowUnlessMissing, type NextcloudDav } from './nextcloud'
+import { connectNextcloud, inParallel, rethrowUnlessMissing, type NextcloudDav } from './guidebook/nextcloud'
 
 /** Downloads per concurrency level, never below the highest level or that level cannot fill its
  *  pool. Each level gets its own files, so this times the level count is both how many distinct

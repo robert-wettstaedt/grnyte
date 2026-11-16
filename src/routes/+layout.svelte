@@ -6,8 +6,8 @@
   // Imported for its module side effect only: `beforeinstallprompt` fires once, early in the page
   // load, and the surfaces that promote installing are all several navigations away. Registering
   // the listener from any of them would mean catching the event only by luck.
-  import '$lib/state/install.svelte'
-  import { registerServiceWorker } from '$lib/state/serviceWorker'
+  import '$lib/state/pwa/install.svelte'
+  import { registerServiceWorker } from '$lib/state/pwa/serviceWorker'
   import markdownDarkCssUrl from 'github-markdown-css/github-markdown-dark.css?url'
   import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
   import { onMount } from 'svelte'

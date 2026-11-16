@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "entry": [
     "src/sw.ts",
-    "src/lib/db/scripts/*.ts",
+    "src/lib/db/scripts/**/*.ts",
     "src/lib/email/push-templates.ts",
     "src/lib/email/test-send.ts",
     "src/**/*.stories.svelte",

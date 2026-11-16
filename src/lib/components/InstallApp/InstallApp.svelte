@@ -2,7 +2,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import { m } from '$lib/paraglide/messages'
-  import { dismissBanner, installPromoMode, promptInstall, type InstallMode } from '$lib/state/install.svelte'
+  import { dismissBanner, installPromoMode, promptInstall, type InstallMode } from '$lib/state/pwa/install.svelte'
 
   /**
    * The one card that promotes installing the app, on every surface that promotes it: the feed

@@ -9,8 +9,8 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { disablePush, enablePush, pushEndpoint, pushState } from '$lib/state/push.svelte'
-  import { notifyError, toaster } from '$lib/state/toast'
+  import { disablePush, enablePush, pushEndpoint, pushState } from '$lib/state/pwa/push.svelte'
+  import { notifyError, toaster } from '$lib/state/toast/toast'
   import SettingSwitch from '../SettingSwitch.svelte'
 
   const global = getGlobalState()

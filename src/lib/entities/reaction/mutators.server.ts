@@ -1,4 +1,4 @@
-import { asCaller, asPrivileged, defineServerMutator } from '$lib/zero/serverMutator.server'
+import { asCaller, asPrivileged, defineServerMutator } from '$lib/zero/server/serverMutator.server'
 import { commentIdSchema, deleteCommentSchema, postCommentSchema, toggleReactionSchema } from './dto'
 import {
   deleteCommentRow,

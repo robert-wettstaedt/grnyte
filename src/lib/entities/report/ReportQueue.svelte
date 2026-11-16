@@ -9,7 +9,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { motion } from '$lib/state/motion.svelte'
-  import { notifyError, toaster } from '$lib/state/toast'
+  import { notifyError, toaster } from '$lib/state/toast/toast'
   import { slide } from 'svelte/transition'
   import { reportRef, type ReportedObject } from './dto'
   import { dismissReports } from './writes'

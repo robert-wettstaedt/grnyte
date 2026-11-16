@@ -1,7 +1,7 @@
 import '$lib/forms/screen.fixture'
 import { settle } from '$lib/forms/screen.fixture'
 import { setLocale } from '$lib/paraglide/runtime'
-import { toaster } from '$lib/state/toast'
+import { toaster } from '$lib/state/toast/toast'
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import { beforeEach, expect, it, onTestFinished, vi } from 'vitest'
 import SignedInDevices from './SignedInDevices.svelte'

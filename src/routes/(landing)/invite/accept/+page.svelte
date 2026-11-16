@@ -13,8 +13,8 @@
   import { acceptRegionInvitation } from '$lib/entities/region/regions.remote'
   import { resolveErrorMessage } from '$lib/forms/issue'
   import { m } from '$lib/paraglide/messages'
-  import { installPromoMode } from '$lib/state/install.svelte'
-  import { wipeAndLeave } from '$lib/state/wipe'
+  import { installPromoMode } from '$lib/state/pwa/install.svelte'
+  import { wipeAndLeave } from '$lib/state/pwa/wipe'
   import type { PageProps } from './$types'
 
   // The one screen every invite path lands on: the emailed link, the signed-in bounce from

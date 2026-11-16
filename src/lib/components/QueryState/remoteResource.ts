@@ -1,5 +1,5 @@
 import { isOnline } from '$lib/state/online.svelte'
-import { leaveIfSessionEnded } from '$lib/state/sessionEnded'
+import { leaveIfSessionEnded } from '$lib/state/toast/sessionEnded'
 import type { QueryPhase, QueryResource } from '$lib/zero/resource.svelte'
 import type { RemoteQuery } from '@sveltejs/kit'
 

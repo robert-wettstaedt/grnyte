@@ -1,4 +1,4 @@
-import { asCaller, defineServerMutator, refuseWithField } from '$lib/zero/serverMutator.server'
+import { asCaller, defineServerMutator, refuseWithField } from '$lib/zero/server/serverMutator.server'
 import { updateUsernameSchema, userSettingsSchema } from './dto'
 import { updateUsernameRow, updateUserSettingsRow } from './profile.server'
 

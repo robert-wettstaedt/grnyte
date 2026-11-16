@@ -473,7 +473,7 @@
         "count": 1
       }
     },
-    "src/lib/forms/FormGate.svelte": {
+    "src/lib/forms/gate/FormGate.svelte": {
       "complexity_high": {
         "count": 1
       }
@@ -486,7 +486,7 @@
         "count": 1
       }
     },
-    "src/lib/map/LocationPicker.svelte": {
+    "src/lib/map/picker/LocationPicker.svelte": {
       "crap_critical": {
         "count": 1
       },
@@ -526,7 +526,7 @@
         "count": 1
       }
     },
-    "src/lib/map/exploreData.svelte.ts": {
+    "src/lib/map/explore/exploreData.svelte.ts": {
       "crap_high": {
         "count": 3
       },
@@ -534,7 +534,7 @@
         "count": 3
       }
     },
-    "src/lib/map/filteredRoutes.svelte.ts": {
+    "src/lib/map/explore/filteredRoutes.svelte.ts": {
       "crap_high": {
         "count": 1
       },
@@ -565,12 +565,12 @@
         "count": 1
       }
     },
-    "src/lib/state/serviceWorker.ts": {
+    "src/lib/state/pwa/serviceWorker.ts": {
       "crap_moderate": {
         "count": 1
       }
     },
-    "src/lib/state/updateReady.svelte.ts": {
+    "src/lib/state/pwa/updateReady.svelte.ts": {
       "crap_high": {
         "count": 1
       }
@@ -873,7 +873,7 @@
     "src/lib/entities/topo/mapper.ts:high impact",
     "src/lib/entities/region/regions.remote.ts:hidden coupling",
     "src/routes/(app)/routes/[id]/edit/+page.svelte:hidden coupling",
-    "src/lib/map/exploreData.svelte.ts:high impact",
+    "src/lib/map/explore/exploreData.svelte.ts:high impact",
     "src/lib/components/GuidebookPicker/MoveSheet.svelte:high impact",
     "src/routes/(app)/areas/[id]/add/+page.svelte:hidden coupling",
     "src/lib/entities/moderation/subjects.server.ts:high impact",
@@ -892,7 +892,7 @@
     "src/lib/components/Media/MediaViewer.svelte:hidden coupling",
     "src/routes/(app)/(shell)/(explore)/(map)/blocks/[id]/+page.svelte:hidden coupling",
     "src/lib/components/EventFeed/EventCard.svelte:complexity",
-    "src/lib/map/filter.ts:high impact",
+    "src/lib/map/explore/filter.ts:high impact",
     "src/lib/entities/report/target.server.ts:complexity",
     "src/routes/(app)/(shell)/(explore)/(map)/areas/[id]/AreaActions.svelte:complexity",
     "src/lib/entities/ascent/AscentRow.svelte:complexity",
@@ -920,12 +920,12 @@
     "src/routes/(app)/blocks/[id]/topos/edit/keydown.ts:complexity",
     "src/routes/f/[id]/+page.svelte:hidden coupling",
     "src/lib/entities/firstAscensionist/resources.svelte.ts:high impact",
-    "src/lib/map/filteredRoutes.svelte.ts:untested risk",
+    "src/lib/map/explore/filteredRoutes.svelte.ts:untested risk",
     "src/routes/(app)/areas/[id]/parking/edit/+page.svelte:hidden coupling",
     "src/lib/map/Map.svelte:complexity",
     "src/routes/(app)/blocks/[id]/topos/edit/+page.svelte:complexity",
     "src/lib/entities/notification/notification.server.ts:hidden coupling",
-    "src/lib/map/narrow.ts:high impact",
+    "src/lib/map/explore/narrow.ts:high impact",
     "src/lib/components/Media/MediaStage.svelte:complexity",
     "src/lib/entities/notification/caption.ts:hidden coupling",
     "src/lib/map/layers.svelte.ts:hidden coupling",
@@ -934,7 +934,7 @@
     "src/lib/components/GradeHistogram/GradeHistogram.svelte:complexity",
     "src/lib/entities/topo/editor.svelte.ts:high impact",
     "src/lib/entities/route/queries.ts:hidden coupling",
-    "src/lib/state/searchHistory.ts:high impact",
+    "src/lib/state/search/searchHistory.ts:high impact",
     "src/lib/components/Media/chrome.svelte.ts:high impact",
     "src/lib/components/StatusBar/StatusBar.svelte:hidden coupling",
     "src/lib/entities/user/mapper.ts:hidden coupling",

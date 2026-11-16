@@ -4,7 +4,7 @@ import { verifyCode } from '$lib/auth/codes/codes.server'
 import { supabaseAuthServer, type AuthServer } from '$lib/auth/server/authServer.server'
 import { findAccount, flagContestedSignup, holdCodeSession } from '$lib/auth/server/contested.server'
 import { gotrueRefusal, mailPasswordReset, mailSignupConfirmation } from '$lib/auth/server/mail.server'
-import { screenSubmit } from '$lib/forms/botCheck.server'
+import { screenSubmit } from '$lib/forms/bot/botCheck.server'
 
 /**
  * The mailed code, whichever GoTrue sent: type `email` matches a confirmation and a recovery code

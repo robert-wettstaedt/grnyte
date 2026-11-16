@@ -2,8 +2,8 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AuthField from '$lib/forms/AuthField.svelte'
-  import FormError from '$lib/forms/FormError.svelte'
+  import AuthField from '$lib/forms/fields/AuthField.svelte'
+  import FormError from '$lib/forms/fields/FormError.svelte'
   import { m } from '$lib/paraglide/messages'
   import { resetPassword } from './reset-password.remote'
 

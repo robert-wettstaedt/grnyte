@@ -3,7 +3,7 @@
   import type { Grade } from '$lib/entities/grade/dto'
   import { gradeLabel, scaleRungs } from '$lib/entities/grade/label'
   import type { GradingScale } from '$lib/entities/user/dto'
-  import Picker from '$lib/forms/Picker.svelte'
+  import Picker from '$lib/forms/fields/Picker.svelte'
   import { m } from '$lib/paraglide/messages'
 
   // A grade is a name, not a position: a native select chip plus ± that nudge one rung, hidden

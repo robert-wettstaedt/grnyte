@@ -103,10 +103,10 @@ None. `auth/sign-up-protection` keeps its requirements; only the client its rese
 
 - **Modules:** `src/lib/auth/server/verify.server.ts` (+ test), new `src/lib/auth/server/authServer.server.ts`
   (+ test), `src/lib/auth/server/mail.server.ts`, `src/lib/hooks/auth.server.ts` (+ test),
-  new `src/lib/zero/mutateAuth.server.test.ts`, `src/routes/api/zero/get-queries/+server.ts` (+ new
+  new `src/lib/zero/server/mutateAuth.server.test.ts`, `src/routes/api/zero/get-queries/+server.ts` (+ new
   test), `src/lib/db/supabaseAdmin.server.ts` (+ new test), new `src/lib/db/secretKey.fixture.ts`
   (shared by the two secret-key client tests), `src/lib/entities/user/password.server.ts`,
-  `src/lib/forms/proofOfWork.server.ts` (+ new key test), `src/lib/entities/file/upload-manager.svelte.ts`
+  `src/lib/forms/bot/proofOfWork.server.ts` (+ new key test), `src/lib/entities/file/upload-manager.svelte.ts`
   (+ test), `src/lib/remote/testHarness.ts`, `src/routes/(app)/+layout.ts`,
   `src/routes/(landing)/auth/(tabs)/signup/signup.remote.ts` and `signup.remote.test.ts`,
   `src/routes/(landing)/auth/forgot-password/forgot-password.remote.ts` and
@@ -184,8 +184,8 @@ None. `auth/sign-up-protection` keeps its requirements; only the client its rese
 15. **How the merges ship.** The code is written and rehearsed in this worktree, then split into
     `keys/a-deployment` and `keys/b-app` (cut from develop) and `keys/c-powersync` (cut from A), each merged into
     develop only right before its own develop to main release, after `git diff --stat main..develop
-    -- src/lib/auth src/lib/hooks src/lib/zero src/lib/db/supabaseAdmin.server.ts deployment
-    .github/workflows eslint.config.js svelte.config.js` lists only that merge's files. A ships only
+-- src/lib/auth src/lib/hooks src/lib/zero src/lib/db/supabaseAdmin.server.ts deployment
+.github/workflows eslint.config.js svelte.config.js` lists only that merge's files. A ships only
     after proof 5.1b passed; `keys/z-zero-jwks` (the Zero key swap) through deploy-zero's
     `workflow_dispatch` (which deploys `github.ref_name`) at step 4, then inside C; C only at step
     4b, through `workflow_dispatch` too if develop is not clear, and into main at the next release.

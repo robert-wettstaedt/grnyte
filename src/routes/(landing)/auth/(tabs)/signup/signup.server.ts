@@ -12,7 +12,7 @@ import {
 } from '$lib/auth/server/contested.server'
 import { gotrueRefusal, noticeAlreadyHasAccount, sendCode } from '$lib/auth/server/mail.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
-import { screenSubmit } from '$lib/forms/botCheck.server'
+import { screenSubmit } from '$lib/forms/bot/botCheck.server'
 import { formError } from '$lib/forms/schemas'
 
 type Refuse = (message: string, field?: 'password') => never

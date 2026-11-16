@@ -1,6 +1,6 @@
 import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
-import { wipeAndLeave } from '$lib/state/wipe'
+import { wipeAndLeave } from '$lib/state/pwa/wipe'
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { enterCode, methods, reauthRemote as remote, resetReauthRemote } from './reauth.fixture'
@@ -8,7 +8,7 @@ import Fixture from './ReauthStepFixture.svelte'
 
 vi.mock('./reauth.remote', async () => (await import('./reauth.fixture')).reauthRemote)
 vi.mock('../methods/identities.remote', async () => (await import('./reauth.fixture')).identitiesRemote)
-vi.mock('$lib/state/wipe', () => ({ wipeAndLeave: vi.fn(async () => {}) }))
+vi.mock('$lib/state/pwa/wipe', () => ({ wipeAndLeave: vi.fn(async () => {}) }))
 
 let onformsubmit = vi.fn()
 beforeEach(() => {

@@ -26,7 +26,7 @@
   import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { quietly } from '$lib/state/pill.svelte'
-  import { notifyError } from '$lib/state/toast'
+  import { notifyError } from '$lib/state/toast/toast'
   import { queries } from '$lib/zero/queries'
   import { createResource } from '$lib/zero/resource.svelte'
   import { untrack } from 'svelte'

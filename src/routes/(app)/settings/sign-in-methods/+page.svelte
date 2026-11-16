@@ -10,7 +10,7 @@
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
   import { m } from '$lib/paraglide/messages'
   import { back, replaceUrl } from '$lib/state/navigation.svelte'
-  import { notifyError, toaster } from '$lib/state/toast'
+  import { notifyError, toaster } from '$lib/state/toast/toast'
   import { onMount } from 'svelte'
   import MethodRow, { rowAction } from './MethodRow.svelte'
   import MethodRowSkeleton from './MethodRowSkeleton.svelte'

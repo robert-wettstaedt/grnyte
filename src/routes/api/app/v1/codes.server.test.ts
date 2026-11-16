@@ -17,7 +17,7 @@ import {
 } from '$lib/auth/server/gotrue.fixture'
 import { verifyAccessToken } from '$lib/auth/server/verify.server'
 import { sql } from '$lib/db/testDb'
-import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
+import { solvedProofOfWork } from '$lib/forms/bot/proofOfWorkFixture'
 import { getPageState } from '$lib/hooks/auth.server'
 import { asAnonymousRequest } from '$lib/remote/testHarness'
 import type { RequestHandler } from '@sveltejs/kit'

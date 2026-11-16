@@ -12,7 +12,7 @@ vi.mock('$lib/auth/session.remote', () => ({
   },
 }))
 vi.mock('$lib/entities/region/regions.remote', () => ({ acceptRegionInvitation: vi.fn() }))
-vi.mock('$lib/state/wipe', () => ({ wipeAndLeave: vi.fn() }))
+vi.mock('$lib/state/pwa/wipe', () => ({ wipeAndLeave: vi.fn() }))
 
 const bold = () => [...document.querySelectorAll('b')].map((node) => node.textContent)
 

@@ -76,7 +76,7 @@ declare global {
   }
 
   // Not in lib.dom: `beforeinstallprompt` is a Chromium extension (Chrome, Edge, Opera, Samsung),
-  // never implemented in Safari or Firefox. See $lib/state/install.svelte.
+  // never implemented in Safari or Firefox. See $lib/state/pwa/install.svelte.
   interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<{ outcome: 'accepted' | 'dismissed' }>
   }
@@ -86,7 +86,7 @@ declare global {
     // bootstrap in src/app.html so it runs before first paint; called by ThemeSwitch on change.
     __applyTheme?: () => void
     // The stashed install prompt, caught by the inline script in src/app.html because the event
-    // beats the client bundle on a server-rendered page. Read by $lib/state/install.svelte.
+    // beats the client bundle on a server-rendered page. Read by $lib/state/pwa/install.svelte.
     __installPrompt?: BeforeInstallPromptEvent | null
   }
 

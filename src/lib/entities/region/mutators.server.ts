@@ -1,6 +1,6 @@
 import { PUBLIC_ORIGIN } from '$env/static/public'
 import { baseLocale } from '$lib/paraglide/runtime'
-import { asCaller, asPrivileged, defineServerMutator } from '$lib/zero/serverMutator.server'
+import { asCaller, asPrivileged, defineServerMutator } from '$lib/zero/server/serverMutator.server'
 import { createRegionIn } from './create.server'
 import {
   invitationSchema,

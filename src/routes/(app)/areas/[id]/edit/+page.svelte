@@ -8,7 +8,7 @@
   import { updateArea } from '$lib/entities/area/writes'
   import { entityHref } from '$lib/entities/href'
   import Form from '$lib/forms/Form.svelte'
-  import { noEditPermission } from '$lib/forms/gate'
+  import { noEditPermission } from '$lib/forms/gate/gate'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'

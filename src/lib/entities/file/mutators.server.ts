@@ -1,5 +1,5 @@
 import { recordPlanned } from '$lib/entities/moderation/record.server'
-import { asCaller, defineServerMutator } from '$lib/zero/serverMutator.server'
+import { asCaller, defineServerMutator } from '$lib/zero/server/serverMutator.server'
 import { fileVisibilitySchema, removeFileSchema, videoSourceSchema } from './dto'
 import { deleteMediaFileRow, setFileVisibilityRow, setVideoSourceRow } from './edit.server'
 

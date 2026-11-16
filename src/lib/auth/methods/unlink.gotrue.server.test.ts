@@ -3,7 +3,7 @@ import { codeDevice, createAccount, gotrueReachable } from '$lib/auth/server/got
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { sql } from '$lib/db/testDb'
 import { withLocals } from '$lib/remote/testHarness'
-import { handleMutate } from '$lib/zero/mutate.server'
+import { handleMutate } from '$lib/zero/server/mutate.server'
 import { isHttpError } from '@sveltejs/kit'
 import { afterAll, describe, expect, it } from 'vitest'
 import { sessionCaller, writeGrant } from '../reauth/reauth.server'

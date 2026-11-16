@@ -1,4 +1,4 @@
-import { leaveIfSessionEnded } from '$lib/state/sessionEnded'
+import { leaveIfSessionEnded } from '$lib/state/toast/sessionEnded'
 import type { WriteRejection } from '$lib/zero/write'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { RemoteFormIssue } from '@sveltejs/kit'

@@ -38,7 +38,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { notifyError, toaster, withUndo } from '$lib/state/toast'
+  import { notifyError, toaster, withUndo } from '$lib/state/toast/toast'
   import InvitationRow from './InvitationRow.svelte'
   import MemberRow from './MemberRow.svelte'
 

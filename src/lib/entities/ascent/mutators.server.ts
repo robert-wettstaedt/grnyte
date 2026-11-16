@@ -1,6 +1,6 @@
 import { removableIdArgs } from '$lib/entities/moderation/dto'
 import { recordPlanned } from '$lib/entities/moderation/record.server'
-import { asCaller, defineServerMutator } from '$lib/zero/serverMutator.server'
+import { asCaller, defineServerMutator } from '$lib/zero/server/serverMutator.server'
 import { ascentActionSchema } from './dto'
 import { deleteAscentRow } from './lifecycle.server'
 import { createAscentRow, updateAscentRow } from './save.server'

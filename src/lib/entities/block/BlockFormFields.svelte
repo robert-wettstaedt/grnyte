@@ -3,7 +3,7 @@
   import MarkdownEditor from '$lib/components/MarkdownEditor/MarkdownEditor.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import EditKeys from '$lib/forms/EditKeys.svelte'
-  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
+  import FieldWrapper from '$lib/forms/fields/FieldWrapper.svelte'
   import type { FormStore } from '$lib/forms/store.svelte'
   import type { MapData } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'

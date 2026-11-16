@@ -12,9 +12,9 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { installPromoMode } from '$lib/state/install.svelte'
-  import { dismissPushPrompt, enablePush, promptDismissed, pushState } from '$lib/state/push.svelte'
-  import { notifyError } from '$lib/state/toast'
+  import { installPromoMode } from '$lib/state/pwa/install.svelte'
+  import { dismissPushPrompt, enablePush, promptDismissed, pushState } from '$lib/state/pwa/push.svelte'
+  import { notifyError } from '$lib/state/toast/toast'
 
   interface Props {
     /** Whether the card may retire itself once dismissed. A surface somebody navigated to on

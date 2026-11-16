@@ -14,7 +14,7 @@
   import type * as z from '$lib/forms/zod'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { toaster } from '$lib/state/toast'
+  import { toaster } from '$lib/state/toast/toast'
 
   const global = getGlobalState()
   const regionId = $derived(Number(page.params.regionId))

@@ -13,7 +13,7 @@ import {
 import { COMMENT_UNDO_MS, eraseDeletedComments } from '$lib/entities/reaction/retention.server'
 import { closeGoneReports } from '$lib/entities/report/retention.server'
 import { sweepUnconfirmedAccounts, UNCONFIRMED_MAX_AGE_MS } from '$lib/entities/user/unconfirmed.server'
-import { sweepSpentChallenges } from '$lib/forms/proofOfWork.server'
+import { sweepSpentChallenges } from '$lib/forms/bot/proofOfWork.server'
 import { ERROR_LOG_MAX_AGE_MS, sweepErrorLogs } from '$lib/logging/retention.server'
 import { isCronAuthorized } from '$lib/remote/cron.server'
 import { getVideoProvider } from '$lib/videos/provider.server'

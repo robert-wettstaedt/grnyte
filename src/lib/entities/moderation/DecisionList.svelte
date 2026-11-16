@@ -5,7 +5,7 @@
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
-  import { notifyError, toaster } from '$lib/state/toast'
+  import { notifyError, toaster } from '$lib/state/toast/toast'
   import { decisionRef, type DecisionRow } from './dto'
   import { GROUND_LABELS, KIND_LABELS } from './mapper'
   import { undoRemoval } from './writes'
