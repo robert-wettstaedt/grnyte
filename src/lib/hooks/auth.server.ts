@@ -125,7 +125,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
   // is the placeholder `foobar`. `rateLimit` bails on the same condition for the same reason.
   // A zero-cache callback too: building the client starts a session load in the background, and with an
   // expired forwarded cookie its refresh writes that cookie after the response, which crashes the server.
-  if (building || event.url.pathname.startsWith(ZERO_API_PREFIX)) {
+  if (building || isHeaderAuthenticated(event.url.pathname)) {
     Object.assign(event.locals, anonymous(), { backendUnavailable: false })
     return resolve(event)
   }
@@ -319,6 +319,13 @@ const PUBLIC_PREFIXES = [
  */
 export const ZERO_API_PREFIX = '/api/zero/'
 
+/** The installed app's API: Bearer only. Cookie-blind, which is what makes its cross-site exemption safe. */
+export const APP_API_PREFIX = '/api/app/'
+
+/** Surfaces that authenticate off their own header, so no hook reads or refreshes a cookie session. */
+const isHeaderAuthenticated = (pathname: string) =>
+  pathname.startsWith(ZERO_API_PREFIX) || pathname.startsWith(APP_API_PREFIX)
+
 export const authGuard: Handle = async ({ event, resolve }) => {
   // Nothing to guard while prerendering, and `safeGetSession` is not there to call: the hook above
   // returns before installing it.
@@ -328,7 +335,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
 
   // The Zero endpoints verify their own Authorization header; loading a session here could rotate
   // the refresh token onto a response the browser never sees.
-  if (event.url.pathname.startsWith(ZERO_API_PREFIX)) {
+  if (isHeaderAuthenticated(event.url.pathname)) {
     Object.assign(event.locals, anonymous(), { backendUnavailable: false })
     return resolve(event)
   }

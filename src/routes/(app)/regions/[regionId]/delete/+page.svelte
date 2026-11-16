@@ -70,18 +70,19 @@
   {store}
   {submit}
   submitDisabled={preview?.phase.kind !== 'answered' || !confirmed}
-  submitLabel={m.region_deleteSubmit()}
+  submitLabel={m.common_delete()}
   title={m.region_delete()}
   waitFor={[{ notFound: m.region_notFound(), resource: shown, whole: false }]}
 >
   {#snippet fields([detail])}
-    <p class="text-error-700-300 font-semibold">{m.region_deleteIntro({ region: detail.name })}</p>
+    <p class="text-surface-600-400 text-[14.5px] leading-normal">{m.region_deleteIntro({ region: detail.name })}</p>
 
     {#key regionId}
       <ReauthStep
         bind:this={step}
         bind:confirmed
         action="region.delete"
+        email={page.data.session?.user.email ?? ''}
         target={String(regionId)}
         ready={preview?.phase.kind === 'answered' || preview?.phase.kind === 'error'}
       />
@@ -112,6 +113,7 @@
           type="text"
           autocomplete="off"
           enterkeyhint="go"
+          autofocus
         />
       </div>
     {/if}

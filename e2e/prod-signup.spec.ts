@@ -9,14 +9,14 @@
  *
  * Three things only production can be wrong about, and all three fail this spec:
  *   - GoTrue's own configuration (`npm run check:prod` asserts the toggles; this proves the flow)
- *   - the deployed schema still matching the code, via the `public.users` insert `signUp` does
- *   - SITE_URL and the redirect allowlist, via `properties.redirect_to` and the confirm handler
+ *   - the deployed schema still matching the code, via the `public.users` insert the profile step does
+ *   - SITE_URL, via `properties.redirect_to`
  *
- * ponytail: the confirmation link is minted with the service role rather than read out of an
- * inbox, so this does NOT prove the mail was delivered. That needs a mailbox with an API, and
+ * ponytail: the sign-up code is minted with the secret key rather than read out of an inbox, so
+ * this does NOT prove the mail was delivered. That needs a mailbox with an API, and
  * `@grnyte.rocks` goes through SimpleLogin, which forwards rather than stores. Add an IMAP read of
  * the forward target (or point the canary at a throwaway inbox service) when a silent SMTP failure
- * is the thing that actually bites, and drop `confirmationLink` in favour of it.
+ * is the thing that actually bites, and drop `confirmationCode` in favour of it.
  *
  * Run it against production with the production values in the environment:
  *
@@ -31,7 +31,7 @@ import { expect, test } from '@playwright/test'
 // which opens a pool of its own at import.
 import { connect, deleteAccountRows } from '../src/lib/db/testAccounts'
 import { REGION_CREATE_PATH } from '../src/lib/entities/region/paths'
-import { adminClient, reachableUrl, visit } from './support'
+import { adminClient, confirmAndCompleteProfile, fillCredentials, reachableUrl } from './support'
 
 // Playwright does not read `.env`; CI passes the real values as environment variables instead,
 // and those win, because `loadEnvFile` never overwrites what is already set.
@@ -109,26 +109,19 @@ test.afterAll(async () => {
 })
 
 test('a new account can sign up and confirm', async ({ page }) => {
-  await visit(page, '/auth/signup')
-
-  // A precise hydration signal for this page: the email field's `autofocus` is implemented as a
-  // Svelte attachment, so focus only lands once the component is alive. Without it the submit
-  // below hits server-rendered HTML with no handler yet and silently does nothing.
-  await expect(page.getByLabel('Email')).toBeFocused()
-
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Username').fill(username)
-  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
-  await page.getByLabel('Confirm password').fill(PASSWORD)
+  await fillCredentials(page, '/auth/signup', email, PASSWORD)
   await page.getByRole('button', { name: 'Create account' }).click()
 
-  await expect(page.getByText('Account created')).toBeVisible()
+  // Minting the code is what hands teardown the account, so an assertion that fails cannot strand
+  // a confirmed production login.
+  await confirmAndCompleteProfile(page, confirmationCode, username)
 
-  // Minted before the assertions below rather than after: it is what hands teardown the account,
-  // so an assertion that fails cannot strand a confirmed production login.
-  const link = await confirmationLink()
+  // Not `/explore`: a region-less account is bounced from there to the create screen. Both are
+  // behind the guard, so landing here rather than at `/auth` is the assertion: the code became a
+  // session and the profile step made the profile.
+  await page.waitForURL(`**${REGION_CREATE_PATH}`)
 
-  // The app-level rows, which is the half of `signUp` that lives in our schema rather than in
+  // The app-level rows, which is the half of sign-up that lives in our schema rather than in
   // GoTrue. A migration that never reached this environment fails right here, and it is the
   // failure a disposable CI database structurally cannot produce.
   const rows = await sql<{ authUserFk: string; userSettingsFk: null | number }[]>`
@@ -137,28 +130,21 @@ test('a new account can sign up and confirm', async ({ page }) => {
   // A `DATABASE_URL` for another environment lands here too, hence the hint.
   expect(rows, `public.users row for ${username} (is DATABASE_URL the database behind ${BASE}?)`).toHaveLength(1)
   expect(rows[0]?.userSettingsFk, 'user_settings linked back to the user').not.toBeNull()
-
-  await page.goto(link)
-
-  // Not `/explore`: a region-less account is bounced from there to the create screen. Both are
-  // behind the guard, so landing here rather than at `/auth` is the assertion - the token became
-  // a session.
-  await page.waitForURL(`**${REGION_CREATE_PATH}`)
 })
 
 /**
- * The confirmation link GoTrue would have mailed, minted with the service role.
+ * The sign-up code GoTrue would have mailed, minted with the secret key.
  *
  * `type: 'signup'` on an address that already signed up and has not confirmed yet re-issues the
- * token rather than refusing, which is exactly the state the form leaves behind. The returned
- * `redirect_to` is the project's SITE_URL, so it is asserted here for free: a wrong one sends
- * every real confirmation mail to the wrong host.
+ * code rather than refusing, which is exactly the state the form leaves behind. The returned
+ * `redirect_to` is the project's SITE_URL, so it is asserted here for free: a wrong one points
+ * every mail's links at the wrong host.
  */
-async function confirmationLink(): Promise<string> {
+async function confirmationCode(): Promise<string> {
   // Present once the prerequisite check above has passed.
   const { data, error } = await admin!.auth.admin.generateLink({ email, password: PASSWORD, type: 'signup' })
 
-  expect(error, 'minting a confirmation link').toBeNull()
+  expect(error, 'minting a sign-up code').toBeNull()
 
   // GoTrue's own answer for who this address is, so teardown has the account before anything else
   // can fail.
@@ -167,5 +153,5 @@ async function confirmationLink(): Promise<string> {
   const siteUrl = data.properties?.redirect_to.replace(/\/$/, '')
   expect(siteUrl, "the project's SITE_URL").toBe(BASE.replace(/\/$/, ''))
 
-  return `${BASE}/auth/confirm?token_hash=${data.properties?.hashed_token}&type=signup&next=/explore`
+  return data.properties?.email_otp ?? ''
 }

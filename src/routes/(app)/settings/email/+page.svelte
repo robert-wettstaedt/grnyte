@@ -3,7 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import CodeEntry from '$lib/auth/CodeEntry.svelte'
-  import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import Banner from '$lib/components/Banner/Banner.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'
   import Form from '$lib/forms/Form.svelte'
@@ -11,12 +11,14 @@
   import * as z from '$lib/forms/zod'
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'
-  import { back } from '$lib/state/navigation.svelte'
-  import { fade } from 'svelte/transition'
+  import { toaster } from '$lib/state/toast'
+  import { onMount } from 'svelte'
+  import { fade, slide } from 'svelte/transition'
   import { confirmEmailChangeCode, updateEmailCommand } from '../account.remote'
   import { updateEmailSchema } from '../schemas'
 
   const CODE_LIFETIME_MS = 10 * 60 * 1000
+  const CHANGED = 'changed'
 
   const store = createFormStore(updateEmailSchema)
   const codes = createFormStore(z.object({ code: z.string() }))
@@ -25,6 +27,12 @@
   let step = $state<'current' | 'new'>('current')
   let sentAt = $state(0)
   let resent = $state(false)
+
+  // Back from the full load that adopted the new session: the change is done.
+  const changed = page.url.searchParams.has(CHANGED)
+  onMount(() => {
+    if (changed) toaster.create({ title: m.settings_emailChanged(), type: 'success' })
+  })
 
   const submit = async (values: { email: string }) => {
     const { current, email } = await submitCommand(() => updateEmailCommand(values))
@@ -35,8 +43,8 @@
   async function onsubmit(code: string) {
     if (change == null) return
     const answer = await confirmEmailChangeCode({ code, email: step === 'current' ? change.current : change.email })
-    // A full load: the new session is in the cookies.
-    if (answer.step === 'done') location.href = resolve('/settings')
+    // A full load, replacing this entry: the new session is in the cookies.
+    if (answer.step === 'done') location.replace(`${resolve('/settings/email')}?${CHANGED}`)
     else step = 'new'
   }
 
@@ -49,60 +57,103 @@
     sentAt = Date.now()
   }
 
-  const currentEmail = $derived(page.data.session?.user.email)
+  const currentEmail = $derived(change?.current ?? page.data.session?.user.email ?? '')
+  const currentId = $props.id()
 
-  const goBack = () => back(resolve('/settings'))
+  // Send codes, then Confirm greyed while the codes are asked for, then Save greyed once changed.
+  const header = $derived.by((): { icon?: 'send'; label: string } => {
+    if (change != null) return { label: m.settings_emailConfirm() }
+    return changed ? { label: m.common_save() } : { icon: 'send', label: m.settings_emailSendCodes() }
+  })
+  const code = $derived.by(() => {
+    if (change == null) return undefined
+    if (step === 'current')
+      return {
+        done: undefined,
+        hint: undefined,
+        notice: resent ? m.settings_emailCodesResent() : undefined,
+        step: m.settings_emailStepCurrent(),
+        to: change.current,
+      }
+    return {
+      done: m.settings_emailCurrentConfirmed(),
+      hint: m.settings_emailAlreadySent(),
+      notice: undefined,
+      step: m.settings_emailStepNew(),
+      to: change.email,
+    }
+  })
 </script>
 
 <svelte:head>
   <title>{m.settings_changeEmail()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-{#if change != null}
-  <PageHeader backLabel={m.common_cancel()} onback={goBack} title={m.settings_changeEmail()} />
-  <div class="mx-auto max-w-screen-sm px-4 py-6">
-    {#key `${step}:${sentAt}`}
-      <div class="flex flex-col gap-4" in:fade={{ duration: motion(150) }}>
-        {#if resent && step === 'current'}
-          <p class="card preset-tonal-success px-4 py-3 text-sm" role="status">{m.settings_emailCodesResent()}</p>
-        {/if}
-        <p class="text-surface-600-400 text-[14.5px] leading-snug">
-          {step === 'current'
-            ? m.settings_emailCodeCurrent({ email: change.current })
-            : m.settings_emailCodeNew({ email: change.email })}
-        </p>
-        <CodeEntry
-          field={codes.fields.code}
-          label={m.auth_codeLabel()}
-          length={8}
-          {onsubmit}
-          {onresend}
-          {sentAt}
-          expiresAt={sentAt + CODE_LIFETIME_MS}
-        />
-      </div>
-    {/key}
+<Form
+  stayOnSubmit
+  {store}
+  {submit}
+  cancelTo={resolve('/settings')}
+  submitDisabled={header.icon == null}
+  submitIcon={header.icon}
+  submitLabel={header.label}
+  title={m.settings_changeEmail()}
+>
+  <p class="text-surface-600-400 text-[14.5px] leading-normal">{m.settings_emailIntro()}</p>
+
+  <div class="flex flex-col gap-1.5">
+    <label for={currentId} class="text-surface-950-50 self-start text-[13px] font-semibold">
+      {m.settings_emailCurrent()}
+    </label>
+    <input
+      id={currentId}
+      class="input bg-surface-100-900 text-surface-600-400 h-12 px-3.5"
+      readonly
+      tabindex="-1"
+      value={currentEmail}
+    />
   </div>
-{:else}
-  <Form
-    stayOnSubmit
-    {store}
-    {submit}
-    cancelTo={resolve('/settings')}
-    submitLabel={m.common_save()}
-    title={m.settings_changeEmail()}
-  >
+
+  {#if !changed}
     <AuthField
       field={store.fields.email}
       label={m.settings_emailNew()}
       type="email"
-      placeholder={currentEmail ?? 'you@example.com'}
+      placeholder="you@example.com"
       autocomplete="email"
       autocapitalize="none"
       enterkeyhint="go"
+      readonly={change != null}
+      inputClass={change != null ? 'bg-surface-100-900! text-surface-600-400! h-12 px-3.5' : undefined}
       autofocus
     />
+  {/if}
 
-    <p class="text-surface-600-400 text-sm">{m.settings_emailChangeHint()}</p>
-  </Form>
-{/if}
+  {#if code != null}
+    <div class="flex flex-col gap-4" transition:slide={{ duration: motion(150) }}>
+      <hr class="hr" />
+      {#key `${step}:${sentAt}`}
+        <div class="flex flex-col gap-4" in:fade={{ duration: motion(150) }}>
+          {#if code.notice != null}
+            <Banner>{code.notice}</Banner>
+          {/if}
+          {#if code.done != null}
+            <p class="text-success-600-400 text-[12.5px] font-semibold">{code.done}</p>
+          {/if}
+          <span class="text-surface-600-400 text-xs font-bold tracking-wide uppercase">{code.step}</span>
+          <CodeEntry
+            field={codes.fields.code}
+            label={m.settings_emailCodeTo({ email: code.to })}
+            length={8}
+            continueButton={false}
+            hint={code.hint}
+            {onsubmit}
+            {onresend}
+            {sentAt}
+            expiresAt={sentAt + CODE_LIFETIME_MS}
+          />
+        </div>
+      {/key}
+    </div>
+  {/if}
+</Form>

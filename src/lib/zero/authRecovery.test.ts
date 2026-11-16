@@ -63,11 +63,15 @@ describe('the recovery chain', () => {
     vi.useRealTimers()
   })
 
-  it('keeps asking until a token arrives', async () => {
-    const onSession = vi.fn()
+  /** Starts for a wanted identity and lets the first ask go out. */
+  async function started(onSession = vi.fn()) {
     startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
-
     await vi.advanceTimersByTimeAsync(0)
+    return onSession
+  }
+
+  it('keeps asking until a token arrives', async () => {
+    const onSession = await started()
     expect(refreshes).toBe(1)
 
     settle(null)
@@ -85,9 +89,7 @@ describe('the recovery chain', () => {
 
   it('stays stopped when the teardown lands mid-request and nothing restarts it', async () => {
     // Not cancellable across its own `await`: the resolving attempt can arm a chain nobody owns.
-    const onSession = vi.fn()
-    startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
-    await vi.advanceTimersByTimeAsync(0)
+    await started()
     expect(refreshes).toBe(1)
 
     stopAuthRecovery()
@@ -101,16 +103,13 @@ describe('the recovery chain', () => {
 
   it('runs one chain, not two, when it is restarted mid-request', async () => {
     // Stop during the round trip, then start again: only one ask may follow each cooldown.
-    const onSession = vi.fn()
-    startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
-    await vi.advanceTimersByTimeAsync(0)
+    const onSession = await started()
 
     stopAuthRecovery()
     settle(null)
     await vi.advanceTimersByTimeAsync(0)
 
-    startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
-    await vi.advanceTimersByTimeAsync(0)
+    await started(onSession)
     expect(refreshes).toBe(2)
 
     settle(null)
@@ -147,9 +146,7 @@ describe('the recovery chain', () => {
 
   it('still uses a token that arrives after it was stopped', async () => {
     // Discarding it would park Zero for another cooldown for nothing.
-    const onSession = vi.fn()
-    startAuthRecovery(0, { ...quiet, onSession, refresh, wants: () => true })
-    await vi.advanceTimersByTimeAsync(0)
+    const onSession = await started()
 
     stopAuthRecovery()
     settle('late-token')
@@ -165,6 +162,12 @@ describe('a refresh GoTrue refused for good', () => {
     stopAuthRecovery()
     vi.useRealTimers()
   })
+
+  /** Starts with no newer cookie session to fall back on, then lets `ms` pass. */
+  async function runFor(ms: number, refresh: () => Promise<null | typeof SESSION_GONE>, signOut: () => void) {
+    startAuthRecovery(0, { onSession: vi.fn(), refresh, reread: async () => null, signOut, wants: () => true })
+    await vi.advanceTimersByTimeAsync(ms)
+  }
 
   it('counts only a gone refresh token or session as definitive', () => {
     for (const code of [
@@ -182,11 +185,9 @@ describe('a refresh GoTrue refused for good', () => {
   })
 
   it('signs out once and arms nothing more when the cookie holds no newer session', async () => {
-    const refresh = vi.fn(async () => SESSION_GONE)
+    const refresh = vi.fn(async (): Promise<typeof SESSION_GONE> => SESSION_GONE)
     const signOut = vi.fn()
-    startAuthRecovery(0, { onSession: vi.fn(), refresh, reread: async () => null, signOut, wants: () => true })
-
-    await vi.advanceTimersByTimeAsync(AUTH_RETRY_COOLDOWN_MS * 3)
+    await runFor(AUTH_RETRY_COOLDOWN_MS * 3, refresh, signOut)
 
     expect(signOut).toHaveBeenCalledOnce()
     expect(refresh).toHaveBeenCalledOnce()
@@ -213,9 +214,7 @@ describe('a refresh GoTrue refused for good', () => {
     // The layout maps every non-definitive error, thrown or answered, to `null`.
     const refresh = vi.fn(async () => null)
     const signOut = vi.fn()
-    startAuthRecovery(0, { onSession: vi.fn(), refresh, reread: async () => null, signOut, wants: () => true })
-
-    await vi.advanceTimersByTimeAsync(AUTH_RETRY_COOLDOWN_MS * 2)
+    await runFor(AUTH_RETRY_COOLDOWN_MS * 2, refresh, signOut)
 
     expect(refresh).toHaveBeenCalledTimes(3)
     expect(signOut).not.toHaveBeenCalled()

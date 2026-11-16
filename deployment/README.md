@@ -186,27 +186,30 @@ deep under `~/backups/grnyte`. Restoring one is [RESTORE.md](RESTORE.md).
 ## Auth (GoTrue) settings
 
 Sign-up, codes and account changes depend on GoTrue switches as much as on code. `npm run check:prod`
-asserts the ones the public settings endpoint shows: `disable_signup`, `external.email` and
-`mailer_autoconfirm` (false). The rest are set by hand and recorded here.
+asserts every row below but the templates (`deployment/authConfig.ts`), reading the Management API
+with `SUPABASE_PROJECT_REF` and a read-only `SUPABASE_ACCESS_TOKEN`; without them it fails.
 
 GoTrue version: `v2.197.0`, the newest release at least two weeks old that is `>= v2.175.0` and has
 the password-changed and email-changed notification switches (on 2026-11-15 only `v2.198.0-rc.*`
 was newer). Hosted projects run Supabase's own version; this pin is for self-hosted stacks.
 
-| Setting                          | Hosted (dashboard or Management API)                                                              | Self-hosted env                                                         |
-| -------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Before-user-created hook         | `hook_before_user_created_enabled`, URI `pg-functions://postgres/public/before_user_created_hook` | `GOTRUE_HOOK_BEFORE_USER_CREATED_ENABLED=true`, `_URI` as hosted        |
-| Email code length                | `mailer_otp_length` = 8                                                                           | `GOTRUE_MAILER_OTP_LENGTH=8`                                            |
-| Email code lifetime              | `mailer_otp_exp` = 600                                                                            | `GOTRUE_MAILER_OTP_EXP=600`                                             |
-| Secure email change (both codes) | `mailer_secure_email_change_enabled` = true                                                       | `GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED=true`                        |
-| Secure password change           | `security_update_password_require_reauthentication` = true                                        | `GOTRUE_SECURITY_UPDATE_PASSWORD_REQUIRE_REAUTHENTICATION=true`         |
-| Password changed notice          | `mailer_notifications_password_changed_enabled` = true                                            | `GOTRUE_MAILER_NOTIFICATIONS_PASSWORD_CHANGED_ENABLED=true`             |
-| Email changed notice             | `mailer_notifications_email_changed_enabled` = true                                               | `GOTRUE_MAILER_NOTIFICATIONS_EMAIL_CHANGED_ENABLED=true`                |
-| Email provider                   | `external_email_enabled` = true                                                                   | `GOTRUE_EXTERNAL_EMAIL_ENABLED=true`                                    |
-| Confirmation required            | `mailer_autoconfirm` = false                                                                      | `GOTRUE_MAILER_AUTOCONFIRM=false`                                       |
-| Phone and anonymous sign-up      | `external_phone_enabled` = false, `external_anonymous_users_enabled` = false                      | `GOTRUE_EXTERNAL_PHONE_ENABLED=false`, `_ANONYMOUS_USERS_ENABLED=false` |
-| Public sign-up                   | `disable_signup` = false, set LAST, once the hook is confirmed active                             | `GOTRUE_DISABLE_SIGNUP=false`                                           |
-| Mail templates and subjects      | `push-templates.ts` after `PUBLIC_ORIGIN=https://grnyte.rocks npm run generate`                   | `GOTRUE_MAILER_TEMPLATES_*` URLs and `GOTRUE_MAILER_SUBJECTS_*`         |
+| Setting                          | Hosted (dashboard or Management API)                                                              | Self-hosted env                                                             |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Before-user-created hook         | `hook_before_user_created_enabled`, URI `pg-functions://postgres/public/before_user_created_hook` | `GOTRUE_HOOK_BEFORE_USER_CREATED_ENABLED=true`, `_URI` as hosted            |
+| Email code length                | `mailer_otp_length` = 8                                                                           | `GOTRUE_MAILER_OTP_LENGTH=8`                                                |
+| Email code lifetime              | `mailer_otp_exp` = 600                                                                            | `GOTRUE_MAILER_OTP_EXP=600`                                                 |
+| Secure email change (both codes) | `mailer_secure_email_change_enabled` = true                                                       | `GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED=true`                            |
+| Secure password change           | `security_update_password_require_reauthentication` = true                                        | `GOTRUE_SECURITY_UPDATE_PASSWORD_REQUIRE_REAUTHENTICATION=true`             |
+| Password changed notice          | `mailer_notifications_password_changed_enabled` = true                                            | `GOTRUE_MAILER_NOTIFICATIONS_PASSWORD_CHANGED_ENABLED=true`                 |
+| Email changed notice             | `mailer_notifications_email_changed_enabled` = true                                               | `GOTRUE_MAILER_NOTIFICATIONS_EMAIL_CHANGED_ENABLED=true`                    |
+| Refresh token rotation           | `refresh_token_rotation_enabled` = true, `security_refresh_token_reuse_interval` = 10             | `GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED=true`, `_REUSE_INTERVAL=10` |
+| Access token lifetime            | `jwt_exp` = 3600                                                                                  | `GOTRUE_JWT_EXP=3600`                                                       |
+| Email rate limit                 | `rate_limit_email_sent` at least 30 an hour (custom SMTP)                                         | `GOTRUE_RATE_LIMIT_EMAIL_SENT=30`                                           |
+| Email provider                   | `external_email_enabled` = true                                                                   | `GOTRUE_EXTERNAL_EMAIL_ENABLED=true`                                        |
+| Confirmation required            | `mailer_autoconfirm` = false                                                                      | `GOTRUE_MAILER_AUTOCONFIRM=false`                                           |
+| Phone and anonymous sign-up      | `external_phone_enabled` = false, `external_anonymous_users_enabled` = false                      | `GOTRUE_EXTERNAL_PHONE_ENABLED=false`, `_ANONYMOUS_USERS_ENABLED=false`     |
+| Public sign-up                   | `disable_signup` = false, set LAST, once the hook is confirmed active                             | `GOTRUE_DISABLE_SIGNUP=false`                                               |
+| Mail templates and subjects      | `push-templates.ts` after `PUBLIC_ORIGIN=https://grnyte.rocks npm run generate`                   | `GOTRUE_MAILER_TEMPLATES_*` URLs and `GOTRUE_MAILER_SUBJECTS_*`             |
 
 The Apple private relay settings belong to `add-social-sign-in`. The hook refuses every email
 sign-up without grnyte's `SIGNUP_MARKER`, so opening `disable_signup` before the hook is active

@@ -37,7 +37,8 @@ it('shows the new-password field only once confirmed, and changes nothing on the
   expect(saveButton().hasAttribute('disabled')).toBe(true)
 
   await confirmWithCode()
-  expect(newPassword()).toBeTruthy()
+  expect(document.activeElement).toBe(newPassword())
+  expect(screen.getByText('At least 8 characters.')).toBeTruthy()
   expect(command).not.toHaveBeenCalled()
 
   await fireEvent.input(newPassword()!, { target: { value: NEW } })

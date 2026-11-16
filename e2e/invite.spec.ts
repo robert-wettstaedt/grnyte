@@ -1,5 +1,5 @@
 /**
- * Invite somebody to a region, sign them up from the emailed link, and let them join.
+ * Invite somebody to a region, sign them up from the emailed link with a mailed code, and let them join.
  *
  * The point of the exercise: this flow is only correct if the mail, the signup and the token line
  * up in a real browser. Everything that is a refusal rather than a journey lives in
@@ -11,7 +11,7 @@
  * a template. What the spec asserts instead of reading it is the row's "Sent" line, which only
  * appears once `last_delivered_at` is stamped, that is, once Resend accepted the message.
  *
- * The GoTrue confirmation mail is read for real from the local mail catcher, because
+ * The GoTrue sign-up code is read for real from the local mail catcher's subject line, because
  * ENABLE_EMAIL_AUTOCONFIRM is false locally and that leg is otherwise untested.
  */
 import { expect, test, type Page } from '@playwright/test'
@@ -21,9 +21,10 @@ import { deleteAccountRows } from '../src/lib/db/testAccounts'
 import { reachable, seedUsers, sql, type SeedUser } from '../src/lib/db/testDb'
 // Same reason, and it resolves for the same one: `dto.ts` imports nothing at runtime, only types.
 import { acceptPath } from '../src/lib/entities/region/paths'
-import { adminClient, APP, assertLocalStack, reachableUrl, signIn, visit } from './support'
+import { adminClient, assertLocalStack, confirmAndCompleteProfile, reachableUrl, signIn, visit } from './support'
 
-const MAILBOX = 'http://localhost:9010'
+/** The stack's mail catcher: `E2E_MAILBOX=http://localhost:19010` for the auth branch's second stack. */
+const MAILBOX = process.env.E2E_MAILBOX ?? 'http://localhost:9010'
 
 const REGION = '__e2e_invite__'
 const ADMIN = 'maintainer@grnyte.rocks'
@@ -43,39 +44,20 @@ async function assertPrerequisites() {
   const extra: string[] = []
 
   if (!(await reachableUrl(`${MAILBOX}/api/v1/mailbox/e2e`))) {
-    extra.push('supabase-mail on :9010 (the local Supabase stack)')
+    extra.push(`the mail catcher at ${MAILBOX} (the local Supabase stack)`)
   }
   if (!process.env.RESEND_API_KEY) extra.push('RESEND_API_KEY in .env (the invite mail is sent for real)')
 
   await assertLocalStack(reachable, PASSWORD, extra)
 }
 
-async function confirmationToken(address: string): Promise<string | undefined> {
-  const box = `${MAILBOX}/api/v1/mailbox/${encodeURIComponent(address)}`
-  const inbox = await fetch(box).then((response) => response.json())
+/** The newest sign-up code GoTrue mailed `address`: grnyte's subject starts with it. */
+async function latestCode(address: string): Promise<string | undefined> {
+  const inbox = await fetch(`${MAILBOX}/api/v1/mailbox/${encodeURIComponent(address.split('@')[0])}`).then((response) =>
+    response.json(),
+  )
   if (!Array.isArray(inbox) || inbox.length === 0) return undefined
-
-  const message = await fetch(`${box}/${inbox[inbox.length - 1].id}`).then((response) => response.json())
-  const body = `${message?.body?.html ?? ''}\n${message?.body?.text ?? ''}`
-
-  return /[?&](?:token_hash|token)=([\w-]+)/.exec(body)?.[1]
-}
-
-/** The confirmation link GoTrue mailed, whichever template shape it used: our own
- *  `/auth/confirm?token_hash=` or the stock `/auth/v1/verify?token=`. Both carry the same hash,
- *  and our handler is what turns it into a session. */
-async function confirmationUrl(address: string): Promise<string> {
-  let token: string | undefined
-
-  // Polled, never slept on: the mail lands whenever GoTrue's SMTP round trip finishes.
-  await expect
-    .poll(async () => (token = await confirmationToken(address)), {
-      message: `no confirmation mail for ${address} in the local mail catcher`,
-      timeout: 30_000,
-    })
-    .toBeTruthy()
-
-  return `${APP}/auth/confirm?token_hash=${token}&type=signup&next=/explore`
+  return /^(\d{8}) /.exec(inbox[inbox.length - 1].subject ?? '')?.[1]
 }
 
 /**
@@ -89,6 +71,20 @@ async function confirmationUrl(address: string): Promise<string> {
  */
 function rowFor(page: Page, text: string) {
   return page.getByRole('button').filter({ hasText: text })
+}
+
+async function signupCode(address: string): Promise<string> {
+  let code: string | undefined
+
+  // Polled, never slept on: the mail lands whenever GoTrue's SMTP round trip finishes.
+  await expect
+    .poll(async () => (code = await latestCode(address)), {
+      message: `no sign-up code for ${address} in the local mail catcher`,
+      timeout: 30_000,
+    })
+    .toBeTruthy()
+
+  return code!
 }
 
 test.beforeAll(async () => {
@@ -149,15 +145,12 @@ test('an invited address signs up from the link and joins the region', async ({ 
   await expect(page.getByLabel('Email')).toBeFocused()
   await expect(page.getByLabel('Email')).toHaveValue(invitee)
 
-  await page.getByLabel('Username').fill(username)
   await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
-  await page.getByLabel('Confirm password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByText('Account created')).toBeVisible()
 
-  await page.goto(await confirmationUrl(invitee))
+  // --- the code, the profile step, then the widened authGuard hook hands them the invitation --
+  await confirmAndCompleteProfile(page, () => signupCode(invitee), username)
 
-  // --- the widened authGuard hook hands them the invitation ----------------------------------
   await page.waitForURL(/\/invite\/accept/)
   // Join is a Svelte click handler, so this leg needs the same wait for hydration that `visit`
   // does. It cannot use `visit` itself: the navigation here is the hook's redirect, not a goto.

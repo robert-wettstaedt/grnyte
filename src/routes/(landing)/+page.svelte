@@ -369,7 +369,8 @@
             >
               {m.landing_getStarted()}
             </a>
-            <a href={resolve('/auth/signin')} class="btn preset-tonal h-12.5 px-6 font-semibold">
+            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- `?form=signin`: the form, never the welcome fork -->
+            <a href={resolve('/auth/signin') + '?form=signin'} class="btn preset-tonal h-12.5 px-6 font-semibold">
               {m.auth_signIn()}
             </a>
           {/if}

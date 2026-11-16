@@ -2,10 +2,14 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import ProviderBlock from '$lib/auth/ProviderBlock.svelte'
+  import TermsAgree from '$lib/auth/TermsAgree.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import BotCheck from '$lib/forms/BotCheck.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { motion } from '$lib/state/motion.svelte'
+  import { fade } from 'svelte/transition'
   import { signUp } from './signup.remote'
   import SignupCodeStep from './SignupCodeStep.svelte'
 
@@ -15,23 +19,39 @@
   if (invited != null) {
     signUp.fields.set({ email: invited })
   }
+
+  // A bare sign-in link would land on the installed app's welcome fork, not the form.
+  const signInSearch = $derived(page.url.search || '?form=signin')
+
+  // The result outlives the step on the form's singleton, so "Go back" remembers which one it left.
+  let left = $state<unknown>()
+  const sent = $derived(signUp.result?.success && signUp.result !== left ? signUp.result : undefined)
 </script>
 
 <svelte:head>
-  <title>{m.auth_signUp()} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{m.auth_createAccount()} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-{#if signUp.result?.success}
-  <SignupCodeStep
-    email={signUp.result.email}
-    next={page.url.searchParams.get('next')}
-    resendToken={signUp.result.resendToken}
-  />
+{#if sent != null}
+  <div in:fade={{ duration: motion(150) }}>
+    <SignupCodeStep
+      email={sent.email}
+      next={page.url.searchParams.get('next')}
+      resendToken={sent.resendToken}
+      title={m.auth_codeTitle()}
+      subtitle={m.auth_codeSentTo({ email: sent.email })}
+      onback={() => {
+        left = sent
+        signUp.fields.set({ email: sent.email })
+      }}
+    />
+  </div>
 {:else}
-  <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_signUpTitle()}</h1>
-  <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">
+  <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_createAccount()}</h1>
+  <p class="text-surface-600-400 mb-5.5 text-[14.5px] leading-snug">
     {m.auth_signUpSubtitle()}
   </p>
+  <ProviderBlock />
 
   <form {...signUp} class="flex flex-col gap-4">
     <FormError form={signUp} />
@@ -51,15 +71,9 @@
       field={signUp.fields.password}
       label={m.auth_password()}
       type="password"
+      reveal
       placeholder={m.auth_passwordPlaceholderNew()}
-      autocomplete="new-password"
-      enterkeyhint="next"
-    />
-    <AuthField
-      field={signUp.fields.confirmPassword}
-      label={m.auth_confirmPassword()}
-      type="password"
-      placeholder={m.auth_confirmPasswordPlaceholder()}
+      hint={m.auth_passwordHint()}
       autocomplete="new-password"
       enterkeyhint="done"
     />
@@ -73,10 +87,11 @@
     </button>
   </form>
 
-  <p class="text-surface-600-400 mt-6 text-center text-[13.5px]">
+  <p class="text-surface-600-400 mt-5.5 text-center text-[13.5px]">
     {m.auth_haveAccount()}
     <!-- resolve()'d path plus a query string, which resolve() itself does not take -->
     <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-    <a href={resolve('/auth/signin') + page.url.search} class="text-primary-400 font-bold">{m.auth_signIn()}</a>
+    <a href={resolve('/auth/signin') + signInSearch} class="text-primary-600-400 font-bold">{m.auth_signIn()}</a>
   </p>
+  <TermsAgree />
 {/if}

@@ -56,10 +56,35 @@ export async function assertSameDocument(page: Page, hop: string) {
   ).toBe(true)
 }
 
+/** On the code step after "Create account": enters the code, then finishes the profile step. */
+export async function confirmAndCompleteProfile(page: Page, code: () => Promise<string>, username: string) {
+  // Awaited before `code()`, so a code minted by the admin API finds the account already made.
+  await expect(page.getByLabel('Code')).toBeVisible()
+  // A full 8-digit code submits itself; the session it makes is sent to the profile step.
+  await page.getByLabel('Code').fill(await code())
+
+  await page.waitForURL(/\/auth\/profile/)
+  await expect(page.getByLabel('Username')).toBeFocused()
+  await page.getByLabel('Username').fill(username)
+  await page.getByRole('button', { name: 'Continue' }).click()
+}
+
 /** A form control by its `name`. Spelled out because `[name="..."]` also matches the
  *  `<meta name="description">` in the head. */
 export function field(page: Page, name: string) {
   return page.locator(`input[name="${name}"], select[name="${name}"], textarea[name="${name}"]`)
+}
+
+/** Opens a sign-in or create-account screen and fills its email and password. */
+export async function fillCredentials(page: Page, path: string, email: string, password: string) {
+  await visit(page, path)
+
+  // Precise hydration signal: `autofocus` here is a Svelte attachment, so focus only lands once the
+  // component is alive.
+  await expect(page.getByLabel('Email')).toBeFocused()
+
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
 }
 
 /** Fields of the form under test, keyed by `name`; radios collapse to the checked one. Scoped to
@@ -142,14 +167,7 @@ export async function signedIn(browser: Browser, email: string, password: string
 }
 
 export async function signIn(page: Page, email: string, password: string) {
-  await visit(page, '/auth/signin')
-
-  // Precise hydration signal: `autofocus` here is a Svelte attachment, so focus only lands once the
-  // component is alive.
-  await expect(page.getByLabel('Email')).toBeFocused()
-
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password', { exact: true }).fill(password)
+  await fillCredentials(page, '/auth/signin', email, password)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await page.waitForURL(/\/explore/)
 }

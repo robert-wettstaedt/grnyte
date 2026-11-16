@@ -33,9 +33,10 @@
   />
 </div>
 
-<!-- On the wrapper, so a submit is held from the first render, before the widget script has loaded. -->
+<!-- On the wrapper, so a submit is held from the first render, before the widget script has loaded.
+     Out of flow, so the invisible widget takes no row (and no gap) in the form. -->
 <span
-  class="contents"
+  class="absolute"
   {@attach (wrapper) => holdUntilSolved(wrapper, () => wrapper.querySelector<Element & SolvingWidget>('altcha-widget'))}
 >
   {#if loaded}

@@ -155,6 +155,8 @@ export function createFormStore<Input extends Values, Output = Input>(
       if (!(await validate()).ok) {
         return { kind: 'invalid' }
       }
+      // A new attempt: the last refusal no longer describes anything.
+      issues = {}
       try {
         // A snapshot: Zero freezes a mutation's arguments, and a live proxy refuses that.
         return { kind: 'done', result: await run($state.snapshot(values) as Input) }

@@ -50,15 +50,17 @@ describe.skipIf(!reachable)('requireLiveSession', () => {
       return thrown as { body?: unknown; status?: number }
     }
   }
+  const runSession = (sessionId: string, signOut?: () => unknown) =>
+    run({
+      backendUnavailable: false,
+      claims: { session_id: sessionId, sub: user.authId },
+      supabase: { auth: { signOut } },
+    })
 
   it('answers 503 and signs nothing out when the read fails', async () => {
     const signOut = vi.fn()
     // Postgres refuses a malformed uuid, so the read itself throws.
-    const thrown = await run({
-      backendUnavailable: false,
-      claims: { session_id: 'not-a-uuid', sub: user.authId },
-      supabase: { auth: { signOut } },
-    })
+    const thrown = await runSession('not-a-uuid', signOut)
 
     expect(thrown).toMatchObject({ body: { message: formError('auth_serviceUnavailable') }, status: 503 })
     expect(signOut).not.toHaveBeenCalled()
@@ -69,11 +71,7 @@ describe.skipIf(!reachable)('requireLiveSession', () => {
     const id = await newSession()
     await sql`delete from auth.sessions where id = ${id}`
 
-    const thrown = await run({
-      backendUnavailable: false,
-      claims: { session_id: id, sub: user.authId },
-      supabase: { auth: { signOut } },
-    })
+    const thrown = await runSession(id, signOut)
 
     expect(thrown).toMatchObject({ body: { message: formError('auth_sessionEnded') }, status: 401 })
     expect(signOut).toHaveBeenCalledWith({ scope: 'local' })
@@ -89,6 +87,6 @@ describe.skipIf(!reachable)('requireLiveSession', () => {
 
   it('lets a live session through', async () => {
     const id = await newSession()
-    expect(await run({ backendUnavailable: false, claims: { session_id: id, sub: user.authId } })).toBeUndefined()
+    expect(await runSession(id)).toBeUndefined()
   })
 })

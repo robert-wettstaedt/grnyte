@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({ recipient: 9 }))
 
 vi.mock('$app/state', () => ({
   page: {
+    data: {},
     get params() {
       return { regionId: '1', userId: String(state.recipient) }
     },
@@ -35,7 +36,7 @@ vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.f
 vi.mock('$lib/state/navigation.svelte', async (original) => ({ ...(await original<object>()), exit: vi.fn() }))
 vi.mock('$lib/state/global.svelte', () => ({ getGlobalState: () => ({ user: { id: 7 }, userRegions: [] }) }))
 
-const submitButton = () => screen.getByRole('button', { name: 'Make owner' })
+const submitButton = () => screen.getByRole('button', { name: 'Hand over' })
 
 beforeEach(() => {
   state.recipient = 9
@@ -51,6 +52,7 @@ it('hands nothing over on a correct code, only on the submit', async () => {
   expect(submitButton().hasAttribute('disabled')).toBe(true)
   await confirmWithCode()
 
+  expect(screen.getByText('Press Hand over to make jonas the owner.')).toBeTruthy()
   expect(command).not.toHaveBeenCalled()
   await fireEvent.click(submitButton())
   await settle()
@@ -71,6 +73,7 @@ it('names another admin as the new owner', () => {
   render(Page)
 
   expect(screen.getByText(/jonas becomes the owner of Harz/)).toBeTruthy()
+  expect(screen.getByText('Admin of Harz')).toBeTruthy()
 })
 
 it('refuses a member who is not an admin', () => {

@@ -299,7 +299,7 @@ const content = (input: EmailInput, locale: EmailLocale) => {
   if (input.code != null) {
     rows.push(
       spacer(24),
-      `<tr><td class="well" bgcolor="${LIGHT.well}" style="background-color:${LIGHT.well};padding:20px 24px;"><div class="ink code-sm" style="${mono}font-size:34px;line-height:40px;mso-line-height-rule:exactly;font-weight:700;letter-spacing:5px;color:${LIGHT.ink};">${esc(input.code)}</div></td></tr>`,
+      `<tr><td class="well" align="center" bgcolor="${LIGHT.well}" style="background-color:${LIGHT.well};padding:20px 24px;text-align:center;"><div class="ink code-sm" style="${mono}font-size:34px;line-height:40px;mso-line-height-rule:exactly;font-weight:700;letter-spacing:5px;color:${LIGHT.ink};">${esc(input.code)}</div></td></tr>`,
     )
   }
 

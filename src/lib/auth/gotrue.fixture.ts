@@ -1,6 +1,7 @@
 /** For GoTrue tests: the branch's local GoTrue, probed once, and a client on the publishable key. */
 import 'dotenv/config'
 import { SIGNUP_MARKER } from '$lib/auth'
+import { verifyAccessToken } from '$lib/auth/verify.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
@@ -22,6 +23,17 @@ export const publicClient = (): SupabaseClient =>
   createClient(url, process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '', {
     auth: { autoRefreshToken: false, persistSession: false },
   })
+
+/** A device signed in by a code, with the locals its requests carry. */
+export async function codeDevice(email: string) {
+  const client = await codeSignedIn(email)
+  const verified = await verifyAccessToken((await client.auth.getSession()).data.session?.access_token)
+  if (!verified.ok) throw new Error(`session did not verify: ${verified.reason}`)
+  return {
+    client,
+    locals: { backendUnavailable: false, claims: verified.claims, supabase: client, verifiedToken: verified.token },
+  }
+}
 
 /** A client signed in by a code the admin API hands out instead of mailing. */
 export async function codeSignedIn(email: string): Promise<SupabaseClient> {

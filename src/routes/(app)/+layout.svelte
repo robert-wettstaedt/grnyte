@@ -120,7 +120,7 @@
   // The safety net under that. The listener above waits on a Supabase event, which an installed iOS
   // web app was measured never receiving; this reads Zero's connection state itself.
   $effect(() => {
-    const supabase = data?.supabase
+    const supabase = data.supabase
     const connection = getZ().connectionState.name
 
     const delay = supabase == null ? null : authRetryDelay(connection, lastAuthAttemptAt(), Date.now())

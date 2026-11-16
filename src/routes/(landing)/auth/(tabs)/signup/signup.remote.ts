@@ -15,19 +15,18 @@ import { checkPassword } from '$lib/auth/passwordPolicy.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { botFields } from '$lib/forms/botCheck'
 import { screenSubmit } from '$lib/forms/botCheck.server'
-import { formError, passwordSchema, passwordsMatch } from '$lib/forms/schemas'
+import { formError, passwordSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { refuseCommand } from '$lib/remote/authed.server'
 import { invalid } from '@sveltejs/kit'
 
-const signUpSchema = z
-  .object({
-    ...botFields,
-    confirmPassword: z.string({ error: formError('form_required') }),
-    email: z.email({ error: formError('form_required') }),
-    password: passwordSchema,
-  })
-  .check(passwordsMatch)
+// `confirmPassword` is optional for one release: a tab loaded before the single field still sends it.
+const signUpSchema = z.object({
+  ...botFields,
+  confirmPassword: z.optional(z.string()),
+  email: z.email({ error: formError('form_required') }),
+  password: passwordSchema,
+})
 
 const codeSchema = z.object({
   code: z.string({ error: formError('form_required') }),

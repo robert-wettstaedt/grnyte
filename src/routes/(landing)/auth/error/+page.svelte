@@ -15,5 +15,8 @@
 <div class="card preset-tonal-error px-4 py-6 text-center text-sm" role="alert">
   <p class="font-bold">{m.auth_linkInvalid()}</p>
   <p class="text-surface-600-400 mt-1">{m.auth_linkInvalidBody()}</p>
-  <a href={resolve('/auth/signin')} class="text-primary-400 mt-3 inline-block font-bold">{m.auth_backToSignIn()}</a>
+  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- `?form=signin`: the form, never the welcome fork -->
+  <a href={resolve('/auth/signin') + '?form=signin'} class="text-primary-400 mt-3 inline-block font-bold">
+    {m.auth_backToSignIn()}
+  </a>
 </div>

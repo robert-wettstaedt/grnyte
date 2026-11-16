@@ -267,3 +267,42 @@ derived from the event's real foreign keys, never a stored polymorphic pair.
 A card row whose entity is gone, named off the newest line that named it. The only other row
 state is `entity`: there is no pending state, because an entity arrives nested with the row
 that names it.
+
+## Accounts and sign-in
+
+Copy says "Sign in" ("Anmelden") and "Create account" ("Konto erstellen"), never "Sign up" beside
+"Sign in". In user copy "confirm" only ever means confirming an email address or "confirm it's you".
+
+**signed-in device**
+One sign-in on one browser or installed app: an auth session (`auth.sessions`) in code. Copy says
+"device" ("Sign out other devices", "This device"), never "session", which means a climbing visit.
+
+**sign-in method**
+A way an account can sign in: `email` (a password) today, a social provider later
+(`signInMethods`). Mails that name how to get back in list these.
+
+**re-authentication**
+Proving it is still you before a sensitive action (password, email, account deletion, region
+handover), by a mailed code. Copy says "Confirm it's you", never "re-authenticate".
+
+**profile step**
+The screen after a first sign-in that sets the username and grading scale (`/auth/profile`). An
+account without a profile row is held there; one carrying a **deletion marker** is refused.
+
+### Internal terms
+
+**grant**
+The stored proof of a **re-authentication** (`reauth_grants`): one action, one signed-in device,
+valid 5 minutes (`GRANT_LIFETIME_MS`). Never in copy, which says "confirmed it's you", so it cannot
+collide with "confirmation" of an email address.
+
+**confirmer**
+A way to produce a **grant**: the mailed code today, "Confirm with Apple" in a later change.
+
+**contested**
+An unconfirmed account that a second sign-up or a password reset reached before its owner
+confirmed it. Its password is replaced on confirmation, so whoever holds the mailbox wins.
+
+**deletion marker**
+The `account_deleted` row in `auth_events` that keeps a deleted account from making a new profile.
+Named so, not "tombstone", which is an event card's.

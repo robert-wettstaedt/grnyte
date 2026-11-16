@@ -89,7 +89,7 @@ export const passwordSchema = z.pipe(
   z
     .string()
     .check(
-      z.minLength(8, { error: formError('form_charsMin', { count: 8 }) }),
+      z.minLength(8, { error: formError('auth_passwordTooShort') }),
       z.refine(within72Bytes, { error: formError('auth_passwordTooLong') }),
     ),
 )

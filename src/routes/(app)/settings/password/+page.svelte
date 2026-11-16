@@ -52,8 +52,16 @@
   submitLabel={m.common_save()}
   title={m.settings_changePassword()}
 >
+  <p class="text-surface-600-400 text-[14.5px] leading-normal">{m.settings_passwordIntro()}</p>
+
   <!-- A confirmed code, not the current password, stops a stolen session from taking the account. -->
-  <ReauthStep bind:this={step} bind:confirmed action="password.change" target="self" />
+  <ReauthStep
+    bind:this={step}
+    bind:confirmed
+    action="password.change"
+    email={page.data.session?.user.email ?? ''}
+    target="self"
+  />
 
   {#if confirmed}
     <div transition:slide={{ duration: motion(150) }}>
@@ -61,9 +69,11 @@
         field={store.fields.password}
         label={m.auth_newPassword()}
         type="password"
-        placeholder={m.auth_passwordPlaceholderNew()}
+        reveal
+        hint={m.auth_passwordHint()}
         autocomplete="new-password"
         enterkeyhint="go"
+        autofocus
       />
     </div>
   {/if}

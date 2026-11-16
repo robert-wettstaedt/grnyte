@@ -5,12 +5,14 @@
   import { resolveIssueMessage } from './issue'
 
   interface Props {
+    /** Replaces the default error text style. */
+    errorClass?: string
     hint?: string
     id?: null | string
     issues?: RemoteFormIssue[]
   }
 
-  let { hint, id, issues = [] }: Props = $props()
+  let { errorClass = 'text-error-500 text-sm opacity-80', hint, id, issues = [] }: Props = $props()
 
   const duration = $derived(motion(150))
 </script>
@@ -20,7 +22,7 @@
 {#if issues.length > 0}
   <div id={id == null ? undefined : `${id}-error`} role="alert" transition:slide={{ duration }}>
     {#each issues as issue, i (i)}
-      <p class="text-error-500 text-sm opacity-80">
+      <p class={errorClass}>
         {resolveIssueMessage(issue.message)}
       </p>
     {/each}

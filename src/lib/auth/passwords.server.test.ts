@@ -4,7 +4,6 @@
  */
 import { CONTESTED_SIGNUP } from '$lib/auth'
 import { sessionCaller, writeGrant } from '$lib/auth/reauth.server'
-import { verifyAccessToken } from '$lib/auth/verify.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { sql } from '$lib/db/testDb'
 import { asAnonymousRequest, callForm, withLocals } from '$lib/remote/testHarness'
@@ -12,7 +11,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { updatePasswordCommand } from '../../routes/(app)/settings/account.remote'
 import { signIn } from '../../routes/(landing)/auth/(tabs)/signin/signin.remote'
-import { codeSignedIn, createAccount as createGrnyteAccount, gotrueReachable, publicClient } from './gotrue.fixture'
+import {
+  createAccount as createGrnyteAccount,
+  codeDevice as device,
+  gotrueReachable,
+  publicClient,
+} from './gotrue.fixture'
 
 const INBUCKET = 'http://127.0.0.1:19010/api/v1/mailbox'
 
@@ -32,14 +36,6 @@ async function createAccount(email: string, init: { confirmed?: boolean; passwor
   const id = await createGrnyteAccount(email, init)
   created.push(id)
   return id
-}
-
-/** A device signed in by a code the admin API hands out, with the locals its requests carry. */
-async function device(email: string) {
-  const client = await codeSignedIn(email)
-  const verified = await verifyAccessToken((await client.auth.getSession()).data.session?.access_token)
-  if (!verified.ok) throw new Error(`session did not verify: ${verified.reason}`)
-  return { client, locals: { claims: verified.claims, supabase: client, verifiedToken: verified.token } }
 }
 
 /** Confirms, then changes the password as `locals`' device would. */

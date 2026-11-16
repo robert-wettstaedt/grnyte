@@ -13,7 +13,7 @@ const state = vi.hoisted(() => ({
 }))
 
 vi.mock('$app/state', () => ({
-  page: { params: { regionId: '1' }, url: new URL('http://localhost/regions/1/delete') },
+  page: { data: {}, params: { regionId: '1' }, url: new URL('http://localhost/regions/1/delete') },
 }))
 vi.mock('$lib/entities/region/resources.svelte', () => ({
   regionDetail: () => ({
@@ -32,7 +32,7 @@ vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.f
 vi.mock('$lib/state/global.svelte', () => ({ getGlobalState: () => ({ user: { id: 7 }, userRegions: [] }) }))
 vi.mock('$lib/state/navigation.svelte', async (original) => ({ ...(await original<object>()), exit: vi.fn() }))
 
-const submitButton = () => screen.getByRole('button', { name: 'Delete region' })
+const submitButton = () => screen.getByRole('button', { name: 'Delete' })
 const nameField = () => screen.getByLabelText('Type Harz to confirm') as HTMLInputElement
 
 beforeEach(() => {
@@ -49,7 +49,7 @@ it('says who loses what, then asks for the name once confirmed', async () => {
 
   expect(screen.getByText('2 other members lose access and get an email.')).toBeTruthy()
   expect(screen.getByText('Their 3 ascents go too.')).toBeTruthy()
-  expect(nameField()).toBeTruthy()
+  expect(document.activeElement).toBe(nameField())
   expect(submitButton().hasAttribute('disabled')).toBe(false)
 })
 
