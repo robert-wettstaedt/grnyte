@@ -238,7 +238,7 @@ sets, or every person shares the proxy's address in GoTrue's limits.
 
 grnyte relies on GoTrue behaviours that no release promises (an admin password update mails nothing
 and ends every session, the email change order, the send-wait message, and more). They are pinned
-in `src/lib/auth/gotrue.contract.server.test.ts`, each test naming the grnyte code that depends on
+in `src/lib/auth/server/gotrue.contract.server.test.ts`, each test naming the grnyte code that depends on
 it, and were last measured on `GOTRUE_CONTRACT_VERSION` in `deployment/authConfig.ts`. Hosted
 Supabase upgrades GoTrue without notice, so `npm run check:prod` reads `/auth/v1/health` and fails
 naming both versions when the hosted one differs from the pin. When it does:

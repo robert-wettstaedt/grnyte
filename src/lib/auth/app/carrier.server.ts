@@ -1,7 +1,7 @@
-import { recordAuthEvent } from '$lib/auth/events.server'
 import { sha256hex } from '$lib/auth/oauth/providers.server'
 import { seal, unseal } from '$lib/auth/oauth/seal.server'
 import type { OAuthTransaction, TransactionCarrier, VerifiedProof } from '$lib/auth/oauth/transaction.server'
+import { recordAuthEvent } from '$lib/auth/server/events.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { appAuthFlows } from '$lib/db/serverOnly'
 import { redirect } from '@sveltejs/kit'

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PROVIDER_NAMES, type OAuthProvider } from '$lib/auth'
-  import AppleLogo from '$lib/auth/AppleLogo.svelte'
-  import GoogleLogo from '$lib/auth/GoogleLogo.svelte'
-  import ReauthStep from '$lib/auth/ReauthStep.svelte'
+  import AppleLogo from '$lib/auth/methods/AppleLogo.svelte'
+  import GoogleLogo from '$lib/auth/methods/GoogleLogo.svelte'
+  import ReauthStep from '$lib/auth/reauth/ReauthStep.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'

@@ -1,5 +1,5 @@
 import { compactDecrypt, CompactEncrypt } from 'jose'
-import { labelledKey } from '../keys.server'
+import { labelledKey } from '../server/keys.server'
 
 const key = (info: string) => Buffer.from(labelledKey(`seal:${info}`), 'hex')
 

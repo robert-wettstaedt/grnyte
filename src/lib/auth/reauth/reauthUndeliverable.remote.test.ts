@@ -13,7 +13,7 @@ vi.mock('$lib/email/shell', async (actual) => ({
 }))
 
 const { reachable, sql } = await import('$lib/db/testDb')
-const { addressHash } = await import('$lib/auth/mailForwarding.server')
+const { addressHash } = await import('$lib/auth/server/mailForwarding.server')
 const { asRequest, commandRefusal } = await import('$lib/remote/testHarness')
 const { requestReauthCode } = await import('./reauth.remote')
 

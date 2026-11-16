@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { hasGrant, writeGrant } from '$lib/auth/reauth.server'
+import { hasGrant, writeGrant } from '$lib/auth/reauth/reauth.server'
 import { db } from '$lib/db/db.server'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { sql as drizzleSql } from 'drizzle-orm'

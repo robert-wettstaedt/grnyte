@@ -1,5 +1,5 @@
 import { command, form, getRequestEvent, query } from '$app/server'
-import { requireLiveSession } from '$lib/auth/session.server'
+import { requireLiveSession } from '$lib/auth/server/session.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { feedback, users, userSettings } from '$lib/db/schema'
 import { feedbackReplyEmailContent } from '$lib/email/feedback'

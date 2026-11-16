@@ -1,5 +1,5 @@
 import { appEndpoint } from '$lib/auth/app/endpoint.server'
-import { signOutOthers } from '$lib/auth/session.server'
+import { signOutOthers } from '$lib/auth/server/session.server'
 
 export const POST = appEndpoint('sessions/sign-out-others', {
   auth: 'bearer',

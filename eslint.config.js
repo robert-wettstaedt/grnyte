@@ -151,9 +151,9 @@ const noDynamicPrivateEnv = [
   },
 ]
 const SECRET_KEY_READERS = [
-  'src/lib/auth/authServer.server.ts',
+  'src/lib/auth/server/authServer.server.ts',
   'src/lib/db/supabaseAdmin.server.ts',
-  'src/lib/auth/keys.server.ts',
+  'src/lib/auth/server/keys.server.ts',
   'e2e/**',
 ]
 

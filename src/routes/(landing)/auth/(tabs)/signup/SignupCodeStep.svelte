@@ -1,5 +1,5 @@
 <script lang="ts">
-  import MailedCodeStep from '$lib/auth/MailedCodeStep.svelte'
+  import MailedCodeStep from '$lib/auth/codes/MailedCodeStep.svelte'
   import HiddenBotForm from '$lib/forms/HiddenBotForm.svelte'
   import { confirmSignupCode, resendSignupCode } from './signup.remote'
 

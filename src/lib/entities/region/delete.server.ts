@@ -1,4 +1,4 @@
-import { spendGrant, type ReauthCaller } from '$lib/auth/reauth.server'
+import { spendGrant, type ReauthCaller } from '$lib/auth/reauth/reauth.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { activities } from '$lib/db/retired'
 import * as schema from '$lib/db/schema'

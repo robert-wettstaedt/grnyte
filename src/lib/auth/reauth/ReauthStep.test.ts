@@ -7,7 +7,7 @@ import { enterCode, methods, reauthRemote as remote, resetReauthRemote } from '.
 import Fixture from './ReauthStepFixture.svelte'
 
 vi.mock('./reauth.remote', async () => (await import('./reauth.fixture')).reauthRemote)
-vi.mock('./identities.remote', async () => (await import('./reauth.fixture')).identitiesRemote)
+vi.mock('../methods/identities.remote', async () => (await import('./reauth.fixture')).identitiesRemote)
 vi.mock('$lib/state/wipe', () => ({ wipeAndLeave: vi.fn(async () => {}) }))
 
 let onformsubmit = vi.fn()

@@ -4,7 +4,7 @@
 
 See proposal.md for why. The current state this design starts from:
 
-- **Verification.** `src/lib/auth/verify.server.ts` is the only place a `sub` becomes trusted. It
+- **Verification.** `src/lib/auth/server/verify.server.ts` is the only place a `sub` becomes trusted. It
   reads `SUPABASE_JWT_SECRET` from `$env/static/private` (line 2) and an optional
   `SUPABASE_JWT_JWKS_URL` / `SUPABASE_JWT_ISSUER` from `$env/dynamic/private` (lines 44, 51), builds
   `algorithms` from what is configured (line 55) and lets `resolveKey` (lines 72-85) send an HS256
@@ -186,7 +186,7 @@ so does `supabaseAuthServer`. Whether hosted GoTrue's admin API and Storage acce
 no Bearer is checked by a probe at runbook step 5 (a `getUserById` and a staging-bucket `list`); if
 either refuses, step 5 is rolled back.
 
-New file `src/lib/auth/authServer.server.ts`, beside `verify.server.ts` and `mail.server.ts`:
+New file `src/lib/auth/server/authServer.server.ts`, beside `verify.server.ts` and `mail.server.ts`:
 
 ```ts
 export type AuthServer = Pick<SupabaseClient['auth'], 'resend'>
@@ -212,7 +212,7 @@ export function supabaseAuthServer(event: Pick<RequestEvent, 'getClientAddress'>
   Whether Vercel overwrites or appends a client-sent `X-Forwarded-For` is recorded by the deployed
   probe at step 5.
 
-`src/lib/auth/mail.server.ts`'s `mailSignupConfirmation` takes an `AuthServer`, and its two callers
+`src/lib/auth/server/mail.server.ts`'s `mailSignupConfirmation` takes an `AuthServer`, and its two callers
 (`signup.remote.ts:96`, `forgot-password.remote.ts:31`) pass `supabaseAuthServer(getRequestEvent())`;
 their tests mock `$lib/auth/authServer.server`. `resend({ type: 'signup' })` sends no PKCE challenge,
 so the flow type does not change the mail. `mailPasswordReset` stays on `locals.supabase` (PKCE

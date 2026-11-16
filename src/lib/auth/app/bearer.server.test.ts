@@ -3,11 +3,11 @@ import type { VerifiedToken } from '$lib/auth'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('$lib/db/db.server', () => ({ db: {} }))
-vi.mock('$lib/auth/verify.server', async (actual) => ({ ...(await actual()), verifyAccessToken: vi.fn() }))
-vi.mock('$lib/auth/session.server', () => ({ isSessionLive: vi.fn() }))
+vi.mock('$lib/auth/server/verify.server', async (actual) => ({ ...(await actual()), verifyAccessToken: vi.fn() }))
+vi.mock('$lib/auth/server/session.server', () => ({ isSessionLive: vi.fn() }))
 
-const { verifyAccessToken } = await import('$lib/auth/verify.server')
-const { isSessionLive } = await import('$lib/auth/session.server')
+const { verifyAccessToken } = await import('$lib/auth/server/verify.server')
+const { isSessionLive } = await import('$lib/auth/server/session.server')
 const getPageState = vi.fn()
 const { bearerSession } = await import('./bearer.server')
 

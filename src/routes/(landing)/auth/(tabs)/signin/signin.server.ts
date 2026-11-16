@@ -1,7 +1,7 @@
 import { getRequestEvent } from '$app/server'
-import { supabaseAuthServer } from '$lib/auth/authServer.server'
-import { endSession, issueResendToken } from '$lib/auth/contested.server'
-import { gotrueRefusal, sendCode } from '$lib/auth/mail.server'
+import { supabaseAuthServer } from '$lib/auth/server/authServer.server'
+import { endSession, issueResendToken } from '$lib/auth/server/contested.server'
+import { gotrueRefusal, sendCode } from '$lib/auth/server/mail.server'
 import { normalizePassword } from '$lib/forms/schemas'
 
 /**

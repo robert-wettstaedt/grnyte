@@ -2,7 +2,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import MailedCodeStep from '$lib/auth/MailedCodeStep.svelte'
+  import MailedCodeStep from '$lib/auth/codes/MailedCodeStep.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import BotCheck from '$lib/forms/BotCheck.svelte'
   import FormError from '$lib/forms/FormError.svelte'

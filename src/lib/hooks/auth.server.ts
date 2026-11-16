@@ -5,7 +5,7 @@ import { APP_HOME_PATH, AUTH_PATH, CONTINUE_PATH, nextDestination, signedInRedir
 import { anonymousSession, bearerSession } from '$lib/auth/app/bearer.server'
 import { APP_RETURN_PATH } from '$lib/auth/app/constants'
 import { APP_ERROR_CODES, appError, NO_STORE } from '$lib/auth/app/v1'
-import { verifyAccessToken } from '$lib/auth/verify.server'
+import { verifyAccessToken } from '$lib/auth/server/verify.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
 import { findLiveInvitationByEmail } from '$lib/entities/region/invite.server'

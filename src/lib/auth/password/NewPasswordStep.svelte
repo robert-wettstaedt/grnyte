@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { setNewPassword } from '$lib/auth/password.remote'
+  import { setNewPassword } from '$lib/auth/password/password.remote'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'

@@ -4,21 +4,21 @@
  */
 import { CONTESTED_SIGNUP } from '$lib/auth'
 import { cookieJar } from '$lib/auth/oauth/cookieJar.fixture'
-import { sessionCaller, writeGrant } from '$lib/auth/reauth.server'
+import { sessionCaller, writeGrant } from '$lib/auth/reauth/reauth.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { sql } from '$lib/db/testDb'
 import { asAnonymousRequest, callForm, withLocals } from '$lib/remote/testHarness'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, describe, expect, it, vi } from 'vitest'
-import { updatePasswordCommand } from '../../routes/(app)/settings/account.remote'
-import { signIn } from '../../routes/(landing)/auth/(tabs)/signin/signin.remote'
+import { updatePasswordCommand } from '../../../routes/(app)/settings/account.remote'
+import { signIn } from '../../../routes/(landing)/auth/(tabs)/signin/signin.remote'
 import {
   createAccount as createGrnyteAccount,
   codeDevice as device,
   gotrueReachable,
   makeSocialOnly,
   publicClient,
-} from './gotrue.fixture'
+} from '../server/gotrue.fixture'
 
 // grnyte's own mails go through Resend, never the stack's mail catcher: recorded here instead.
 const sent = vi.hoisted(() => [] as { template: string; to: string }[])

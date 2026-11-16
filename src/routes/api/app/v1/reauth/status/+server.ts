@@ -1,5 +1,5 @@
 import { appEndpoint } from '$lib/auth/app/endpoint.server'
-import { reauthGrantStatus } from '$lib/auth/reauthSteps.server'
+import { reauthGrantStatus } from '$lib/auth/reauth/reauthSteps.server'
 
 export const GET = appEndpoint('reauth/status', {
   auth: 'bearer',

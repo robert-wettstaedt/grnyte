@@ -1,5 +1,5 @@
 import { remoteResource } from '$lib/components/QueryState/remoteResource'
-import { signInMethodsQuery } from './identities.remote'
+import { signInMethodsQuery } from '../methods/identities.remote'
 
 /** The account has Apple and this origin offers it. */
 export const appleOffered = (methods: { configured: string[]; providers: { apple: { linked: boolean } } }): boolean =>

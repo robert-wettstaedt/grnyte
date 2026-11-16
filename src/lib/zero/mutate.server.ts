@@ -1,4 +1,4 @@
-import { isSessionLive } from '$lib/auth/session.server'
+import { isSessionLive } from '$lib/auth/server/session.server'
 import { db } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { isAuthoredMessage } from '$lib/forms/issue'

@@ -5,7 +5,7 @@ import {
   reauthRemote,
   resetReauthRemote,
   submitNeedingConfirmation,
-} from '$lib/auth/reauth.fixture'
+} from '$lib/auth/reauth/reauth.fixture'
 import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
 import { fireEvent, render, screen } from '@testing-library/svelte'
@@ -39,8 +39,11 @@ vi.mock('$lib/entities/region/resources.svelte', () => ({
 }))
 const command = vi.hoisted(() => vi.fn(async (_: unknown) => {}))
 vi.mock('$lib/entities/region/regions.remote', () => ({ transferRegionOwnershipCommand: command }))
-vi.mock('$lib/auth/reauth.remote', async () => (await import('$lib/auth/reauth.fixture')).reauthRemote)
-vi.mock('$lib/auth/identities.remote', async () => (await import('$lib/auth/reauth.fixture')).identitiesRemote)
+vi.mock('$lib/auth/reauth/reauth.remote', async () => (await import('$lib/auth/reauth/reauth.fixture')).reauthRemote)
+vi.mock(
+  '$lib/auth/methods/identities.remote',
+  async () => (await import('$lib/auth/reauth/reauth.fixture')).identitiesRemote,
+)
 vi.mock('$lib/state/navigation.svelte', async (original) => ({ ...(await original<object>()), exit: vi.fn() }))
 vi.mock('$lib/state/global.svelte', () => ({ getGlobalState: () => ({ user: { id: 7 }, userRegions: [] }) }))
 

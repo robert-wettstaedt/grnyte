@@ -1,6 +1,6 @@
 import { getRequestEvent } from '$app/server'
 // @vitest-environment node
-import { hasGrant, issueReauthCode, sessionCaller, writeGrant } from '$lib/auth/reauth.server'
+import { hasGrant, issueReauthCode, sessionCaller, writeGrant } from '$lib/auth/reauth/reauth.server'
 import {
   createThrowawayUser,
   dropThrowawayUser,
@@ -48,10 +48,10 @@ vi.mock('$lib/db/supabaseAdmin.server', () => ({
     }
   },
 }))
-vi.mock('$lib/auth/passwordPolicy.server', () => ({
+vi.mock('$lib/auth/password/passwordPolicy.server', () => ({
   checkPassword: async () => (admin.breached ? 'breached' : 'ok'),
 }))
-vi.mock('$lib/auth/authServer.server', () => ({
+vi.mock('$lib/auth/server/authServer.server', () => ({
   supabaseAuthServer: () => ({
     signInWithPassword: async () => ({ data: { session: { ...SESSION, user: {} } }, error: null }),
   }),
@@ -67,7 +67,7 @@ vi.mock('$lib/email/send.server', async () =>
     gotrue.mails.push({ template, to }),
   ),
 )
-vi.mock('$lib/auth/events.server', () => ({ noteMailRefusal: async () => {} }))
+vi.mock('$lib/auth/server/events.server', () => ({ noteMailRefusal: async () => {} }))
 vi.mock('$lib/logging/failure.server', () => ({ logServerFailure: async () => {} }))
 
 let user: SeedUser

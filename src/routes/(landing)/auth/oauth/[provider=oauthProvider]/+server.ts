@@ -1,7 +1,7 @@
 import { oauthReturnTarget, REAUTH_ACTIONS, REAUTH_TARGET_MAX, type ReauthAction } from '$lib/auth'
 import { startOAuth } from '$lib/auth/oauth/flow.server'
 import type { OAuthProvider } from '$lib/auth/oauth/providers.server'
-import { boundTarget, reauthCaller } from '$lib/auth/reauth.server'
+import { boundTarget, reauthCaller } from '$lib/auth/reauth/reauth.server'
 import { error, redirect } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
 

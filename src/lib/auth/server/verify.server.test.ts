@@ -1,7 +1,7 @@
 /** The verifier is a pure function of (token, keys), so it is tested here with no GoTrue at all. */
 import { env } from '$env/dynamic/private'
 import { CONTESTED_SIGNUP, type VerifiedToken } from '$lib/auth'
-import { createAccessTokenVerifier, parseBearer, verifyAccessToken } from '$lib/auth/verify.server'
+import { createAccessTokenVerifier, parseBearer, verifyAccessToken } from '$lib/auth/server/verify.server'
 import {
   createLocalJWKSet,
   createRemoteJWKSet,

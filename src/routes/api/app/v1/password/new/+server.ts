@@ -1,5 +1,5 @@
 import { appEndpoint, checkValue } from '$lib/auth/app/endpoint.server'
-import { setNewPassword } from '$lib/auth/password.server'
+import { setNewPassword } from '$lib/auth/password/password.server'
 import { passwordSchema } from '$lib/forms/schemas'
 
 export const POST = appEndpoint('password/new', {

@@ -9,9 +9,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // below.
 vi.mock('$lib/db/db.server', () => ({ db: {} }))
 vi.mock('$lib/entities/region/invite.server', () => ({ findLiveInvitationByEmail: vi.fn() }))
-vi.mock('$lib/auth/verify.server', async (actual) => ({ ...(await actual()), verifyAccessToken: vi.fn() }))
+vi.mock('$lib/auth/server/verify.server', async (actual) => ({ ...(await actual()), verifyAccessToken: vi.fn() }))
 const live = vi.hoisted(() => ({ sessions: new Set<string>() }))
-vi.mock('$lib/auth/session.server', () => ({
+vi.mock('$lib/auth/server/session.server', () => ({
   isSessionLive: vi.fn(async (_db: unknown, claims: { session_id?: string }) =>
     live.sessions.has(claims.session_id ?? ''),
   ),
@@ -25,7 +25,7 @@ vi.mock('@supabase/ssr', () => ({ createServerClient: vi.fn(() => ({ auth: { get
 vi.mock('@supabase/supabase-js', async (actual) => ({ ...(await actual()), createClient: vi.fn(() => ({ auth: {} })) }))
 
 const { findLiveInvitationByEmail } = await import('$lib/entities/region/invite.server')
-const { verifyAccessToken } = await import('$lib/auth/verify.server')
+const { verifyAccessToken } = await import('$lib/auth/server/verify.server')
 const { hasDeletionMarker } = await import('$lib/entities/user/provision.server')
 const { createServerClient } = await import('@supabase/ssr')
 const { authGuard, supabase } = await import('$lib/hooks/auth.server')

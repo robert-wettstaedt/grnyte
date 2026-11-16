@@ -1,5 +1,5 @@
 import { command, getRequestEvent, query } from '$app/server'
-import { requireLiveSession } from '$lib/auth/session.server'
+import { requireLiveSession } from '$lib/auth/server/session.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { clientErrorLogs } from '$lib/db/schema'
 import * as z from '$lib/forms/zod'

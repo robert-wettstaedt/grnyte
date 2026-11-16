@@ -1,5 +1,5 @@
 import type { VerifiedClaims } from '$lib/auth'
-import { verifyAccessToken } from '$lib/auth/verify.server'
+import { verifyAccessToken } from '$lib/auth/server/verify.server'
 import { getUserPermissions } from '$lib/hooks/auth.server'
 import { error } from '@sveltejs/kit'
 

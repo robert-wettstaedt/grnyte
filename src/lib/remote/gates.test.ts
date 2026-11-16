@@ -201,19 +201,19 @@ const MUTATOR_WRAPPERS = new Set(['defineServerMutator'])
  * silently carrying its exemption to a different function.
  */
 const NO_GATE: Record<string, string> = {
-  'lib/auth/identities.remote.ts#mailForwardingQuery':
+  'lib/auth/methods/identities.remote.ts#mailForwardingQuery':
     "Takes no input: reads only the live caller's own address and whether Apple still forwards to it (`requireLiveSession`).",
-  'lib/auth/identities.remote.ts#signInMethodsQuery':
+  'lib/auth/methods/identities.remote.ts#signInMethodsQuery':
     "Takes no input: reads only the live caller's own identities and password flag (`requireLiveSession`).",
-  'lib/auth/identities.remote.ts#unlinkProvider':
+  'lib/auth/methods/identities.remote.ts#unlinkProvider':
     "Removes only the caller's own identity through its own session client, behind an `identity.unlink` grant for its own session (`reauthCaller`, `hasGrant`) that the identity trigger spends.",
-  'lib/auth/password.remote.ts#setNewPassword':
+  'lib/auth/password/password.remote.ts#setNewPassword':
     "Acts only on the caller's own session and refuses unless a code was verified on it within 10 minutes (`amr`).",
-  'lib/auth/reauth.remote.ts#confirmReauthCode':
+  'lib/auth/reauth/reauth.remote.ts#confirmReauthCode':
     'Writes a grant bound to the verified caller and its session (`reauthCaller`, 401 without `session_id`); the action that later spends it gates itself.',
-  'lib/auth/reauth.remote.ts#reauthGrantStatus':
+  'lib/auth/reauth/reauth.remote.ts#reauthGrantStatus':
     "Reads only the caller's own grant for its own session (`reauthCaller`), answering confirmed or not.",
-  'lib/auth/reauth.remote.ts#requestReauthCode':
+  'lib/auth/reauth/reauth.remote.ts#requestReauthCode':
     "Mails a code to the session's own verified address for its own session (`reauthCaller`), capped at 5 an hour; it grants nothing by itself.",
   'lib/auth/session.remote.ts#sendPasswordReset':
     "Takes no input: mails the standard reset link to the session's own verified address, which only that inbox can use.",
@@ -477,7 +477,7 @@ const liveScope = handlers.filter((handler) => AUTH_FILES.test(handler.file) || 
 
 /** Auth exports that run before a session exists, or on one that cannot be checked this way. */
 const PRE_SESSION: Record<string, string> = {
-  'lib/auth/password.remote.ts#setNewPassword':
+  'lib/auth/password/password.remote.ts#setNewPassword':
     'Runs on the session a reset code just made, and checks its `amr` for that code instead.',
   'lib/auth/session.remote.ts#signOut':
     'Ends the session the request carries; a revoked one must still clear its cookies.',

@@ -3,7 +3,7 @@
  * address, and leaves the confirmation code to GoTrue's resend.
  */
 import { CONTESTED_SIGNUP, SIGNUP_MARKER } from '$lib/auth'
-import { issueResendToken } from '$lib/auth/contested.server'
+import { issueResendToken } from '$lib/auth/server/contested.server'
 import { deleteAccountRows } from '$lib/db/testAccounts'
 import { deleteStaleFixtureAccounts, fixtureRun, reachable, sql } from '$lib/db/testDb'
 import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
@@ -27,7 +27,7 @@ let flagError: GoTrueError | null = null
 let adminAnswer: Omit<GoTrueError, 'message'> | { id: string } = { code: 'unset', status: 500 }
 
 // The confirmation goes out through the auth-only client, so GoTrue's per-IP limit sees the visitor.
-vi.mock('$lib/auth/authServer.server', () => ({
+vi.mock('$lib/auth/server/authServer.server', () => ({
   supabaseAuthServer: () => ({
     resend: async ({ email }: { email: string }) => {
       resent.push(email)
@@ -37,7 +37,9 @@ vi.mock('$lib/auth/authServer.server', () => ({
 }))
 
 const policy = vi.hoisted(() => ({ breached: false }))
-vi.mock('$lib/auth/passwordPolicy.server', () => ({ checkPassword: async () => (policy.breached ? 'breached' : 'ok') }))
+vi.mock('$lib/auth/password/passwordPolicy.server', () => ({
+  checkPassword: async () => (policy.breached ? 'breached' : 'ok'),
+}))
 
 vi.mock('$lib/email/send.server', () => ({
   sendEmail: async (input: { body: string[]; footnote: string; template: string; to: string }) => {

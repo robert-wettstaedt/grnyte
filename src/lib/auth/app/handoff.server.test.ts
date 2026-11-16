@@ -36,7 +36,7 @@ const env = vi.hoisted((): Record<string, string> => ({
 vi.mock('$env/dynamic/private', () => ({ env }))
 // Recorded in memory: the auth log is shared with other files running at once, which count and clear it.
 const recorded = vi.hoisted(() => vi.fn())
-vi.mock('$lib/auth/events.server', async (actual) => ({ ...(await actual()), recordAuthEvent: recorded }))
+vi.mock('$lib/auth/server/events.server', async (actual) => ({ ...(await actual()), recordAuthEvent: recorded }))
 // fallow-ignore-next-line code-duplication -- vi.mock is hoisted per file: each OAuth test declares its own
 vi.mock('$env/static/public', async (actual) => ({
   ...(await actual()),
@@ -56,9 +56,9 @@ const { GET: appleCallback, POST: applePost } = await import('../../../routes/(l
 const { providerHttp } = await import('$lib/auth/oauth/providers.server')
 const { unseal } = await import('$lib/auth/oauth/seal.server')
 const { HANDOFF_INFO } = await import('./carrier.server')
-const { labelledKey } = await import('$lib/auth/keys.server')
-const { verifyAccessToken } = await import('$lib/auth/verify.server')
-const { writeGrant } = await import('$lib/auth/reauth.server')
+const { labelledKey } = await import('$lib/auth/server/keys.server')
+const { verifyAccessToken } = await import('$lib/auth/server/verify.server')
+const { writeGrant } = await import('$lib/auth/reauth/reauth.server')
 const { V1 } = await import('./v1')
 const { appleKeys } = await import('./appleToken.server')
 const { POST: nativeEndpoint } = await import('../../../routes/api/app/v1/oauth/apple/native/+server')
@@ -896,7 +896,9 @@ describe.skipIf(!reachable)('native Apple', () => {
     describe("Apple's notification after grnyte's own revocation", () => {
       /** The real event log for this test: the handler reads grnyte's own revocation from it. */
       beforeEach(async () => {
-        const actual = await vi.importActual<typeof import('$lib/auth/events.server')>('$lib/auth/events.server')
+        const actual = await vi.importActual<typeof import('$lib/auth/server/events.server')>(
+          '$lib/auth/server/events.server',
+        )
         recorded.mockImplementation(actual.recordAuthEvent)
       })
 

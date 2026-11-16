@@ -3,8 +3,8 @@ import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { withLocals } from '$lib/remote/testHarness'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, describe, expect, it } from 'vitest'
+import { signOutOthers } from '../session.remote'
 import { createAccount, codeDevice as device, gotrueReachable } from './gotrue.fixture'
-import { signOutOthers } from './session.remote'
 
 const created: string[] = []
 afterAll(async () => {

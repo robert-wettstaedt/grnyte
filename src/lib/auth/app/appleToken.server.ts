@@ -1,6 +1,6 @@
-import { recordAuthEvent } from '$lib/auth/events.server'
 import { postAppleToken } from '$lib/auth/oauth/providers.server'
-import { JwksUnavailable, taggingJwks } from '$lib/auth/verify.server'
+import { recordAuthEvent } from '$lib/auth/server/events.server'
+import { JwksUnavailable, taggingJwks } from '$lib/auth/server/verify.server'
 import { formError } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
 import { createRemoteJWKSet, decodeJwt, errors, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose'

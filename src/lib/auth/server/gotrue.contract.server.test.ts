@@ -2,12 +2,12 @@
  * The GoTrue behaviours grnyte relies on, measured on the release `GOTRUE_CONTRACT_VERSION` pins.
  * Each test names the grnyte code that breaks when it fails. `npm run test:gotrue`; skips without the stack.
  */
-import { addEmailIdentity } from '$lib/auth/methods.server'
+import { addEmailIdentity } from '$lib/auth/methods/methods.server'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { sql } from '$lib/db/testDb'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, describe, expect, it } from 'vitest'
-import { GOTRUE_CONTRACT_VERSION } from '../../../deployment/authConfig'
+import { GOTRUE_CONTRACT_VERSION } from '../../../../deployment/authConfig'
 import {
   codeSignedIn,
   createAccount,

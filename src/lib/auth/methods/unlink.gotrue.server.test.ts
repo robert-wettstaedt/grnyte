@@ -1,13 +1,13 @@
 /** Unlink against the branch's local GoTrue: two real sessions; the provider identity seeded by SQL (GoTrue takes no fake-issuer token). */
-import { codeDevice, createAccount, gotrueReachable } from '$lib/auth/gotrue.fixture'
+import { codeDevice, createAccount, gotrueReachable } from '$lib/auth/server/gotrue.fixture'
 import { supabaseAdmin } from '$lib/db/supabaseAdmin.server'
 import { sql } from '$lib/db/testDb'
 import { withLocals } from '$lib/remote/testHarness'
 import { handleMutate } from '$lib/zero/mutate.server'
 import { isHttpError } from '@sveltejs/kit'
 import { afterAll, describe, expect, it } from 'vitest'
+import { sessionCaller, writeGrant } from '../reauth/reauth.server'
 import { signInMethodsQuery, unlinkProvider } from './identities.remote'
-import { sessionCaller, writeGrant } from './reauth.server'
 
 const ids: string[] = []
 afterAll(async () => {

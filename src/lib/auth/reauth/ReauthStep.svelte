@@ -37,8 +37,8 @@
   import { leaveIfSessionEnded } from '$lib/state/sessionEnded'
   import { onMount, type Snippet } from 'svelte'
   import { fade, scale, slide } from 'svelte/transition'
+  import CodeEntry from '../codes/CodeEntry.svelte'
   import { appleConfirmation } from './appleConfirmation.svelte'
-  import CodeEntry from './CodeEntry.svelte'
   import ConfirmWithApple from './ConfirmWithApple.svelte'
   import { confirmReauthCode, reauthGrantStatus, requestReauthCode } from './reauth.remote'
 

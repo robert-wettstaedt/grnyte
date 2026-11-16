@@ -6,8 +6,8 @@
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'
   import { fade } from 'svelte/transition'
+  import NewPasswordStep from '../password/NewPasswordStep.svelte'
   import CodeEntry from './CodeEntry.svelte'
-  import NewPasswordStep from './NewPasswordStep.svelte'
 
   // The step after GoTrue mailed an 8-digit code: sign-up, an unconfirmed sign-in, and reset.
   interface Props {

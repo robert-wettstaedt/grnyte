@@ -10,7 +10,7 @@ import { POST as passwordChange } from '../../../routes/api/app/v1/password/chan
 import { appCall } from './appRequest.fixture'
 import { V1, V1_FIXED_ERRORS } from './v1'
 
-vi.mock('$lib/auth/passwordPolicy.server', () => ({ checkPassword: async () => 'breached' }))
+vi.mock('$lib/auth/password/passwordPolicy.server', () => ({ checkPassword: async () => 'breached' }))
 
 type Schema = {
   anyOf?: Schema[]

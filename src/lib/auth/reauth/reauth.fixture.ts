@@ -3,7 +3,7 @@ import { settle } from '$lib/forms/screen.fixture'
 import { fireEvent, screen } from '@testing-library/svelte'
 import { expect, vi } from 'vitest'
 
-/** The re-auth remotes, for `vi.mock('$lib/auth/reauth.remote', ...)`. */
+/** The re-auth remotes, for `vi.mock('$lib/auth/reauth/reauth.remote', ...)`. */
 export const reauthRemote = {
   confirmReauthCode: vi.fn(async (_: unknown) => ({ confirmed: true })),
   reauthGrantStatus: vi.fn(async (_: unknown): Promise<boolean> => false),
@@ -23,7 +23,7 @@ export const methods = {
 
 const DEFAULT_METHODS = { ...methods }
 
-/** The identities remotes, for `vi.mock('$lib/auth/identities.remote', ...)`. */
+/** The identities remotes, for `vi.mock('$lib/auth/methods/identities.remote', ...)`. */
 export const identitiesRemote = {
   signInMethodsQuery: () =>
     methods.failed

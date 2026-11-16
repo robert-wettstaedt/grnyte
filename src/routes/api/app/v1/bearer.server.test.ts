@@ -4,9 +4,9 @@
  */
 import { appCall } from '$lib/auth/app/appRequest.fixture'
 import { V1 } from '$lib/auth/app/v1'
-import { signInMethodsQuery, unlinkProvider } from '$lib/auth/identities.remote'
-import { confirmReauthCode, reauthGrantStatus, requestReauthCode } from '$lib/auth/reauth.remote'
-import { sessionCaller, writeGrant } from '$lib/auth/reauth.server'
+import { signInMethodsQuery, unlinkProvider } from '$lib/auth/methods/identities.remote'
+import { confirmReauthCode, reauthGrantStatus, requestReauthCode } from '$lib/auth/reauth/reauth.remote'
+import { sessionCaller, writeGrant } from '$lib/auth/reauth/reauth.server'
 import { deleteAccountRows } from '$lib/db/testAccounts'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { passwordSchema } from '$lib/forms/schemas'
@@ -58,11 +58,13 @@ vi.mock('$lib/db/supabaseAdmin.server', () => ({
     },
   }),
 }))
-vi.mock('$lib/auth/passwordPolicy.server', () => ({ checkPassword: async () => (gotrue.breached ? 'breached' : 'ok') }))
+vi.mock('$lib/auth/password/passwordPolicy.server', () => ({
+  checkPassword: async () => (gotrue.breached ? 'breached' : 'ok'),
+}))
 const SESSION = { access_token: 'new.access.token', expires_at: 1_900_000_000, refresh_token: 'new-refresh' }
 /** The address an email change code moves the account to. */
 const MOVED = 'moved@grnyte.test'
-vi.mock('$lib/auth/authServer.server', () => {
+vi.mock('$lib/auth/server/authServer.server', () => {
   const record =
     (name: string) =>
     async (...args: unknown[]) => {
@@ -89,7 +91,7 @@ vi.mock('$lib/email/send.server', async () =>
       gotrue.mails.push({ template, to, ...(code == null ? {} : { code }) }),
   ),
 )
-vi.mock('$lib/auth/events.server', () => ({ noteMailRefusal: async () => {}, recordAuthEvent: async () => {} }))
+vi.mock('$lib/auth/server/events.server', () => ({ noteMailRefusal: async () => {}, recordAuthEvent: async () => {} }))
 vi.mock('$lib/logging/failure.server', () => ({ logServerFailure: async () => {} }))
 // The harness token carries no `amr`; the code-session rule has its own GoTrue tests.
 vi.mock('$lib/auth', async (original) => ({ ...(await original<object>()), isFreshCodeSession: () => true }))

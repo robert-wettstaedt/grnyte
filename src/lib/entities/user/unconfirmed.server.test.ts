@@ -26,7 +26,7 @@ let keptIds: string[] = []
 let signedUpId = ''
 const nonces: string[] = []
 
-vi.mock('$lib/auth/authServer.server', () => ({
+vi.mock('$lib/auth/server/authServer.server', () => ({
   supabaseAuthServer: () => ({ resend: async () => ({ error: null }) }),
 }))
 vi.mock('$lib/db/supabaseAdmin.server', () => ({
