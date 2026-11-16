@@ -1,15 +1,19 @@
 <script lang="ts">
+  import { afterNavigate } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { nextDestination } from '$lib/auth'
   import { m } from '$lib/paraglide/messages'
-  import { onMount } from 'svelte'
+  import { redirectTo } from '$lib/state/navigation.svelte'
 
-  // An in-page move on grnyte's own origin, which no installed native app catches (design decision 12).
+  // An in-page move on grnyte's own origin, which no installed native app catches.
   const target = $derived(nextDestination(page.url.searchParams.get('next')))
 
-  // `replace`, so Back does not return here.
-  onMount(() => location.replace(target))
+  // Replacing, so Back does not return here. A client-side arrival moves without reloading the document.
+  afterNavigate(({ type }) => {
+    if (type === 'enter') location.replace(target)
+    else void redirectTo(target)
+  })
 </script>
 
 <svelte:head>

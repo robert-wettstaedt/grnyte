@@ -1,11 +1,8 @@
 import { appEndpoint } from '$lib/auth/app/endpoint.server'
-import { V1 } from '$lib/auth/app/v1'
 import { confirmReauthCode } from '$lib/auth/reauthSteps.server'
 
-/** Confirms only; the action runs from its own endpoint. */
-export const POST = appEndpoint({
+export const POST = appEndpoint('reauth/confirm', {
   auth: 'bearer',
-  handler: async (input) => ({ confirmed: (await confirmReauthCode(input)).confirmed as true }),
+  handler: confirmReauthCode,
   profile: 'optional',
-  request: V1['reauth/confirm'].request,
 })

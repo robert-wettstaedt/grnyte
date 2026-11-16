@@ -144,6 +144,19 @@ describe('Rate Limiting Middleware', () => {
     })
   })
 
+  it('budgets a remote call whose rewritten pathname claims the zero-cache prefix', async () => {
+    // Kit rewrites `event.url` from the client-sent `x-sveltekit-pathname` on a remote call.
+    const event = {
+      ...mockEvent('10.0.0.8', '/_app/remote/abc/command'),
+      url: new URL('https://grnyte.rocks/api/zero/get-queries'),
+    } as RequestEvent
+    const responses = await Promise.all(
+      Array.from({ length: RATE_LIMIT.max + 1 }, () => rateLimit({ event, resolve: mockResolve })),
+    )
+
+    expect(responses.filter((response) => response.status === 429)).toHaveLength(1)
+  })
+
   // There is deliberately no test for the sweep that deletes expired keys from `store`.
   //
   // It is a memory guard, not a behaviour: the per-IP branch right below it resets an expired

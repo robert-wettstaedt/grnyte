@@ -1,6 +1,6 @@
 import { building } from '$app/environment'
 import { APP_ERROR_CODES, appError } from '$lib/auth/app/v1'
-import { APP_API_PREFIX, ZERO_API_PREFIX } from '$lib/hooks/auth.server'
+import { isAppApi, ZERO_API_PREFIX } from '$lib/hooks/auth.server'
 import type { Handle } from '@sveltejs/kit'
 
 export const RATE_LIMIT = {
@@ -41,7 +41,8 @@ export const rateLimit: Handle = async ({ event, resolve }) => {
   // JWT a second time here or trusting an unverified claim, and a claim the caller can forge is not
   // a limiter. Per-user throttling, if it is ever wanted, belongs in the handler after
   // `verifyAccessToken` has returned.
-  if (event.url.pathname.startsWith(ZERO_API_PREFIX)) {
+  // On `request.url`: a remote call's `event.url` is the page path it claims.
+  if (new URL(event.request.url).pathname.startsWith(ZERO_API_PREFIX)) {
     return resolve(event)
   }
 
@@ -82,7 +83,7 @@ export const rateLimit: Handle = async ({ event, resolve }) => {
 
   if (store[ip].count > max) {
     // The app reads every refusal as JSON; matched on `request.url`, which a remote call cannot rewrite.
-    if (new URL(event.request.url).pathname.startsWith(APP_API_PREFIX)) {
+    if (isAppApi(event)) {
       return appError(429, { code: APP_ERROR_CODES.rateLimited }, { 'Retry-After': reset.toString() })
     }
     return new Response('Too Many Requests', {

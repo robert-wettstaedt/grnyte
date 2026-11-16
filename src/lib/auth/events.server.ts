@@ -30,6 +30,7 @@ const SPIKE = 20
 
 /** The failure kinds a spike alerts on; a kind added later stays quiet until listed here. */
 const FAILURES: ReadonlySet<AuthEventKind> = new Set([
+  'handoff_failed',
   'oauth_iss_mismatch',
   'oauth_link_refused',
   'oauth_nonce_mismatch',

@@ -1,5 +1,5 @@
 /**
- * The handoff (`oauth/start`, change 2's callbacks with the app carrier first, `oauth/exchange`) and native Apple.
+ * The handoff (`oauth/start`, the callbacks with the app carrier first, `oauth/exchange`) and native Apple.
  * The shared fake issuer answers the provider, GoTrue is faked at fetch, rows live in the throwaway DB.
  */
 import type { VerifiedToken } from '$lib/auth'
@@ -139,7 +139,7 @@ const clientHash = (key: string) =>
     .update(key.replace(/^::ffff:/, ''))
     .digest('hex')
 
-/** The provider's return on change 2's callback; Apple posts, then the browser follows the 303. */
+/** The provider's return on the callback; Apple posts, then the browser follows the 303. */
 async function providerReturn(
   provider: 'apple' | 'google',
   state: string,
@@ -455,10 +455,15 @@ describe.skipIf(!reachable)('the callback through the app carrier', () => {
     nonce.fixed = RAW_NONCE
     const idTokenCall = () => {
       const call = gotrue.find(({ url }) => url.searchParams.get('grant_type') === 'id_token')
+      const { id_token: idToken, ...body } = call?.body ?? {}
+      // Each half mints its own ID token: the same claims, but stamped with its own clock.
+      const { exp, iat, ...claims } = decodeJwt(String(idToken))
       return {
         apikey: call?.headers.get('apikey'),
         authorization: call?.headers.get('authorization'),
-        body: call?.body,
+        body,
+        claims,
+        stamped: [typeof exp, typeof iat],
       }
     }
     const claims = { email: uniqueEmail('same'), sub: `sub-${crypto.randomUUID()}` }
@@ -472,6 +477,8 @@ describe.skipIf(!reachable)('the callback through the app carrier', () => {
     expect(await providerReturn('google', webUrl.searchParams.get('state') ?? '', {}, jar)).toBe('/explore')
     const web = idTokenCall()
 
+    // The app half a second boundary later, as a slow run would cross one.
+    vi.useFakeTimers({ now: Date.now() + 2000, toFake: ['Date'] })
     gotrue.length = 0
     const flow = await handedOff()
     const answer = await exchange(flow.code, flow.verifier)

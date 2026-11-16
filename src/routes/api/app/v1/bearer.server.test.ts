@@ -10,7 +10,7 @@ import { sessionCaller, writeGrant } from '$lib/auth/reauth.server'
 import { deleteAccountRows } from '$lib/db/testAccounts'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { passwordSchema } from '$lib/forms/schemas'
-import { asRequest, requestLocals } from '$lib/remote/testHarness'
+import { asRequest, requestLocals, sessionToken } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   confirmEmailChangeCode,
@@ -20,6 +20,7 @@ import {
 } from '../../../(app)/settings/account.remote'
 import { completeProfile } from '../../../(landing)/auth/profile/profile.remote'
 import { POST as accountDelete } from './account/delete/+server'
+import { GET as deletionPreview } from './account/deletion-preview/+server'
 import { POST as emailChange } from './email/change/+server'
 import { POST as emailConfirm } from './email/confirm/+server'
 import { POST as identitiesUnlink } from './identities/unlink/+server'
@@ -40,6 +41,10 @@ const gotrue = vi.hoisted(() => ({
   breached: false,
   calls: [] as unknown[][],
   mails: [] as { code?: string; template: string; to: string }[],
+  /** What `verifyOtp` answers: no session unless a test sets one. */
+  otpSession: null as null | { access_token: string; refresh_token: string },
+  /** The access token each `supabaseAuthServerAs` client acts as. */
+  signedInAs: [] as string[],
 }))
 vi.mock('$lib/db/supabaseAdmin.server', () => ({
   supabaseAdmin: () => ({
@@ -55,6 +60,8 @@ vi.mock('$lib/db/supabaseAdmin.server', () => ({
 }))
 vi.mock('$lib/auth/passwordPolicy.server', () => ({ checkPassword: async () => (gotrue.breached ? 'breached' : 'ok') }))
 const SESSION = { access_token: 'new.access.token', expires_at: 1_900_000_000, refresh_token: 'new-refresh' }
+/** The address an email change code moves the account to. */
+const MOVED = 'moved@grnyte.test'
 vi.mock('$lib/auth/authServer.server', () => {
   const record =
     (name: string) =>
@@ -65,9 +72,15 @@ vi.mock('$lib/auth/authServer.server', () => {
   return {
     supabaseAuthServer: () => ({
       signInWithPassword: async () => ({ data: { session: { ...SESSION, user: {} } }, error: null }),
-      verifyOtp: async () => ({ data: { session: null, user: null }, error: null }),
+      verifyOtp: async () => ({
+        data: { session: gotrue.otpSession, user: gotrue.otpSession && { email: MOVED } },
+        error: null,
+      }),
     }),
-    supabaseAuthServerAs: () => ({ signOut: record('signOut'), updateUser: record('updateUser') }),
+    supabaseAuthServerAs: (_event: unknown, token: { accessToken: string }) => {
+      gotrue.signedInAs.push(token.accessToken)
+      return { signOut: record('signOut'), updateUser: record('updateUser') }
+    },
   }
 })
 vi.mock('$lib/email/send.server', () => ({
@@ -115,6 +128,8 @@ beforeEach(() => {
   gotrue.breached = false
   gotrue.calls = []
   gotrue.mails = []
+  gotrue.otpSession = null
+  gotrue.signedInAs = []
   deletion.deleteAccount.mockReset()
 })
 
@@ -200,6 +215,44 @@ describe.skipIf(!reachable)('POST email/confirm', () => {
     expect(V1['email/confirm'].response.parse(await response.json())).toEqual({ next: 'next' })
     expect(viaWeb).toEqual({ step: 'next' })
   })
+
+  const confirmBoth = async () => {
+    await sql`delete from public.auth_code_attempts where subject = ${MOVED}`
+    const input = { code: '12345678', email: MOVED }
+    const app = await appCall(emailConfirm, 'email/confirm', { body: input, locals: await bearer() })
+    const setSession = vi.fn(async () => ({}))
+    const viaWeb = await asRequest(user.authId, () => confirmEmailChangeCode(input), {
+      auth: { ...stub.auth, setSession },
+    })
+    return { app: V1['email/confirm'].response.parse(await app.json()), setSession, viaWeb }
+  }
+
+  it('signs the other sessions out as the new session and hands it over, on both transports', async () => {
+    const fresh = { access_token: await sessionToken(user.authId, MOVED), refresh_token: 'fresh-refresh' }
+    gotrue.otpSession = fresh
+
+    const { app, setSession, viaWeb } = await confirmBoth()
+
+    expect(app).toEqual({ next: 'done', session: fresh })
+    expect(viaWeb).toEqual({ step: 'done' })
+    expect(setSession).toHaveBeenCalledWith(fresh)
+    expect(gotrue.signedInAs).toEqual([fresh.access_token, fresh.access_token])
+    expect(gotrue.calls).toEqual([
+      ['signOut', { scope: 'others' }],
+      ['signOut', { scope: 'others' }],
+    ])
+  })
+
+  it('hands out no session it could not verify, and the caller keeps its own', async () => {
+    gotrue.otpSession = { access_token: 'not.a.token', refresh_token: 'fresh-refresh' }
+
+    const { app, setSession, viaWeb } = await confirmBoth()
+
+    expect(app).toEqual({ next: 'done' })
+    expect(viaWeb).toEqual({ step: 'done' })
+    expect(setSession).not.toHaveBeenCalled()
+    expect(gotrue.signedInAs).not.toContain('not.a.token')
+  })
 })
 
 describe.skipIf(!reachable)('POST profile', () => {
@@ -262,6 +315,15 @@ describe.skipIf(!reachable)('reauth/request, reauth/confirm, reauth/status', () 
     })
     expect(viaWeb).toEqual({ answer: { confirmed: true }, status: true })
   })
+
+  it('answers an identity action on a non-provider target invalid_request, never Kit text', async () => {
+    const response = await appCall(reauthRequest, 'reauth/request', {
+      body: { action: 'identity.link', target: 'x' },
+      locals: await bearer(),
+    })
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({ error: { code: 'invalid_request' } })
+  })
 })
 
 describe.skipIf(!reachable)('account/delete and sessions/sign-out-others', () => {
@@ -278,11 +340,16 @@ describe.skipIf(!reachable)('account/delete and sessions/sign-out-others', () =>
     expect(appCaller.sessionId).toBe(locals.claims.session_id)
   })
 
-  it('passes a profile-less caller to the shared body instead of answering profile_required', async () => {
-    const response = await appCall(accountDelete, 'account/delete', {
-      locals: await requestLocals(await newProfileless(), stub),
-    })
-    expect((await response.json()).error.code).not.toBe('profile_required')
+  it('answers a profile-less caller profile_required on delete and its preview', async () => {
+    const locals = await requestLocals(await newProfileless(), stub)
+    const deleted = await appCall(accountDelete, 'account/delete', { locals })
+    const preview = await appCall(deletionPreview, 'account/deletion-preview', { locals, method: 'GET' })
+
+    for (const response of [deleted, preview]) {
+      expect(response.status).toBe(403)
+      expect(await response.json()).toEqual({ error: { code: 'profile_required' } })
+    }
+    expect(deletion.deleteAccount).not.toHaveBeenCalled()
   })
 
   it('refuses a caller without a grant with the remote key', async () => {

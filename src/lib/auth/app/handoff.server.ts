@@ -20,11 +20,12 @@ import { getLocale } from '$lib/paraglide/runtime'
 import { refuseCommand } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
 import { and, count, eq, gt, isNull, sql } from 'drizzle-orm'
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import { randomNonce, randomPKCECodeVerifier, randomState } from 'openid-client'
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import { calculatePKCECodeChallenge, randomNonce, randomPKCECodeVerifier, randomState } from 'openid-client'
 import { requireAppleToken } from './appleToken.server'
 import { HANDOFF_INFO } from './carrier.server'
 import { APP_BUNDLE_ID, APP_RETURNS } from './constants'
+import { refuseOAuthFailed } from './refusal.server'
 import { APP_ERROR_CODES, appSession } from './v1'
 
 /** Open (unclaimed, unexpired) flows one client may hold. */
@@ -76,7 +77,7 @@ export const startClientHash = () => clientHash(getRequestEvent().getClientAddre
 
 type Refusal = Extract<OAuthOutcome, { kind: 'refused' }>['reason']
 
-/** `POST oauth/start`: a sealed transaction in a row, the provider URL back (design decision 4). Sets no cookie. */
+/** `POST oauth/start`: a sealed transaction in a row, the provider URL back. Sets no cookie. */
 export async function startAppFlow(input: Start): Promise<{ authorizeUrl: string }> {
   const event = getRequestEvent()
   const { provider, purpose } = input
@@ -118,7 +119,7 @@ export async function startAppFlow(input: Start): Promise<{ authorizeUrl: string
 async function linkIntent(provider: OAuthProvider): Promise<OAuthIntent> {
   const { locals } = getRequestEvent()
   if (locals.claims == null) error(401, { message: APP_ERROR_CODES.sessionEnded })
-  if (locals.user == null) error(403, { message: 'profile_required' })
+  if (locals.user == null) error(403, { message: APP_ERROR_CODES.profileRequired })
   const caller = await reauthCaller()
   if (!(await hasGrant(caller, 'identity.link', provider))) error(403, { message: formError('auth_reauthRequired') })
   return { caller, kind: 'link' }
@@ -167,25 +168,22 @@ const spendCode = (code: string) =>
       returning f.purpose, f.code_challenge, f.transaction, old.proof, f.auth_user_fk, f.session_id`),
   )
 
-const pkceMatches = (verifier: string, challenge: null | string) => {
-  const sent = Buffer.from(createHash('sha256').update(verifier).digest('base64url'))
+const pkceMatches = async (verifier: string, challenge: null | string) => {
+  const sent = Buffer.from(await calculatePKCECodeChallenge(verifier))
   const stored = Buffer.from(challenge ?? '')
   return sent.length === stored.length && timingSafeEqual(sent, stored)
 }
 
 type AppOutcome = { linked: true } | { session: ReturnType<typeof appSession> }
 
-/** `POST oauth/exchange`: spend the code, check PKCE and the link caller, then change 2's `dispatchIntent`. */
-export async function exchangeAppFlow(input: {
-  code: string
-  codeVerifier: string
-}): Promise<{ linked: true } | { session: ReturnType<typeof appSession> }> {
+/** `POST oauth/exchange`: spend the code, check PKCE and the link caller, then `dispatchIntent`. */
+export async function exchangeAppFlow(input: { code: string; codeVerifier: string }): Promise<AppOutcome> {
   const event = getRequestEvent()
   const { locals } = event
   const [row] = await spendCode(input.code)
   if (row == null) return handoffFailed('code_unknown', 400, 'auth_oauthExpiredBody')
   // The code is spent already: a wrong verifier means it reached someone else.
-  if (!pkceMatches(input.codeVerifier, row.code_challenge))
+  if (!(await pkceMatches(input.codeVerifier, row.code_challenge)))
     return handoffFailed('pkce_mismatch', 400, 'auth_oauthFailedBody')
   if (
     row.purpose === 'link' &&
@@ -200,8 +198,23 @@ export async function exchangeAppFlow(input: {
   return dispatchForApp(tx, proof)
 }
 
-/** Change 2's `dispatchIntent` as the app path runs it: GoTrue sees the app user's address, the session goes in the body. */
-async function dispatchForApp(tx: OAuthTransaction, proof: VerifiedProof): Promise<AppOutcome> {
+/** `POST identities/link/apple`: the same token check, then a link for the Bearer caller with its grant. */
+export async function linkAppleToken(input: { idToken: string; rawNonce: string }) {
+  const outcome = await nativeApple(await linkIntent('apple'), input)
+  return 'linked' in outcome ? outcome : refuseOAuthFailed()
+}
+
+/** `POST oauth/apple/native`: Sign in with Apple on iOS. */
+export async function signInWithAppleToken(input: { idToken: string; rawNonce: string }) {
+  const outcome = await nativeApple({ kind: 'signin' }, input)
+  return 'session' in outcome ? outcome : refuseOAuthFailed()
+}
+
+/** `dispatchIntent` as the app path runs it: GoTrue sees the app user's address, the session goes in the body. */
+async function dispatchForApp(
+  tx: Pick<OAuthTransaction, 'intent' | 'provider'>,
+  proof: VerifiedProof,
+): Promise<AppOutcome> {
   const event = getRequestEvent()
   const outcome = await dispatchIntent(
     { authServer: supabaseAuthServer(event), event, verifiedToken: event.locals.verifiedToken },
@@ -210,7 +223,7 @@ async function dispatchForApp(tx: OAuthTransaction, proof: VerifiedProof): Promi
   )
   if (outcome.kind === 'signedIn') return { session: appSession(outcome.session) }
   if (outcome.kind === 'linked') return { linked: true }
-  if (outcome.kind !== 'refused') return refuseCommand(formError('auth_oauthFailedBody'))
+  if (outcome.kind !== 'refused') return refuseOAuthFailed()
   const { reason } = outcome
   const key =
     reason === 'conflict_email' || reason === 'conflict_identity' ? CONFLICTS[tx.provider][reason] : REFUSALS[reason]
@@ -219,26 +232,7 @@ async function dispatchForApp(tx: OAuthTransaction, proof: VerifiedProof): Promi
 
 /** A native Apple ID token as the proof of a transaction that never left the server. */
 async function nativeApple(intent: OAuthIntent, input: { idToken: string; rawNonce: string }): Promise<AppOutcome> {
-  if (!configuredProviders(getRequestEvent()).includes('apple')) refuseCommand(formError('auth_oauthFailedBody'))
+  if (!configuredProviders(getRequestEvent()).includes('apple')) refuseOAuthFailed()
   const claims = await requireAppleToken(input.idToken, APP_BUNDLE_ID, providerNonce(input.rawNonce))
-  const tx: OAuthTransaction = {
-    carrier: 'app',
-    codeVerifier: '',
-    intent,
-    next: null,
-    nonce: input.rawNonce,
-    provider: 'apple',
-    returnTo: '',
-    startedAt: Date.now(),
-    state: '',
-  }
-  return dispatchForApp(tx, { claims, idToken: input.idToken, rawNonce: input.rawNonce })
+  return dispatchForApp({ intent, provider: 'apple' }, { claims, idToken: input.idToken, rawNonce: input.rawNonce })
 }
-
-/** `POST oauth/apple/native`: Sign in with Apple on iOS (design decision 5). */
-export const signInWithAppleToken = (input: { idToken: string; rawNonce: string }) =>
-  nativeApple({ kind: 'signin' }, input)
-
-/** `POST identities/link/apple`: the same token check, then a link for the Bearer caller with its grant. */
-export const linkAppleToken = async (input: { idToken: string; rawNonce: string }) =>
-  nativeApple(await linkIntent('apple'), input)

@@ -51,10 +51,8 @@ export function fakeGoTrue(
     calls.push({ body, headers: request.headers, url })
     if (url.searchParams.get('grant_type') === 'refresh_token') setAccount({ ...account(), app_metadata: {} })
     const user = { aud: 'authenticated', email: 'new@example.test', role: 'authenticated', ...account() }
-    const linkStatus = refuseLink()
-    if (body.link_identity === true && linkStatus != null)
-      return Response.json({ code: 'unexpected_failure', msg: 'down' }, { status: linkStatus })
-    if (url.pathname === '/auth/v1/user' && refuseUser()) return Response.json({ code: 'bad_jwt' }, { status: 401 })
+    const refused = refusal(url, body, refuseUser(), refuseLink())
+    if (refused != null) return refused
     if (url.pathname === '/auth/v1/user' || url.pathname.startsWith('/auth/v1/admin/')) return Response.json(user)
     return Response.json({
       access_token: await accessToken(account()),
@@ -76,6 +74,13 @@ export async function locationOf(run: () => unknown): Promise<string> {
     throw thrown
   }
   throw new Error('no redirect')
+}
+
+/** The user lookup or the ID-token link answering an error instead. */
+function refusal(url: URL, body: Record<string, unknown>, refuseUser: boolean, refuseLink: number | undefined) {
+  if (body.link_identity === true && refuseLink != null)
+    return Response.json({ code: 'unexpected_failure', msg: 'down' }, { status: refuseLink })
+  if (url.pathname === '/auth/v1/user' && refuseUser) return Response.json({ code: 'bad_jwt' }, { status: 401 })
 }
 
 /** A cookie client over `jar`, as the hook builds one. */

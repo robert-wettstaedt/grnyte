@@ -2,8 +2,9 @@ import { building } from '$app/environment'
 import type { Pathname } from '$app/types'
 import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { AUTH_PATH, CONTINUE_PATH, signedInRedirectTarget } from '$lib/auth'
-import { bearerSession } from '$lib/auth/app/bearer.server'
+import { anonymousSession, bearerSession } from '$lib/auth/app/bearer.server'
 import { APP_RETURN_PATH } from '$lib/auth/app/constants'
+import { APP_ERROR_CODES, appError, NO_STORE } from '$lib/auth/app/v1'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
@@ -13,7 +14,7 @@ import { readRegionSettings } from '$lib/entities/region/settings'
 import { hasDeletionMarker } from '$lib/entities/user/provision.server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
-import { error, redirect, type Handle } from '@sveltejs/kit'
+import { error, redirect, type Handle, type RequestEvent } from '@sveltejs/kit'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 /** The profile and permissions of a verified caller: one pinned transaction, so both reads share a connection. */
@@ -53,12 +54,6 @@ export function loadSessionUser(
       },
     },
   })
-}
-
-/** A request with no usable identity. A function rather than a shared const: `userRegions` is
- *  handed out to callers, and one accidental push on a shared array would leak across requests. */
-function anonymous(): App.SafeSession & { claims: undefined } {
-  return { claims: undefined, user: undefined, userPermissions: undefined, userRegions: [], userRole: undefined }
 }
 
 /** Could not reach GoTrue, rather than a dead session: auth-js keeps the refresh token in this case.
@@ -137,9 +132,9 @@ export const supabase: Handle = async ({ event, resolve }) => {
   // A zero-cache callback too: building the client starts a session load in the background, and with an
   // expired forwarded cookie its refresh writes that cookie after the response, which crashes the server.
   if (building || isHeaderAuthenticated(event)) {
-    Object.assign(event.locals, anonymous(), { backendUnavailable: false })
+    Object.assign(event.locals, anonymousSession(false))
     if (isAppApi(event)) {
-      // Acts as nobody: a call as the person goes through `supabaseAuthServerAs` (design decision 2).
+      // Acts as nobody: a call as the person goes through `supabaseAuthServerAs`.
       event.locals.supabase = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
         auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false },
       }) as unknown as App.Locals['supabase']
@@ -233,7 +228,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
     }
 
     if (!verified.ok) {
-      return { ...anonymous(), backendUnavailable: backendUnavailable || verified.reason === 'unavailable' }
+      return anonymousSession(backendUnavailable || verified.reason === 'unavailable')
     }
 
     try {
@@ -246,7 +241,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
     } catch {
       // A database failure, not an authentication failure: the flag is what stops `gate()` reporting
       // this as a signed-out caller, since `user` is undefined either way.
-      return { ...anonymous(), backendUnavailable: true, claims: verified.claims, verifiedToken: verified.token }
+      return { ...anonymousSession(true), claims: verified.claims, verifiedToken: verified.token }
     }
   }
 
@@ -359,11 +354,35 @@ export const APP_API_PREFIX = '/api/app/'
 /** On `request.url`: Kit rewrites `event.url` for a remote call from its `x-sveltekit-pathname`. */
 const requestPath = (event: { request: Request }) => new URL(event.request.url).pathname
 
-const isAppApi = (event: { request: Request }) => requestPath(event).startsWith(APP_API_PREFIX)
+export const isAppApi = (event: { request: Request }) => requestPath(event).startsWith(APP_API_PREFIX)
 
 /** Surfaces that authenticate off their own header, so no hook reads or refreshes a cookie session. */
 const isHeaderAuthenticated = (event: { request: Request }) =>
   requestPath(event).startsWith(ZERO_API_PREFIX) || isAppApi(event)
+
+const MISSES: Record<number, string> = { 404: APP_ERROR_CODES.notFound, 405: APP_ERROR_CODES.methodNotAllowed }
+
+/** Kit's own 404 and 405 (no `no-store`, unlike every `appEndpoint` answer) in the app's error shape. */
+function appMiss(response: Response): Response {
+  const code = MISSES[response.status]
+  if (code == null || response.headers.get('cache-control') === NO_STORE['cache-control']) return response
+  const allow = response.headers.get('allow')
+  return appError(response.status, { code }, allow == null ? {} : { allow })
+}
+
+async function attachSession(event: RequestEvent) {
+  const { backendUnavailable, claims, user, userPermissions, userRegions, userRole, verifiedToken } =
+    await event.locals.safeGetSession()
+  Object.assign(event.locals, {
+    backendUnavailable,
+    claims,
+    user,
+    userPermissions,
+    userRegions,
+    userRole,
+    verifiedToken,
+  })
+}
 
 export const authGuard: Handle = async ({ event, resolve }) => {
   // Nothing to guard while prerendering, and `safeGetSession` is not there to call: the hook above
@@ -376,34 +395,15 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   // the refresh token onto a response the browser never sees. An OAuth callback loads it in its carrier.
   // The app API's only session source is its Bearer, never a cookie: what makes its cross-site exemption safe.
   if (isAppApi(event)) {
-    const { backendUnavailable, claims, user, userPermissions, userRegions, userRole, verifiedToken } =
-      await event.locals.safeGetSession()
-    Object.assign(event.locals, {
-      backendUnavailable,
-      claims,
-      user,
-      userPermissions,
-      userRegions,
-      userRole,
-      verifiedToken,
-    })
-    return resolve(event)
+    await attachSession(event)
+    return appMiss(await resolve(event))
   }
   if (isHeaderAuthenticated(event) || event.url.pathname.startsWith(OAUTH_CALLBACK_PREFIX)) {
-    Object.assign(event.locals, anonymous(), { backendUnavailable: false })
+    Object.assign(event.locals, anonymousSession(false))
     return resolve(event)
   }
 
-  const { backendUnavailable, claims, user, userPermissions, userRegions, userRole, verifiedToken } =
-    await event.locals.safeGetSession()
-
-  event.locals.backendUnavailable = backendUnavailable
-  event.locals.claims = claims
-  event.locals.verifiedToken = verifiedToken
-  event.locals.user = user
-  event.locals.userPermissions = userPermissions
-  event.locals.userRegions = userRegions
-  event.locals.userRole = userRole
+  await attachSession(event)
 
   if (
     event.locals.claims == null &&
