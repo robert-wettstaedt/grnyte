@@ -20,12 +20,10 @@
  * and logged.
  */
 import { eq, isNotNull } from 'drizzle-orm'
-import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { pathToFileURL } from 'node:url'
-import Database from 'postgres'
-import drizzleConfig from '../../../../../drizzle.config'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { isNormalized, parsePathTokens } from '../../../entities/topo/path'
 import * as schema from '../../schema'
+import { logSkipped, runStandalone } from './standalone'
 
 /**
  * Rewrite one stored path from pixel space to 0–1 fractions of `width`×`height`,
@@ -147,14 +145,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   }
 
   console.log(`\n${dryRun ? 'DRY RUN: ' : ''}converted ${converted} of ${rows.length} path(s).`)
-  for (const [reason, ids] of Object.entries(skipped)) {
-    console.log(`Skipped (${reason}): #${ids.join(', #')}`)
-  }
+  logSkipped(skipped)
 }
 
-// Standalone preview: `npx tsx src/lib/db/scripts/migrations/migrate-topo-paths.ts [--dry-run]`.
-if (process.argv[1] != null && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
-  await migrate(drizzle(postgres, { schema }), { dryRun: process.argv.includes('--dry-run') })
-  await postgres.end()
-}
+await runStandalone(import.meta.url, migrate)

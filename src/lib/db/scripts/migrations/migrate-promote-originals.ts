@@ -20,11 +20,8 @@
  * Idempotent: the MOVE consumes the `.orig` sibling, so a second run finds
  * nothing to do. Nextcloud's trashbin keeps the overwritten resized copy.
  */
-import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { pathToFileURL } from 'node:url'
-import Database from 'postgres'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import sharp from 'sharp'
-import drizzleConfig from '../../../../../drizzle.config'
 import { isDerivableImage } from '../../../images/derivatives'
 import * as schema from '../../schema'
 import {
@@ -34,6 +31,7 @@ import {
   readHead as readHeadOf,
   rethrowUnlessMissing,
 } from '../guidebook/nextcloud'
+import { runStandalone } from './standalone'
 
 /** Storage path of the pristine sibling, e.g. `/topos/138.jpg` → `/topos/138.orig.jpg`. */
 const origPathOf = (path: string): string => path.replace(/\.([^./]+)$/, '.orig.$1')
@@ -160,9 +158,4 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   }
 }
 
-// Standalone preview: `npx tsx src/lib/db/scripts/migrations/migrate-promote-originals.ts [--dry-run]`.
-if (process.argv[1] != null && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
-  await migrate(drizzle(postgres, { schema }), { dryRun: process.argv.includes('--dry-run') })
-  await postgres.end()
-}
+await runStandalone(import.meta.url, migrate)
