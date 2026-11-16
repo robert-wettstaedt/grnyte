@@ -178,8 +178,9 @@ async function cookieAccessToken(b: Browser) {
 }
 
 /** Landed on the error page with `reason`, and one more `kind` event recorded. */
-async function expectRecorded(landed: string, reason: string, kind: string, before: number) {
+async function expectRecorded(landed: string, reason: string, kind: string, before: number, provider?: string) {
   expect(reasonOf(landed)).toBe(reason)
+  expect(new URL(landed, ORIGIN).searchParams.get('provider')).toBe(provider ?? null)
   expect(await eventCount(kind)).toBe(before + 1)
 }
 
@@ -559,7 +560,13 @@ describe.skipIf(!reachable)('linking from settings', () => {
     issuer.issue({ email: uniqueEmail('elsewhere'), sub })
     const before = await eventCount('oauth_link_refused')
 
-    await expectRecorded(await link(browser(ORIGIN, token)), 'conflict_identity', 'oauth_link_refused', before)
+    await expectRecorded(
+      await link(browser(ORIGIN, token)),
+      'conflict_identity',
+      'oauth_link_refused',
+      before,
+      'google',
+    )
     expect(linkCalls()).toEqual([])
   })
 
@@ -570,7 +577,7 @@ describe.skipIf(!reachable)('linking from settings', () => {
     issuer.issue({ email: other.email.toUpperCase(), sub: `sub-${crypto.randomUUID()}` })
     const before = await eventCount('oauth_link_refused')
 
-    await expectRecorded(await link(browser(ORIGIN, token)), 'conflict_email', 'oauth_link_refused', before)
+    await expectRecorded(await link(browser(ORIGIN, token)), 'conflict_email', 'oauth_link_refused', before, 'google')
     expect(linkCalls()).toEqual([])
   })
 

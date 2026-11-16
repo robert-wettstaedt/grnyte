@@ -6,13 +6,11 @@
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { remoteResource } from '$lib/components/QueryState/remoteResource'
-  import SettingLink from '$lib/components/Setting/SettingLink.svelte'
-  import SettingSection from '$lib/components/Setting/SettingSection.svelte'
-  import SkeletonRows from '$lib/components/Skeleton/SkeletonRows.svelte'
   import { m } from '$lib/paraglide/messages'
   import { back, replaceUrl } from '$lib/state/navigation.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
   import { onMount } from 'svelte'
+  import MethodRow, { rowAction } from './MethodRow.svelte'
   import ProviderRow from './ProviderRow.svelte'
   import SignedInDevices from './SignedInDevices.svelte'
 
@@ -59,8 +57,8 @@
       const { othersSignedOut } = await unlinkProvider({ provider })
       await query.refresh()
       pressed = null
-      toaster.create({ title: m.settings_signInMethodsRemoved({ provider: NAMES[provider] }), type: 'success' })
-      if (othersSignedOut) toaster.create({ title: m.settings_signInMethodsOthersSignedOut(), type: 'info' })
+      const removed = othersSignedOut ? m.settings_signInMethodsRemovedSignedOut : m.settings_signInMethodsRemoved
+      toaster.create({ title: removed({ provider: NAMES[provider] }), type: 'success' })
       if (landedOn != null) void replaceUrl(resolve(HERE))
     } catch (cause) {
       notifyError(cause)
@@ -76,37 +74,55 @@
 
 <PageHeader onback={() => back(resolve('/settings'))} title={m.settings_signInMethods()} />
 
-<div class="container mx-auto max-w-2xl space-y-8 px-4 py-8 pb-24 md:pb-8">
-  <SettingSection title={m.settings_signInMethods()}>
-    <QueryState resource={methods}>
-      {#snippet loading()}
-        <SkeletonRows class="p-4" count={3} />
-      {/snippet}
-      {#snippet ready(data)}
-        <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
-          <SettingLink
-            href={resolve('/settings/password')}
-            label={m.settings_signInMethodsPassword()}
-            description={data!.hasPassword ? m.settings_signInMethodsSet() : m.settings_signInMethodsNotSet()}
-            value={data!.hasPassword ? undefined : m.settings_setPassword()}
+<div class="container mx-auto flex max-w-2xl flex-col gap-5.5 px-4 py-8 pb-24 md:pb-8">
+  <QueryState resource={methods}>
+    {#snippet loading()}
+      <!-- Always three rows: password, Apple, Google. -->
+      <div
+        class="border-surface-200-800 skeleton-hold divide-surface-200-800 divide-y rounded-xl border"
+        aria-busy="true"
+      >
+        {#each [40, 30, 35] as width (width)}
+          <div class="flex items-center gap-3 px-4 py-3.5">
+            <span class="bg-surface-200-800 size-9 flex-none animate-pulse rounded-[10px]"></span>
+            <span class="flex flex-1 flex-col gap-1.5">
+              <span class="bg-surface-200-800 h-3.5 animate-pulse rounded" style:width="{width}%"></span>
+              <span class="bg-surface-200-800 h-2.75 w-1/4 animate-pulse rounded"></span>
+            </span>
+          </div>
+        {/each}
+      </div>
+    {/snippet}
+    {#snippet ready(data)}
+      <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+        <MethodRow
+          icon="key"
+          on={data!.hasPassword}
+          status={data!.hasPassword ? m.settings_signInMethodsSet() : m.settings_signInMethodsNotSet()}
+          title={m.settings_signInMethodsPassword()}
+        >
+          {#snippet action()}
+            <a href={resolve('/settings/password')} class={rowAction}>
+              {data!.hasPassword ? m.settings_signInMethodsChange() : m.settings_setPassword()}
+            </a>
+          {/snippet}
+        </MethodRow>
+        {#each PROVIDERS as provider (provider)}
+          {@const step: Step = `${data!.providers[provider].linked ? 'remove' : 'add'}-${provider}`}
+          <ProviderRow
+            {appleAvailable}
+            configured={data!.configured.includes(provider)}
+            onremove={() => remove(provider)}
+            ontoggle={() => (pressed = open === step ? null : step)}
+            open={open === step}
+            {provider}
+            {running}
+            identity={data!.providers[provider]}
           />
-          {#each PROVIDERS as provider (provider)}
-            {@const step: Step = `${data!.providers[provider].linked ? 'remove' : 'add'}-${provider}`}
-            <ProviderRow
-              {appleAvailable}
-              configured={data!.configured.includes(provider)}
-              onremove={() => remove(provider)}
-              ontoggle={() => (pressed = open === step ? null : step)}
-              open={open === step}
-              {provider}
-              {running}
-              identity={data!.providers[provider]}
-            />
-          {/each}
-        </div>
-      {/snippet}
-    </QueryState>
-  </SettingSection>
+        {/each}
+      </div>
+    {/snippet}
+  </QueryState>
 
   <SignedInDevices />
 </div>

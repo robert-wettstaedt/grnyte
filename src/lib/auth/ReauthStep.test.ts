@@ -151,13 +151,40 @@ describe('with "Confirm with Apple" as the alternative', () => {
     })
   })
 
-  it('shows it above "Send code" in the settled render, and mails nothing', async () => {
+  const follows = (first: Node, second: Node) =>
+    (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+
+  it('shows it under the address line and above "Send code", plain with no "or", and mails nothing', async () => {
     mount({ apple: true })
     await settle()
 
-    expect(apple()).toBeTruthy()
-    expect(apple()!.compareDocumentPosition(sendCode()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const hint = screen.getByText('We’ll email a 6-digit code to sam@posteo.de.')
+    expect(follows(hint, apple()!)).toBe(true)
+    expect(follows(apple()!, sendCode()!)).toBe(true)
+    expect(screen.queryByText('or')).toBeNull()
+    expect(screen.queryByText('This also disconnects grnyte from your Apple ID.')).toBeNull()
     expect(remote.requestReauthCode).not.toHaveBeenCalled()
+  })
+
+  it('filled leads with its note and an "or" before "Send code"', async () => {
+    mount({ apple: true, appleVariant: 'filled' })
+    await settle()
+
+    const note = screen.getByText('This also disconnects grnyte from your Apple ID.')
+    const or = screen.getByText('or')
+    expect(follows(apple()!, note)).toBe(true)
+    expect(follows(note, or)).toBe(true)
+    expect(follows(or, sendCode()!)).toBe(true)
+  })
+
+  it('leaves Apple out of code entry', async () => {
+    mount({ apple: true })
+    await settle()
+    await fireEvent.click(sendCode()!)
+    await settle()
+
+    expect(screen.getByLabelText('Code')).toBeTruthy()
+    expect(apple()).toBeNull()
   })
 
   it('require() goes back to the choice and mails nothing until "Send code", then confirms without running anything', async () => {

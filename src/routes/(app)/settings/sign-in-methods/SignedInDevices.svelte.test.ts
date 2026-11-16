@@ -1,6 +1,7 @@
 import '$lib/forms/screen.fixture'
 import { settle } from '$lib/forms/screen.fixture'
 import { setLocale } from '$lib/paraglide/runtime'
+import { toaster } from '$lib/state/toast'
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import { beforeEach, expect, it, onTestFinished, vi } from 'vitest'
 import SignedInDevices from './SignedInDevices.svelte'
@@ -80,6 +81,33 @@ it('renders the times in German', async () => {
   await settle()
 
   expect(screen.getByText('Dieses Gerät')).toBeTruthy()
-  expect(rows()[1].textContent).toContain('Angemeldet: vor 3 Stunden')
-  expect(rows()[1].textContent).toContain('aktiv: vor 1 Stunde')
+  const day = new Intl.DateTimeFormat('de', { day: 'numeric', month: 'short' }).format(Date.now() - 3 * HOUR)
+  expect(rows()[1].textContent).toContain(`Angemeldet am ${day}`)
+  expect(rows()[1].textContent).toContain('Vor 1 Stunde aktiv')
+})
+
+it('titles each device by its sign-in day, with this device or its last activity below', async () => {
+  render(SignedInDevices)
+  await settle()
+
+  const day = (at: number) => new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short' }).format(at)
+  expect(rows()[0].textContent).toContain(`Signed in ${day(Date.now() - 2 * HOUR)}`)
+  expect(rows()[0].textContent).not.toContain('Active')
+  expect(rows()[1].textContent).toContain(`Signed in ${day(Date.now() - 3 * HOUR)}`)
+  expect(rows()[1].textContent).toContain('Active 1 hour ago')
+})
+
+it('signs the other devices out from a card of its own, with the board’s toast', async () => {
+  const toast = vi.spyOn(toaster, 'create')
+  render(SignedInDevices)
+  await settle()
+
+  expect(screen.getByText('Signs you out everywhere except here.')).toBeTruthy()
+  const others = screen.getByText('Other devices').closest('.rounded-xl')!
+  expect(others.contains(rows()[0])).toBe(false)
+  await fireEvent.click(others.querySelector('button')!)
+  await settle()
+
+  expect(held.signOutOthers).toHaveBeenCalledOnce()
+  expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Signed out other devices' }))
 })

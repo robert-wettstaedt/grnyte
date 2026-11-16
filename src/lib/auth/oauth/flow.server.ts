@@ -289,8 +289,14 @@ function mismatchKind(cause: unknown): AuthEventKind | undefined {
   return 'parameters' in detail ? 'oauth_iss_mismatch' : MISMATCHES[detail.claim ?? '']
 }
 
+// A conflict page names the provider ("This Apple ID is on another account"); no other reason does.
 const errorPage = (tx: OAuthTransaction, reason: string) =>
-  `${ERROR_PATH}?${new URLSearchParams({ from: tx.returnTo, intent: tx.intent.kind, reason })}`
+  `${ERROR_PATH}?${new URLSearchParams({
+    from: tx.returnTo,
+    intent: tx.intent.kind,
+    reason,
+    ...(reason.startsWith('conflict_') ? { provider: tx.provider } : {}),
+  })}`
 
 /** `returnTo` with `name=value` added on the parsed path, so a query already there survives. */
 function withParam(path: string, name: string, value: string): string {

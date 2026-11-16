@@ -77,6 +77,8 @@ it('offline, shows the message and does not leave', async () => {
   await fireEvent.click(control('Continue with Apple'))
 
   expect(submits[0].defaultPrevented).toBe(true)
-  expect(screen.getByRole('alert').textContent).toContain('offline')
+  expect(screen.getByRole('alert').textContent).toContain(
+    'You’re offline. Connect to the internet to continue with Apple or Google.',
+  )
   expect((control('Continue with Google') as HTMLButtonElement).disabled).toBe(false)
 })

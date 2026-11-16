@@ -52,14 +52,14 @@
 
 <svelte:window onpageshow={restore} />
 
-<div class="space-y-1.5">
+<div class="flex flex-col gap-3">
   <button
     type="button"
     class={[
-      'btn h-11 w-full gap-2 rounded-lg text-[15px] font-medium',
+      'btn h-12 w-full gap-2 rounded-[10px] text-[15px] font-semibold',
       variant === 'filled'
         ? 'bg-black text-white dark:bg-white dark:text-black'
-        : 'border border-black bg-white text-black dark:border-white dark:bg-black dark:text-white',
+        : 'border-surface-950-50 text-surface-950-50 border bg-transparent',
     ]}
     disabled={pending}
     onclick={leave}
@@ -71,7 +71,13 @@
     {/if}
     {m.auth_confirmWithApple()}
   </button>
+  <!-- Filled leads, so the code is the alternative: the caption, then "or" above "Send code". -->
   {#if variant === 'filled'}
-    <p class="text-surface-600-400 text-center text-xs">{m.auth_confirmWithAppleRevokes()}</p>
+    <p class="text-surface-600-400 -mt-1 text-[12.5px] leading-snug">{m.auth_confirmWithAppleRevokes()}</p>
+    <p class="text-surface-600-400 flex items-center gap-3 text-[12.5px]" aria-hidden="true">
+      <span class="bg-surface-200-800 h-px flex-1"></span>
+      {m.auth_or()}
+      <span class="bg-surface-200-800 h-px flex-1"></span>
+    </p>
   {/if}
 </div>

@@ -120,16 +120,17 @@
     {/if}
     <AuthSteps lastUsed={page.data.lastUsed} {onswap} providers={page.data.providers} screen="signin">
       <form {...signIn.enhance(submitAndLeave)} class="flex flex-col gap-4">
-        <FormError form={signIn} />
-        {#if failed && page.data.providers.length > 0}
-          <p class="text-surface-600-400 -mt-2 text-[13.5px]">
-            {m.auth_providerHint()}
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- `authStepHref`: a fixed auth path plus a query -->
-            <a href={authStepHref(page.url, '/auth/signin', false)} class="text-primary-600-400 font-bold">
-              {m.auth_otherWays()}
-            </a>
-          </p>
-        {/if}
+        <FormError form={signIn}>
+          {#if failed && page.data.providers.length > 0}
+            <p class="text-surface-600-400">
+              {m.auth_providerHint()}
+              <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- `authStepHref`: a fixed auth path plus a query -->
+              <a href={authStepHref(page.url, '/auth/signin', false)} class="text-primary-600-400 font-bold">
+                {m.auth_providerHintBack()}
+              </a>
+            </p>
+          {/if}
+        </FormError>
         <input type="hidden" name="codeFlow" value="1" />
 
         {#if next != null}
