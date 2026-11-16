@@ -212,3 +212,15 @@ D13's iOS inputs re-measured on the WebSocket build, 2026-11-16 (5696c201, iOS 2
 Route 203, the screen that must claim "none" and waited for the reconnect, fell from 20.62 s to 0.76 s. Area and block stay behind Zero (0.7 to 1.0 s from first paint), profile is now ahead. Zero's own times are higher than on 2026-11-14 (0.71 against 0.54 s on area), so this run's environment was slower; compare within a row.
 
 Cold first sync, same Simulator and build, each run on a new origin (an empty store, the sign-in kept), no throttling, 3 runs: connected 0.9 to 1.4 s, essentials 1.1 to 1.7 s, every stream synced 4.1 to 4.4 s, one stream per run. D12 measured 23 to 26 s on this setup over HTTP (Chrome 3.3 s), so most of D12's iOS first-sync time was the WebKit `fetch` stall (D15). The iPhone figure in D12 (45 to 60 s on the user's prod account, Zero 4 s) is not re-measured.
+
+## Go/no-go: go (user, 2026-11-16)
+
+Decided by design D13's three inputs, all passed:
+
+- Desktop PWA in Chrome (task 8.11): every guidebook screen settles under 1 s from first paint (area 0.87, block 0.78, route 0.41, profile 0.46, map 0.28 s); from navigation, the bar's reference, route, profile and map pass and area (1.16 s) and block (1.22 s) pass under the user's carve-out of 2026-11-14: the sheet's content is in place well under 1 s, only an action-bar button that reads the map's data appears later. Live update 0.06 s, within the 5 s bar. Comments within 1 s stays R2's gate (comments are on Zero this milestone).
+- Expo spike (trial 3, real iPhone): cold sync 0.8 to 2.2 s, an offline ascent replayed; passed from the recorded trial result.
+- Server cost and load (trials 1 and 3): passed from the recorded trial results (PowerSync on MongoDB storage the cheapest setup, ~16 to 29x less server memory per device than Zero).
+
+Recorded costs, not deciding: iOS PWA rules 1 and 2 (re-measured 2026-11-16 on the WebSocket build: area and block 0.7 to 1.0 s behind Zero in the Simulator, route 0.76 s against 0.47 s, profile ahead; the iPhone first sync on prod is measured again before the PWA cutover, design D17); rule 8 (the iPhone soak) was never run, its question moves to the native checkpoint; live updates in trial 2 (108 ms against Zero's 16 ms).
+
+Since D17 the PWA switches to PowerSync once R1 and the engine seam are done, before the native app. Zero and PowerSync both run on the server until **2027-05-16** (go plus six months); then the user decides again if the PWA cutover or the native app has not shipped; nothing is removed automatically.
