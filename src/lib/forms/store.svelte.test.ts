@@ -156,6 +156,15 @@ describe('createFormStore submit', () => {
     expect(form.fields.name.issues()).toEqual([{ message: 'routes_nameExists', path: ['name'] }])
   })
 
+  it('drops an earlier refusal once a later submit succeeds', async () => {
+    const form = valid()
+    await form.submit(() => Promise.reject({ body: { message: 'auth_mailUnavailable' } }))
+    expect(form.fields.allIssues()).toEqual([{ message: 'auth_mailUnavailable', path: [] }])
+
+    expect(await form.submit(async () => 'sent')).toEqual({ kind: 'done', result: 'sent' })
+    expect(form.fields.allIssues()).toEqual([])
+  })
+
   it('reports offline without an issue, and rethrows what is not a refusal', async () => {
     const form = valid()
 

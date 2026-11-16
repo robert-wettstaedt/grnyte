@@ -10,10 +10,9 @@
   import { m } from '$lib/paraglide/messages'
 
   // The new password after a code proved the inbox: a reset, or a contested sign-up.
-  const { ondone }: { ondone: () => Promise<void> | void } = $props()
+  const { ondone, submitLabel }: { ondone: () => Promise<void> | void; submitLabel: string } = $props()
 
   const store = createFormStore(z.object({ password: passwordSchema }))
-  let shown = $state(false)
   let pending = $state(false)
 
   async function onsubmit(event: SubmitEvent) {
@@ -34,27 +33,21 @@
   <AuthField
     field={store.fields.password}
     label={m.auth_newPassword()}
-    type={shown ? 'text' : 'password'}
-    placeholder={m.auth_passwordPlaceholderNew()}
+    type="password"
+    reveal
+    hint={m.auth_passwordHint()}
     autocomplete="new-password"
     enterkeyhint="go"
     autofocus
+  />
+  <button
+    type="submit"
+    class="btn preset-filled-primary-500 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)]"
+    disabled={pending}
   >
-    {#snippet action()}
-      <button
-        type="button"
-        class="text-primary-600-400 -mx-1 flex min-h-6 items-center px-1 text-[12.5px] font-semibold"
-        aria-pressed={shown}
-        onclick={() => (shown = !shown)}
-      >
-        {shown ? m.auth_passwordHide() : m.auth_passwordShow()}
-      </button>
-    {/snippet}
-  </AuthField>
-  <button type="submit" class="btn preset-filled-primary-500 h-12.5 w-full font-semibold" disabled={pending}>
     {#if pending}
       <LoadingIndicator size="18px" />
     {/if}
-    {m.auth_savePassword()}
+    {submitLabel}
   </button>
 </form>

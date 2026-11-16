@@ -2,10 +2,16 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Logo from '$lib/assets/logo.svg'
+  import ProviderBlock from '$lib/auth/ProviderBlock.svelte'
+  import TermsAgree from '$lib/auth/TermsAgree.svelte'
+  import Banner from '$lib/components/Banner/Banner.svelte'
   import AuthField from '$lib/forms/AuthField.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { motion } from '$lib/state/motion.svelte'
   import { replaceUrl } from '$lib/state/navigation.svelte'
+  import { fade } from 'svelte/transition'
   import SignupCodeStep from '../signup/SignupCodeStep.svelte'
   import { signIn } from './signin.remote'
 
@@ -56,64 +62,125 @@
 </svelte:head>
 
 {#if unconfirmed != null}
-  <SignupCodeStep email={unconfirmed.email} {next} resendToken={unconfirmed.resendToken} />
-{:else}
-  <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_signInTitle()}</h1>
-  <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">{m.auth_signInSubtitle()}</p>
-
-  <form {...signIn.enhance(submitAndLeave)} class="flex flex-col gap-4">
-    {#if page.url.searchParams.get('deleted') === '1'}
-      <div class="card preset-tonal-error px-4 py-3 text-sm" role="alert">{m.auth_accountDeleted()}</div>
-    {/if}
-    <FormError form={signIn} />
-    <input type="hidden" name="codeFlow" value="1" />
-
-    {#if next != null}
-      <input type="hidden" name="next" value={next} />
-    {/if}
-
-    <AuthField
-      field={signIn.fields.email}
-      label={m.auth_email()}
-      type="email"
-      placeholder="you@example.com"
-      autocomplete="username"
-      autocapitalize="none"
-      enterkeyhint="next"
-      autofocus
+  {@const { email, resendToken } = unconfirmed}
+  <div in:fade={{ duration: motion(150) }}>
+    <SignupCodeStep
+      {email}
+      {next}
+      {resendToken}
+      title={m.auth_confirmEmailTitle()}
+      subtitle={m.auth_codeSentToSignIn({ email })}
+      onback={() => {
+        signIn.fields.set({ email })
+        unconfirmed = null
+      }}
     />
-
-    <AuthField
-      field={signIn.fields.password}
-      label={m.auth_password()}
-      type="password"
-      placeholder={m.auth_passwordPlaceholder()}
-      autocomplete="current-password"
-      enterkeyhint="go"
-    >
-      {#snippet action()}
+  </div>
+{:else}
+  {#if page.url.search === ''}
+    <!-- The installed app's start: CSS alone shows it, so the first paint is already right. -->
+    <div class="welcome-fork hidden flex-1 flex-col">
+      <div class="flex flex-1 flex-col items-center justify-center gap-3.5 text-center">
+        <img src={Logo} alt="" class="block size-19 rounded-[20px]" />
+        <strong class="[font-family:var(--heading-font-family)] text-[34px] leading-none font-bold tracking-tight">
+          {PUBLIC_APPLICATION_NAME}
+        </strong>
+        <p class="text-surface-600-400 text-[15.5px]">{m.landing_tagline()}</p>
+      </div>
+      <div class="flex flex-col gap-2.5">
         <a
-          href={resolve('/auth/forgot-password')}
-          class="text-primary-600-400 -mx-1 flex min-h-6 items-center px-1 text-[12.5px] font-semibold"
+          href={resolve('/auth/signup')}
+          class="btn preset-filled-primary-500 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)]"
         >
-          {m.auth_forgot()}
+          {m.auth_createAccount()}
         </a>
-      {/snippet}
-    </AuthField>
+        <!-- eslint-disable svelte/no-navigation-without-resolve -- resolve()'d path plus a query -->
+        <a
+          href={resolve('/auth/signin') + '?form=signin'}
+          class="btn preset-outlined-surface-300-700 bg-surface-50-950 h-12.5 w-full font-semibold"
+        >
+          {m.auth_welcomeSignIn()}
+        </a>
+        <!-- eslint-enable svelte/no-navigation-without-resolve -->
+      </div>
+      <TermsAgree />
+    </div>
+  {/if}
 
-    <button
-      type="submit"
-      class="btn preset-filled-primary-500 mt-1 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)] disabled:opacity-60"
-      disabled={signIn.pending > 0}
-    >
-      {m.auth_signIn()}
-    </button>
-  </form>
+  <div class="signin-content">
+    <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_signIn()}</h1>
+    <p class="text-surface-600-400 mb-5.5 text-[14.5px] leading-snug">{m.auth_signInSubtitle()}</p>
+    {#if page.url.searchParams.get('deleted') === '1'}
+      <Banner class="mb-4.5">{m.auth_accountDeleted()}</Banner>
+    {/if}
+    <ProviderBlock />
 
-  <p class="text-surface-600-400 mt-6 text-center text-[13.5px]">
-    {m.auth_noAccount()}
-    <!-- resolve()'d path plus a query string, which resolve() itself does not take -->
-    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-    <a href={resolve('/auth/signup') + page.url.search} class="text-primary-400 font-bold">{m.auth_signUp()}</a>
-  </p>
+    <form {...signIn.enhance(submitAndLeave)} class="flex flex-col gap-4">
+      <FormError form={signIn} />
+      <input type="hidden" name="codeFlow" value="1" />
+
+      {#if next != null}
+        <input type="hidden" name="next" value={next} />
+      {/if}
+
+      <AuthField
+        field={signIn.fields.email}
+        label={m.auth_email()}
+        type="email"
+        placeholder="you@example.com"
+        autocomplete="username"
+        autocapitalize="none"
+        enterkeyhint="next"
+        autofocus
+      />
+
+      <AuthField
+        field={signIn.fields.password}
+        label={m.auth_password()}
+        type="password"
+        reveal
+        placeholder={m.auth_passwordPlaceholder()}
+        autocomplete="current-password"
+        enterkeyhint="go"
+      >
+        {#snippet action()}
+          <a
+            href={resolve('/auth/forgot-password')}
+            class="text-primary-600-400 -mx-1 flex min-h-6 items-center px-1 text-[12.5px] font-semibold"
+          >
+            {m.auth_forgot()}
+          </a>
+        {/snippet}
+      </AuthField>
+
+      <button
+        type="submit"
+        class="btn preset-filled-primary-500 mt-1 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)] disabled:opacity-60"
+        disabled={signIn.pending > 0}
+      >
+        {m.auth_signIn()}
+      </button>
+    </form>
+
+    <p class="text-surface-600-400 mt-5.5 text-center text-[13.5px]">
+      {m.auth_noAccount({ name: PUBLIC_APPLICATION_NAME })}
+      <!-- resolve()'d path plus a query string, which resolve() itself does not take -->
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+      <a href={resolve('/auth/signup') + page.url.search} class="text-primary-600-400 font-bold">
+        {m.auth_createAccount()}
+      </a>
+    </p>
+    <TermsAgree />
+  </div>
 {/if}
+
+<style>
+  @media (display-mode: standalone) {
+    .welcome-fork {
+      display: flex;
+    }
+    .welcome-fork + .signin-content {
+      display: none;
+    }
+  }
+</style>

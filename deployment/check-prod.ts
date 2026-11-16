@@ -11,13 +11,15 @@
  *
  *   PUBLIC_SUPABASE_URL=https://<ref>.supabase.co PUBLIC_SUPABASE_PUBLISHABLE_KEY=... \
  *   SUPABASE_JWT_JWKS_URL=https://<ref>.supabase.co/auth/v1/.well-known/jwks.json \
- *   RESEND_API_KEY=... RESEND_SENDER_EMAIL='grnyte <no-reply@grnyte.rocks>' npm run check:prod
+ *   RESEND_API_KEY=... RESEND_SENDER_EMAIL='grnyte <no-reply@grnyte.rocks>' \
+ *   SUPABASE_PROJECT_REF=<ref> SUPABASE_ACCESS_TOKEN=<read-only token> npm run check:prod
  *
  * ponytail: no check that migrations are applied. That needs the production DATABASE_URL and a
  * postgres connection, and drift there fails loudly on first use rather than silently. Add it if a
  * migration ever ships late.
  */
 import 'dotenv/config'
+import { assertAuthConfig } from './authConfig'
 
 const failures: string[] = []
 
@@ -56,19 +58,25 @@ check(
   'the JWKS holds an asymmetric signing key (ES256 or RS256)',
 )
 
-// The public GoTrue settings endpoint. Everything sign-up depends on that is a switch rather than
-// code lives here, and it is readable with the publishable key alone.
+// GoTrue's switches: the public settings endpoint (publishable key) and the Management API, which
+// alone shows the hook, the code length and the rest. Without its token that half fails, never skips.
 const auth = await fetch(`${supabaseUrl}/auth/v1/settings`, { headers: { apikey: publishableKey } }).then((r) =>
   r.json(),
 )
-
-// Public sign-up stays off: accounts are created through the admin API, after the bot checks, so the
-// published anon key cannot skip them.
-check(auth.disable_signup === true, 'public signup is disabled (disable_signup is true)')
-check(auth.external?.email === true, 'email provider is enabled')
-// Confirmation is what the /auth/confirm handler and the signup mail exist for. If this flips true,
-// accounts are created confirmed and that whole leg is silently dead.
-check(auth.mailer_autoconfirm === false, 'email confirmation is required (mailer_autoconfirm is false)')
+const projectRef = process.env.SUPABASE_PROJECT_REF ?? ''
+const accessToken = process.env.SUPABASE_ACCESS_TOKEN ?? ''
+check(projectRef !== '' && accessToken !== '', 'SUPABASE_PROJECT_REF and SUPABASE_ACCESS_TOKEN are set')
+const authConfig =
+  projectRef === '' || accessToken === ''
+    ? {}
+    : await fetch(`https://api.supabase.com/v1/projects/${projectRef}/config/auth`, {
+        headers: { authorization: `Bearer ${accessToken}` },
+      })
+        .then((r) => r.json())
+        .catch(() => ({}))
+const authFailures = assertAuthConfig(auth, authConfig)
+for (const failure of authFailures) check(false, failure)
+if (authFailures.length === 0) check(true, 'GoTrue auth config (hook, codes, sessions, notices, limits)')
 
 // Resend, via the cheapest authenticated GET there is. A bad key is indistinguishable from "no mail
 // is sent" from the app's side, because sendEmail deliberately never throws: it logs and returns

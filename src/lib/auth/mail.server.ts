@@ -24,6 +24,8 @@ export const mailSignupConfirmation = (authServer: AuthServer, email: string) =>
  */
 export async function gotrueRefusal(error: AuthError, endpoint: string): Promise<FormMessage> {
   if (error.status === 429) await logServerFailure('auth', `GoTrue rate limit hit (${endpoint})`)
+  // The per-address wait between sends shares the send limit's code; only its message tells them apart.
+  if (/only request this after \d+ seconds/.test(error.message)) return formError('auth_rateLimited')
   if (error.code === 'over_email_send_rate_limit') {
     await noteMailRefusal(error)
     return formError('auth_mailUnavailable')

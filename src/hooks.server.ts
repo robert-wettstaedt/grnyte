@@ -1,13 +1,15 @@
 import { pinnedTx } from '$lib/db/pinned.server'
 import { clientErrorLogs } from '$lib/db/schema'
 import { authGuard, supabase } from '$lib/hooks/auth.server'
+import { crossSiteGuard } from '$lib/hooks/crossSite.server'
 import { handle as paraglide } from '$lib/hooks/paraglide.server'
 import { rateLimit } from '$lib/hooks/rate-limit.server'
 import { MAX_ERROR_LENGTH, stringifyError } from '$lib/logging/stringify'
 import { type Handle, type HandleServerError } from '@sveltejs/kit'
 import { sequence } from '@sveltejs/kit/hooks'
 
-export const handle: Handle = sequence(rateLimit, paraglide, supabase, authGuard)
+// The cross-site guard first, so a refused request costs nothing else.
+export const handle: Handle = sequence(crossSiteGuard, rateLimit, paraglide, supabase, authGuard)
 
 // Unexpected errors while responding to a request. Vercel keeps its own logs for an
 // hour only, so persist ours. Awaited rather than fire-and-forget: the serverless

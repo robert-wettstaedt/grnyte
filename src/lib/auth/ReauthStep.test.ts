@@ -21,12 +21,11 @@ const step = () => document.querySelector('[data-reauth-step]')!
 const confirmed = () => screen.getByTestId('confirmed').textContent
 const sendCode = () => screen.queryByRole('button', { name: 'Send code' })
 
-it('keeps the height of the "Send code" card while the peek is pending, the skeleton held for 250 ms', async () => {
+it('holds a skeleton for 250 ms while the peek is pending', async () => {
   remote.reauthGrantStatus.mockImplementation(() => new Promise<boolean>(() => {}))
   mount()
   await settle()
 
-  expect(step().classList.contains('min-h-36')).toBe(true)
   expect(step().querySelector('.skeleton-hold')).toBeTruthy()
   expect(sendCode()).toBeNull()
 })
@@ -36,7 +35,7 @@ it('shows a live grant as confirmed and mails nothing', async () => {
   mount()
   await settle()
 
-  expect(screen.getByText('Confirmed for the next 5 minutes')).toBeTruthy()
+  expect(screen.getByText('Confirmed for the next 5 minutes.')).toBeTruthy()
   expect(confirmed()).toBe('true')
   expect(remote.requestReauthCode).not.toHaveBeenCalled()
 })
@@ -142,11 +141,14 @@ describe('a session ended on another device', () => {
   })
 })
 
-it('settles blocked into one line of the same height, with no "Send code"', async () => {
-  mount({ blocked: true })
+it('names the address before and after sending, and submits the code with no Continue', async () => {
+  mount()
   await settle()
+  expect(screen.getByText('We’ll email a 6-digit code to sam@posteo.de.')).toBeTruthy()
 
-  expect(screen.getByText('Hand over the regions below first')).toBeTruthy()
-  expect(step().classList.contains('min-h-36')).toBe(true)
-  expect(sendCode()).toBeNull()
+  await fireEvent.click(sendCode()!)
+  await settle()
+  expect(screen.getByText('Enter the 6-digit code we sent to sam@posteo.de.')).toBeTruthy()
+  expect(screen.getByText('It works for 10 minutes.')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull()
 })

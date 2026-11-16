@@ -13,6 +13,7 @@
 
 <script lang="ts" generics="Input extends Record<string, unknown>, W extends FormWaits = FormWaits">
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import type { IconName } from '$lib/components/Icon/icons'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PageHeaderAction from '$lib/components/PageHeader/PageHeaderAction.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -71,6 +72,8 @@
     submit: (values: Input) => Promise<MutationResult<unknown> | void>
     /** Gate submit on a caller precondition, on top of the built-in pending state. */
     submitDisabled?: boolean
+    /** Replaces the submit button's default icon (check, or trash when destructive). */
+    submitIcon?: IconName
     submitLabel: string
     title: string
     /** Rows the fields need. Until they are here the header renders with Save disabled over one
@@ -96,6 +99,7 @@
     store,
     submit,
     submitDisabled = false,
+    submitIcon,
     submitLabel,
     title,
     waitFor,
@@ -174,7 +178,7 @@
   <FormGate
     action={stepped && !isLast
       ? { icon: 'arrow-right', iconAfter: true, label: nextLabel }
-      : { destructive, label: submitLabel }}
+      : { destructive, icon: submitIcon, label: submitLabel }}
     {cancelTo}
     {denied}
     {fill}
@@ -229,6 +233,7 @@
           <PageHeaderAction
             {destructive}
             disabled={submitting || submitDisabled || !canContinue}
+            icon={submitIcon}
             label={submitLabel}
             pending={submitting}
             type="submit"

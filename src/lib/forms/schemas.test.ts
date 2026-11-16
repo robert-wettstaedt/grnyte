@@ -27,6 +27,6 @@ describe('passwordSchema', () => {
   })
 
   it('still asks for 8 characters', () => {
-    expect(refusal('short')).toEqual([formError('form_charsMin', { count: 8 })])
+    expect(refusal('short')).toEqual([formError('auth_passwordTooShort')])
   })
 })

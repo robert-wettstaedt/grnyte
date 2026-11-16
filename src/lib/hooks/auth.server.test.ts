@@ -1,4 +1,4 @@
-import { APP_HOME_PATH } from '$lib/auth'
+import { APP_HOME_PATH, AUTH_PATH } from '$lib/auth'
 import { acceptPath, REGION_CREATE_PATH } from '$lib/entities/region/paths'
 import { isRedirect, type RequestEvent } from '@sveltejs/kit'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -125,6 +125,12 @@ describe('authGuard', () => {
     signOut.mockReset()
   })
 
+  it('leaves the app API blind to the session cookie', async () => {
+    const event = mockEvent('/api/app/session')
+    expect(await redirectFrom(event)).toBeUndefined()
+    expect(event.locals.claims).toBeUndefined()
+  })
+
   it('serves a page load on the cookie claims alone, never checking the session is live', async () => {
     expect(await redirectFrom(mockEvent('/settings'))).toBeUndefined()
     expect(signOut).not.toHaveBeenCalled()
@@ -163,6 +169,18 @@ describe('authGuard', () => {
     it('is left alone on an emailed-link page, whose token would be dropped by a bounce', async () => {
       expect(await redirectFrom(mockEvent('/auth/confirm'))).toBeUndefined()
     })
+  })
+
+  it('sends a signed-out visitor from /explore to a bare sign-in, where the installed app shows the welcome fork', async () => {
+    expect(await redirectFrom(mockEvent('/explore', { signedIn: false }))).toBe(AUTH_PATH)
+    const { load } = await import('../../routes/(landing)/auth/+page.server')
+    let location: string | undefined
+    try {
+      load({} as never)
+    } catch (thrown) {
+      location = isRedirect(thrown) ? thrown.location : undefined
+    }
+    expect(location).toBe('/auth/signin')
   })
 
   describe('the public root', () => {

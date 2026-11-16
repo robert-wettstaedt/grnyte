@@ -139,6 +139,14 @@ describe.skipIf(!reachable)('updateEmailCommand', () => {
     gotrue.error = { code: 'over_email_send_rate_limit', message: 'rate limit', status: 429 }
     expect((await change('someone-else@grnyte.rocks')).outcome).toEqual({ message: formError('auth_mailUnavailable') })
 
+    // GoTrue's per-address wait shares the code: it is a "wait", not a failed mail.
+    gotrue.error = {
+      code: 'over_email_send_rate_limit',
+      message: 'For security purposes, you can only request this after 29 seconds.',
+      status: 429,
+    }
+    expect((await change('someone-else@grnyte.rocks')).outcome).toEqual({ message: formError('auth_rateLimited') })
+
     gotrue.error = { code: 'unexpected_failure', message: 'down', status: 503 }
     expect((await change('someone-else@grnyte.rocks')).outcome).toEqual({
       message: formError('auth_serviceUnavailable'),

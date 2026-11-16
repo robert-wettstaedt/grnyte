@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Banner from '$lib/components/Banner/Banner.svelte'
   import type { RemoteFormIssue } from '@sveltejs/kit'
   import { resolveIssueMessage } from './issue'
 
@@ -13,9 +14,9 @@
 </script>
 
 {#if issues.length > 0}
-  <div class="card preset-tonal-error px-4 py-3 text-sm" role="alert">
+  <Banner tone="error">
     {#each issues as issue, i (i)}
       <p>{resolveIssueMessage(issue.message)}</p>
     {/each}
-  </div>
+  </Banner>
 {/if}

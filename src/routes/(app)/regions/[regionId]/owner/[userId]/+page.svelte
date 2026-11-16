@@ -2,6 +2,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ReauthStep, { isReauthRequired } from '$lib/auth/ReauthStep.svelte'
+  import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import { entityHref } from '$lib/entities/href'
   import { ownerOnlyDenied, regionDenied } from '$lib/entities/region/adminScreen.svelte'
   import { handOverSchema } from '$lib/entities/region/dto'
@@ -65,7 +66,7 @@
 </script>
 
 <svelte:head>
-  <title>{m.region_handOver()} – {PUBLIC_APPLICATION_NAME}</title>
+  <title>{m.region_handOverTitle()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <Form
@@ -76,19 +77,38 @@
   {store}
   {submit}
   submitDisabled={!confirmed}
-  submitLabel={m.region_handOver()}
-  title={m.region_handOver()}
+  submitIcon="user-check"
+  submitLabel={m.region_handOverAction()}
+  title={m.region_handOverTitle()}
   waitFor={[
     { notFound: m.region_notFound(), resource: region, whole: false },
     { notFound: m.region_memberNotFound(), resource: recipient, whole: false },
   ]}
 >
   {#snippet fields([detail, member])}
-    <p>{m.region_handOverIntro({ name: member.username, region: detail.name })}</p>
+    <div
+      class="border-surface-200-800 flex items-center gap-3 rounded-[14px] border bg-[light-dark(var(--color-surface-50),var(--color-surface-900))] px-3.5 py-3"
+    >
+      <Avatar name={member.username} size={40} />
+      <span class="flex flex-col">
+        <strong class="text-[15px]">{member.username}</strong>
+        <span class="text-surface-600-400 text-[12.5px]">{m.region_handOverRole({ region: detail.name })}</span>
+      </span>
+    </div>
+    <p class="text-surface-600-400 text-[14.5px] leading-normal">
+      {m.region_handOverIntro({ name: member.username, region: detail.name })}
+    </p>
 
     <!-- One route serves every recipient, so the step starts over per region and member. -->
     {#key `${regionId}:${userId}`}
-      <ReauthStep bind:this={step} bind:confirmed action="region.transfer" target={`${regionId}:${userId}`} />
+      <ReauthStep
+        bind:this={step}
+        bind:confirmed
+        action="region.transfer"
+        email={page.data.session?.user.email ?? ''}
+        next={m.region_handOverNext({ name: member.username })}
+        target={`${regionId}:${userId}`}
+      />
     {/key}
   {/snippet}
 </Form>
