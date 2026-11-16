@@ -183,18 +183,27 @@
       {#if detail.type != null && (routes.data.length > 0 ? routes.phase.kind === 'answered' || isOnline() : expectingMore(routes.phase) || routes.phase.kind === 'answered' || routes.phase.kind === 'error')}
         <section class="space-y-2">
           <div class="flex items-baseline justify-between">
-            <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.areas_grades()}</h2>
+            <h2 class="text-surface-600-400 shrink-0 text-sm font-bold tracking-wider uppercase">{m.areas_grades()}</h2>
             {#if routeCount != null}
-              <span class="text-surface-600-400 text-xs tabular-nums">
+              <!-- One line whatever the counts: a wrap after routes land would push the page down. Only the graded
+                   clause gives way, so the ungraded count stays readable. -->
+              <span class="text-surface-600-400 flex min-w-0 text-xs tabular-nums">
                 {#if selected != null}
-                  {selected.label} ·
-                  {selectedMatching == null
-                    ? m.routes_routesCount({ count: selected.count })
-                    : m.routes_matchingCount({ count: selected.count, matching: selectedMatching })}
+                  <span class="truncate">
+                    {selected.label} ·
+                    {selectedMatching == null
+                      ? m.routes_routesCount({ count: selected.count })
+                      : m.routes_matchingCount({ count: selected.count, matching: selectedMatching })}
+                  </span>
                 {:else if matchingCount != null && routeCount != null}
-                  {m.routes_matchingCount({ count: routeCount, matching: matchingCount })}
+                  <span class="truncate">{m.routes_matchingCount({ count: routeCount, matching: matchingCount })}</span>
                 {:else}
-                  {m.areas_gradedCount({ count: gradedCount })}
+                  <span class="truncate">{m.areas_gradedCount({ count: gradedCount })}</span>
+                  {#if ungradedCount > 0}
+                    <span class="shrink-0 whitespace-nowrap">
+                      &nbsp;· {m.areas_ungradedCount({ count: ungradedCount })}
+                    </span>
+                  {/if}
                 {/if}
               </span>
             {/if}
@@ -208,7 +217,6 @@
               {matchingByGrade}
               grades={global.grades}
               gradingScale={global.gradingScale}
-              ungraded={ungradedCount}
               onselect={(bar) => (selected = bar)}
             />
           {:else if routes.phase.kind === 'error'}
