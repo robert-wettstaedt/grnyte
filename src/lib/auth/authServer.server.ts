@@ -12,7 +12,10 @@ export type AuthServer = Pick<
   'refreshSession' | 'resend' | 'resetPasswordForEmail' | 'signInWithIdToken' | 'signInWithPassword' | 'verifyOtp'
 >
 
-export type AuthServerAs = Pick<SupabaseClient['auth'], 'linkIdentity' | 'updateUser'>
+export type AuthServerAs = Pick<
+  SupabaseClient['auth'],
+  'getUserIdentities' | 'linkIdentity' | 'signOut' | 'unlinkIdentity' | 'updateUser'
+>
 
 /**
  * GoTrue under the secret key, forwarding the caller's address so its per-IP limits count each
@@ -82,7 +85,10 @@ export function supabaseAuthServerAs(event: Pick<RequestEvent, 'getClientAddress
   const { auth } = client
 
   return Object.freeze({
+    getUserIdentities: auth.getUserIdentities.bind(auth),
     linkIdentity: auth.linkIdentity.bind(auth),
+    signOut: auth.signOut.bind(auth),
+    unlinkIdentity: auth.unlinkIdentity.bind(auth),
     updateUser: auth.updateUser.bind(auth),
   })
 }

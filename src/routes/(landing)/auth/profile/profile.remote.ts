@@ -1,26 +1,9 @@
-import { command, getRequestEvent } from '$app/server'
+import { command } from '$app/server'
 import { signedInRedirectTarget } from '$lib/auth'
-import { requireLiveSession } from '$lib/auth/session.server'
-import { provisionProfile } from '$lib/entities/user/provision.server'
-import { formError } from '$lib/forms/schemas'
-import { getLocale } from '$lib/paraglide/runtime'
-import { refuseCommand } from '$lib/remote/authed.server'
-import { error } from '@sveltejs/kit'
+import { completeProfile as complete } from './profile.server'
 import { profileSchema } from './schemas'
 
-export const completeProfile = command(profileSchema, async ({ gradingScale, next, username }) => {
-  const { locals, url } = getRequestEvent()
-  // `claims`, not `requireAuthed`: that demands the `users` row this creates.
-  if (locals.claims == null) error(401, formError('auth_notSignedIn'))
-  await requireLiveSession()
-
-  const { kind } = await provisionProfile({
-    authUserId: locals.claims.sub,
-    contactLocale: getLocale(),
-    gradingScale,
-    origin: url.origin,
-    username,
-  })
-  if (kind === 'deleted') refuseCommand(formError('auth_accountDeleted'))
+export const completeProfile = command(profileSchema, async ({ next, ...profile }) => {
+  await complete(profile)
   return { redirectTo: signedInRedirectTarget(next) }
 })

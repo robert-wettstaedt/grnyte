@@ -1,14 +1,14 @@
 import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
 import { isContested, signedInRedirectTarget } from '$lib/auth'
-import { supabaseAuthServer } from '$lib/auth/authServer.server'
-import { endSession, issueResendToken } from '$lib/auth/contested.server'
+import { endSession } from '$lib/auth/contested.server'
 import { rememberMethod } from '$lib/auth/lastMethod.server'
-import { gotrueRefusal, sendCode } from '$lib/auth/mail.server'
+import { gotrueRefusal } from '$lib/auth/mail.server'
 import { hasDeletionMarker } from '$lib/entities/user/provision.server'
-import { formError, normalizePassword } from '$lib/forms/schemas'
+import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { invalid } from '@sveltejs/kit'
+import { signInWithPassword } from './signin.server'
 
 const signInSchema = z.object({
   /** Sent by pages that can show the code step; an older tab gets the form-level message instead. */
@@ -29,23 +29,13 @@ const signInSchema = z.object({
 
 export const signIn = form(signInSchema, async ({ codeFlow, email, next, password }) => {
   const event = getRequestEvent()
-  const authServer = supabaseAuthServer(event)
-
-  // Never trimmed: a password set before the whitespace rule keeps working.
-  const normalized = normalizePassword(password)
-  let answer = await authServer.signInWithPassword({ email, password: normalized })
-  // A password stored before NFC normalising may be decomposed; the later checks read this answer.
-  if (answer.error?.code === 'invalid_credentials' && normalized !== password) {
-    answer = await authServer.signInWithPassword({ email, password })
-  }
-  const { data, error } = answer
-
-  // GoTrue checks the password first, so this is the owner: a new code, without flagging.
-  if (error?.code === 'email_not_confirmed') {
-    await sendCode(authServer, email)
+  const signedIn = await signInWithPassword({ email, password }, invalid)
+  if (signedIn.kind === 'unconfirmed') {
     if (codeFlow == null) invalid(formError('auth_emailNotConfirmed'))
-    return { confirm: email, resendToken: issueResendToken(email) }
+    const { confirm, resendToken } = signedIn
+    return { confirm, resendToken }
   }
+  const { data, error } = signedIn.answer
   if (error != null) invalid(await gotrueRefusal(error, 'token'))
 
   // Decided before any cookie is written; the GoTrue session ends unused.

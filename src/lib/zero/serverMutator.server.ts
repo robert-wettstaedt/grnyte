@@ -37,6 +37,20 @@ export function asPrivileged<T>(tx: Transaction<Schema, Tx>, write: (db: Tx) => 
   return run(tx, (db) => db.execute(sql`select set_config('search_path', ${PINNED_SEARCH_PATH}, true)`), write)
 }
 
+/** Kit's `error()` (with its status and any `field`) or `invalid()` (its first issue, no status); else undefined. */
+export function kitRefusal(e: unknown): undefined | { field?: string; message: string; status?: number } {
+  if (isHttpError(e)) {
+    const { field, message } = e.body as { field?: string; message: string }
+    return { field, message, status: e.status }
+  }
+  if (isValidationError(e)) {
+    // Kit types the guard as ActionFailure; `invalid()` actually throws one carrying `issues`.
+    const [issue] = (e as unknown as { issues: { message: string; path?: (number | string)[] }[] }).issues
+    return { field: issue.path?.[0] == null ? undefined : String(issue.path[0]), message: issue.message }
+  }
+  return undefined
+}
+
 async function run<T>(tx: Transaction<Schema, Tx>, setup: (db: Tx) => Promise<unknown>, write: (db: Tx) => Promise<T>) {
   if (tx.location !== 'server') {
     throw new Error('server mutator ran on the client')
@@ -50,15 +64,12 @@ async function run<T>(tx: Transaction<Schema, Tx>, setup: (db: Tx) => Promise<un
     await db.execute(sql`select set_config('role', 'none', true)`)
     return result
   } catch (e) {
-    if (isHttpError(e)) {
-      throw new ApplicationError(e.body.message, { details: { status: e.status } })
+    const refusal = kitRefusal(e)
+    if (refusal?.status != null) {
+      throw new ApplicationError(refusal.message, { details: { status: refusal.status } })
     }
-    if (isValidationError(e)) {
-      // Kit types the guard as ActionFailure; `invalid()` actually throws one carrying `issues`.
-      const [issue] = (e as unknown as { issues: { message: string; path?: (number | string)[] }[] }).issues
-      throw new ApplicationError(issue.message, {
-        details: { field: issue.path?.[0] == null ? null : String(issue.path[0]) },
-      })
+    if (refusal != null) {
+      throw new ApplicationError(refusal.message, { details: { field: refusal.field ?? null } })
     }
     if (e instanceof ApplicationError) {
       throw e

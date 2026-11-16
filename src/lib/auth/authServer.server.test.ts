@@ -144,11 +144,18 @@ describe('supabaseAuthServerAs', () => {
     expect(() => supabaseAuthServerAs(eventFrom('198.51.100.7'), otherSession)).toThrow()
   })
 
-  it('exposes only the two calls that need a person', async () => {
+  it('exposes only the calls that act as a person', async () => {
     const { supabaseAuthServerAs } = await load(SECRET)
     const client = supabaseAuthServerAs(eventFrom('198.51.100.7'), verified('auth-user-1'))
 
-    for (const reachable of ['admin', 'from', 'signOut']) {
+    expect(Object.keys(client).sort()).toEqual([
+      'getUserIdentities',
+      'linkIdentity',
+      'signOut',
+      'unlinkIdentity',
+      'updateUser',
+    ])
+    for (const reachable of ['admin', 'from']) {
       expect(reachable in client).toBe(false)
     }
     expect(Object.isFrozen(client)).toBe(true)

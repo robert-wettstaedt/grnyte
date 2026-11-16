@@ -4,7 +4,7 @@ import { isSameOriginPath } from '$lib/auth'
 import { supabaseAuthServer } from '$lib/auth/authServer.server'
 import { clearCodeTries } from '$lib/auth/codeAttempts.server'
 import { gotrueRefusal, mailPasswordReset } from '$lib/auth/mail.server'
-import { requireLiveSession } from '$lib/auth/session.server'
+import { requireLiveSession, signOutOthers as signOutOthersBody } from '$lib/auth/session.server'
 import { db } from '$lib/db/db.server'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
@@ -46,11 +46,7 @@ export const signOut = form(z.object({ redirectTo: returnPath }), async ({ redir
 })
 
 /** Ends every other session of the account. No re-authentication: GoTrue lets any live session do this. */
-export const signOutOthers = command(async () => {
-  await requireLiveSession()
-  const { error: signOutError } = await getRequestEvent().locals.supabase.auth.signOut({ scope: 'others' })
-  if (signOutError != null) refuseCommand(await gotrueRefusal(signOutError, 'logout'))
-})
+export const signOutOthers = command(signOutOthersBody)
 
 /** The caller's own signed-in devices, most recently active first. Never the IP or the user agent. */
 export const signedInDevices = query(async () => {
