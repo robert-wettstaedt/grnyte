@@ -79,7 +79,7 @@ describe('a carrier ahead of the web carrier', async () => {
 
   Object.assign(env, PROVIDER_ENV)
   afterEach(() => {
-    carriers.splice(0, carriers.length - 1)
+    carriers.shift()
   })
 
   it('claims its state, runs the checks and the code grant, and lands with a proof', async () => {

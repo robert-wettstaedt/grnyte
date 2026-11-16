@@ -1,5 +1,6 @@
 import { PUBLIC_ORIGIN } from '$env/static/public'
 import { isContested, signedInRedirectTarget, type VerifiedToken } from '$lib/auth'
+import { appCarrier } from '$lib/auth/app/carrier.server'
 import { supabaseAuthServer, supabaseAuthServerAs, type AuthServer } from '$lib/auth/authServer.server'
 import { clearContestedFlag, endSession } from '$lib/auth/contested.server'
 import { recordAuthEvent, type AuthEventKind } from '$lib/auth/events.server'
@@ -347,4 +348,5 @@ const webCarrier: TransactionCarrier = {
   take: (event) => takeWebTransaction(event),
 }
 
-export const carriers: TransactionCarrier[] = [webCarrier]
+/** Asked in order; the app carrier's miss has no side effect, so a web state reaches the web carrier untouched. */
+export const carriers: TransactionCarrier[] = [appCarrier, webCarrier]

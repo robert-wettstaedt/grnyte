@@ -193,3 +193,23 @@ describe.skipIf(!reachable)('POST /api/tasks/cleanup, auth logs', () => {
     }
   })
 })
+
+describe.skipIf(!reachable)('POST /api/tasks/cleanup, app sign-in flows', () => {
+  it('drops a flow 61 minutes past its expiry and keeps one 59 minutes past', async () => {
+    const tag = `__cleanup_handoff_${crypto.randomUUID().slice(0, 8)}__`
+    const flow = (age: string) => sql`
+      insert into public.app_auth_flows (purpose, provider, client_hash, expires_at)
+      values ('signin', 'google', ${tag + age}, now() - ${age}::interval)`
+    await Promise.all([flow('61 minutes'), flow('59 minutes')])
+
+    try {
+      await runCleanup()
+
+      expect(await sql`select client_hash from public.app_auth_flows where client_hash like ${`${tag}%`}`).toEqual([
+        { client_hash: `${tag}59 minutes` },
+      ])
+    } finally {
+      await sql`delete from public.app_auth_flows where client_hash like ${`${tag}%`}`
+    }
+  })
+})

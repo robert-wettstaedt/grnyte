@@ -1,18 +1,24 @@
 import type { VerifiedToken } from '$lib/auth'
 import { cookieJar } from '$lib/auth/oauth/cookieJar.fixture'
+import {
+  confirmedAccount as confirmedAccountIn,
+  cookieClient,
+  fakeGoTrue,
+  locationOf,
+  ORIGIN,
+  SECRET,
+  SUPABASE,
+  type Account,
+  type GoTrueCall,
+} from '$lib/auth/oauth/goTrue.fixture'
 import { fakeIssuer, PROVIDER_ENV, RAW_NONCE, RAW_NONCE_DIGEST, signIdToken } from '$lib/auth/oauth/issuer.fixture'
 import { reachable, sql } from '$lib/db/testDb'
 import { createServerClient } from '@supabase/ssr'
 import type { RequestEvent } from '@sveltejs/kit'
 import { with_request_store } from '@sveltejs/kit/internal/server'
-import { decodeJwt, SignJWT } from 'jose'
+import { decodeJwt } from 'jose'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const ORIGIN = 'https://grnyte.example'
-const SUPABASE = 'http://supabase.test'
-const SECRET = 'sb_secret_test'
-
-const JWT_SECRET = 'tracer-jwt-secret-at-least-32-characters'
 const env = vi.hoisted((): Record<string, string> => ({
   SUPABASE_JWT_SECRET: 'tracer-jwt-secret-at-least-32-characters',
 }))
@@ -21,16 +27,13 @@ vi.mock('$env/dynamic/private', () => ({ env }))
 vi.mock('$lib/entities/notification/adminAlert.server', () => ({ alertAppAdmins: vi.fn() }))
 vi.mock('$env/static/public', async (actual) => ({
   ...(await actual()),
-  PUBLIC_ORIGIN: 'https://grnyte.example',
-  PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
-  PUBLIC_SUPABASE_URL: 'http://supabase.test',
+  ...(await import('$lib/auth/oauth/testEnv.fixture')).PUBLIC_ENV,
 }))
 vi.mock('$env/static/private', async (actual) => ({ ...(await actual()), SUPABASE_SECRET_KEY: 'sb_secret_test' }))
 const nonce = vi.hoisted(() => ({ fixed: undefined as string | undefined }))
-vi.mock('openid-client', async (actual) => {
-  const library = await actual<typeof import('openid-client')>()
-  return { ...library, randomNonce: () => nonce.fixed ?? library.randomNonce() }
-})
+vi.mock('openid-client', async (actual) =>
+  (await import('$lib/auth/oauth/testEnv.fixture')).withFixedNonce(await actual(), nonce),
+)
 
 const { match } = await import('../../../../params/oauthProvider')
 const { POST: start } = await import('../oauth/[provider=oauthProvider]/+server')
@@ -42,12 +45,6 @@ const { verifyAccessToken } = await import('$lib/auth/verify.server')
 const { spendGrant, writeGrant } = await import('$lib/auth/reauth.server')
 const { pinnedTx } = await import('$lib/db/pinned.server')
 
-interface GoTrueCall {
-  body: Record<string, unknown>
-  headers: Headers
-  url: URL
-}
-
 let gotrue: GoTrueCall[] = []
 /** GoTrue refuses the user lookup `setSession` makes, so no cookie session can be written. */
 let refuseUser = false
@@ -56,22 +53,7 @@ let refuseLink: number | undefined
 const LAST_METHOD = 'grnyte-last-method'
 let issuer: ReturnType<typeof fakeIssuer>
 /** The account GoTrue answers every call with; a refresh answers it without the contested flag. */
-let account: { app_metadata: Record<string, unknown>; id: string }
-
-/** The user lookup (`refuseUser`) or the ID-token link (`refuseLink`) answers an error instead. */
-function refusal(url: URL, body: Record<string, unknown>) {
-  if (body.link_identity === true && refuseLink != null)
-    return Response.json({ code: 'unexpected_failure', msg: 'down' }, { status: refuseLink })
-  if (url.pathname === '/auth/v1/user' && refuseUser) return Response.json({ code: 'bad_jwt' }, { status: 401 })
-}
-
-const accessToken = (user: typeof account, sessionId: string = crypto.randomUUID()) =>
-  new SignJWT({ app_metadata: user.app_metadata, role: 'authenticated', session_id: sessionId })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setAudience('authenticated')
-    .setSubject(user.id)
-    .setExpirationTime('1h')
-    .sign(new TextEncoder().encode(JWT_SECRET))
+let account: Account
 
 beforeEach(() => {
   gotrue = []
@@ -81,25 +63,13 @@ beforeEach(() => {
   nonce.fixed = undefined
   account = { app_metadata: {}, id: crypto.randomUUID() }
   Object.assign(env, PROVIDER_ENV)
-  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-    const request = new Request(input, init)
-    const url = new URL(request.url)
-    if (url.origin !== SUPABASE) throw new Error(`unexpected fetch ${url.href}`)
-    const body = request.method === 'GET' ? {} : await request.json().catch(() => ({}))
-    gotrue.push({ body, headers: request.headers, url })
-    if (url.searchParams.get('grant_type') === 'refresh_token') account = { ...account, app_metadata: {} }
-    const user = { aud: 'authenticated', email: 'new@example.test', role: 'authenticated', ...account }
-    const refused = refusal(url, body)
-    if (refused != null) return refused
-    if (url.pathname === '/auth/v1/user' || url.pathname.startsWith('/auth/v1/admin/')) return Response.json(user)
-    return Response.json({
-      access_token: await accessToken(account),
-      expires_in: 3600,
-      refresh_token: 'refresh-1',
-      token_type: 'bearer',
-      user,
-    })
-  })
+  fakeGoTrue(
+    gotrue,
+    () => account,
+    (next) => (account = next),
+    () => refuseUser,
+    () => refuseLink,
+  )
 })
 
 afterEach(() => {
@@ -115,13 +85,7 @@ function browser(origin = ORIGIN, signedIn?: VerifiedToken) {
   const event = (method: string, path: string, form?: Record<string, string>): never => {
     const url = new URL(path, origin)
     const body = form == null ? undefined : new URLSearchParams(form)
-    const supabase = createServerClient(SUPABASE, 'sb_publishable_test', {
-      cookies: {
-        getAll: () => jar.cookies.getAll(),
-        setAll: (cookies) =>
-          cookies.forEach(({ name, options, value }) => jar.cookies.set(name, value, { ...options, path: '/' })),
-      },
-    })
+    const supabase = cookieClient(jar)
     return {
       cookies: jar.cookies,
       getClientAddress: () => '198.51.100.7',
@@ -138,17 +102,6 @@ function browser(origin = ORIGIN, signedIn?: VerifiedToken) {
     } as unknown as RequestEvent as never
   }
   return { as, event, jar }
-}
-
-async function locationOf(run: () => unknown): Promise<string> {
-  try {
-    await run()
-  } catch (thrown) {
-    const { location, status } = (thrown ?? {}) as { location?: string; status?: number }
-    if (status === 303 && location != null) return location
-    throw thrown
-  }
-  throw new Error('no redirect')
 }
 
 async function signIn(
@@ -478,18 +431,7 @@ afterEach(async () => {
   if (made.length > 0) await sql`delete from auth.users where id = any(${made.splice(0)})`
 })
 
-async function confirmedAccount(email = uniqueEmail('linker')) {
-  const [{ id }] = await sql<{ id: string }[]>`
-    insert into auth.users (id, email, email_confirmed_at) values (gen_random_uuid(), ${email}, now()) returning id`
-  made.push(id)
-  const session = async () => {
-    const [row] = await sql<{ id: string }[]>`insert into auth.sessions (user_id) values (${id}) returning id`
-    const verified = await verifyAccessToken(await accessToken({ app_metadata: {}, id }, row.id))
-    if (!verified.ok) throw new Error(`token did not verify: ${verified.reason}`)
-    return verified.token
-  }
-  return { email, id, session }
-}
+const confirmedAccount = (email = uniqueEmail('linker')) => confirmedAccountIn(made, email)
 
 const callerOf = (token: VerifiedToken) => ({ authUserId: token.claims.sub, sessionId: token.claims.session_id! })
 

@@ -3,6 +3,7 @@ import type { Pathname } from '$app/types'
 import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { AUTH_PATH, signedInRedirectTarget } from '$lib/auth'
 import { bearerSession } from '$lib/auth/app/bearer.server'
+import { APP_RETURN_PATH } from '$lib/auth/app/constants'
 import { verifyAccessToken } from '$lib/auth/verify.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
@@ -150,35 +151,43 @@ export const supabase: Handle = async ({ event, resolve }) => {
   // `setHeaders` throws on a repeat of the same key, and `setAll` can fire more than once.
   const headersApplied = new Set<string>()
 
-  event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
-    cookies: {
-      getAll: () => event.cookies.getAll(),
-      // SvelteKit's cookies API requires `path` to be set explicitly; '/' matches previous/standard behavior.
-      setAll: (cookiesToSet, headers) => {
-        cookiesToSet.forEach(({ name, options, value }) => {
-          // `secure` follows the request protocol rather than the environment: Safari refuses a
-          // Secure cookie over http, which broke sign-in against the dev server on localhost.
-          event.cookies.set(name, value, { ...options, path: '/', secure: event.url.protocol === 'https:' })
-        })
+  const cookieClient = () =>
+    createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
+      cookies: {
+        getAll: () => event.cookies.getAll(),
+        // SvelteKit's cookies API requires `path` to be set explicitly; '/' matches previous/standard behavior.
+        setAll: (cookiesToSet, headers) => {
+          cookiesToSet.forEach(({ name, options, value }) => {
+            // `secure` follows the request protocol rather than the environment: Safari refuses a
+            // Secure cookie over http, which broke sign-in against the dev server on localhost.
+            event.cookies.set(name, value, { ...options, path: '/', secure: event.url.protocol === 'https:' })
+          })
 
-        // Stops a CDN caching a response that carries somebody's rotated session. One key at a
-        // time, marked only once it lands: `setHeaders` throws on a repeat and after the response
-        // is out, and a batch would strand the keys that never got applied.
-        for (const [key, value] of Object.entries(headers ?? {})) {
-          if (headersApplied.has(key)) {
-            continue
-          }
+          // Stops a CDN caching a response that carries somebody's rotated session. One key at a
+          // time, marked only once it lands: `setHeaders` throws on a repeat and after the response
+          // is out, and a batch would strand the keys that never got applied.
+          for (const [key, value] of Object.entries(headers ?? {})) {
+            if (headersApplied.has(key)) {
+              continue
+            }
 
-          try {
-            event.setHeaders({ [key]: value })
-            headersApplied.add(key)
-          } catch (error) {
-            console.warn(`[auth] could not apply ${key}:`, error)
+            try {
+              event.setHeaders({ [key]: value })
+              headersApplied.add(key)
+            } catch (error) {
+              console.warn(`[auth] could not apply ${key}:`, error)
+            }
           }
-        }
+        },
       },
-    },
-  })
+    })
+  if (event.url.pathname.startsWith(OAUTH_CALLBACK_PREFIX)) {
+    // Building it loads (and may refresh) the web session: only the web carrier may, never an app return.
+    let client: App.Locals['supabase'] | undefined
+    Object.defineProperty(event.locals, 'supabase', { configurable: true, get: () => (client ??= cookieClient()) })
+  } else {
+    event.locals.supabase = cookieClient()
+  }
 
   /**
    * The verified claims behind this request's cookies.
@@ -276,7 +285,7 @@ const OAUTH_CALLBACK_PREFIX = '/auth/callback/'
 const PROFILE_PATH: Pathname = '/auth/profile'
 const SIGN_IN_PATH: Pathname = '/auth/signin'
 /** What a profile-less account may open; sign-out is a remote call, which the gate never sees. */
-const PROFILE_GATE_EXEMPT: string[] = [PROFILE_PATH, '/legal', ...AUTH_PASSTHROUGH_PATHS]
+const PROFILE_GATE_EXEMPT: string[] = [PROFILE_PATH, '/legal', APP_RETURN_PATH, ...AUTH_PASSTHROUGH_PATHS]
 
 /** A failed lookup is not a marker: the profile step refuses a marked account on its own. */
 async function deletionMarked(authUserId: string): Promise<boolean> {
@@ -320,6 +329,7 @@ async function profileGate({ locals, url }: Parameters<Handle>[0]['event']): Pro
  *  have one: bouncing any of them to /auth is the same bug in three places. */
 const PUBLIC_PREFIXES = [
   '/legal',
+  APP_RETURN_PATH,
   AUTH_PATH,
   '/f/',
   '/help',

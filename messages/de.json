@@ -1,5 +1,9 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "appReturn_goBack": "Geh zurück zur grnyte-App.",
+  "appReturn_startAgain": "Wenn sie sich nicht geöffnet hat, starte die Anmeldung dort noch einmal.",
+  "appReturn_title": "Zurück zur App",
+  "appReturn_toWeb": "grnyte im Browser öffnen",
   "areas_addArea": "Gebiet hinzufügen",
   "areas_addParkingLocation": "Parkplatz hinzufügen",
   "areas_addSubArea": "Untergebiet hinzufügen",
@@ -258,6 +262,7 @@
   "auth_signUpSubtitle": "Tritt der privaten Region deiner Community bei, oder starte deine eigene.",
   "auth_signupRefused": "Dieses Konto lässt sich nicht erstellen. Schreib uns, wenn du denkst, dass das falsch ist.",
   "auth_termsAgree": "Wenn du fortfährst, akzeptierst du {name}s",
+  "auth_tooManyStarts": "Zu viele Anmeldungen gleichzeitig gestartet. Warte ein paar Minuten und versuch es dann noch einmal.",
   "auth_tooManyTries": "Zu viele Versuche. Versuch es später noch mal.",
   "auth_unexpectedError": "Etwas ist schiefgelaufen, bitte versuche es erneut",
   "auth_username": "Benutzername",

@@ -53,6 +53,37 @@ export const reauthGrants = table(
   (table) => [unique().on(table.authUserFk, table.sessionId, table.action, table.target)],
 ).enableRLS()
 
+/**
+ * Short-lived app sign-in state (handoff transactions and codes, Apple re-auth nonces). State and
+ * codes are hashed, transaction and proof sealed, so zero-cache's replica copy holds nothing usable.
+ */
+export const appAuthFlows = table(
+  'app_auth_flows',
+  {
+    action: text(),
+    authUserFk: uuid('auth_user_fk').references((): AnyColumn => authUsers.id, { onDelete: 'cascade' }),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    /** HMAC of the starting IPv4 address or IPv6 /64, for the open-start cap. */
+    clientHash: text('client_hash'),
+    codeChallenge: text('code_challenge'),
+    codeHash: text('code_hash').unique(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    id: uuid().primaryKey().defaultRandom(),
+    nonceDigest: text('nonce_digest'),
+    proof: text(),
+    provider: text().notNull(),
+    /** `signin`, `link` or `reauth`. */
+    purpose: text().notNull(),
+    sessionId: uuid('session_id'),
+    /** Kept after the claim, so a replayed provider return is recognised until the sweep. */
+    stateHash: text('state_hash').unique(),
+    target: text(),
+    transaction: text(),
+  },
+  (table) => [index('app_auth_flows_client_idx').on(table.clientHash, table.claimedAt, table.expiresAt)],
+).enableRLS()
+
 /** Auth log. No FK on `auth_user_fk`, so `account_deleted` outlives the account. */
 export const authEvents = table(
   'auth_events',
