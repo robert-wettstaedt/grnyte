@@ -17,8 +17,8 @@
   // has completed, and offline or on a dead sync socket it never does. So the older no-region copy
   // stays as the safety net, rather than leaving them on a blank map with nothing said.
   //
-  // `isEmpty` rather than a length check, so this cannot flash while Zero is still syncing. The
-  // same read CreateOnMap and the map run, over the guidebook queries they all register.
+  // `isEmpty` rather than a length check, so this cannot flash while the guidebook is still syncing. One row of
+  // its own, not the map's place queries.
   const global = getGlobalState()
   const areas = anyArea()
 

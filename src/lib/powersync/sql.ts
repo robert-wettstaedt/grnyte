@@ -10,6 +10,9 @@ export const MAP_SQL = `select b.*,
       from geolocations g where g.nid = b.geolocation_fk) as geolocation
   from blocks b`
 
+// One row when the reader's regions hold any area: the empty-region check.
+export const ANY_AREA_SQL = 'select 1 as found from areas limit 1'
+
 // Every area with two levels of parents and its parking: the map's and the pickers' area rows.
 export const AREA_MAP_SQL = `select a.*,
     (select json_object('id', p.nid, 'name', p.name, 'type', p.type,

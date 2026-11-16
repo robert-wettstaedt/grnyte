@@ -97,9 +97,14 @@
       : candidateSectors.filter((area) => area.name.toLowerCase().includes(search.trim().toLowerCase())),
   )
 
-  // From the pin, not the reader: it is the subject here, and what `nearest` prefills from. Frozen
-  // at open, or the map moving behind the sheet would reorder rows under a scrolling finger.
-  let distances = $state(new Map<number, number>())
+  // From the pin, not the reader: it is the subject here, and what `nearest` prefills from. The point is frozen
+  // at open, or the map moving behind the sheet would reorder rows; the rows may still arrive after it.
+  let sectorPoint = $state<[number, number] | null>(null)
+  const distances = $derived(
+    sectorPoint == null
+      ? new Map<number, number>()
+      : sectorDistances(editableBlocks, { lat: sectorPoint[0], long: sectorPoint[1] }),
+  )
 
   // Nearest first; sectors with no distance keep their alphabetical place under their own heading.
   const locatedSectors = $derived(
@@ -123,8 +128,13 @@
     areaSearch.trim() === '' ? candidateAreas : candidateAreas.filter((area) => matchesAreaSearch(area.name)),
   )
 
-  /** Frozen at open, lifted from the sectors beneath each area. */
-  let areaDistances = $state(new Map<number, number>())
+  /** From a point frozen at open, lifted from the sectors beneath each area. */
+  let areaPoint = $state<[number, number] | null>(null)
+  const areaDistances = $derived(
+    areaPoint == null
+      ? new Map<number, number>()
+      : ancestorDistances(sectorDistances(editableBlocks, { lat: areaPoint[0], long: areaPoint[1] }), areas.data),
+  )
 
   const locatedAreas = $derived(
     filteredAreas
@@ -171,7 +181,7 @@
   const togglePicker = () => {
     if (!pickerOpen) {
       search = ''
-      distances = center == null ? new Map() : sectorDistances(editableBlocks, { lat: center[0], long: center[1] })
+      sectorPoint = center
     }
     pickerOpen = !pickerOpen
   }
@@ -180,11 +190,7 @@
     optionsOpen = false
     areaSearch = ''
     // The same subject the sector picker measures from.
-    const point = pressed ?? center
-    areaDistances =
-      point == null
-        ? new Map()
-        : ancestorDistances(sectorDistances(editableBlocks, { lat: point[0], long: point[1] }), areas.data)
+    areaPoint = pressed ?? center
     areaPickerOpen = true
   }
 
@@ -279,9 +285,14 @@
       {/each}
       <!-- eslint-enable svelte/no-navigation-without-resolve -->
 
-      <!-- Hidden when nothing can hold a sub-area: the row above is then the only move. -->
-      {#if candidateAreas.length > 0}
-        <button class="hover:bg-surface-200-800 flex items-center gap-3 rounded-lg px-3 py-3" onclick={openAreaPicker}>
+      <!-- Hidden when nothing can hold a sub-area: the row above is then the only move. Held, disabled, until the
+           places read, which starts with this sheet, has rows: inserted later it would push the rows below. -->
+      {#if !placesSettled || candidateAreas.length > 0}
+        <button
+          class="enabled:hover:bg-surface-200-800 flex items-center gap-3 rounded-lg px-3 py-3 disabled:opacity-50"
+          disabled={candidateAreas.length === 0}
+          onclick={openAreaPicker}
+        >
           <Icon name="area" size={20} class="text-primary-500" />
           <span class="font-medium">{m.map_create_areaInsideArea()}</span>
           <Icon name="chevron-right" size={16} class="text-surface-600-400 ml-auto" />
@@ -319,20 +330,24 @@
     panelClass="fixed inset-0 z-60 flex items-center justify-center p-4"
     title={m.map_create_chooseArea()}
   >
-    <GuidebookPicker
-      bind:query={areaSearch}
-      emptyLabel={m.map_create_noAreasFound()}
-      items={[
-        ...[...locatedAreas, ...unlocatedAreas].map((area) => pickerItem(area, areaDistances)),
-        // The badge says why: a sector holds no areas.
-        ...blockedSectors.map((sector) => ({ ...pickerItem(sector, new Map()), dimmed: true })),
-      ]}
-      onpick={(item) => chooseArea(item.id)}
-      pinned={locatedAreas.map((area) => pickerItem(area, areaDistances))}
-      placeholder={m.map_create_searchAreas()}
-      restLabel={m.map_create_withoutLocation()}
-      settled={placesSettled}
-    />
+    <!-- Remounted when the pick point is set and when distances first arrive: the picker keeps rows where it
+         first placed them, so rows placed before either would stay alphabetical. -->
+    {#key `${areaPoint}:${areaDistances.size > 0}`}
+      <GuidebookPicker
+        bind:query={areaSearch}
+        emptyLabel={m.map_create_noAreasFound()}
+        items={[
+          ...[...locatedAreas, ...unlocatedAreas].map((area) => pickerItem(area, areaDistances)),
+          // The badge says why: a sector holds no areas.
+          ...blockedSectors.map((sector) => ({ ...pickerItem(sector, new Map()), dimmed: true })),
+        ]}
+        onpick={(item) => chooseArea(item.id)}
+        pinned={locatedAreas.map((area) => pickerItem(area, areaDistances))}
+        placeholder={m.map_create_searchAreas()}
+        restLabel={m.map_create_withoutLocation()}
+        settled={placesSettled}
+      />
+    {/key}
   </Modal>
 {:else}
   <!-- Placement mode: the picked location is the map centre; a fixed pin marks it. -->
@@ -370,19 +385,21 @@
             </button>
           {/snippet}
 
-          <GuidebookPicker
-            bind:query={search}
-            emptyLabel={m.map_create_noSectorsFound()}
-            items={[...locatedSectors, ...unlocatedSectors].map((area) => pickerItem(area, distances))}
-            onpick={(item) => {
-              chosenSectorId = item.id
-              pickerOpen = false
-            }}
-            pinned={locatedSectors.map((area) => pickerItem(area, distances))}
-            placeholder={m.map_create_searchSectors()}
-            restLabel={m.map_create_withoutLocation()}
-            settled={placesSettled}
-          />
+          {#key `${sectorPoint}:${distances.size > 0}`}
+            <GuidebookPicker
+              bind:query={search}
+              emptyLabel={m.map_create_noSectorsFound()}
+              items={[...locatedSectors, ...unlocatedSectors].map((area) => pickerItem(area, distances))}
+              onpick={(item) => {
+                chosenSectorId = item.id
+                pickerOpen = false
+              }}
+              pinned={locatedSectors.map((area) => pickerItem(area, distances))}
+              placeholder={m.map_create_searchSectors()}
+              restLabel={m.map_create_withoutLocation()}
+              settled={placesSettled}
+            />
+          {/key}
         </Modal>
       </div>
 

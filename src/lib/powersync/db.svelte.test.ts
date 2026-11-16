@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // The engine and IndexedDB are the external dependencies faked; the shell is read through its exports only.
 const engine = vi.hoisted(() => ({
+  /** The file each connect was made on, beside `connectOptions`. */
+  connectFiles: [] as string[],
   connectOptions: [] as (SyncOptions | undefined)[],
   connectors: [] as PowerSyncBackendConnector[],
   files: [] as string[],
@@ -33,6 +35,7 @@ vi.mock('@powersync/web', async (original) => ({
     connect = (connector: PowerSyncBackendConnector, options?: SyncOptions) => {
       engine.connectors.push(connector)
       engine.connectOptions.push(options)
+      engine.connectFiles.push(this.file)
       return Promise.resolve()
     }
     disconnect = () => Promise.resolve()
@@ -73,6 +76,7 @@ describe('the PowerSync shell', () => {
     vi.resetModules()
     vi.useFakeTimers()
     Object.assign(engine, {
+      connectFiles: [],
       connectOptions: [],
       connectors: [],
       files: [],
@@ -134,9 +138,12 @@ describe('the PowerSync shell', () => {
     const { initPowerSync } = await import('./db.svelte')
     const visibility = vi.spyOn(document, 'visibilityState', 'get')
 
-    initPowerSync(session('a'), async () => 'token', settings)
+    // Its own account: earlier tests' module copies restart their files on the same return, never this one.
+    initPowerSync(session('ws'), async () => 'token', settings)
     await settle()
-    const first = engine.connectOptions.length
+    const mine = () =>
+      engine.connectFiles.flatMap((file, i) => (file === 'grnyte-ws.sqlite' ? [engine.connectOptions[i]] : []))
+    const first = mine().length
     visibility.mockReturnValue('hidden')
     document.dispatchEvent(new Event('visibilitychange'))
     vi.advanceTimersByTime(5_000)
@@ -144,12 +151,12 @@ describe('the PowerSync shell', () => {
     document.dispatchEvent(new Event('visibilitychange'))
     await settle()
 
-    // Earlier tests' module copies keep their visibility listeners, so a return can restart more than one.
     expect(first).toBe(1)
-    expect(engine.connectOptions.length).toBeGreaterThan(first)
-    expect(new Set(engine.connectOptions.map((o) => o?.connectionMethod))).toEqual(
-      new Set([SyncStreamConnectionMethod.WEB_SOCKET]),
-    )
+    expect(mine()).toHaveLength(2)
+    expect(mine().map((o) => o?.connectionMethod)).toEqual([
+      SyncStreamConnectionMethod.WEB_SOCKET,
+      SyncStreamConnectionMethod.WEB_SOCKET,
+    ])
   })
 
   it('confirms a stream only once it synced after the file opened and the collections took its rows in', async () => {

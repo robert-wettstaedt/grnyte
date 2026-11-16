@@ -2,7 +2,7 @@ import { byNameOrder, sortByName } from '$lib/i18n/collator'
 import { collections } from '$lib/powersync/collections'
 import { psResource, sqlResource, treeList, waitForSynced } from '$lib/powersync/resource.svelte'
 import { json, toZeroRow, unwrapParents } from '$lib/powersync/rows'
-import { AREA_MAP_SQL } from '$lib/powersync/sql'
+import { ANY_AREA_SQL, AREA_MAP_SQL } from '$lib/powersync/sql'
 import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
 import { eq, ilike, inArray, isNull, toArray, type InitialQueryBuilder } from '@tanstack/db'
 import { toAreaDetail, type AreaDetailRow } from './mapper'
@@ -28,12 +28,10 @@ type Ref = any
 // `areaTrees` takes an untyped builder, so its rows are asserted here.
 type SyncedArea = { description?: null | string; name?: null | string; parent: Ref[]; parking: object[] }
 
-/** Every area in your regions with two levels of parents and its parking, for the map and the pickers. Raw SQL:
- *  a live query building that tree per area held the map's first draw back by about 1.5 s at 4x throttle. */
 /** Whether the reader's regions hold any area, for the empty-region state: one row, not the whole map list. */
 export function anyArea() {
   return sqlResource(
-    () => 'select 1 as found from areas limit 1',
+    () => ANY_AREA_SQL,
     () => [],
     (rows: { found: number }[]) => rows,
     () => 'map',
@@ -101,6 +99,8 @@ export function areaList(filter: () => AreaListFilter = () => ({}), opts?: { ena
   )
 }
 
+/** Every area in your regions with two levels of parents and its parking, for the map and the pickers. Raw SQL:
+ *  a live query building that tree per area held the map's first draw back by about 1.5 s at 4x throttle. */
 export function areaMapList(opts?: { enabled?: () => boolean }) {
   return sqlResource(
     () => AREA_MAP_SQL,
