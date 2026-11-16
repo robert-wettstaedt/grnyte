@@ -10,6 +10,8 @@ import { asAnonymousRequest, callForm, commandRefusal, withLocals } from '$lib/r
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { confirmEmailChangeCode, updateEmailCommand } from '../../routes/(app)/settings/account.remote'
+import { confirmEmailChangeCode as confirmEmailChangeBody } from '../../routes/(app)/settings/account.server'
+import { signInUnconfirmed } from '../../routes/(landing)/auth/(tabs)/signin/signin.server'
 import { confirmSignupCode, resendSignupCode, signUp } from '../../routes/(landing)/auth/(tabs)/signup/signup.remote'
 import { confirmResetCode, forgotPassword } from '../../routes/(landing)/auth/forgot-password/forgot-password.remote'
 import { gotrueReachable, publicClient } from './gotrue.fixture'
@@ -39,6 +41,9 @@ const mailCount = async (email: string) =>
   ((await (await fetch(`${INBUCKET}/${email.split('@')[0]}`)).json()) as unknown[]).length
 
 const solved = async () => (await solvedProofOfWork()).encoded
+const commandRefusalOf = (message: string): never => {
+  throw new Error(message)
+}
 const anonymous = <T>(client: SupabaseClient, fn: () => Promise<T>) => asAnonymousRequest({ auth: client.auth }, fn)
 const signUpSolved = async (email: string, password: string) =>
   (
@@ -276,6 +281,35 @@ describe.skipIf(!gotrueReachable)('mailed codes on GoTrue', { timeout: 20_000 },
     expect(await sessionIds(id)).toHaveLength(1)
     expect(await sql`select 1 from public.reauth_grants where auth_user_fk = ${id}`).toHaveLength(0)
     expect(await sql`select 1 from public.reauth_challenges where auth_user_fk = ${id}`).toHaveLength(0)
+  })
+
+  it('ends the session an app sign-in opens on a confirmed account and answers alreadyConfirmed', async () => {
+    const email = address('appconfirmed')
+    const { id } = await signedIn(email)
+    const sessions = await sessionIds(id)
+
+    expect(
+      await anonymous(publicClient(), () => signInUnconfirmed({ email, password: OWNER }, commandRefusalOf)),
+    ).toEqual({ alreadyConfirmed: true })
+    expect(await sessionIds(id)).toEqual(sessions)
+  })
+
+  it('on the app path signs the others out, keeps the calling session unrefreshed and asks the app to refresh', async () => {
+    const email = address('appchange')
+    const target = address('appchangeto')
+    const { id, locals } = await signedIn(email)
+    await sql`insert into auth.sessions (id, user_id) values (gen_random_uuid(), ${id})`
+    const before = await mailCount(email)
+    const confirm = (code: string, to: string) =>
+      withLocals({ ...locals, supabase: undefined }, () =>
+        confirmEmailChangeBody({ code, email: to }, { refresh: false }),
+      )
+
+    await withLocals(locals, () => updateEmailCommand({ email: target }))
+    expect(await confirm(await codeFor(email, before), email)).toEqual({ step: 'next' })
+    expect(await confirm(await codeFor(target), target)).toEqual({ refreshRequired: true, step: 'done' })
+    expect(await addressOf(id)).toBe(target)
+    expect(await sessionIds(id)).toEqual([locals.claims.session_id])
   })
 
   it('mints new codes for both addresses on a resend (GoTrue resets the confirmations), so an accepted first code counts for nothing', async () => {

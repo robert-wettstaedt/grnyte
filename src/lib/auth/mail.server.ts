@@ -66,14 +66,18 @@ export async function noticePasswordChanged(account: { email: string; id: string
 }
 
 /** Mails a sign-up code (the admin API creates without mailing; GoTrue renders it). A sent code resets the guesses. */
-export async function sendCode(authServer: AuthServer, email: string, { quietRateLimit = false } = {}): Promise<void> {
+export async function sendCode(
+  authServer: AuthServer,
+  email: string,
+  { quietRateLimit = false, refuse = invalid }: { quietRateLimit?: boolean; refuse?: (message: string) => never } = {},
+): Promise<void> {
   const { error } = await mailSignupConfirmation(authServer, email)
   if (error == null) {
     await clearCodeTries(email, ['signup'])
     return
   }
   if (quietRateLimit && error.code === 'over_email_send_rate_limit') return
-  invalid(await gotrueRefusal(error, 'resend'))
+  refuse(await gotrueRefusal(error, 'resend'))
 }
 
 async function recipient(authUserId: string) {

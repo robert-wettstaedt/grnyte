@@ -24,6 +24,8 @@ vi.mock('$lib/auth/authServer.server', () => ({
       return { error: reset.error }
     },
   }),
+  // The session client a test passes in stands for the caller's GoTrue client (`callerAuthServer`).
+  supabaseAuthServerAs: () => getRequestEvent().locals.supabase.auth,
 }))
 beforeEach(() => {
   reset.error = null

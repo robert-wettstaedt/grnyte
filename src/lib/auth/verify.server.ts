@@ -99,6 +99,12 @@ export function createAccessTokenVerifier({ issuer, jwks, secret }: VerifierConf
   }
 }
 
+/** The token of exactly `Authorization: Bearer <token>`, the scheme in any case; anything else is none. */
+export function parseBearer(request: Request): string | undefined {
+  const match = /^bearer ([^\s]+)$/i.exec(request.headers.get('authorization') ?? '')
+  return match?.[1]
+}
+
 /** `requiredClaims` asserts presence only. GoTrue's password grant is public, so a contested account is refused too. */
 function isSession(payload: JWTPayload): boolean {
   const hasSubject = typeof payload.sub === 'string' && payload.sub.length > 0

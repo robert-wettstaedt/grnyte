@@ -1,56 +1,22 @@
 import { command, form, getRequestEvent } from '$app/server'
-import { supabaseAuthServer, type AuthServer } from '$lib/auth/authServer.server'
-import { clearCodeTries } from '$lib/auth/codeAttempts.server'
-import { verifyCode } from '$lib/auth/codes.server'
-import { contestedNext, findAccount, flagContestedSignup } from '$lib/auth/contested.server'
-import { gotrueRefusal, mailPasswordReset, mailSignupConfirmation } from '$lib/auth/mail.server'
+import { contestedNext } from '$lib/auth/contested.server'
 import { botFields } from '$lib/forms/botCheck'
-import { screenSubmit } from '$lib/forms/botCheck.server'
 import { formError, mailedCodeSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { refuseCommand } from '$lib/remote/authed.server'
 import { invalid } from '@sveltejs/kit'
+import * as body from './forgot-password.server'
 
 const forgotPasswordSchema = z.object({
   ...botFields,
   email: z.email({ error: formError('form_required') }),
 })
 
-/** The confirmation, not a reset: confirming a flagged account swaps its password and lands on reset. Null when nothing was sent. */
-async function resendConfirmation(authServer: AuthServer, email: string, authUserId: string) {
-  if (!(await flagContestedSignup(authUserId))) return null
-  return mailSignupConfirmation(authServer, email)
-}
+export const forgotPassword = form(forgotPasswordSchema, (submitted) => body.forgotPassword(submitted, invalid))
 
-// Every branch answers alike, so the form cannot tell anyone whether an address has an account.
-export const forgotPassword = form(forgotPasswordSchema, async (submitted) => {
-  const { email } = submitted
-  const account = (await screenSubmit(submitted)) === 'bot' ? undefined : await findAccount(email)
-  if (account == null) {
-    return { email, success: true }
-  }
-
-  const authServer = supabaseAuthServer(getRequestEvent())
-  const sent = account.confirmed
-    ? await mailPasswordReset(authServer, email)
-    : await resendConfirmation(authServer, email, account.id)
-  if (sent == null) return { email, success: true }
-  if (sent.error != null) invalid(await gotrueRefusal(sent.error, account.confirmed ? 'recover' : 'resend'))
-
-  // A new code resets the guesses at it; an unconfirmed address's code is a confirmation code.
-  await clearCodeTries(email, account.confirmed ? ['recovery'] : ['recovery', 'signup'])
-  return { email, success: true }
-})
-
-/**
- * The mailed code, whichever GoTrue sent: type `email` matches a confirmation and a recovery code
- * alike. Only an unconfirmed address's tries also count against its sign-up code.
- */
-export const confirmResetCode = command(mailedCodeSchema, async ({ code, email }) => {
+export const confirmResetCode = command(mailedCodeSchema, async (input) => {
   const event = getRequestEvent()
-  const account = await findAccount(email)
-  const kinds = account?.confirmed === false ? (['recovery', 'signup'] as const) : (['recovery'] as const)
-  const { session, user } = await verifyCode(event, { code, email, kinds: [...kinds], type: 'email' })
+  const { session, user } = await body.confirmResetCode(input)
   if (session == null || user == null) return refuseCommand(formError('auth_unexpectedError'), 'code')
   await event.locals.supabase.auth.setSession(session)
   return { next: (await contestedNext(event.locals.supabase, user)) ?? ('choosePassword' as const) }

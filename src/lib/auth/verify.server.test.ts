@@ -1,7 +1,7 @@
 /** The verifier is a pure function of (token, keys), so it is tested here with no GoTrue at all. */
 import { env } from '$env/dynamic/private'
 import { CONTESTED_SIGNUP, type VerifiedToken } from '$lib/auth'
-import { createAccessTokenVerifier, verifyAccessToken } from '$lib/auth/verify.server'
+import { createAccessTokenVerifier, parseBearer, verifyAccessToken } from '$lib/auth/verify.server'
 import {
   createLocalJWKSet,
   createRemoteJWKSet,
@@ -270,5 +270,22 @@ describe('createAccessTokenVerifier', () => {
         reason: 'invalid',
       })
     })
+  })
+})
+
+describe('parseBearer', () => {
+  const read = (authorization?: string) =>
+    parseBearer(new Request('https://grnyte.example/', { headers: authorization == null ? {} : { authorization } }))
+
+  it('reads exactly one token after the scheme, matched in any case', () => {
+    expect(read('Bearer abc.def.ghi')).toBe('abc.def.ghi')
+    expect(read('bearer abc.def.ghi')).toBe('abc.def.ghi')
+  })
+
+  it('reads nothing from two tokens, a missing token or no header', () => {
+    expect(read('Bearer abc def')).toBeUndefined()
+    expect(read('Bearer ')).toBeUndefined()
+    expect(read('Bearer')).toBeUndefined()
+    expect(read()).toBeUndefined()
   })
 })

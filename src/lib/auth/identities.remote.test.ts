@@ -4,6 +4,12 @@ import { afterAll, describe, expect, it, vi } from 'vitest'
 import { signInMethodsQuery, unlinkProvider } from './identities.remote'
 import { sessionCaller, writeGrant } from './reauth.server'
 
+// The session client a test passes in stands for the caller's GoTrue client (`callerAuthServer`).
+vi.mock('$lib/auth/authServer.server', async (actual) => {
+  const { getRequestEvent } = await import('$app/server')
+  return { ...(await actual()), supabaseAuthServerAs: () => getRequestEvent().locals.supabase.auth }
+})
+
 vi.mock('$env/dynamic/private', async (actual) => ({
   env: {
     ...(await actual<{ env: Record<string, string> }>()).env,
