@@ -7,7 +7,7 @@
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
   import { allRegionTags } from '$lib/entities/region/tagVocabulary'
   import type { AscentStatus } from '$lib/entities/route/resources.svelte'
-  import { FILTER_PARAM_KEYS, isFilterActive, parseRouteFilter, writeRouteFilter } from '$lib/map/filter'
+  import { FILTER_PARAM_KEYS, isFilterActive, parseRouteFilter, writeRouteFilter } from '$lib/map/explore/filter'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { replaceUrl } from '$lib/state/navigation.svelte'

@@ -19,8 +19,8 @@
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
   import { rootPill } from '$lib/state/pill.svelte'
-  import { syncPushSubscription } from '$lib/state/push.svelte'
-  import { isLeaving, wipeAndLeave } from '$lib/state/wipe'
+  import { syncPushSubscription } from '$lib/state/pwa/push.svelte'
+  import { isLeaving, wipeAndLeave } from '$lib/state/pwa/wipe'
   import {
     authRetryDelay,
     isDefinitiveRefusal,

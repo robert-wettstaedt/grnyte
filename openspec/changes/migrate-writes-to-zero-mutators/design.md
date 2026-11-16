@@ -10,7 +10,7 @@ RLS transaction with `afterCommit` work drained before the response.
 The spike on `feature/zero-mutators` (uncommitted, Zero 1.11) already contains the pieces this
 design generalises:
 
-- `src/routes/api/zero/mutate/+server.ts` and `src/lib/zero/mutate.server.ts`: verifies the
+- `src/routes/api/zero/mutate/+server.ts` and `src/lib/zero/server/mutate.server.ts`: verifies the
   bearer token (401 on any failure), loads the caller like `authedCommand` does, and runs
   `handleMutateRequest` with `zeroDrizzle(schema, db)`.
 - `src/lib/zero/mutators.server.ts`: `asCaller(tx, ctx, write)` applies `applyRls` (extracted from

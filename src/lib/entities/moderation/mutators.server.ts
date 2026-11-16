@@ -1,4 +1,4 @@
-import { asPrivileged, defineServerMutator } from '$lib/zero/serverMutator.server'
+import { asPrivileged, defineServerMutator } from '$lib/zero/server/serverMutator.server'
 import { undoRemovalSchema } from './dto'
 import { undoRemovalRow } from './undo.server'
 

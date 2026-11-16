@@ -21,10 +21,10 @@
   import { back, exit } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
   import { untrack, type ComponentProps } from 'svelte'
-  import FormError from './FormError.svelte'
-  import FormGate from './FormGate.svelte'
+  import FormError from './fields/FormError.svelte'
   import FormSteps from './FormSteps.svelte'
-  import type { FormWaits, Waited } from './gate'
+  import FormGate from './gate/FormGate.svelte'
+  import type { FormWaits, Waited } from './gate/gate'
   import type { FormStore } from './store.svelte'
 
   // Generic chrome for a full-screen store form: sticky Cancel · title · Submit header,

@@ -1,5 +1,5 @@
-import { zeroCaller } from '$lib/zero/caller.server'
 import { queries } from '$lib/zero/queries'
+import { zeroCaller } from '$lib/zero/server/caller.server'
 import { schema } from '$lib/zero/zero-schema'
 import { mustGetQuery } from '@rocicorp/zero'
 import { handleQueryRequest } from '@rocicorp/zero/server'

@@ -12,14 +12,14 @@
   import { reportPreview } from '$lib/entities/report/reports.remote'
   import { myOpenReport } from '$lib/entities/report/resources.svelte'
   import { fileReport } from '$lib/entities/report/writes'
-  import FieldWrapper from '$lib/forms/FieldWrapper.svelte'
+  import FieldWrapper from '$lib/forms/fields/FieldWrapper.svelte'
   import Form from '$lib/forms/Form.svelte'
   import { isAuthoredMessage, resolveIssueMessage, serverMessage } from '$lib/forms/issue'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { toaster } from '$lib/state/toast'
+  import { toaster } from '$lib/state/toast/toast'
   import { slide } from 'svelte/transition'
 
   interface Props {

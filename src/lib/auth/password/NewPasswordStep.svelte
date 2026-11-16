@@ -1,9 +1,9 @@
 <script lang="ts">
   import { setNewPassword } from '$lib/auth/password/password.remote'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
-  import AuthField from '$lib/forms/AuthField.svelte'
   import { submitCommand } from '$lib/forms/command'
-  import FormError from '$lib/forms/FormError.svelte'
+  import AuthField from '$lib/forms/fields/AuthField.svelte'
+  import FormError from '$lib/forms/fields/FormError.svelte'
   import { passwordSchema } from '$lib/forms/schemas'
   import { createFormStore } from '$lib/forms/store.svelte'
   import * as z from '$lib/forms/zod'

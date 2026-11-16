@@ -1,6 +1,6 @@
 <script lang="ts">
   import MailedCodeStep from '$lib/auth/codes/MailedCodeStep.svelte'
-  import HiddenBotForm from '$lib/forms/HiddenBotForm.svelte'
+  import HiddenBotForm from '$lib/forms/bot/HiddenBotForm.svelte'
   import { confirmSignupCode, resendSignupCode } from './signup.remote'
 
   // The confirmation code step of sign-up and of an unconfirmed sign-in. The token lives only in

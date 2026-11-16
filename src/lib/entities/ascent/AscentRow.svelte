@@ -21,7 +21,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { openMedia } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { notifyError, toaster } from '$lib/state/toast'
+  import { notifyError, toaster } from '$lib/state/toast/toast'
   import type { HTMLButtonAttributes } from 'svelte/elements'
   import { slide } from 'svelte/transition'
   import AscentType from './AscentType.svelte'

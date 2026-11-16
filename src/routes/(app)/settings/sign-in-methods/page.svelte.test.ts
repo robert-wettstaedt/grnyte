@@ -1,7 +1,7 @@
 import { appleButton, reauthRemote, resetReauthRemote } from '$lib/auth/reauth/reauth.fixture'
 import { formError } from '$lib/forms/schemas'
 import { settle } from '$lib/forms/screen.fixture'
-import { toaster } from '$lib/state/toast'
+import { toaster } from '$lib/state/toast/toast'
 import { fireEvent, render, screen, within } from '@testing-library/svelte'
 import { slide } from 'svelte/transition'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'

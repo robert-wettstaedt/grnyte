@@ -3,7 +3,7 @@
  */
 import { CONTESTED_SIGNUP } from '$lib/auth'
 import { deleteStaleFixtureAccounts, fixtureRun, reachable, sql } from '$lib/db/testDb'
-import { solvedProofOfWork } from '$lib/forms/proofOfWorkFixture'
+import { solvedProofOfWork } from '$lib/forms/bot/proofOfWorkFixture'
 import { asAnonymousRequest, callForm, refusalKeys } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { forgotPassword } from './forgot-password.remote'

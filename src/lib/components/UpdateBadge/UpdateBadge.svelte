@@ -2,7 +2,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'
-  import { isUpdateReady } from '$lib/state/updateReady.svelte'
+  import { isUpdateReady } from '$lib/state/pwa/updateReady.svelte'
   import { scale } from 'svelte/transition'
 
   /**

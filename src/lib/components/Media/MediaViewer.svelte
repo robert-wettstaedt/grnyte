@@ -21,7 +21,7 @@
   import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { notifyError, toaster } from '$lib/state/toast'
+  import { notifyError, toaster } from '$lib/state/toast/toast'
   import { videoView } from '$lib/videos/view.svelte'
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
   import { onDestroy } from 'svelte'

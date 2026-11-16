@@ -25,7 +25,7 @@
   } from '$lib/entities/file/upload-manager.svelte'
   import { m } from '$lib/paraglide/messages'
   import { motion } from '$lib/state/motion.svelte'
-  import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast'
+  import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast/toast'
   import { isHdrVideo } from '$lib/videos/hdr'
   import { FileUpload, useFileUpload } from '@skeletonlabs/skeleton-svelte'
   import { onDestroy } from 'svelte'

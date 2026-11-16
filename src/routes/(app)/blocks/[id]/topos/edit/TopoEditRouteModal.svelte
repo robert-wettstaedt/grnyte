@@ -9,7 +9,7 @@
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { isOnline } from '$lib/state/online.svelte'
-  import { toaster } from '$lib/state/toast'
+  import { toaster } from '$lib/state/toast/toast'
   import TopoEditRouteForm from './TopoEditRouteForm.svelte'
 
   interface Props {

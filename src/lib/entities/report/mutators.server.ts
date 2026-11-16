@@ -1,5 +1,5 @@
 import { removalTargetSchema } from '$lib/entities/moderation/dto'
-import { asPrivileged, defineServerMutator } from '$lib/zero/serverMutator.server'
+import { asPrivileged, defineServerMutator } from '$lib/zero/server/serverMutator.server'
 import { fileReportSchema } from './dto'
 import { dismissReportsRow, fileReportRow } from './report.server'
 

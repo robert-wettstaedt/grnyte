@@ -57,7 +57,7 @@
     <!-- Catches `beforeinstallprompt` before any module can. Chrome fires it as soon as it has read
          the manifest, which on a server-rendered page is well before the client bundle evaluates,
          and the event is not replayed for a listener that arrives late. preventDefault suppresses
-         the browser's own mini-infobar so our UI is the only ask. $lib/state/install.svelte reads
+         the browser's own mini-infobar so our UI is the only ask. $lib/state/pwa/install.svelte reads
          whatever is stashed here at startup and takes over from there. -->
     <script>
       window.__installPrompt = null

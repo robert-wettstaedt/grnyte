@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private'
 import type * as z from '$lib/forms/zod'
 import { refuseCommand } from '$lib/remote/authed.server'
-import { kitRefusal } from '$lib/zero/serverMutator.server'
+import { kitRefusal } from '$lib/zero/server/serverMutator.server'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { json, type RequestHandler } from '@sveltejs/kit'
 import { APP_ERROR_CODES, appError, NO_STORE, V1, type AppError } from './v1'

@@ -10,7 +10,7 @@
   import { isValidSource, normalizeSource } from '$lib/entities/file/upload'
   import { setVideoSource } from '$lib/entities/file/writes'
   import { m } from '$lib/paraglide/messages'
-  import { notifyError } from '$lib/state/toast'
+  import { notifyError } from '$lib/state/toast/toast'
   import MediaToolButton from './MediaToolButton.svelte'
   import SourceField from './SourceField.svelte'
 

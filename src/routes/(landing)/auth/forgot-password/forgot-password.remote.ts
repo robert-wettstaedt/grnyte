@@ -1,5 +1,5 @@
 import { command, form } from '$app/server'
-import { botFields } from '$lib/forms/botCheck'
+import { botFields } from '$lib/forms/bot/botCheck'
 import { formError, mailedCodeSchema } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { invalid } from '@sveltejs/kit'

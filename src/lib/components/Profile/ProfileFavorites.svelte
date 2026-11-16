@@ -15,7 +15,7 @@
   import { saveFavorite } from '$lib/entities/favorite/writes'
   import { routesByIds } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { notifyError } from '$lib/state/toast'
+  import { notifyError } from '$lib/state/toast/toast'
   import { locationCrumb } from './crumbs'
   import ProfileRouteList from './ProfileRouteList.svelte'
   import SectionHeading from './SectionHeading.svelte'

@@ -3,12 +3,12 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { updateUsernameSchema } from '$lib/entities/user/dto'
   import { updateUsername } from '$lib/entities/user/writes'
-  import AuthField from '$lib/forms/AuthField.svelte'
+  import AuthField from '$lib/forms/fields/AuthField.svelte'
   import Form from '$lib/forms/Form.svelte'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { toaster } from '$lib/state/toast'
+  import { toaster } from '$lib/state/toast/toast'
 
   const global = getGlobalState()
   const store = createFormStore(updateUsernameSchema)

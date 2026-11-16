@@ -1,4 +1,4 @@
-import { notifyError } from '$lib/state/toast'
+import { notifyError } from '$lib/state/toast/toast'
 import { isFavorited, saveCount } from './resources.svelte'
 import { saveFavorite } from './writes'
 

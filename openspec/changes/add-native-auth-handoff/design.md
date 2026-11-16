@@ -4,13 +4,13 @@
 
 See proposal.md for why. The state this design starts from, after `migrate-supabase-keys` (new API keys, asymmetric JWT signing keys, `supabaseAuthServer(event)`), `harden-auth-codes` (change 1) and `add-social-sign-in` (change 2) are applied:
 
-- `src/hooks.server.ts` runs `sequence(crossSiteGuard, rateLimit, paraglide, supabase, authGuard)`. The `supabase` handle (`src/lib/hooks/auth.server.ts`) builds `locals.supabase` with `@supabase/ssr` over Kit's cookies and installs `safeGetSession`, which verifies the cookie's access token with `verifyAccessToken` (`src/lib/auth/server/verify.server.ts`, `jose`) and keeps the branded `VerifiedToken` on `locals.verifiedToken` beside `locals.claims` (change 1). `verifyAccessToken` answers `unavailable` for a JWKS outage, which the hook turns into `backendUnavailable` rather than a sign-out (`migrate-supabase-keys`). `getPageState` is a closure inside the `supabase` handle. Change 1's `isSessionLive` / `requireLiveSession` (`src/lib/auth/server/session.server.ts`) run on auth, account and admin actions and every synced write, and name the app API as one more place; a failed liveness read throws and becomes 503 `auth_serviceUnavailable`, never a sign-out. Nothing reads `Authorization` except the Zero endpoints, through `zeroCaller` (`src/lib/zero/caller.server.ts`), which parses the header loosely with `.replace('Bearer ', '')`. Change 1 exports `APP_API_PREFIX = '/api/app/'` from `auth.server.ts`, exempts it from `crossSiteGuard`, and makes `authGuard` cookie-blind there (anonymous locals, like `ZERO_API_PREFIX`). `rateLimit` (500 requests per IP per 15 minutes) still applies to the prefix.
+- `src/hooks.server.ts` runs `sequence(crossSiteGuard, rateLimit, paraglide, supabase, authGuard)`. The `supabase` handle (`src/lib/hooks/auth.server.ts`) builds `locals.supabase` with `@supabase/ssr` over Kit's cookies and installs `safeGetSession`, which verifies the cookie's access token with `verifyAccessToken` (`src/lib/auth/server/verify.server.ts`, `jose`) and keeps the branded `VerifiedToken` on `locals.verifiedToken` beside `locals.claims` (change 1). `verifyAccessToken` answers `unavailable` for a JWKS outage, which the hook turns into `backendUnavailable` rather than a sign-out (`migrate-supabase-keys`). `getPageState` is a closure inside the `supabase` handle. Change 1's `isSessionLive` / `requireLiveSession` (`src/lib/auth/server/session.server.ts`) run on auth, account and admin actions and every synced write, and name the app API as one more place; a failed liveness read throws and becomes 503 `auth_serviceUnavailable`, never a sign-out. Nothing reads `Authorization` except the Zero endpoints, through `zeroCaller` (`src/lib/zero/server/caller.server.ts`), which parses the header loosely with `.replace('Bearer ', '')`. Change 1 exports `APP_API_PREFIX = '/api/app/'` from `auth.server.ts`, exempts it from `crossSiteGuard`, and makes `authGuard` cookie-blind there (anonymous locals, like `ZERO_API_PREFIX`). `rateLimit` (500 requests per IP per 15 minutes) still applies to the prefix.
 - `/api/` is a public prefix in `authGuard`; `/.well-known/` is not, so an anonymous fetch there is answered 303 to `/auth`.
 - Kit's default CSRF check refuses a cross-origin `POST` with a form content type (`application/x-www-form-urlencoded`, `multipart/form-data`, `text/plain`), and also one with no `Origin` header, outside dev. It lets `application/json` through.
 - `vercel.json` adds `Access-Control-Allow-Credentials: true` to every path and `Access-Control-Allow-Origin` only to image files.
 - Server-owned auth steps are remote functions. Change 1's bodies: `signUp` (returns a resend token), `confirmSignupCode`, `resendSignupCode` (`signup.remote.ts`), the unconfirmed branch of `signIn` (`signin.remote.ts`, `email_not_confirmed` after GoTrue checked the password), the forgot-password request and `confirmResetCode` (`forgot-password.remote.ts`), `setNewPassword`, `completeProfile` (`auth/profile/profile.remote.ts`), `changeEmail` (through `supabaseAuthServerAs(event, locals.verifiedToken)`) / `confirmEmailChangeCode` (after the second code: `voidReauth`, `refreshSession()`, `signOut({ scope: 'others' })` on `locals.supabase`) / `changePassword` / `deleteAccountCommand` / `accountDeletionPreview` (`settings/account.remote.ts`), `requestReauthCode` / `confirmReauthCode` / `reauthGrantStatus` (`src/lib/auth/reauth/reauth.remote.ts`), `signOutOthers` (`src/lib/auth/session.remote.ts`, no re-authentication). Change 2 adds `signInMethodsQuery` and `unlinkProvider` (`src/lib/auth/methods/identities.remote.ts`) and the own OAuth client. Invitation acceptance is the `regions.acceptInvitation` Zero mutator, which takes an `invitationFk`, not the mailed token; nothing here reads or accepts invitations, so the app cannot handle an invitation link yet and no `v1` shape is frozen for one.
 - Change 1's `supabaseAuthServerAs` (`src/lib/auth/server/authServer.server.ts`) seeds a fresh in-memory storage with a `VerifiedToken` (`persistSession: true`, explicit `storageKey`, far-future `expires_at`, empty refresh token) so auth-js acts as the person. Its `AuthServerAs` allows `linkIdentity` and `updateUser`; change 2 keeps `getUserIdentities`, `unlinkIdentity` and `signOut({ scope: 'others' })` on `locals.supabase`.
-- `src/lib/zero/serverMutator.server.ts` already turns Kit's `error()` and `invalid()` into another transport's error (`isHttpError`, `isValidationError`).
+- `src/lib/zero/server/serverMutator.server.ts` already turns Kit's `error()` and `invalid()` into another transport's error (`isHttpError`, `isValidationError`).
 - The proof-of-work challenge is `GET /auth/challenge` (`issueChallenge`, ALTCHA PBKDF2); `screenSubmit` spends a solution.
 - The newest migration on develop is `0147`; change 1 adds `0148` (tables) and `0149` (guards); change 2 adds none. This change's table is `0150`.
 - Zero's publication covers schema `public`, so every table there replicates into zero-cache's replica; only tables in the Zero schema are queryable by a client.
@@ -51,9 +51,9 @@ Every app endpoint lives under `src/routes/api/app/v1/` and is built by `appEndp
 
 ```ts
 export function appEndpoint<Req, Res>(options: {
-  auth: 'bearer' | 'none'          // 'none' still reads a Bearer if present, for optional callers
+  auth: 'bearer' | 'none' // 'none' still reads a Bearer if present, for optional callers
   profile?: 'optional' | 'required' // default 'required' when auth is 'bearer'
-  request: V1Schema<Req>            // this endpoint's own v1 shape, from src/lib/auth/app/v1.ts
+  request: V1Schema<Req> // this endpoint's own v1 shape, from src/lib/auth/app/v1.ts
   handler: (input: Req) => Promise<Res> // Res is z.infer of the endpoint's v1 response shape
 }): RequestHandler
 ```
@@ -91,31 +91,31 @@ Rejected: accepting Bearer on every route; building the cookie client and ignori
 
 The rule: the remote function and the endpoint call one exported function in a `*.server.ts` beside the remote file, which reads its caller through `getRequestEvent().locals` (populated identically on both paths) and returns a value both can use. Bodies that sign in return the session they got from GoTrue; the remote function writes it as it does today, the endpoint returns `{ session: { access_token, refresh_token, expires_at } }`. Where change 1 or 2 already keeps the body in a `*.server.ts`, the endpoint calls it directly; where it lives inline in a remote file, task group 3 moves it out first, unchanged, keeping every export name (no deploy skew, AGENTS.md). Two bodies get an explicit transport branch instead of moving unchanged (below).
 
-| Endpoint (`/api/app/v1/...`) | Auth | Body | Returns |
-| --- | --- | --- | --- |
-| `GET challenge` | none | `issueChallenge` | challenge |
-| `POST signup` | none | `signUp` body | `{ ok, resendToken }` |
-| `POST signup/confirm` | none | `confirmSignupCode` | `{ next, session }` |
-| `POST signup/resend` | none | `resendSignupCode` (takes `resendToken`) | `{ ok }` |
-| `POST signin/unconfirmed` | none | `signIn`'s unconfirmed branch | `{ confirm, resendToken }`, `{ alreadyConfirmed: true }` or the generic failure |
-| `POST password/forgot` | none | forgot-password request | `{ ok }` |
-| `POST password/reset/confirm` | none | `confirmResetCode` | `{ session }` |
-| `POST password/new` | bearer, profile optional | `setNewPassword` | `{ ok }` |
-| `POST password/change` | bearer | `changePassword` | `{ session }` |
-| `POST profile` | bearer, profile optional | `completeProfile` | `{ ok }` |
-| `POST email/change` | bearer | `changeEmail` | `{ sentAt, expiresAt }` |
-| `POST email/confirm` | bearer | `confirmEmailChangeCode` with `{ refresh: false }` | `{ next }`, then `{ next: 'done', session }` |
-| `POST reauth/request`, `reauth/confirm` | bearer, profile optional | `requestReauthCode`, `confirmReauthCode` | as web |
-| `GET reauth/status` | bearer, profile optional | `reauthGrantStatus` | `{ confirmed }` |
-| `POST reauth/apple/start`, `reauth/apple/confirm` | bearer, profile optional | decision 6 | decision 6 |
-| `GET account/deletion-preview` | bearer, profile optional | `accountDeletionPreview` body | blockers |
-| `POST account/delete` | bearer, profile optional | `deleteAccount` | `{ ok }` |
-| `GET sign-in-methods` | bearer | `signInMethodsQuery` body | methods |
-| `POST identities/unlink` | bearer | `unlinkProvider` body | `{ ok }` |
-| `POST identities/link/apple` | bearer | decision 5 | `{ ok }` |
-| `POST sessions/sign-out-others` | bearer, profile optional | `signOutOthers` (no re-authentication) | `{ ok }` |
-| `POST oauth/start`, `oauth/exchange` | none or bearer | decision 4 | decision 4 |
-| `POST oauth/apple/native` | none | decision 5 | `{ session }` or refusal |
+| Endpoint (`/api/app/v1/...`)                      | Auth                     | Body                                               | Returns                                                                         |
+| ------------------------------------------------- | ------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `GET challenge`                                   | none                     | `issueChallenge`                                   | challenge                                                                       |
+| `POST signup`                                     | none                     | `signUp` body                                      | `{ ok, resendToken }`                                                           |
+| `POST signup/confirm`                             | none                     | `confirmSignupCode`                                | `{ next, session }`                                                             |
+| `POST signup/resend`                              | none                     | `resendSignupCode` (takes `resendToken`)           | `{ ok }`                                                                        |
+| `POST signin/unconfirmed`                         | none                     | `signIn`'s unconfirmed branch                      | `{ confirm, resendToken }`, `{ alreadyConfirmed: true }` or the generic failure |
+| `POST password/forgot`                            | none                     | forgot-password request                            | `{ ok }`                                                                        |
+| `POST password/reset/confirm`                     | none                     | `confirmResetCode`                                 | `{ session }`                                                                   |
+| `POST password/new`                               | bearer, profile optional | `setNewPassword`                                   | `{ ok }`                                                                        |
+| `POST password/change`                            | bearer                   | `changePassword`                                   | `{ session }`                                                                   |
+| `POST profile`                                    | bearer, profile optional | `completeProfile`                                  | `{ ok }`                                                                        |
+| `POST email/change`                               | bearer                   | `changeEmail`                                      | `{ sentAt, expiresAt }`                                                         |
+| `POST email/confirm`                              | bearer                   | `confirmEmailChangeCode` with `{ refresh: false }` | `{ next }`, then `{ next: 'done', session }`                                    |
+| `POST reauth/request`, `reauth/confirm`           | bearer, profile optional | `requestReauthCode`, `confirmReauthCode`           | as web                                                                          |
+| `GET reauth/status`                               | bearer, profile optional | `reauthGrantStatus`                                | `{ confirmed }`                                                                 |
+| `POST reauth/apple/start`, `reauth/apple/confirm` | bearer, profile optional | decision 6                                         | decision 6                                                                      |
+| `GET account/deletion-preview`                    | bearer, profile optional | `accountDeletionPreview` body                      | blockers                                                                        |
+| `POST account/delete`                             | bearer, profile optional | `deleteAccount`                                    | `{ ok }`                                                                        |
+| `GET sign-in-methods`                             | bearer                   | `signInMethodsQuery` body                          | methods                                                                         |
+| `POST identities/unlink`                          | bearer                   | `unlinkProvider` body                              | `{ ok }`                                                                        |
+| `POST identities/link/apple`                      | bearer                   | decision 5                                         | `{ ok }`                                                                        |
+| `POST sessions/sign-out-others`                   | bearer, profile optional | `signOutOthers` (no re-authentication)             | `{ ok }`                                                                        |
+| `POST oauth/start`, `oauth/exchange`              | none or bearer           | decision 4                                         | decision 4                                                                      |
+| `POST oauth/apple/native`                         | none                     | decision 5                                         | `{ session }` or refusal                                                        |
 
 `GET challenge` is a versioned alias over `issueChallenge`, so every native call stays inside the frozen prefix and the app is not tied to the web's `/auth/challenge`, which stays as it is for the web.
 
@@ -166,9 +166,15 @@ Rejected: a separate `/api/app/v1/oauth/<provider>/callback` registered as a sec
 A native Apple ID token comes from the device, not from Apple's token endpoint over TLS, so change 2's trust in the code grant does not cover it, and for re-auth it never reaches GoTrue either. New `src/lib/auth/app/appleToken.server.ts`:
 
 ```ts
-export async function verifyAppleIdToken(token: string, audience: string, nonceDigest: string):
-  Promise<{ ok: true; claims: AppleClaims } | { ok: false; reason: 'invalid' | 'unavailable' }>
-export async function exchangeAppleCode(code: string, clientId: string): Promise<{ refreshToken: string; sub: string } | null>
+export async function verifyAppleIdToken(
+  token: string,
+  audience: string,
+  nonceDigest: string,
+): Promise<{ ok: true; claims: AppleClaims } | { ok: false; reason: 'invalid' | 'unavailable' }>
+export async function exchangeAppleCode(
+  code: string,
+  clientId: string,
+): Promise<{ refreshToken: string; sub: string } | null>
 ```
 
 `verifyAppleIdToken` runs jose `jwtVerify` against `createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'))` (one set per process, jose's default cooldown and cache) with `algorithms: ['RS256']`, `issuer: 'https://appleid.apple.com'`, `audience` pinned to the one value given, and `requiredClaims: ['sub', 'iat', 'exp', 'nonce']` (jose checks `exp`), then requires `claims.nonce === nonceDigest` (a plain comparison: both are public digests, and `timingSafeEqual` would throw on a nonce of another length). A JWKS fetch failure is `unavailable`, answered 503: classification is by place, not by error, so this change lifts `resolveKey`'s wrapper out of `verify.server.ts` as an exported `taggingJwks(jwks)` (it rethrows only what the key getter throws, except the no-match and multiple-match codes, as the exported `JwksUnavailable`) and passes Apple's `createRemoteJWKSet` through it; an expired token or bad signature thrown by `jwtVerify` stays `invalid`; everything else is `invalid`. It runs before any claim is read on every native Apple path: `oauth/apple/native`, `identities/link/apple` and `reauth/apple/confirm`. An `invalid` token records `handoff_failed` (`apple_token_invalid`) and answers one fixed `failed` refusal, the same whether or not any account has the address, so no unverified claim ever reaches `decideSignIn` or `decideLink`.
@@ -198,24 +204,24 @@ Any refusal answers 400 with change 2's Apple-confirm failure key. The action an
 
 One table for all short-lived server-held values (handoff transactions, handoff codes, Apple re-auth nonces), RLS on with no policies, written on the privileged handle like change 1's `reauth_grants`, with no grant to the `authenticated` role (resolved assumption 4):
 
-| column | type | note |
-| --- | --- | --- |
-| `id` | `uuid pk default gen_random_uuid()` | the `flowId` of an Apple re-auth |
-| `purpose` | `text not null` | `signin`, `link`, `reauth` |
-| `provider` | `text not null` | `apple`, `google` |
-| `state_hash` | `text unique` | SHA-256 hex of the provider `state`; kept after the claim, so a replay is recognised |
-| `claimed_at` | `timestamptz` | set by the first `take` |
-| `code_hash` | `text unique` | SHA-256 hex of the handoff code |
-| `code_challenge` | `text` | app's S256 challenge |
-| `transaction` | `text` | sealed `OAuthTransaction` (nonce, provider PKCE verifier, intent, `returnTo`); `signin`, `link` |
-| `nonce_digest` | `text` | SHA-256 hex of the re-auth nonce; `reauth` only |
-| `client_hash` | `text` | HMAC (change 1's `labelledKey('app-start-client')`) of the starting IPv4 address or IPv6 /64 (an IPv4-mapped `::ffff:a.b.c.d` counts as its IPv4 address), for the start cap; indexed with `claimed_at` and `expires_at` |
-| `proof` | `text` | sealed `VerifiedProof` (claims included), set by the callback, nulled at exchange |
-| `auth_user_fk` | `uuid` FK `auth.users` on delete cascade | `link`, `reauth` |
-| `session_id` | `uuid` | `link`, `reauth` |
-| `action`, `target` | `text` | `reauth` only |
-| `expires_at` | `timestamptz not null` | 10 min, 60 s after callback, 5 min for `reauth` |
-| `created_at` | `timestamptz not null default now()` | |
+| column             | type                                     | note                                                                                                                                                                                                                     |
+| ------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`               | `uuid pk default gen_random_uuid()`      | the `flowId` of an Apple re-auth                                                                                                                                                                                         |
+| `purpose`          | `text not null`                          | `signin`, `link`, `reauth`                                                                                                                                                                                               |
+| `provider`         | `text not null`                          | `apple`, `google`                                                                                                                                                                                                        |
+| `state_hash`       | `text unique`                            | SHA-256 hex of the provider `state`; kept after the claim, so a replay is recognised                                                                                                                                     |
+| `claimed_at`       | `timestamptz`                            | set by the first `take`                                                                                                                                                                                                  |
+| `code_hash`        | `text unique`                            | SHA-256 hex of the handoff code                                                                                                                                                                                          |
+| `code_challenge`   | `text`                                   | app's S256 challenge                                                                                                                                                                                                     |
+| `transaction`      | `text`                                   | sealed `OAuthTransaction` (nonce, provider PKCE verifier, intent, `returnTo`); `signin`, `link`                                                                                                                          |
+| `nonce_digest`     | `text`                                   | SHA-256 hex of the re-auth nonce; `reauth` only                                                                                                                                                                          |
+| `client_hash`      | `text`                                   | HMAC (change 1's `labelledKey('app-start-client')`) of the starting IPv4 address or IPv6 /64 (an IPv4-mapped `::ffff:a.b.c.d` counts as its IPv4 address), for the start cap; indexed with `claimed_at` and `expires_at` |
+| `proof`            | `text`                                   | sealed `VerifiedProof` (claims included), set by the callback, nulled at exchange                                                                                                                                        |
+| `auth_user_fk`     | `uuid` FK `auth.users` on delete cascade | `link`, `reauth`                                                                                                                                                                                                         |
+| `session_id`       | `uuid`                                   | `link`, `reauth`                                                                                                                                                                                                         |
+| `action`, `target` | `text`                                   | `reauth` only                                                                                                                                                                                                            |
+| `expires_at`       | `timestamptz not null`                   | 10 min, 60 s after callback, 5 min for `reauth`                                                                                                                                                                          |
+| `created_at`       | `timestamptz not null default now()`     |                                                                                                                                                                                                                          |
 
 Sealing uses change 2's `seal` with info `grnyte app handoff v1`, so the key is derived from `SUPABASE_SECRET_KEY` under its own label like the transaction cookie's and no new secret exists; rotating that key orphans open handoff rows, which live 10 minutes.
 

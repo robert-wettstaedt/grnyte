@@ -30,7 +30,7 @@
   import { canEditTopo } from '$lib/entities/topo/permissions'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { withUndo } from '$lib/state/toast'
+  import { withUndo } from '$lib/state/toast/toast'
 
   /** No labelled action: "Log ascent" is the page's primary action and lives in the sticky footer. */
   interface Props {

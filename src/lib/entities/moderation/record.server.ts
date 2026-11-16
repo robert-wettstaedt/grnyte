@@ -3,7 +3,7 @@ import { notify } from '$lib/entities/notification/notification.server'
 import { closeReportsOn } from '$lib/entities/report/report.server'
 import type { Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
-import { asPrivileged, type ServerMutatorContext } from '$lib/zero/serverMutator.server'
+import { asPrivileged, type ServerMutatorContext } from '$lib/zero/server/serverMutator.server'
 import type { ModerationGround, RemovableKind, RemovedItem } from './dto'
 
 export type Planned<T> = MutationResult<T> & { removal?: Removal }

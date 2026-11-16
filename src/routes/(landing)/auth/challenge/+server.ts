@@ -1,4 +1,4 @@
-import { issueChallenge } from '$lib/forms/proofOfWork.server'
+import { issueChallenge } from '$lib/forms/bot/proofOfWork.server'
 import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
 

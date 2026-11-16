@@ -12,7 +12,7 @@ import { APP_HOME_PATH } from './lib/auth'
 import { isPushPayload, type PushPayload } from './lib/entities/notification/push'
 import { IMAGE_CACHE, isDerivativeRequest } from './lib/images/derivatives'
 import { isStorableTile, OSM_TILE_HOST } from './lib/map/tiles'
-import { CLAIM_CHECK } from './lib/state/serviceWorkerMessages'
+import { CLAIM_CHECK } from './lib/state/pwa/serviceWorkerMessages'
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -23,7 +23,7 @@ declare let self: ServiceWorkerGlobalScope
  *
  * The cost is version skew, and SvelteKit does not cover it: `version.pollInterval` defaults to 0,
  * so the version is only consulted after a route module fails to load. Closing that window is
- * `$lib/state/serviceWorker.ts`'s job.
+ * `$lib/state/pwa/serviceWorker.ts`'s job.
  */
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(claimAndRetireStaleClients()))

@@ -1,6 +1,6 @@
 import { removableIdArgs } from '$lib/entities/moderation/dto'
 import { recordPlanned } from '$lib/entities/moderation/record.server'
-import { asCaller, defineServerMutator } from '$lib/zero/serverMutator.server'
+import { asCaller, defineServerMutator } from '$lib/zero/server/serverMutator.server'
 import { createTopoSchema, reorderToposSchema, replaceTopoImageSchema, saveTopoLinesSchema } from './dto'
 import { createTopoRow, deleteTopoRow, reorderToposRow, replaceTopoImageRow, saveTopoLinesRow } from './edit.server'
 

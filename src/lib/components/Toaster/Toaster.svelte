@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { toaster } from '$lib/state/toast'
+  import { toaster } from '$lib/state/toast/toast'
   import { Toast } from '@skeletonlabs/skeleton-svelte'
 
   // Only a verdict gets a mark: a check when the write landed, a triangle when it did not.

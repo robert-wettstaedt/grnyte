@@ -8,7 +8,7 @@ import { completeProfile } from './profile.remote'
 vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/auth/profile') } }))
 vi.mock('$app/navigation', () => ({ invalidate: vi.fn() }))
 vi.mock('$lib/state/navigation.svelte', () => ({ replaceUrl: vi.fn() }))
-vi.mock('$lib/state/wipe', () => ({ wipeAndLeave: vi.fn() }))
+vi.mock('$lib/state/pwa/wipe', () => ({ wipeAndLeave: vi.fn() }))
 vi.mock('$lib/auth/session.remote', () => ({
   signOut: {
     enhance: () => ({ action: '?/signOut', method: 'POST' }),

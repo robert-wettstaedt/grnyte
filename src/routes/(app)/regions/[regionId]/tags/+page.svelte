@@ -12,7 +12,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { notifyError, toaster } from '$lib/state/toast'
+  import { notifyError, toaster } from '$lib/state/toast/toast'
   import RegionAdminRequired from '../RegionAdminRequired.svelte'
   import RegionScreen from '../RegionScreen.svelte'
   import TagRow from './TagRow.svelte'

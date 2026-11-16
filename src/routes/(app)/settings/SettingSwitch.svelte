@@ -7,7 +7,7 @@
   hand-rolling the same try/catch is four chances to forget the catch.
 -->
 <script lang="ts">
-  import { notifyError } from '$lib/state/toast'
+  import { notifyError } from '$lib/state/toast/toast'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {

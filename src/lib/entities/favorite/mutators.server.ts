@@ -1,4 +1,4 @@
-import { asCaller, defineServerMutator } from '$lib/zero/serverMutator.server'
+import { asCaller, defineServerMutator } from '$lib/zero/server/serverMutator.server'
 import { favoriteSetArgs } from './dto'
 import { setFavorite } from './favorite.server'
 

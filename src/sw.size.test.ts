@@ -55,7 +55,7 @@ function code(path: string): string {
  * Both directions fail, because both are silent. `skipWaiting()` under the default `'prompt'` leaves
  * the reload wired to a `waiting` event that cannot fire for such a worker; `'autoUpdate'` without
  * `skipWaiting()` listens on `activated`, which a worker that waits does not reach while a tab is
- * open. Either way updates reach nobody. `$lib/state/serviceWorker.ts` carries the detail.
+ * open. Either way updates reach nobody. `$lib/state/pwa/serviceWorker.ts` carries the detail.
  *
  * Read as text rather than by importing the config, because the option is consumed inside
  * `SvelteKitPWA()` and is not readable back off the plugins it returns.

@@ -31,7 +31,7 @@
   import { motion, prefersStill } from '$lib/state/motion.svelte'
   import { push } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { notifyError } from '$lib/state/toast'
+  import { notifyError } from '$lib/state/toast/toast'
   import { untrack } from 'svelte'
   import { fade } from 'svelte/transition'
   import CommentReactions from './CommentReactions.svelte'

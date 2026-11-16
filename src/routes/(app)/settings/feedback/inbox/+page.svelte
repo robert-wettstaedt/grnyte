@@ -14,7 +14,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { back } from '$lib/state/navigation.svelte'
-  import { notifyError, notifySend } from '$lib/state/toast'
+  import { notifyError, notifySend } from '$lib/state/toast/toast'
   import { tick } from 'svelte'
 
   // Created once, not in a $derived: the query takes no arguments.

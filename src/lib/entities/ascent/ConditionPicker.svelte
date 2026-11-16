@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Picker from '$lib/forms/Picker.svelte'
+  import Picker from '$lib/forms/fields/Picker.svelte'
   import { m } from '$lib/paraglide/messages'
 
   // Optional numeric field (temperature, humidity): a label row over a stepper, the plain-number

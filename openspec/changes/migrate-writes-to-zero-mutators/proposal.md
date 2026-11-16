@@ -80,7 +80,7 @@ None. `topo/route-editing` already states its save behaviour at a level this cha
   `dto.ts` argument schemas), plus `src/lib/zero/mutators.ts` and `mutators.server.ts`.
 - **Shared code**: `src/lib/forms/` (`Form.svelte`, `FormGate`, `FormError`, `seed.svelte.ts`, the
   new form store), `src/lib/remote/` (`authed.server.ts`, `mutation.ts`, `gates.test.ts`),
-  `src/lib/state/toast.ts` (`withUndo`), `src/lib/db/db.server.ts` (`applyRls`).
+  `src/lib/state/toast/toast.ts` (`withUndo`), `src/lib/db/db.server.ts` (`applyRls`).
 - **Routes**: every add and edit screen under `src/routes/(app)`, and the new
   `src/routes/api/zero/mutate/+server.ts`. No URL changes.
 - **Tables**: every table those modules write. One schema change: `region_invitations` gains

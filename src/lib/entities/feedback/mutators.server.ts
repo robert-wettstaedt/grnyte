@@ -1,5 +1,5 @@
 import { PUBLIC_ORIGIN } from '$env/static/public'
-import { asPrivileged, defineServerMutator } from '$lib/zero/serverMutator.server'
+import { asPrivileged, defineServerMutator } from '$lib/zero/server/serverMutator.server'
 import { feedbackSchema } from './dto'
 import { submitFeedbackRow } from './submit.server'
 

@@ -1,5 +1,5 @@
 import { appEndpoint } from '$lib/auth/app/endpoint.server'
-import { PROOF_OF_WORK_FIELD } from '$lib/forms/botCheck'
+import { PROOF_OF_WORK_FIELD } from '$lib/forms/bot/botCheck'
 import { refuseCommand } from '$lib/remote/authed.server'
 import { forgotPassword } from '../../../../../(landing)/auth/forgot-password/forgot-password.server'
 

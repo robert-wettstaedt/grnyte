@@ -1,7 +1,7 @@
 import { removableIdArgs } from '$lib/entities/moderation/dto'
 import { recordPlanned } from '$lib/entities/moderation/record.server'
 import { refuseWhileRemoved } from '$lib/entities/moderation/undo.server'
-import { asCaller, asPrivileged, defineServerMutator, refuseWithField } from '$lib/zero/serverMutator.server'
+import { asCaller, asPrivileged, defineServerMutator, refuseWithField } from '$lib/zero/server/serverMutator.server'
 import { mergeRoutesSchema, moveRoutesSchema, restoreRouteSchema, routeActionSchema } from './dto'
 import { deleteRouteRow, restoreRouteRow } from './lifecycle.server'
 import { planRouteMerge, repointRouteMerge } from './merge.server'

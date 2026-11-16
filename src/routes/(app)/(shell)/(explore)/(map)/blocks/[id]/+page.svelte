@@ -31,7 +31,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { isOnline } from '$lib/state/online.svelte'
-  import { matchingRoutes } from '$lib/state/searchQuery.svelte'
+  import { matchingRoutes } from '$lib/state/search/searchQuery.svelte'
   import { summaryOf } from '$lib/zero/resource.svelte'
   import { untrack } from 'svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'

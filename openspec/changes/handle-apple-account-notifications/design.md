@@ -15,7 +15,7 @@ State this change starts from (the stack's tip, `feature/add-native-auth-handoff
 - `src/lib/auth/server/mail.server.ts`: grnyte's own notices (`noticePasswordChanged` on `recipient(id)`, which supplies locale and sign-in methods).
 - `src/lib/entities/user/delete.server.ts`: `deleteAccount` ends sessions with `delete from auth.sessions where user_id = …` in its transaction.
 - `src/lib/db/serverOnly.ts`: server-only tables are plain `public` tables, so zero-cache's replica holds a copy; `appAuthFlows` hashes what it stores for that reason.
-- `src/lib/forms/gate.ts`: a `Form` `waitFor` needs a non-null row with an `id`.
+- `src/lib/forms/gate/gate.ts`: a `Form` `waitFor` needs a non-null row with an `id`.
 - `src/routes/api/webhooks/bunny/+server.ts`: the house shape of a signed webhook (raw body, verify, 401/400/204).
 - GoTrue sends its own mail over SMTP (Resend); grnyte's own mail goes through `sendEmail` / `sendEmailOutcome`.
 

@@ -7,23 +7,23 @@
   import Logo from '$lib/assets/logo.svg'
   import PillHost from '$lib/components/StatusPill/PillHost.svelte'
   import UpdateBadge from '$lib/components/UpdateBadge/UpdateBadge.svelte'
-  import { createExploreMapData } from '$lib/map/exploreData.svelte'
-  import { FILTER_PARAM_KEYS, isParsedFilterActive } from '$lib/map/filter'
+  import { createExploreMapData } from '$lib/map/explore/exploreData.svelte'
+  import { FILTER_PARAM_KEYS, isParsedFilterActive } from '$lib/map/explore/filter'
+  import type { OpenEntity } from '$lib/map/explore/narrow'
   import Map from '$lib/map/Map.svelte'
-  import type { OpenEntity } from '$lib/map/narrow'
   import { BLOCK_LABEL_ZOOM, type MapCameraClaim, type MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { exit, replaceUrl } from '$lib/state/navigation.svelte'
   import { createPillSurface } from '$lib/state/pill.svelte'
+  import { applyUpdateOnClick } from '$lib/state/pwa/updateReady.svelte'
   import {
     liveRouteFilter,
     liveSearchQuery,
     setLiveRouteFilter,
     setLiveSearchQuery,
     setMatchingRoutes,
-  } from '$lib/state/searchQuery.svelte'
-  import { applyUpdateOnClick } from '$lib/state/updateReady.svelte'
+  } from '$lib/state/search/searchQuery.svelte'
   import { visualViewport } from '$lib/state/visualViewport.svelte'
   import { untrack } from 'svelte'
   import { fly } from 'svelte/transition'

@@ -1,7 +1,7 @@
 <script module lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { isOnline } from '$lib/state/online.svelte'
-  import { isUpdateReady } from '$lib/state/updateReady.svelte'
+  import { isUpdateReady } from '$lib/state/pwa/updateReady.svelte'
   import { isTerminal, RECONNECT_HOLD_MS, type ConnectionName } from '$lib/zero/connection'
   import { getZ } from '$lib/zero/z.svelte'
   import { resolveStatus } from './statusBar'
