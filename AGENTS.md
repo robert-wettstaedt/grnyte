@@ -9,7 +9,7 @@ Zero sync (<https://zero.rocicorp.dev/llms.txt>), Supabase, Drizzle ORM.
 - `npm run check`: svelte-check + tsc. Its `svelte-kit sync` 500s a running dev server (the sandbox
   cannot read `.env`; tell: `$env/static` "has no exported member"). Beside a live server run
   `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json` instead. `npm run lint`, `npm run format`
-- `npm run generate`: Drizzle + Zero schemas and GoTrue email templates. `npm run migrate` applies migrations
+- `npm run generate`: Drizzle, Zero and PowerSync schemas and GoTrue email templates. `npm run migrate` applies migrations
 - `npm run check:prod`: assert a deployed env's signup/mail config (read-only)
 - `npm run secrets:pull`: rewrite `.env` from Bitwarden Secrets Manager; `BWS_ACCESS_TOKEN` picks the
   environment. `deployment/SECRETS.md` covers Vercel, the VPS and rotation
@@ -97,7 +97,8 @@ Zero sync (<https://zero.rocicorp.dev/llms.txt>), Supabase, Drizzle ORM.
 - Block ordering lives in `block/order.ts` and `order.server.ts`. Read `order.ts` before changing either.
 - Check a value at its point of use, not a re-derivation of it: green means nothing until the probe
   is shown to reach the code that runs. In prose too: name the thing, don't count it.
-- Schema changes: edit `schema.ts`, `generate:drizzle`, append backfill SQL, `generate:zero`, `migrate`.
+- Schema changes: edit `schema.ts`, `generate:drizzle`, append backfill SQL, `generate:zero`, `generate:powersync`,
+  `migrate`.
 - Joining `auth.users` and `public.users` needs `alias(authUsers, 'auth_user')`
   (`drizzle-orm/pg-core`), or it throws `42P09` at runtime with nothing catching it earlier
   (`adminRecipients.server.ts`).
@@ -119,6 +120,10 @@ Zero sync (<https://zero.rocicorp.dev/llms.txt>), Supabase, Drizzle ORM.
   `stryker/README.md` first. The survivor list is the output.
 - Answering clarification or grilling questions is not a go-ahead. Write the plan and stop until an
   explicit "start" / "do #1-#3".
+- Two sync engines, one per build (`PUBLIC_SYNC_ENGINE`, see CONTEXT.md "engine seam"). A module that differs per
+  engine gets a `*.powersync.*` twin, listed in `src/lib/powersync/twins.ts`; PowerSync code imports twins by
+  that path. A change to a read or a write is checked on both builds before merging; e2e and drives run on the
+  Zero build, and the PowerSync build locally with `PUBLIC_SYNC_ENGINE=powersync`.
 - Before handing back, over your paths only: `npx prettier --write`, `npx eslint`,
   `npx vitest run --project server` (`*.server.test.ts`, `*.remote.test.ts`) or `--project browser`,
   then typecheck. Tests that count rows across a whole table run alone in `--project server-serial`
