@@ -108,7 +108,11 @@
 
 {#snippet content()}
   <!-- The sheet element is the scroll container here: BottomSheet.Content clips instead. -->
-  <BottomSheet.Sheet class="explore-sheet preset-filled-surface-50-950! block!" {@attach resetOnNavigate}>
+  <BottomSheet.Sheet
+    class="explore-sheet preset-filled-surface-50-950! block!"
+    data-sheet-nav
+    {@attach resetOnNavigate}
+  >
     <BottomSheet.Handle style="background: var(--color-surface-50-950)" />
 
     <div

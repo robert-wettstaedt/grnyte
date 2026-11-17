@@ -12,10 +12,11 @@ interface Sibling {
   name: string
 }
 
-/** True when nav shortcuts should stay inert: a modifier is held or the user is
- *  typing in a form field. Shared by the sheet's j/l handler and page-level keys. */
+/** True when nav shortcuts should stay inert: a modifier is held, the user is typing in a form
+ *  field, or focus is in a dialog that does not own the nav. Shared by the sheet's j/l handler and
+ *  page-level keys. */
 export function isNavKeyExempt(event: KeyboardEvent) {
-  return event.metaKey || event.ctrlKey || event.altKey || isTypingInField(event)
+  return event.metaKey || event.ctrlKey || event.altKey || isTypingInField(event) || isInOtherDialog(event)
 }
 
 /** True when the user is typing in a form field, so keyboard shortcuts should stay inert. Shared by
@@ -50,4 +51,11 @@ export function toSheetNav(
     prev: { href: href(prev.id), label: prev.name },
     total: n,
   }
+}
+
+/** A dialog traps focus, so a key from inside one is meant for it; `data-sheet-nav` marks the sheet that pages. */
+function isInOtherDialog(event: KeyboardEvent): boolean {
+  const target = event.target
+  const dialog = target instanceof HTMLElement ? target.closest('[role="dialog"]') : null
+  return dialog != null && !dialog.hasAttribute('data-sheet-nav')
 }
