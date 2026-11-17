@@ -40,7 +40,11 @@ export function getZ(): Z<Schema> {
  * root layout load, which re-runs on `supabase:auth` invalidation: the client
  * is only swapped when the signed-in user changed.
  */
-export function initZero(session: null | Session | undefined): Z<Schema> {
+export function initZero(
+  session: null | Session | undefined,
+  // Off in the PowerSync build: PowerSync holds the guidebook and alone writes the sync and store state.
+  { preload = true }: { preload?: boolean } = {},
+): Z<Schema> {
   const userID = session?.user.id
 
   // Reused, not rebuilt: rebuilding here would re-target every query, resetting
@@ -60,7 +64,7 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   instance?.close()
 
   const z = new Z<Schema>(zeroOptions(session))
-  trackSyncFor(userID)
+  if (preload) trackSyncFor(userID)
 
   // Zero is the only thing in the app continuously trying to reach the server, which makes it the
   // only honest answer to "are we online". `navigator.onLine` alone says yes on a fresh document
@@ -90,7 +94,7 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
 
   storeProbe?.destroy()
   storeProbe = undefined
-  if (session != null) {
+  if (session != null && preload) {
     // The signed-in user always has a row, so seeing it local proves the replica was read back.
     const probe = z.materialize(queries.currentUser())
     storeProbe = probe

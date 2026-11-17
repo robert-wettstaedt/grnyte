@@ -182,7 +182,7 @@
            down; "none" waits for the answer and fills the same box rather than collapsing it. -->
       {#if detail.type != null && (routes.data.length > 0 ? routes.phase.kind === 'answered' || isOnline() : expectingMore(routes.phase) || routes.phase.kind === 'answered' || routes.phase.kind === 'error')}
         <section class="space-y-2">
-          <div class="flex items-baseline justify-between">
+          <div class="flex items-baseline justify-between gap-2">
             <h2 class="text-surface-600-400 shrink-0 text-sm font-bold tracking-wider uppercase">{m.areas_grades()}</h2>
             {#if routeCount != null}
               <!-- One line whatever the counts: a wrap after routes land would push the page down. Only the graded
@@ -199,11 +199,12 @@
                   <span class="truncate">{m.routes_matchingCount({ count: routeCount, matching: matchingCount })}</span>
                 {:else}
                   <span class="truncate">{m.areas_gradedCount({ count: gradedCount })}</span>
-                  {#if ungradedCount > 0}
-                    <span class="shrink-0 whitespace-nowrap">
-                      &nbsp;· {m.areas_ungradedCount({ count: ungradedCount })}
-                    </span>
-                  {/if}
+                {/if}
+                <!-- In every state, as the count under the chart was: a selection or filter narrows the graded part only. -->
+                {#if ungradedCount > 0}
+                  <span class="shrink-0 whitespace-nowrap">
+                    &nbsp;· {m.areas_ungradedCount({ count: ungradedCount })}
+                  </span>
                 {/if}
               </span>
             {/if}

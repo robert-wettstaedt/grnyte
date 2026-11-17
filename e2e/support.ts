@@ -1,5 +1,5 @@
 /**
- * The bits every spec needs. Here rather than duplicated per file, mostly so the `networkidle`
+ * The bits every spec needs. Here rather than duplicated per file, mostly so the hydration-wait
  * rationale below exists once: it is the sort of comment that rots the moment there are two copies.
  *
  * Imports no database module, so `prod-signup.spec.ts` does not drag in `testDb`'s pool.
@@ -17,6 +17,8 @@ export function adminClient(): SupabaseClient | undefined {
 export const APP = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
 /** `E2E_ZERO_URL` for a stack beside the shared one. */
 export const ZERO = process.env.E2E_ZERO_URL ?? 'http://localhost:4848'
+// A PowerSync build reads the guidebook from PowerSync; writes, the feed and comments still go through zero-cache.
+const POWERSYNC = process.env.PUBLIC_SYNC_ENGINE === 'powersync' ? 'http://localhost:58100/probes/liveness' : undefined
 
 /**
  * Prerequisites named out loud, so a missing service reads as "start this". `extra` is for a spec
@@ -37,6 +39,9 @@ export async function assertLocalStack(dbReachable: boolean, password: string, e
   if (!dbReachable) missing.push('local Supabase Postgres (DATABASE_URL is unreachable)')
   if (!(await reachableUrl(APP))) missing.push(`the app on ${APP} (npm run dev)`)
   if (!(await reachableUrl(ZERO))) missing.push(`zero-cache on ${ZERO} (npm run dev:zero)`)
+  if (POWERSYNC != null && !(await reachableUrl(POWERSYNC))) {
+    missing.push('PowerSync on :58100 (deployment/docker-compose.powersync.local.yml)')
+  }
   if (!password) missing.push('E2E_PASSWORD in .env (the shared seed-login password)')
 
   if (missing.length > 0) {
@@ -158,6 +163,30 @@ export async function readForm(
   return formValues(page)
 }
 
+/**
+ * Wait until the page has stopped loading modules: the dev server ships roughly 200 unbundled ES
+ * modules per page, so `load` fires long before the app hydrates, and a click in that window lands
+ * on inert HTML and reports success while doing nothing.
+ *
+ * Quiet by resource timing rather than `networkidle`, which never arrives here: Chrome never reports
+ * PowerSync's worker script request as finished. A resource entry appears only once a request completes.
+ */
+export async function settle(page: Page) {
+  await page.waitForLoadState('load')
+  // Chrome stops recording resource entries at 250, which would read as quiet while modules still load.
+  await page.evaluate(() => performance.setResourceTimingBufferSize(10_000))
+  await page.waitForFunction(
+    () => {
+      const state = window as unknown as { __e2eQuiet?: { at: number; count: number } }
+      const count = performance.getEntriesByType('resource').length
+      if (state.__e2eQuiet?.count !== count) state.__e2eQuiet = { at: performance.now(), count }
+      return performance.now() - state.__e2eQuiet.at > 500
+    },
+    null,
+    { polling: 100, timeout: 60_000 },
+  )
+}
+
 /** A signed-in page, and the context to close in `afterAll`. A context rather than
  *  `browser.newPage()`, which would keep syncing for the rest of the run. */
 export async function signedIn(browser: Browser, email: string, password: string) {
@@ -175,11 +204,7 @@ export async function signIn(page: Page, email: string, password: string) {
 }
 
 /**
- * Navigate and wait for the page to be interactive.
- *
- * `networkidle` is normally discouraged, and it is the right tool here: the dev server ships
- * roughly 200 unbundled ES modules per page, so `load` fires long before the app hydrates, and a
- * click in that window lands on inert HTML and reports success while doing nothing.
+ * Navigate and wait for the page to be interactive. See {@link settle}.
  *
  * `path` is relative, so it resolves against the config's `baseURL` and every spec follows
  * `E2E_BASE_URL` without knowing it exists.
@@ -187,7 +212,9 @@ export async function signIn(page: Page, email: string, password: string) {
 export async function visit(page: Page, path: string) {
   await hideServiceWorkerApi(page)
   await page.goto(path)
-  await page.waitForLoadState('networkidle')
+  // Zero's queries are network requests, so `networkidle` waits for them; PowerSync's never settle (see `settle`).
+  if (POWERSYNC == null) await page.waitForLoadState('networkidle')
+  else await settle(page)
 }
 
 /** Pages already told, since `addInitScript` appends and `visit` is called per navigation. */
@@ -209,6 +236,9 @@ async function hideServiceWorkerApi(page: Page) {
   await page.addInitScript(() => {
     delete (Navigator.prototype as { serviceWorker?: unknown }).serviceWorker
   })
+  // The fixtures' map layer points at `.invalid`, which some resolvers never answer: refused here,
+  // or its tiles stay pending and slow every wait for the page to settle.
+  await page.route('https://example.invalid/**', (route) => route.abort())
 }
 
 /** Loopback, whatever the port. Anything else is somebody's deployment. */

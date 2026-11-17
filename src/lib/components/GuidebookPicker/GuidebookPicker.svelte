@@ -31,6 +31,8 @@
     items: PickerItem[]
     onopen?: (item: PickerItem) => void
     onpick: (item: PickerItem) => void
+    /** Rows are placed again whenever this changes, like a new search: for an order that is late to be known. */
+    orderKey?: string
     /** Listed first, under their own heading, ahead of whatever the search finds. */
     pinned?: PickerItem[]
     pinnedLabel?: string
@@ -49,6 +51,7 @@
     items,
     onopen,
     onpick,
+    orderKey = '',
     pinned = [],
     pinnedLabel,
     placeholder,
@@ -62,9 +65,9 @@
   let placed: number[] = []
   let placedFor: string | undefined
   const ordered = $derived.by(() => {
-    if (placedFor !== query) {
+    if (placedFor !== `${orderKey}\n${query}`) {
       placed = []
-      placedFor = query
+      placedFor = `${orderKey}\n${query}`
     }
     const all = [...pinned, ...items]
     const byId = new Map(all.map((item) => [item.id, item]))

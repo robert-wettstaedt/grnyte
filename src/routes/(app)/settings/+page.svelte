@@ -273,6 +273,7 @@
         <SettingLink href={resolve('/settings/moderation')} label={m.moderation_decisions()} />
         <SettingLink href={resolve('/(app)/regions')} label={m.region_statsAll()} />
         <SettingLink href={resolve('/settings/errors')} label={m.settings_errorLogs()} />
+        <SettingLink href={resolve('/settings/sync')} label={m.settings_syncHealth()} />
       </div>
     </SettingSection>
   {/if}

@@ -20,6 +20,9 @@
 <!-- Zero flapping: reads are stale, writes still land. -->
 <Story name="Reconnecting" args={{ connectionState: { name: 'connecting' }, online: true }} />
 
+<!-- PowerSync back from the background: the sync restarted and the data may be stale (design D14). -->
+<Story name="Catching up" args={{ connectionState: { name: 'connected' }, online: true, resume: 'catchingUp' }} />
+
 <!-- Terminal: only a fresh client recovers, so the bar offers a reload. -->
 <Story name="Not syncing" args={{ connectionState: { name: 'needs-auth' }, online: true }} />
 

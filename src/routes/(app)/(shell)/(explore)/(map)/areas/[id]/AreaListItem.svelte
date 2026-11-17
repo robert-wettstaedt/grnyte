@@ -3,7 +3,7 @@
   import AreaRow from '$lib/components/EntityRow/AreaRow.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { countRoutesByGrade } from '$lib/entities/grade/counts'
-  import { routeList } from '$lib/entities/route/resources.svelte'
+  import { areaRouteList } from '$lib/entities/route/resources.svelte'
   import { summaryOf } from '$lib/zero/resource.svelte'
 
   interface Props {
@@ -12,10 +12,8 @@
 
   const { area }: Props = $props()
 
-  // Each card owns a query for every route beneath its area: the `areaId`
-  // filter matches descendants via the route's `areaIds`, so the donut reflects
-  // the whole sub-tree, not only routes attached directly to this area.
-  const routes = routeList(() => ({ areaId: area.id }))
+  // Every route beneath the area (the `areaId` filter matches descendants): the donut needs grades only.
+  const routes = areaRouteList(() => ({ areaId: area.id }))
 
   const total = $derived(summaryOf(routes.phase, routes.data.length))
   const countByGrade = $derived(countRoutesByGrade(routes.data))

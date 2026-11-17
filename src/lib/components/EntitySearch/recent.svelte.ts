@@ -1,14 +1,17 @@
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+import { areaList } from '$lib/entities/area/resources.svelte'
+import { blockList } from '$lib/entities/block/resources.svelte'
 import type { DisplayName } from '$lib/entities/displayName'
+import { routeList, routesByIds } from '$lib/entities/route/resources.svelte'
+import { userList } from '$lib/entities/user/resources.svelte'
 import { quietly } from '$lib/state/pill.svelte'
 import { storage } from '$lib/state/storage'
-import { queries } from '$lib/zero/queries'
-import { createResource } from '$lib/zero/resource.svelte'
-import { entityMappers, type EntityCandidate, type EntityType } from './search.svelte'
+import { entityItemMappers } from './entityItems'
+import type { EntityCandidate, EntityType } from './search.svelte'
 
 // What the search flyout offers before anything is typed: the entities this browser
 // opened last, and the newest ones in the user's regions. Both resolve their labels
-// through Zero (only ids are stored), so a rename or a delete can't leave a stale row.
+// from the synced rows (only ids are stored), so a rename or a delete can't leave a stale row.
 
 /** Exported for the tests, which assert against the real slot rather than guessing at one. */
 export const VIEWED_KEY = `${PUBLIC_APPLICATION_NAME}:viewedEntities`
@@ -39,7 +42,7 @@ const parseRef = (raw: unknown): EntityRef | undefined => {
 interface SectionOptions {
   /** Only query while the flyout is open on its empty state. */
   enabled: () => boolean
-  /** Prepends a region name to each candidate's crumbs; see {@link entityMappers}. */
+  /** Prepends a region name to each candidate's crumbs; see {@link entityItemMappers}. */
   regionCrumb?: (regionFk: number) => DisplayName | undefined
 }
 
@@ -75,7 +78,7 @@ export function newEntities({
   limit = NEW_LIMIT,
   regionCrumb,
 }: SectionOptions & { exclude?: () => EntityRef[]; limit?: number }) {
-  const map = entityMappers(regionCrumb)
+  const map = entityItemMappers(regionCrumb)
 
   const skip = () => exclude?.() ?? []
 
@@ -86,31 +89,22 @@ export function newEntities({
 
   // Quietly: a search list has its own loading state, so it never holds the screen's pill.
   const { areas, blocks, routes } = quietly(() => ({
-    areas: createResource(
-      () => queries.listAreas({ limit: fetchLimit(), sort: 'createdAt' }),
-      (rows) => rows.map((row) => ({ createdAt: row.createdAt, item: map.areas(row) })),
-      { enabled },
-    ),
-    blocks: createResource(
-      () => queries.listBlocks({ limit: fetchLimit(), sort: 'createdAt' }),
-      (rows) => rows.map((row) => ({ createdAt: row.createdAt, item: map.blocks(row) })),
-      { enabled },
-    ),
-    routes: createResource(
-      () => queries.listRoutes({ pageSize: fetchLimit(), sort: 'createdAt', sortOrder: 'desc' }),
-      (rows) => rows.map((row) => ({ createdAt: row.createdAt, item: map.routes(row) })),
-      { enabled },
-    ),
+    areas: areaList(() => ({ limit: fetchLimit(), sort: 'createdAt' }), { enabled }),
+    blocks: blockList(() => ({ limit: fetchLimit(), sort: 'createdAt' }), { enabled }),
+    routes: routeList(() => ({ pageSize: fetchLimit(), sort: 'createdAt', sortOrder: 'desc' }), { enabled }),
   }))
 
   return {
-    /** The newest `limit` rows overall. Zero can't union across tables, so each query
-     *  brings its own newest rows and the final cut happens here, after dropping the
-     *  `exclude`d ones so a recently opened entity doesn't print in two sections. */
+    /** The newest `limit` rows overall. Each query brings its own newest rows and the final cut happens here,
+     *  after dropping the `exclude`d ones so a recently opened entity doesn't print in two sections. */
     get items(): EntityCandidate[] {
       const excluded = skip()
-      return [...areas.data, ...blocks.data, ...routes.data]
-        .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+      return [
+        ...areas.data.map((area) => ({ createdAt: area.createdAt, item: map.areas(area) })),
+        ...blocks.data.map((block) => ({ createdAt: block.createdAt, item: map.blocks(block) })),
+        ...routes.data.map((route) => ({ createdAt: route.createdAt, item: map.routes(route) })),
+      ]
+        .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
         .filter((entry) => !excluded.some((ref) => ref.type === entry.item.type && ref.id === entry.item.id))
         .slice(0, limit)
         .map((entry) => entry.item)
@@ -119,7 +113,7 @@ export function newEntities({
 }
 
 /**
- * The stored views, hydrated into candidates. Ids that Zero can't resolve (deleted, or
+ * The stored views, hydrated into candidates. Ids not in the synced rows (deleted, or
  * in a region the user has since left) drop out of the list.
  */
 export function recentlyViewed({
@@ -128,7 +122,7 @@ export function recentlyViewed({
   regionCrumb,
   regionFks,
 }: SectionOptions & { refs: () => EntityRef[]; regionFks: () => number[] }) {
-  const map = entityMappers(regionCrumb)
+  const map = entityItemMappers(regionCrumb)
 
   const idsOf = (type: EntityType): number[] =>
     refs()
@@ -138,26 +132,12 @@ export function recentlyViewed({
 
   // Quietly: a search list has its own loading state, so it never holds the screen's pill.
   const { areas, blocks, routes, users } = quietly(() => ({
-    areas: createResource(
-      () => queries.listAreas({ id: idsOf('areas') }),
-      (rows): EntityCandidate[] => rows.map(map.areas),
-      { enabled: hasIds('areas') },
-    ),
-    blocks: createResource(
-      () => queries.listBlocks({ blockId: idsOf('blocks') }),
-      (rows): EntityCandidate[] => rows.map(map.blocks),
-      { enabled: hasIds('blocks') },
-    ),
-    routes: createResource(
-      () => queries.listRoutes({ routeId: idsOf('routes') }),
-      (rows): EntityCandidate[] => rows.map(map.routes),
-      { enabled: hasIds('routes') },
-    ),
-    users: createResource(
-      () => queries.listUsers({ ids: idsOf('users'), regionFks: regionFks() }),
-      (rows): EntityCandidate[] => rows.map(map.users),
-      { enabled: () => hasIds('users')() && regionFks().length > 0 },
-    ),
+    areas: areaList(() => ({ id: idsOf('areas') }), { enabled: hasIds('areas') }),
+    blocks: blockList(() => ({ blockId: idsOf('blocks') }), { enabled: hasIds('blocks') }),
+    routes: routesByIds(() => idsOf('routes'), { enabled: hasIds('routes') }),
+    users: userList(() => ({ ids: idsOf('users'), regionFks: regionFks() }), {
+      enabled: () => hasIds('users')() && regionFks().length > 0,
+    }),
   }))
 
   return {
@@ -165,7 +145,12 @@ export function recentlyViewed({
     get items(): EntityCandidate[] {
       // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local lookup, rebuilt on every read
       const byKey = new Map(
-        [...areas.data, ...blocks.data, ...routes.data, ...users.data].map((item) => [refKey(item), item]),
+        [
+          ...areas.data.map(map.areas),
+          ...blocks.data.map(map.blocks),
+          ...routes.data.map(map.routes),
+          ...users.data.map(map.users),
+        ].map((item) => [refKey(item), item]),
       )
       return refs()
         .map((ref) => byKey.get(refKey(ref)))

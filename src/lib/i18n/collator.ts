@@ -33,5 +33,28 @@ export function nameCollator(): Intl.Collator {
   return collator
 }
 
+/** {@link nameCollator} as a TanStack DB order, so a live query sorts names as every other list does. */
+export const byNameOrder = () => ({ compare: nameCollator().compare, direction: 'asc', stringSort: 'custom' }) as const
+
+/**
+ * Raw rows by name as {@link nameCollator} orders them, then integer id ascending in either direction: a nameless
+ * row's `''` sorts first. Rows whose `id` is not the integer one (a synced table's text id) name it.
+ */
+export function sortByName<T extends { id: number; name?: null | string }>(rows: readonly T[]): T[]
+export function sortByName<T extends { name?: null | string }>(
+  rows: readonly T[],
+  id: (row: T) => number,
+  direction?: 'asc' | 'desc',
+): T[]
+export function sortByName<T extends { name?: null | string }>(
+  rows: readonly T[],
+  id = (row: T) => (row as T & { id: number }).id,
+  direction: 'asc' | 'desc' = 'asc',
+): T[] {
+  const collator = nameCollator()
+  const sign = direction === 'desc' ? -1 : 1
+  return rows.toSorted((a, b) => sign * collator.compare(a.name ?? '', b.name ?? '') || id(a) - id(b))
+}
+
 /** {@link nameCollator} as a plain comparison, for one-off use. */
 export const compareNames = (a: string, b: string): number => nameCollator().compare(a, b)

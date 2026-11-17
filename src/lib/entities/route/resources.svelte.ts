@@ -24,9 +24,18 @@ export interface RouteListFilter {
   /** Scope to one region, for the counts that are only meaningful per region. */
   regionFk?: number
   /** Server-side ordering (pairs with `sortOrder`); unsorted otherwise. */
-  sort?: 'firstAscentYear' | 'grade' | 'name' | 'rating'
+  sort?: 'createdAt' | 'firstAscentYear' | 'grade' | 'name' | 'rating'
   sortOrder?: 'asc' | 'desc'
   tags?: string[]
+}
+
+/** The routes beneath an area for its sub-area card: `routeList`'s query, cut to what the card reads. */
+export function areaRouteList(filter: () => RouteListFilter) {
+  return createResource(
+    () => queries.listRoutes(filter()),
+    (rows) => rows.map(toRouteListItem).map(({ gradeFk, id }) => ({ gradeFk, id })),
+    { offline: () => betaPolicy(filter()) },
+  )
 }
 
 export function routeDetail(id: () => number, opts?: { enabled?: () => boolean }) {
@@ -36,6 +45,20 @@ export function routeDetail(id: () => number, opts?: { enabled?: () => boolean }
     opts,
   )
   return holdWhileDeleting(route, 'routes', id)
+}
+
+/** Routes as detail DTOs, for the merge sheet. Unordered as it always was: `listRoutes` orders only with both `sort`
+ *  and `sortOrder`, and passing the twin's `sortOrder` on would change which rows a page holds. */
+export function routeDetailList(filter: () => RouteListFilter, opts?: { enabled?: () => boolean }) {
+  return createResource(
+    () => {
+      const { sortOrder, ...unordered } = filter()
+      void sortOrder
+      return queries.listRoutes(unordered)
+    },
+    (rows) => rows.map(toRouteDetail),
+    opts,
+  )
 }
 
 export function routeList(filter: () => RouteListFilter = () => ({}), opts?: { enabled?: () => boolean }) {

@@ -9,7 +9,7 @@
 // deployment/SECRETS.md has the one-time setup.
 //
 //   node deployment/secrets.mjs pull [file]              rewrite .env from the project
-//   node deployment/secrets.mjs vercel <project> [target] push the project to a Vercel project
+//   node deployment/secrets.mjs vercel <project> [target] [branch] push the project to a Vercel project
 //   node deployment/secrets.mjs seed <file>              create/update secrets from a local .env
 //   node deployment/secrets.mjs ids                    print `<uuid> > KEY` for the project
 //   node deployment/secrets.mjs verify                 check the workflows' uuids against the project
@@ -116,8 +116,9 @@ function pull(file = '.env', force = false) {
   console.error(`Wrote ${writable.length} secrets to ${file}`)
 }
 
-function pushToVercel(project, target = 'production') {
-  if (project == null) die('Usage: node deployment/secrets.mjs vercel <vercel-project> [target]')
+function pushToVercel(project, target = 'production', branch) {
+  if (project == null) die('Usage: node deployment/secrets.mjs vercel <vercel-project> [target] [preview branch]')
+  const scope = vercelScope(target, branch)
 
   for (const secret of listSecrets().filter((secret) => !isOffVercel(secret.key))) {
     // Vercel rejects --sensitive for development, and a sensitive PUBLIC_* var only means nobody can
@@ -125,15 +126,7 @@ function pushToVercel(project, target = 'production') {
     const sensitivity =
       target === 'development' ? [] : [secret.key.startsWith('PUBLIC_') ? '--no-sensitive' : '--sensitive']
 
-    // Only preview prompts for a git branch, and it exits 0 having written nothing when stdin (the
-    // value) is already consumed. `--yes` takes the default, which is every preview branch.
-    const prompts = target === 'preview' ? ['--yes'] : []
-
-    run(
-      'vercel',
-      ['env', 'add', secret.key, target, '--force', '--project', project, ...prompts, ...sensitivity],
-      secret.value,
-    )
+    run('vercel', ['env', 'add', secret.key, ...scope, '--force', '--project', project, ...sensitivity], secret.value)
     console.error(`${project}/${target}: ${secret.key}`)
   }
 }
@@ -233,6 +226,13 @@ async function selftest() {
   console.error('selftest ok')
 }
 
+/** Only preview prompts for a git branch, and it exits 0 having written nothing when stdin (the value) is
+ *  already consumed. `--yes` takes the default, every preview branch; a named branch skips the prompt. */
+function vercelScope(target, branch) {
+  if (target !== 'preview') return [target]
+  return branch == null ? [target, '--yes'] : [target, branch]
+}
+
 /**
  * Cross-check every `<uuid> > KEY` the workflows name against what this project actually holds.
  *
@@ -288,7 +288,7 @@ switch (command) {
     pull(args[0], rest.includes('--force'))
     break
   case 'vercel':
-    pushToVercel(args[0], args[1])
+    pushToVercel(args[0], args[1], args[2])
     break
   case 'ids':
     ids()
@@ -306,7 +306,7 @@ switch (command) {
     die(
       [
         'node deployment/secrets.mjs pull [file] [--force]      rewrite .env from the project',
-        'node deployment/secrets.mjs vercel <project> [target]  push the project to a Vercel project',
+        'node deployment/secrets.mjs vercel <project> [target] [branch]  push the project to a Vercel project',
         'node deployment/secrets.mjs ids                        print `<uuid> > KEY` for the project',
         "node deployment/secrets.mjs verify                     check the workflows' uuids against it",
         'node deployment/secrets.mjs seed <file>                create/update secrets from a local .env',

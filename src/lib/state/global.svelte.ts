@@ -9,9 +9,10 @@ import type { AppRole, Permission } from '$lib/entities/rolePermission/dto'
 import { rolePermissionList } from '$lib/entities/rolePermission/resources.svelte'
 import type { GradingScale, User } from '$lib/entities/user/dto'
 import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelte'
+import { downloadRefused } from '$lib/state/engine'
 import { isOnline } from '$lib/state/online.svelte'
 import { quietly } from '$lib/state/pill.svelte'
-import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
+import { lastSyncedAt, localStoreLoaded, localStoreWarm } from '$lib/state/sync.svelte'
 import { isTerminal } from '$lib/zero/connection'
 import type { QueryResource } from '$lib/zero/resource.svelte'
 import { getZ } from '$lib/zero/z.svelte'
@@ -147,12 +148,16 @@ export function setGlobalState(): GlobalState | undefined {
       if (!this.isLoading) {
         return false
       }
+      // The signed-in user's row was read locally: rows are there and still being read, not missing.
+      if (localStoreWarm()) {
+        return false
+      }
       // A replica still being read back looks the same as none for its first seconds offline.
       if (!localStoreLoaded() && !patienceOver) {
         return false
       }
 
-      return !isOnline() || isTerminal(getZ().connectionState.name)
+      return !isOnline() || downloadRefused() || isTerminal(getZ().connectionState.name)
     },
     get lastSyncedAt() {
       return lastSyncedAt()

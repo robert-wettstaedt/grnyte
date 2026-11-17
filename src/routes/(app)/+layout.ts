@@ -1,5 +1,5 @@
 import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
-import { initZero } from '$lib/zero/z.svelte'
+import { start } from '$lib/state/engine'
 import { createBrowserClient } from '@supabase/ssr'
 import type { LayoutLoad } from './$types'
 
@@ -25,8 +25,8 @@ export const load = (async ({ depends, fetch }) => {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // Sets up the Zero client singleton before any (app) page reads getZ().
-  initZero(session)
+  // Sets up the build's sync engine before any (app) page reads it.
+  start(session, supabase)
 
   return {
     authUserId: session?.user.id,

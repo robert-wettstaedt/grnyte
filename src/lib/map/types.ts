@@ -12,6 +12,8 @@ export interface BlocksMapProps {
   /** Pixels to lift the control column, so it rides above a sheet that covers the map. The caller
    *  owns the sheet, so it owns this number. Null keeps the resting position. */
   controlsLift?: null | number
+  /** Route counts not loaded yet: markers draw at their counted size without a number, never a false 0. */
+  countsUnknown?: boolean
   /** Tap-to-add-waypoint mode (parking path drawing): a tap emits `onpathpoint` instead of navigating. */
   drawPath?: boolean
   focus?: MapFocus | null
@@ -68,7 +70,7 @@ export type MapCameraClaim = { key: string; kind: 'entity' | 'reader' }
 /** The map-data subset produced by `createExploreMapData`, spread into `<Map>`. */
 export type MapData = Pick<
   BlocksMapProps,
-  'areas' | 'blocks' | 'gradeCountByBlock' | 'lineStrings' | 'parkingLocations' | 'routeCountByBlock'
+  'areas' | 'blocks' | 'countsUnknown' | 'gradeCountByBlock' | 'lineStrings' | 'parkingLocations' | 'routeCountByBlock'
 >
 
 export interface MapFocus {

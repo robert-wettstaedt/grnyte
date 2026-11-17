@@ -2,6 +2,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { formatMetres, haversineMetres } from '$lib/map/map'
   import Map from '$lib/map/Map.svelte'
+  import { pickerMapProps } from '$lib/map/picker/pickerMapProps'
   import type { MapData, MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
 
@@ -41,17 +42,7 @@
   <!-- Fill via absolute inset-0 (same as LocationPicker): the map's own height:100%
        can't resolve through the flex-grown parents, so give it a positioned box instead. -->
   <div class="absolute inset-0">
-    <Map
-      blocks={mapData.blocks}
-      parkingLocations={mapData.parkingLocations}
-      lineStrings={mapData.lineStrings}
-      routeCountByBlock={mapData.routeCountByBlock}
-      gradeCountByBlock={mapData.gradeCountByBlock}
-      drawPath
-      focus={pathFocus}
-      onpathpoint={addWaypoint}
-      pathLine={pathPoints}
-    />
+    <Map {...pickerMapProps(mapData)} drawPath focus={pathFocus} onpathpoint={addWaypoint} pathLine={pathPoints} />
   </div>
 
   <div

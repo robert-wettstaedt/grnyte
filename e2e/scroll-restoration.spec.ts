@@ -73,6 +73,8 @@ const onFormScreen = (target: Page) => target.getByRole('heading', { name: 'Log 
 /** Open `path`, stamp the document, and leave the container scrolled to its end. */
 const openScrolled = async (target: Page, path: string) => {
   await visit(target, path)
+  // A load can be quiet before the screen mounts; scrolling then finds no container.
+  await target.locator('main').waitFor()
   await markDocument(target)
   return scrollToBottom(target)
 }

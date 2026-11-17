@@ -4,7 +4,7 @@
   import EmptyState, { EMPTY_CTA_PRIMARY } from '$lib/components/EmptyState/EmptyState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { canAddArea } from '$lib/entities/area/permissions'
-  import { areaMapList } from '$lib/entities/area/resources.svelte'
+  import { anyArea } from '$lib/entities/area/resources.svelte'
   import { regionDisplayName } from '$lib/entities/region/mapper'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -17,10 +17,9 @@
   // has completed, and offline or on a dead sync socket it never does. So the older no-region copy
   // stays as the safety net, rather than leaving them on a blank map with nothing said.
   //
-  // `isEmpty` rather than a length check, so this cannot flash while Zero is still syncing. The
-  // same read CreateOnMap and the map run, over the guidebook queries they all register.
+  // `isEmpty` rather than a length check, so this cannot flash while the guidebook is still syncing.
   const global = getGlobalState()
-  const areas = areaMapList()
+  const areas = anyArea()
 
   const addable = $derived(
     global.userRegions.filter((region) => canAddArea(global.userRegions, { regionFk: region.regionFk, type: 'area' })),

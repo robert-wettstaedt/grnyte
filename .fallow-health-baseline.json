@@ -260,17 +260,7 @@
         "count": 1
       }
     },
-    "src/lib/entities/ascent/mapper.ts": {
-      "crap_moderate": {
-        "count": 1
-      }
-    },
     "src/lib/entities/block/BlockForm.svelte": {
-      "crap_moderate": {
-        "count": 1
-      }
-    },
-    "src/lib/entities/block/resources.svelte.ts": {
       "crap_moderate": {
         "count": 1
       }
@@ -486,14 +476,6 @@
         "count": 1
       }
     },
-    "src/lib/map/picker/LocationPicker.svelte": {
-      "crap_critical": {
-        "count": 1
-      },
-      "crap_moderate": {
-        "count": 1
-      }
-    },
     "src/lib/map/Map.svelte": {
       "complexity_high": {
         "count": 1
@@ -534,16 +516,13 @@
         "count": 3
       }
     },
-    "src/lib/map/explore/filteredRoutes.svelte.ts": {
-      "crap_high": {
-        "count": 1
-      },
+    "src/lib/map/layers.svelte.ts": {
       "crap_moderate": {
-        "count": 2
+        "count": 1
       }
     },
-    "src/lib/map/layers.svelte.ts": {
-      "complexity_moderate": {
+    "src/lib/map/picker/LocationPicker.svelte": {
+      "crap_critical": {
         "count": 1
       },
       "crap_moderate": {
@@ -594,9 +573,6 @@
       }
     },
     "src/routes/(app)/(shell)/(explore)/(map)/CreateOnMap/CreateOnMap.svelte": {
-      "complexity_moderate": {
-        "count": 1
-      },
       "crap_moderate": {
         "count": 2
       }
