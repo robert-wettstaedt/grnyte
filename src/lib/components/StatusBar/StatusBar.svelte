@@ -4,7 +4,7 @@
   import { isUpdateReady } from '$lib/state/pwa/updateReady.svelte'
   import { isTerminal, RECONNECT_HOLD_MS, type ConnectionName } from '$lib/zero/connection'
   import { getZ } from '$lib/zero/z.svelte'
-  import { resolveStatus } from './statusBar'
+  import { resolveStatus, type ResumeState } from './statusBar'
 
   // Supabase rotates the token hourly and Zero can pass through `needs-auth` on the
   // way back up, so a zero-delay red bar would flash on every slow handoff.
@@ -13,6 +13,7 @@
 
 <script lang="ts">
   import { m } from '$lib/paraglide/messages'
+  import { resume as engineResume } from '$lib/state/engine'
   // These props exist only so the story can show states that are near-impossible to
   // trigger live (`needs-auth`, `closed`, a deploy mid-session). Unset, the bar reads the
   // real device, the real Zero connection and the real service worker.
@@ -22,6 +23,8 @@
      *  10s of blank canvas reads as a broken story rather than as a deliberate delay. */
     holdMs?: number
     online?: boolean
+    /** The sync's catch-up after a return to the foreground; it has its own show delay, not the hold below. */
+    resume?: ResumeState
     updateReady?: boolean
   }
 
@@ -51,7 +54,9 @@
 
   const updateReady = $derived(props.updateReady ?? isUpdateReady())
 
-  const status = $derived(resolveStatus(online, settled, updateReady))
+  const resume = $derived(props.resume ?? engineResume())
+
+  const status = $derived(resolveStatus(online, settled, updateReady, resume))
 </script>
 
 {#if status != null}

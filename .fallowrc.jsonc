@@ -11,6 +11,11 @@
     "stryker/vitest.config.ts",
     // Read by vite-plugin-pwa's `pwaAssets` option, never imported.
     "pwa-assets.config.ts",
+    // PowerSync twins are swapped in by the engine plugin, never imported by name outside PowerSync code.
+    "src/**/*.powersync.ts",
+    "src/**/*.powersync.svelte.ts",
+    // Type-only: svelte-check reads it to hold each twin to its Zero sibling.
+    "src/lib/powersync/twins.ts",
   ],
   "ignoreFindings": ["brand/**"],
   // The local Expo test app (gitignored, its own package.json); deleted once the native project has auth.
@@ -41,6 +46,8 @@
       "**/paraglide/**",
       "**/*.stories.svelte",
       "brand/**",
+      // A twin and its test repeat their Zero sibling until R3 deletes the Zero side.
+      "src/**/*.powersync.*",
     ],
   },
 }

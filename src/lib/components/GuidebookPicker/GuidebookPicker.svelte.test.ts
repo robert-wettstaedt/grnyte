@@ -21,6 +21,23 @@ describe('GuidebookPicker', () => {
     expect(titles().map((title) => title.split(/\s/)[0])).toEqual(['Kante', 'Riss', 'Ampel'])
   })
 
+  it('places the rows again when the order key changes, keeping the search', async () => {
+    const props = {
+      emptyLabel: 'None',
+      items: [item(1, 'Far'), item(2, 'Near')],
+      onpick: vi.fn(),
+      orderKey: 'no distances',
+      placeholder: 'Search',
+      settled: true,
+    }
+    const { rerender } = render(GuidebookPicker, props)
+
+    // Both pinned, nearest first: without a new placement they would keep the alphabetical order of the first.
+    await rerender({ ...props, orderKey: 'distances', pinned: [item(2, 'Near'), item(1, 'Far')] })
+
+    expect(titles().map((title) => title.split(/\s/)[0])).toEqual(['Near', 'Far'])
+  })
+
   it('lists the pinned rows first and shows a disabled row with its reason', () => {
     render(GuidebookPicker, {
       emptyLabel: 'None',

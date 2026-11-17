@@ -3,6 +3,7 @@
   import { userLocation } from '$lib/map/geolocation.svelte'
   import { formatCoord } from '$lib/map/map'
   import Map from '$lib/map/Map.svelte'
+  import { pickerMapProps } from '$lib/map/picker/pickerMapProps'
   import type { Bounds, MapData, MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
@@ -192,16 +193,7 @@
       <!-- Preview of the entered spot: a static map centred on the typed coordinates. -->
       <div class="border-surface-300-700 relative mt-5 h-46 overflow-hidden rounded-2xl border">
         {#if picked != null}
-          <Map
-            blocks={mapData.blocks}
-            parkingLocations={mapData.parkingLocations}
-            lineStrings={mapData.lineStrings}
-            routeCountByBlock={mapData.routeCountByBlock}
-            gradeCountByBlock={mapData.gradeCountByBlock}
-            static
-            focus={{ center: [picked.lat, picked.long], zoom: 15 }}
-            pickMode
-          />
+          <Map {...pickerMapProps(mapData)} static focus={{ center: [picked.lat, picked.long], zoom: 15 }} pickMode />
 
           <div
             class="text-primary-500 pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-full drop-shadow"
@@ -225,11 +217,7 @@
            can't resolve through the flex-grown parents, so give it a positioned box instead. -->
       <div class="absolute inset-0">
         <Map
-          blocks={mapData.blocks}
-          parkingLocations={mapData.parkingLocations}
-          lineStrings={mapData.lineStrings}
-          routeCountByBlock={mapData.routeCountByBlock}
-          gradeCountByBlock={mapData.gradeCountByBlock}
+          {...pickerMapProps(mapData)}
           focus={placeFocus}
           onviewchange={(view) => {
             pannedCenter = view.center

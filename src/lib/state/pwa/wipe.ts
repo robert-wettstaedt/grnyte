@@ -1,6 +1,7 @@
 import { clearViewed } from '$lib/components/EntitySearch/recent.svelte'
 import { IMAGE_CACHE } from '$lib/images/derivatives'
 import { dropAllDatabases } from '@rocicorp/zero'
+import { clearLocal } from '../engine'
 import { clearHistory } from '../search/searchHistory'
 import { forgetAllSynced } from '../sync.svelte'
 
@@ -13,10 +14,12 @@ export async function wipeDeviceData(): Promise<void> {
   clearHistory()
   clearViewed()
 
-  const [, dropped] = await Promise.allSettled([
+  const [, dropped, local] = await Promise.allSettled([
     typeof caches === 'undefined' ? undefined : caches.delete(IMAGE_CACHE),
     dropAllDatabases(),
+    clearLocal(),
   ])
+  if (local.status === 'rejected') console.error('[wipe] local sync data left on this device', local.reason)
   // A replica left behind is the thing this exists to prevent, so it is reported, not swallowed.
   if (dropped.status === 'rejected' || dropped.value.errors.length > 0) {
     console.error(

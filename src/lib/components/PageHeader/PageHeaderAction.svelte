@@ -16,6 +16,8 @@
     onclick?: () => void
     /** Swap the icon for a spinner. Does not disable on its own; pass `disabled` too. */
     pending?: boolean
+    /** Tonal, not filled: an action that saves nothing, such as a refresh. */
+    plain?: boolean
     type?: 'button' | 'submit'
   }
 
@@ -27,6 +29,7 @@
     label,
     onclick,
     pending = false,
+    plain = false,
     type = 'button',
   }: Props = $props()
 </script>
@@ -36,7 +39,7 @@
 <button
   class={[
     'btn size-8 flex-none px-0 sm:size-auto sm:px-4',
-    destructive ? 'preset-filled-error-500' : 'preset-filled-primary-500',
+    destructive ? 'preset-filled-error-500' : plain ? 'preset-tonal' : 'preset-filled-primary-500',
   ]}
   {disabled}
   {onclick}

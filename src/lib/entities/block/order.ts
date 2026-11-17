@@ -25,6 +25,10 @@ export function acrossAreasOrder<TQuery extends BlockQuery>(q: TQuery): TQuery {
   return q.orderBy('name', 'asc').orderBy('id', 'asc') as TQuery
 }
 
+/** The same two orderings as columns of a synced `blocks` row, for the PowerSync reads. */
+export const acrossAreasKeys = ['name', 'nid'] as const
+export const inAreaKeys = ['order', 'nid'] as const
+
 /**
  * Blocks within one area: their slot, then `id`, which keeps anything else from getting in front.
  * A tie is reachable (`order` has no unique constraint) but unobserved; `reorderBlocks` renumbering

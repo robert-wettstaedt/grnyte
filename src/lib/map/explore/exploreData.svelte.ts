@@ -201,6 +201,10 @@ export function createExploreMapData(
     get blocks() {
       return blocks
     },
+    // Zero always knows its counts; the PowerSync twin's may still be arriving.
+    get countsUnknown() {
+      return false
+    },
     /** What the filter sheet counts and draws its grade bars from; `matchPhase` says what may be said. */
     get filterCounts() {
       return filterCounts

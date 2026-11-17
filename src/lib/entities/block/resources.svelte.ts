@@ -14,6 +14,8 @@ export interface BlockListFilter {
   limit?: number
   /** Find blocks whose description references the given `!type:id!` token (backlinks). */
   references?: string
+  /** Newest first; by name otherwise. */
+  sort?: 'createdAt'
 }
 
 export function blockDetail(id: () => number) {
@@ -33,7 +35,8 @@ export function blockList(filter: () => BlockListFilter = () => ({}), opts?: { e
 }
 
 /** Every block in your regions for the map, joined on the device. See `guidebookReads`. */
-export function blockMapList() {
+// `opts` is the PowerSync twin's: Zero reads the guidebook from mount, as it always has.
+export function blockMapList(_opts?: { enabled?: () => boolean }) {
   return createResource(guidebookReads.blocks, (rows) => rows.map(toBlockDetail), {
     register: () => guidebookReadRegistrations.map((name) => queries[name]()),
   })

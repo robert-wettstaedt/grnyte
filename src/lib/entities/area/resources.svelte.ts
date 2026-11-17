@@ -14,6 +14,15 @@ export interface AreaListFilter {
   parentFk?: null | number
   /** Find areas whose description references the given `!type:id!` token (backlinks). */
   references?: string
+  /** Newest first; by name otherwise. */
+  sort?: 'createdAt'
+}
+
+/** Whether the reader's regions hold any area, for the empty-region state: the map's area read, as before. */
+export function anyArea() {
+  return createResource(guidebookReads.areas, (rows) => (rows.length > 0 ? [{ found: 1 }] : []), {
+    register: () => guidebookReadRegistrations.map((name) => queries[name]()),
+  })
 }
 
 export function areaDetail(id: () => number) {
@@ -33,7 +42,8 @@ export function areaList(filter: () => AreaListFilter = () => ({}), opts?: { ena
 }
 
 /** Every area in your regions for the map, joined on the device. See `guidebookReads`. */
-export function areaMapList() {
+// `opts` is the PowerSync twin's: Zero reads the guidebook from mount, as it always has.
+export function areaMapList(_opts?: { enabled?: () => boolean }) {
   return createResource(guidebookReads.areas, (rows) => rows.map(toAreaDetail), {
     register: () => guidebookReadRegistrations.map((name) => queries[name]()),
   })

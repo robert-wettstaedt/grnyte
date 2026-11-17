@@ -37,8 +37,13 @@
   let { center, onrequestcenter, placing = $bindable(), visible }: Props = $props()
 
   const global = getGlobalState()
-  const areas = areaMapList()
-  const blocks = blockMapList()
+  let optionsOpen = $state(false)
+  let pickerOpen = $state(false)
+  let areaPickerOpen = $state(false)
+  // Read while the create flow is open only: mounted with the map, they doubled its two place queries on every start.
+  const flowOpen = $derived(optionsOpen || pickerOpen || areaPickerOpen || placing != null)
+  const areas = areaMapList({ enabled: () => flowOpen })
+  const blocks = blockMapList({ enabled: () => flowOpen })
   // "Nothing found" and "no sector nearby" are claims about every area and block.
   const places = $derived(searchOutcome([areas.phase, blocks.phase]))
   const placesSettled = $derived(places === 'answered')
@@ -47,10 +52,6 @@
     pending: m.common_syncing,
     unavailable: m.error_offline_title,
   }
-
-  let optionsOpen = $state(false)
-  let pickerOpen = $state(false)
-  let areaPickerOpen = $state(false)
   let search = $state('')
   let areaSearch = $state('')
   /** Manual override from the sector picker; wins over the proximity match. */
@@ -96,9 +97,14 @@
       : candidateSectors.filter((area) => area.name.toLowerCase().includes(search.trim().toLowerCase())),
   )
 
-  // From the pin, not the reader: it is the subject here, and what `nearest` prefills from. Frozen
-  // at open, or the map moving behind the sheet would reorder rows under a scrolling finger.
-  let distances = $state(new Map<number, number>())
+  // From the pin, not the reader: it is the subject here, and what `nearest` prefills from. The point is frozen
+  // at open, or the map moving behind the sheet would reorder rows; the rows may still arrive after it.
+  let sectorPoint = $state<[number, number] | null>(null)
+  const distances = $derived(
+    sectorPoint == null
+      ? new Map<number, number>()
+      : sectorDistances(editableBlocks, { lat: sectorPoint[0], long: sectorPoint[1] }),
+  )
 
   // Nearest first; sectors with no distance keep their alphabetical place under their own heading.
   const locatedSectors = $derived(
@@ -122,8 +128,13 @@
     areaSearch.trim() === '' ? candidateAreas : candidateAreas.filter((area) => matchesAreaSearch(area.name)),
   )
 
-  /** Frozen at open, lifted from the sectors beneath each area. */
-  let areaDistances = $state(new Map<number, number>())
+  /** From a point frozen at open, lifted from the sectors beneath each area. */
+  let areaPoint = $state<[number, number] | null>(null)
+  const areaDistances = $derived(
+    areaPoint == null
+      ? new Map<number, number>()
+      : ancestorDistances(sectorDistances(editableBlocks, { lat: areaPoint[0], long: areaPoint[1] }), areas.data),
+  )
 
   const locatedAreas = $derived(
     filteredAreas
@@ -170,7 +181,7 @@
   const togglePicker = () => {
     if (!pickerOpen) {
       search = ''
-      distances = center == null ? new Map() : sectorDistances(editableBlocks, { lat: center[0], long: center[1] })
+      sectorPoint = center
     }
     pickerOpen = !pickerOpen
   }
@@ -179,11 +190,7 @@
     optionsOpen = false
     areaSearch = ''
     // The same subject the sector picker measures from.
-    const point = pressed ?? center
-    areaDistances =
-      point == null
-        ? new Map()
-        : ancestorDistances(sectorDistances(editableBlocks, { lat: point[0], long: point[1] }), areas.data)
+    areaPoint = pressed ?? center
     areaPickerOpen = true
   }
 
@@ -278,14 +285,17 @@
       {/each}
       <!-- eslint-enable svelte/no-navigation-without-resolve -->
 
-      <!-- Hidden when nothing can hold a sub-area: the row above is then the only move. -->
-      {#if candidateAreas.length > 0}
-        <button class="hover:bg-surface-200-800 flex items-center gap-3 rounded-lg px-3 py-3" onclick={openAreaPicker}>
-          <Icon name="area" size={20} class="text-primary-500" />
-          <span class="font-medium">{m.map_create_areaInsideArea()}</span>
-          <Icon name="chevron-right" size={16} class="text-surface-600-400 ml-auto" />
-        </button>
-      {/if}
+      <!-- Always there, disabled while nothing can hold a sub-area: the places read starts with this sheet, and a row
+           inserted or dropped when it answers would move the rows below under a finger. -->
+      <button
+        class="enabled:hover:bg-surface-200-800 flex items-center gap-3 rounded-lg px-3 py-3 disabled:opacity-50"
+        disabled={candidateAreas.length === 0}
+        onclick={openAreaPicker}
+      >
+        <Icon name="area" size={20} class="text-primary-500" />
+        <span class="font-medium">{m.map_create_areaInsideArea()}</span>
+        <Icon name="chevron-right" size={16} class="text-surface-600-400 ml-auto" />
+      </button>
 
       <h3 class="text-surface-500 px-1 pt-3 pb-1 text-xs font-bold tracking-wider uppercase">
         {m.map_create_mapSection()}
@@ -320,6 +330,7 @@
   >
     <GuidebookPicker
       bind:query={areaSearch}
+      orderKey={`${areaPoint}:${areaDistances.size > 0}`}
       emptyLabel={m.map_create_noAreasFound()}
       items={[
         ...[...locatedAreas, ...unlocatedAreas].map((area) => pickerItem(area, areaDistances)),
@@ -371,6 +382,7 @@
 
           <GuidebookPicker
             bind:query={search}
+            orderKey={`${sectorPoint}:${distances.size > 0}`}
             emptyLabel={m.map_create_noSectorsFound()}
             items={[...locatedSectors, ...unlocatedSectors].map((area) => pickerItem(area, distances))}
             onpick={(item) => {
