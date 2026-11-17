@@ -131,7 +131,16 @@
   "ascents_form_typeRepeat": "Wiederholung",
   "ascents_notFound": "Begehung nicht gefunden",
   "ascents_notYours": "Nur wer diese Begehung eingetragen hat, oder ein Admin der Region, kann sie ändern.",
-  "ascents_seeAll": "Alle {count} Begehungen ansehen",
+  "ascents_seeAll": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Begehung ansehen",
+        "countPlural=other": "Alle {count} Begehungen ansehen"
+      }
+    }
+  ],
   "ascents_seeAllUncounted": "Alle Begehungen ansehen",
   "ascents_statusFlashed": "Geflasht",
   "ascents_statusRedpointed": "Durchgestiegen",
