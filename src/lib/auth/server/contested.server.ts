@@ -10,6 +10,7 @@ import type { Session, User } from '@supabase/supabase-js'
 import { eq, sql } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import { supabaseAuthServer } from './authServer.server'
 import { labelledKey } from './keys.server'
 
 /** GoTrue stores addresses lowercased, so a mixed-case entry must still find its account. */
@@ -47,10 +48,10 @@ export function checkResendToken(email: string, token: string | undefined, now =
  */
 export async function contestedNext(
   supabase: App.Locals['supabase'],
-  user: { app_metadata: Record<string, unknown>; id: string },
+  user: { app_metadata: Record<string, unknown>; email?: string; id: string },
 ): Promise<'choosePassword' | 'forgotPassword' | null> {
   if (!isContested(user.app_metadata)) return null
-  return (await revokeContestedPassword(supabase, user.id)) ? 'choosePassword' : 'forgotPassword'
+  return (await revokeContestedPassword(supabase, user)) ? 'choosePassword' : 'forgotPassword'
 }
 
 /**
@@ -94,31 +95,39 @@ export function issueResendToken(email: string, now = Date.now()): string {
 }
 
 /**
- * Swaps a contested account's password for one nobody knows, via the session (an admin change ends it).
- * True only if the session survived with the flag cleared; otherwise the recovery link retries.
+ * Swaps a contested account's password for one nobody knows by an admin change, which mails no
+ * password notice but ends every session, then holds a new code session for the owner on `supabase`.
+ * False when that session could not be held; the owner then goes through recovery.
  */
-export async function revokeContestedPassword(supabase: App.Locals['supabase'], authUserId: string): Promise<boolean> {
-  // Every character class, whatever GoTrue's password policy asks for.
-  const password = () => `${randomBytes(32).toString('base64url')}aA1!`
-  const clearFlag = () => clearContestedFlag(authUserId)
+export async function revokeContestedPassword(
+  supabase: App.Locals['supabase'],
+  user: { email?: string; id: string },
+): Promise<boolean> {
   const failed = async (error: { code?: string; message: string }) => {
     await logServerFailure('signup-contested', `revoke step failed: ${error.code ?? error.message}`)
     return false
   }
+  const admin = supabaseAdmin().auth.admin
 
-  const viaSession = await supabase.auth.updateUser({ password: password() })
-  if (viaSession.error != null) {
-    // The admin change ends the session, so the owner continues through recovery either way.
-    const revoked = await supabaseAdmin().auth.admin.updateUserById(authUserId, { password: password() })
-    if (revoked.error == null) await clearFlag()
-    return failed(viaSession.error)
+  // Every character class, whatever GoTrue's password policy asks for.
+  const password = `${randomBytes(32).toString('base64url')}aA1!`
+  const revoked = await admin.updateUserById(user.id, { app_metadata: { [CONTESTED_SIGNUP]: null }, password })
+  if (revoked.error != null) return failed(revoked.error)
+  if (user.email == null) return failed({ message: 'no address to mint a code for' })
+
+  // An unmailed code, verified at once: `setNewPassword` takes only a fresh code session.
+  const link = await admin.generateLink({ email: user.email, type: 'magiclink' })
+  const token = link.data.properties?.email_otp
+  if (link.error != null || token == null) return failed(link.error ?? { message: 'no code in the link' })
+  const verified = await supabaseAuthServer(getRequestEvent()).verifyOtp({ email: user.email, token, type: 'email' })
+  if (verified.error != null || verified.data.session == null) {
+    return failed(verified.error ?? { message: 'no session from the code' })
   }
-
-  const cleared = await clearFlag()
-  if (cleared.error != null) return failed(cleared.error)
-  // The session's token still carries the flag, which `verifyAccessToken` refuses: mint one without.
-  const refreshed = await supabase.auth.refreshSession()
-  if (refreshed.error != null) return failed(refreshed.error)
+  const held = await supabase.auth.setSession(verified.data.session)
+  if (held.error != null) {
+    await endSession(verified.data.session)
+    return failed(held.error)
+  }
   return true
 }
 

@@ -22,7 +22,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
       const user = data.user
       // Any link type: a magic link confirms an address as well as a sign-up link does.
       const contested = user != null && isContested(user.app_metadata)
-      const signedIn = contested ? await revokeContestedPassword(locals.supabase, user.id) : true
+      const signedIn = contested ? await revokeContestedPassword(locals.supabase, user) : true
       if (contested) {
         const to = resolve(signedIn ? '/(landing)/auth/reset-password' : '/(landing)/auth/forgot-password')
         redirect(303, `${to}?${new URLSearchParams({ contested: '1', next })}`)
