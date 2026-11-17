@@ -1,0 +1,39 @@
+import type { PowerSyncDatabase } from '@powersync/web'
+import { BasicIndex, createCollection } from '@tanstack/db'
+import { powerSyncCollectionOptions } from '@tanstack/powersync-db-collection'
+import { getPowerSync, registerCollections } from './db.svelte'
+import { appSchema } from './schema'
+
+type Tables = typeof appSchema.props
+
+// Indexed as queries filter: joins and lookups by `nid` or a foreign key otherwise scan the whole collection.
+const make = <K extends keyof Tables>(database: PowerSyncDatabase, table: K) =>
+  createCollection({
+    ...powerSyncCollectionOptions({
+      autoIndex: 'eager',
+      database,
+      defaultIndexType: BasicIndex,
+      // A query's own rows only: a whole table taken in on a screen's first read cost a cold start 0.4 to 0.6 s.
+      syncMode: 'on-demand',
+      table: appSchema.props[table],
+    }),
+    // Started on first use: an eager start held a cold start's first map query back by ~1 s on iOS.
+    startSync: false,
+  })
+
+type Collections = { [K in keyof Tables]: ReturnType<typeof make<K>> }
+
+let built: undefined | { collections: Collections; database: PowerSyncDatabase }
+
+/** One collection per synced table, on the signed-in account's database; rebuilt when the account changes. */
+export function collections(): Collections {
+  const database = getPowerSync()
+  if (built?.database !== database) {
+    const tables = Object.keys(appSchema.props) as (keyof Tables)[]
+    const made = Object.fromEntries(tables.map((table) => [table, make(database, table)])) as Collections
+    built = { collections: made, database }
+    const all = Object.values(made)
+    registerCollections(database, () => all.map((collection) => collection.utils.getMeta().trackedTableName))
+  }
+  return built.collections
+}

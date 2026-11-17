@@ -8,6 +8,9 @@ import type { IconName } from '$lib/components/Icon/icons'
 import { m } from '$lib/paraglide/messages'
 import { isTerminal, type ConnectionName } from '$lib/zero/connection'
 
+/** The sync's catch-up after a return to the foreground. `pending`: stale and catching up, but not shown yet. */
+export type ResumeState = 'catchingUp' | 'idle' | 'pending' | 'stalled'
+
 export interface Status {
   action?: 'reload'
   icon: IconName
@@ -16,27 +19,32 @@ export interface Status {
   tone: string
 }
 
+const NOT_SYNCING: Status = {
+  action: 'reload',
+  icon: 'alert-triangle',
+  message: m.status_notSyncing,
+  role: 'alert',
+  tone: 'preset-tonal-error',
+}
+
 /**
  * The single message to show, first match wins. `connection` is the settled Zero
  * connection state (see the holds in the component).
  *
- * Offline suppresses the reconnecting branch but not the terminal one, which is the only branch
- * carrying an action. See the ordering note in the body.
+ * Offline suppresses the reconnecting and stalled branches but not the terminal one, the only one a
+ * stale reachability flag could hide a way out behind. See the ordering note in the body.
  */
-export function resolveStatus(online: boolean, connection: ConnectionName, updateReady: boolean): null | Status {
-  // Terminal first, offline second. These states carry the only action the bar ever offers, and
+export function resolveStatus(
+  online: boolean,
+  connection: ConnectionName,
+  updateReady: boolean,
+  resume: ResumeState = 'idle',
+): null | Status {
+  // Terminal first, offline second. A terminal state carries a reload action, and
   // the offline branch has none: a reader whose sync is dead and whose reachability flag happens
   // to be stale got the actionless "you're offline" bar with the reload button hidden behind it.
   // Being told the wrong cause is survivable; being shown no way out is not.
-  if (isTerminal(connection)) {
-    return {
-      action: 'reload',
-      icon: 'alert-triangle',
-      message: m.status_notSyncing,
-      role: 'alert',
-      tone: 'preset-tonal-error',
-    }
-  }
+  if (isTerminal(connection)) return NOT_SYNCING
 
   // Then offline, which is the more specific and more actionable diagnosis of a sync that is not
   // running, and which keeps "not syncing" honestly meaning "your net is fine, ours is not".
@@ -46,6 +54,11 @@ export function resolveStatus(online: boolean, connection: ConnectionName, updat
 
   if (connection !== 'connected') {
     return { icon: 'alert-triangle', message: m.status_reconnecting, role: 'status', tone: 'preset-tonal-warning' }
+  }
+
+  if (resume === 'stalled') return NOT_SYNCING
+  if (resume === 'catchingUp') {
+    return { icon: 'alert-triangle', message: m.status_catchingUp, role: 'status', tone: 'preset-tonal-warning' }
   }
 
   // Last: the swap happens by itself at the next screen change, so this is for the reader parked

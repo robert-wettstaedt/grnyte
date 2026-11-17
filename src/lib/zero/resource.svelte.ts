@@ -264,6 +264,21 @@ export function expectingMore(phase: QueryPhase): boolean {
 }
 
 /**
+ * Holds the nearest pill while `resource` arrives. Call during component init, so it is the surface the
+ * resource renders on; built outside a component, or `quietly`, it holds none rather than throwing.
+ */
+export function holdWhileArriving(resource: QueryResource<unknown>, surface = pillSurface()): void {
+  if (!holdsPill() || surface == null) return
+  try {
+    $effect(() => {
+      if (resource.phase.kind === 'arriving') return surface.hold(resource)
+    })
+  } catch {
+    // effect_orphan: no component or effect root owns this resource.
+  }
+}
+
+/**
  * Whether this device holds the whole answer without asking: the policy keeps it and the preload
  * that fills it finished. The reference stamp does not vouch for the guidebook, which lands later.
  */

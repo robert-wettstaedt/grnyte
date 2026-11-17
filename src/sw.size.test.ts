@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 /**
@@ -21,6 +21,7 @@ const MAX_BYTES = 120 * 1024
 
 const BUILT_WORKER = 'build/client/sw.js'
 const BUILT_SHELL = 'build/prerendered/offline.html'
+const WORKER_ASSETS = 'build/client/_app/immutable/workers/assets'
 
 describe('the built service worker', () => {
   // Skipped rather than failed when there is no build: `npm test` runs constantly without one, and a
@@ -37,6 +38,26 @@ describe('the built service worker', () => {
     // only by being prerendered (`src/routes/offline/+page.ts`), so a config change that stopped
     // prerendering it would take offline with it: silently, because nothing else would fail.
     expect(readFileSync(BUILT_WORKER, 'utf-8')).toContain('"url":"offline"')
+  })
+
+  // A PowerSync build emits the SQLite builds its database worker loads; a Zero build emits none (the engine guard).
+  const withPowerSync = it.runIf(
+    existsSync(BUILT_WORKER) &&
+      existsSync(WORKER_ASSETS) &&
+      readdirSync(WORKER_ASSETS).some((file) => file.startsWith('wa-sqlite-async-')),
+  )
+
+  withPowerSync('precaches the SQLite build the PowerSync worker loads', () => {
+    // Without it a cold offline start has a shell and no database; over Workbox's size cap it is skipped silently.
+    expect(readFileSync(BUILT_WORKER, 'utf-8')).toMatch(
+      /_app\/immutable\/workers\/assets\/wa-sqlite-async-[\w-]+\.wasm/,
+    )
+  })
+
+  withPowerSync('precaches the JSPI build the worker loads where the browser has JSPI', () => {
+    expect(readFileSync(BUILT_WORKER, 'utf-8')).toMatch(
+      /_app\/immutable\/workers\/assets\/mc-wa-sqlite-jspi-[\w-]+\.wasm/,
+    )
   })
 })
 
