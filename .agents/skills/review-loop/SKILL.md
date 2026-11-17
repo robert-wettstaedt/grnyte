@@ -116,7 +116,8 @@ resolve it, do not fix again: stop and ask (see Stop).
 
 ## Stop
 
-A round is **clean** when no reviewer reports an open finding above `nit` and none is `not run`.
+A round is **clean** when no reviewer reports an open finding above `nit` (in plan mode, above
+`apply-note`, which ranks with it) and none is `not run`. Plan mode adds a convergence stop (see Rounds there).
 
 Stop when any of these holds:
 
@@ -141,7 +142,22 @@ when its `review.md` says `stale`. Everything above applies, with these differen
 (paths: `openspec/changes/<change>/`). The findings file is `openspec/changes/<change>/review.md`, so it
 is archived with the change: a `Status: open | clean | stale` line, the snapshot SHA of each round,
 each round's paraphrases verbatim, the claim table, then the findings table above with ids `#P1..`.
-Any edit to the change after a clean review sets `Status: stale`.
+Any edit to the change after a clean review sets `Status: stale`, except writing apply notes (below).
+
+**Severity.** Plan mode measures severity against the plan, not the code that will follow it:
+
+- `blocker`: the plan cannot be applied, or would build the wrong thing. A `contradicted` claim about
+  existing code is always a `blocker`.
+- `major`: only when fixing it changes spec behaviour, the approach, or the task breakdown and its
+  verification steps.
+- `apply-note`: anything the implementation, its tests or code review would handle without changing
+  those. It ranks with `nit`: it never blocks clean and never triggers a round. Rule it by writing an
+  indented `Apply note:` bullet under the task it belongs to in `tasks.md`; status `apply-note`.
+
+**Scope from round 2.** Each round reports NEW findings only on lines changed since the previous
+snapshot (`git diff <previous SHA> <SHA> -- openspec/changes/<change>`), or a `blocker` anywhere. The
+reader still writes both paraphrases of the whole plan every round, and every reviewer still confirms or
+reopens each `fixed` row.
 
 **Reviewers.** Two, plus security when triggered. They get the change folder at the snapshot,
 AGENTS.md (loaded with the project CLAUDE.md), CONTEXT.md, `openspec/config.yaml`, the main specs under
@@ -151,14 +167,15 @@ only there and not in the change is exactly the gap to find. Never paste deliber
 
 | Reviewer | Brief |
 |---|---|
-| reader | Before anything else, write **What this proposes** and **How the existing system works, per this plan**, 2 to 5 sentences each, from the artifacts alone. A section you cannot paraphrase is a `blocker`. Flag a project-specific term defined neither in the plan nor in CONTEXT.md. For every new module, helper or component the design proposes, search the code at `<SHA>` for an existing one. Then YAGNI, failure modes, and every AGENTS.md rule the plan breaks or forgets (i18n, `known` fingerprints, deploy skew, `entityHref`, transitions, layout shift), citing the AGENTS.md line. |
-| grounding | List every claim the plan makes about code that exists now (a file, symbol, column, behaviour, "X already does Y") and check each at `<SHA>`: `holds`, `contradicted` (a `blocker`: every reader inherits it) or `missing`. A proposed new file is not a finding unless the tasks fail to mark it create or modify (`major`, once). Check each task is one reviewable edit with a concrete verification step, and the `rules` in `openspec/config.yaml`. Return the claim table as well as the findings. |
+| reader | Before anything else, write **What this proposes** and **How the existing system works, per this plan**, 2 to 5 sentences each, from the artifacts alone. A section you cannot paraphrase is a `blocker`. Flag a project-specific term defined neither in the plan nor in CONTEXT.md. For every new module, helper or component the design proposes, search the code at `<SHA>` for an existing one. Then YAGNI, failure modes, and every AGENTS.md rule the plan breaks or forgets (i18n, `known` fingerprints, deploy skew, `entityHref`, transitions, layout shift), citing the AGENTS.md line. From round 2: paraphrase the whole plan as before, but report new findings only in the diff, or a `blocker` anywhere. |
+| grounding | List every claim the plan makes about code that exists now (a file, symbol, column, behaviour, "X already does Y") and check each at `<SHA>`: `holds`, `contradicted` (a `blocker`: every reader inherits it) or `missing`. A proposed new file is not a finding unless the tasks fail to mark it create or modify (`major`, once). Check each task is one reviewable edit with a concrete verification step, and the `rules` in `openspec/config.yaml`. Return the claim table as well as the findings. From round 2: re-check only claims in the diff, plus any `blocker` anywhere. |
 
 Preamble changes: "The plan is `openspec/changes/<change>/` (proposal, design, specs, tasks). No code
 is written yet. Findings so far: `openspec/changes/<change>/review.md`. You have not seen the
 conversation that produced this plan; if you need it to understand something, that is a finding.
-Memory is not evidence of what the plan says." Findings cite the artifact's `file:line`, and the failure
-case is what goes wrong during apply.
+Memory is not evidence of what the plan says." Then the Severity paragraph above verbatim, which
+replaces the preamble's severity list, and from round 2 the Scope paragraph with the diff command
+filled in. Findings cite the artifact's `file:line`, and the failure case is what goes wrong during apply.
 
 **Ruling.** As above, plus:
 
@@ -170,8 +187,16 @@ case is what goes wrong during apply.
   `decision`.
 - Fix by editing the artifacts, then run the coherence pass of `/opsx:update` (check every other
   artifact against the edit) without its per-edit confirmation.
+- An `apply-note` is written into `tasks.md` (see Severity), never fixed in the design. A round whose
+  only open findings are apply notes and nits is clean.
+- A finding outside the round's diff that is not a `blocker` is out of scope: rule `does not hold`,
+  citing the scope rule.
 
 **Rounds.** The reader is spawned fresh every round (a resumed reader has read the old text, which
-defeats the paraphrase). The grounding reviewer is resumed by `SendMessage`. Stop after one clean round;
-cap 3 rounds, then the cap question above. Hand back: set the status, list rounds and SHAs, what was
+defeats the paraphrase). The grounding reviewer is resumed by `SendMessage`. Stop after one clean round.
+**Convergence stop:** if a round's only findings above `apply-note` are `major`, sit on the previous
+round's fixes and are implementation-level (fixable without changing what Severity protects), stop:
+write them as apply notes in `tasks.md`, keep the reviewer's severity with status `apply-note`, and mark
+the review clean. A `blocker` never converges. This replaces churn for such findings; churn still
+applies to the rest. Otherwise cap 3 rounds (not 4), then the cap question above. Hand back: set the status, list rounds and SHAs, what was
 fixed and rejected, the numbered `decision` items, then "run `/opsx:apply` when ready". Do not commit.
