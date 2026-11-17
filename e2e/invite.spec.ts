@@ -147,7 +147,7 @@ test('an invited address signs up from the link and joins the region', async ({ 
   await visit(page, acceptPath(token))
   await expect(page.getByText(REGION)).toBeVisible()
 
-  await page.getByRole('link', { name: 'Create an account' }).click()
+  await page.getByRole('link', { name: 'Create account' }).click()
   await page.getByRole('link', { name: 'Continue with email' }).click()
   // Same hydration gate as the sign-in page, for the same reason: the submit below is a Svelte
   // handler. The prefill assertion rides along, since `?email=` is what the accept screen passes.
