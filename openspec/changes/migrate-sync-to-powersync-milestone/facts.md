@@ -224,3 +224,11 @@ Decided by design D13's three inputs, all passed:
 Recorded costs, not deciding: iOS PWA rules 1 and 2 (re-measured 2026-11-16 on the WebSocket build: area and block 0.7 to 1.0 s behind Zero in the Simulator, route 0.76 s against 0.47 s, profile ahead; the iPhone first sync on prod is measured again before the PWA cutover, design D17); rule 8 (the iPhone soak) was never run, its question moves to the native checkpoint; live updates in trial 2 (108 ms against Zero's 16 ms).
 
 Since D17 the PWA switches to PowerSync once R1 and the engine seam are done, before the native app. Zero and PowerSync both run on the server until **2027-05-16** (go plus six months); then the user decides again if the PWA cutover or the native app has not shipped; nothing is removed automatically.
+
+## Task 7.7: bucket fragmentation on prod (2026-11-17)
+
+`favorites`, `ascents` and active `region_members` share one `region_activity` bucket per region (one bucket per value of a stream's filter, for every query in the stream). The diagnostics API reports no per-bucket counts, so the operation count is `bucket_stats.count` in MongoDB's `bucket_state_<n>` collection; locally it equalled the sum of the bucket's stored chunks.
+
+- Prod, eight days after first replication, compaction hourly (last pass 13:04 UTC): 1,279 operations for 1,277 rows across the 24 regions with a bucket, ratio 1.002. Only regions 37 (19 for 18) and 40 (5 for 4) differ.
+- Local dev stack for comparison: region 2 216 for 213, region 18 1,350 for 1,347.
+- No fragmentation, so D5's pg_cron touch job is not needed. The bucket's churn today is Zero's writes replicated; the check is worth repeating once offline writes and the PWA cutover add PowerSync-only traffic.
