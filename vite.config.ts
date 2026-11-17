@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { loadEnv, type Plugin } from 'vite'
 import { configDefaults, defineConfig } from 'vitest/config'
+import { powerSyncJspi, syncEngine, twinResolver, zeroGuard } from './vite.sync-engine'
 
 /**
  * Tests that carry `// @vitest-environment node`. The pragma alone is not enough: `svelteTesting()`
@@ -19,8 +20,10 @@ const NODE_ENVIRONMENT_TESTS = [
   'src/lib/components/Markdown/lib/remark-safe-urls.coverage.test.ts',
   'src/lib/db/regionPolicies.test.ts',
   'src/lib/db/scripts/migrations/migrate-promote-originals.test.ts',
+  'src/lib/powersync/twins.test.ts',
   'src/lib/entities/event/cases/coverage.test.ts',
   'src/lib/zero/tenancy.test.ts',
+  'vite.sync-engine.test.ts',
 ]
 
 /** Server tests that count rows across a whole table: they run alone, after everything else. */
@@ -43,6 +46,9 @@ const APPLICATION_NAME = env.PUBLIC_APPLICATION_NAME
 if (APPLICATION_NAME == null || APPLICATION_NAME === '') {
   throw new Error('PUBLIC_APPLICATION_NAME is not set, and the PWA manifest is built from it.')
 }
+
+/** One sync engine per build; production builds Zero, which then holds none of PowerSync. */
+const POWERSYNC = syncEngine(env.PUBLIC_SYNC_ENGINE) === 'powersync'
 
 /**
  * True once SvelteKit's own `writeBundle` has finished the SSR pass, which is where it emits
@@ -153,7 +159,10 @@ export default defineConfig({
   define: {
     __APP_REPO__: JSON.stringify(pkg.repository.url),
   },
+  // PowerSync's workers and wasm must not be pre-bundled.
+  ...(POWERSYNC ? { optimizeDeps: { exclude: ['@powersync/web'] } } : {}),
   plugins: [
+    ...(POWERSYNC ? [powerSyncJspi(), twinResolver()] : [zeroGuard()]),
     paraglideVitePlugin({
       outdir: './src/lib/paraglide',
       project: './project.inlang',
@@ -173,9 +182,19 @@ export default defineConfig({
         type: 'module',
       },
       filename: 'sw.ts',
-      injectManifest: {
-        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
-      },
+      injectManifest: POWERSYNC
+        ? {
+            // The SQLite builds PowerSync's database worker loads (JSPI where the browser has it, else async), or a
+            // cold offline start opens no store. Only those: the main-thread and other cipher variants never load here.
+            globPatterns: [
+              'client/**/*.{js,css,ico,png,svg,webp,woff,woff2}',
+              'client/_app/immutable/workers/assets/wa-sqlite-async-*.wasm',
+              'client/_app/immutable/workers/assets/mc-wa-sqlite-jspi-*.wasm',
+            ],
+            // It is 2.3 MB; Workbox skips anything over its 2 MiB default without failing the build.
+            maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+          }
+        : { globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'] },
       kit: {
         includeVersionFile: true,
       },
@@ -369,4 +388,6 @@ export default defineConfig({
       },
     ],
   },
+  // The worker bundle gets only these plugins, and the SQLite build is chosen inside the worker.
+  ...(POWERSYNC ? { worker: { format: 'es' as const, plugins: () => [powerSyncJspi()] } } : {}),
 })

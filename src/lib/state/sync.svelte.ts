@@ -49,6 +49,8 @@ let syncedAt = $state<Record<SyncStamp, null | number>>(NONE)
 let trackedUser: string | undefined
 // Whether Zero has read its replica back from IndexedDB, which takes seconds on a large one.
 let storeLoaded = $state(false)
+// Whether the signed-in user's row was read back locally: the store has data, so it is never cold.
+let storeWarm = $state(false)
 
 /** Drops every user's stamps on this device. Sign-out uses it because the tracked user may already be gone. */
 export function forgetAllSynced(): void {
@@ -94,9 +96,19 @@ export function localStoreLoaded(): boolean {
   return storeLoaded
 }
 
+/** Reactive. The signed-in user's row was read from the local store, so it holds data and is not cold. */
+export function localStoreWarm(): boolean {
+  return storeWarm
+}
+
 /** Called by the Zero client once the signed-in user's row is local, which proves the replica read. */
 export function markStoreLoaded(): void {
   storeLoaded = true
+}
+
+/** Called once a local read found the signed-in user's row. */
+export function markStoreWarm(): void {
+  storeWarm = true
 }
 
 /** Records that a sync finished. Cheap to call repeatedly; only the newest value matters. */
@@ -120,6 +132,7 @@ export function trackSyncFor(userID: string | undefined): void {
   trackedUser = userID
   syncedAt = NONE
   storeLoaded = false
+  storeWarm = false
 
   if (!browser || userID == null) {
     return
