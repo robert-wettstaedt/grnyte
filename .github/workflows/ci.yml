@@ -112,8 +112,9 @@ jobs:
       - name: Run checks
         run: npm run check
 
-      # Baselines may only shrink: compare against the PR target, else the commit before this push
-      # (skipped after a force-push), else main for a new branch. fallow refuses a base equal to HEAD, so that case skips the gate.
+      # Baselines may only shrink: compare against the PR target, else the commit before this push, else
+      # (a new branch, a force-push) the merge-base with develop, whose baselines passed review, or main.
+      # fallow refuses a base equal to HEAD, so that case skips the gate.
       # fallow keys findings by path, so a file move reads as growth. A `baseline-reviewed` PR label skips
       # only the growth check, in PR runs only, on every push until removed: remove it after review.
       - name: Pick the baseline base
@@ -140,7 +141,8 @@ jobs:
             fi
             base="$BEFORE"
           else
-            base="$(git merge-base origin/main HEAD)"
+            # No usable BEFORE: CI's checkout lacks a force-pushed-away tip, and a new branch has none.
+            base="$(git merge-base origin/develop HEAD 2>/dev/null || git merge-base origin/main HEAD)"
           fi
           if [ "$(git rev-parse "$base")" = "$(git rev-parse HEAD)" ]; then
             echo "flags=" >> "$GITHUB_OUTPUT"
