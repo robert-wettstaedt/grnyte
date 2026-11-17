@@ -17,7 +17,7 @@ import { confirmSignupCode, resendSignupCode, signUp } from '../../../routes/(la
 import { confirmResetCode, forgotPassword } from '../../../routes/(landing)/auth/forgot-password/forgot-password.remote'
 import { POST as emailConfirm } from '../../../routes/api/app/v1/email/confirm/+server'
 import { setNewPassword } from '../password/password.remote'
-import { codeFor, gotrueReachable, mailCount, publicClient } from '../server/gotrue.fixture'
+import { codeFor, gotrueReachable, mailCount, mailSubjects, publicClient } from '../server/gotrue.fixture'
 
 const STRANGER = 'stranger-password-1'
 const OWNER = 'owner-password-2'
@@ -89,6 +89,12 @@ const addressOf = async (id: string) =>
 const signsIn = async (email: string, password: string) =>
   (await publicClient().auth.signInWithPassword({ email, password })).error == null
 
+/** GoTrue mails these a moment after the change, so wait before counting. */
+const passwordNotices = async (email: string) => {
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+  return (await mailSubjects(email)).filter((subject) => /^Your password changed$/.test(subject)).length
+}
+
 afterAll(async () => {
   if (!gotrueReachable) return
   await sql`delete from public.auth_code_attempts where subject = any(${created})`
@@ -112,17 +118,22 @@ describe.skipIf(!gotrueReachable)('mailed codes on GoTrue', { timeout: 20_000 },
     expect(await sql`select 1 from auth.sessions where user_id = ${id}`).toHaveLength(1)
     expect(await signsIn(email, STRANGER)).toBe(false)
     expect(await signsIn(email, OWNER)).toBe(true)
+    // Only the owner's own choice: replacing the stranger's password mails nothing.
+    expect(await passwordNotices(email)).toBe(1)
   })
 
-  it('sends the owner through reset when the contested password could not be replaced on the session', async () => {
+  it('sends the owner through reset when the code session for choosing the password cannot be held', async () => {
     const email = address('revokefails')
     await signUpSolved(email, STRANGER)
     await signUpSolved(email, OWNER)
     const client = publicClient()
     const failing = new Proxy(client.auth, {
       get: (auth, key) =>
-        key === 'updateUser'
-          ? async () => ({ data: { user: null }, error: { code: 'unexpected_failure', message: 'down', status: 500 } })
+        key === 'setSession'
+          ? async () => ({
+              data: { session: null, user: null },
+              error: { code: 'unexpected_failure', message: 'down', status: 500 },
+            })
           : (Reflect.get(auth, key) as unknown),
     })
 
@@ -144,6 +155,7 @@ describe.skipIf(!gotrueReachable)('mailed codes on GoTrue', { timeout: 20_000 },
     expect(answer).toEqual({ next: 'choosePassword' })
     await choosePassword(client, OWNER)
     expect(await signsIn(email, STRANGER)).toBe(false)
+    expect(await passwordNotices(email)).toBe(1)
   })
 
   it('resets a confirmed address by its recovery code, and refuses a session made by password', async () => {

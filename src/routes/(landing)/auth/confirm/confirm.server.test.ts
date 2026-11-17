@@ -9,27 +9,49 @@ const RUN = fixtureRun()
 
 const EMAIL = `__confirm_alert_${RUN}__@example.test`
 const USERNAME = `ca${RUN}`
+const MINTED = { access_token: 'minted.access', refresh_token: 'minted-refresh' }
 
-/** What the handler changed, through the session and through the admin API. */
-const passwords: string[] = []
+/** What the handler did: admin changes, codes minted, codes verified, sessions held. */
 const adminCalls: { app_metadata?: Record<string, unknown>; id: string; password?: string }[] = []
-let sessionUpdateFails = false
-let refreshes = 0
-let adminPasswordFails = false
-let clearFails = false
+const minted: { email: string; type: string }[] = []
+const verifiedCodes: { email: string; token: string; type: string }[] = []
+const held: unknown[] = []
+const ended: string[] = []
+const fails = { admin: false, hold: false, link: false, verify: false }
+
+vi.mock('$app/server', () => ({ getRequestEvent: () => ({ getClientAddress: () => '203.0.113.9' }) }))
 vi.mock('$lib/db/supabaseAdmin.server', () => ({
   supabaseAdmin: () => ({
     auth: {
       admin: {
+        generateLink: async (params: { email: string; type: string }) => {
+          minted.push(params)
+          return fails.link
+            ? { data: { properties: null }, error: { code: 'unexpected_failure', message: 'down' } }
+            : { data: { properties: { email_otp: '24681357' } }, error: null }
+        },
+        signOut: async (accessToken: string) => {
+          ended.push(accessToken)
+          return { error: null }
+        },
         updateUserById: async (
           id: string,
           attributes: { app_metadata?: Record<string, unknown>; password?: string },
         ) => {
           adminCalls.push({ id, ...attributes })
-          const fails = attributes.password != null ? adminPasswordFails : clearFails
-          return { error: fails ? { code: 'unexpected_failure' } : null }
+          return { error: fails.admin ? { code: 'unexpected_failure', message: 'down' } : null }
         },
       },
+    },
+  }),
+}))
+vi.mock('$lib/auth/server/authServer.server', () => ({
+  supabaseAuthServer: () => ({
+    verifyOtp: async (params: { email: string; token: string; type: string }) => {
+      verifiedCodes.push(params)
+      return fails.verify
+        ? { data: { session: null }, error: { code: 'otp_expired', message: 'expired' } }
+        : { data: { session: MINTED }, error: null }
     },
   }),
 }))
@@ -61,17 +83,14 @@ const confirm = (
           claims,
           supabase: {
             auth: {
-              refreshSession: async () => {
-                refreshes += 1
-                return { error: null }
-              },
-              updateUser: async ({ password }: { password: string }) => {
-                passwords.push(password)
-                return { error: sessionUpdateFails ? { code: 'reauthentication_needed' } : null }
+              refreshSession: async () => ({ error: null }),
+              setSession: async (session: unknown) => {
+                held.push(session)
+                return { error: fails.hold ? { code: 'session_not_found', message: 'gone' } : null }
               },
               verifyOtp: async () =>
                 verified
-                  ? { data: { user: { app_metadata: appMetadata, id: authUserId } }, error: null }
+                  ? { data: { user: { app_metadata: appMetadata, email: EMAIL, id: authUserId } }, error: null }
                   : { data: { user: null }, error: { code: 'otp_expired' } },
             },
           },
@@ -100,12 +119,12 @@ beforeAll(async () => {
 })
 
 beforeEach(() => {
-  passwords.length = 0
-  refreshes = 0
   adminCalls.length = 0
-  sessionUpdateFails = false
-  adminPasswordFails = false
-  clearFails = false
+  minted.length = 0
+  verifiedCodes.length = 0
+  held.length = 0
+  ended.length = 0
+  Object.assign(fails, { admin: false, hold: false, link: false, verify: false })
 })
 
 afterAll(async () => {
@@ -115,8 +134,8 @@ afterAll(async () => {
 describe.skipIf(!reachable)('GET /auth/confirm', () => {
   it('leaves an uncontested sign-up its password', async () => {
     expect(await confirm('signup', true)).toBe('/auth/continue?next=%2F')
-    expect(passwords).toEqual([])
     expect(adminCalls).toEqual([])
+    expect(minted).toEqual([])
   })
 
   it('ends a verified link with a content next on /auth/continue', async () => {
@@ -139,51 +158,50 @@ describe.skipIf(!reachable)('GET /auth/confirm', () => {
     )
   })
 
-  it('replaces a contested password and sends the inbox owner to pick a new one', async () => {
+  it('replaces a contested password by admin, then holds a fresh code session for the owner', async () => {
     expect(await confirm('signup', true, { [CONTESTED_SIGNUP]: true })).toBe(
       `/auth/reset-password?contested=1&next=%2F`,
     )
-    expect(passwords).toEqual([expect.stringMatching(/^.{40,}$/)])
-    // The token still carries the flag `verifyAccessToken` refuses, so a fresh one is minted.
-    expect(refreshes).toBe(1)
-    expect(adminCalls).toEqual([{ app_metadata: { [CONTESTED_SIGNUP]: null }, id: authUserId }])
+    // One admin change: no password notice is mailed, and the flag goes with it.
+    expect(adminCalls).toEqual([
+      { app_metadata: { [CONTESTED_SIGNUP]: null }, id: authUserId, password: expect.stringMatching(/^.{40,}$/) },
+    ])
+    expect(minted).toEqual([{ email: EMAIL, type: 'magiclink' }])
+    expect(verifiedCodes).toEqual([{ email: EMAIL, token: '24681357', type: 'email' }])
+    expect(held).toEqual([MINTED])
     // The first sign-up's username stays: the latest is no likelier to be the owner's.
     expect(
       await sql`select 1 from public.users where auth_user_fk = ${authUserId} and username = ${USERNAME}`,
     ).toHaveLength(1)
   })
 
-  it('falls back to the admin API when the session cannot change the password, and keeps the flag until then', async () => {
-    sessionUpdateFails = true
+  it('sends the owner to recovery and mints no code when the admin change fails', async () => {
+    fails.admin = true
     expect(await confirm('signup', true, { [CONTESTED_SIGNUP]: true })).toBe(
       `/auth/forgot-password?contested=1&next=%2F`,
     )
-    expect(adminCalls).toEqual([
-      { id: authUserId, password: expect.stringMatching(/^.{40,}$/) },
-      { app_metadata: { [CONTESTED_SIGNUP]: null }, id: authUserId },
-    ])
+    expect(minted).toEqual([])
+    expect(held).toEqual([])
   })
 
-  it('keeps the flag when no password change succeeded', async () => {
-    sessionUpdateFails = true
-    adminPasswordFails = true
-    await confirm('signup', true, { [CONTESTED_SIGNUP]: true })
-    expect(adminCalls.filter((call) => call.app_metadata != null)).toEqual([])
-    expect(refreshes).toBe(0)
-  })
-
-  it('sends the owner to recovery when the flag could not be cleared, since sign-in still refuses them', async () => {
-    clearFails = true
-    expect(await confirm('signup', true, { [CONTESTED_SIGNUP]: true })).toBe(
-      `/auth/forgot-password?contested=1&next=%2F`,
-    )
-  })
+  it.each(['link', 'verify', 'hold'] as const)(
+    'sends the owner to recovery when the code session fails at %s',
+    async (step) => {
+      fails[step] = true
+      expect(await confirm('signup', true, { [CONTESTED_SIGNUP]: true })).toBe(
+        `/auth/forgot-password?contested=1&next=%2F`,
+      )
+      expect(adminCalls).toHaveLength(1)
+      // A minted session nobody could hold is ended, not left live.
+      expect(ended).toEqual(step === 'hold' ? [MINTED.access_token] : [])
+    },
+  )
 
   it('revokes a contested password confirmed through a magic link too', async () => {
     expect(await confirm('magiclink', true, { [CONTESTED_SIGNUP]: true })).toBe(
       `/auth/reset-password?contested=1&next=%2F`,
     )
-    expect(passwords).toHaveLength(1)
+    expect(adminCalls).toHaveLength(1)
   })
 
   it('sends a failed verification to the error page', async () => {

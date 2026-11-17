@@ -87,7 +87,7 @@ describe.skipIf(!gotrueReachable)(
     })
 
     // Dependents: `changePassword` signs this device back in; `revokeContestedPassword` (contested.server.ts)
-    // leaves the owner to recovery after its admin fallback.
+    // ends the stranger's sessions with its admin change, then mints the owner a fresh code session.
     it('an admin password update ends every session of the account', async () => {
       const first = password()
       const { email, id } = await account('ends', { password: first })
@@ -100,7 +100,7 @@ describe.skipIf(!gotrueReachable)(
     })
 
     // Dependent: `revokeContestedPassword` (contested.server.ts): a recovery code mailed before its admin
-    // fallback must not let the stranger back in.
+    // change must not let the stranger back in.
     it('an admin password update spends a pending one-time code', async () => {
       const { email, id } = await account('spends', { password: password() })
       const link = await admin().generateLink({ email, type: 'recovery' })
