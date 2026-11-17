@@ -293,7 +293,7 @@ All three live under Certificates, Identifiers & Profiles (<https://developer.ap
      grouped), leave the notification endpoint empty, Save.
    - Continue > Register.
 2. Services ID: Identifiers > + > Services IDs > Continue.
-   - Description `grnyte web`, identifier `rocks.grnyte.web`. That is `APPLE_SERVICES_ID`.
+   - Description `grnyte` (Apple shows it on the sign-in sheet and in its mails), identifier `rocks.grnyte.web`. That is `APPLE_SERVICES_ID`.
    - Continue > Register, then open the new Services ID from the list.
    - Tick Sign in with Apple, click Configure, primary App ID `rocks.grnyte`.
    - Website URLs: the domain `grnyte.rocks` (no `https://`) and the return URL
