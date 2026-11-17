@@ -39,6 +39,7 @@
       <div class="relative flex h-full w-full max-w-sm lg:max-w-md">
         <Dialog.Content
           class="card bg-surface-50-950 border-surface-100-900 relative z-10 flex h-full w-full flex-col overflow-hidden border-2"
+          data-sheet-nav
         >
           <header class="flex shrink-0 flex-col gap-2 px-4 py-2 shadow">
             <div class="flex items-start justify-between gap-2">

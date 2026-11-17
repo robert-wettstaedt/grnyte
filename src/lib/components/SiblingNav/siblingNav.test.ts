@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toSheetNav } from './siblingNav'
+import { isNavKeyExempt, toSheetNav } from './siblingNav'
 
 const href = (id: number) => `/x/${id}`
 const list = [
@@ -32,5 +32,27 @@ describe('toSheetNav', () => {
       prev: { label: 'B' },
       total: 3,
     })
+  })
+})
+
+describe('isNavKeyExempt', () => {
+  /** A plain `l` pressed on a button nested in `html`, the way a focused control receives it. */
+  const pressIn = (html: string) => {
+    document.body.innerHTML = html
+    const event = new KeyboardEvent('keydown', { bubbles: true, key: 'l' })
+    document.querySelector('button')!.dispatchEvent(event)
+    return event
+  }
+
+  it('pages from the page itself', () => {
+    expect(isNavKeyExempt(pressIn('<main><button>x</button></main>'))).toBe(false)
+  })
+
+  it('pages from inside the sheet that owns the nav', () => {
+    expect(isNavKeyExempt(pressIn('<div role="dialog" data-sheet-nav><button>x</button></div>'))).toBe(false)
+  })
+
+  it('leaves the keys to a dialog open on top, so the page does not change under it', () => {
+    expect(isNavKeyExempt(pressIn('<div role="dialog"><button>x</button></div>'))).toBe(true)
   })
 })
