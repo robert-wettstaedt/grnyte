@@ -1,0 +1,14 @@
+{
+  // Standalone: the root config pulls in src/** and .svelte-kit, which these Node scripts never touch.
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2024",
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts"]
+}

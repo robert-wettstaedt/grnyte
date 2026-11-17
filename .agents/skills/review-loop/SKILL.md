@@ -29,6 +29,9 @@ drives the live dev server, which serves the working tree, so an early edit chan
 
 ## Setup
 
+0. If the work is an active OpenSpec change, run `npm run issues:gate -- <change>` first. If it fails,
+   stop and report its FAIL lines: the change is not ready for review. Plan mode and reviews of work
+   without a change skip this step.
 1. List the paths YOU changed for this task (never `git add -A` scope: other agents share the checkout).
    Unless `-simplify`, run `/ce-simplify-code mode:pipeline <your paths> proof-test:<each test proving
    the change>` once; it edits, so it never runs again in later rounds.

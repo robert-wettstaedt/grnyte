@@ -1,0 +1,104 @@
+{
+  "openspecVersion": "1.17.0",
+  "change": "no-tasks",
+  "status": {
+    "changeName": "no-tasks",
+    "schemaName": "spec-driven",
+    "planningHome": {
+      "kind": "repo",
+      "root": "<root>",
+      "changesDir": "<root>/openspec/changes",
+      "defaultSchema": "spec-driven"
+    },
+    "changeRoot": "<root>/openspec/changes/no-tasks",
+    "artifactPaths": {
+      "proposal": {
+        "outputPath": "proposal.md",
+        "resolvedOutputPath": "<root>/openspec/changes/no-tasks/proposal.md",
+        "existingOutputPaths": ["<root>/openspec/changes/no-tasks/proposal.md"]
+      },
+      "specs": {
+        "outputPath": "specs/**/*.md",
+        "resolvedOutputPath": "<root>/openspec/changes/no-tasks/specs/**/*.md",
+        "existingOutputPaths": []
+      },
+      "design": {
+        "outputPath": "design.md",
+        "resolvedOutputPath": "<root>/openspec/changes/no-tasks/design.md",
+        "existingOutputPaths": []
+      },
+      "tasks": {
+        "outputPath": "tasks.md",
+        "resolvedOutputPath": "<root>/openspec/changes/no-tasks/tasks.md",
+        "existingOutputPaths": []
+      }
+    },
+    "isPlanningComplete": false,
+    "isComplete": false,
+    "applyRequires": ["tasks"],
+    "nextSteps": ["Run openspec instructions specs --change \"no-tasks\" --json before writing that artifact."],
+    "actionContext": {
+      "mode": "repo-local",
+      "sourceOfTruth": "repo",
+      "planningArtifacts": ["proposal", "specs", "design", "tasks"],
+      "linkedContext": [],
+      "allowedEditRoots": ["<root>"],
+      "requiresAffectedAreaSelection": false,
+      "constraints": ["Repo-local change artifacts and implementation edits are scoped to this project."]
+    },
+    "artifacts": [
+      {
+        "id": "proposal",
+        "outputPath": "proposal.md",
+        "status": "done",
+        "requires": []
+      },
+      {
+        "id": "specs",
+        "outputPath": "specs/**/*.md",
+        "status": "ready",
+        "requires": ["proposal"]
+      },
+      {
+        "id": "design",
+        "outputPath": "design.md",
+        "status": "ready",
+        "requires": ["proposal"]
+      },
+      {
+        "id": "tasks",
+        "outputPath": "tasks.md",
+        "status": "blocked",
+        "requires": ["specs", "design"],
+        "missingDeps": ["specs", "design"]
+      }
+    ],
+    "root": {
+      "path": "<root>",
+      "source": "nearest"
+    }
+  },
+  "apply": {
+    "changeName": "no-tasks",
+    "changeDir": "<root>/openspec/changes/no-tasks",
+    "schemaName": "spec-driven",
+    "contextFiles": {
+      "proposal": ["<root>/openspec/changes/no-tasks/proposal.md"]
+    },
+    "progress": {
+      "total": 0,
+      "complete": 0,
+      "remaining": 0
+    },
+    "tasks": [],
+    "taskTrackingConfigured": true,
+    "state": "blocked",
+    "missingArtifacts": ["tasks"],
+    "missingPrerequisites": ["specs", "design", "tasks"],
+    "instruction": "Cannot apply this change yet. Missing artifacts: tasks.\nNot created yet, in build order: specs, design, tasks. Build the ones this change needs before applying - the schema says which are conditional.\nCreate each with `openspec instructions <artifact> --change no-tasks` (`openspec status --change no-tasks` shows what is left).",
+    "root": {
+      "path": "<root>",
+      "source": "nearest"
+    }
+  }
+}
