@@ -65,7 +65,7 @@ const hop = async (target: Page, direction: 'back' | 'forward', url: string, arr
 }
 
 /** Something only the route detail screen renders. Its name is body text, not a heading. */
-const onRouteScreen = (target: Page) => target.getByRole('link', { name: /See all \d+ ascents?/ })
+const onRouteScreen = (target: Page) => target.getByRole('link', { name: /See (all )?\d+ ascents?/ })
 
 /** Something only the log-ascent form renders. */
 const onFormScreen = (target: Page) => target.getByRole('heading', { name: 'Log ascent' })
