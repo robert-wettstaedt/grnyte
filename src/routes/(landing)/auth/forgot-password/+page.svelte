@@ -1,3 +1,8 @@
+<script lang="ts" module>
+  // The result "Go back" left. Module scope: the result outlives the page on the form's singleton, so this must too.
+  let left = $state.raw<unknown>()
+</script>
+
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
@@ -19,8 +24,6 @@
 
   let resendForm: HiddenBotForm | undefined = $state()
   let choosing = $state(false)
-  // The result outlives the step on the form's singleton, so "Go back" remembers which one it left.
-  let left = $state<unknown>()
   const sent = $derived(
     forgotPassword.result?.success && forgotPassword.result !== left ? forgotPassword.result : undefined,
   )
@@ -42,41 +45,43 @@
       confirm={(code) => confirmResetCode({ code, email })}
       resend={() => resendForm?.send() ?? Promise.resolve()}
       onback={() => {
-        left = sent
         forgotPassword.fields.set({ email })
+        left = sent
       }}
     />
   </div>
   <HiddenBotForm bind:this={resendForm} form={forgotPassword} values={{ email }} />
 {:else}
-  <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_forgotTitle()}</h1>
-  <p class="text-surface-600-400 mb-5.5 text-[14.5px] leading-snug">
-    {contested ? m.auth_forgotContestedSubtitle() : m.auth_forgotCodeSubtitle()}
-  </p>
+  <div in:fade={{ duration: motion(150) }}>
+    <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_forgotTitle()}</h1>
+    <p class="text-surface-600-400 mb-5.5 text-[14.5px] leading-snug">
+      {contested ? m.auth_forgotContestedSubtitle() : m.auth_forgotCodeSubtitle()}
+    </p>
 
-  <form {...forgotPassword} class="flex flex-col gap-4">
-    <FormError form={forgotPassword} />
-    <BotCheck fields={forgotPassword.fields} />
+    <form {...forgotPassword} class="flex flex-col gap-4">
+      <FormError form={forgotPassword} />
+      <BotCheck fields={forgotPassword.fields} />
 
-    <AuthField
-      field={forgotPassword.fields.email}
-      label={m.auth_email()}
-      type="email"
-      placeholder="you@example.com"
-      autocomplete="username"
-      autocapitalize="none"
-      enterkeyhint="go"
-      autofocus
-    />
+      <AuthField
+        field={forgotPassword.fields.email}
+        label={m.auth_email()}
+        type="email"
+        placeholder="you@example.com"
+        autocomplete="username"
+        autocapitalize="none"
+        enterkeyhint="go"
+        autofocus
+      />
 
-    <button
-      type="submit"
-      class="btn preset-filled-primary-500 mt-1 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)] disabled:opacity-60"
-      disabled={forgotPassword.pending > 0}
-    >
-      {m.auth_sendResetCode()}
-    </button>
-  </form>
+      <button
+        type="submit"
+        class="btn preset-filled-primary-500 mt-1 h-12.5 w-full font-semibold shadow-[0_10px_28px_-12px_var(--color-primary-500)] disabled:opacity-60"
+        disabled={forgotPassword.pending > 0}
+      >
+        {m.auth_sendResetCode()}
+      </button>
+    </form>
+  </div>
 {/if}
 
 <!-- On the address and the code; the new password has no way back. -->

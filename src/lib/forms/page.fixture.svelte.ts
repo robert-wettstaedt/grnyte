@@ -12,6 +12,8 @@ export const at = $state({ data: {} as Record<string, unknown>, url: new URL('ht
  */
 export function fakeRemoteForm() {
   const state = $state({ issues: [] as RemoteFormIssue[], values: {} as Record<string, unknown> })
+  // Raw, as Kit's: the result is the plain object the server sent, never a proxy of it.
+  let result = $state.raw<unknown>()
   const field = { as: (type: string) => ({ name: 'field', type }), issues: () => undefined }
   const set = vi.fn((values: Record<string, unknown>) => (state.values = values))
   const fields = new Proxy({ allIssues: () => state.issues, set } as Record<string, unknown>, {
@@ -36,14 +38,16 @@ export function fakeRemoteForm() {
     fail: { value: (message: string) => (state.issues = [{ message, path: [] } as unknown as RemoteFormIssue]) },
     fields: { value: fields },
     pending: { value: 0 },
-    result: { value: undefined },
+    result: { get: () => result },
     set: { value: set },
+    succeed: { value: (value: unknown) => (result = value) },
     values: { get: () => state.values },
   }) as ReturnType<typeof attributes> & {
     enhance: () => ReturnType<typeof attributes>
     fail: (message: string) => void
     fields: Record<string, unknown>
     set: typeof set
+    succeed: (value: unknown) => void
     readonly values: Record<string, unknown>
   }
 }
