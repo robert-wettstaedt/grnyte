@@ -44,19 +44,24 @@ No member SHALL demote the owner or remove the owner from the region. The owner 
 - **WHEN** an admin removes, demotes or lets leave another admin who is not the owner, even the last admin besides the owner
 - **THEN** the change proceeds, because the owner remains an admin
 
-### Requirement: The owner can hand ownership to another admin
+### Requirement: The owner can hand ownership to another admin after re-authenticating
 
-The owner SHALL be able to make another active admin of the region its owner, after re-entering their own password. The previous owner SHALL stay an admin. The new owner SHALL receive the role-change notice, saying they are now the owner. The handover SHALL be refused when the recipient already owns the maximum number of regions one account may found. Only the current owner SHALL be able to hand over.
+Only the current owner SHALL be able to make another active admin the owner, after re-authenticating in the same session for handing this region to that admin. The previous owner SHALL stay an admin and be mailed a confirmation; the new owner SHALL get the role-change notice. A recipient at the founding cap SHALL be refused. A refusal SHALL NOT spend the re-authentication.
 
 #### Scenario: Handover to an admin
 
-- **WHEN** the owner chooses "Make owner" on an active admin and enters the correct password
-- **THEN** that admin is the owner, the previous owner is still an admin, and the new owner is notified
+- **WHEN** the owner chooses "Make owner" on an active admin, enters the correct code and then confirms the handover
+- **THEN** that admin is the owner, the previous owner is still an admin and receives the confirmation mail, and the new owner is notified
 
-#### Scenario: Wrong password
+#### Scenario: Wrong code
 
-- **WHEN** the owner enters a wrong password
-- **THEN** nothing changes and the password field shows the error
+- **WHEN** the owner enters a wrong code
+- **THEN** nothing changes and the code field shows the error
+
+#### Scenario: Code for another admin
+
+- **WHEN** the owner re-authenticated for handing the region to one admin and submits a handover to another
+- **THEN** nothing changes and a new code is asked for
 
 #### Scenario: Recipient is not an admin
 

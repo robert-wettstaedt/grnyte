@@ -234,6 +234,12 @@ GoTrue's per-IP limits count each person only because grnyte forwards `getClient
 proxy and must set `ADDRESS_HEADER` (and `XFF_DEPTH` for `X-Forwarded-For`) to the header that proxy
 sets, or every person shares the proxy's address in GoTrue's limits.
 
+Measured on prod on 2026-11-24 (GoTrue `v2.198.0`, before sign-up opened), with throwaway accounts
+deleted afterwards. Wrong reset codes through `confirmResetCode` from one client, at most 4 per
+address over 8 addresses, got GoTrue's 429 at call 31. A right code for another address from a
+second network then confirmed. Wrong passwords through `signIn` for one account got the 429 at call
+33, and the right password for another account from a second network then signed in.
+
 ### New GoTrue version
 
 grnyte relies on GoTrue behaviours that no release promises (an admin password update mails nothing
