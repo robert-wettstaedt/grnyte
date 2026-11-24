@@ -6,7 +6,7 @@
 type Json = Record<string, unknown>
 
 /** The GoTrue release `npm run test:gotrue` last passed against; README "New GoTrue version" bumps it. */
-export const GOTRUE_CONTRACT_VERSION = 'v2.197.0'
+export const GOTRUE_CONTRACT_VERSION = 'v2.198.0'
 
 /** A failure line when hosted GoTrue (its `/auth/v1/health` answer) is not the tested release, else null. */
 export function assertGotrueVersion(health: Json): null | string {

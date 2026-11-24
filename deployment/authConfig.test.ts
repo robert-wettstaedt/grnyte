@@ -183,8 +183,8 @@ describe('assertGotrueVersion', () => {
   })
 
   it('names both versions and the runbook when hosted GoTrue moved', () => {
-    expect(assertGotrueVersion({ ...health, version: 'v2.198.0' })).toBe(
-      `GoTrue is v2.198.0, the contract was tested on ${GOTRUE_CONTRACT_VERSION}: see deployment/README.md "New GoTrue version"`,
+    expect(assertGotrueVersion({ ...health, version: 'v2.199.0' })).toBe(
+      `GoTrue is v2.199.0, the contract was tested on ${GOTRUE_CONTRACT_VERSION}: see deployment/README.md "New GoTrue version"`,
     )
   })
 
