@@ -1,9 +1,9 @@
 import { getRequestEvent } from '$app/server'
-import { clearCodeTries } from '$lib/auth/codes/codeAttempts.server'
+import { clearCodeTries, codeLocked } from '$lib/auth/codes/codeAttempts.server'
 import { verifyCode } from '$lib/auth/codes/codes.server'
 import { supabaseAuthServer, type AuthServer } from '$lib/auth/server/authServer.server'
 import { findAccount, flagContestedSignup, holdCodeSession } from '$lib/auth/server/contested.server'
-import { gotrueRefusal, mailPasswordReset, mailSignupConfirmation } from '$lib/auth/server/mail.server'
+import { gotrueRefusal, isSendWait, mailPasswordReset, mailSignupConfirmation } from '$lib/auth/server/mail.server'
 import { screenSubmit } from '$lib/forms/bot/botCheck.server'
 
 /**
@@ -32,11 +32,17 @@ export async function forgotPassword(
   const sent = account.confirmed
     ? await mailPasswordReset(authServer, email)
     : await resendConfirmation(authServer, email, account.id)
+  // An unconfirmed address's code is a confirmation code.
+  const kinds = account.confirmed ? (['recovery'] as const) : (['recovery', 'signup'] as const)
   if (sent == null) return { email, success: true }
+  // Inside the wait the earlier code stands in for the new one, unless its guesses are used up.
+  if (sent.error != null && isSendWait(sent.error) && !(await codeLocked(email, [...kinds]))) {
+    return { email, success: true }
+  }
   if (sent.error != null) refuse(await gotrueRefusal(sent.error, account.confirmed ? 'recover' : 'resend'))
 
-  // A new code resets the guesses at it; an unconfirmed address's code is a confirmation code.
-  await clearCodeTries(email, account.confirmed ? ['recovery'] : ['recovery', 'signup'])
+  // A new code resets the guesses at it.
+  await clearCodeTries(email, [...kinds])
   return { email, success: true }
 }
 

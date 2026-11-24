@@ -26,6 +26,27 @@ export async function clearCodeTries(email: string, kinds: CodeKind[]): Promise<
   )
 }
 
+/** True when {@link takeCodeTry} would refuse the next guess at any of `kinds`: only a new code helps. */
+export async function codeLocked(email: string, kinds: CodeKind[]): Promise<boolean> {
+  const subject = email.toLowerCase()
+  return pinnedTx(async (tx) => {
+    for (const kind of kinds) {
+      const [row] = await tx
+        .select({ tries: authCodeAttempts.tries })
+        .from(authCodeAttempts)
+        .where(
+          and(
+            eq(authCodeAttempts.subject, subject),
+            eq(authCodeAttempts.kind, kind),
+            sql`${authCodeAttempts.windowStartedAt} >= now() - ${WINDOW[kind]}::interval`,
+          ),
+        )
+      if (row != null && row.tries >= MAX_TRIES) return true
+    }
+    return false
+  })
+}
+
 /** Counts one try in a fixed window that starts at the first; a refused try never moves it. */
 export async function countTry(
   tx: PostgresJsDatabase<typeof schema>,
