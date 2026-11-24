@@ -149,7 +149,8 @@ Several agents share this repo and one local dev stack.
 
 - **Commit only your own files**, staged by name. Never `git add -A`, `git add .`, `git commit -a`.
 - **Never migrate the shared dev DB from a worktree.** Use a throwaway Postgres on a free port with
-  `ci/shim.sql`, `npm run migrate`, `ci/seed.sql` (the CI recipe, `.github/workflows/ci.yml`).
+  `ci/shim.sql`, `npm run migrate`, `ci/seed.sql` (the CI recipe, `.github/workflows/ci.yml`):
+  `ci/local.sh up`, then `ci/local.sh test <files>`, then `ci/local.sh down`.
 - **Coordinate migration numbers** across branches before `generate:drizzle`; renumber on merge.
 - **Report your worktree and `ListAgents` name** unprompted. Don't edit another agent's worktree.
 - **Review the COMMITTED state** in a shared checkout: pin `git rev-parse HEAD` and
