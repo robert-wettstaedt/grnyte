@@ -29,20 +29,6 @@ Before asking for confirmation, the deletion screen SHALL state how many other a
 - **WHEN** the owner opens the deletion screen of a region where two other members logged ascents
 - **THEN** the screen states those ascents and that two members lose access, and the deletion cannot be submitted until it has
 
-### Requirement: Deletion takes the password and the region's name
-
-The deletion SHALL proceed only when the owner enters their correct password and types the region's name exactly as shown. Surrounding spaces SHALL be ignored. Either mismatch SHALL change nothing and SHALL mark the field that is wrong.
-
-#### Scenario: Wrong name
-
-- **WHEN** the owner types a name that differs from the region's name
-- **THEN** nothing is deleted and the name field shows the error
-
-#### Scenario: Wrong password
-
-- **WHEN** the owner types the right name and a wrong password
-- **THEN** nothing is deleted and the password field shows the error
-
 ### Requirement: A deleted region is gone whole and at once
 
 A confirmed deletion SHALL remove the region and everything that belongs to it, immediately and with no restore, including the stored image and video files. People outside the region SHALL keep their profiles.
@@ -80,3 +66,27 @@ After a deletion commits, every other person who was an active member SHALL rece
 
 - **WHEN** a send fails
 - **THEN** the region stays deleted and the failure is logged
+
+### Requirement: Deletion takes re-authentication and the region's name
+
+The deletion SHALL proceed only when the owner has re-authenticated for deleting this region, in the same session, and types the region's name exactly as shown. The screen SHALL ask for the re-authentication first and show the name field only once it is confirmed. Surrounding spaces SHALL be ignored. A name mismatch SHALL change nothing, SHALL mark the name field, and SHALL NOT spend the re-authentication. A missing, expired or spent re-authentication SHALL change nothing and ask for a new one.
+
+#### Scenario: Wrong name
+
+- **WHEN** the owner, confirmed, types a name that differs from the region's name
+- **THEN** nothing is deleted, the name field shows the error, and the confirmation stays
+
+#### Scenario: Wrong code
+
+- **WHEN** the owner enters a wrong code before any name field is shown
+- **THEN** nothing is deleted, the code field shows the error, and the name field stays hidden
+
+#### Scenario: Confirm first, then the name
+
+- **WHEN** the owner enters a correct code
+- **THEN** the name field appears and nothing is deleted until the owner types the name and submits
+
+#### Scenario: Code for another region
+
+- **WHEN** the owner re-authenticated for deleting one region and submits the deletion of another
+- **THEN** nothing is deleted and a new confirmation is asked for

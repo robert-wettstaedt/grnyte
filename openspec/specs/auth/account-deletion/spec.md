@@ -20,23 +20,9 @@ A signed-in person SHALL be able to delete their account from a dedicated screen
 - **WHEN** someone who is not signed in opens `/settings/account/delete`
 - **THEN** they are sent to sign in, as for any other settings screen
 
-### Requirement: Deletion is confirmed with the current password
-
-Deletion SHALL proceed only when the submitted password is the account's current password. A wrong password SHALL refuse the deletion with a field error on the password and change nothing.
-
-#### Scenario: Correct password
-
-- **WHEN** the person submits their current password
-- **THEN** the account is deleted
-
-#### Scenario: Wrong password
-
-- **WHEN** the person submits a password that is not their current one
-- **THEN** the password field shows an error and no data changes
-
 ### Requirement: Deletion is immediate and final
 
-A confirmed deletion SHALL take effect at once, with no grace period and no way to undo it. Afterwards the person SHALL be signed out on that device, and no session of theirs on any device SHALL read or write anything as them.
+A confirmed deletion SHALL take effect at once, with no grace period and no way to undo it. Afterwards the person SHALL be signed out on that device, and no session of theirs on any device SHALL read or write anything as them. Every session of the account SHALL end in the same step that removes its data.
 
 #### Scenario: After deleting
 
@@ -50,7 +36,7 @@ A confirmed deletion SHALL take effect at once, with no grace period and no way 
 
 ### Requirement: The owner of a shared region cannot delete their account
 
-Deletion SHALL be refused while the person owns a region that has at least one other active member, whether or not that region has other admins. The refusal SHALL name every such region and ask the person to hand ownership over first. It SHALL change nothing.
+Deletion SHALL be refused while the person owns a region that has at least one other active member, whether or not that region has other admins. The refusal SHALL name every such region and ask the person to hand ownership over first. It SHALL change nothing, and SHALL NOT spend the person's re-authentication.
 
 #### Scenario: Only admin of a region with members
 
@@ -70,7 +56,7 @@ Deletion SHALL be refused while the person owns a region that has at least one o
 #### Scenario: Shown before submitting
 
 - **WHEN** the person opens the deletion screen while a region would block it
-- **THEN** the screen names the region before they enter their password
+- **THEN** the screen names the region before any code is requested
 
 ### Requirement: A region left with no other members is deleted whole
 
@@ -189,4 +175,42 @@ If any part of removing the account's data fails, no data SHALL be removed and t
 #### Scenario: Removing the sign-in record fails
 
 - **WHEN** the data is removed but removing the sign-in record fails
-- **THEN** the person still sees the deletion as done, the leftover sign-in record gives access to nothing, and it is removed on a later retry
+- **THEN** the person still sees the deletion as done, the leftover sign-in record gives access to nothing and cannot start a new profile, and it is removed on a later retry
+
+### Requirement: Deletion is confirmed by re-authentication
+
+Deletion SHALL proceed only after the person re-authenticates for deleting their account, in the same session, within the confirmation's lifetime. The deletion screen SHALL ask for the mailed code, or another confirmer where the account has one, and SHALL NOT ask for the password. A wrong or expired code SHALL refuse the deletion with an error on the code field and change nothing.
+
+#### Scenario: Correct code
+
+- **WHEN** the person enters the code mailed for deleting their account and confirms
+- **THEN** the account is deleted
+
+#### Scenario: Wrong code
+
+- **WHEN** the person enters a code that is not the current one
+- **THEN** the code field shows an error and no data changes
+
+#### Scenario: Account without a password
+
+- **WHEN** a person whose account has no password deletes it
+- **THEN** the code alone confirms the deletion
+
+### Requirement: Deleting an Apple-linked account revokes grnyte's Apple authorization
+
+For an account with a linked Apple identity, the deletion screen SHALL lead with "Confirm with Apple". Confirming with Apple SHALL revoke grnyte's authorization at Apple, storing nothing from Apple, and the deletion mail SHALL say so. Confirming with the mailed code instead SHALL still allow the deletion, without revocation, and the missed revocation SHALL be recorded.
+
+#### Scenario: Delete through Apple
+
+- **WHEN** an Apple-linked person confirms with Apple and deletes their account
+- **THEN** the account is deleted, grnyte no longer appears as connected in their Apple ID settings, and the deletion mail says Apple access was revoked
+
+#### Scenario: Apple ID lost
+
+- **WHEN** an Apple-linked person confirms with the mailed code and deletes their account
+- **THEN** the account is deleted and the missed revocation is recorded
+
+#### Scenario: Revocation fails at Apple
+
+- **WHEN** Apple refuses or does not answer the revocation
+- **THEN** the confirmation still counts, the failure is recorded, and the deletion mail does not claim a revocation
