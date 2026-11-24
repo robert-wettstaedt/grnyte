@@ -1,5 +1,5 @@
 import { at } from '$lib/forms/page.fixture.svelte'
-import { settle } from '$lib/forms/screen.fixture'
+import { expectGoBack, settle } from '$lib/forms/screen.fixture'
 import { render, screen, within } from '@testing-library/svelte'
 import { beforeEach, expect, it, vi } from 'vitest'
 import SignIn from './signin/+page.svelte'
@@ -37,7 +37,10 @@ function visit(path: string, providers: string[] = [], lastUsed: null | string =
 
 beforeEach(() => {
   visit('/auth/signin')
-  for (const form of [signIn, signUp]) fake(form).set.mockClear()
+  for (const form of [signIn, signUp]) {
+    fake(form).set.mockClear()
+    fake(form).succeed(undefined)
+  }
 })
 
 it('carries the invitation across both switch lines', () => {
@@ -195,6 +198,11 @@ it('names the way back by screen: sign in, or sign up', () => {
   visit('/auth/signin?method=email', ['apple', 'google'])
   render(SignIn)
   expect(link('Other ways to sign in')).toBe('/auth/signin?form=signin')
+})
+
+it('goes back from the code step to the address it was sent to', async () => {
+  visit('/auth/signup?method=email')
+  await expectGoBack(SignUp, fake(signUp), { email: 'new@example.test', resendToken: 'token' })
 })
 
 it('gives no hint without a provider', async () => {
