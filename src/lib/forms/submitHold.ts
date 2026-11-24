@@ -15,6 +15,8 @@ export function holdUntilSolved(wrapper: HTMLElement, widget: () => null | Solvi
 
   let state = 'unverified'
   let held = false
+  // Cleared on teardown: a throttled timer can outlive the form, whose widget then has no methods left.
+  let renewal: ReturnType<typeof setTimeout> | undefined
 
   const hold = (event: Event) => {
     event.preventDefault()
@@ -29,7 +31,7 @@ export function holdUntilSolved(wrapper: HTMLElement, widget: () => null | Solvi
       return
     }
     // After the form has read the payload out of this submit.
-    setTimeout(() => {
+    renewal = setTimeout(() => {
       state = 'unverified'
       widget()?.reset()
       void widget()?.verify()
@@ -52,6 +54,7 @@ export function holdUntilSolved(wrapper: HTMLElement, widget: () => null | Solvi
   form.addEventListener('invalid', onInvalid, true)
   wrapper.addEventListener('statechange', onStateChange, true)
   return () => {
+    clearTimeout(renewal)
     form.removeEventListener('submit', onSubmit, true)
     form.removeEventListener('invalid', onInvalid, true)
     wrapper.removeEventListener('statechange', onStateChange, true)

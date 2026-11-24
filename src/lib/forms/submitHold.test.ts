@@ -61,6 +61,17 @@ describe('holdUntilSolved', () => {
     expect(sent).toBe(1)
   })
 
+  it('starts no fresh solve once torn down, when the submit unmounted the form first', () => {
+    state('verified')
+    form.requestSubmit()
+    // A successful submit can swap the form out before a throttled timer fires (a background tab).
+    teardown()
+
+    vi.runAllTimers()
+    expect(widget.reset).not.toHaveBeenCalled()
+    expect(widget.verify).not.toHaveBeenCalled()
+  })
+
   it.each(['unverified', 'expired', 'error'])('restarts the solve for a submit held in %s', (resting) => {
     state(resting)
     form.requestSubmit()
