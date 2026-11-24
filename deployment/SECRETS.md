@@ -140,7 +140,8 @@ Actions logs are readable by anyone:
 
 - It registers every value it retrieves with `::add-mask::`. `bws run` injects them unmasked.
 - The list is an allowlist. `bws run` hands the job everything the project holds; the canary receives
-  its nine values and nothing else.
+  the values its list names and nothing else. Its `SUPABASE_ACCESS_TOKEN` is a scoped token with only
+  Auth Config read on the prod project, for `check:prod`'s Management API rows.
 
 The mappings live next to the jobs rather than in a GitHub variable, because `deploy-zero` and
 `post-deploy` run under the same environment and need different sets, and an allowlist nobody can
