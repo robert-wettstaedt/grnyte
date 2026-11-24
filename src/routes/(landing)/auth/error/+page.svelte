@@ -45,7 +45,7 @@
   import { oauthReturnTarget } from '$lib/auth'
   import Icon from '$lib/components/Icon/Icon.svelte'
 
-  // Where /auth/confirm sends a link it could not verify (no `reason`), and where a sign-in with
+  // Where /auth/confirm sends every old emailed link (no `reason`), and where a sign-in with
   // Apple or Google ends that could not finish. No server load, so the offline shell renders it.
   const params = $derived(page.url.searchParams)
   const reason = $derived(params.get('reason'))

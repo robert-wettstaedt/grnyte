@@ -100,12 +100,6 @@ export const passwordSchema = z.pipe(
     ),
 )
 
-/** Object-level check that `confirmPassword` repeats `password`. Apply with `.check()`. */
-export const passwordsMatch = z.refine<{ confirmPassword: string; password: string }>(
-  (v) => v.password === v.confirmPassword,
-  { error: formError('auth_passwordMismatch'), path: ['confirmPassword'] },
-)
-
 /** `stringToInt`, with the message a particular field wants when the value is missing or not a
  *  number. "Enter a valid number" is wrong under a `<select>`, where nothing can be entered. */
 export function intFromString(invalid: string, required = invalid) {

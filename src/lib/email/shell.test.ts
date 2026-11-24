@@ -142,14 +142,10 @@ describe('GOTRUE_TEMPLATES', () => {
     expect(GOTRUE_TEMPLATES.reauthentication).not.toHaveProperty('action')
   })
 
-  it('routes every link through our own confirm handler with a path-only next', () => {
+  it('mails no one-time link: /auth/confirm, which verified them, only redirects now', () => {
     for (const content of Object.values(GOTRUE_TEMPLATES)) {
-      const url = (content as { action?: { url: string } }).action?.url
-      if (url == null || !url.includes('token_hash')) continue
-
-      expect(url).toContain('{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}')
-      // `next` is assigned straight to `redirectTo.pathname`, so an absolute URL mangles it.
-      expect(url).toMatch(/&next=\/[a-z/-]*$/)
+      const url = (content as { action?: { url: string } }).action?.url ?? ''
+      expect(url).not.toMatch(/TokenHash|ConfirmationURL|\/auth\/confirm/)
     }
   })
 })

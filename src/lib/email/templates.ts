@@ -1,4 +1,3 @@
-import type { Pathname } from '$app/types'
 import { BRAND } from './brand.cli'
 import type { EmailContent } from './shell'
 
@@ -19,21 +18,9 @@ import type { EmailContent } from './shell'
 
 const SITE = '{{ .SiteURL }}'
 
-/**
- * Only the invite still links, through our own `/auth/confirm` with `token_hash`: only the Supabase
- * dashboard sends it.
- * `next` must be a path, never `{{ .RedirectTo }}`, since the handler accepts only a same-origin path.
- */
-const confirmUrl = (type: string, next: Pathname) =>
-  `${SITE}/auth/confirm?token_hash={{ .TokenHash }}&type=${type}&next=${next}`
-
-/** Where an unauthenticated recipient lands to pick a password. Exempt from the signed-in bounce. */
-const SET_PASSWORD: Pathname = '/auth/reset-password'
-
 // The code lifetime GoTrue is configured with (MAILER_OTP_EXP=600). This copy is a promise.
 const EXPIRY = '10 MINUTES'
 const expiry = '10 minutes'
-const expiresIn = `The link works once and expires in ${expiry}.`
 // `{{ .Token }}` is safe in a subject: it is digits, so html/template escaping cannot alter it.
 const CODE = '{{ .Token }}'
 const codeExpires = `The code works once and expires in ${expiry}. Never share it with anyone.`
@@ -72,17 +59,16 @@ const auth = {
   },
 
   invite: {
-    action: { label: 'Claim your seat', url: confirmUrl('invite', SET_PASSWORD) },
+    // Only the Supabase dashboard sends this, and grnyte never uses it: no token link, the reset code sets the password.
+    action: { label: 'Set your password', url: `${SITE}/auth/forgot-password` },
     body: [
       'Somebody invited you to a private region on grnyte. Only the people in it can see its areas, topos and ascents.',
-      'Claim the seat and pick a password.',
+      'To claim the seat, set a password: enter this address and grnyte mails you a code.',
     ],
     footerReason: 'invite',
-    // Not "no account exists until you open the link": `internal/api/invite.go` creates the
-    // user row and the email identity inside the same transaction that sends this.
-    footnote: `${expiresIn} If you weren’t expecting this, ignore this email. The invite expires and the seat goes unclaimed.`,
-    meta: `INVITE · LINK EXPIRES IN ${EXPIRY}`,
-    preheader: `Open the link to claim your seat. It works once and expires in ${expiry}.`,
+    footnote: 'If you weren’t expecting this, ignore this email.',
+    meta: 'INVITE',
+    preheader: 'Set a password to claim your seat.',
     subject: 'Somebody invited you to grnyte',
     title: 'Somebody saved you a seat',
   },

@@ -55,7 +55,7 @@ export async function contestedNext(
 }
 
 /**
- * Before re-mailing an unconfirmed account: its password may be a stranger's, so `/auth/confirm` replaces it.
+ * Before re-mailing an unconfirmed account: its password may be a stranger's, so the code step replaces it.
  * False when the flag did not land; the caller then sends nothing, since confirming would keep that password.
  */
 export async function flagContestedSignup(authUserId: string): Promise<boolean> {
