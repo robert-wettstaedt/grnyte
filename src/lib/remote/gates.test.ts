@@ -309,8 +309,6 @@ const NO_GATE: Record<string, string> = {
     'Runs before authentication and answers only into the mailbox it was given, never to the caller.',
   'routes/(landing)/auth/profile/profile.remote.ts#completeProfile':
     "Creates only the verified caller's own profile (`claims.sub`), refuses a deleted account, and returns a validated same-origin path.",
-  'routes/(landing)/auth/reset-password/reset-password.remote.ts#resetPassword':
-    'Changes the password of whichever auth user the recovery session established by the emailed link belongs to, and it names no account.',
 }
 
 interface Handler {
@@ -489,8 +487,6 @@ const PRE_SESSION: Record<string, string> = {
   'routes/(landing)/auth/(tabs)/signup/signup.remote.ts#signUp': 'Before any session.',
   'routes/(landing)/auth/forgot-password/forgot-password.remote.ts#confirmResetCode': 'Makes the session.',
   'routes/(landing)/auth/forgot-password/forgot-password.remote.ts#forgotPassword': 'Before any session.',
-  'routes/(landing)/auth/reset-password/reset-password.remote.ts#resetPassword':
-    'The old link flow, on the session its link made; removed one release after the code flow.',
 }
 
 describe('remote handlers and server mutators', () => {

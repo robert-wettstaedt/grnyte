@@ -264,8 +264,8 @@ export const supabase: Handle = async ({ event, resolve }) => {
 const HOME_PATH: Pathname = '/'
 
 /** Opened while already signed in, so the "authenticated users leave /auth" rule cannot have them:
- *  a settings-initiated email change confirms through /auth/confirm, linking and "Confirm with Apple"
- *  start and return through /auth/oauth and /auth/callback, and /auth/error is where any of them fails. */
+ *  an old emailed link still lands on /auth/confirm, linking and "Confirm with Apple" start and return
+ *  through /auth/oauth and /auth/callback, and /auth/error is where any of them fails. */
 const AUTH_PASSTHROUGH_PATHS: string[] = [
   '/auth/callback',
   '/auth/confirm',
@@ -273,7 +273,6 @@ const AUTH_PASSTHROUGH_PATHS: string[] = [
   CONTINUE_PATH,
   '/auth/error',
   '/auth/oauth',
-  '/auth/reset-password',
 ]
 
 /** Whose flow a callback is is unknown until a carrier claims its `state`, so no session loads first. */

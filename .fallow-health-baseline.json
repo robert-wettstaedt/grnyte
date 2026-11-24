@@ -806,11 +806,6 @@
         "count": 1
       }
     },
-    "src/routes/(landing)/auth/confirm/+server.ts": {
-      "complexity_moderate": {
-        "count": 1
-      }
-    },
     "src/routes/f/[id]/+page.server.ts": {
       "complexity_critical": {
         "count": 1
