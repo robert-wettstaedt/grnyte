@@ -189,9 +189,9 @@ Sign-up, codes and account changes depend on GoTrue switches as much as on code.
 asserts every row below but the templates (`deployment/authConfig.ts`), reading the Management API
 with `SUPABASE_PROJECT_REF` and a read-only `SUPABASE_ACCESS_TOKEN`; without them it fails.
 
-GoTrue version: `v2.197.0`, the newest release at least two weeks old that is `>= v2.175.0` and has
-the password-changed and email-changed notification switches (on 2026-11-15 only `v2.198.0-rc.*`
-was newer). Hosted projects run Supabase's own version; this pin is for self-hosted stacks.
+GoTrue version: `v2.198.0`, the version hosted prod ran on 2026-11-24, where `npm run test:gotrue`
+passed on the second stack (`v2.197.0` before). Hosted projects run Supabase's own version; this pin
+is for self-hosted stacks.
 
 | Setting                          | Hosted (dashboard or Management API)                                                              | Self-hosted env                                                              |
 | -------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
