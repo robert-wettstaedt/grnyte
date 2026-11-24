@@ -2,6 +2,7 @@
  * `forgotPassword` resets a confirmed account, re-confirms an unconfirmed one, and answers every caller alike.
  */
 import { CONTESTED_SIGNUP } from '$lib/auth'
+import { MAX_TRIES } from '$lib/auth/codes/codeAttempts.server'
 import { deleteStaleFixtureAccounts, fixtureRun, reachable, sql } from '$lib/db/testDb'
 import { solvedProofOfWork } from '$lib/forms/bot/proofOfWorkFixture'
 import { asAnonymousRequest, callForm, refusalKeys } from '$lib/remote/testHarness'
@@ -79,6 +80,24 @@ const submit = async (data: Record<string, unknown>) => {
   return result
 }
 
+/** A reset GoTrue holds back with its per-address wait, while the earlier code stands at `tries` guesses. */
+async function resendInsideWait(tries: number, email = CONFIRMED, kind: 'recovery' | 'signup' = 'recovery') {
+  const subject = email.toLowerCase()
+  await sql`insert into auth_code_attempts (subject, kind, tries) values (${subject}, ${kind}, ${tries})
+    on conflict (subject, kind) do update set tries = ${tries}, window_started_at = now()`
+  resetError = {
+    code: 'over_email_send_rate_limit',
+    message: 'For security purposes, you can only request this after 42 seconds.',
+    status: 429,
+  }
+  const { encoded, nonce } = await solvedProofOfWork()
+  nonces.push(nonce)
+  const outcome = await submitRaw({ altcha: encoded, email })
+  const rows = await sql`select tries from auth_code_attempts where subject = ${subject} and kind = ${kind}`
+  await sql`delete from auth_code_attempts where subject = ${subject}`
+  return { outcome, tries: rows.map((row) => row.tries) }
+}
+
 const cleanup = async () => {
   await deleteStaleFixtureAccounts('__forgot_')
   await sql`delete from auth.users where email in (${CONFIRMED}, ${UNCONFIRMED})`
@@ -125,6 +144,22 @@ describe.skipIf(!reachable)('forgotPassword', () => {
     nonces.push(nonce)
     expect(refusals(await submitRaw({ altcha: encoded, email: CONFIRMED }))).toEqual(['auth_mailUnavailable'])
     expect(quota).toEqual(['over_email_send_rate_limit'])
+  })
+
+  it("answers a resend inside the wait as sent, and keeps counting the earlier code's guesses", async () => {
+    const { outcome, tries } = await resendInsideWait(3)
+    expect(outcome.result).toEqual({ email: CONFIRMED, success: true })
+    expect(tries).toEqual([3])
+  })
+
+  it('refuses a resend inside the wait once the earlier code is locked, since no new code would come', async () => {
+    const { outcome } = await resendInsideWait(MAX_TRIES)
+    expect(refusals(outcome)).toEqual(['auth_rateLimited'])
+  })
+
+  it('refuses it for an unconfirmed address whose confirmation code is locked, though it has no reset guesses', async () => {
+    const { outcome } = await resendInsideWait(MAX_TRIES, UNCONFIRMED, 'signup')
+    expect(refusals(outcome)).toEqual(['auth_rateLimited'])
   })
 
   it('sends an unconfirmed account its confirmation again, never a reset, and answers the same', async () => {

@@ -18,14 +18,17 @@ export const mailPasswordReset = (authServer: AuthServer, email: string) => auth
 export const mailSignupConfirmation = (authServer: AuthServer, email: string) =>
   authServer.resend({ email, type: 'signup' })
 
+/** GoTrue's per-address wait between sends. It shares the send limit's code; only its message tells them apart. */
+export const isSendWait = (error: AuthError): boolean => /only request this after \d+ seconds/.test(error.message)
+
 /**
- * A GoTrue refusal on a send or a code step, as the person sees it. Every 429
+ * A GoTrue refusal on a send or a code step, as the person sees it. Every 429 that reaches it
  * is logged with one stable message per endpoint; the send limit also counts as a mail refusal.
+ * A reset inside its per-address wait never does: forgot-password answers that as sent.
  */
 export async function gotrueRefusal(error: AuthError, endpoint: string): Promise<FormMessage> {
   if (error.status === 429) await logServerFailure('auth', `GoTrue rate limit hit (${endpoint})`)
-  // The per-address wait between sends shares the send limit's code; only its message tells them apart.
-  if (/only request this after \d+ seconds/.test(error.message)) return formError('auth_rateLimited')
+  if (isSendWait(error)) return formError('auth_rateLimited')
   if (error.code === 'over_email_send_rate_limit') {
     await noteMailRefusal(error)
     return formError('auth_mailUnavailable')
