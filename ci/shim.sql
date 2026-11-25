@@ -134,6 +134,12 @@ do $shim$ begin
   end if;
 end $shim$;
 
+-- Supabase's value: float8 text is 15 digits, so a stored double can read back changed. Stock Postgres
+-- round-trips it, which hides what the block pin fingerprint guards. New sessions only.
+do $shim$ begin
+  execute format('alter database %I set extra_float_digits = 0', current_database());
+end $shim$;
+
 -- Zero's push bookkeeping, which zero-cache creates on first connect and CI never runs. The mutator
 -- suites push through Zero's real processor, which writes both tables in every mutation's transaction.
 CREATE SCHEMA IF NOT EXISTS zero_0;
