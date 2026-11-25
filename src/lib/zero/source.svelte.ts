@@ -4,6 +4,9 @@ import { createSubscriber } from 'svelte/reactivity'
 import type { QuerySource } from './resource.svelte'
 import { getZ } from './z.svelte'
 
+// Read inside the resource's derived, so a client swapped on login re-targets the query.
+export const defaultSource: QuerySource = { createQuery: (request, enabled) => getZ().createQuery(request, enabled) }
+
 /** What the source needs from the zero-svelte client: Zero itself, whose `materialize` takes a TTL. */
 export type TtlClient = Pick<ReturnType<typeof getZ>, 'context' | 'current'>
 

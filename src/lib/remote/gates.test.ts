@@ -261,6 +261,8 @@ const NO_GATE: Record<string, string> = {
     'Not region scoped: client_error_logs is global, and the handler gates itself on locals.userPermissions holding app.admin before it touches the privileged client.',
   'lib/logging/errors.remote.ts#logClientError':
     'Errors happen signed out, so this is open on purpose: it names no id, writes only into the global client_error_logs, and takes createdBy from the session rather than the payload.',
+  'lib/zero/read.remote.ts#readQuery':
+    "Runs a registered query definition, whose own region filter reads the caller's memberships, under row-level security as the caller: exactly what that caller may already sync through `/api/zero/get-queries`.",
   'routes/(app)/settings/account.remote.ts#accountDeletionPreview':
     "Reads only the session's own memberships and their regions' member counts, by the session's id; it names no other account.",
   'routes/(app)/settings/account.remote.ts#confirmEmailChangeCode':

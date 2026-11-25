@@ -60,6 +60,21 @@ export const appSchema = new Schema({
     { file_fk: column.text, readiness: column.text, region_fk: column.integer, source: column.text },
     { indexes: { file_fk: ['file_fk'], region_fk: ['region_fk'] } },
   ),
+  content_reports: new Table(
+    {
+      author_fk: column.integer,
+      created_at: column.text,
+      ground: column.text,
+      nid: column.integer,
+      note: column.text,
+      object_id: column.text,
+      object_name: column.text,
+      object_type: column.text,
+      region_fk: column.integer,
+      reporter_fk: column.integer,
+    },
+    { indexes: { author_fk: ['author_fk'], nid: ['nid'], region_fk: ['region_fk'], reporter_fk: ['reporter_fk'] } },
+  ),
   favorites: new Table(
     {
       area_fk: column.integer,
@@ -128,6 +143,10 @@ export const appSchema = new Schema({
   grades: new Table(
     { FB: column.text, ircra: column.integer, nid: column.integer, V: column.text },
     { indexes: { nid: ['nid'] } },
+  ),
+  region_counters: new Table(
+    { created_at: column.text, events: column.integer, nid: column.integer, region_fk: column.integer },
+    { indexes: { nid: ['nid'], region_fk: ['region_fk'] } },
   ),
   region_members: new Table(
     {
@@ -223,6 +242,10 @@ export const appSchema = new Schema({
       region_fk: column.integer,
     },
     { indexes: { block_fk: ['block_fk'], file_fk: ['file_fk'], nid: ['nid'], region_fk: ['region_fk'] } },
+  ),
+  user_counters: new Table(
+    { auth_user_fk: column.text, created_at: column.text, nid: column.integer, notifications: column.integer },
+    { indexes: { auth_user_fk: ['auth_user_fk'], nid: ['nid'] } },
   ),
   user_roles: new Table(
     { auth_user_fk: column.text, nid: column.integer, role: column.text },
@@ -323,6 +346,18 @@ export const zeroShapes = {
     ['regionFk', 'region_fk', 'plain'],
     ['source', 'source', 'plain'],
   ],
+  content_reports: [
+    ['authorFk', 'author_fk', 'plain'],
+    ['createdAt', 'created_at', 'ms'],
+    ['ground', 'ground', 'plain'],
+    ['id', 'nid', 'plain'],
+    ['note', 'note', 'plain'],
+    ['objectId', 'object_id', 'plain'],
+    ['objectName', 'object_name', 'plain'],
+    ['objectType', 'object_type', 'plain'],
+    ['regionFk', 'region_fk', 'plain'],
+    ['reporterFk', 'reporter_fk', 'plain'],
+  ],
   favorites: [
     ['areaFk', 'area_fk', 'plain'],
     ['authUserFk', 'auth_user_fk', 'plain'],
@@ -368,6 +403,12 @@ export const zeroShapes = {
     ['id', 'nid', 'plain'],
     ['ircra', 'ircra', 'plain'],
     ['V', 'V', 'plain'],
+  ],
+  region_counters: [
+    ['createdAt', 'created_at', 'ms'],
+    ['events', 'events', 'plain'],
+    ['id', 'nid', 'plain'],
+    ['regionFk', 'region_fk', 'plain'],
   ],
   region_members: [
     ['authUserFk', 'auth_user_fk', 'plain'],
@@ -436,6 +477,12 @@ export const zeroShapes = {
     ['id', 'nid', 'plain'],
     ['order', 'order', 'plain'],
     ['regionFk', 'region_fk', 'plain'],
+  ],
+  user_counters: [
+    ['authUserFk', 'auth_user_fk', 'plain'],
+    ['createdAt', 'created_at', 'ms'],
+    ['id', 'nid', 'plain'],
+    ['notifications', 'notifications', 'plain'],
   ],
   user_roles: [
     ['authUserFk', 'auth_user_fk', 'plain'],

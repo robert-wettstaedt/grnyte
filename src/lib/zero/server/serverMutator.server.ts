@@ -8,6 +8,9 @@ import { isHttpError, isValidationError } from '@sveltejs/kit'
 import { sql } from 'drizzle-orm'
 import type { Schema } from '../zero-schema'
 
+/** What a refusal says beside its message: the field it concerns (null for the whole form), or its status. */
+export type RefusalDetails = { field?: null | string; status?: number }
+
 export type ServerMutatorContext = {
   /** Runs after Zero's transaction commits, and only if this mutation succeeded. */
   afterCommit: (task: () => Promise<void>) => void
@@ -22,7 +25,7 @@ type Tx = DrizzleTransaction<typeof db>
 export const defineServerMutator = defineMutatorWithType<Schema, ServerMutatorContext, Tx>()
 
 export const refuseWithField = (message: string, field?: string): never => {
-  throw new ApplicationError(message, { details: { field: field ?? null } })
+  throw new ApplicationError(message, { details: { field: field ?? null } satisfies RefusalDetails })
 }
 
 /** Runs `write` on Zero's transaction as the caller, after Zero's own bookkeeping (which needs the
@@ -66,10 +69,12 @@ async function run<T>(tx: Transaction<Schema, Tx>, setup: (db: Tx) => Promise<un
   } catch (e) {
     const refusal = kitRefusal(e)
     if (refusal?.status != null) {
-      throw new ApplicationError(refusal.message, { details: { status: refusal.status } })
+      throw new ApplicationError(refusal.message, { details: { status: refusal.status } satisfies RefusalDetails })
     }
     if (refusal != null) {
-      throw new ApplicationError(refusal.message, { details: { field: refusal.field ?? null } })
+      throw new ApplicationError(refusal.message, {
+        details: { field: refusal.field ?? null } satisfies RefusalDetails,
+      })
     }
     if (e instanceof ApplicationError) {
       throw e

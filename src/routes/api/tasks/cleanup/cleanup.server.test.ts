@@ -213,3 +213,24 @@ describe.skipIf(!reachable)('POST /api/tasks/cleanup, app sign-in flows', () => 
     }
   })
 })
+
+describe.skipIf(!reachable)('POST /api/tasks/cleanup, recorded writes', () => {
+  it('drops one older than 30 days, counts it, and keeps a younger one', async () => {
+    const user = await createThrowawayUser('cleanup_writes')
+    const write = (id: string, age: string) => sql`
+      insert into public.applied_writes (id, auth_user_fk, name, created_at)
+      values (${user.authId + id}, ${user.authId}, 'favorites.set', now() - ${age}::interval)`
+    await Promise.all([write('old', '31 days'), write('young', '29 days')])
+
+    try {
+      const response = await runCleanup()
+
+      expect((await response.json()).appliedWrites).toBe(1)
+      expect(await sql`select id from public.applied_writes where auth_user_fk = ${user.authId}`).toEqual([
+        { id: `${user.authId}young` },
+      ])
+    } finally {
+      await dropThrowawayUser(user)
+    }
+  })
+})

@@ -30,7 +30,8 @@ Zero sync (<https://zero.rocicorp.dev/llms.txt>), Supabase, Drizzle ORM.
   `.server` (ids are serial). Remote functions remain for auth/account, upload steps,
   `sendTestPush`, `replyToFeedback` and remote reads; every new server-owned auth step also gets an
   `/api/app/v1/` endpoint through `appEndpoint`, over the same handler body. Components write
-  through the entity's `writes.ts`, never `mutators` or `write` directly.
+  through the entity's `writes.ts`, never `mutators` or `write` directly. In the PowerSync build `write()`
+  posts to `/api/sync/mutate`, outside Zero's push processor (no `tx.retryOn`); a write id makes a resend apply once.
 - A mutation on an existing row gates through `requireRow` / `requireRowForm`
   (`$lib/remote/require.server`), so the permission check sees stored data, never request input.
   Never hand-roll `findFirst` + 404 + `can*`. Exception: writers of `regions.settings`, which need a lock.
@@ -123,7 +124,8 @@ Zero sync (<https://zero.rocicorp.dev/llms.txt>), Supabase, Drizzle ORM.
 - Two sync engines, one per build (`PUBLIC_SYNC_ENGINE`, see CONTEXT.md "engine seam"). A module that differs per
   engine gets a `*.powersync.*` twin, listed in `src/lib/powersync/twins.ts`; PowerSync code imports twins by
   that path. A change to a read or a write is checked on both builds before merging; e2e and drives run on the
-  Zero build, and the PowerSync build locally with `PUBLIC_SYNC_ENGINE=powersync`.
+  Zero build, and the PowerSync build locally with `PUBLIC_SYNC_ENGINE=powersync`. There a read without a twin is a
+  server read (`readQuery`), not live. `ZERO_CLIENT_IMPORTERS` (`vite.sync-engine.ts`) only shrinks.
 - Before handing back, over your paths only: `npx prettier --write`, `npx eslint`,
   `npx vitest run --project server` (`*.server.test.ts`, `*.remote.test.ts`) or `--project browser`,
   then typecheck. Tests that count rows across a whole table run alone in `--project server-serial`

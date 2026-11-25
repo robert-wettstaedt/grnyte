@@ -27,7 +27,10 @@ const client = vi.hoisted(() => {
 
 // Zero's client is the one thing faked: the real resources, mappers and matcher all run.
 vi.mock('$lib/zero/z.svelte', () => ({ getZ: () => ({ createQuery: client.createQuery }) }))
-vi.mock('$lib/zero/ttlSource.svelte', () => ({ ttlSource: () => ({ createQuery: client.createQuery }) }))
+vi.mock('$lib/zero/source.svelte', () => ({
+  defaultSource: { createQuery: client.createQuery },
+  ttlSource: () => ({ createQuery: client.createQuery }),
+}))
 vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => true }))
 vi.mock('$lib/state/device.svelte', () => ({ isFieldDevice: () => false }))
 vi.mock('$lib/state/sync.svelte', () => ({ lastSyncedAt: () => null, localStoreLoaded: () => true }))

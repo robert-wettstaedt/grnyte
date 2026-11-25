@@ -14,25 +14,13 @@ import { schema } from '../zero-schema'
 import { zeroCaller } from './caller.server'
 import type { ServerMutatorContext } from './serverMutator.server'
 
-const dbProvider = zeroDrizzle(schema, db)
+export const dbProvider = zeroDrizzle(schema, db)
 
 type Failure = { details?: unknown; message?: string }
 
 /** zero-cache's push endpoint. Auth mirrors `get-queries`: the token arrives as a header. */
 export async function handleMutate(request: Request, registry = serverMutators): Promise<Response> {
-  // Pinned like every other read: an unqualified query on a bare pooled connection is the 42P01 outage.
-  // The session read shares the user load's transaction, so a failed read fails like a failed load.
-  const caller = await zeroCaller(request, (claims) =>
-    pinnedTx(async (tx) => ((await isSessionLive(tx, claims)) ? loadSessionUser(tx, claims.sub) : undefined)),
-  )
-
-  // 401 even for expiry, unlike get-queries: `needs-auth` keeps queued writes and resends them after
-  // `connect({ auth })`, where the `error` state a 502 ends in rejects them.
-  if (!caller.ok || caller.extra == null) {
-    error(401)
-  }
-  const { claims, extra: user, permissions, userRegions } = caller
-  const authUserId = claims.sub
+  const caller = await mutationCaller(request)
 
   const deferred: (() => Promise<void>)[] = []
 
@@ -40,13 +28,7 @@ export async function handleMutate(request: Request, registry = serverMutators):
     dbProvider,
     handler: async (transact) => {
       const mine: (() => Promise<void>)[] = []
-      const ctx: ServerMutatorContext = {
-        afterCommit: (task) => void mine.push(task),
-        claims,
-        user,
-        userPermissions: permissions.userPermissions,
-        userRegions,
-      }
+      const ctx: ServerMutatorContext = { ...caller, afterCommit: (task) => void mine.push(task) }
       const response = await transact((tx, name, args) => {
         // Zero re-runs a mutator whose `retryOn` says so; the attempt it abandons rolled back.
         mine.length = 0
@@ -59,12 +41,29 @@ export async function handleMutate(request: Request, registry = serverMutators):
       return response
     },
     request,
-    userID: authUserId,
+    userID: caller.claims.sub,
   })
 
   await drainAfterCommit(deferred)
 
   return Response.json(scrubbed(result))
+}
+
+/** The caller of a write: a verified token whose session is live, and the context its mutator runs with. 401 otherwise. */
+export async function mutationCaller(request: Request): Promise<Omit<ServerMutatorContext, 'afterCommit'>> {
+  // Pinned like every other read: an unqualified query on a bare pooled connection is the 42P01 outage.
+  // The session read shares the user load's transaction, so a failed read fails like a failed load.
+  const caller = await zeroCaller(request, (claims) =>
+    pinnedTx(async (tx) => ((await isSessionLive(tx, claims)) ? loadSessionUser(tx, claims.sub) : undefined)),
+  )
+
+  // 401 even for expiry, unlike get-queries: `needs-auth` keeps queued writes and resends them after
+  // `connect({ auth })`, where the `error` state a 502 ends in rejects them.
+  if (!caller.ok || caller.extra == null) {
+    error(401)
+  }
+  const { claims, extra: user, permissions, userRegions } = caller
+  return { claims, user, userPermissions: permissions.userPermissions, userRegions }
 }
 
 /** Zero reports a failure of its own queries (SQL with parameters) as the mutation's message, so

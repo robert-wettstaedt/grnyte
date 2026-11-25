@@ -4,8 +4,7 @@ import { holdsPill, pillSurface, type PillSurface } from '$lib/state/pill.svelte
 import { lastSyncedAt, localStoreLoaded } from '$lib/state/sync.svelte'
 import type { HumanReadable, QueryOrQueryRequest, ReadonlyJSONValue, TTL } from '@rocicorp/zero'
 import { offlinePolicyOf, type OfflinePolicy } from './offline'
-import { ttlSource } from './ttlSource.svelte'
-import { getZ } from './z.svelte'
+import { defaultSource, ttlSource } from './source.svelte'
 import type { Schema } from './zero-schema'
 
 /**
@@ -44,9 +43,6 @@ export type ResourceStatus = 'error' | 'loading' | 'ready'
 // The registry's requests share no argument or row types, and only their names and hashes are read.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type QueryRequest = QueryOrQueryRequest<any, any, any, Schema, any, any>
-
-// Read inside the resource's derived, so a client swapped on login re-targets the query.
-const zeroSource: QuerySource = { createQuery: (request, enabled) => getZ().createQuery(request, enabled) }
 
 class Resource<
   TTable extends keyof Schema['tables'] & string,
@@ -253,7 +249,7 @@ export function createResource<
     opts?.enabled ?? (() => true),
     opts?.offline,
     opts?.register,
-    opts?.source ?? (opts?.ttl == null ? zeroSource : ttlSource(opts.ttl)),
+    opts?.source ?? (opts?.ttl == null ? defaultSource : ttlSource(opts.ttl)),
     opts?.surface,
   )
 }
@@ -387,40 +383,6 @@ export function summaryOf<T extends number | { readonly length: number } | { rea
   const counted: number | { readonly length: number } | { readonly size: number } = value
   const size = typeof counted === 'number' ? counted : 'size' in counted ? counted.size : counted.length
   return phase.kind === 'arriving' && size > 0 ? value : undefined
-}
-
-/**
- * Resolve once the query has a row satisfying `isReady` in the local store, or
- * after `timeoutMs`. A server write (Drizzle) reaches Zero only after the sync
- * engine replicates it, so navigating to a newly restored entity races that lag
- * and flashes "not found". Awaiting this before navigation defers it until the
- * row is there. Entity modules wrap it as `waitForArea`/`waitForBlock`/etc.
- * ponytail: 5s cap is the ceiling, a slower sync only navigates to the loading state.
- */
-export function waitForRow<
-  TTable extends keyof Schema['tables'] & string,
-  TInput extends ReadonlyJSONValue | undefined,
-  TOutput extends ReadonlyJSONValue | undefined,
-  TReturn,
-  TContext,
->(
-  query: QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>,
-  isReady: (data: HumanReadable<TReturn>) => boolean,
-  timeoutMs = 5000,
-): Promise<void> {
-  return new Promise((resolve) => {
-    const view = getZ().materialize(query)
-    const finish = () => {
-      clearTimeout(timer)
-      view.destroy()
-      resolve()
-    }
-    const timer = setTimeout(finish, timeoutMs)
-    // The listener hands back a deep-readonly view; `isReady` only inspects it.
-    view.addListener((data) => {
-      if (isReady(data as HumanReadable<TReturn>)) finish()
-    })
-  })
 }
 
 // Zero carries the registry name on every request, so a resource finds its own offline policy.

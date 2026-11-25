@@ -112,6 +112,12 @@ jobs:
       - name: Run checks
         run: npm run check
 
+      # After the tests, some of which read the Zero build's output.
+      - name: Build (PowerSync engine)
+        run: npm run build
+        env:
+          PUBLIC_SYNC_ENGINE: powersync
+
       # Baselines may only shrink: compare against the PR target, else the commit before this push, else
       # (a new branch, a force-push) the merge-base with develop, whose baselines passed review, or main.
       # fallow refuses a base equal to HEAD, so that case skips the gate.

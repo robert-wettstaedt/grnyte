@@ -17,6 +17,7 @@ import { sweepSpentChallenges } from '$lib/forms/bot/proofOfWork.server'
 import { ERROR_LOG_MAX_AGE_MS, sweepErrorLogs } from '$lib/logging/retention.server'
 import { isCronAuthorized } from '$lib/remote/cron.server'
 import { getVideoProvider } from '$lib/videos/provider.server'
+import { APPLIED_WRITE_MAX_AGE_MS, sweepAppliedWrites } from '$lib/zero/server/syncMutate.server'
 import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
 
@@ -41,6 +42,7 @@ export const POST: RequestHandler = async ({ request }) => {
     readinessRows,
     authLogRows,
     handoffRows,
+    writeRows,
   ] = await Promise.all([
     sweepStaging(new Date(now - STAGING_MAX_AGE_MS)),
     sweepBunny(new Date(now - BUNNY_MAX_AGE_MS)),
@@ -55,15 +57,17 @@ export const POST: RequestHandler = async ({ request }) => {
     reconcileReadiness(getVideoProvider()),
     sweepAuthLogs(new Date(now - AUTH_LOG_MAX_AGE_MS), new Date(now - CODE_ATTEMPT_MAX_AGE_MS)),
     sweepAppAuthFlows(new Date(now - APP_AUTH_FLOW_GRACE_MS)),
+    sweepAppliedWrites(new Date(now - APPLIED_WRITE_MAX_AGE_MS)),
     // Alongside the deletes, not ahead of them: it walks the whole Bunny library, and its own
     // failure must never cost a retention delete this job promises.
     reportBunnyOrphans(new Date(now - BUNNY_MAX_AGE_MS)),
   ])
   console.log(
-    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback, ${errorRows} error logs, ${challengeRows} spent challenges, ${accountRows} unconfirmed accounts, ${decisionRows} moderation decisions, erased ${commentRows} deleted comments, closed ${reportRows} reports on content that is gone, corrected ${readinessRows} video readiness, removed ${authLogRows} auth log rows, ${handoffRows} app sign-in flows`,
+    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications, ${feedbackRows} feedback, ${errorRows} error logs, ${challengeRows} spent challenges, ${accountRows} unconfirmed accounts, ${decisionRows} moderation decisions, erased ${commentRows} deleted comments, closed ${reportRows} reports on content that is gone, corrected ${readinessRows} video readiness, removed ${authLogRows} auth log rows, ${handoffRows} app sign-in flows, ${writeRows} recorded writes`,
   )
   return json({
     accounts: accountRows,
+    appliedWrites: writeRows,
     authLogs: authLogRows,
     bunny,
     challenges: challengeRows,

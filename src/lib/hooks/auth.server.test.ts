@@ -1,7 +1,8 @@
 import { APP_HOME_PATH, AUTH_PATH } from '$lib/auth'
 import { appError } from '$lib/auth/app/v1'
 import { acceptPath, REGION_CREATE_PATH } from '$lib/entities/region/paths'
-import { isRedirect, type Handle, type RequestEvent } from '@sveltejs/kit'
+import { isHttpError, isRedirect, type Handle, type RequestEvent } from '@sveltejs/kit'
+import { with_request_store } from '@sveltejs/kit/internal/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // The module connects to Postgres at import time, and nothing here reaches a query: every session
@@ -29,6 +30,8 @@ const { verifyAccessToken } = await import('$lib/auth/server/verify.server')
 const { hasDeletionMarker } = await import('$lib/entities/user/provision.server')
 const { createServerClient } = await import('@supabase/ssr')
 const { authGuard, supabase } = await import('$lib/hooks/auth.server')
+const { handle } = await import('../../hooks.server')
+const { POST: syncMutate } = await import('../../routes/api/sync/mutate/+server')
 
 const lookup = vi.mocked(findLiveInvitationByEmail)
 const verify = vi.mocked(verifyAccessToken)
@@ -130,6 +133,47 @@ describe('supabase', () => {
   it('builds no client for a zero-cache callback', async () => {
     expect(await clientsBuiltFor('/api/zero/get-queries')).toBe(0)
     expect(await clientsBuiltFor('/explore')).toBe(1)
+  })
+
+  it('reads no cookie session for a write without a token, which the route refuses', async () => {
+    vi.mocked(createServerClient).mockClear()
+    getSession.mockResolvedValue({ data: { session: { access_token: 'a.cookie.token' } }, error: null })
+    verify.mockImplementation((async (token?: string) =>
+      token === 'a.cookie.token'
+        ? { claims: { session_id: 's', sub: 'auth-user-1' }, ok: true, token: {} }
+        : { ok: false, reason: 'invalid' }) as never)
+    const url = 'https://grnyte.rocks/api/sync/mutate'
+    const request = new Request(url, {
+      body: JSON.stringify({ args: {}, id: 'write-1', name: 'favorites.set' }),
+      headers: { cookie: 'sb-grnyte-auth-token=a.cookie.token', 'sec-fetch-site': 'same-origin' },
+      method: 'POST',
+    })
+    const event = {
+      cookies: { get: () => undefined, getAll: () => [], set: vi.fn() },
+      getClientAddress: () => '127.0.0.1',
+      locals: {},
+      request,
+      setHeaders: vi.fn(),
+      url: new URL(url),
+    } as unknown as RequestEvent
+    // As Kit answers a route that threw `error()`.
+    const resolve = async (resolved: RequestEvent) => {
+      try {
+        return await syncMutate(resolved as never)
+      } catch (thrown) {
+        if (isHttpError(thrown)) return new Response(null, { status: thrown.status })
+        throw thrown
+      }
+    }
+
+    // `sequence` reads the request store, and opens a span per hook.
+    const record_span = ({ fn }: { fn: (span: unknown) => unknown }) => fn({})
+    const response = await with_request_store({ event, state: { tracing: { record_span } } } as never, () =>
+      handle({ event, resolve: resolve as never }),
+    )
+
+    expect(response.status).toBe(401)
+    expect(createServerClient).not.toHaveBeenCalled()
   })
 
   // An app return carries the browser's web cookies: only the web carrier may load that session.

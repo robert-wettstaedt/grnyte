@@ -61,7 +61,12 @@ export type Twins = [
     typeof import('$lib/components/EntitySearch/search.powersync.svelte'),
     typeof import('$lib/components/EntitySearch/search.svelte')
   >,
-  Fits<typeof import('$lib/map/explore/exploreData.powersync.svelte'), typeof import('$lib/map/explore/exploreData.svelte')>,
+  Fits<
+    typeof import('$lib/map/explore/exploreData.powersync.svelte'),
+    typeof import('$lib/map/explore/exploreData.svelte')
+  >,
+  Fits<typeof import('$lib/zero/source.powersync.svelte'), typeof import('$lib/zero/source.svelte')>,
+  Fits<typeof import('$lib/zero/write.powersync'), typeof import('$lib/zero/write')>,
   Fits<typeof import('$lib/state/engine.powersync'), typeof import('$lib/state/engine')>,
 ]
 

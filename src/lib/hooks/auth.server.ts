@@ -353,6 +353,9 @@ function signedOutTarget(url: URL): string {
  */
 export const ZERO_API_PREFIX = '/api/zero/'
 
+/** The PowerSync build's write route. Not exempt from the rate limit: its callers are browsers. */
+export const SYNC_API_PREFIX = '/api/sync/'
+
 /** The installed app's API: Bearer only. Cookie-blind, which is what makes its cross-site exemption safe. */
 export const APP_API_PREFIX = '/api/app/'
 
@@ -363,7 +366,7 @@ export const isAppApi = (event: { request: Request }) => requestPath(event).star
 
 /** Surfaces that authenticate off their own header, so no hook reads or refreshes a cookie session. */
 const isHeaderAuthenticated = (event: { request: Request }) =>
-  requestPath(event).startsWith(ZERO_API_PREFIX) || isAppApi(event)
+  [ZERO_API_PREFIX, SYNC_API_PREFIX].some((prefix) => requestPath(event).startsWith(prefix)) || isAppApi(event)
 
 const MISSES: Record<number, string> = { 404: APP_ERROR_CODES.notFound, 405: APP_ERROR_CODES.methodNotAllowed }
 

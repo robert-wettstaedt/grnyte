@@ -29,10 +29,12 @@ const REGION_TABLES = [
   'ascents',
   'blocks',
   'bunny_streams',
+  'content_reports',
   'favorites',
   'files',
   'first_ascensionists',
   'geolocations',
+  'region_counters',
   'region_members',
   'routes',
   'routes_to_first_ascensionists',
@@ -40,7 +42,15 @@ const REGION_TABLES = [
   'topo_routes',
   'topos',
 ] as const
-const GLOBAL_TABLES = ['grades', 'regions', 'role_permissions', 'user_roles', 'user_settings', 'users'] as const
+const GLOBAL_TABLES = [
+  'grades',
+  'regions',
+  'role_permissions',
+  'user_counters',
+  'user_roles',
+  'user_settings',
+  'users',
+] as const
 
 let world = new SyncedWorld()
 let users = {} as Record<'insider' | 'outsider', SeedUser>
@@ -62,6 +72,7 @@ function regionsByTable(rows: Held[]): Record<string, number[]> {
 async function removeFixtures() {
   const regions = sql`(select id from public.regions where name = any(${[REGION_A, REGION_B]}))`
   for (const table of [
+    'content_reports',
     'bunny_streams',
     'favorites',
     'ascents',
@@ -127,7 +138,14 @@ async function seedRegionContent(regionFk: number, member: SeedUser) {
   await sql`
     insert into public.favorites (region_fk, auth_user_fk, user_fk, block_fk)
     values (${regionFk}, ${member.authId}, ${member.userId}, ${blockFk})`
+  await newReport(regionFk, member)
+  await sql`insert into public.region_counters (region_fk, events) values (${regionFk}, 1) on conflict do nothing`
+  await sql`insert into public.user_counters (auth_user_fk, notifications) values (${member.authId}, 1) on conflict do nothing`
 }
+
+const newReport = (regionFk: number, reporter: SeedUser) => sql`
+  insert into public.content_reports (region_fk, reporter_fk, object_type, object_id, ground)
+  values (${regionFk}, ${reporter.userId}, 'route', ${String(regionFk)}, 'spam')`
 
 beforeAll(async () => {
   if (!reachable) return
@@ -136,6 +154,8 @@ beforeAll(async () => {
   ;[regionA, regionB] = await seedTwoRegions([REGION_A, REGION_B], users.insider, users.outsider, 'region_user')
   await seedRegionContent(regionA, users.insider)
   await seedRegionContent(regionB, users.outsider)
+  // A second reporter in region A, who is no member of it.
+  await newReport(regionA, users.outsider)
   await replicate()
 }, 60_000)
 
@@ -180,6 +200,45 @@ describe.skipIf(!reachable)('synced reads never cross the region boundary', () =
     expect(userIds).not.toContain(users.outsider.userId)
     expect(new Set(settingsOwners)).toEqual(new Set([users.insider.authId]))
     expect(roleOwners.filter((owner) => owner !== users.insider.authId)).toEqual([])
+  })
+
+  it("holds a member's own open reports, never another reporter's in the same region", async () => {
+    const reports = (await holdings(users.insider.authId)).filter((row) => row.table === 'content_reports')
+
+    expect(reports.map(({ data }) => [Number(data.region_fk), Number(data.reporter_fk)])).toEqual([
+      [regionA, users.insider.userId],
+    ])
+  })
+
+  it('holds no report of a region the reporter is no active member of', async () => {
+    await sql`
+      insert into public.region_members (region_fk, role, is_active, auth_user_fk, user_fk)
+      values (${regionA}, 'region_user', false, ${users.outsider.authId}, ${users.outsider.userId})`
+    try {
+      await replicate()
+      const reports = (await holdings(users.outsider.authId)).filter((row) => row.table === 'content_reports')
+
+      expect(reports.map(({ data }) => Number(data.region_fk))).toEqual([regionB])
+    } finally {
+      await sql`delete from public.region_members where region_fk = ${regionA} and user_fk = ${users.outsider.userId}`
+      await replicate()
+    }
+  })
+
+  it("holds the account's own notifications marker and nobody else's", async () => {
+    const owners = (await holdings(users.insider.authId))
+      .filter((row) => row.table === 'user_counters')
+      .map((row) => row.data.auth_user_fk)
+
+    expect(owners).toEqual([users.insider.authId])
+  })
+
+  it("holds the marker of the member's region and of no other", async () => {
+    const regions = (await holdings(users.insider.authId))
+      .filter((row) => row.table === 'region_counters')
+      .map((row) => Number(row.data.region_fk))
+
+    expect(regions).toEqual([regionA])
   })
 
   it("keeps a former member's name for those still in the region, and nothing of the region for them", async () => {
