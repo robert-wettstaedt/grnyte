@@ -1,6 +1,6 @@
 ---
 name: scaffold-entity
-description: Scaffold a new Zero-synced entity module in this app (src/lib/entities/<name>/ with dto, mapper, queries, resources, permissions). Use when adding a new domain entity to sync via Zero, exposing a DB table to the client, wiring queries/resources for a table, or when the user says "add an entity", "create the <X> module", "expose X in Zero", or "load/query <table> on the client". Mutations go through SvelteKit remote functions, never Zero mutators.
+description: Scaffold a new Zero-synced entity module in this app (src/lib/entities/<name>/ with dto, mapper, queries, resources, permissions). Use when adding a new domain entity to sync via Zero, exposing a DB table to the client, wiring queries/resources for a table, or when the user says "add an entity", "create the <X> module", "expose X in Zero", or "load/query <table> on the client". Writes are Zero custom mutators.
 ---
 
 # Scaffold a Zero entity module
@@ -35,8 +35,9 @@ because concrete code drifts and the live module is the source of truth.
 
 ## Gotchas (these are the ones that cost time)
 
-- **No Zero mutators.** All writes are SvelteKit remote functions (`command`/`authedCommand`) in a
-  `<name>.remote.ts`, RLS-gated, returning `MutationResult<T>`. Mirror `src/lib/entities/file/files.remote.ts`.
+- **Writes are Zero custom mutators**: client def in `mutators.ts`, server def in `mutators.server.ts` wrapping
+  a gated `*.server.ts` body in `asCaller`, both aggregated in `src/lib/zero/mutators*.ts`. Components write
+  through `writes.ts` only. Mirror `area/`; AGENTS.md has the rules.
 - **Cardinality-one `.related()` returns a single object, not an array** (`row.bunnyStream?.source`,
   `topo.file?.path`). Only `cardinality: 'many'` relations are arrays (`(row.files ?? []).map(...)`).
 - **`relatedRegion`'s `r` only accepts tables in the `RegionTable` union.** A related table that

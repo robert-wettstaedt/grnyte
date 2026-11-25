@@ -16,8 +16,8 @@ const REGION = '__block_pin_region__'
  * same double, which is the difference the guard crosses. A replacement that round-trips disarms
  * this file silently.
  *
- * Check one with `select <v>::float8::text::float8 = <v>::float8` (must be FALSE) at the DEFAULT
- * `extra_float_digits`; at 3 it is true for everything and measures nothing.
+ * Check one with `select <v>::float8::text::float8 = <v>::float8` (must be FALSE) at Supabase's
+ * `extra_float_digits` of 0, which `ci/shim.sql` sets; from 1 up it is true for everything.
  */
 const LAT = 50.8756103515625
 const LONG = 13.985819816589355

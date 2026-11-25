@@ -164,7 +164,7 @@ describe.skipIf(!reachable)('reaction mutators', () => {
       await sql`select body, removed_by, deleted_at is not null as gone, user_fk, auth_user_fk from public.reactions where id = ${id}`,
     ).toEqual([{ auth_user_fk: null, body: ERASED_COMMENT, gone: true, removed_by: 'admin', user_fk: null }])
     expect(
-      await sql`select ground, reason, removed_body, object_type from public.moderation_decisions where object_id = ${id}`,
+      await sql`select ground, reason, removed_body, object_type from public.moderation_decisions where object_type = 'comment' and object_id = ${String(id)}`,
     ).toEqual([{ ground: 'harassment', object_type: 'comment', reason: removal.reason, removed_body: 'rude words' }])
   })
 
