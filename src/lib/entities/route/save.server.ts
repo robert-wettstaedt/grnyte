@@ -1,5 +1,4 @@
 import { blocks, routes, routesToFirstAscensionists, routesToTags, type Route } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import { blank, formError, type FormMessage } from '$lib/forms/schemas'
 import type { Context } from '$lib/remote/authed.server'
 import { requireRowForm } from '$lib/remote/require.server'
@@ -251,5 +250,5 @@ export async function updateRouteRow(
     }),
   )
 
-  return { data: { id: route.id }, redirectTo: entityHref('routes', route.id) }
+  return { data: { id: route.id } }
 }

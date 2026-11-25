@@ -14,14 +14,24 @@
  * The fixture is one region, one block, and a file attached to an ASCENT rather than to the block,
  * which is the realistic victim: somebody's photo, in a region the attacker legitimately edits.
  */
-import { createThrowawayUser, dropThrowawayUser, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest, statusOf } from '$lib/remote/testHarness'
+import {
+  createThrowawayUser,
+  dropGuidebookRegion,
+  dropThrowawayUser,
+  reachable,
+  seedUsers,
+  sql,
+  type SeedUser,
+} from '$lib/db/testDb'
+import { pushRefusal, zeroClient, type PushedResult } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { createTopo, replaceTopoImage } from './topos.remote'
 
 const REGION = '__topos_remote__'
 
 let maintainer: SeedUser
+let client: ReturnType<typeof zeroClient>
+/** The second writer of a race: one client's pushes serialise on its own bookkeeping row. */
+let rival: ReturnType<typeof zeroClient>
 let victim: SeedUser
 let regionId = 0
 let blockId = 0
@@ -33,6 +43,8 @@ beforeAll(async () => {
 
   const users = await seedUsers({ maintainer: 'maintainer@grnyte.rocks' })
   maintainer = users.maintainer
+  client = zeroClient(maintainer.authId)
+  rival = zeroClient(maintainer.authId)
   victim = await createThrowawayUser('topo-victim')
 
   const [region] = await sql<{ id: number }[]>`
@@ -74,16 +86,12 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (reachable) {
-    await sql`delete from public.events where region_fk = ${regionId}`
-    await sql`delete from public.topo_routes where region_fk = ${regionId}`
-    await sql`delete from public.topos where region_fk = ${regionId}`
-    await sql`delete from public.files where region_fk = ${regionId}`
+    await client.cleanup()
+    await rival.cleanup()
+    // The victim's file hangs on an ascent, which the helper does not know.
+    await sql`delete from public.files where region_fk = ${regionId} and ascent_fk is not null`
     await sql`delete from public.ascents where region_fk = ${regionId}`
-    await sql`delete from public.routes where region_fk = ${regionId}`
-    await sql`delete from public.blocks where region_fk = ${regionId}`
-    await sql`delete from public.areas where region_fk = ${regionId}`
-    await sql`delete from public.region_members where region_fk = ${regionId}`
-    await sql`delete from public.regions where id = ${regionId}`
+    await dropGuidebookRegion(regionId)
     await dropThrowawayUser(victim)
   }
   await sql.end()
@@ -97,10 +105,12 @@ afterAll(async () => {
  * ran them in declaration order. `vitest --sequence.shuffle` failed all three, against an id of 0
  * that no row has, and the message ("expected 404 to be 409") said nothing about the real cause.
  */
-async function freshTopo(): Promise<number> {
-  const result = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: ownFileId }))
-  return result!.data!.id
-}
+const freshTopo = async () => idOf(await create(ownFileId))
+
+const create = (fileId: string, by = client) => by.push('topos.create', { blockId, fileId })
+const replace = (topoId: number, fileId: string, by = client) => by.push('topos.replaceImage', { fileId, topoId })
+const idOf = (result: PushedResult) => (result.data as { id: number }).id
+const refusedWith = (result: PushedResult) => pushRefusal(result).message
 
 describe.skipIf(!reachable)('topo images', () => {
   // Each case starts from no topos at all, so none of them inherits what another one built.
@@ -110,19 +120,8 @@ describe.skipIf(!reachable)('topo images', () => {
     await sql`delete from public.topos where region_fk = ${regionId}`
   })
 
-  it('creates a topo from the block s own image', async () => {
-    const result = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: ownFileId }))
-
-    const [stored] = await sql<{ file_fk: string }[]>`select file_fk from public.topos where id = ${result!.data!.id}`
-    expect(stored?.file_fk).toBe(ownFileId)
-  })
-
   it('refuses to create a topo pointing at a file that is not the block s', async () => {
-    const status = await statusOf(() =>
-      asRequest(maintainer.authId, () => createTopo({ blockId, fileId: victimFileId })),
-    )
-
-    expect(status).toBe(404)
+    expect(refusedWith(await create(victimFileId))).toBe('files_notFound')
 
     const rows = await sql`select id from public.files where id = ${victimFileId}`
     expect(rows).toHaveLength(1)
@@ -133,11 +132,7 @@ describe.skipIf(!reachable)('topo images', () => {
 
     // The shorter route to the same end: point the topo at the victim's file, then delete the topo
     // and its bytes go with it.
-    const status = await statusOf(() =>
-      asRequest(maintainer.authId, () => replaceTopoImage({ fileId: victimFileId, topoId })),
-    )
-
-    expect(status).toBe(404)
+    expect(refusedWith(await replace(topoId, victimFileId))).toBe('files_notFound')
 
     const [topo] = await sql<{ fileFk: string }[]>`
       select file_fk as "fileFk" from public.topos where id = ${topoId}`
@@ -157,20 +152,16 @@ describe.skipIf(!reachable)('topo images', () => {
       insert into public.files (id, path, region_fk, created_by, block_fk)
       values (gen_random_uuid()::text, '/topos/second.jpg', ${regionId}, ${maintainer.userId}, ${blockId})
       returning id`
-    const sibling = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: second.id }))
+    const sibling = idOf(await create(second.id))
 
-    const status = await statusOf(() =>
-      asRequest(maintainer.authId, () => replaceTopoImage({ fileId: second.id, topoId })),
-    )
-
-    expect(status).toBe(409)
+    expect(refusedWith(await replace(topoId, second.id))).toBe('topo_alreadyTopo')
 
     const [topo] = await sql<{ fileFk: string }[]>`
       select file_fk as "fileFk" from public.topos where id = ${topoId}`
     expect(topo.fileFk).toBe(ownFileId)
 
     const [held] = await sql<{ fileFk: string }[]>`
-      select file_fk as "fileFk" from public.topos where id = ${sibling!.data!.id}`
+      select file_fk as "fileFk" from public.topos where id = ${sibling}`
     expect(held.fileFk).toBe(second.id)
   })
 
@@ -179,9 +170,7 @@ describe.skipIf(!reachable)('topo images', () => {
 
     // The degenerate call: the update is a no-op against the same id, and the delete that used to
     // follow it destroyed the image the topo still points at.
-    const result = await asRequest(maintainer.authId, () => replaceTopoImage({ fileId: ownFileId, topoId }))
-
-    expect(result?.data?.id).toBe(topoId)
+    expect(idOf(await replace(topoId, ownFileId))).toBe(topoId)
 
     const [topo] = await sql<{ fileFk: string }[]>`
       select file_fk as "fileFk" from public.topos where id = ${topoId}`
@@ -198,26 +187,20 @@ describe.skipIf(!reachable)('topo images', () => {
       select gen_random_uuid()::text, '/topos/race-' || n || '.jpg', ${regionId}, ${maintainer.userId}, ${blockId}
       from generate_series(1, 3) as n
       returning id`
-    const first = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: a.id }))
-    const second = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: b.id }))
+    const first = idOf(await create(a.id))
+    const second = idOf(await create(b.id))
 
-    const statuses = await Promise.all(
-      [first!.data!.id, second!.data!.id].map((topoId) =>
-        statusOf(() => asRequest(maintainer.authId, () => replaceTopoImage({ fileId: target.id, topoId }))),
-      ),
-    )
+    const results = await Promise.all([replace(first, target.id), replace(second, target.id, rival)])
 
-    expect(statuses.sort()).toEqual([409, undefined])
+    expect(results.map(refusedWith).sort()).toEqual(['topo_alreadyTopo', undefined])
     const rows = await sql`select id from public.topos where file_fk = ${target.id}`
     expect(rows).toHaveLength(1)
   })
 
   it('keeps one topo per image when two creates race', async () => {
-    const results = await Promise.all(
-      [1, 2].map(() => statusOf(() => asRequest(maintainer.authId, () => createTopo({ blockId, fileId: ownFileId })))),
-    )
+    const results = await Promise.all([create(ownFileId), create(ownFileId, rival)])
 
-    expect(results.filter((status) => status === 409)).toHaveLength(1)
+    expect(results.map(refusedWith).sort()).toEqual(['topo_alreadyTopo', undefined])
     const rows = await sql`select id from public.topos where file_fk = ${ownFileId}`
     expect(rows).toHaveLength(1)
   })

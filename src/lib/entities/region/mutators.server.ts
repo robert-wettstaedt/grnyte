@@ -64,7 +64,7 @@ export const regionsServerMutatorDefs = {
     }),
     invite: defineServerMutator(inviteMemberSchema, async ({ args, ctx, tx }) => {
       const { data } = await asCaller(tx, ctx, (db) => inviteRegionMemberRow(args, { ...ctx, db }, mail(args.locale)))
-      return { email: data.email }
+      return data
     }),
     leave: defineServerMutator(regionFkSchema, async ({ args, ctx, tx }) => {
       await asCaller(tx, ctx, (db) => leaveRegionRow(args, { ...ctx, db }))
@@ -83,7 +83,7 @@ export const regionsServerMutatorDefs = {
       const { data } = await asCaller(tx, ctx, (db) =>
         resendRegionInvitationRow(args, { ...ctx, db }, mail(args.locale)),
       )
-      return { email: data.email }
+      return data
     }),
     restoreInvitation: defineServerMutator(invitationSchema, async ({ args, ctx, tx }) => {
       await asCaller(tx, ctx, (db) => restoreRegionInvitationRow(args, { ...ctx, db }))

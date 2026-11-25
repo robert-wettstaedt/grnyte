@@ -73,7 +73,7 @@ Two of these decide the shape of the rest.
 
 The app does not call an API when you open a page. Zero copies the rows that your account can read into a database in the browser, and it holds that copy in sync over a WebSocket. A query reads the local copy. A page therefore opens at once, and it opens with no network as well. People use grnyte at the crag, where a phone often has no signal.
 
-Writes do not go through Zero. Every change is a SvelteKit remote function that runs on the server.
+Writes go through Zero custom mutators. The server half of each mutator checks the permission and runs the write.
 
 ### Row Level Security
 

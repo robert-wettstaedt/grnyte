@@ -17,8 +17,7 @@ interface Founder {
 }
 
 export async function assertBelowOwnedCap(tx: Db, userId: number, refusal: FormMessage) {
-  // Re-checked inside the transaction rather than trusting the handler's check: two tabs
-  // submitting at once both pass that one and would leave the account over the cap.
+  // Under the owner lock: two tabs submitting at once would otherwise both count below the cap.
   await lockKey(tx, LOCK.regionOwner, userId)
   const [{ owned }] = await tx.select({ owned: count() }).from(regions).where(eq(regions.createdBy, userId))
 
@@ -28,9 +27,9 @@ export async function assertBelowOwnedCap(tx: Db, userId: number, refusal: FormM
 }
 
 /**
- * Found a region and put its creator in it as `region_admin`, in one transaction.
+ * Found a region and put its creator in it as `region_admin`, in the caller's transaction.
  *
- * Over the base (non-RLS) `db` for the same reason `acceptInvitation` is: the founder is not a
+ * On a privileged handle for the same reason `acceptInvitation` is: the founder is not a
  * member yet, and `region_members` deliberately has no self-insert policy (see the comment on the
  * table). Creating the region in this transaction is the authorization, and it is
  * checked right here.
@@ -38,11 +37,6 @@ export async function assertBelowOwnedCap(tx: Db, userId: number, refusal: FormM
  * Atomic on purpose. A region with no members is unreachable garbage: the `regions` select policy
  * is membership-scoped, so nobody, including its creator, could ever see it again.
  */
-export function createRegionForUser(founder: Founder): Promise<{ id: number }> {
-  return pinnedTx((tx) => createRegionIn(tx, founder))
-}
-
-/** {@link createRegionForUser} on a privileged handle the caller already holds. */
 export async function createRegionIn(tx: Db, { authUserId, name, userId }: Founder): Promise<{ id: number }> {
   await assertBelowOwnedCap(tx, userId, formError('region_capReached', { count: MAX_OWNED_REGIONS }))
 

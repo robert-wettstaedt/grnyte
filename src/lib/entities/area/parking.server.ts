@@ -1,5 +1,4 @@
 import { areas, geolocations, type Area } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import { formError, type FormMessage } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import { stringifyCoords } from '$lib/map/coords'
@@ -44,8 +43,6 @@ export async function addParkingRow(
     regionFk: area.regionFk,
     verb: 'add',
   })
-
-  return { redirectTo: entityHref('areas', areaId) }
 }
 
 /** Remove a parking location. Needs delete permission in the parking's region (adding one
@@ -112,7 +109,7 @@ export async function deleteParkingRow(
     })
   }
 
-  // Back to the area, plus a snapshot (the envelope's `data`) to recreate the parking on Undo.
+  // A snapshot (the envelope's `data`) to recreate the parking on Undo.
   return {
     data: {
       areaId: parking.areaFk,
@@ -120,7 +117,6 @@ export async function deleteParkingRow(
       long: parking.long,
       path: removedPath,
     },
-    redirectTo: entityHref('areas', parking.areaFk),
   }
 }
 

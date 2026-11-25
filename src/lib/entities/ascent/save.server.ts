@@ -1,5 +1,4 @@
 import { ascents, routes } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import { blank, formError } from '$lib/forms/schemas'
 import type { Context } from '$lib/remote/authed.server'
 import { requireRowForm } from '$lib/remote/require.server'
@@ -67,8 +66,7 @@ export async function createAscentRow(value: AscentFormValue, { afterCommit, db,
     }),
   )
 
-  // No `redirectTo`, for the reason `createRoute` gives: a 303 discards this return value, and the
-  // form needs the id to finalize its uploads against the new ascent.
+  // The form needs the id to finalize its uploads against the new ascent.
   return { data: { id: ascent.id } }
 }
 
@@ -158,8 +156,5 @@ export async function updateAscentRow(
     }),
   )
 
-  return {
-    data: { id: ascent.id, routeFk: ascent.routeFk },
-    redirectTo: entityHref('routes', ascent.routeFk),
-  }
+  return { data: { id: ascent.id, routeFk: ascent.routeFk } }
 }

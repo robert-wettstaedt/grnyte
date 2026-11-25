@@ -6,14 +6,11 @@ import { error } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { FavoriteEntityType } from './dto'
 
-/**
- * Sets the caller's favorite for an entity to `saved`, or flips it when `saved` is omitted.
- * Returns the resulting state.
- */
+/** Sets the caller's favorite for an entity to `saved`. */
 export async function setFavorite(
-  { entityId, entityType, saved }: { entityId: number; entityType: FavoriteEntityType; saved?: boolean },
+  { entityId, entityType, saved }: { entityId: number; entityType: FavoriteEntityType; saved: boolean },
   { db, user, userRegions }: Pick<Context, 'db' | 'user' | 'userRegions'>,
-): Promise<boolean> {
+): Promise<void> {
   // regionFk is stamped from the entity, never the client: the favorites INSERT policy is
   // own-row only (no region predicate), so a submitted regionFk would go in unchecked.
   const columns = { deletedAt: true, regionFk: true } as const
@@ -43,13 +40,11 @@ export async function setFavorite(
     where: and(eq(favorites.userFk, user.id), eq(objectColumn, entityId)),
   })
 
-  const want = saved ?? existing == null
-
-  if (want === (existing != null)) {
-    return want
+  if (saved === (existing != null)) {
+    return
   }
 
-  if (want) {
+  if (saved) {
     // The INSERT half only: removing a favorite whose entity has since died has to keep working.
     // Not an existence oracle: only a caller past the region-READ check above can reach this 404.
     if (entity.deletedAt != null) {
@@ -59,11 +54,6 @@ export async function setFavorite(
     // `onConflictDoNothing` because this reads before it writes: two devices tapping Save at the
     // same moment both see nothing and both insert, and the unique index would turn the loser
     // into an error over a state it already agrees with.
-    //
-    // Saved either way, so `true` either way. The three unique indexes are per (user, object), so
-    // a conflict can only ever be this caller's own row: the loser of that race is looking at the
-    // favorite it was asking for. Reporting what the INSERT returned instead would answer `false`
-    // on a row that exists and leave the button drawn unsaved.
     await db
       .insert(favorites)
       // Every column named, and the two the request did not ask for written as NULL rather than
@@ -79,10 +69,8 @@ export async function setFavorite(
       })
       .onConflictDoNothing()
 
-    return true
+    return
   }
 
   await db.delete(favorites).where(eq(favorites.id, existing!.id))
-
-  return false
 }

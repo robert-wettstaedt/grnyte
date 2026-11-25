@@ -1,5 +1,4 @@
 import { regions } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import type { Context } from '$lib/remote/authed.server'
@@ -123,8 +122,6 @@ export async function updateRegionMapLayersRow(
     // request re-reads `userRegions` and refuses with `form_noPermission`.
     invalid(formError('region_notFound'))
   }
-
-  return { redirectTo: entityHref('regions', id) }
 }
 
 export async function updateRegionRow({ id, name }: z.output<typeof regionActionSchema>, { db, userRegions }: Caller) {
@@ -141,8 +138,6 @@ export async function updateRegionRow({ id, name }: z.output<typeof regionAction
   }
 
   // No event row: object columns have no 'region' member, and the feed renders content changes.
-
-  return { redirectTo: entityHref('regions', id) }
 }
 
 /** Throws unless a settings write actually landed. Silence was the old behaviour and the worst

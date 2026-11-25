@@ -1,14 +1,13 @@
 /**
- * `updateBlock`'s pin staleness refusal, through the real handler in a real RLS transaction.
+ * `blocks.update`'s pin staleness refusal, through the mutate endpoint in a real RLS transaction.
  *
  * A submit with no coordinates deletes the pin, and a block with no pin posts the same fields as
  * one whose pin never loaded. The removal cases keep it honest: a guard that refused every location
  * change would pass every refusal test and break the feature.
  */
-import { reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest, callForm } from '$lib/remote/testHarness'
+import { dropGuidebookRegion, reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
+import { pushRefusal, zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { updateBlock } from './blocks.remote'
 import { blockPinFingerprint } from './fingerprint'
 
 const REGION = '__block_pin_region__'
@@ -24,6 +23,7 @@ const LAT = 50.8756103515625
 const LONG = 13.985819816589355
 
 let maintainer: SeedUser
+let client: ReturnType<typeof zeroClient>
 let regionId = 0
 let sectorId = 0
 let blockId = 0
@@ -33,6 +33,7 @@ beforeAll(async () => {
 
   const seeded = await seedRegion(REGION)
   maintainer = seeded.user
+  client = zeroClient(maintainer.authId)
   regionId = seeded.regionId
 
   const [sector] = await sql<{ id: number }[]>`
@@ -73,23 +74,13 @@ beforeEach(async () => {
 
 afterAll(async () => {
   if (reachable) {
-    await sql`delete from public.changes where region_fk = ${regionId}`
-    await sql`delete from public.events where region_fk = ${regionId}`
-    await sql`update public.blocks set geolocation_fk = null where region_fk = ${regionId}`
-    await sql`delete from public.geolocations where region_fk = ${regionId}`
-    await sql`delete from public.blocks where region_fk = ${regionId}`
-    await sql`delete from public.areas where region_fk = ${regionId}`
-    await sql`delete from public.region_members where region_fk = ${regionId}`
-    await sql`delete from public.regions where id = ${regionId}`
+    await client.cleanup()
+    await dropGuidebookRegion(regionId)
   }
   await sql.end()
 })
 
-/** As in `blocks.remote.test.ts`: success and a refusal both resolve, a refusal folded into form
- *  issues by Kit, so the database afterwards is what separates the two. */
-async function submit(data: Record<string, unknown>): Promise<void> {
-  await asRequest(maintainer.authId, () => callForm(updateBlock, data))
-}
+const submit = (data: Record<string, unknown>) => client.push('blocks.update', data)
 
 const edit = (known: string | undefined, extra: Record<string, unknown> = {}) => ({
   areaId: String(sectorId),
@@ -120,6 +111,13 @@ const storedName = async () =>
  */
 const CLIENT_KNOWN = blockPinFingerprint({ estimated: false, lat: LAT, long: LONG })
 
+async function expectUntouched() {
+  expect(await storedName()).toBe('__block_pin_block__')
+  // `long` to a tolerance: reading back through postgres.js is the lossy path this file is about.
+  expect(await storedPin()).toMatchObject({ lat: LAT })
+  expect((await storedPin())?.long).toBeCloseTo(LONG, 7)
+}
+
 describe.skipIf(!reachable)('updateBlock pin staleness guard', () => {
   it('accepts a fingerprint built from the exact double, not from what the driver read back', async () => {
     // The blocker's regression test: raw floats make this refuse, and with it ~99% of located
@@ -134,7 +132,7 @@ describe.skipIf(!reachable)('updateBlock pin staleness guard', () => {
     const known = CLIENT_KNOWN
     await sql`update public.geolocations set lat = 48.1 where block_fk = ${blockId}`
 
-    await submit(edit(known, { name: 'Should Not Land' }))
+    expect(pushRefusal(await submit(edit(known, { name: 'Should Not Land' }))).message).toBe('blocks_pinStale')
 
     expect(await storedName()).toBe('__block_pin_block__')
     expect(await storedPin()).toMatchObject({ lat: 48.1 })
@@ -143,21 +141,19 @@ describe.skipIf(!reachable)('updateBlock pin staleness guard', () => {
   it('refuses a submit claiming there was no pin, which is the deletion this guards', async () => {
     // The shipped route bug in its block shape: a form that never loaded the geolocation posts no
     // coordinates, and without the guard `updateBlock` deletes the row.
-    await submit({ ...edit(blockPinFingerprint(null), { name: 'Wiped' }), lat: '', long: '' })
+    const result = await submit({ ...edit(blockPinFingerprint(null), { name: 'Wiped' }), lat: '', long: '' })
 
-    expect(await storedName()).toBe('__block_pin_block__')
-    // `long` to a tolerance: reading back through postgres.js is the lossy path this file is about.
-    expect(await storedPin()).toMatchObject({ lat: LAT })
-    expect((await storedPin())?.long).toBeCloseTo(LONG, 7)
+    expect(pushRefusal(result).message).toBe('blocks_pinStale')
+
+    await expectUntouched()
   })
 
   it('refuses a submit that omits the fingerprint, so an old tab cannot bypass it', async () => {
-    await submit(edit(undefined, { name: 'Should Not Land Either' }))
+    expect(pushRefusal(await submit(edit(undefined, { name: 'Should Not Land Either' }))).message).toBe(
+      'blocks_pinStale',
+    )
 
-    expect(await storedName()).toBe('__block_pin_block__')
-    // `long` to a tolerance: reading back through postgres.js is the lossy path this file is about.
-    expect(await storedPin()).toMatchObject({ lat: LAT })
-    expect((await storedPin())?.long).toBeCloseTo(LONG, 7)
+    await expectUntouched()
   })
 
   it('still lets a reader remove the pin on purpose', async () => {

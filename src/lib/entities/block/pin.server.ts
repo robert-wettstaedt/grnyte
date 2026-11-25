@@ -1,6 +1,5 @@
 import * as schema from '$lib/db/schema'
 import { blocks, geolocations } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import { stringifyCoords } from '$lib/map/coords'
@@ -103,8 +102,6 @@ export async function setBlockLocationRow(value: PinValue, { db, user, userRegio
     oldEntity: { location: existing == null ? null : stringifyCoords(existing, existing.estimated) },
     regionFk: block.regionFk,
   })
-
-  return { redirectTo: entityHref('blocks', block.id) }
 }
 
 /** The live block a pin command names, once the caller is allowed to move it. */

@@ -1,5 +1,5 @@
 /**
- * The database half of editing a region's route-tag vocabulary. The remote functions keep the
+ * The database half of editing a region's route-tag vocabulary. `edit.server.ts` keeps the
  * permission checks and the refusals; this keeps the SQL.
  *
  * Every function takes a {@link WritableKey}, carrying the vocabulary as read under the row lock.

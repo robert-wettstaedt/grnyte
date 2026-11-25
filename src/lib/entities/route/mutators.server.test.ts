@@ -2,8 +2,8 @@ import { reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
 import { zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-// The route mutators' wiring: what each answers and how a refusal arrives. The bodies they share
-// with the remote functions are covered by `routes.remote.test.ts` and the restore suites.
+// The route mutators' wiring: what each answers and how a refusal arrives. The bodies are
+// covered by `routes.server.test.ts` and the restore suites.
 const REGION = '__route_mutators_region__'
 
 let user: SeedUser

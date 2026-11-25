@@ -21,7 +21,7 @@ import { storage } from './storage'
  * visit completed a full sync.
  *
  * Per device and per user in `localStorage`, never on `userSettings`. Settings are one row per
- * account, writable only through a server remote function, so they cannot be written while offline
+ * account, writable only on the server, so they cannot be written while offline
  * and, after an eviction, they would sync back a timestamp some other device wrote. That is exactly
  * the wrong answer to "does *this* browser still have the guidebook".
  *

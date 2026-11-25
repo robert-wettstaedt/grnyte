@@ -1,7 +1,6 @@
 /**
- * Resolving submitted first-ascensionist climbers to `firstAscensionists` rows, split out of
- * `routes.remote.ts` so it can be imported from a test (a `.remote.ts` module cannot). DB-backed:
- * it reads and writes the region's climber list.
+ * Resolving submitted first-ascensionist climbers to `firstAscensionists` rows. DB-backed: it reads
+ * and writes the region's climber list.
  */
 import * as schema from '$lib/db/schema'
 import { firstAscensionists } from '$lib/db/schema'

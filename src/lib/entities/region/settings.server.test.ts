@@ -8,10 +8,9 @@
  */
 import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest } from '$lib/remote/testHarness'
+import { pushRefusal, zeroClient } from '$lib/remote/testHarness'
 import { sql as drizzleSql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addRegionTag, removeRegionTag } from './regions.remote'
 import { lockRegionSettings, writableKey, writeRegionSettings } from './settings.server'
 import { addTag } from './tags.server'
 
@@ -268,24 +267,38 @@ describe.skipIf(!reachable)('writeRegionSettings', () => {
   })
 })
 
-describe.skipIf(!reachable)('the tag commands end to end', () => {
+describe.skipIf(!reachable)('the tag mutators end to end', () => {
+  /** Two, so that racing pushes overlap: one client's serialise on its own bookkeeping row. */
+  let client: ReturnType<typeof zeroClient>
+  let rival: ReturnType<typeof zeroClient>
+  beforeAll(() => {
+    client = zeroClient(admin.authId)
+    rival = zeroClient(admin.authId)
+  })
+  afterAll(async () => {
+    await client.cleanup()
+    await rival.cleanup()
+  })
+
+  const removeTag = () => client.push('regions.removeTag', { name: 'SD', regionFk: regionId })
+
   it('keeps both words when two admins add one at the same time', async () => {
     await Promise.all([
-      asRequest(admin.authId, () => addRegionTag({ name: 'alpha', regionFk: regionId })),
-      asRequest(admin.authId, () => addRegionTag({ name: 'beta', regionFk: regionId })),
+      client.push('regions.addTag', { name: 'alpha', regionFk: regionId }),
+      rival.push('regions.addTag', { name: 'beta', regionFk: regionId }),
     ])
 
     expect((await storedTags(regionId)).toSorted()).toEqual(['SD', 'alpha', 'beta'].toSorted())
   })
 
-  it('fails the command when the write lands nowhere, rather than reporting success', async () => {
+  it('fails the mutation when the write lands nowhere, rather than reporting success', async () => {
     // What `assertWritten` is for: without it a retired tag vanished from every route while the
     // screen still showed it. Reverting that throw to a no-op has to turn this red.
     await sql`insert into public.routes_to_tags (route_fk, tag_fk, region_fk)
               values (${routeId}, 'SD', ${regionId})`
     forced.zero = true
 
-    await expect(asRequest(admin.authId, () => removeRegionTag({ name: 'SD', regionFk: regionId }))).rejects.toThrow()
+    expect(pushRefusal(await removeTag()).message).toBe('region_notFound')
 
     // And the transaction took the junction delete back with it.
     expect(await tagsOn(routeId)).toEqual(['SD'])
@@ -297,7 +310,7 @@ describe.skipIf(!reachable)('the tag commands end to end', () => {
               values (${routeId}, 'SD', ${regionId})`
     await sql`update public.regions set settings = '{"tags":["SD",5]}'::jsonb where id = ${regionId}`
 
-    await expect(asRequest(admin.authId, () => removeRegionTag({ name: 'SD', regionFk: regionId }))).rejects.toThrow()
+    expect(pushRefusal(await removeTag()).message).toBe('region_tagsUnreadable')
 
     expect(await tagsOn(routeId)).toEqual(['SD'])
   })

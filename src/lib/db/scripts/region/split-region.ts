@@ -94,7 +94,7 @@ const CONTENT_TABLES = HANDLED_TABLES.filter((t) => !MEMBERSHIP_TABLES.includes(
 /**
  * `changes.column_name` values that make a subject-shaped event a profile edit rather than a
  * membership one. The column holds the key of the diff the handler passed, so `updateUsername`
- * writes `username` and the role change in `regions.remote.ts` writes `role`.
+ * writes `username` and the role change in `region/members.server.ts` writes `role`.
  * `first ascensionist` has no writer today but is in the event catalogue, so it is listed rather
  * than discovered.
  */

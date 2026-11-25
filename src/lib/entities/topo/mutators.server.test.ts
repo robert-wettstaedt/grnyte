@@ -3,8 +3,8 @@ import { zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { topoLinesFingerprint } from './fingerprint'
 
-// The topo mutators' wiring: what each answers and how a refusal arrives. The guards they share
-// with the remote functions are covered by `topos.remote.test.ts` and `lines.remote.test.ts`.
+// The topo mutators' wiring: what each answers and how a refusal arrives. The guards are
+// covered by `topos.server.test.ts` and `lines.server.test.ts`.
 const REGION = '__topo_mutators_region__'
 const PATH = 'M0.1,0.9 L0.5,0.1'
 

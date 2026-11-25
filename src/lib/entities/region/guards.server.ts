@@ -1,8 +1,7 @@
 /**
  * The database-backed half of the region mutation guards.
  *
- * Split out of `regions.remote.ts` because a `.remote.ts` module pulls in SvelteKit's client
- * runtime and cannot be imported from a test. These are the rules that keep a region
+ * These are the rules that keep a region
  * administrable and its membership consensual, so they are the half worth testing.
  */
 import * as schema from '$lib/db/schema'

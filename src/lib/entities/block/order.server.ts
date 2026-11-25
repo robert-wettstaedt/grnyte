@@ -1,5 +1,4 @@
 import { areas, blocks } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import type { Context } from '$lib/remote/authed.server'
@@ -67,6 +66,4 @@ export async function reorderBlocksRow(
     db,
     areaBlocks.map((row) => (submitted.has(row.id) ? queue.shift()! : row.id)),
   )
-
-  return { redirectTo: entityHref('areas', areaId) }
 }

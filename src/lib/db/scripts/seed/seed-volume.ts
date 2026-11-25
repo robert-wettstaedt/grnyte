@@ -315,7 +315,7 @@ await sql`
 console.log(`  blocks: ${blockIds.length} (+ ${geoIds.length} geolocations)`)
 
 // areaFks/areaIds denormalise the block's area chain (leaf sector -> root area),
-// matching routes.remote.ts so area filters find these routes.
+// matching route/save.server.ts so area filters find these routes.
 const routeBlock: number[] = []
 const routeRows = blockIds.flatMap((blockId, bi) => {
   const areaFks = chainOf(blockRows[bi].area_fk)

@@ -1,5 +1,4 @@
 import { areas, blocks, files, geolocations, routes, topos, type Area, type Block } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import type { RemovalInput } from '$lib/entities/moderation/dto'
 import type { Planned } from '$lib/entities/moderation/record.server'
 import { planRemoval } from '$lib/entities/moderation/subjects.server'
@@ -7,7 +6,7 @@ import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import { type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
-import { answerReplayedRestore, requireIssuedId, requireRow } from '$lib/remote/require.server'
+import { assertReplayedRestore, requireIssuedId, requireRow } from '$lib/remote/require.server'
 import { error } from '@sveltejs/kit'
 import { and, count, eq, gt, gte, isNull, ne, sql } from 'drizzle-orm'
 import { hasDeletedAncestor, refreshAreaType, stampDeletedAt } from '../area/area.server'
@@ -87,7 +86,7 @@ export async function deleteBlockRow(
   }
   await refreshAreaType(db, block.areaFk)
 
-  return { data, redirectTo: entityHref('areas', block.areaFk), removal: planned }
+  return { data, removal: planned }
 }
 
 /** Hard-delete a bare block: drop its pin (FK-linked both ways) then the row. Returns the
@@ -184,10 +183,8 @@ export async function restoreBlockRow(
     await requireIssuedId(db, 'blocks', blockId, formError('blocks_notFound'))
     if ((await hardRestoreBlock(db, snapshot, area, user.id)) == null) {
       const replayed = eq(blocks.areaFk, area.id)
-      return {
-        data: { blockId },
-        ...(await answerReplayedRestore(db, 'blocks', blockId, replayed, formError('blocks_notFound'))),
-      }
+      await assertReplayedRestore(db, 'blocks', blockId, replayed, formError('blocks_notFound'))
+      return { data: { blockId } }
     }
 
     // The stored area's id, not `snapshot.areaFk`: the gate above authorized that row, so it is the
@@ -196,10 +193,7 @@ export async function restoreBlockRow(
     // Nothing to move onto the new id: only a block inside the grace window is hard-deleted, and
     // `events.block_fk on delete cascade` took its entire log with it.
 
-    return {
-      data: { blockId },
-      redirectTo: entityHref('blocks', blockId),
-    }
+    return { data: { blockId } }
   }
 
   const block = await db.query.blocks.findFirst({ where: eq(blocks.id, snapshot.blockId) })
@@ -212,10 +206,7 @@ export async function restoreBlockRow(
   // of this handler would erase a `deleted` card for something standing right there, while
   // `shiftBlockOrdersUp` inside the restore renumbers siblings for a block that never left.
   if (block.deletedAt == null) {
-    return {
-      data: { blockId: snapshot.blockId },
-      redirectTo: entityHref('blocks', snapshot.blockId),
-    }
+    return { data: { blockId: snapshot.blockId } }
   }
 
   // Refuse rather than strand it: restore the ancestor first, which brings this row with it.
@@ -231,10 +222,7 @@ export async function restoreBlockRow(
   // still point at this id and stay live.
   await deleteEvent(db, { object: { id: snapshot.blockId, type: 'block' }, verb: 'delete' })
 
-  return {
-    data: { blockId: snapshot.blockId },
-    redirectTo: entityHref('blocks', snapshot.blockId),
-  }
+  return { data: { blockId: snapshot.blockId } }
 }
 
 /** Close the gap a removed block leaves: pull every later sibling in the area down one, so the

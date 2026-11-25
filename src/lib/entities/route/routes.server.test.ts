@@ -1,15 +1,13 @@
 /**
- * `updateRoute`'s staleness refusal, through the real handler in a real RLS transaction.
+ * `routes.update`'s staleness refusal, through the mutate endpoint in a real RLS transaction.
  *
  * An unloaded tag list and a deliberately cleared one are identical on the wire; `known` is what
- * tells them apart. Assert on the database afterwards, never the thrown value.
+ * tells them apart. A refusal is asserted by its key and by the database it left alone.
  */
-import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest, callForm, redirectOf } from '$lib/remote/testHarness'
-import { isValidationError } from '@sveltejs/kit'
+import { dropGuidebookRegion, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
+import { pushRefusal, zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { routeListsFingerprint } from './fingerprint'
-import { updateRoute } from './routes.remote'
 
 const REGION = '__routes_remote_region__'
 const TAG = 'benchmark'
@@ -17,6 +15,7 @@ const CLIMBER = 'Ada Erstbegeherin'
 const LINKED_CLIMBER = 'Bea Erstbegeherin'
 
 let maintainer: SeedUser
+let client: ReturnType<typeof zeroClient>
 let regionId = 0
 let sectorId = 0
 let blockId = 0
@@ -29,6 +28,7 @@ beforeAll(async () => {
 
   const users = await seedUsers({ maintainer: 'maintainer@grnyte.rocks' })
   maintainer = users.maintainer
+  client = zeroClient(maintainer.authId)
 
   // `allowedTags` filters against the vocabulary, so a tag this region lacks would be dropped
   // before the fingerprint disagreed and the test would pass for the wrong reason.
@@ -89,35 +89,16 @@ beforeEach(async () => {
 
 afterAll(async () => {
   if (reachable) {
-    // The FK graph, innermost first. `first_ascensionists` last of the route's own tree: the
-    // junction rows point at it.
-    await sql`delete from public.routes_to_tags where region_fk = ${regionId}`
-    await sql`delete from public.routes_to_first_ascensionists where region_fk = ${regionId}`
-    await sql`delete from public.changes where region_fk = ${regionId}`
-    await sql`delete from public.events where region_fk = ${regionId}`
-    await sql`delete from public.routes where region_fk = ${regionId}`
-    await sql`delete from public.first_ascensionists where region_fk = ${regionId}`
-    await sql`delete from public.blocks where region_fk = ${regionId}`
-    await sql`delete from public.areas where region_fk = ${regionId}`
-    await sql`delete from public.region_members where region_fk = ${regionId}`
-    await sql`delete from public.regions where id = ${regionId}`
+    await client.cleanup()
+    for (const table of ['routes_to_tags', 'routes_to_first_ascensionists', 'first_ascensionists']) {
+      await sql`delete from ${sql(`public.${table}`)} where region_fk = ${regionId}`
+    }
+    await dropGuidebookRegion(regionId)
   }
   await sql.end()
 })
 
-/**
- * Run the handler. No 'refused' return value on purpose: Kit catches `ValidationError` and records
- * it as form issues, so a refused call and a successful one both resolve. The database separates
- * them, because the unconditional rename sits after the guard.
- */
-async function submit(data: Record<string, unknown>): Promise<void> {
-  try {
-    await asRequest(maintainer.authId, () => callForm(updateRoute, data))
-  } catch (cause) {
-    if (isValidationError(cause)) return
-    throw cause
-  }
-}
+const submit = (data: Record<string, unknown>) => client.push('routes.update', data)
 
 /** The submit a loaded form makes: both lists as they are stored, plus whatever `known` is given. */
 const editWith = (known: string | undefined, name: string) => ({
@@ -148,16 +129,11 @@ const storedClimbers = async () =>
 
 const currentFingerprint = async () => routeListsFingerprint(await storedTags(), [{ name: CLIMBER }])
 
-// `submit` above folds both a refusal and a success into a resolved call, so nothing else here
-// would see a destination built from the wrong column.
-describe.skipIf(!reachable)('where a save sends the reader', () => {
-  it('returns to the route it just saved, not to its block', async () => {
-    const data = editWith(await currentFingerprint(), 'Redirect Probe')
-    const location = await redirectOf(() => asRequest(maintainer.authId, () => callForm(updateRoute, data)))
-
-    expect(location).toBe(`/routes/${routeId}`)
-  })
-})
+async function expectUntouched() {
+  expect(await storedName()).toBe('Stale Probe')
+  expect(await storedTags()).toEqual([TAG])
+  expect(await storedClimbers()).toEqual([CLIMBER])
+}
 
 describe.skipIf(!reachable)('updateRoute staleness guard', () => {
   it('counts a first ascensionist’s linked account, so a route that has one still saves', async () => {
@@ -193,7 +169,7 @@ describe.skipIf(!reachable)('updateRoute staleness guard', () => {
     await sql`
       insert into public.routes_to_tags (region_fk, route_fk, tag_fk) values (${regionId}, ${routeId}, 'defined')`
 
-    await submit(editWith(known, 'Should Not Land'))
+    expect(pushRefusal(await submit(editWith(known, 'Should Not Land'))).message).toBe('routes_listsStale')
 
     // The refusal has to precede the first write, not merely the list diffs: a handler that renamed
     // the route and then refused would leave the reader looking at a save that half happened.
@@ -205,20 +181,22 @@ describe.skipIf(!reachable)('updateRoute staleness guard', () => {
   it('refuses a submit that omits the fingerprint, so the optional field is not a way around it', async () => {
     // Optional in the schema because `createRoute` shares it. `undefined` never equals a real
     // fingerprint, which always carries a count prefix, so the omission is refused.
-    await submit(editWith(undefined, 'Should Not Land Either'))
+    expect(pushRefusal(await submit(editWith(undefined, 'Should Not Land Either'))).message).toBe('routes_listsStale')
 
-    expect(await storedName()).toBe('Stale Probe')
-    expect(await storedTags()).toEqual([TAG])
-    expect(await storedClimbers()).toEqual([CLIMBER])
+    await expectUntouched()
   })
 
   it('refuses the empty-list fingerprint a never-loaded form would post', async () => {
     // The actual shipped bug, reduced: the form opened on a bare route row, so both lists were
     // empty and it posted them back. Without the guard this deleted the tag and the climber.
-    await submit({ ...editWith(routeListsFingerprint([], []), 'Wiped'), firstAscensionists: [], tags: [] })
+    const result = await submit({
+      ...editWith(routeListsFingerprint([], []), 'Wiped'),
+      firstAscensionists: [],
+      tags: [],
+    })
 
-    expect(await storedName()).toBe('Stale Probe')
-    expect(await storedTags()).toEqual([TAG])
-    expect(await storedClimbers()).toEqual([CLIMBER])
+    expect(pushRefusal(result).message).toBe('routes_listsStale')
+
+    await expectUntouched()
   })
 })

@@ -1,13 +1,8 @@
 import { exit } from '$lib/state/navigation.svelte'
 
 /**
- * The envelope every `authedCommand` / `authedForm` handler resolves to: one reusable
- * contract for all mutations, instead of each inventing its own shape. Commands feed the
- * result to {@link runCommand}; forms `redirect(303)` on `redirectTo` server-side.
- *
- * Precedent for new handlers: return `{ redirectTo }` to navigate, `{ data }` to hand
- * something back (e.g. an undo snapshot for a `restore*` command, or a toggle's new
- * state), or both.
+ * The envelope a write resolves to, from an `authedCommand` or from `write()`, for
+ * {@link runCommand}. A handler answers `data` only; `redirectTo` is set by the client's `writes.ts`.
  */
 export interface MutationResult<T = void> {
   /** Payload handed back to the caller: e.g. an undo snapshot, or a command's result. */

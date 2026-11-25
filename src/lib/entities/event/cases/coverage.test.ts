@@ -136,7 +136,7 @@ describe('the case catalogue is read off the write path', () => {
   })
 
   it('names a real writer on every case that claims one', () => {
-    // The reaction and comment cases name `reactions.remote.ts`, which writes no event at all:
+    // The reaction and comment cases name the reactions writer, which writes no event at all:
     // what they are about is the bar a card carries, whose rows are written there. A file counts
     // as a writer if it writes an event OR a reaction. A bulk import inserts events directly.
     const files = new Set([

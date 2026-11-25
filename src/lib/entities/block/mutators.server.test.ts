@@ -3,9 +3,8 @@ import { zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { blockPinFingerprint } from './fingerprint'
 
-// The block mutators' wiring: what each answers and how a refusal arrives. The bodies they share
-// with the remote functions are covered by `blocks.remote.test.ts`, `pin.remote.test.ts` and
-// `reorder.remote.test.ts`.
+// The block mutators' wiring: what each answers and how a refusal arrives. The bodies are
+// covered by `blocks.server.test.ts`, `pinStale.server.test.ts` and `reorder.server.test.ts`.
 const REGION = '__block_mutators_region__'
 
 let user: SeedUser

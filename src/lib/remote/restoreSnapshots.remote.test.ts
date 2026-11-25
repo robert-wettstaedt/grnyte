@@ -6,7 +6,7 @@
  * which of those columns the server derives anyway: authorship, region, placement, and an area's
  * `type`, which `refreshAreaType` owns and no request may name.
  *
- * The caller is a maintainer in BOTH regions on purpose, the same setup `areas.remote.test.ts`
+ * The caller is a maintainer in BOTH regions on purpose, the same setup `areas.server.test.ts`
  * uses: an escalation has to be the handler's own doing, not something the region gate would have
  * refused anyway.
  *

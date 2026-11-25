@@ -3,7 +3,7 @@
  * writes `estimated`, remove clears both. Skipped without DATABASE_URL.
  */
 import * as schema from '$lib/db/schema'
-import { reachable, seedRegion, sql } from '$lib/db/testDb'
+import { dropGuidebookRegion, reachable, seedRegion, sql } from '$lib/db/testDb'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { attachPin, movePin, removePin } from './pin.server'
@@ -39,14 +39,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  if (reachable) {
-    await sql`update public.blocks set geolocation_fk = null where region_fk = ${regionId}`
-    await sql`delete from public.geolocations where region_fk = ${regionId}`
-    await sql`delete from public.blocks where region_fk = ${regionId}`
-    await sql`delete from public.areas where region_fk = ${regionId}`
-    await sql`delete from public.region_members where region_fk = ${regionId}`
-    await sql`delete from public.regions where id = ${regionId}`
-  }
+  if (reachable) await dropGuidebookRegion(regionId)
   await sql.end()
 })
 

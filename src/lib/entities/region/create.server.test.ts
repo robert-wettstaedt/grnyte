@@ -8,10 +8,11 @@
  *
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
+import { pinnedTx } from '$lib/db/pinned.server'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { LOCK } from '$lib/remote/lock.server'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { createRegionForUser, listOwnedRegions } from './create.server'
+import { createRegionIn, listOwnedRegions } from './create.server'
 import { MAX_OWNED_REGIONS } from './dto'
 import { stallsOnLock } from './testLock'
 
@@ -21,14 +22,14 @@ let founder = {} as SeedUser
 const created: number[] = []
 
 const found = (suffix: string) =>
-  createRegionForUser({ authUserId: founder.authId, name: `${NAME_PREFIX}${suffix}`, userId: founder.userId }).then(
-    (region) => {
-      created.push(region.id)
-      return region
-    },
-  )
+  pinnedTx((tx) =>
+    createRegionIn(tx, { authUserId: founder.authId, name: `${NAME_PREFIX}${suffix}`, userId: founder.userId }),
+  ).then((region) => {
+    created.push(region.id)
+    return region
+  })
 
-describe.skipIf(!reachable)('createRegionForUser', () => {
+describe.skipIf(!reachable)('createRegionIn', () => {
   beforeAll(async () => {
     // An account of this suite's own, not one of the shared seed logins. This is the only test
     // that counts regions per owner, and `tenancy.test.ts` (plus the guard and invite suites)

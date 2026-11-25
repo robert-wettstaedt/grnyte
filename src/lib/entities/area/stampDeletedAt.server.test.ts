@@ -3,7 +3,7 @@
  * rows carrying that stamp, so a child deleted on its own stays deleted. Skipped without DATABASE_URL.
  */
 import * as schema from '$lib/db/schema'
-import { reachable, seedRegion, sql } from '$lib/db/testDb'
+import { dropGuidebookRegion, reachable, seedRegion, sql } from '$lib/db/testDb'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { stampDeletedAt } from './area.server'
@@ -75,14 +75,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  if (reachable) {
-    await sql`delete from public.routes where region_fk = ${regionId}`
-    await sql`delete from public.blocks where region_fk = ${regionId}`
-    await sql`delete from public.areas where region_fk = ${regionId} and parent_fk is not null`
-    await sql`delete from public.areas where region_fk = ${regionId}`
-    await sql`delete from public.region_members where region_fk = ${regionId}`
-    await sql`delete from public.regions where id = ${regionId}`
-  }
+  if (reachable) await dropGuidebookRegion(regionId)
   await sql.end()
 })
 

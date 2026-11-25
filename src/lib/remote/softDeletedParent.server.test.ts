@@ -8,21 +8,16 @@
 import { enrichMarkdown } from '$lib/components/Markdown/lib/enrich.server'
 import { REFERENCE_TOMBSTONE } from '$lib/components/Markdown/lib/remark-references'
 import { db } from '$lib/db/db.server'
-import { reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
+import { dropGuidebookRegion, reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
 import { hasDeletedAncestor } from '$lib/entities/area/area.server'
-import { addParking, createArea, deleteParking, restoreParking } from '$lib/entities/area/areas.remote'
-import { createAscent } from '$lib/entities/ascent/ascents.remote'
-import { createBlock, reorderBlocks } from '$lib/entities/block/blocks.remote'
-import { toggleFavorite } from '$lib/entities/favorite/favorites.remote'
-import { createRoute } from '$lib/entities/route/routes.remote'
-import { createTopo } from '$lib/entities/topo/topos.remote'
 import { deleteRoute, restoreArea, restoreBlock, restoreRoute } from '$lib/remote/testCommands'
-import { asRequest, callForm, redirectOf, statusOf } from '$lib/remote/testHarness'
+import { asRequest, pushRefusal, statusOf, zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const REGION = '__softdel_region__'
 
 let maintainer: SeedUser
+let client: ReturnType<typeof zeroClient>
 let regionId: number
 let parentAreaId: number
 let sectorAreaId: number
@@ -33,6 +28,7 @@ beforeAll(async () => {
 
   const seeded = await seedRegion(REGION, 'region_admin')
   maintainer = seeded.user
+  client = zeroClient(maintainer.authId)
   regionId = seeded.regionId
 
   const [parent] = await sql<{ id: number }[]>`
@@ -53,19 +49,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (reachable) {
+    await client.cleanup()
     await sql`delete from public.reactions where region_fk = ${regionId}`
-    await sql`delete from public.events where region_fk = ${regionId}`
-    await sql`update public.blocks set geolocation_fk = null where region_fk = ${regionId}`
-    await sql`delete from public.geolocations where region_fk = ${regionId}`
-    await sql`delete from public.topos where region_fk = ${regionId}`
-    await sql`delete from public.files where region_fk = ${regionId}`
     await sql`delete from public.favorites where route_fk in (select id from public.routes where region_fk = ${regionId})`
     await sql`delete from public.ascents where region_fk = ${regionId}`
-    await sql`delete from public.routes where region_fk = ${regionId}`
-    await sql`delete from public.blocks where region_fk = ${regionId}`
-    await sql`delete from public.areas where region_fk = ${regionId}`
-    await sql`delete from public.region_members where region_fk = ${regionId}`
-    await sql`delete from public.regions where id = ${regionId}`
+    await dropGuidebookRegion(regionId)
   }
   await sql.end()
 })
@@ -187,11 +175,9 @@ describe.skipIf(!reachable)('a create refuses a cleared parent', () => {
 
     try {
       // The key, not merely a refusal: a row count alone passes on any rejected payload.
-      const result = await asRequest(maintainer.authId, () =>
-        callForm(createRoute, { blockId: String(blockId), name: '__softdel_created_route__' }),
-      )
+      const result = await client.push('routes.create', { blockId: String(blockId), name: '__softdel_created_route__' })
 
-      expect(result).toMatchObject({ issues: [{ message: JSON.stringify({ message: 'blocks_notFound' }) }] })
+      expect(pushRefusal(result)).toEqual({ message: 'blocks_notFound' })
 
       const [row] = await sql<{ count: number }[]>`
         select count(*)::int as count from public.routes where name = '__softdel_created_route__'`
@@ -205,11 +191,12 @@ describe.skipIf(!reachable)('a create refuses a cleared parent', () => {
     await sql`update public.areas set deleted_at = now() where id = ${sectorAreaId}`
 
     try {
-      const result = await asRequest(maintainer.authId, () =>
-        callForm(createBlock, { areaId: String(sectorAreaId), name: '__softdel_created_block__' }),
-      )
+      const result = await client.push('blocks.create', {
+        areaId: String(sectorAreaId),
+        name: '__softdel_created_block__',
+      })
 
-      expect(result).toMatchObject({ issues: [{ message: JSON.stringify({ message: 'areas_parentNotFound' }) }] })
+      expect(pushRefusal(result)).toEqual({ message: 'areas_parentNotFound' })
 
       const [row] = await sql<{ count: number }[]>`
         select count(*)::int as count from public.blocks where name = '__softdel_created_block__'`
@@ -220,9 +207,7 @@ describe.skipIf(!reachable)('a create refuses a cleared parent', () => {
   })
 
   it('still adds a route to a live block', async () => {
-    await asRequest(maintainer.authId, () =>
-      callForm(createRoute, { blockId: String(blockId), name: '__softdel_ok_created__' }),
-    )
+    await client.push('routes.create', { blockId: String(blockId), name: '__softdel_ok_created__' })
 
     const [row] = await sql<{ count: number }[]>`
       select count(*)::int as count from public.routes where name = '__softdel_ok_created__'`
@@ -274,8 +259,8 @@ describe.skipIf(!reachable)('the write gates refuse a cleared subject', () => {
     await sql`update public.blocks set deleted_at = now() where id = ${blockId}`
 
     try {
-      const status = await statusOf(() => asRequest(maintainer.authId, () => createTopo({ blockId, fileId })))
-      expect(status, 'a cleared block must not take a new topo').toBe(404)
+      const refused = await client.push('topos.create', { blockId, fileId })
+      expect(pushRefusal(refused), 'a cleared block must not take a new topo').toEqual({ message: 'blocks_notFound' })
 
       const [made] = await sql<{ count: number }[]>`
         select count(*)::int as count from public.topos where block_fk = ${blockId}`
@@ -285,7 +270,7 @@ describe.skipIf(!reachable)('the write gates refuse a cleared subject', () => {
     }
 
     // Live control: the same call on a live block must succeed, or the refusal above proves nothing.
-    await asRequest(maintainer.authId, () => createTopo({ blockId, fileId }))
+    await client.push('topos.create', { blockId, fileId })
     const [live] = await sql<{ count: number }[]>`
       select count(*)::int as count from public.topos where block_fk = ${blockId}`
     expect(live.count, 'the same call must work on a live block').toBe(1)
@@ -296,11 +281,13 @@ describe.skipIf(!reachable)('the write gates refuse a cleared subject', () => {
       insert into public.routes (name, block_fk, region_fk, created_by, deleted_at)
       values ('__softdel_gone_route__', ${blockId}, ${regionId}, ${maintainer.userId}, now()) returning id`
 
-    const result = await asRequest(maintainer.authId, () =>
-      callForm(createAscent, { dateTime: '2026-09-13', routeId: String(route.id), type: 'redpoint' }),
-    )
+    const result = await client.push('ascents.create', {
+      dateTime: '2026-09-13',
+      routeId: String(route.id),
+      type: 'redpoint',
+    })
 
-    expect(result).toMatchObject({ issues: [{ message: JSON.stringify({ message: 'routes_notFound' }) }] })
+    expect(pushRefusal(result)).toEqual({ message: 'routes_notFound' })
 
     const [logged] = await sql<{ count: number }[]>`
       select count(*)::int as count from public.ascents where route_fk = ${route.id}`
@@ -327,22 +314,19 @@ describe.skipIf(!reachable)('the write gates refuse a cleared subject', () => {
       insert into public.routes (name, block_fk, region_fk, created_by)
       values ('__softdel_fav__', ${blockId}, ${regionId}, ${maintainer.userId}) returning id`
 
-    await asRequest(maintainer.authId, () => toggleFavorite({ entityId: route.id, entityType: 'route' }))
+    const set = (saved: boolean) =>
+      client.push('favorites.set', { entityId: route.id, entityType: 'route', saved, userId: maintainer.userId })
+    const favorites = async () => (await sql`select 1 from public.favorites where route_fk = ${route.id}`).length
+
+    await set(true)
+    expect(await favorites(), 'the fixture is favorited, or removing it proves nothing').toBe(1)
     await sql`update public.routes set deleted_at = now() where id = ${route.id}`
 
-    await asRequest(maintainer.authId, () => toggleFavorite({ entityId: route.id, entityType: 'route' }))
-    const [gone] = await sql<{ count: number }[]>`
-      select count(*)::int as count from public.favorites where route_fk = ${route.id}`
-    expect(gone.count, 'removing a favorite must survive its entity being cleared').toBe(0)
+    await set(false)
+    expect(await favorites(), 'removing a favorite must survive its entity being cleared').toBe(0)
 
-    const status = await statusOf(() =>
-      asRequest(maintainer.authId, () => toggleFavorite({ entityId: route.id, entityType: 'route' })),
-    )
-    expect(status, 'but adding one back must not').toBe(404)
-
-    const [back] = await sql<{ count: number }[]>`
-      select count(*)::int as count from public.favorites where route_fk = ${route.id}`
-    expect(back.count, 'and no favorite should have been re-inserted').toBe(0)
+    expect(pushRefusal(await set(true)), 'but adding one back must not').toEqual({ message: 'routes_notFound' })
+    expect(await favorites(), 'and no favorite should have been re-inserted').toBe(0)
   })
 })
 
@@ -356,24 +340,16 @@ describe.skipIf(!reachable)('parking refuses as a pair, and says why', () => {
     await sql`update public.areas set deleted_at = now() where id = ${sectorAreaId}`
 
     try {
-      const added = await asRequest(maintainer.authId, () =>
-        callForm(addParking, { areaId: String(sectorAreaId), lat: '50.2', long: '11.2' }),
-      )
-      expect(added, 'add says gone, not forbidden').toMatchObject({
-        issues: [{ message: JSON.stringify({ message: 'areas_notFound' }) }],
+      const added = await client.push('areas.addParking', { areaId: String(sectorAreaId), lat: '50.2', long: '11.2' })
+      expect(pushRefusal(added), 'add says gone, not forbidden').toEqual({ message: 'areas_notFound' })
+
+      const deleted = await client.push('areas.deleteParking', { id: geo.id })
+      expect(pushRefusal(deleted), 'delete refuses too, or its Undo is unreachable').toEqual({
+        message: 'areas_notFound',
       })
 
-      expect(
-        await statusOf(() => asRequest(maintainer.authId, () => deleteParking({ id: geo.id }))),
-        'delete refuses too, or its Undo is unreachable',
-      ).toBe(404)
-
-      expect(
-        await statusOf(() =>
-          asRequest(maintainer.authId, () => restoreParking({ areaId: sectorAreaId, lat: 50.1, long: 11.1 })),
-        ),
-        'restore says gone, not forbidden',
-      ).toBe(404)
+      const restored = await client.push('areas.restoreParking', { areaId: sectorAreaId, lat: 50.1, long: 11.1 })
+      expect(pushRefusal(restored), 'restore says gone, not forbidden').toEqual({ message: 'areas_notFound' })
     } finally {
       await sql`update public.areas set deleted_at = null where id = ${sectorAreaId}`
       await sql`delete from public.geolocations where id = ${geo.id}`
@@ -385,7 +361,7 @@ describe.skipIf(!reachable)('parking refuses as a pair, and says why', () => {
       insert into public.geolocations (area_fk, region_fk, lat, long)
       values (${sectorAreaId}, ${regionId}, 50.3, 11.3) returning id`
 
-    await asRequest(maintainer.authId, () => deleteParking({ id: geo.id }))
+    await client.push('areas.deleteParking', { id: geo.id })
 
     const [left] = await sql<{ count: number }[]>`
       select count(*)::int as count from public.geolocations where id = ${geo.id}`
@@ -393,40 +369,35 @@ describe.skipIf(!reachable)('parking refuses as a pair, and says why', () => {
   })
 })
 
-describe.skipIf(!reachable)('reorderBlocks', () => {
+describe.skipIf(!reachable)('blocks.reorder', () => {
   it('refuses a cleared sector', async () => {
     await sql`update public.areas set deleted_at = now() where id = ${sectorAreaId}`
 
     try {
-      const status = await statusOf(() =>
-        asRequest(maintainer.authId, () => reorderBlocks({ areaId: sectorAreaId, orderedIds: [blockId] })),
-      )
-      expect(status).toBe(404)
+      const refused = await client.push('blocks.reorder', { areaId: sectorAreaId, orderedIds: [blockId] })
+      expect(pushRefusal(refused)).toEqual({ message: 'areas_notFound' })
     } finally {
       await sql`update public.areas set deleted_at = null where id = ${sectorAreaId}`
     }
   })
 
   it('still reorders a live sector', async () => {
-    await asRequest(maintainer.authId, () => reorderBlocks({ areaId: sectorAreaId, orderedIds: [blockId] }))
+    expect(await client.push('blocks.reorder', { areaId: sectorAreaId, orderedIds: [blockId] })).toEqual({})
   })
 })
 
 describe.skipIf(!reachable)('a cleared sibling does not reserve its name', () => {
   // The reader cannot see it, so it must not block them. Cost accepted: restoring it afterwards
-  // can leave two siblings sharing a name. A successful submit resolves with where to go next.
+  // can leave two siblings sharing a name.
   it('lets an area reuse a cleared sibling name, but still refuses a live one', async () => {
     const name = '__softdel_dupe_area__'
     await sql`
       insert into public.areas (name, type, region_fk, created_by, parent_fk, deleted_at)
       values (${name}, 'area', ${regionId}, ${maintainer.userId}, ${parentAreaId}, now())`
 
-    const reused = await redirectOf(() =>
-      asRequest(maintainer.authId, () =>
-        callForm(createArea, { name, parentFk: String(parentAreaId), regionFk: String(regionId) }),
-      ),
-    )
-    expect(reused, 'a cleared sibling must not block the name').toMatch(/^\/areas\/\d+$/)
+    const create = () =>
+      client.push('areas.create', { name, parentFk: String(parentAreaId), regionFk: String(regionId) })
+    expect((await create()).error, 'a cleared sibling must not block the name').toBeUndefined()
 
     const [live] = await sql<{ count: number }[]>`
       select count(*)::int as count from public.areas where name = ${name} and deleted_at is null`
@@ -434,13 +405,9 @@ describe.skipIf(!reachable)('a cleared sibling does not reserve its name', () =>
 
     // The control: the check still fires against the LIVE row it just made, so the filter has not
     // simply disabled uniqueness.
-    // The payload, not merely "did not redirect": `statusOf` returns `thrown.status`, and a crash
-    // has none either, so a bare toBeUndefined() cannot tell a refusal from a handler that died.
-    const blocked = await asRequest(maintainer.authId, () =>
-      callForm(createArea, { name, parentFk: String(parentAreaId), regionFk: String(regionId) }),
-    )
-    expect(blocked, 'a live sibling must still block it, by name').toMatchObject({
-      issues: [{ message: JSON.stringify({ message: 'areas_nameExists', params: { name } }) }],
+    expect(pushRefusal(await create()), 'a live sibling must still block it, by name').toEqual({
+      message: 'areas_nameExists',
+      params: { name },
     })
 
     const [total] = await sql<{ count: number }[]>`
@@ -454,16 +421,11 @@ describe.skipIf(!reachable)('a cleared sibling does not reserve its name', () =>
       insert into public.blocks (name, area_fk, region_fk, created_by, "order", deleted_at)
       values (${name}, ${sectorAreaId}, ${regionId}, ${maintainer.userId}, 9, now())`
 
-    const reused = await redirectOf(() =>
-      asRequest(maintainer.authId, () => callForm(createBlock, { areaId: String(sectorAreaId), name })),
-    )
-    expect(reused, 'a cleared block must not reserve its name').toMatch(/^\/blocks\/\d+$/)
-
-    const blocked = await asRequest(maintainer.authId, () =>
-      callForm(createBlock, { areaId: String(sectorAreaId), name }),
-    )
-    expect(blocked, 'a live sibling must still block it, by name').toMatchObject({
-      issues: [{ message: JSON.stringify({ message: 'blocks_nameExists', params: { name } }) }],
+    const create = () => client.push('blocks.create', { areaId: String(sectorAreaId), name })
+    expect((await create()).error, 'a cleared block must not reserve its name').toBeUndefined()
+    expect(pushRefusal(await create()), 'a live sibling must still block it, by name').toEqual({
+      message: 'blocks_nameExists',
+      params: { name },
     })
 
     const [live] = await sql<{ count: number }[]>`

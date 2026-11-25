@@ -1,7 +1,6 @@
 import { APP_PERMISSION_ADMIN } from '$lib/auth'
 import type * as schema from '$lib/db/schema'
 import { areas, blocks, routes } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import { formError, type FormMessage } from '$lib/forms/schemas'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, sql, type SQL } from 'drizzle-orm'
@@ -38,15 +37,15 @@ const RESTORABLE = { areas, blocks, routes }
 
 /**
  * A hard restore whose insert found its id taken: a replay only if that row sits where this restore
- * put it (`ownedBy`), so the redirect never confirms a stranger's row. 404 otherwise.
+ * put it (`ownedBy`), so the answer never confirms a stranger's row. 404 otherwise.
  */
-export async function answerReplayedRestore(
+export async function assertReplayedRestore(
   db: PostgresJsDatabase<typeof schema>,
   kind: keyof typeof RESTORABLE,
   id: number,
   ownedBy: SQL,
   notFound: FormMessage,
-): Promise<{ redirectTo: string }> {
+): Promise<void> {
   const table = RESTORABLE[kind]
   const [existing] = await db
     .select({ id: table.id })
@@ -56,13 +55,12 @@ export async function answerReplayedRestore(
   if (existing == null) {
     error(404, notFound)
   }
-  return { redirectTo: entityHref(kind, id) }
 }
 
 /**
  * Load an entity, then gate on it. The permission predicate is handed the FETCHED ROW, so the
  * subject of the check can only ever be stored data, never request input. Passing a request-derived
- * object to a gate (as `updateArea`, `toggleFavorite` and `finalizeImage` each once did, letting a
+ * object to a gate (as the area edit, the favorite toggle and `finalizeImage` each once did, letting a
  * caller name their own region) is not expressible through this seam.
  *
  * For `command` / `authedCommand` handlers: 404 then 403, both via `error`. See {@link requireRowForm}
@@ -92,9 +90,8 @@ export async function requireRow<T>(
 }
 
 /**
- * {@link requireRow} for `form` / `authedForm` handlers: reports a missing row and a failed gate
- * through `invalid` rather than `error`, so they surface as form issues. `notFound` is a
- * pre-encoded message (wrap the key with `formError(...)`, as every other `invalid` call does).
+ * {@link requireRow} for a form's write: refuses through `invalid`, so a mutator answers a form-level
+ * refusal (`details.field` null) rather than a status.
  */
 export async function requireRowForm<T>(
   load: () => Promise<T | undefined>,

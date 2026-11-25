@@ -1,5 +1,5 @@
 /**
- * `createBlock` / `updateBlock` driven through the real handlers, in a real RLS transaction, as a
+ * `blocks.create` / `blocks.update` through the mutate endpoint, in a real RLS transaction, as a
  * real member. What these cover is the description column and the fan-out that hangs off it:
  *
  * - it is stored as typed, and an empty one is stored as NULL rather than '', so `description IS
@@ -12,9 +12,8 @@
  * Skipped when DATABASE_URL is unreachable, like every other DB-backed suite here.
  */
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest, callForm, redirectOf } from '$lib/remote/testHarness'
+import { pushRefusal, zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { createBlock, estimateBlockLocationFromPhoto, updateBlock } from './blocks.remote'
 import { blockPinFingerprint } from './fingerprint'
 
 const REGION = '__blocks_remote_region__'
@@ -23,6 +22,9 @@ const BLOCK = '__blocks_remote_block__'
 const CREATED = '__blocks_remote_created__'
 
 let maintainer: SeedUser
+let client: ReturnType<typeof zeroClient>
+/** The second writer of a race: one client's pushes serialise on its own bookkeeping row. */
+let rival: ReturnType<typeof zeroClient>
 let member: SeedUser
 let second: SeedUser
 let regionId = 0
@@ -64,6 +66,8 @@ beforeAll(async () => {
     second: 'anon@grnyte.rocks',
   })
   maintainer = users.maintainer
+  client = zeroClient(maintainer.authId)
+  rival = zeroClient(maintainer.authId)
   member = users.member
   second = users.second
   mention = `!users:${member.userId}!`
@@ -95,7 +99,7 @@ beforeAll(async () => {
 
   // The block the edit tests act on. Seeded through the handler rather than left behind by the
   // create test, which made everything after it pass only in file order.
-  await submit(createBlock, { areaId: String(sectorId), description: '', name: BLOCK })
+  await client.push('blocks.create', { areaId: String(sectorId), description: '', name: BLOCK })
   ;[{ id: blockId }] = await sql<{ id: number }[]>`
     select id from public.blocks where name = ${BLOCK} and region_fk = ${regionId}`
 })
@@ -106,15 +110,13 @@ beforeEach(async () => {
 })
 
 afterAll(async () => {
-  if (reachable) await removeFixtures()
+  if (reachable) {
+    await client.cleanup()
+    await rival.cleanup()
+    await removeFixtures()
+  }
   await sql.end()
 })
-
-/** Success and a refusal both resolve (Kit folds a refusal into issues), so the database afterwards
- *  is the assertion. Anything thrown is a real failure. */
-async function submit(action: typeof createBlock | typeof updateBlock, data: Record<string, unknown>): Promise<void> {
-  await asRequest(maintainer.authId, () => callForm(action, data))
-}
 
 const storedDescription = async () =>
   (await sql<{ description: null | string }[]>`select description from public.blocks where id = ${blockId}`).at(0)
@@ -126,44 +128,11 @@ const mentionRows = () =>
     from public.notifications
     where region_fk = ${regionId} and source_type = 'mention'`
 
-// `submit` above ignores a handler's destination, so nothing else in this suite would notice an id
-// taken from the wrong column.
-describe.skipIf(!reachable)('where a save sends the reader', () => {
-  it('opens the block a create just made', async () => {
-    const name = '__blocks_remote_redirect_new__'
-    const location = await redirectOf(() =>
-      asRequest(maintainer.authId, () => callForm(createBlock, { areaId: String(sectorId), description: '', name })),
-    )
-    const [created] = await sql<{ id: number }[]>`
-      select id from public.blocks where name = ${name} and region_fk = ${regionId}`
-
-    expect(location).toBe(`/blocks/${created.id}`)
-  })
-
-  it('returns to the block a save just edited', async () => {
-    const location = await redirectOf(() =>
-      asRequest(maintainer.authId, () =>
-        callForm(updateBlock, {
-          areaId: String(sectorId),
-          description: '',
-          id: String(blockId),
-          // This block was created without a location; an omitted fingerprint is refused by design,
-          // and a refusal resolves rather than redirecting, which reads here as no destination.
-          known: blockPinFingerprint(null),
-          name: BLOCK,
-        }),
-      ),
-    )
-
-    expect(location).toBe(`/blocks/${blockId}`)
-  })
-})
-
 describe.skipIf(!reachable)('block descriptions', () => {
   it('stores the description a create submits, and tells the person it mentions', async () => {
     // Strings, because `blockActionSchema` builds on `stringToInt`, a codec over `z.string()`:
     // this is the shape a real `<form>` submits.
-    await submit(createBlock, {
+    await client.push('blocks.create', {
       areaId: String(sectorId),
       description: `Flat landing, out of the sun by three. Ask ${mention}.`,
       name: CREATED,
@@ -182,7 +151,7 @@ describe.skipIf(!reachable)('block descriptions', () => {
     // the whole `notifyMentions` call deleted, which is the opposite of what this is guarding.
     //
     // The prior body is written here rather than inherited from the create test.
-    await submit(updateBlock, {
+    await client.push('blocks.update', {
       areaId: String(sectorId),
       description: `Flat landing, out of the sun by three. Ask ${mention}.`,
       id: String(blockId),
@@ -194,7 +163,7 @@ describe.skipIf(!reachable)('block descriptions', () => {
     // the same person anyway, and that would hide a missing `previousBody` rather than expose it.
     await sql`delete from public.notifications where region_fk = ${regionId}`
 
-    await submit(updateBlock, {
+    await client.push('blocks.update', {
       areaId: String(sectorId),
       description: `Flat landing, out of the sun by three. Ask ${mention} or ${secondMention}.`,
       id: String(blockId),
@@ -208,7 +177,7 @@ describe.skipIf(!reachable)('block descriptions', () => {
   })
 
   it('stores a cleared description as NULL, not as an empty string', async () => {
-    await submit(updateBlock, {
+    await client.push('blocks.update', {
       areaId: String(sectorId),
       description: '',
       id: String(blockId),
@@ -223,7 +192,7 @@ describe.skipIf(!reachable)('block descriptions', () => {
 describe.skipIf(!reachable)('block pins', () => {
   it('creates a block with a pin linked both ways, in the block region', async () => {
     const name = '__blocks_remote_pinned__'
-    await submit(createBlock, {
+    await client.push('blocks.create', {
       areaId: String(sectorId),
       description: '',
       estimated: 'true',
@@ -247,12 +216,12 @@ describe.skipIf(!reachable)('block pins', () => {
   // and the block kept only the second, orphaning the first.
   it('keeps one pin when two saves place the first pin at once', async () => {
     const name = '__blocks_remote_race__'
-    await submit(createBlock, { areaId: String(sectorId), description: '', name })
+    await client.push('blocks.create', { areaId: String(sectorId), description: '', name })
     const [{ id }] = await sql<{ id: number }[]>`
       select id from public.blocks where name = ${name} and region_fk = ${regionId}`
 
-    const save = (lat: string) =>
-      submit(updateBlock, {
+    const save = (by: typeof client, lat: string) =>
+      by.push('blocks.update', {
         areaId: String(sectorId),
         description: '',
         id: String(id),
@@ -261,7 +230,10 @@ describe.skipIf(!reachable)('block pins', () => {
         long: '11.5',
         name,
       })
-    await Promise.all([save('49.1'), save('49.2')])
+    const results = await Promise.all([save(client, '49.1'), save(rival, '49.2')])
+
+    // One lands and the loser is refused for the pin it never saw, so both reached the pin.
+    expect(results.map((result) => pushRefusal(result).message).sort()).toEqual(['blocks_pinStale', undefined])
 
     expect(await pinIds(id)).toEqual(await linkedPin(id))
   })
@@ -269,12 +241,12 @@ describe.skipIf(!reachable)('block pins', () => {
   // The photo backfill is a second writer of a first pin; it loads the block under the same lock.
   it('keeps one pin when a photo estimate races a save placing the first pin', async () => {
     const name = '__blocks_remote_race_estimate__'
-    await submit(createBlock, { areaId: String(sectorId), description: '', name })
+    await client.push('blocks.create', { areaId: String(sectorId), description: '', name })
     const [{ id }] = await sql<{ id: number }[]>`
       select id from public.blocks where name = ${name} and region_fk = ${regionId}`
 
-    await Promise.all([
-      submit(updateBlock, {
+    const [saved, estimated] = await Promise.all([
+      client.push('blocks.update', {
         areaId: String(sectorId),
         description: '',
         id: String(id),
@@ -283,8 +255,12 @@ describe.skipIf(!reachable)('block pins', () => {
         long: '11.5',
         name,
       }),
-      asRequest(maintainer.authId, () => estimateBlockLocationFromPhoto({ id, lat: 49.2, long: 11.5 })),
+      rival.push('blocks.estimateLocation', { id, lat: 49.2, long: 11.5 }),
     ])
+
+    // The estimate is never refused; the save is, only when the estimate placed its pin first.
+    expect(estimated).toEqual({})
+    expect([undefined, 'blocks_pinStale']).toContain(pushRefusal(saved).message)
 
     expect(await pinIds(id)).toEqual(await linkedPin(id))
   })

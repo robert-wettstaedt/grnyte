@@ -1,5 +1,4 @@
 import { areas, blocks, geolocations } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import { blank, formError, type FormMessage } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import { stringifyCoords } from '$lib/map/coords'
@@ -96,7 +95,7 @@ export async function createBlockRow(value: Value, { afterCommit, db, user, user
     }),
   )
 
-  return { data: { id: block.id }, redirectTo: entityHref('blocks', block.id) }
+  return { data: { id: block.id } }
 }
 
 /** Edit a block's name, description and/or location. Every one of the three is written on every
@@ -204,6 +203,4 @@ export async function updateBlockRow(
       regionFk: block.regionFk,
     }),
   )
-
-  return { redirectTo: entityHref('blocks', block.id) }
 }

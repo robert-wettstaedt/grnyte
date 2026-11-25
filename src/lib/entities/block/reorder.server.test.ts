@@ -1,18 +1,18 @@
 /**
- * `reorderBlocks` driven through the real handler. The branch worth covering is a submit naming
+ * `blocks.reorder` through the mutate endpoint. The branch worth covering is a submit naming
  * only some of an area's blocks, which the screen posts in good faith (Zero reports ready on a
  * partial snapshot). Both wrong repairs fail silently, in the database.
  *
  * Skipped when DATABASE_URL is unreachable.
  */
-import { reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest } from '$lib/remote/testHarness'
+import { dropGuidebookRegion, reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
+import { zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { reorderBlocks } from './blocks.remote'
 
 const REGION = '__blocks_reorder_region__'
 
 let maintainer: SeedUser
+let client: ReturnType<typeof zeroClient>
 let regionId = 0
 let areaId = 0
 /** A block in a different area of the same region, for the "not this area" rejection. */
@@ -23,6 +23,7 @@ beforeAll(async () => {
 
   const seeded = await seedRegion(REGION)
   maintainer = seeded.user
+  client = zeroClient(maintainer.authId)
   regionId = seeded.regionId
 
   const [area] = await sql<{ id: number }[]>`
@@ -46,11 +47,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (reachable) {
-    await sql`delete from public.events where region_fk = ${regionId}`
-    await sql`delete from public.blocks where region_fk = ${regionId}`
-    await sql`delete from public.areas where region_fk = ${regionId}`
-    await sql`delete from public.region_members where region_fk = ${regionId}`
-    await sql`delete from public.regions where id = ${regionId}`
+    await client.cleanup()
+    await dropGuidebookRegion(regionId)
   }
   await sql.end()
 })
@@ -91,16 +89,13 @@ async function storedOrders(): Promise<number[]> {
   return rows.map((row) => row.order)
 }
 
-const reorder = (orderedIds: number[]) => asRequest(maintainer.authId, () => reorderBlocks({ areaId, orderedIds }))
+const reorder = (orderedIds: number[]) => client.push('blocks.reorder', { areaId, orderedIds })
 
-describe.skipIf(!reachable)('reorderBlocks', () => {
+describe.skipIf(!reachable)('blocks.reorder', () => {
   it('writes the submitted sequence and leaves the area contiguous', async () => {
     const ids = await seedBlocks()
 
-    const result = await reorder([ids.D, ids.C, ids.B, ids.A])
-
-    // The ordering screen is not a detail screen, so finishing has to name where it returns to.
-    expect(result?.redirectTo).toBe(`/areas/${areaId}`)
+    expect(await reorder([ids.D, ids.C, ids.B, ids.A])).toEqual({})
 
     expect(await storedNames()).toEqual(['D', 'C', 'B', 'A'])
     expect(await storedOrders()).toEqual([0, 1, 2, 3])
