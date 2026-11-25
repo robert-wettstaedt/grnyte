@@ -175,5 +175,5 @@ that changes the client sending them.
 
 #### Scenario: A tab open across the deploy
 
-- **WHEN** a person saves a form in a tab loaded before the release that introduced mutators
-- **THEN** the save succeeds through the previous write endpoint
+- **WHEN** a person saves a form in a tab loaded before the latest release
+- **THEN** the save succeeds
