@@ -26,7 +26,7 @@ services:
 
   zero:
     # Must move in lockstep with `@rocicorp/zero` in package.json, server deployed first.
-    image: rocicorp/zero:1.11.0
+    image: rocicorp/zero:1.11.1
     container_name: zero-server
     ports:
       - '4848:4848'
@@ -69,7 +69,7 @@ services:
   # Opt in with `docker compose --profile perf up -d zero-perf` after stopping `npm run dev:zero`.
   zero-perf:
     profiles: ['perf']
-    image: rocicorp/zero:1.11.0
+    image: rocicorp/zero:1.11.1
     container_name: zero-perf
     ports:
       - '4848:4848'
