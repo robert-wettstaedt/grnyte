@@ -23,7 +23,7 @@
  *
  * Skipped when DATABASE_URL is unreachable, like every other DB-backed suite here.
  */
-import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
+import { dropGuidebookRegion, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { deleteArea, deleteBlock, deleteRoute, restoreArea, restoreBlock, restoreRoute } from '$lib/remote/testCommands'
 import { asRequest } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -116,16 +116,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  if (reachable) {
-    await sql`delete from public.events where region_fk = ${regionId}`
-    await sql`update public.blocks set geolocation_fk = null where region_fk = ${regionId}`
-    await sql`delete from public.geolocations where region_fk = ${regionId}`
-    await sql`delete from public.routes where region_fk = ${regionId}`
-    await sql`delete from public.blocks where region_fk = ${regionId}`
-    await sql`delete from public.areas where region_fk = ${regionId}`
-    await sql`delete from public.region_members where region_fk = ${regionId}`
-    await sql`delete from public.regions where id = ${regionId}`
-  }
+  if (reachable) await dropGuidebookRegion(regionId)
   await sql.end()
 })
 

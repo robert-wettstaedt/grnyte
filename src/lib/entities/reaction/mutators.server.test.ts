@@ -78,6 +78,25 @@ describe.skipIf(!reachable)('reaction mutators', () => {
     expect(await live('emoji', reactor.userId)).toEqual([])
   })
 
+  it('lands two concurrent taps as one live reaction, not a unique-index failure', async () => {
+    const [event] = await sql<{ id: number }[]>`
+      insert into public.events (verb, actor_fk, region_fk, subject_fk)
+      values ('join', ${actor.userId}, ${regionId}, ${actor.userId}) returning id`
+    // Two clients: one client's pushes serialise on its own bookkeeping row.
+    const rival = zeroClient(reactor.authId)
+    const tap = (by: typeof rival) => by.push('reactions.toggle', { emoji: '👍', eventId: event.id })
+
+    const results = await Promise.all([tap(reactorClient), tap(rival)])
+    await rival.cleanup()
+
+    expect(results.map((result) => result.error)).toEqual([undefined, undefined])
+    const rows = await sql`
+      select 1 from public.reactions
+      where event_fk = ${event.id} and user_fk = ${reactor.userId} and deleted_at is null`
+    // Taps that serialise are a toggle on then off; only overlapping ones both answer "reacted".
+    expect(rows.length).toBe(results.every((result) => result.data) ? 1 : 0)
+  })
+
   it('refuses a reaction on your own event', async () => {
     const result = await actorClient.push('reactions.toggle', { emoji: '👍', eventId, userId: actor.userId })
 

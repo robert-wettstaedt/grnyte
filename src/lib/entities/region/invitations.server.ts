@@ -18,7 +18,6 @@ import {
   restoreInvitation,
   revokeInvitation,
   sendInvitationEmail,
-  type DeliveryReport,
   type MailContext,
 } from './invite.server'
 
@@ -80,7 +79,6 @@ export async function inviteRegionMemberRow(
 
   const address = normalizeEmail(email)
   const invitation = await createInvitation(db, { email: address, invitedByFk: user.id, regionFk })
-  const report: DeliveryReport = { sent: false }
 
   await sendInvitationEmail(
     db,
@@ -104,14 +102,13 @@ export async function inviteRegionMemberRow(
         }),
       regionFk,
       regionName: region.name,
-      report,
       token: invitation.token,
     },
     mail,
     afterCommit,
   )
 
-  return { data: { email: address, report } }
+  return { data: { email: address } }
 }
 
 /** Re-send an existing invitation with a refreshed expiry. Throttled to one send per minute. */
@@ -120,14 +117,14 @@ export async function resendRegionInvitationRow(
   { afterCommit, db, user, userRegions }: Caller,
   mail: MailContext,
 ) {
-  const { email, report } = await resendInvitation(
+  const email = await resendInvitation(
     db,
     { invitationFk, inviter: user.username, inviterFk: user.id, userRegions },
     mail,
     afterCommit,
   )
 
-  return { data: { email, report } }
+  return { data: { email } }
 }
 
 /** Undo a {@link revokeRegionInvitationRow}: back to pending with a fresh expiry, same token, and

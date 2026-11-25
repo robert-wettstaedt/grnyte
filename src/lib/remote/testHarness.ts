@@ -81,15 +81,6 @@ export async function newSession(authUserId: string): Promise<string> {
   return row.id
 }
 
-/**
- * Where a `callForm` submit sends the reader: the handler's `redirectTo`, which reaches the client in
- * Kit's result envelope, not as a 303. `undefined` for a refusal, which resolves with issues instead.
- */
-export async function redirectOf(run: () => Promise<unknown>): Promise<string | undefined> {
-  const output = (await run()) as undefined | { result?: { redirectTo?: string } }
-  return output?.result?.redirectTo
-}
-
 /** The locals a signed-in request of `authUserId` carries, whichever transport (the app API passes them to `appCall`). */
 export async function requestLocals(
   authUserId: string,
@@ -185,6 +176,10 @@ export const commandRefusal = (run: () => Promise<unknown>): Promise<string | un
     (cause: { body?: { message?: string } }) => JSON.parse(cause.body?.message ?? '{}').message as string,
   )
 
+/** The refusal a pushed mutation answered: its message key, and the params when it has some. */
+export const pushRefusal = (result: PushedResult): { message?: string; params?: unknown } =>
+  JSON.parse(result.message ?? '{}')
+
 /** The message keys of a form's refusal, as `callForm` returns it. */
 export const refusalKeys = ({ issues = [] }: { issues?: { message: string }[] }): string[] =>
   issues.map((issue) => JSON.parse(issue.message).message)
@@ -256,9 +251,7 @@ function inRequestStore<T>(locals: object, fn: () => Promise<T> | T, cookies?: u
   // handler.
   const request = new Request('http://localhost/', { method: 'POST' })
 
-  // `url` too: `mailContext()` and anything else building an absolute link reads
-  // `getRequestEvent().url.origin`, so without it the first test of `inviteRegionMember` dies on
-  // `Cannot read properties of undefined` instead of exercising the gate it was written for.
+  // Handlers that build absolute links read `getRequestEvent().url.origin`.
   const url = new URL('http://localhost/')
 
   // `getClientAddress`: the auth-only client forwards it to GoTrue as `sb-forwarded-for`.

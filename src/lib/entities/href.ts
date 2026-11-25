@@ -1,7 +1,7 @@
 /**
  * The detail screen of one entity, and the only place those six route patterns are written.
  *
- * Use this wherever a URL is a VALUE: a handler's `redirectTo`, a form's `cancelTo`, a `back()` or
+ * Use this wherever a URL is a VALUE: a write's `redirectTo`, a form's `cancelTo`, a `back()` or
  * `exit()` argument, an href passed as a prop. An `href` the lint rule can verify keeps its literal
  * `resolve()` instead: `svelte/no-navigation-without-resolve` is syntactic, so it sees a direct call
  * on an `<a href>` or a variable traced to one, and nothing else.

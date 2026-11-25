@@ -1,5 +1,5 @@
 /**
- * `updateRegionMapLayers` through the real handler, in a real RLS transaction.
+ * `regions.updateMapLayers` through the mutate endpoint, in a real RLS transaction.
  *
  * It replaces the whole layer list, so an empty submit is indistinguishable from a form that
  * rendered before its data arrived, and the payload has to prove which layers it replaces. Nothing
@@ -9,9 +9,8 @@
  * Skipped when DATABASE_URL is unreachable, like every other DB-backed suite here.
  */
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest, callForm, redirectOf } from '$lib/remote/testHarness'
+import { pushRefusal, zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { updateRegionMapLayers } from './regions.remote'
 import { emptyRegionSettings, mapLayersFingerprint, toLayerForm, type MapLayer, type RegionSettings } from './settings'
 
 const REGION = '__map_layers_region__'
@@ -21,8 +20,8 @@ const UNREADABLE = '__map_layers_unreadable_region__'
 const STORED: MapLayer = { name: 'Contours', params: { LAYERS: 'contours' }, type: 'wms', url: 'https://ex.test/wms' }
 const SUBMITTED: MapLayer = { name: 'Aerial', params: { LAYERS: 'aerial' }, type: 'wms', url: 'https://ex.test/air' }
 
-let admin: SeedUser
-let outsider: SeedUser
+let admin: ReturnType<typeof zeroClient>
+let outsider: ReturnType<typeof zeroClient>
 let regionId = 0
 let unreadableRegionId = 0
 
@@ -50,13 +49,13 @@ beforeAll(async () => {
   if (!reachable) return
 
   const users = await seedUsers({ admin: 'admin@grnyte.rocks', outsider: 'user@grnyte.rocks' })
-  admin = users.admin
-  outsider = users.outsider
+  admin = zeroClient(users.admin.authId)
+  outsider = zeroClient(users.outsider.authId)
 
-  regionId = await seedRegionWithSettings(REGION, settingsWith([STORED]), admin)
+  regionId = await seedRegionWithSettings(REGION, settingsWith([STORED]), users.admin)
   // A blob this build cannot read whole: the layer list is not a list. It must refuse differently,
   // because "someone else changed this" would send the admin round a loop reopening cannot leave.
-  unreadableRegionId = await seedRegionWithSettings(UNREADABLE, { mapLayers: 'not a list' }, admin)
+  unreadableRegionId = await seedRegionWithSettings(UNREADABLE, { mapLayers: 'not a list' }, users.admin)
 })
 
 beforeEach(async () => {
@@ -68,6 +67,8 @@ beforeEach(async () => {
 
 afterAll(async () => {
   if (reachable) {
+    await admin.cleanup()
+    await outsider.cleanup()
     await sql`delete from public.region_members where region_fk in (${regionId}, ${unreadableRegionId})`
     await sql`delete from public.regions where id in (${regionId}, ${unreadableRegionId})`
   }
@@ -81,25 +82,11 @@ afterAll(async () => {
  * would pass just as happily on a validation error it never meant to trigger. That is exactly what
  * the first draft of this file did, while every URL was being rejected as malformed.
  */
-async function submit(user: SeedUser, data: Record<string, unknown>): Promise<string> {
-  const result = await asRequest<{ issues?: { message: string }[] }>(user.authId, () =>
-    callForm(updateRegionMapLayers, data),
-  )
-  const [issue] = result.issues ?? []
+async function submit(client: typeof admin, data: Record<string, unknown>): Promise<string | undefined> {
+  const result = await client.push('regions.updateMapLayers', data)
 
-  return issue == null ? 'saved' : String((JSON.parse(issue.message) as { message: string }).message)
+  return result.error == null ? 'saved' : pushRefusal(result).message
 }
-
-// `submit` above reports only WHETHER the save landed. Where it then sends the reader is its own
-// value, built from an id, and nothing else in this suite looks at it.
-describe.skipIf(!reachable)('where a save sends the reader', () => {
-  it('returns to the region whose layers it just saved', async () => {
-    const data = { id: String(regionId), known: mapLayersFingerprint([STORED]), mapLayers: [toLayerForm(SUBMITTED)] }
-    const location = await redirectOf(() => asRequest(admin.authId, () => callForm(updateRegionMapLayers, data)))
-
-    expect(location).toBe(`/regions/${regionId}`)
-  })
-})
 
 describe.skipIf(!reachable)('updateRegionMapLayers staleness guard', () => {
   it('accepts a save whose fingerprint still describes the stored layers', async () => {

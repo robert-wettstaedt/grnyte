@@ -45,7 +45,7 @@ const noRawErrorMessage = [
  * `requireEditableArea` had passed on the old row. No policy covered `parentFk` at all.
  *
  * So name the columns. It is longer, and it is the only form where reading the line tells you what
- * the statement can do. `src/lib/entities/area/areas.remote.test.ts` is the proof.
+ * the statement can do. `src/lib/entities/area/areas.server.test.ts` is the proof.
  *
  * DESCENDANT selectors, not direct children, so the array and mapped forms are covered too:
  * `.values([{ ...v }])` and `.values(list.map((v) => ({ ...v })))` are the same bug written with one

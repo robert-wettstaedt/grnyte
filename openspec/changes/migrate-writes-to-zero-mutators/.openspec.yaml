@@ -1,2 +1,31 @@
 schema: spec-driven
 created: 2026-10-18
+x-issue: 1184
+x-paths:
+  - src/lib/entities/area/**
+  - src/lib/entities/ascent/**
+  - src/lib/entities/block/**
+  - src/lib/entities/favorite/**
+  - src/lib/entities/event/cases/coverage.test.ts
+  - src/lib/entities/feedback/**
+  - src/lib/entities/file/files.remote.ts
+  - src/lib/entities/href.ts
+  - src/lib/entities/notification/**
+  - src/lib/entities/reaction/**
+  - src/lib/entities/region/**
+  - src/lib/entities/report/retention.server.test.ts
+  - src/lib/entities/route/**
+  - src/lib/entities/topo/**
+  - src/lib/entities/user/**
+  - src/lib/remote/**
+  - src/lib/db/schema.ts
+  - src/lib/db/regionPolicies.test.ts
+  - src/lib/db/scripts/region/split-region.ts
+  - src/lib/db/scripts/seed/seed-volume.ts
+  - README.md
+  - src/lib/state/sync.svelte.ts
+  - eslint.config.js
+  - stryker/server.sh
+  - .fallow-dupes-baseline.json
+  - .fallow-health-baseline.json
+  - AGENTS.md

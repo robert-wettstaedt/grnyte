@@ -3,7 +3,7 @@ import { zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // The notification mutators, including `subscribePush` on the privileged path: the three
-// ownership cases `notifications.remote.test.ts` pins, now through Zero's transaction.
+// ownership cases, through Zero's transaction.
 const STOLEN = 'https://push.grnyte.test/__notification_mutators_stolen__'
 const MOVED = 'https://push.grnyte.test/__notification_mutators_moved__'
 const OWN = 'https://push.grnyte.test/__notification_mutators_own__'

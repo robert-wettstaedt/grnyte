@@ -1,4 +1,4 @@
-import { command, form, getRequestEvent, query } from '$app/server'
+import { command, getRequestEvent, query } from '$app/server'
 import { requireLiveSession } from '$lib/auth/server/session.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { feedback, users, userSettings } from '$lib/db/schema'
@@ -8,38 +8,17 @@ import { deletedUserName } from '$lib/entities/displayName'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { contactLocale } from '$lib/i18n/message'
-import { drainAfterCommit, requireAuthed } from '$lib/remote/authed.server'
 import { requireAppAdmin } from '$lib/remote/require.server'
 import { error as httpError } from '@sveltejs/kit'
 import { and, desc, eq } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { authUsers } from 'drizzle-orm/supabase'
 import { createHash } from 'node:crypto'
-import { BODY_MAX, feedbackSchema, type FeedbackItem } from './dto'
-import { submitFeedbackRow } from './submit.server'
+import { BODY_MAX, type FeedbackItem } from './dto'
 
 // `auth.users` and `public.users` are both named "users": joining them unaliased fails only at
 // runtime (42P09), invisible to the typechecker. Same alias as `notify.server.ts`/`signup.server.ts`.
 const authUser = alias(authUsers, 'auth_user')
-
-/** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
-export const submitFeedback = form(feedbackSchema, async (value) => {
-  const { request, url } = getRequestEvent()
-  const { user } = requireAuthed()
-  await requireLiveSession()
-  const deferred: (() => Promise<void>)[] = []
-
-  return pinnedTx((db) =>
-    submitFeedbackRow(
-      { ...value, userAgent: request.headers.get('user-agent') ?? undefined },
-      { afterCommit: (task) => void deferred.push(task), db, user },
-      url.origin,
-    ),
-  ).then(async (result) => {
-    await drainAfterCommit(deferred)
-    return result
-  })
-})
 
 /**
  * Every submission, newest first, for app admins. Ungrouped and unpaged unlike the error log:

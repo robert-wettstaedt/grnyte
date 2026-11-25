@@ -329,7 +329,7 @@ export const regions = table(
   (table) => [
     index('regions_name_idx').on(table.name),
 
-    // Nobody creates a region through RLS, app admins included. `createRegionForUser` runs on the
+    // Nobody creates a region through RLS, app admins included. `createRegionIn` runs on the
     // privileged handle because it has to count what a caller already owns and enforce
     // MAX_OWNED_REGIONS inside the same transaction, and the policy that used to sit here was
     // `true`, which enforced nothing and existed only as a way around that cap.
@@ -1388,7 +1388,7 @@ export const routesToTags = table(
       .references((): AnyColumn => routes.id),
     // Free text rather than a foreign key: the vocabulary lives in `regions.settings.tags`, so each
     // region's admins own it and two regions may use the same word for different things. What may
-    // be written here is checked against the target region's list in `routes.remote.ts`.
+    // be written here is checked against the target region's list in `route/save.server.ts`.
     tagFk: text('tag_fk').notNull(),
   },
   (table) => [

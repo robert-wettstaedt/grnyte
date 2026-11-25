@@ -5,9 +5,7 @@
  * and already hydrated, so a row per recipient would store what the feed holds N times over only
  * to render it a second time somewhere else.
  *
- * Split out of the `.remote.ts` modules that call it for the usual reason (a `.remote.ts` pulls in
- * SvelteKit's client runtime and cannot be imported from a test), and because the recipient rule
- * is the one thing here worth testing against a real database.
+ * Its own module because the recipient rule is the one thing here worth testing against a real database.
  */
 import { REGION_PERMISSION_READ } from '$lib/auth'
 import { getReferences } from '$lib/components/Markdown/lib/remark-references'

@@ -103,10 +103,35 @@ the test failed, and the edit was reverted.
 - [x] 15.4 Run `npm run test:e2e` against the dev stack and fix what it finds
 - [x] 15.5 Verification sweep over the touched paths: `npx prettier --write`, `npx eslint`, `npx vitest run --project server` and `--project browser`, `svelte-check`, `npm run lint:duplication`, `npm run lint:unused`, and drive the favorite toggle, the route edit form and one delete with undo at 375x667 and 1280x800; close the pages opened
 
+## 16. Delete the migrated remote functions
+
+Ports rename `x.remote.test.ts` to `x.server.test.ts` and swap the call for a `zeroClient` push, keeping each case's
+database assertion. A refusal asserts its message key (and `details.status` or `details.field`), never only that
+something was refused. A race pushes from two `zeroClient`s: one client group serialises its own pushes, so a race
+through one client proves nothing. "Seen red" as above, with the edit that guards the case.
+
+- [x] 16.1 Port the 6 area cases `mutators.server.test.ts` lacks from `areas.remote.test.ts` (rename, no region move on a rename, empty `parentFk`, a name used in another region, a sibling's name refused on update, a create named like a nested area) to `areas.server.test.ts`; drop the destination case; verify each seen red
+- [x] 16.2 Port the 6 cases of `blocks.remote.test.ts` (three description and mention, pin on create, two pin races on two clients) to `blocks.server.test.ts`; drop the 2 destination cases; verify each seen red, the races with the block lock removed
+- [x] 16.3 Port all 6 cases of `pin.remote.test.ts` to `pinStale.server.test.ts` (`pin.server.test.ts` is taken); verify each seen red, the exact-double case with the fingerprint's rounding removed
+- [x] 16.4 Port all 7 cases of `reorder.remote.test.ts` to `reorder.server.test.ts`, without the destination assertion; verify the partial-submit and tie-break cases seen red
+- [x] 16.5 Port the 5 staleness cases of `routes.remote.test.ts` to `routes.server.test.ts`; drop the destination case; verify each refusal seen red with the `known` comparison removed
+- [x] 16.6 Port 6 cases of `topos.remote.test.ts` to `topos.server.test.ts` (two foreign-file refusals, an image a sibling holds, a swap onto its own image, two races on two clients); drop the create case `mutators.server.test.ts` holds; verify each seen red
+- [x] 16.7 Port all 10 cases of `lines.remote.test.ts` to `lines.server.test.ts`, the concurrent save on two clients; verify each refusal seen red
+- [x] 16.8 Port the 5 guard cases of `mapLayers.remote.test.ts` to `mapLayers.server.test.ts`; drop the destination case; verify each refusal seen red
+- [x] 16.9 Port the 3 command-driven cases of `settings.server.test.ts` in place (two admins adding a tag on two clients, a write that lands nowhere, an unreadable vocabulary) and both cases of `memberRestore.remote.test.ts` to `memberRestore.server.test.ts`; verify each seen red
+- [x] 16.10 Port `toggleReaction.remote.test.ts` to the reaction mutator suite on two clients; verify it seen red with the conflict handling removed
+- [x] 16.11 Port the 12 cases of `softDeletedParent.remote.test.ts` that call a migrated function, the favorite case as `saved` true, false, true; leave its `testCommands` cases as they are; verify each refusal seen red
+- [x] 16.12 Move the revoked-session case of `notifications.remote.test.ts` onto an `authedCommand` that stays, then delete that file: the notification mutator suite holds its other 3 cases; verify the moved case seen red with the live-session check removed from `run`
+- [x] 16.13 Delete the 8 remote files that hold nothing else (areas, ascents, blocks, favorites, reactions, routes, topos, users) and the migrated exports of feedback, files, notifications and regions with the imports and helpers only they used; drop their `NO_GATE` entries; verify with a grep that none of the 44 names is exported from a `*.remote.ts`, and that `gates.test.ts` passes and still parses more than 60 handlers
+- [x] 16.14 Delete what the functions leave behind: `authedForm` with its Kit type copy and `WRAPPERS` entry, `redirectOf`, `createRegionForUser` (its test drives `createRegionIn` through `pinnedTx`, its two comments name `createRegionIn`), the invitation bodies' `report`, and `setFavorite`'s flip (`saved` becomes required); verify `lint:unused` is clean and the create, invite and favorite tests pass
+- [x] 16.15 Strip `redirectTo` from the 14 entity handlers and `answerReplayedRestore` (which then answers nothing), and the two assertions on it in `softRestore.remote.test.ts`; verify by grep that under `src/lib/entities` only `writes.ts` files and comments on the client's own destination still name it, and that `svelte-check` is clean
+- [x] 16.16 Rewrite the comments that name a deleted file, function or second caller (the mutator suites' headers, `mutation.ts`, `require.server.ts`, `restoreSnapshots.remote.test.ts`, the ascent bodies), and cut any AGENTS.md line the deletion makes stale; verify by grepping each deleted file and export name
+- [x] 16.17 Sweep the touched paths: prettier, eslint, `ci/local.sh test` over `--project server`, `server-serial` and `browser`, `lint:unused`, `lint:duplication`, `lint:health` (only stale baseline entries removed), and type-check the Zero and the PowerSync build
+- [x] 16.18 On the Zero build at 375x667 and 1280x800, drive a favorite toggle, a route edit, a delete with undo and a region invite, checking where each lands, which no server test covers any more; close the pages opened
+
 ## Workflow follow-up
 
-- Before deleting the remote functions, port each remaining `*.remote.test.ts` case to the `zeroClient` harness, so no body loses its coverage.
-
 - Release order: zero-cache 1.11 with the new env, then `migrate`, then the app.
-- In the next ordinary release, delete the migrated remote functions and their `*.remote.test.ts` files. Then strip `redirectTo` from the shared `*.server.ts` bodies: only those remote callers read it, and every server mutator already drops it.
-- Archive the change after that release and the review loop.
+- Deploy note for group 16: it removes 44 remote exports, so a tab that still calls one gets an error. They have had no
+  caller since 2026-10-19, more than one release ago. No migration, no zero-cache change, no mutator renamed or narrowed.
+- After the issue gate and `/review-loop`, archive the change as the last step before the pull request.

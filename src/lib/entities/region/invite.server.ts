@@ -2,10 +2,6 @@
  * The database-backed half of region invitations: create one, accept one, and work out which
  * language to write to the invitee in.
  *
- * Split out of `regions.remote.ts` for the same reason as `guards.server.ts`: a `.remote.ts`
- * module pulls in SvelteKit's client runtime and cannot be imported from a test, and the section 8
- * failure matrix is exactly what is worth testing.
- *
  * One predicate defines validity everywhere: in the RLS policies, in the authGuard hook, in the
  * accept page load and in `acceptInvitation`: **`status = 'pending' AND expires_at > now()`**.
  * Revoking sets `status = 'expired'` and `expires_at = now()` together precisely so that stays the
@@ -13,8 +9,8 @@
  * comes through `livePredicate`, `findLiveInvitationByEmail` or `resolveInviteState`.
  *
  * Nothing here reads `getRequestEvent()` or `getLocale()`. The request-scoped values the mail needs
- * arrive as a {@link MailContext} instead, which is the whole reason this module stays importable
- * from a test while `regions.remote.ts` does not.
+ * arrive as a {@link MailContext} instead, which is the whole reason a test can call
+ * this module.
  */
 import { pinnedTx } from '$lib/db/pinned.server'
 import * as schema from '$lib/db/schema'
@@ -63,12 +59,6 @@ export interface CreateInvitationInput {
   regionFk: number
 }
 
-/** Filled in by the delivery: inline, before {@link sendInvitationEmail} returns; deferred, once
- *  the after-commit task has run, which a remote function drains before it answers. */
-export interface DeliveryReport {
-  sent: boolean
-}
-
 /** What the accept page needs to render every state without ever seeing the token again. */
 export interface InvitationView {
   email: string
@@ -104,7 +94,7 @@ export interface InviteStateView {
  *
  * `getRequestEvent()` only resolves inside a request and `getLocale()` inside paraglide's own
  * scope, so reading either one in this module would put every function that sends mail back out
- * of a test's reach. The caller in `regions.remote.ts` is the adapter that supplies them.
+ * of a test's reach.
  */
 export interface MailContext {
   /** The SENDER's locale. Only ever a fallback, see {@link resolveContactLocale}. */
@@ -118,7 +108,7 @@ export interface MailContext {
  * reason `signUp` does: the invitee is not a member yet, and `region_members` deliberately has no
  * self-insert policy (see the comment on the table). The token is the authorization and it is
  * validated right here. An RLS insert policy keyed on a matching invitation would be a migration
- * that buys nothing while remote functions are the only write path.
+ * that buys nothing while every write goes through this server.
  */
 export async function acceptInvitation(
   input: AcceptInvitationInput,
@@ -443,7 +433,7 @@ export async function resendInvitation(
   }: { invitationFk: number; inviter: string; inviterFk?: number; userRegions: UserRegion[] },
   mail: MailContext,
   defer?: Defer,
-): Promise<{ email: string; report: DeliveryReport }> {
+): Promise<string> {
   const invitation = await loadEditable(db, invitationFk, userRegions)
 
   if (invitation.region == null) {
@@ -456,8 +446,6 @@ export async function resendInvitation(
     .update(regionInvitations)
     .set({ expiresAt: expiry(), status: 'pending' })
     .where(eq(regionInvitations.id, invitationFk))
-
-  const report: DeliveryReport = { sent: false }
 
   // Logged only when the region has no record of this address being invited (the first send may
   // have failed) and under whoever pressed Resend, not the original inviter: relying on
@@ -496,14 +484,13 @@ export async function resendInvitation(
       onDelivered: logInvitation,
       regionFk: invitation.regionFk,
       regionName: invitation.region.name,
-      report,
       token: invitation.token,
     },
     mail,
     defer,
   )
 
-  return { email: invitation.email, report }
+  return invitation.email
 }
 
 /**
@@ -669,7 +656,6 @@ export async function sendInvitationEmail(
     onDelivered,
     regionFk,
     regionName,
-    report,
     token,
   }: {
     actorFk?: number
@@ -680,7 +666,6 @@ export async function sendInvitationEmail(
     onDelivered?: (db: Db) => Promise<unknown>
     regionFk?: number
     regionName: string
-    report?: DeliveryReport
     token: string
   },
   { ambientLocale, origin }: MailContext,
@@ -724,7 +709,6 @@ export async function sendInvitationEmail(
   // The push opens its own connection, so it runs after the stamp's transaction, never inside it.
   const deliver = async (onHandle: (write: typeof stamp) => Promise<unknown>) => {
     const sent = await send()
-    if (report != null) report.sent = sent
     if (sent) await onHandle(stamp)
     await push()
   }

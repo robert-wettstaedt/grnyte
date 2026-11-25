@@ -44,7 +44,7 @@ describe('regionTags', () => {
   })
 
   it('offers a non-member nothing, and specifically not the defaults', () => {
-    // `routes.remote.ts` feeds this into `allowedTags` as the allowlist a route write is checked
+    // `route/save.server.ts` feeds this into `allowedTags` as the allowlist a route write is checked
     // against, so a not-found branch falling back to the defaults is seven writable tags.
     expect(regionTags([region(1, ['high'])], 2)).toEqual([])
   })

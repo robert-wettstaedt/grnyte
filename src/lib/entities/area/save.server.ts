@@ -1,5 +1,4 @@
 import { areas } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import { blank, formError, type FormMessage } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import type { Context } from '$lib/remote/authed.server'
@@ -93,7 +92,7 @@ export async function createAreaRow(value: Value, { afterCommit, db, user, userR
     }),
   )
 
-  return { data: { id: createdArea.id }, redirectTo: entityHref('areas', createdArea.id) }
+  return { data: { id: createdArea.id } }
 }
 
 export async function updateAreaRow(
@@ -140,6 +139,4 @@ export async function updateAreaRow(
       regionFk: area.regionFk,
     }),
   )
-
-  return { redirectTo: entityHref('areas', area.id) }
 }

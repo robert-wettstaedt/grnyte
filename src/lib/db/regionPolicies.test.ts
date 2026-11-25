@@ -170,7 +170,7 @@ describe.skipIf(!reachable)('regions RLS', () => {
    * would carry INSERT too. Nothing else in the suite attempts a region INSERT through RLS, which
    * left the one role most likely to be talked into using it as the only untested path.
    *
-   * What it protects is not the row but the cap: `createRegionForUser` enforces
+   * What it protects is not the row but the cap: `createRegionIn` enforces
    * `MAX_OWNED_REGIONS`, and a direct insert goes around it.
    */
   it('does not let anybody insert a region, app admins included', async () => {

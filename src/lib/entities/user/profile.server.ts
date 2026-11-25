@@ -1,4 +1,3 @@
-import { resolve } from '$app/paths'
 import { regionMembers, users } from '$lib/db/schema'
 import { formError, type FormMessage } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
@@ -26,9 +25,9 @@ export async function updateUsernameRow(
   { db, user, userRegions }: Pick<Context, 'db' | 'user' | 'userRegions'>,
   refuse: Refuse,
 ) {
-  // Unchanged is still a successful submit, so it leaves for the same place a real rename does.
+  // Unchanged is still a successful submit.
   if (username === user.username) {
-    return { redirectTo: resolve('/(app)/settings') }
+    return
   }
 
   const regionFks = userRegions.map((region) => region.regionFk)
@@ -68,8 +67,6 @@ export async function updateUsernameRow(
       regionFk,
     })
   }
-
-  return { redirectTo: resolve('/(app)/settings') }
 }
 
 /**

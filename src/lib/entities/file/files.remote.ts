@@ -18,8 +18,8 @@ import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import heicConvert from 'heic-convert'
 import sharp from 'sharp'
-import { deleteFileSchema, fileVisibilitySchema, sourceUrl, videoSourceSchema } from './dto'
-import { deleteMediaFileRow, setFileVisibilityRow, setVideoSourceRow } from './edit.server'
+import { deleteFileSchema, fileVisibilitySchema, sourceUrl } from './dto'
+import { deleteMediaFileRow, setFileVisibilityRow } from './edit.server'
 import { resolveAttachRegion } from './guards.server'
 import { extensionOf, fileEntityTypes, isHeic, isImageFileName, STAGING_BUCKET, type FileEntityType } from './upload'
 
@@ -224,13 +224,10 @@ export const createBunnyVideo = command(async () => {
   return getVideoProvider().createUpload(user.authUserFk)
 })
 
-// The bodies live in `edit.server.ts`, shared with the file mutators. The `/f` share page keeps
+// The bodies live in `edit.server.ts`, with the file mutators. The `/f` share page keeps
 // `setFileVisibility` and `deleteFile`: it renders outside `(app)`, with no Zero client.
 
 export const setFileVisibility = authedCommand(fileVisibilitySchema, (args, ctx) => setFileVisibilityRow(args, ctx))
-
-/** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
-export const setVideoSource = authedCommand(videoSourceSchema, (args, ctx) => setVideoSourceRow(args, ctx))
 
 export const deleteFile = authedCommand(deleteFileSchema, (args, ctx) => deleteMediaFileRow(args, ctx))
 

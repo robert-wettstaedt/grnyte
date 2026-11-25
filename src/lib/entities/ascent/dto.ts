@@ -47,7 +47,7 @@ export interface UserAscentDetail extends RouteAscent {
   routeName: string
 }
 
-/** The add/edit-ascent form's fields, shared by the remote forms and the `ascents` mutators. */
+/** The add/edit-ascent form's fields, and the `ascents` mutators' args. */
 export const ascentActionSchema = z.object({
   dateTime: z.iso.date({ error: formError('form_required') }),
   gradeFk: stringToIntOptional,

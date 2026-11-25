@@ -15,7 +15,7 @@
  * ghosted underneath. A line is ~100 characters, an order less than the descriptions the
  * `prose` renderer already stores twice per row.
  *
- * No imports, like `coords.ts`: the writers are remote functions and the readers are feed
+ * No imports, like `coords.ts`: the writers are server bodies and the readers are feed
  * components, so this has to stay clean enough for both bundles.
  */
 

@@ -1,6 +1,5 @@
 /**
- * The database-backed authorization for area mutations, split out of `areas.remote.ts` so it can be
- * imported from a test (a `.remote.ts` module pulls in SvelteKit's client runtime and cannot).
+ * The database-backed authorization for area mutations.
  *
  * `requireEditableArea` gates on the STORED row, so a submitted `regionFk` can never be the subject
  * of the permission check: the cross-region escalation `updateArea` once allowed.

@@ -190,7 +190,7 @@ const GATES = new Set([
 ])
 
 /** The wrappers that make an export a remote function, or a nested property a server mutator. */
-const WRAPPERS = new Set(['authedCommand', 'authedForm', 'authedQuery', 'command', 'form', 'query'])
+const WRAPPERS = new Set(['authedCommand', 'authedQuery', 'command', 'form', 'query'])
 const MUTATOR_WRAPPERS = new Set(['defineServerMutator'])
 
 /**
@@ -229,52 +229,34 @@ const NO_GATE: Record<string, string> = {
     'Counts on the RLS connection, so the region scope is the "region.read can read events" policy rather than anything the handler restates; the only input is the id of the user whose number is on screen.',
   'lib/entities/feedback/feedback.remote.ts#listFeedback': 'Global, not region scoped; gated on app.admin.',
   'lib/entities/feedback/feedback.remote.ts#replyToFeedback': 'Same app.admin gate; recipient from the stored row.',
-  'lib/entities/feedback/feedback.remote.ts#submitFeedback':
-    'New row only; createdBy from session, and `requireAuthed` for the gate: 401 signed out, 503 when a backend is down.',
   'lib/entities/feedback/mutators.server.ts#feedback.submit':
-    "Privileged, as `submitFeedback`: a new row only, `createdBy` from the session, and the mutate endpoint's verified token is the gate.",
+    "Privileged: a new row only, `createdBy` from the session, and the mutate endpoint's verified token is the gate.",
   'lib/entities/file/files.remote.ts#createBunnyVideo':
     "Takes no id at all: it mints an empty video object in the caller's own host collection, and the region gate runs at finalizeVideo, which is where an entity to attach to is finally named.",
   'lib/entities/moderation/moderation.remote.ts#listDecisions':
     'Not region scoped: it lists the decisions of every region for the operator. Gated on app.admin through requireAppAdmin, like listErrorLogs.',
   'lib/entities/notification/mutators.server.ts#notifications.markFeedSeen':
-    "Moves the caller's own feed watermark, the same body as `markEventFeedSeen`: the settings row is addressed by the session user, and `userId` only steers the client's optimistic write.",
+    "Moves the caller's own feed watermark: the settings row is addressed by the session user, and `userId` only steers the client's optimistic write.",
   'lib/entities/notification/mutators.server.ts#notifications.markRead':
-    "Marks only the session user's unread rows, the same body as `markNotificationsRead`; `userId` only steers the client's optimistic write.",
+    "Marks only the session user's unread rows; `userId` only steers the client's optimistic write.",
   'lib/entities/notification/mutators.server.ts#notifications.subscribePush':
-    "Privileged, because the endpoint may be another account's row: the same body as `subscribeToPush`, with every owner column from the session and the takeover refused by the keys and `setWhere`.",
+    "Privileged, because the endpoint may be another account's row: every owner column comes from the session, and the keys and `setWhere` refuse a takeover.",
   'lib/entities/notification/mutators.server.ts#notifications.unsubscribePush':
-    "Deletes by endpoint AND the session user's id, the same body as `unsubscribeFromPush`.",
-  'lib/entities/notification/notifications.remote.ts#markEventFeedSeen':
-    "Moves the caller's own feed watermark: the settings row is addressed by the session user through the shared writer, and the only client value is the timestamp it is compared against.",
-  'lib/entities/notification/notifications.remote.ts#markNotificationsRead':
-    'Takes no input at all and updates only unread rows whose user_fk is the session user, so there is no id a caller could aim somewhere else.',
+    "Deletes by endpoint AND the session user's id, so naming somebody else's device deletes nothing.",
   'lib/entities/notification/notifications.remote.ts#sendTestPush':
     "Looks the subscription up by endpoint AND the session user's id, so an endpoint belonging to somebody else simply reads back as not found.",
-  'lib/entities/notification/notifications.remote.ts#subscribeToPush':
-    "Registers the caller's own device: every owner column comes from the session, and the endpoint from the payload carries its own inline ownership check rather than a region gate.",
-  'lib/entities/notification/notifications.remote.ts#unsubscribeFromPush':
-    "Deletes by endpoint AND the session user's id, so a caller who names somebody else's device deletes nothing.",
   'lib/entities/region/mutators.server.ts#regions.create':
-    'Privileged, as `createRegion`: a new region only, its founder from the session, the cap checked under the founder lock.',
+    'Privileged: a new region only, its founder from the session, the cap checked under the founder lock.',
   'lib/entities/region/mutators.server.ts#regions.leave':
-    "The same body as `leaveRegion`: only the caller's own membership, found by regionFk plus ctx.user.id.",
-  'lib/entities/region/regions.remote.ts#createRegion':
-    "Founds a new region, so there is no region to scope to yet: it takes a name only, and the founder's membership row is written from ctx.user rather than from the request.",
-  'lib/entities/region/regions.remote.ts#leaveRegion':
-    "Acts only on the caller's own membership: the row is found by regionFk plus ctx.user.id plus isActive, so a hostile regionFk can only name a region the caller is already in.",
+    "Only the caller's own membership, found by regionFk plus ctx.user.id.",
   'lib/entities/region/regions.remote.ts#listMyInvitations':
     "Takes no input and reads only the invitations addressed to the session's own email, an address the client cannot name.",
   'lib/entities/region/stats.remote.ts#listAllRegions':
     'Not region scoped: it lists every region for the operator, so there is no region to gate in. Gated on locals.userPermissions holding app.admin before it touches the privileged client, like listErrorLogs and listFeedback.',
   'lib/entities/user/mutators.server.ts#users.updateSettings':
-    "The same body as `updateUserSettings`: the session user's own settings row, through the shared writer, from a preference allowlist that takes no id.",
+    "The session user's own settings row, through the shared writer, from a preference allowlist that takes no id.",
   'lib/entities/user/mutators.server.ts#users.updateUsername':
-    "The same body as `updateUsername`: only the session user's own row, with the collision scope from the caller's own memberships.",
-  'lib/entities/user/users.remote.ts#updateUsername':
-    "Writes only the username of the session user's own row, and the collision scope comes from the caller's own memberships rather than from the request.",
-  'lib/entities/user/users.remote.ts#updateUserSettings':
-    "Writes the session user's own settings row through the shared writer; the schema is a six-field preference allowlist and takes no id.",
+    "Only the session user's own row, with the collision scope from the caller's own memberships.",
   'lib/logging/errors.remote.ts#listErrorLogs':
     'Not region scoped: client_error_logs is global, and the handler gates itself on locals.userPermissions holding app.admin before it touches the privileged client.',
   'lib/logging/errors.remote.ts#logClientError':

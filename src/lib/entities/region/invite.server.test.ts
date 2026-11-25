@@ -85,7 +85,7 @@ type Who = keyof typeof EMAILS
 let users = {} as Record<Who, SeedUser>
 let regionId = 0
 
-/** What `regions.remote.ts` reads off the request. Fixed here, which is the whole point of it
+/** What the region mutators pass in. Fixed here, which is the whole point of it
  *  being an argument. */
 const MAIL = { ambientLocale: 'en', origin: 'http://localhost:3000' }
 
@@ -507,10 +507,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
   it('mails the accept link for the same token and records the send', async () => {
     const { id, token } = await invite()
 
-    await expect(resendById(id)).resolves.toEqual({
-      email: EMAILS.invitee,
-      report: { sent: true },
-    })
+    await expect(resendById(id)).resolves.toBe(EMAILS.invitee)
 
     expect(mail.sent).toHaveLength(1)
     expect(mail.sent[0].to).toBe(EMAILS.invitee)
@@ -563,7 +560,7 @@ describe.skipIf(!reachable)('resendInvitation', () => {
     const { id } = await invite()
     mail.result = false
 
-    await expect(resendById(id)).resolves.toMatchObject({ report: { sent: false } })
+    await resendById(id)
     const [row] = await sql<{ lastDeliveredAt: Date | null }[]>`
       select last_delivered_at as "lastDeliveredAt" from public.region_invitations where id = ${id}`
     expect(row.lastDeliveredAt).toBeNull()

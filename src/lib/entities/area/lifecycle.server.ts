@@ -1,6 +1,4 @@
-import { resolve } from '$app/paths'
 import { areas, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import type { RemovalInput } from '$lib/entities/moderation/dto'
 import type { Planned } from '$lib/entities/moderation/record.server'
 import { planRemoval } from '$lib/entities/moderation/subjects.server'
@@ -8,7 +6,7 @@ import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import { type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
-import { answerReplayedRestore, requireIssuedId, requireRow } from '$lib/remote/require.server'
+import { assertReplayedRestore, requireIssuedId, requireRow } from '$lib/remote/require.server'
 import { error } from '@sveltejs/kit'
 import { and, count, eq, inArray, isNull } from 'drizzle-orm'
 import { canHardDelete, deleteEvent, insertEvent } from '../event/event.server'
@@ -108,9 +106,7 @@ export async function deleteAreaRow(
   }
   if (area.parentFk != null) await refreshAreaType(db, area.parentFk)
 
-  const redirectTo = area.parentFk == null ? resolve('/explore') : entityHref('areas', area.parentFk)
-
-  return { data, redirectTo, removal: planned }
+  return { data, removal: planned }
 }
 
 /** Hard-delete a leaf area. Its parking geolocations FK-block the row delete, so remove them
@@ -203,20 +199,15 @@ export async function restoreAreaRow(
     const created = await hardRestoreArea(db, snapshot, user.id)
     if (created == null) {
       const replayed = eq(areas.regionFk, snapshot.area.regionFk)
-      return {
-        data: { areaId: snapshot.areaId },
-        ...(await answerReplayedRestore(db, 'areas', snapshot.areaId, replayed, formError('areas_notFound'))),
-      }
+      await assertReplayedRestore(db, 'areas', snapshot.areaId, replayed, formError('areas_notFound'))
+      return { data: { areaId: snapshot.areaId } }
     }
 
     if (created.parentFk != null) await refreshAreaType(db, created.parentFk)
     // Nothing to move onto the new id: only an area inside the grace window is hard-deleted, and
     // `events.area_fk on delete cascade` took its entire log with it.
 
-    return {
-      data: { areaId: created.id },
-      redirectTo: entityHref('areas', created.id),
-    }
+    return { data: { areaId: created.id } }
   }
 
   const area = await db.query.areas.findFirst({ where: eq(areas.id, snapshot.areaId) })
@@ -230,10 +221,7 @@ export async function restoreAreaRow(
   // standing right there. The guard belongs at the caller rather than inside `softRestoreArea`, so
   // the whole undo is a no-op instead of half of one.
   if (area.deletedAt == null) {
-    return {
-      data: { areaId: snapshot.areaId },
-      redirectTo: entityHref('areas', snapshot.areaId),
-    }
+    return { data: { areaId: snapshot.areaId } }
   }
 
   // Refuse rather than strand it: restore the ancestor first, which brings this row with it.
@@ -250,10 +238,7 @@ export async function restoreAreaRow(
   // still point at this id and stay live.
   await deleteEvent(db, { object: { id: snapshot.areaId, type: 'area' }, verb: 'delete' })
 
-  return {
-    data: { areaId: snapshot.areaId },
-    redirectTo: entityHref('areas', snapshot.areaId),
-  }
+  return { data: { areaId: snapshot.areaId } }
 }
 
 /** Soft-delete an area with descendants: stamp one `deletedAt` across the subtree (area +

@@ -1,4 +1,3 @@
-import { resolve } from '$app/paths'
 import * as schema from '$lib/db/schema'
 import { feedback } from '$lib/db/schema'
 import { blank } from '$lib/forms/schemas'
@@ -42,6 +41,4 @@ export async function submitFeedbackRow(
       username: user.username,
     }),
   )
-
-  return { redirectTo: resolve('/(app)/settings') }
 }

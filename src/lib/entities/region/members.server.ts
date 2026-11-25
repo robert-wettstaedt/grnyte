@@ -1,4 +1,3 @@
-import { resolve } from '$app/paths'
 import { regionMembers } from '$lib/db/schema'
 import type * as z from '$lib/forms/zod'
 import type { Context } from '$lib/remote/authed.server'
@@ -42,8 +41,6 @@ export async function leaveRegionRow({ regionFk }: { regionFk: number }, { db, u
   })
 
   await db.delete(regionMembers).where(eq(regionMembers.id, member.id))
-
-  return { redirectTo: resolve('/(app)/settings') }
 }
 
 /** Remove a member from a region. Returns the snapshot {@link restoreRegionMemberRow} undoes it with. */

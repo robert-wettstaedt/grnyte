@@ -69,7 +69,7 @@ export const restoreBlockSchema = z.discriminatedUnion('mode', [
     }),
     blockId: z.number(),
     // Bounded like every other coordinate this app accepts (`coordinate(90)` on the block form,
-    // `estimateBlockLocationFromPhoto` on the command side). `geolocations` has no CHECK constraint,
+    // `blockPinSchema` on the pin mutators). `geolocations` has no CHECK constraint,
     // so an unbounded snapshot was the one door that could park a block at lat 999.
     geolocation: z.nullable(z.object({ estimated: z.boolean(), lat: boundedDegrees(90), long: boundedDegrees(180) })),
     mode: z.literal('hard'),

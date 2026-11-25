@@ -6,13 +6,13 @@
 # recipe is CI's (ci/shim.sql, migrate, ci/seed.sql) and the env block below is CI's env block, all
 # dummy values, so this needs no .env and holds no secrets.
 #
-# Usage: npm run test:mutation:server -- 'src/lib/entities/route/routes.remote.ts'
+# Usage: npm run test:mutation:server -- 'src/lib/entities/route/save.server.ts'
 #
 # The target is required. A default here would be one person's old choice, inherited silently by
 # everyone after them, and the whole discipline is aiming this at one module you are about to trust.
 set -euo pipefail
 
-MUTATE="${1:?a mutate glob is required, e.g. 'src/lib/entities/route/routes.remote.ts'}"
+MUTATE="${1:?a mutate glob is required, e.g. 'src/lib/entities/route/save.server.ts'}"
 WORKERS="${STRYKER_WORKERS:-2}"
 BASE_PORT="${STRYKER_DB_BASE_PORT:-54330}"
 IMAGE=postgres:16

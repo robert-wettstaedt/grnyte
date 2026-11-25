@@ -1,9 +1,7 @@
 /**
  * Who hears about a reaction or a comment, and what their inbox row points at.
  *
- * Split out of `reactions.remote.ts` for the usual reason (a `.remote.ts` pulls in SvelteKit's
- * client runtime and cannot be imported from a test), and because the subscriber rule is the one
- * thing here worth testing.
+ * Apart from the write bodies because the subscriber rule is the one thing here worth testing.
  */
 import { getReferences } from '$lib/components/Markdown/lib/remark-references'
 import { pinnedTx } from '$lib/db/pinned.server'

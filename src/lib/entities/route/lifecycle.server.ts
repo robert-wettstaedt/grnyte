@@ -14,7 +14,6 @@ import {
   type Block,
   type Route,
 } from '$lib/db/schema'
-import { entityHref } from '$lib/entities/href'
 import type { RemovalInput } from '$lib/entities/moderation/dto'
 import type { Planned } from '$lib/entities/moderation/record.server'
 import { planRemoval } from '$lib/entities/moderation/subjects.server'
@@ -22,7 +21,7 @@ import { formError } from '$lib/forms/schemas'
 import type * as z from '$lib/forms/zod'
 import { type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
-import { answerReplayedRestore, requireIssuedId, requireRow } from '$lib/remote/require.server'
+import { assertReplayedRestore, requireIssuedId, requireRow } from '$lib/remote/require.server'
 import { error } from '@sveltejs/kit'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { areaAncestry, blockIsStranded, stampDeletedAt } from '../area/area.server'
@@ -35,7 +34,7 @@ import { canAddRoute, canDeleteRoute } from './permissions'
 import { allowedTags } from './save.server'
 import { recalcUserGradeAndRating } from './user-grade.server'
 
-/** Delete and restore writes for a route; the handlers in `routes.remote.ts` keep every gate. */
+/** Delete and restore writes for a route; each body keeps its own gate. */
 
 type Caller = Pick<Context, 'db' | 'user' | 'userRegions'>
 
@@ -96,7 +95,6 @@ export async function deleteRouteRow(
 
   return {
     data,
-    redirectTo: entityHref('blocks', route.blockFk),
     removal: planned,
   }
 }
@@ -254,16 +252,14 @@ export async function restoreRouteRow(
     const created = await hardRestoreRoute(db, block, snapshot, user.id, restoredTags)
     if (created == null) {
       const replayed = eq(routes.blockFk, block.id)
-      return {
-        data: { routeId: snapshot.routeId },
-        ...(await answerReplayedRestore(db, 'routes', snapshot.routeId, replayed, formError('routes_notFound'))),
-      }
+      await assertReplayedRestore(db, 'routes', snapshot.routeId, replayed, formError('routes_notFound'))
+      return { data: { routeId: snapshot.routeId } }
     }
 
     // Nothing to move onto the new id: only a route inside the grace window is hard-deleted, and
     // `events.route_fk on delete cascade` took its entire log with it. The route comes back with
     // no history because it never had any worth keeping.
-    return { data: { routeId: created.id }, redirectTo: entityHref('routes', created.id) }
+    return { data: { routeId: created.id } }
   }
 
   const route = await db.query.routes.findFirst({ where: eq(routes.id, snapshot.routeId) })
@@ -274,7 +270,7 @@ export async function restoreRouteRow(
 
   // Nothing to undo, as in restoreArea and restoreBlock: a replayed Undo lands on a live route.
   if (route.deletedAt == null) {
-    return { data: { routeId: route.id }, redirectTo: entityHref('routes', route.id) }
+    return { data: { routeId: route.id } }
   }
 
   refuseMerged(route)
@@ -290,7 +286,7 @@ export async function restoreRouteRow(
   // still point at this id and stay live, exactly as they were before the delete.
   await deleteEvent(db, { object: { id: route.id, type: 'route' }, verb: 'delete' })
 
-  return { data: { routeId: route.id }, redirectTo: entityHref('routes', route.id) }
+  return { data: { routeId: route.id } }
 }
 
 /** Soft-delete a route that others hang off, so an undo brings them back with it. */

@@ -1,20 +1,22 @@
 /**
- * `saveTopoLines`' staleness refusal, through the real handler in a real RLS transaction.
+ * `topos.saveLines`' staleness refusal, through the mutate endpoint in a real RLS transaction.
  *
  * No sync lag needed: two admins on one photo is enough, because the second Save carries a set that
  * never held the first one's line. Scoped to route ids, so a moved line is deliberately not stale.
  */
-import { reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest } from '$lib/remote/testHarness'
+import { dropGuidebookRegion, reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
+import { pushRefusal, zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { topoLinesFingerprint } from './fingerprint'
-import { saveTopoLines } from './topos.remote'
 
 const REGION = '__topo_lines_region__'
 const PATH_ONE = 'M0.1,0.9 L0.2,0.1'
 const PATH_TWO = 'M0.5,0.9 L0.6,0.1'
 
 let maintainer: SeedUser
+let client: ReturnType<typeof zeroClient>
+/** The second writer of a race: one client's pushes serialise on its own bookkeeping row. */
+let rival: ReturnType<typeof zeroClient>
 let regionId = 0
 let blockId = 0
 let topoId = 0
@@ -29,6 +31,8 @@ beforeAll(async () => {
 
   const seeded = await seedRegion(REGION)
   maintainer = seeded.user
+  client = zeroClient(maintainer.authId)
+  rival = zeroClient(maintainer.authId)
   regionId = seeded.regionId
 
   const [area] = await sql<{ id: number }[]>`
@@ -87,32 +91,27 @@ beforeEach(async () => {
 
 afterAll(async () => {
   if (reachable) {
-    await sql`delete from public.changes where region_fk = ${regionId}`
-    await sql`delete from public.events where region_fk = ${regionId}`
-    await sql`delete from public.topo_routes where region_fk = ${regionId}`
-    await sql`delete from public.topos where region_fk = ${regionId}`
-    await sql`delete from public.files where region_fk = ${regionId}`
-    await sql`delete from public.routes where region_fk = ${regionId}`
-    await sql`delete from public.blocks where region_fk = ${regionId}`
-    await sql`delete from public.areas where region_fk = ${regionId}`
-    await sql`delete from public.region_members where region_fk = ${regionId}`
-    await sql`delete from public.regions where id = ${regionId}`
+    await client.cleanup()
+    await rival.cleanup()
+    await dropGuidebookRegion(regionId)
   }
   await sql.end()
 })
 
-/** A refusal is `error(409, ...)`, which throws out of a command rather than being folded into form
- *  issues, so unlike the route form this one IS catchable. Anything else is rethrown. */
-async function save(known: string | undefined, lines: { path: string; routeFk: number }[]): Promise<'ok' | 'refused'> {
-  try {
-    await asRequest(maintainer.authId, () =>
-      saveTopoLines({ known, lines: lines.map((line) => ({ ...line, topType: 'top' as const })), topoId }),
-    )
-    return 'ok'
-  } catch (cause) {
-    if ((cause as { status?: number })?.status === 409) return 'refused'
-    throw cause
-  }
+/** Anything but a save that landed or the staleness refusal is a failure of the test itself. */
+async function save(
+  known: string | undefined,
+  lines: { path: string; routeFk: number }[],
+  by = client,
+): Promise<'ok' | 'refused'> {
+  const result = await by.push('topos.saveLines', {
+    known,
+    lines: lines.map((line) => ({ ...line, topType: 'top' })),
+    topoId,
+  })
+  if (result.error == null) return 'ok'
+  if (pushRefusal(result).message === 'topo_linesStale') return 'refused'
+  throw new Error(result.message)
 }
 
 const drawnRoutes = async () =>
@@ -236,7 +235,7 @@ describe.skipIf(!reachable)('saveTopoLines staleness guard', () => {
 
     const results = await Promise.all([
       save(known, [{ path: PATH_ONE, routeFk: routeOne }]),
-      save(known, [{ path: PATH_TWO, routeFk: routeOne }]),
+      save(known, [{ path: PATH_TWO, routeFk: routeOne }], rival),
     ])
 
     // Both 'ok' when both read before either commits; under load the second may read the first's

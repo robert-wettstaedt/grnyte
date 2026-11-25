@@ -1,4 +1,11 @@
-import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
+import {
+  createThrowawayUser,
+  dropGuidebookRegion,
+  dropThrowawayUser,
+  reachable,
+  sql,
+  type SeedUser,
+} from '$lib/db/testDb'
 import { zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { closeGoneReports } from './retention.server'
@@ -40,14 +47,9 @@ afterAll(async () => {
   await sql`delete from public.notifications where region_fk = ${regionId}`
   await sql`delete from public.content_reports where region_fk = ${regionId}`
   await sql`delete from public.reactions where region_fk = ${regionId}`
-  await sql`delete from public.events where region_fk = ${regionId}`
   await sql`delete from public.files where region_fk = ${regionId}`
   await sql`delete from public.ascents where region_fk = ${regionId}`
-  await sql`delete from public.routes where region_fk = ${regionId}`
-  await sql`delete from public.blocks where region_fk = ${regionId}`
-  await sql`delete from public.areas where region_fk = ${regionId}`
-  await sql`delete from public.region_members where region_fk = ${regionId}`
-  await sql`delete from public.regions where id = ${regionId}`
+  await dropGuidebookRegion(regionId)
   for (const user of [admin, ada, bo]) await dropThrowawayUser(user)
 })
 

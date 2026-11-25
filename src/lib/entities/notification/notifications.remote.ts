@@ -1,44 +1,13 @@
 import { command } from '$app/server'
-import { requireLiveSession } from '$lib/auth/server/session.server'
-import { applyRls } from '$lib/db/db.server'
-import { pinnedTx } from '$lib/db/pinned.server'
 import { pushSubscriptions, userSettings } from '$lib/db/schema'
-import * as z from '$lib/forms/zod'
 import { m } from '$lib/paraglide/messages'
 import { baseLocale, isLocale } from '$lib/paraglide/runtime'
-import { authedCommand, authedRls, requireAuthed } from '$lib/remote/authed.server'
+import { authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { and, eq } from 'drizzle-orm'
-import { endpointSchema, subscriptionSchema } from './dto'
-import {
-  markEventFeedSeenRow,
-  markNotificationsReadRow,
-  subscribeToPushRow,
-  unsubscribeFromPushRow,
-} from './inbox.server'
+import { endpointSchema } from './dto'
 import { DIGEST_TAG } from './push'
 import { notePushFailure, sendPush } from './push.server'
-
-// The bodies live in `inbox.server.ts`, shared with the notification mutators; these stay one
-// release so tabs loaded before the mutators keep their endpoints.
-
-/** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
-export const markNotificationsRead = authedCommand(z.void(), (_, ctx) => markNotificationsReadRow(ctx))
-
-/** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
-export const markEventFeedSeen = authedCommand(z.object({ seenAt: z.int().check(z.positive()) }), (args, ctx) =>
-  markEventFeedSeenRow(args, ctx),
-)
-
-/** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
-export const subscribeToPush = command(subscriptionSchema, async (subscription) => {
-  const { claims, user } = requireAuthed()
-  await requireLiveSession()
-  return pinnedTx((db) => subscribeToPushRow(subscription, { db, dropToCaller: () => applyRls(db, claims), user }))
-})
-
-/** @public Unused since the mutators; deployed one more release for tabs loaded before them. */
-export const unsubscribeFromPush = authedCommand(endpointSchema, (args, ctx) => unsubscribeFromPushRow(args, ctx))
 
 /**
  * Send one push to this device, now.
@@ -49,6 +18,7 @@ export const unsubscribeFromPush = authedCommand(endpointSchema, (args, ctx) => 
  */
 export const sendTestPush = command(
   endpointSchema,
+  // fallow-ignore-next-line complexity -- CRAP only: no suite drives a real push send
   async ({ endpoint }): Promise<MutationResult<{ delivered: boolean }>> => {
     // Not an authedCommand: `sendPush` follows a moved endpoint and deletes a dead one on the
     // privileged handle, so it needs a connection of its own, and taking one while an

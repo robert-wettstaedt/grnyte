@@ -1,5 +1,5 @@
 /**
- * `updateArea` drives the real handler, in a real RLS transaction, as a real member.
+ * `areas.update` through the mutate endpoint, in a real RLS transaction, as a real member.
  *
  * The case that matters: `areaActionSchema` makes `regionFk` a REQUIRED client field, the permission
  * gate (`requireEditableArea`) reads the STORED row, and the write is `.set({ ...value, id })`, which
@@ -12,14 +12,14 @@
  * Skipped when DATABASE_URL is unreachable, like every other DB-backed suite here.
  */
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { asRequest, callForm, redirectOf } from '$lib/remote/testHarness'
+import { pushRefusal, zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { createArea, updateArea } from './areas.remote'
 
 const HOME = '__areas_remote_home__'
 const OTHER = '__areas_remote_other__'
 
 let maintainer: SeedUser
+let client: ReturnType<typeof zeroClient>
 let homeRegionId = 0
 let otherRegionId = 0
 let areaId = 0
@@ -30,6 +30,7 @@ beforeAll(async () => {
 
   const users = await seedUsers({ maintainer: 'maintainer@grnyte.rocks' })
   maintainer = users.maintainer
+  client = zeroClient(maintainer.authId)
 
   // Two regions, and the caller edits in both. That is the point: the escalation has to be the
   // handler's doing, not something the region gate would have refused anyway.
@@ -76,6 +77,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (reachable) {
+    await client.cleanup()
     // `events` first: `updateArea` logs one per edit and it carries a region FK, so the region
     // delete below raises 23503 otherwise. Its `changes` and `reactions` cascade off it.
     await sql`delete from public.events where region_fk in (${homeRegionId}, ${otherRegionId})`
@@ -89,30 +91,9 @@ afterAll(async () => {
   await sql.end()
 })
 
-/** Success and a refusal both resolve (Kit folds a refusal into issues), so the database afterwards
- *  is the assertion. Anything thrown is a real failure. */
-async function submit(data: Record<string, unknown>): Promise<void> {
-  await asRequest(maintainer.authId, () => callForm(updateArea, data))
-}
+const submit = (data: Record<string, unknown>) => client.push('areas.update', data)
 
-describe.skipIf(!reachable)('updateArea', () => {
-  // Nothing else in the server suite reads a handler's destination: `submit` above ignores it. An id
-  // from the wrong column here sends a saving reader to another area.
-  it('sends the reader back to the area it just saved', async () => {
-    const location = await redirectOf(() =>
-      asRequest(maintainer.authId, () =>
-        callForm(updateArea, {
-          description: '',
-          id: String(areaId),
-          name: '__areas_remote_redirect__',
-          regionFk: String(homeRegionId),
-        }),
-      ),
-    )
-
-    expect(location).toBe(`/areas/${areaId}`)
-  })
-
+describe.skipIf(!reachable)('areas.update', () => {
   it('renames the area', async () => {
     // Strings, because `areaActionSchema` builds on `stringToInt`, a codec over `z.string()`:
     // this is the shape a real `<form>` submits.
@@ -179,29 +160,27 @@ describe.skipIf(!reachable)('updateArea', () => {
 
   it('refuses a name a top-level sibling in the same region already has', async () => {
     const before = await topLevelName()
-    const result = await asRequest(maintainer.authId, () =>
-      callForm(updateArea, {
-        description: '',
-        id: String(topLevelAreaId),
-        name: '__areas_remote_sibling__',
-        parentFk: '',
-        regionFk: String(homeRegionId),
-      }),
-    )
+    const result = await submit({
+      description: '',
+      id: String(topLevelAreaId),
+      name: '__areas_remote_sibling__',
+      parentFk: '',
+      regionFk: String(homeRegionId),
+    })
 
     // The clash itself, not any refusal: a validation error would also leave the name unchanged.
-    expect(JSON.stringify(result)).toContain('areas_nameExists')
+    expect(pushRefusal(result)).toMatchObject({ message: 'areas_nameExists' })
     expect(await topLevelName()).toBe(before)
   })
 })
 
-describe.skipIf(!reachable)('createArea', () => {
+describe.skipIf(!reachable)('areas.create', () => {
   it('creates a top-level area named like a nested one, which is not its sibling', async () => {
-    await redirectOf(() =>
-      asRequest(maintainer.authId, () =>
-        callForm(createArea, { description: '', name: '__areas_remote_nested__', regionFk: String(homeRegionId) }),
-      ),
-    )
+    await client.push('areas.create', {
+      description: '',
+      name: '__areas_remote_nested__',
+      regionFk: String(homeRegionId),
+    })
 
     const rows = await sql`
       select id from public.areas
