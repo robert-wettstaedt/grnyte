@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // The engine and IndexedDB are the external dependencies faked; the shell is read through its exports only.
 const engine = vi.hoisted(() => ({
+  /** Whether clearing a database fails. */
+  clearFails: false,
   /** The file each connect was made on, beside `connectOptions`. */
   connectFiles: [] as string[],
   connectOptions: [] as (SyncOptions | undefined)[],
@@ -39,7 +41,7 @@ vi.mock('@powersync/web', async (original) => ({
       return Promise.resolve()
     }
     disconnect = () => Promise.resolve()
-    disconnectAndClear = () => Promise.resolve()
+    disconnectAndClear = () => (engine.clearFails ? Promise.reject(new Error('storage')) : Promise.resolve())
     getOptional = async () => (engine.userRow ? { 1: 1 } : null)
     registerListener = (listener: { statusChanged: (status: object) => void }) => {
       engine.listeners.set(this.file, listener.statusChanged)
@@ -76,6 +78,7 @@ describe('the PowerSync shell', () => {
     vi.resetModules()
     vi.useFakeTimers()
     Object.assign(engine, {
+      clearFails: false,
       connectFiles: [],
       connectOptions: [],
       connectors: [],
@@ -159,6 +162,29 @@ describe('the PowerSync shell', () => {
     ])
   })
 
+  it('tells its one listener about a stale return, and nothing of a short one', async () => {
+    const { initPowerSync, onStaleReturn } = await import('./db.svelte')
+    const visibility = vi.spyOn(document, 'visibilityState', 'get')
+    const away = async (ms: number) => {
+      visibility.mockReturnValue('hidden')
+      document.dispatchEvent(new Event('visibilitychange'))
+      vi.advanceTimersByTime(ms)
+      visibility.mockReturnValue('visible')
+      document.dispatchEvent(new Event('visibilitychange'))
+      await settle()
+    }
+    const [replaced, told] = [vi.fn(), vi.fn()]
+    initPowerSync(session('a'), async () => 'token', settings)
+    onStaleReturn(replaced)
+    onStaleReturn(told)
+
+    await away(1_000)
+    expect(told).not.toHaveBeenCalled()
+    await away(5_000)
+    expect(told).toHaveBeenCalledOnce()
+    expect(replaced).not.toHaveBeenCalled()
+  })
+
   it('confirms a stream only once it synced after the file opened and the collections took its rows in', async () => {
     const { getPowerSync, initPowerSync, registerCollections, streamConfirmed } = await import('./db.svelte')
     initPowerSync(session('a'), async () => 'token', settings)
@@ -193,6 +219,38 @@ describe('the PowerSync shell', () => {
     await clearPowerSync()
 
     expect(deleted.sort()).toEqual(['grnyte-a.sqlite', 'grnyte-old.sqlite'])
+  })
+
+  it("deletes the open account's file on a switch, and no other account's", async () => {
+    const deleted = stubIndexedDb(['grnyte-a.sqlite', 'grnyte-b.sqlite'])
+    const { dropAccount, initPowerSync } = await import('./db.svelte')
+    initPowerSync(session('a'), async () => 'token', settings)
+
+    await dropAccount('a')
+
+    expect(deleted).toEqual(['grnyte-a.sqlite'])
+  })
+
+  it('deletes it on a switch that came through no session', async () => {
+    const deleted = stubIndexedDb(['grnyte-a.sqlite'])
+    const { dropAccount, initPowerSync } = await import('./db.svelte')
+    initPowerSync(session('a'), async () => 'token', settings)
+    initPowerSync(null, async () => undefined, settings)
+
+    await dropAccount('a')
+
+    expect(deleted).toEqual(['grnyte-a.sqlite'])
+  })
+
+  it('deletes it on a switch even when clearing it failed', async () => {
+    const deleted = stubIndexedDb(['grnyte-a.sqlite'])
+    const { dropAccount, initPowerSync } = await import('./db.svelte')
+    initPowerSync(session('a'), async () => 'token', settings)
+    engine.clearFails = true
+
+    await dropAccount('a').catch(() => {})
+
+    expect(deleted).toEqual(['grnyte-a.sqlite'])
   })
 
   it('still deletes the open file where IndexedDB cannot list its databases (Firefox before 126)', async () => {

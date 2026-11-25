@@ -182,7 +182,7 @@ The source of truth. Every other copy of the data below is derived from it and c
 
 **app server**
 The SvelteKit server (Vercel in production): remote functions, the server half of each mutator,
-`/api/zero/mutate`. Every write lands here and is committed to Postgres here. "Our server" means this.
+`/api/zero/mutate` and `/api/sync/mutate`. Every write lands here and is committed to Postgres here. "Our server" means this.
 
 **client**
 The PWA running in a browser or as an installed home-screen app. "The app" in a sentence about syncing
@@ -200,9 +200,10 @@ which holds the synced streams. **Collections** are TanStack DB's in-memory view
 thing a resource queries.
 
 **zero-cache** / **Zero client**
-The engine being replaced, server and client half. Production reads all go through it until the PWA
-switches to PowerSync; even then it carries writes (custom mutators) and the feed, inbox and comments
-until the R1 to R3 changes move them.
+The engine being replaced, server and client half. Production reads and writes all go through it until
+the PWA switches to PowerSync. The PowerSync build sends no write and no read through the Zero client; it
+still starts one, for the connection state and the feed's catch-up check, and `ZERO_CLIENT_IMPORTERS`
+(`vite.sync-engine.ts`) lists what is left.
 
 **engine switch**
 `PUBLIC_SYNC_ENGINE`, read when the app is built: `zero` (unset, every deployment) or `powersync`. One
@@ -221,6 +222,23 @@ A named set of rows the PowerSync service sends a client (`essentials`, `guidebo
 A consistent position of the PowerSync service's data. A client is caught up to a checkpoint once its
 local database has applied everything up to it; a **checkpoint request** asks the service for its
 current position so a client can wait for a write the app server just committed.
+
+**write route**
+`/api/sync/mutate`: where the PowerSync build's `write()` posts. It runs the same server mutator
+`/api/zero/mutate` would, for the caller a Bearer token names, and never reads a cookie.
+
+**write id**
+The id a client makes for one write and sends with every copy of it. The app server records it with the
+write (`applied_writes`, 30 days), so a write sent twice applies once and gets the first answer.
+
+**server read**
+A read the device holds no copy of, in the PowerSync build: `readQuery` runs the Zero query definition on
+the app server as the caller. It is fetched again after an own write, on return to the app and back
+online; it does not update live.
+
+**change marker**
+A number per region (`region_counters.events`) or account (`user_counters.notifications`) that a trigger
+moves when the events or notifications behind it changed. It counts nothing: it tells a client to fetch again.
 
 ## Events
 

@@ -117,6 +117,8 @@ The milestone branch still holds the Zero client for feed, inbox, comments and w
 
 `/api/sync/mutate/+server.ts` and `/api/zero/mutate/+server.ts` import one handler. The old path stays through R1 and R2 for zero-cache's `ZERO_MUTATE_URL`; R2 replaces the implementation under the new path; R3 deletes the old path and `zero_0`.
 
+Superseded by `add-sync-write-path` (D1, 2026-11-25): the new path runs the server mutators directly from R1 on, so the two routes share no handler.
+
 ### D9. When a PowerSync resource answers (decided during 5.2)
 
 An empty answer is a claim the app acts on: the layout sends a member with no regions to `/regions/new`, forms show not found, empty states replace skeletons. Zero's `answered` meant the server confirmed the query in this session. PowerSync's own flags do not mean that, and the first drive of 5.2 showed both gaps: a five-region member signing in was sent to `/regions/new`.

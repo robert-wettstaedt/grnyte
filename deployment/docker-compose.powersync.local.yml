@@ -10,7 +10,8 @@
 #     public.grades, public.role_permissions, public.users, public.user_roles, public.user_settings,
 #     public.region_members, public.regions, public.areas, public.blocks, public.routes, public.first_ascensionists,
 #     public.geolocations, public.routes_to_first_ascensionists, public.routes_to_tags, public.topo_routes,
-#     public.topos, public.files, public.ascents, public.favorites, public.bunny_streams;
+#     public.topos, public.files, public.ascents, public.favorites, public.bunny_streams,
+#     public.content_reports, public.region_counters, public.user_counters;
 services:
   powersync:
     image: journeyapps/powersync-service:1.27.2

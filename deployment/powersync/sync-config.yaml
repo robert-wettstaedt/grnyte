@@ -25,6 +25,12 @@ streams:
         AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
       - SELECT *, id AS nid FROM regions WHERE id IN (SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active)
         AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
+      - SELECT *, id AS nid FROM user_counters WHERE auth_user_fk = auth.user_id()
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
+      # The two conditions of the table's read policy: the caller's own, in a region they are an active member of.
+      - SELECT *, id AS nid FROM content_reports WHERE reporter_fk IN (SELECT id FROM users WHERE auth_user_fk = auth.user_id())
+        AND region_fk IN (SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active)
+        AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
 
   # What the map draws its markers from, ahead of the rest of the guidebook: a first sync on iOS WebKit is slow
   # (design D12), and the map should not wait for every route.
@@ -66,6 +72,7 @@ streams:
       - SELECT *, id AS nid FROM ascents WHERE region_fk IN my_regions AND deleted_at IS NULL
       - SELECT *, id AS nid FROM region_members WHERE region_fk IN my_regions AND is_active
       - SELECT *, id AS nid FROM favorites WHERE region_fk IN my_regions
+      - SELECT *, id AS nid FROM region_counters WHERE region_fk IN my_regions
 
   # One bucket per co-member, shared by everyone who sees that user. Former members too: their ascents stay in the
   # region's activity, and Zero resolved their names.

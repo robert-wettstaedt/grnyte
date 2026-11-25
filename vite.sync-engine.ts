@@ -38,6 +38,33 @@ export function zeroGuard(): Plugin {
   }
 }
 
+/** What the PowerSync build still starts the Zero client for. Only shrinks: each package of R1 deletes its entries. */
+export const ZERO_CLIENT_IMPORTERS = [
+  'src/lib/state/engine.powersync.ts',
+  'src/lib/state/global.svelte.ts',
+  'src/lib/components/StatusBar/StatusBar.svelte',
+  'src/routes/(app)/+layout.svelte',
+  'src/lib/entities/event/feed.svelte.ts',
+] as const
+
+/** PowerSync builds fail when a module outside {@link ZERO_CLIENT_IMPORTERS} imports the Zero client. */
+export function zeroClientGuard(): Plugin {
+  return {
+    apply: outsideVitest,
+    enforce: 'pre',
+    name: 'grnyte:zero-client-guard',
+    async resolveId(source, importer, options) {
+      const resolved = await this.resolve(source, importer, { ...options, skipSelf: true })
+      if (resolved == null || !resolved.id.endsWith('/src/lib/zero/z.svelte.ts')) return null
+      const module = importer?.split('?')[0] ?? 'the entry'
+      if (!ZERO_CLIENT_IMPORTERS.some((listed) => module.endsWith(`/${listed}`))) {
+        this.error(`The PowerSync build imports the Zero client from ${module}`)
+      }
+      return null
+    },
+  }
+}
+
 /** `resources.svelte.ts` → `resources.powersync.svelte.ts`, `engine.ts` → `engine.powersync.ts`. */
 const twinOf = (id: string) => id.replace(/(\.svelte)?\.(ts|js)$/, '.powersync$1.$2')
 

@@ -22,6 +22,7 @@ import { verifyAccessToken } from '$lib/auth/server/verify.server'
 import { db } from '$lib/db/db.server'
 import { getUserPermissions, loadSessionUser } from '$lib/hooks/auth.server'
 import { handleMutate } from '$lib/zero/server/mutate.server'
+import { handleSyncMutate } from '$lib/zero/server/syncMutate.server'
 import { with_request_store } from '@sveltejs/kit/internal/server'
 import { eq, sql } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
@@ -193,6 +194,7 @@ export function withLocals<T>(locals: object, fn: () => Promise<T> | T): Promise
  * One Zero client for `authUserId`, pushing custom mutations through the real mutate endpoint, so
  * a test drives the server mutator, its RLS transaction and Zero's bookkeeping together. `email`
  * lands in the token, for a mutator that reads the address the way a real session carries it.
+ * With `MUTATE_ROUTE=sync` the push goes through `/api/sync/mutate` instead.
  */
 export function zeroClient(authUserId: string, email?: string) {
   const clientGroupID = `test-${crypto.randomUUID()}`
@@ -208,6 +210,7 @@ export function zeroClient(authUserId: string, email?: string) {
       }),
     push: async (name: string, args: unknown): Promise<PushedResult> => {
       const token = await sessionToken(authUserId, email)
+      if (process.env.MUTATE_ROUTE === 'sync') return pushSync(token, name, args)
       const request = new Request('http://localhost/api/zero/mutate?schema=zero_0&appID=zero', {
         body: JSON.stringify({
           clientGroupID,
@@ -260,4 +263,20 @@ function inRequestStore<T>(locals: object, fn: () => Promise<T> | T, cookies?: u
     { event: { cookies, getClientAddress, locals, request, url }, state } as never,
     fn,
   ) as Promise<T>
+}
+
+/** One write through the write route, its answer in the shape Zero's has. */
+async function pushSync(token: string, name: string, args: unknown): Promise<PushedResult> {
+  const response = await handleSyncMutate(
+    new Request('http://localhost/api/sync/mutate', {
+      body: JSON.stringify({ args, id: crypto.randomUUID(), name }),
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      method: 'POST',
+    }),
+  )
+  const body = (await response.json()) as { data?: unknown; field?: null | string; message?: string }
+  if (response.ok) return body.data == null ? {} : { data: body.data }
+  // The answer does not say whether a 400 named a field or a status, so it is read as a form's.
+  const details = response.status === 400 ? { field: body.field } : { status: response.status }
+  return { details, error: 'app', message: body.message }
 }

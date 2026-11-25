@@ -2241,6 +2241,43 @@ export const clientErrorLogs = table('client_error_logs', {
 export type ClientErrorLogs = InferSelectModel<typeof clientErrorLogs>
 export type InsertClientErrorLog = InferInsertModel<typeof clientErrorLogs>
 
+/** Change markers, not counts: `events` moves when the region's events changed, so a client knows to fetch again.
+ *  Kept by triggers at commit (`touch_marker`, `flush_markers`); no policies, the app never writes or reads them. */
+export const regionCounters = table('region_counters', {
+  ...baseFields,
+  events: bigint('events', { mode: 'number' }).notNull().default(0),
+  regionFk: integer('region_fk')
+    .notNull()
+    .unique()
+    .references((): AnyColumn => regions.id, { onDelete: 'cascade' }),
+}).enableRLS()
+
+/** As {@link regionCounters}, for one account's notifications. */
+export const userCounters = table('user_counters', {
+  ...baseFields,
+  authUserFk: uuid('auth_user_fk')
+    .notNull()
+    .unique()
+    .references((): AnyColumn => authUsers.id, { onDelete: 'cascade' }),
+  notifications: bigint('notifications', { mode: 'number' }).notNull().default(0),
+}).enableRLS()
+
+/** The write ids `/api/sync/mutate` has applied, with their answers, so a write sent twice applies once.
+ *  No policies: only that route writes it, on the login role. Swept after 30 days. */
+export const appliedWrites = table(
+  'applied_writes',
+  {
+    authUserFk: uuid('auth_user_fk')
+      .notNull()
+      .references((): AnyColumn => authUsers.id, { onDelete: 'cascade' }),
+    createdAt: baseFields.createdAt,
+    id: text().primaryKey(),
+    name: text().notNull(),
+    result: jsonb(),
+  },
+  (table) => [index('applied_writes_created_at_idx').on(table.createdAt)],
+).enableRLS()
+
 /** Proof-of-work challenges already accepted once, so one solve cannot be replayed for many addresses. */
 export const spentChallenges = table('spent_challenges', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),

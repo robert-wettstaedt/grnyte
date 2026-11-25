@@ -1,6 +1,7 @@
 import { holdWhileDeleting } from '$lib/zero/deleting.svelte'
 import { queries } from '$lib/zero/queries'
-import { createResource, waitForRow } from '$lib/zero/resource.svelte'
+import { createResource } from '$lib/zero/resource.svelte'
+import { waitForRow } from '$lib/zero/waitForRow'
 import type { TTL } from '@rocicorp/zero'
 import { toRouteDetail, toRouteListItem } from './mapper'
 

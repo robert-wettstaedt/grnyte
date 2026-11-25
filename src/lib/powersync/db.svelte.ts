@@ -51,6 +51,7 @@ const databaseWorkers: Worker[] = []
 const CONNECT = { connectionMethod: SyncStreamConnectionMethod.WEB_SOCKET }
 /** Restarts the open account's sync: a fresh stream always delivers a checkpoint, a frozen one may never. */
 let restartSync = () => {}
+let staleReturn = () => {}
 
 /** Removes every account's local data from this device, open or not. */
 export async function clearPowerSync(): Promise<void> {
@@ -65,6 +66,17 @@ export async function clearPowerSync(): Promise<void> {
   const deleted = await Promise.all(files.map((name) => deleteDatabase(name)))
   const left = files.filter((_, i) => !deleted[i])
   if (left.length > 0) throw new Error(`account files left: ${left.join(', ')}`)
+}
+
+/** Closes the open database and deletes this account's file: cleared rows stay readable in its freed pages. Only
+ *  that file: a second tab may have another account's open. */
+export async function dropAccount(id: string): Promise<void> {
+  await cleared
+  try {
+    await closeCurrent()
+  } finally {
+    await deleteDatabase(fileName(id))
+  }
 }
 
 const fileName = (id: string) => `${FILE_PREFIX}${id}.sqlite`
@@ -138,6 +150,11 @@ export function initPowerSync(
       .then(() => (current() ? opened.connect(connector, CONNECT) : undefined))
       .catch((error: unknown) => console.error('[powersync] reconnect failed', error))
   watchVisibility()
+}
+
+/** One listener, not a list: the engine start that sets it runs again on every token refresh. */
+export function onStaleReturn(callback: () => void): void {
+  staleReturn = callback
 }
 
 export function powerSyncStatus(): SyncStatus | undefined {
@@ -303,6 +320,7 @@ function watchVisibility(): void {
     if (!isStale(hiddenFor)) return
     returned = { at: Date.now(), connectedT: t, hiddenFor, t }
     restartSync()
+    staleReturn()
     rereadAfter(RESUME_SHOW_MS)
     rereadAfter(RESUME_STALL_MS)
   })

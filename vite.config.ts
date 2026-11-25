@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { loadEnv, type Plugin } from 'vite'
 import { configDefaults, defineConfig } from 'vitest/config'
-import { powerSyncJspi, syncEngine, twinResolver, zeroGuard } from './vite.sync-engine'
+import { powerSyncJspi, syncEngine, twinResolver, zeroClientGuard, zeroGuard } from './vite.sync-engine'
 
 /**
  * Tests that carry `// @vitest-environment node`. The pragma alone is not enough: `svelteTesting()`
@@ -27,7 +27,7 @@ const NODE_ENVIRONMENT_TESTS = [
 ]
 
 /** Server tests that count rows across a whole table: they run alone, after everything else. */
-const SERIAL_TESTS = ['src/lib/auth/server/events.server.test.ts']
+const SERIAL_TESTS = ['src/lib/auth/server/events.server.test.ts', 'src/lib/zero/server/syncMutate.server.test.ts']
 
 /** ngrok's free static domains, which local Apple sign-in tests need for an https callback. */
 const NGROK_HOSTS = ['.ngrok-free.app', '.ngrok-free.dev']
@@ -162,7 +162,7 @@ export default defineConfig({
   // PowerSync's workers and wasm must not be pre-bundled.
   ...(POWERSYNC ? { optimizeDeps: { exclude: ['@powersync/web'] } } : {}),
   plugins: [
-    ...(POWERSYNC ? [powerSyncJspi(), twinResolver()] : [zeroGuard()]),
+    ...(POWERSYNC ? [powerSyncJspi(), twinResolver(), zeroClientGuard()] : [zeroGuard()]),
     paraglideVitePlugin({
       outdir: './src/lib/paraglide',
       project: './project.inlang',

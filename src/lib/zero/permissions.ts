@@ -30,6 +30,7 @@ export const regionTables = [
   'moderationDecisions',
   'notifications',
   'reactions',
+  'regionCounters',
   'regionInvitations',
   'regionMembers',
   'routeExternalResource27crags',

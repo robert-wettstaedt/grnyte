@@ -1,0 +1,38 @@
+schema: spec-driven
+created: 2026-11-24
+x-issue: 1177
+x-paths:
+  - src/routes/api/sync/**
+  - src/routes/api/tasks/cleanup/**
+  - src/routes/**/privacy.*.html
+  - src/lib/zero/**
+  - src/lib/hooks/auth.server.ts
+  - src/lib/hooks/*.test.ts
+  - src/lib/remote/testHarness.ts
+  - src/lib/remote/gates.test.ts
+  - src/lib/state/engine.powersync.ts
+  - src/lib/powersync/twins.ts
+  - src/lib/powersync/db.svelte.ts
+  - src/lib/powersync/db.svelte.test.ts
+  - src/lib/forms/randomId.ts
+  - src/lib/powersync/schema.ts
+  - src/lib/powersync/streams.server.test.ts
+  - src/lib/db/schema.ts
+  - src/lib/db/counters.server.test.ts
+  - src/lib/entities/favorite/mutators.server.test.ts
+  - src/lib/entities/area/resources.svelte.ts
+  - src/lib/entities/block/resources.svelte.ts
+  - src/lib/entities/route/resources.svelte.ts
+  - src/lib/entities/route/similarMatches.svelte.test.ts
+  - src/lib/entities/file/upload.ts
+  - drizzle/**
+  - deployment/powersync/sync-config.yaml
+  - deployment/docker-compose.powersync.local.yml
+  - vite.sync-engine.ts
+  - vite.sync-engine.test.ts
+  - vite.config.ts
+  - .github/workflows/ci.yml
+  - CONTEXT.md
+  - AGENTS.md
+  - openspec/changes/migrate-sync-to-powersync-milestone/roadmap.md
+  - openspec/changes/migrate-sync-to-powersync-milestone/design.md

@@ -2,7 +2,7 @@ import { flushSync } from 'svelte'
 import { describe, expect, it, vi } from 'vitest'
 import { queries } from './queries'
 import { createResource } from './resource.svelte'
-import { ttlSource, type TtlClient } from './ttlSource.svelte'
+import { ttlSource, type TtlClient } from './source.svelte'
 
 /** A Zero client reduced to `materialize`, whose one view a test feeds by hand. */
 function fakeClient() {
