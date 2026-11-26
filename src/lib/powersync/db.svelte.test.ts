@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // The engine and IndexedDB are the external dependencies faked; the shell is read through its exports only.
 const engine = vi.hoisted(() => ({
+  changes: [] as { file: string; live: boolean; onChange: () => void; tables: string[]; throttleMs?: number }[],
   /** Whether clearing a database fails. */
   clearFails: false,
   /** The file each connect was made on, beside `connectOptions`. */
@@ -43,8 +44,17 @@ vi.mock('@powersync/web', async (original) => ({
       return Promise.resolve()
     }
     disconnect = () => Promise.resolve()
-    disconnectAndClear = () => (engine.clearFails ? Promise.reject(new Error('storage')) : Promise.resolve())
+    // Emptying the tables is a change like any other.
+    disconnectAndClear = () => {
+      changed(this.file, 'region_counters')
+      return engine.clearFails ? Promise.reject(new Error('storage')) : Promise.resolve()
+    }
     getOptional = async () => (engine.userRow ? { 1: 1 } : null)
+    onChange = (handler: { onChange: () => void }, options: { tables: string[]; throttleMs?: number }) => {
+      const entry = { file: this.file, live: true, onChange: handler.onChange, ...options }
+      engine.changes.push(entry)
+      return () => void (entry.live = false)
+    }
     registerListener = (listener: { statusChanged: (status: object) => void }) => {
       engine.listeners.set(this.file, listener.statusChanged)
       return () => engine.listeners.delete(this.file)
@@ -61,6 +71,12 @@ vi.mock('@powersync/web', async (original) => ({
       })
   },
 }))
+
+/** A change to `table` as `file`'s database reports it to its live listeners. */
+function changed(file: string, table: string): void {
+  for (const entry of engine.changes)
+    if (entry.live && entry.file === file && entry.tables.includes(table)) entry.onChange()
+}
 
 /** A status as PowerSync reports it: which priorities have synced, and whether everything has. */
 const synced = (priorities: number[], all: boolean) => ({
@@ -102,6 +118,7 @@ describe('the PowerSync shell', () => {
     vi.resetModules()
     vi.useFakeTimers()
     Object.assign(engine, {
+      changes: [],
       clearFails: false,
       connectFiles: [],
       connectOptions: [],
@@ -212,6 +229,119 @@ describe('the PowerSync shell', () => {
     await away(5_000)
     expect(told).toHaveBeenCalledOnce()
     expect(replaced).not.toHaveBeenCalled()
+  })
+
+  describe('a change marker', () => {
+    const away = async (ms: number, during = () => {}) => {
+      const visibility = vi.spyOn(document, 'visibilityState', 'get')
+      visibility.mockReturnValue('hidden')
+      document.dispatchEvent(new Event('visibilitychange'))
+      during()
+      vi.advanceTimersByTime(ms)
+      visibility.mockReturnValue('visible')
+      document.dispatchEvent(new Event('visibilitychange'))
+      await settle()
+    }
+    const watched = async () => {
+      const db = await import('./db.svelte')
+      const told = vi.fn()
+      db.onMarkerMove('region_counters', told)
+      db.initPowerSync(session('a'), async () => 'token', settings)
+      return { db, told }
+    }
+
+    it('tells its listener when its table changes, and not for another table', async () => {
+      const { told } = await watched()
+
+      changed('grnyte-a.sqlite', 'user_counters')
+      expect(told).not.toHaveBeenCalled()
+      changed('grnyte-a.sqlite', 'region_counters')
+      expect(told).toHaveBeenCalledOnce()
+    })
+
+    it('tells a listener set after the database opened, and only the latest one', async () => {
+      const { initPowerSync, onMarkerMove } = await import('./db.svelte')
+      const [replaced, told] = [vi.fn(), vi.fn()]
+      initPowerSync(session('a'), async () => 'token', settings)
+      onMarkerMove('region_counters', replaced)
+      onMarkerMove('region_counters', told)
+
+      changed('grnyte-a.sqlite', 'region_counters')
+      expect(told).toHaveBeenCalledOnce()
+      expect(replaced).not.toHaveBeenCalled()
+    })
+
+    it('asks PowerSync for at most one change a second', async () => {
+      const { initPowerSync, onMarkerMove } = await import('./db.svelte')
+      onMarkerMove('region_counters', () => {})
+      initPowerSync(session('a'), async () => 'token', settings)
+
+      expect(engine.changes.map(({ tables, throttleMs }) => ({ tables, throttleMs }))).toEqual([
+        { tables: ['region_counters'], throttleMs: 1000 },
+      ])
+    })
+
+    it('stops with the closed database, emptying it included, and goes on with the next account', async () => {
+      stubIndexedDb(['grnyte-a.sqlite'])
+      const { db, told } = await watched()
+
+      await db.clearPowerSync()
+      changed('grnyte-a.sqlite', 'region_counters')
+      expect(told).not.toHaveBeenCalled()
+
+      db.initPowerSync(session('b'), async () => 'token', settings)
+      changed('grnyte-b.sqlite', 'region_counters')
+      expect(told).toHaveBeenCalledOnce()
+    })
+
+    it('stops with a switch of account', async () => {
+      const { db, told } = await watched()
+      db.initPowerSync(session('b'), async () => 'token', settings)
+      await settle()
+
+      changed('grnyte-a.sqlite', 'region_counters')
+      expect(told).not.toHaveBeenCalled()
+    })
+
+    it('holds changes while hidden and tells once on a short return', async () => {
+      const { initPowerSync, onMarkerMove } = await import('./db.svelte')
+      const told = vi.fn()
+      initPowerSync(session('a'), async () => 'token', settings)
+      onMarkerMove('region_counters', told)
+
+      await away(1_000, () => {
+        changed('grnyte-a.sqlite', 'region_counters')
+        changed('grnyte-a.sqlite', 'region_counters')
+        expect(told).not.toHaveBeenCalled()
+      })
+      expect(told).toHaveBeenCalledOnce()
+    })
+
+    it('leaves a stale return to the stale listener', async () => {
+      const { initPowerSync, onMarkerMove, onStaleReturn } = await import('./db.svelte')
+      const [told, stale] = [vi.fn(), vi.fn()]
+      initPowerSync(session('a'), async () => 'token', settings)
+      onMarkerMove('region_counters', told)
+      onStaleReturn(stale)
+
+      await away(5_000, () => changed('grnyte-a.sqlite', 'region_counters'))
+      expect(stale).toHaveBeenCalledOnce()
+      expect(told).not.toHaveBeenCalled()
+    })
+
+    it('tells once when a tab loaded in the background is shown', async () => {
+      const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+      const { initPowerSync, onMarkerMove } = await import('./db.svelte')
+      const told = vi.fn()
+      initPowerSync(session('a'), async () => 'token', settings)
+      onMarkerMove('region_counters', told)
+
+      changed('grnyte-a.sqlite', 'region_counters')
+      expect(told).not.toHaveBeenCalled()
+      visibility.mockReturnValue('visible')
+      document.dispatchEvent(new Event('visibilitychange'))
+      expect(told).toHaveBeenCalledOnce()
+    })
   })
 
   it('confirms a stream only once it synced after the file opened and the collections took its rows in', async () => {

@@ -4,9 +4,11 @@ import type { TTL } from '@rocicorp/zero'
 import { addContextToQuery, asQueryInternals } from '@rocicorp/zero/bindings'
 import { createSubscriber } from 'svelte/reactivity'
 import type { Checked } from './checkSession'
+import type { queries } from './queries'
 import { readQuery } from './read.remote'
 import type { QuerySource } from './resource.svelte'
 
+type QueryName = keyof typeof queries
 type Request = Parameters<QuerySource['createQuery']>[0]
 
 /** How long after a failed read that still shows carried rows the server is asked again. */
@@ -30,6 +32,7 @@ class ServerRead {
   readonly key: string
   /** What the request asks apart from its window. */
   readonly list: string
+  readonly name: string
   type = $state<'complete' | 'error' | 'unknown'>('unknown')
   /** The latch in `Resource` is kept per view, so this object is one per request and never shared by two. */
   readonly view: { ensureSubscribed(): void }
@@ -46,6 +49,7 @@ class ServerRead {
   constructor(request: Request, enabled: boolean) {
     const { args, name } = named(request)
     const windowless = Object.entries(args ?? {}).filter(([arg]) => !WINDOW.has(arg))
+    this.name = name
     this.key = JSON.stringify([name, args])
     this.list = JSON.stringify([name, windowless])
     this.#read = () => readQuery({ args, as: userId ?? '', name })
@@ -149,9 +153,10 @@ async function signedOut(cause: unknown): Promise<boolean> {
 // eslint-disable-next-line svelte/prefer-svelte-reactivity -- nothing reads it reactively
 const live = new Set<ServerRead>()
 
-/** Every server read on screen, asked again: after an own write, on return to the app, and back online. */
-export function refreshReads(): void {
-  for (const read of live) void read.refresh()
+/** Every server read on screen, or those of `names`, asked again: after an own write, on return, back online, and
+ *  when a change marker moves. */
+export function refreshReads(names?: readonly QueryName[]): void {
+  for (const read of live) if (names == null || names.includes(read.name as QueryName)) void read.refresh()
 }
 
 /** The PowerSync build's source for a resource without a PowerSync twin: its query, run by the app server. */
@@ -168,6 +173,9 @@ export const defaultSource: QuerySource = {
     return read
   },
 }
+
+/** A server answer is the server's current state, so an answered read is caught up. */
+export const syncCaughtUp = (): boolean => true
 
 /** A time-to-live is Zero's; a fetch has none. */
 export const ttlSource = (_ttl: TTL): QuerySource => defaultSource

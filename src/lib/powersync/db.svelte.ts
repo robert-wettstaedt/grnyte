@@ -70,6 +70,15 @@ const CONNECT = { connectionMethod: SyncStreamConnectionMethod.WEB_SOCKET }
 /** Restarts the open account's sync: a fresh stream always delivers a checkpoint, a frozen one may never. */
 let restartSync = () => {}
 let staleReturn = () => {}
+/** One listener per change-marker table, set by the engine start, which runs again on every token refresh. */
+// eslint-disable-next-line svelte/prefer-svelte-reactivity -- nothing reads it reactively
+const markerListeners = new Map<string, () => void>()
+// eslint-disable-next-line svelte/prefer-svelte-reactivity -- nothing reads it reactively
+const movedWhileHidden = new Set<string>()
+let stopMarkers = () => {}
+type MarkerTable = keyof typeof appSchema.props
+/** A busy region moves its marker often; every move asks the server. */
+const MARKER_THROTTLE_MS = 1000
 
 /** Removes every account's local data from this device, open or not. */
 export async function clearPowerSync(): Promise<void> {
@@ -151,6 +160,7 @@ export function initPowerSync(
     .catch((error: unknown) => console.error('[powersync] local read failed', error))
   observe(opened.currentStatus)
   stopWatching = opened.registerListener({ statusChanged: (next) => current() && observe(next) })
+  watchMarkers(opened)
 
   const connector: PowerSyncBackendConnector = {
     fetchCredentials: async () => {
@@ -170,6 +180,14 @@ export function initPowerSync(
       .catch((error: unknown) => console.error('[powersync] reconnect failed', error))
   watchVisibility()
   askLocks()
+}
+
+/** Tells `callback` when `table`, a change marker, changes in the open account's database; one per table. */
+export function onMarkerMove(table: MarkerTable, callback: () => void): void {
+  const known = markerListeners.has(table)
+  markerListeners.set(table, callback)
+  // The engine start runs again on every token refresh; a known table's watch already reads the new callback.
+  if (db != null && !known) watchMarkers(db)
 }
 
 /** One listener, not a list: the engine start that sets it runs again on every token refresh. */
@@ -220,6 +238,9 @@ export function syncConnection(): ConnectionName {
 async function closeCurrent(): Promise<void> {
   stopWatching()
   stopWatching = () => {}
+  stopMarkers()
+  stopMarkers = () => {}
+  movedWhileHidden.clear()
   const closing = db
   db = undefined
   trackedTables = () => []
@@ -387,6 +408,24 @@ function stopAskingLocks(): void {
   lockTimer = undefined
 }
 
+/** Each marker table watched on its own: PowerSync names a change by its internal table, not the one asked for. */
+function watchMarkers(opened: PowerSyncDatabase): void {
+  stopMarkers()
+  const stops = [...markerListeners.keys()].map((table) =>
+    opened.onChange(
+      {
+        onChange: () => {
+          if (db !== opened) return
+          if (document.visibilityState === 'hidden') movedWhileHidden.add(table)
+          else markerListeners.get(table)?.()
+        },
+      },
+      { tables: [table], throttleMs: MARKER_THROTTLE_MS },
+    ),
+  )
+  stopMarkers = () => stops.forEach((stop) => stop())
+}
+
 /** Safari freezes a hidden page without the sync noticing, which then reports a dead stream as live (design D14). */
 function watchVisibility(): void {
   if (watchingVisibility) return
@@ -399,11 +438,15 @@ function watchVisibility(): void {
       returned = undefined
       return
     }
-    if (hiddenAt == null || db == null) return
+    const held = [...movedWhileHidden]
+    movedWhileHidden.clear()
+    const tellHeld = () => held.forEach((table) => markerListeners.get(table)?.())
+    // A tab loaded in the background never saw a hide.
+    if (hiddenAt == null || db == null) return tellHeld()
     const hiddenFor = Date.now() - hiddenAt
     hiddenAt = undefined
     const t = performance.now()
-    if (!isStale(hiddenFor)) return
+    if (!isStale(hiddenFor)) return tellHeld()
     returned = { at: Date.now(), connectedT: t, hiddenFor, t }
     restartSync()
     staleReturn()
