@@ -15,6 +15,18 @@ evidence that it is wrong.
 reporting is not a go-ahead. Wait for every notification of the round, then act. The driving reviewer
 drives the live dev server, which serves the working tree, so an early edit changes what it is testing.
 
+## Cost
+
+A reviewer is a full agent that reads for 15 to 20 minutes. On 2026-11-25 three plan reviewers on the
+session's own model and effort took a 5-hour usage window from 39% to 87% in 18 minutes and did not
+finish. So:
+
+- **Every reviewer runs on `model: opus`**, named in the call, in every round and every mode, thermo
+  included. Never Fable. Set no `effort` unless the user names one. `sonnet` when the user asks for a
+  cheaper loop.
+- **Give each reviewer a notes file**, `docs/review-loop/round-N-<reviewer>.md` (gitignored, the one
+  file it may write), so a stop loses minutes, not the round.
+
 ## Arguments
 
 - `base`: branch to diff round 1 against. Default `develop`.
@@ -60,7 +72,7 @@ Apply the structural findings that hold, re-snapshot, then start round 1. Thermo
 
 ## Rounds 1..N
 
-Spawn in ONE message, each `subagent_type: general-purpose`, `run_in_background: true`, no model override:
+Spawn in ONE message, each `subagent_type: general-purpose`, `run_in_background: true`, `model: opus`, no `effort` (see Cost):
 
 | Reviewer | Brief |
 |---|---|
@@ -87,7 +99,8 @@ fails again, record it `not run` in the round line. A round with a `not run` rev
 > `fixed`.
 > Before looking, write down what you are trying to falsify. Report only concrete findings: `file:line`,
 > the failure case (inputs or state, then the wrong outcome), and severity (`blocker`, `major`, `nit`).
-> Do not pad. If clean, say so in one line. Do not edit any file.
+> Do not pad. If clean, say so in one line. Do not edit any file except your notes file `<notes file>`:
+> append each finding there the moment you can support it.
 
 ## Ruling (after every reviewer of the round has reported)
 
