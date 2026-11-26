@@ -5,7 +5,7 @@ import { reportIfOnline } from '$lib/logging/report'
 import { getGlobalState } from '$lib/state/global.svelte'
 import { isOnline } from '$lib/state/online.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
-import { syncCaughtUp } from '$lib/zero/z.svelte'
+import { syncCaughtUp } from '$lib/zero/source.svelte'
 import { SvelteSet } from 'svelte/reactivity'
 import { eventCard, type CardDensity, type EventCardView } from './card'
 import type { EventObjectType } from './dto'
@@ -111,7 +111,7 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
   }
 
   // Caught up once the connection is and the window and newer count are confirmed; latched, since
-  // every merge re-targets both. `syncCaughtUp`, because reopened queries report last session's complete.
+  // every merge re-targets both. `syncCaughtUp`, because Zero's reopened queries report last session's complete.
   let caughtUp = $state(false)
   $effect(() => {
     if (!syncCaughtUp()) {

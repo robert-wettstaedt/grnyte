@@ -44,6 +44,7 @@ vi.mock('@powersync/web', async (original) => ({
     disconnect = async () => {}
     disconnectAndClear = async () => {}
     getOptional = async () => null
+    onChange = () => () => {}
     registerListener = () => () => {}
     waitForReady = async () => {}
   },

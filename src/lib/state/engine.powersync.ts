@@ -6,6 +6,7 @@ import {
   clearPowerSync,
   dropAccount,
   initPowerSync,
+  onMarkerMove,
   onStaleReturn,
   powerSyncStatus,
   resumeStatus,
@@ -65,7 +66,7 @@ export function sessionMoved(next: null | Session, shown: null | Session | undef
 }
 
 /** Answers the session the screens are to show when it is not the one given, and never answers while the tab leaves:
- *  no screen may see another account's session. Zero is started for the feed's catch-up check alone. */
+ *  no screen may see another account's session. Nothing in this build reads the Zero client it still starts. */
 export function start(
   session: null | Session | undefined,
   supabase: SupabaseClient,
@@ -94,6 +95,7 @@ export function start(
   setWriteToken(readSession, startedUserId, check)
   setReadUser(startedUserId, check)
   onStaleReturn(refreshReads)
+  onMarkerMove('region_counters', () => refreshReads(['listEvents']))
   initPowerSync(session, syncToken, {
     // shortcut: dev falls back to the local service until PUBLIC_POWERSYNC_URL is in every .env.
     endpoint: env.PUBLIC_POWERSYNC_URL || (dev ? 'http://localhost:58100' : ''),

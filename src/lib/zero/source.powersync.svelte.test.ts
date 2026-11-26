@@ -406,6 +406,56 @@ describe('fetching again', () => {
   })
 })
 
+describe('fetching again by name', () => {
+  function inbox() {
+    const stop = $effect.root(() => {
+      const resource = createResource(
+        () => queries.listNotifications({}),
+        (rows) => rows,
+        { source: defaultSource },
+      )
+      $effect(() => void [resource.data, resource.phase])
+    })
+    stops.push(stop)
+    flushSync()
+  }
+  const names = () => asked.map(({ name }) => name)
+
+  it('asks only the reads of the names given', async () => {
+    shown(() => ({}))
+    inbox()
+    await settle()
+    asked = []
+    refreshReads(['listEvents'])
+    await settle()
+
+    expect(names()).toEqual(['listEvents'])
+  })
+
+  it('asks every read when no name is given', async () => {
+    shown(() => ({}))
+    inbox()
+    await settle()
+    asked = []
+    refreshReads()
+    await settle()
+
+    expect(names().sort()).toEqual(['listEvents', 'listNotifications'])
+  })
+
+  it('leaves a read of that name no resource uses any more alone', async () => {
+    const { stop } = shown(() => ({}))
+    await settle()
+    stop()
+    await settle()
+    asked = []
+    refreshReads(['listEvents'])
+    await settle()
+
+    expect(asked).toEqual([])
+  })
+})
+
 describe('a server read the app server refuses as signed out', () => {
   it('answered with nothing, as Kit answers a redirect, is a refusal, not rows', async () => {
     answers = [async () => undefined]
