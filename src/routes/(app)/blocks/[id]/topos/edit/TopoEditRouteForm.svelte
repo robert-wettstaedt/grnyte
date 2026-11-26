@@ -6,9 +6,8 @@
   import { updateRoute } from '$lib/entities/route/writes'
   import FormError from '$lib/forms/fields/FormError.svelte'
   import { createFormStore } from '$lib/forms/store.svelte'
-  import { m } from '$lib/paraglide/messages'
-  import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast/toast'
   import { untrack } from 'svelte'
+  import { showSubmitFailure } from './submitFailure'
 
   interface Props {
     block: BlockDetail
@@ -26,19 +25,16 @@
   const store = createFormStore(routeActionSchema)
   untrack(() => store.fields.set(routeEditSeed(route)))
 
-  // `updateRoute` names the route screen; this surface stays put and ignores it. A toast rather
-  // than the full-screen offline tile, because the error boundary would take the unsaved lines.
+  // `updateRoute` names the route screen; this surface stays put and ignores it.
   async function save(event: SubmitEvent) {
     event.preventDefault()
+    const element = event.currentTarget as HTMLFormElement
     if (pending) return
     pending = true
     try {
       const outcome = await store.submit(updateRoute)
-      if (outcome.kind === 'offline') {
-        toaster.create({ duration: FAILURE_TOAST_MS, title: m.error_offline_title(), type: 'warning' })
-      } else if (outcome.kind === 'done') {
-        onSaved()
-      }
+      if (outcome.kind === 'done') onSaved()
+      else showSubmitFailure(element, outcome.kind)
     } finally {
       pending = false
     }

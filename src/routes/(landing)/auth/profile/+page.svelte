@@ -8,6 +8,7 @@
   import { submitCommand } from '$lib/forms/command'
   import AuthField from '$lib/forms/fields/AuthField.svelte'
   import FormError from '$lib/forms/fields/FormError.svelte'
+  import { formError } from '$lib/forms/schemas'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -38,6 +39,7 @@
     submitting = true
     try {
       const outcome = await store.submit((values) => submitCommand(() => completeProfile(values)))
+      if (outcome.kind === 'offline') store.setIssue(null, formError('error_offline_title'))
       if (outcome.kind === 'done') {
         await invalidate('supabase:auth')
         // Replaced: a finished profile step is not one to go back to.

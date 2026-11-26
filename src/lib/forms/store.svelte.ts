@@ -1,5 +1,7 @@
+import { isOnline } from '$lib/state/online.svelte'
 import { leaveIfSessionEnded } from '$lib/state/toast/sessionEnded'
 import type { WriteRejection } from '$lib/zero/write'
+import { refusal } from '$lib/zero/writeResult'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { RemoteFormIssue } from '@sveltejs/kit'
 import { untrack } from 'svelte'
@@ -40,7 +42,7 @@ export interface StoreField<V> {
   value(): undefined | V
 }
 
-/** How a submit ended: `invalid` and `refused` left issues on the form, `offline` wrote nothing. */
+/** How a submit ended: `invalid` and `refused` left issues on the form, `offline` had no connection. */
 export type SubmitOutcome<T> = { kind: 'done'; result: T } | { kind: 'invalid' | 'offline' | 'refused' }
 
 type Path = (number | string)[]
@@ -163,9 +165,11 @@ export function createFormStore<Input extends Values, Output = Input>(
       } catch (cause) {
         const rejection = cause as Partial<WriteRejection> | undefined
         if (rejection?.body == null) throw cause
-        if (rejection.offline) return { kind: 'offline' }
+        if (rejection.offline && !isOnline()) return { kind: 'offline' }
         if (leaveIfSessionEnded(rejection)) return { kind: 'refused' }
-        setIssue(rejection.body.field, rejection.body.message)
+        // Online, only this request failed: `offline` would hide a form until the device's state changes.
+        const { field, message } = rejection.offline ? refusal().body : rejection.body
+        setIssue(field, message)
         return { kind: 'refused' }
       }
     },

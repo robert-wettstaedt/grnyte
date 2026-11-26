@@ -1,8 +1,13 @@
 import { routeActionSchema } from '$lib/entities/route/dto'
 import { flushSync } from 'svelte'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { formError } from './schemas'
 import { createFormStore } from './store.svelte'
 import * as z from './zod'
+
+let online = true
+vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => online }))
+afterEach(() => (online = true))
 
 const store = () => createFormStore(routeActionSchema)
 
@@ -165,7 +170,18 @@ describe('createFormStore submit', () => {
     expect(form.fields.allIssues()).toEqual([])
   })
 
+  it('puts an offline rejection on the form while online, keeping the values', async () => {
+    const form = valid()
+    const before = $state.snapshot(form.fields.value())
+    const outcome = await form.submit(() => Promise.reject({ body: { message: 'x' }, offline: true }))
+
+    expect(outcome).toEqual({ kind: 'refused' })
+    expect(form.fields.allIssues()).toEqual([{ message: formError('error_server_title'), path: [] }])
+    expect(form.fields.value()).toEqual(before)
+  })
+
   it('reports offline without an issue, and rethrows what is not a refusal', async () => {
+    online = false
     const form = valid()
 
     expect(await form.submit(() => Promise.reject({ body: { message: 'x' }, offline: true }))).toEqual({

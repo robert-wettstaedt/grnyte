@@ -4,7 +4,7 @@ import { flushSync, tick, type Component } from 'svelte'
 import { expect, vi } from 'vitest'
 
 vi.mock('$lib/state/motion.svelte', () => ({ motion: () => 0, prefersStill: () => true }))
-vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => true }))
+vi.mock('$lib/state/online.svelte', () => ({ isOnline: vi.fn(() => true) }))
 
 const inert = { addEventListener: vi.fn(), disconnect: vi.fn(), observe: vi.fn(), removeEventListener: vi.fn() }
 vi.stubGlobal(

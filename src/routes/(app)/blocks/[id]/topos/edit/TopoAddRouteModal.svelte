@@ -13,10 +13,10 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
-  import { FAILURE_TOAST_MS, toaster } from '$lib/state/toast/toast'
   import { tick } from 'svelte'
   import { flip } from 'svelte/animate'
   import { fade, slide } from 'svelte/transition'
+  import { showSubmitFailure } from './submitFailure'
 
   /** The block-route-list shape (a subset of RouteListItem): enough for the picker rows. */
   type RouteCandidate = Pick<RouteListItem, 'description' | 'gradeFk' | 'id' | 'name' | 'rating' | 'tags'>
@@ -83,18 +83,16 @@
   }
 
   // Both "Quick line" (step 1) and the new-route form (step 2) create a route; a quick line sends
-  // only the block (empty name, no grade), whatever step 2 holds. A toast rather than letting a dead
-  // network reach the error boundary, which would replace the editor and take the unsaved lines.
+  // only the block (empty name, no grade), whatever step 2 holds.
   async function add(event: SubmitEvent, quick: boolean) {
     event.preventDefault()
+    const element = event.currentTarget as HTMLFormElement
     if (submitting) return
     submitting = true
     try {
       const outcome = await store.submit((values) => createRoute(quick ? { blockId: values.blockId } : values))
-      if (outcome.kind === 'offline') {
-        toaster.create({ duration: FAILURE_TOAST_MS, title: m.error_offline_title(), type: 'warning' })
-      }
-      const id = outcome.kind === 'done' ? outcome.result.data?.id : undefined
+      if (outcome.kind !== 'done') return showSubmitFailure(element, outcome.kind)
+      const id = outcome.result.data?.id
       if (id != null) {
         open = false
         onAdd(id)
