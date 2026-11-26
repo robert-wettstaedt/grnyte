@@ -379,11 +379,6 @@
         "count": 1
       }
     },
-    "src/lib/entities/notification/NotificationRow.svelte": {
-      "crap_high": {
-        "count": 1
-      }
-    },
     "src/lib/entities/notification/caption.ts": {
       "complexity_moderate": {
         "count": 1

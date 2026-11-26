@@ -96,6 +96,7 @@ export function start(
   setReadUser(startedUserId, check)
   onStaleReturn(refreshReads)
   onMarkerMove('region_counters', () => refreshReads(['listEvents']))
+  onMarkerMove('user_counters', () => refreshReads(['countUnreadNotifications', 'listNotifications']))
   initPowerSync(session, syncToken, {
     // shortcut: dev falls back to the local service until PUBLIC_POWERSYNC_URL is in every .env.
     endpoint: env.PUBLIC_POWERSYNC_URL || (dev ? 'http://localhost:58100' : ''),
