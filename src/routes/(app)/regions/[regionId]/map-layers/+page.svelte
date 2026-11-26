@@ -5,7 +5,7 @@
   import { entityHref } from '$lib/entities/href'
   import { regionAdminScreen } from '$lib/entities/region/adminScreen.svelte'
   import { regionMapLayersSchema } from '$lib/entities/region/dto'
-  import { mapLayersFingerprint, toLayerForm } from '$lib/entities/region/settings'
+  import { BBOX_PLACEHOLDER, mapLayersFingerprint, toLayerForm } from '$lib/entities/region/settings'
   import { updateRegionMapLayers } from '$lib/entities/region/writes'
   import EditKeys from '$lib/forms/EditKeys.svelte'
   import { fieldRows } from '$lib/forms/fields/fieldRows.svelte'
@@ -30,7 +30,7 @@
   // Only the row identities live here, the values live in the form. `fields.set` replaces the whole
   // input, so a re-seed has to carry the id along with the rows.
   const rows = fieldRows({
-    blank: { attributions: '', minZoom: '', name: '', opacity: '', url: '' },
+    blank: { attributions: '', maxZoom: '', minZoom: '', name: '', opacity: '', url: '' },
     read: () => fields.mapLayers.value() ?? [],
     // `known` describes what was LOADED, not what is on screen: recomputing it proves nothing.
     write: (mapLayers) => fields.set({ id: String(screen.regionId), known: fields.known.value() ?? '', mapLayers }),
@@ -124,7 +124,7 @@
 
         <FieldWrapper
           field={layer.url}
-          hint={m.region_mapLayerUrlHint()}
+          hint={m.region_mapLayerUrlHint({ placeholder: BBOX_PLACEHOLDER })}
           id="layer-{key}-url"
           label={m.region_mapLayerUrl()}
           required
@@ -170,6 +170,24 @@
             {/snippet}
           </FieldWrapper>
         </div>
+
+        <FieldWrapper
+          field={layer.maxZoom}
+          hint={m.region_mapLayerMaxZoomHint()}
+          id="layer-{key}-maxZoom"
+          label={m.region_mapLayerMaxZoom()}
+        >
+          {#snippet children(props)}
+            <input
+              {...layer.maxZoom.as('text')}
+              {...props}
+              autocomplete="off"
+              class="input"
+              inputmode="numeric"
+              placeholder="28"
+            />
+          {/snippet}
+        </FieldWrapper>
 
         <FieldWrapper
           field={layer.attributions}

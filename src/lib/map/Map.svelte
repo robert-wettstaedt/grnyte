@@ -32,8 +32,8 @@
     createDrawnPathLayer,
     createParkingLayer,
     createPathLayer,
+    createRegionLayers,
     createTierLayer,
-    createWmsLayers,
     SECTOR_TIER_LOOK,
   } from './layers.svelte'
   import { isMapPanKey } from './map'
@@ -279,8 +279,9 @@
   // Credits from settings, not off the OL sources, so the list is complete before the first tile
   // lands. Every layer the regions define, not only the drawn ones: over-crediting is the safe
   // direction for a licence. Parsed, never `{@html}`: these are region-admin input.
+  const regionLayers = $derived(mergeMapLayers(global.userRegions.flatMap((region) => region.settings.mapLayers)))
   const creditStrings = $derived(
-    mergeMapLayers(global.userRegions.flatMap((region) => region.settings.mapLayers))
+    regionLayers
       .flatMap((layer) => layer.attributions ?? [])
       .filter((credit, index, all) => all.indexOf(credit) === index),
   )
@@ -297,11 +298,11 @@
     // this whole attachment whenever that prop changes, rebuilding the entire OL map and
     // flashing it. WMS layers and `static` are fixed for a map instance, so reading them once
     // is correct; live map data flows through the per-layer sync effects, not here.
-    const wmsLayers = untrack(() => createWmsLayers(global.userRegions))
+    const overlays = untrack(() => createRegionLayers(regionLayers))
     const isStatic = untrack(() => props.static)
 
     const base = createBaseMap(node as HTMLElement, {
-      extraLayers: wmsLayers,
+      extraLayers: overlays,
       interactive: !isStatic,
       // A picker's pin is the map centre, so a 2px tap jitter would move the answer and mark the
       // form edited for somebody who changed nothing.

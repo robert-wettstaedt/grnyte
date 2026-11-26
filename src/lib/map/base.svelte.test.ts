@@ -3,12 +3,12 @@
  * Not a rendering test, jsdom has no canvas. Two tests act before reading, because a resting value
  * (rotation 0, an unlatched size) is the same with the guard deleted.
  */
-import type { MapLayer } from '$lib/entities/region/settings'
+import { mergeMapLayers, type MapLayer } from '$lib/entities/region/settings'
 import TileLayer from 'ol/layer/Tile.js'
 import type OSM from 'ol/source/OSM'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createBaseMap } from './base.svelte'
-import { buildLayerEntries, createWmsLayers } from './layers.svelte'
+import { buildLayerEntries, createRegionLayers } from './layers.svelte'
 import { MARKERS_LAYER_KEY, OSM_LAYER_KEY } from './types'
 
 /** Every observer the stub below handed out, newest last, so a test can fire or inspect one. */
@@ -151,9 +151,7 @@ describe('createBaseMap', () => {
   })
 })
 
-/** A membership carrying just the layers a test cares about. */
-const region = (...mapLayers: MapLayer[]) =>
-  ({ regionFk: 1, settings: { mapLayers, tags: [] } }) as unknown as Parameters<typeof createWmsLayers>[0][number]
+const overlaysOf = (...regions: MapLayer[][]) => createRegionLayers(mergeMapLayers(regions.flat()))
 
 const LAYER: MapLayer = {
   attributions: null,
@@ -165,10 +163,10 @@ const LAYER: MapLayer = {
   url: 'https://example.invalid/wms',
 }
 
-describe('createWmsLayers', () => {
+describe('createRegionLayers', () => {
   it("builds one tile layer for an overlay two of the user's regions both store", () => {
     // Two would mean twice the tile requests and, on a translucent overlay, a compounded opacity.
-    const layers = createWmsLayers([region(LAYER), region({ ...LAYER, name: 'Schummerung', opacity: 0.4 })])
+    const layers = overlaysOf([LAYER], [{ ...LAYER, name: 'Schummerung', opacity: 0.4 }])
 
     expect(layers).toHaveLength(1)
     expect(layers[0].get('layerName')).toBe('Relief / Schummerung')
@@ -176,9 +174,21 @@ describe('createWmsLayers', () => {
   })
 
   it('gives each distinct overlay its own toggle key', () => {
-    const layers = createWmsLayers([region(LAYER, { ...LAYER, name: 'Hillshade', params: { LAYERS: 'hillshade' } })])
+    const layers = overlaysOf([LAYER, { ...LAYER, name: 'Hillshade', params: { LAYERS: 'hillshade' } }])
 
     expect(new Set(layers.map((layer) => layer.get('layerKey') as string)).size).toBe(2)
+  })
+
+  it('stops requesting tiles past a maximum zoom, for wms and template layers alike', () => {
+    const template: MapLayer = { ...LAYER, type: 'template', url: 'https://example.invalid/x?b={bbox-epsg-3857}' }
+    const capped = overlaysOf([
+      { ...LAYER, maxZoom: 15 },
+      { ...template, maxZoom: 15 },
+    ])
+    const uncapped = overlaysOf([template])
+
+    expect(capped.map((layer) => layer.getSource()?.getTileGrid()?.getMaxZoom())).toEqual([15, 15])
+    expect(uncapped[0].getSource()?.getTileGrid()?.getMaxZoom()).toBeGreaterThan(20)
   })
 
   it('never hands a region layer its attributions', () => {
@@ -186,7 +196,7 @@ describe('createWmsLayers', () => {
     // cross-region XSS; the credits sheet parses them through `./attribution` instead.
     const credited = { ...LAYER, attributions: ['<img src=x onerror="alert(1)">'] }
     // Merged too, since merging is what fills `attributions` on a layer neither region credited.
-    const layers = createWmsLayers([region(credited), region({ ...credited, name: 'Schummerung' })])
+    const layers = overlaysOf([credited], [{ ...credited, name: 'Schummerung' }])
 
     expect(layers).toHaveLength(1)
     expect(layers[0].getSource()?.getAttributions()).toBeNull()
@@ -196,7 +206,7 @@ describe('createWmsLayers', () => {
 describe('buildLayerEntries', () => {
   it('shows the marker group as one row and each overlay as its own', () => {
     const markers = [new TileLayer({ properties: { layerKey: MARKERS_LAYER_KEY, layerName: 'Markers' } })]
-    const overlays = createWmsLayers([region(LAYER, { ...LAYER, name: 'Relief', params: { LAYERS: 'hillshade' } })])
+    const overlays = overlaysOf([LAYER, { ...LAYER, name: 'Relief', params: { LAYERS: 'hillshade' } }])
     const osm = new TileLayer({ properties: { layerKey: OSM_LAYER_KEY, layerName: 'OpenStreetMap' } })
 
     const entries = buildLayerEntries([osm, ...overlays, ...markers, ...markers])
