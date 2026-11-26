@@ -15,22 +15,16 @@
   import { reportClientError, reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages.js'
   import { requestPersistentStorage } from '$lib/state/device.svelte'
+  import { recoverSignIn, sessionMoved, storeBlocked } from '$lib/state/engine'
   import { setGlobalState } from '$lib/state/global.svelte'
+  import { motion } from '$lib/state/motion.svelte'
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
   import { rootPill } from '$lib/state/pill.svelte'
   import { syncPushSubscription } from '$lib/state/pwa/push.svelte'
   import { isLeaving, wipeAndLeave } from '$lib/state/pwa/wipe'
-  import {
-    authRetryDelay,
-    isDefinitiveRefusal,
-    lastAuthAttemptAt,
-    SESSION_GONE,
-    startAuthRecovery,
-    stopAuthRecovery,
-  } from '$lib/zero/authRecovery'
   import type { QueryPhase } from '$lib/zero/resource.svelte'
-  import { getZ, initZero } from '$lib/zero/z.svelte'
+  import { fade } from 'svelte/transition'
 
   const { children, data } = $props()
 
@@ -106,10 +100,11 @@
       // Any sign-out (another tab, a revoked session; never offline): wipe, then replace the whole
       // document, the only way to drop its in-memory views; an `invalidate` here would cancel a goto.
       if (event === 'SIGNED_OUT') {
-        void wipeAndLeave(resolve('/'))
+        // A tab already on its way out (an account switch) keeps its own exit.
+        if (!isLeaving()) void wipeAndLeave(resolve('/'))
         return
       }
-      if (newSession?.access_token !== data.session?.access_token) {
+      if (sessionMoved(newSession, data.session)) {
         void invalidate('supabase:auth')
       }
     })
@@ -117,43 +112,8 @@
     return () => auth.subscription.unsubscribe()
   })
 
-  // The safety net under that. The listener above waits on a Supabase event, which an installed iOS
-  // web app was measured never receiving; this reads Zero's connection state itself.
-  $effect(() => {
-    const supabase = data.supabase
-    const connection = getZ().connectionState.name
-
-    const delay = supabase == null ? null : authRetryDelay(connection, lastAuthAttemptAt(), Date.now())
-
-    if (delay == null) {
-      return
-    }
-
-    const refused = data.session?.access_token
-    startAuthRecovery(delay, {
-      onSession: initZero,
-      // `refreshSession`, not `getSession`: the stored token is the one just rejected. Caught
-      // because auth-js rethrows a network failure, which is retryable.
-      refresh: () =>
-        supabase.auth
-          .refreshSession()
-          .then(({ data: { session }, error }) =>
-            error != null && isDefinitiveRefusal(error) ? SESSION_GONE : session,
-          )
-          .catch(() => null),
-      reread: () =>
-        supabase.auth
-          .getSession()
-          .then(({ data: { session } }) => (session != null && session.access_token !== refused ? session : null))
-          .catch(() => null),
-      // Its `SIGNED_OUT` event wipes the device and leaves for `/` (listener above).
-      signOut: () => void supabase.auth.signOut({ scope: 'local' }),
-      // The live client, not `data.session`, which still holds the old user mid sign-out.
-      wants: (session) => getZ().userID === session.user.id,
-    })
-
-    return stopAuthRecovery
-  })
+  // The safety net under that, for the engine whose connection can be refused for its token.
+  $effect(() => (data.supabase == null ? undefined : recoverSignIn(data.supabase, data.session)))
 
   const REGIONLESS_HOLD_MS = 1000
 
@@ -171,13 +131,19 @@
     resource?.phase.kind === 'answered' && resource.phase.empty && isOnline()
 
   $effect(() => {
-    if (!answeredNone(globalState?.userRegionsResource) || !REGIONLESS_PATHS.some((path) => path === page.url.pathname)) {
+    if (
+      !answeredNone(globalState?.userRegionsResource) ||
+      !REGIONLESS_PATHS.some((path) => path === page.url.pathname)
+    ) {
       return
     }
 
     // Held a second: "taken in" lands a beat before the live query shows the rows, and leaving the page
     // in that beat aborted the first sync (seen with OPFS, whose first sync is fast enough to hit it).
-    const leave = setTimeout(() => (location.href = resolve('/(app)/regions/new')), REGIONLESS_HOLD_MS)
+    const leave = setTimeout(() => {
+      // The tab may have started leaving in the meantime, and its store empties as it goes.
+      if (!isLeaving()) location.href = resolve('/(app)/regions/new')
+    }, REGIONLESS_HOLD_MS)
     return () => clearTimeout(leave)
   })
 
@@ -204,7 +170,12 @@
   <meta property="og:type" content="website" />
 </svelte:head>
 
-{#if globalState?.isStoreCold}
+{#if storeBlocked()}
+  <!-- Ahead of the cold store, which an unopened file looks like. It goes by itself once the other tab lets go. -->
+  <div class="fixed inset-0 flex flex-col" transition:fade={{ duration: motion() }}>
+    <ErrorState type="blocked" />
+  </div>
+{:else if globalState?.isStoreCold}
   <!-- Tested ahead of `isLoading` because it is a *kind* of loading: offline with an empty store,
        nothing on the way, and nothing the reader can do inside the app to change it. Left to
        `isLoading` this is a full-screen spinner that never resolves, with no status bar behind it

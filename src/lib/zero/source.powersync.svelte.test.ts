@@ -6,6 +6,10 @@ import { createResource } from './resource.svelte'
 import { defaultSource, refreshReads, setReadUser, ttlSource } from './source.powersync.svelte'
 import { setWriteToken, write } from './write.powersync'
 
+/** The exit: jsdom cannot follow it. */
+const exit = vi.hoisted(() => ({ left: 0 }))
+vi.mock('$lib/state/pwa/wipe', () => ({ wipeAndLeave: async () => void (exit.left += 1) }))
+
 const network = vi.hoisted(() => ({ online: undefined as unknown as { value: boolean } }))
 vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => network.online.value }))
 
@@ -79,7 +83,7 @@ beforeEach(() => {
   network.online.value = true
   asked = []
   answers = [rows(1, 2)]
-  setReadUser('user-a')
+  setReadUser('user-a', async () => 'unreadable')
 })
 
 afterEach(() => {
@@ -254,7 +258,7 @@ describe('a server read off the network', () => {
   })
 
   it('asks nothing while no account is known', async () => {
-    setReadUser(undefined)
+    setReadUser(undefined, async () => 'unreadable')
     shown(() => ({}))
     await settle()
 
@@ -360,7 +364,11 @@ describe('fetching again', () => {
   })
 
   it('asks again after a write succeeded, and not after a refused one', async () => {
-    setWriteToken(async () => ({ token: 'token-a', userId: 'user-a' }), 'user-a')
+    setWriteToken(
+      async () => ({ token: 'token-a', userId: 'user-a' }),
+      'user-a',
+      async () => 'unreadable',
+    )
     const save = () => write(mutators.favorites.set({ entityId: 1, entityType: 'area', saved: true, userId: 1 }))
     shown(() => ({}))
     await settle()
@@ -395,5 +403,45 @@ describe('fetching again', () => {
     await settle()
 
     expect(asked).toHaveLength(1)
+  })
+})
+
+describe('a server read the app server refuses as signed out', () => {
+  it('answered with nothing, as Kit answers a redirect, is a refusal, not rows', async () => {
+    answers = [async () => undefined]
+    const { resource } = shown(() => ({}))
+    await settle()
+
+    expect(resource.phase).toEqual({ kind: 'error' })
+  })
+
+  const ended = async () =>
+    Promise.reject(
+      Object.assign(new Error('refused'), {
+        body: { message: JSON.stringify({ message: 'auth_sessionEnded' }) },
+        status: 401,
+      }),
+    )
+
+  it('is an error while a session is stored', async () => {
+    answers = [refused(401)]
+    const { resource } = shown(() => ({}))
+    await settle()
+
+    expect(resource.phase).toEqual({ kind: 'error' })
+  })
+
+  // Last in the file: the device leaves once per document, and nothing here starts another one.
+  it('because the session ended leaves once, with no error shown, however many reads there are', async () => {
+    answers = [ended]
+    const one = shown(() => ({ limit: 1 }))
+    const two = shown(() => ({ limit: 2 }))
+    await settle()
+    refreshReads()
+    await settle()
+    await vi.waitFor(() => expect(exit.left).toBeGreaterThan(0))
+
+    expect(exit.left).toBe(1)
+    expect([one.resource.phase, two.resource.phase]).toEqual([{ kind: 'loading' }, { kind: 'loading' }])
   })
 })

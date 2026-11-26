@@ -16,7 +16,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { wipeAndLeave } from '$lib/state/pwa/wipe'
+  import { tellOtherTabsSignedOut, wipeAndLeave } from '$lib/state/pwa/wipe'
   import { notifyError } from '$lib/state/toast/toast'
   import { slide } from 'svelte/transition'
   import type { PageProps } from './$types'
@@ -87,6 +87,7 @@
   {@const leave = signOut.enhance(async ({ submit }) => {
     // Only once the sign-out took: a failed one leaves a signed-in user who still needs their replica.
     if (await submit()) {
+      tellOtherTabsSignedOut()
       await wipeAndLeave()
     }
   })}

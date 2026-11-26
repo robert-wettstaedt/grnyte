@@ -540,6 +540,8 @@
   "error_server_body": "Das liegt an uns, nicht an dir. Warte einen Moment und versuch es erneut.",
   "error_server_title": "Auf unserer Seite ist etwas schiefgelaufen",
   "error_serviceUnavailable": "Dienst vorübergehend nicht verfügbar",
+  "error_storeBlocked_body": "Wechsle zum anderen Tab oder schließe ihn. Dieser Tab macht dann von selbst weiter.",
+  "error_storeBlocked_title": "In einem anderen Tab geöffnet",
   "error_storeCold_bodyFirstRun": "Verbinde dich einmal, um deine Gebiete, Topos und Routen zu laden. Danach bleiben sie auch ohne Empfang verfügbar.",
   "error_storeCold_bodyRestore": "Die Kopie auf diesem Gerät ist weg. Verbinde dich einmal, um sie neu zu laden.",
   "error_storeCold_title": "Noch nichts heruntergeladen",

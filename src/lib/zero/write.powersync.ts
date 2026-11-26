@@ -1,12 +1,14 @@
 import { randomId } from '$lib/forms/randomId'
 import type { MutationResult } from '$lib/remote/mutation'
 import { isOnline } from '$lib/state/online.svelte'
+import type { Checked } from './checkSession'
 import { refreshReads } from './source.powersync.svelte'
 import { answered, offlineRejection, refusal, type WriteOptions, type WriteRejection } from './writeResult'
 import type { getZ } from './z.svelte'
 
 export { offlineRejection, type WriteRejection }
 
+type CheckStored = (refused?: string) => Promise<Checked>
 type Mutation = Parameters<ReturnType<typeof getZ>['mutate']>[0]
 type ReadSession = () => Promise<undefined | { token: string; userId: string }>
 
@@ -18,16 +20,20 @@ const SEND_LIMIT_MS = 15_000
 
 let readSession: ReadSession = async () => undefined
 let startedUserId: string | undefined
+let checkStored: CheckStored = async () => 'unreadable'
 
 type Answer = {
   json?: { data?: unknown; field?: null | string; message?: string }
   ok: boolean
   status: number
+  /** What the request was sent with. */
+  token: string
 }
 
-/** Where the access token comes from (rejects when it cannot be read now), and the account every write of this
- *  document is made as. */
-export function setWriteToken(read: ReadSession, userId: string | undefined): void {
+/** Where the access token comes from (rejects when it cannot be read now), the account every write of this document
+ *  is made as, and what settles a refused token. */
+export function setWriteToken(read: ReadSession, userId: string | undefined, check: CheckStored): void {
+  checkStored = check
   readSession = read
   startedUserId = userId
 }
@@ -58,8 +64,11 @@ async function arrive(body: string): Promise<Answer> {
 
 async function deliver(body: string): Promise<unknown> {
   let answer = await arrive(body)
-  // The token may have expired on the way; reading it again renews it.
-  if (answer.status === 401) answer = await arrive(body)
+  // Renewed for real: reading an ended session again answers the same token until it expires.
+  if (answer.status === 401) {
+    await checkStored(answer.token)
+    answer = await arrive(body)
+  }
   if (answer.ok) return answer.json?.data
   throw refusal(answer.json?.message, answer.json?.field)
 }
@@ -69,6 +78,7 @@ async function deliver(body: string): Promise<unknown> {
 async function send(body: string): Promise<Answer | undefined> {
   const session = await readSession().catch(() => 'unread' as const)
   if (session === 'unread') return undefined
+  if (session == null) await checkStored()
   if (session?.userId !== startedUserId || session == null) throw refusal()
   try {
     const response = await fetch('/api/sync/mutate', {
@@ -81,7 +91,7 @@ async function send(body: string): Promise<Answer | undefined> {
     const { ok, status } = response
     // A refusal may come as text (the rate limit); a success that cannot be read did not arrive.
     const json = ok ? await response.json() : await response.json().catch(() => undefined)
-    return { json, ok, status }
+    return { json, ok, status, token: session.token }
   } catch {
     return undefined
   }

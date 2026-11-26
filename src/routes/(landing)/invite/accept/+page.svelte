@@ -14,7 +14,7 @@
   import { resolveErrorMessage } from '$lib/forms/issue'
   import { m } from '$lib/paraglide/messages'
   import { installPromoMode } from '$lib/state/pwa/install.svelte'
-  import { wipeAndLeave } from '$lib/state/pwa/wipe'
+  import { tellOtherTabsSignedOut, wipeAndLeave } from '$lib/state/pwa/wipe'
   import type { PageProps } from './$types'
 
   // The one screen every invite path lands on: the emailed link, the signed-in bounce from
@@ -26,6 +26,7 @@
   const leave = signOut.enhance(async ({ submit }) => {
     // Only once the sign-out took: a failed one leaves a signed-in user who still needs their replica.
     if (await submit()) {
+      tellOtherTabsSignedOut()
       await wipeAndLeave()
     }
   })

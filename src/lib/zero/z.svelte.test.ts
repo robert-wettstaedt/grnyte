@@ -1,8 +1,12 @@
 import type { Session } from '@supabase/supabase-js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // The client and the sync stamps are the external dependencies faked; `initZero` is read through what it starts.
-const client = vi.hoisted(() => ({ materialized: 0, preloaded: 0 }))
+const client = vi.hoisted(() => ({
+  connection: (_state: { name: string }) => {},
+  materialized: 0,
+  preloaded: 0,
+}))
 const stamps = vi.hoisted(() => ({ tracked: [] as (string | undefined)[] }))
 
 vi.mock('$app/environment', () => ({ browser: true, dev: false }))
@@ -12,7 +16,15 @@ vi.mock('$env/static/public', async (original) => ({
 }))
 vi.mock('zero-svelte', () => ({
   Z: class {
-    connection = { connect: async () => {}, state: { subscribe: () => () => {} } }
+    connection = {
+      connect: async () => {},
+      state: {
+        subscribe: (listener: (state: { name: string }) => void) => {
+          client.connection = listener
+          return () => {}
+        },
+      },
+    }
     close = () => {}
     materialize = () => {
       client.materialized += 1
@@ -36,6 +48,26 @@ describe('initZero', () => {
     vi.resetModules()
     Object.assign(client, { materialized: 0, preloaded: 0 })
     stamps.tracked = []
+    vi.stubGlobal('fetch', () => new Promise(() => {}))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it.each([
+    { online: false, options: undefined, whose: 'makes the app offline where Zero is the engine' },
+    { online: true, options: { preload: false }, whose: 'says nothing about the app where PowerSync is' },
+  ])('a client unconnected for ten seconds $whose', async ({ online, options }) => {
+    vi.useFakeTimers()
+    const { isOnline } = await import('$lib/state/online.svelte')
+    const { initZero } = await import('./z.svelte')
+
+    initZero(session('a'), options)
+    client.connection({ name: 'connecting' })
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    expect(isOnline()).toBe(online)
   })
 
   it('preloads and tracks the sync state by default, as the Zero build always has', async () => {

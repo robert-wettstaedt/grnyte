@@ -669,7 +669,7 @@
     },
     "src/routes/(app)/+layout.svelte": {
       "crap_moderate": {
-        "count": 2
+        "count": 1
       }
     },
     "src/routes/(app)/areas/[id]/blocks/order/+page.svelte": {

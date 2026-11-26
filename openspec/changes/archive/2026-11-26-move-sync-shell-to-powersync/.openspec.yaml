@@ -1,0 +1,32 @@
+schema: spec-driven
+created: 2026-11-25
+x-issue: 1178
+x-paths:
+  - vite.sync-engine.ts
+  - src/lib/state/engine.ts
+  - src/lib/state/engine.powersync.ts
+  - src/lib/state/engine.powersync.svelte.test.ts
+  - src/lib/state/global.svelte.ts
+  - src/lib/state/online.svelte.ts
+  - src/lib/state/onlineHold.test.ts
+  - src/lib/components/StatusBar/**
+  - src/lib/components/ErrorState/**
+  - src/lib/powersync/**
+  - src/lib/zero/z.svelte.ts
+  - src/lib/zero/z.svelte.test.ts
+  - src/lib/zero/checkSession.ts
+  - src/lib/zero/checkSession.test.ts
+  - src/lib/zero/write.powersync.ts
+  - src/lib/zero/write.powersync.test.ts
+  - src/lib/zero/source.powersync.svelte.ts
+  - src/lib/zero/source.powersync.svelte.test.ts
+  - src/routes/(app)/+layout.ts
+  - src/routes/(app)/+layout.svelte
+  - src/routes/(app)/regions/new/+page.svelte
+  - src/routes/(landing)/invite/accept/+page.svelte
+  - src/routes/(landing)/auth/profile/+page.svelte
+  - src/lib/state/pwa/wipe.ts
+  - src/lib/state/pwa/wipe.test.ts
+  - messages/en.json
+  - messages/de.json
+  - CONTEXT.md

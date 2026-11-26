@@ -1,7 +1,9 @@
 import { isOnline } from '$lib/state/online.svelte'
+import { leaveIfSessionEnded } from '$lib/state/toast/sessionEnded'
 import type { TTL } from '@rocicorp/zero'
 import { addContextToQuery, asQueryInternals } from '@rocicorp/zero/bindings'
 import { createSubscriber } from 'svelte/reactivity'
+import type { Checked } from './checkSession'
 import { readQuery } from './read.remote'
 import type { QuerySource } from './resource.svelte'
 
@@ -18,6 +20,9 @@ const WINDOW = new Set(['limit', 'upTo'])
 
 // A switch of account reloads the document, so nothing here is keyed on it.
 let userId: string | undefined
+/** The device leaves once, however many reads are refused for it. */
+let leaving = false
+let checkStored: () => Promise<Checked> = async () => 'unreadable'
 
 /** One server read, shared by every resource that asks the same. */
 class ServerRead {
@@ -71,11 +76,14 @@ class ServerRead {
       return
     }
     this.#asking = true
-    do {
-      this.#again = false
-      await this.#ask()
-    } while (this.#again && live.has(this))
-    this.#asking = false
+    try {
+      do {
+        this.#again = false
+        await this.#ask()
+      } while (this.#again && live.has(this))
+    } finally {
+      this.#asking = false
+    }
   }
 
   async #ask(): Promise<void> {
@@ -91,13 +99,13 @@ class ServerRead {
     try {
       await withinLimit(request)
     } catch (cause) {
-      this.#failed((cause as undefined | { status?: number })?.status)
+      await this.#failed(cause)
     }
   }
 
-  #failed(status: number | undefined): void {
-    // An error is put before everything else a screen could show, so it is only for a read that has nothing.
-    if (this.type === 'complete' || this.#again || !isOnline() || !live.has(this)) return
+  async #failed(cause: unknown): Promise<void> {
+    if ((await signedOut(cause)) || !this.#mayFail()) return
+    const status = (cause as undefined | { status?: number })?.status
     if (!hasRows(this.data)) {
       this.type = 'error'
       return
@@ -107,18 +115,35 @@ class ServerRead {
     this.#retry = setTimeout(() => void this.refresh(), RETRY_MS)
   }
 
+  /** An error is put before everything else a screen could show, so it is only for a read that has nothing. */
+  #mayFail(): boolean {
+    return this.type !== 'complete' && !this.#again && isOnline() && live.has(this)
+  }
+
   // shortcut: an answer past the limit may settle a newer request in Kit first; when reads outlive 15 s, abort them.
   #take(proxy: ReturnType<typeof readQuery>): void {
     // Kit resolves a refresh the server refused, and keeps the refusal here.
     if (proxy.error != null) throw proxy.error
+    // Kit answers a redirect (the auth hook's, for a request with no session) with nothing; a list is never nothing.
+    // shortcut: a single-item read cannot tell it from none; wrap the answer when one moves to the server.
+    if (proxy.current === undefined && Array.isArray(this.data))
+      throw Object.assign(new Error('redirected'), { status: 401 })
     this.data = proxy.current
     this.type = 'complete'
   }
 }
 
-/** The account every read of this document is made as. */
-export function setReadUser(id: string | undefined): void {
+/** The account every read of this document is made as, and what tells a refused one whether it is still signed in. */
+export function setReadUser(id: string | undefined, check: () => Promise<Checked>): void {
+  checkStored = check
   userId = id
+}
+
+/** Whether a refusal says this device is signed out, which leaves instead of showing it. */
+async function signedOut(cause: unknown): Promise<boolean> {
+  leaving ||= leaveIfSessionEnded(cause)
+  if (leaving) return true
+  return (cause as undefined | { status?: number })?.status === 401 && (await checkStored()) === 'signedOut'
 }
 
 // eslint-disable-next-line svelte/prefer-svelte-reactivity -- nothing reads it reactively

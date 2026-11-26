@@ -41,9 +41,6 @@ export function zeroGuard(): Plugin {
 /** What the PowerSync build still starts the Zero client for. Only shrinks: each package of R1 deletes its entries. */
 export const ZERO_CLIENT_IMPORTERS = [
   'src/lib/state/engine.powersync.ts',
-  'src/lib/state/global.svelte.ts',
-  'src/lib/components/StatusBar/StatusBar.svelte',
-  'src/routes/(app)/+layout.svelte',
   'src/lib/entities/event/feed.svelte.ts',
 ] as const
 

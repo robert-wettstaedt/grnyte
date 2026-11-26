@@ -1,6 +1,15 @@
 import { browser } from '$app/environment'
 import type { ResumeState } from '$lib/components/StatusBar/statusBar'
-import { markStoreLoaded, markStoreWarm, markSynced, trackSyncFor, type SyncStamp } from '$lib/state/sync.svelte'
+import { reportConnectionState, withdrawConnectionState } from '$lib/state/online.svelte'
+import {
+  localStoreLoaded,
+  markStoreLoaded,
+  markStoreWarm,
+  markSynced,
+  trackSyncFor,
+  type SyncStamp,
+} from '$lib/state/sync.svelte'
+import type { ConnectionName } from '$lib/zero/connection'
 import {
   PowerSyncDatabase,
   SyncStreamConnectionMethod,
@@ -8,6 +17,7 @@ import {
   type SyncStatus,
 } from '@powersync/web'
 import type { Session } from '@supabase/supabase-js'
+import { lockWaits } from './lock'
 import { isStale, RESUME_SHOW_MS, RESUME_STALL_MS, resumeState } from './resume'
 import { appSchema } from './schema'
 
@@ -29,6 +39,8 @@ let stopWatching = () => {}
 let status = $state.raw<SyncStatus | undefined>(undefined)
 /** The stamps this account has written since its file was opened, so each is written once. */
 let stamped: SyncStamp[] = []
+/** What the online flag was last told of the open account, and the checkpoint that was newest then. */
+let reported: undefined | { checkpoint: number; connected: boolean }
 /** When the open file was opened: a stream's `lastSyncedAt` before it is a previous session's, read off disk. */
 let openedAt = 0
 /** Streams synced this session and copied into the collections; the persisted `hasSynced` promises neither. */
@@ -36,6 +48,12 @@ let confirmed = $state.raw<readonly string[]>([])
 let confirming: string[] = []
 /** This tab's collections' own tracking tables. Desktop tabs share one connection; others' stay out of the count. */
 let trackedTables: () => string[] = () => []
+/** Another tab holds the file, so it does not open here. */
+let blocked = $state(false)
+/** Runs while the store is loading or unconnected. */
+let lockTimer: ReturnType<typeof setInterval> | undefined
+/** Unconnected because another tab holds the sync, which says nothing of the network: the report is taken back. */
+let withheld = false
 /** `at` is wall-clock, to compare with `lastSyncedAt`; `t` and `connectedT` are `performance.now()`, for durations. */
 let returned = $state.raw<undefined | { at: number; connectedT: number; hiddenFor: number; t: number }>(undefined)
 /** Bumped just after the bar's show delay and the stall limit pass, so `resumeStatus` is read again. */
@@ -63,7 +81,7 @@ export async function clearPowerSync(): Promise<void> {
     'databases' in indexedDB
       ? (await indexedDB.databases()).map((info) => info.name ?? '').filter((name) => name.startsWith(FILE_PREFIX))
       : open
-  const deleted = await Promise.all(files.map((name) => deleteDatabase(name)))
+  const deleted = await Promise.all(files.map((name) => deleteUnrefused(name)))
   const left = files.filter((_, i) => !deleted[i])
   if (left.length > 0) throw new Error(`account files left: ${left.join(', ')}`)
 }
@@ -75,7 +93,7 @@ export async function dropAccount(id: string): Promise<void> {
   try {
     await closeCurrent()
   } finally {
-    await deleteDatabase(fileName(id))
+    await deleteUnrefused(fileName(id))
   }
 }
 
@@ -128,6 +146,7 @@ export function initPowerSync(
       if (!current()) return
       if (row != null) markStoreWarm()
       markStoreLoaded()
+      report()
     })
     .catch((error: unknown) => console.error('[powersync] local read failed', error))
   observe(opened.currentStatus)
@@ -150,6 +169,7 @@ export function initPowerSync(
       .then(() => (current() ? opened.connect(connector, CONNECT) : undefined))
       .catch((error: unknown) => console.error('[powersync] reconnect failed', error))
   watchVisibility()
+  askLocks()
 }
 
 /** One listener, not a list: the engine start that sets it runs again on every token refresh. */
@@ -179,10 +199,21 @@ export function resumeStatus(): ResumeState {
   })
 }
 
+/** Reactive. The account's file has not opened because another tab holds it. */
+export function storeBlocked(): boolean {
+  return blocked && !localStoreLoaded()
+}
+
 /** Whether `stream` has synced in this session and every collection has taken its rows in: only then is an
  *  empty result an answer online. */
 export function streamConfirmed(stream: string): boolean {
   return confirmed.includes(stream)
+}
+
+/** Reactive. Everything short of connected is one name: PowerSync flips between two while it backs off. Before the
+ *  store is loaded there is nothing to say. */
+export function syncConnection(): ConnectionName {
+  return localStoreLoaded() && status?.connected === false ? 'connecting' : 'connected'
 }
 
 /** Stops, clears and closes the open account's database, so its file can be deleted or another one opened. */
@@ -195,6 +226,11 @@ async function closeCurrent(): Promise<void> {
   confirmed = []
   confirming = []
   returned = undefined
+  reported = undefined
+  status = undefined
+  withheld = false
+  blocked = false
+  stopAskingLocks()
   restartSync = () => {}
   await closing?.disconnectAndClear()
   await closing?.close()
@@ -237,12 +273,32 @@ async function copiedIn(opened: PowerSyncDatabase): Promise<void> {
   }
 }
 
-/** Whether the delete went through. Blocked counts: it completes once the last connection closes. */
-function deleteDatabase(name: string): Promise<boolean> {
+const LOCK_ASK_MS = 1_000
+/** A slow phone's own worker may need this long for the file. */
+const BLOCKED_AFTER_MS = 3_000
+
+/** Asked again and again: the SDK requests the sync lock only some time after a status says unconnected. */
+function askLocks(): void {
+  lockTimer ??= setInterval(() => void readLocks().catch(() => undefined), LOCK_ASK_MS)
+}
+
+/** Unanswered by then, a delete is queued behind another tab's blocked one, which fires no event of its own. */
+const DELETE_QUEUED_MS = 300
+
+/** False only if refused within the wait. Blocked or queued is true: it completes once the last connection closes,
+ *  for PowerSync's shared sync worker when the page goes. A later refusal is logged. */
+function deleteUnrefused(name: string): Promise<boolean> {
   return new Promise((resolve) => {
+    let answered = false
+    const answer = (deleted: boolean) => {
+      answered = true
+      resolve(deleted)
+    }
     const request = indexedDB.deleteDatabase(name)
-    request.onsuccess = request.onblocked = () => resolve(true)
-    request.onerror = () => resolve(false)
+    request.onsuccess = request.onblocked = () => answer(true)
+    request.onerror = () =>
+      answered ? console.error('[powersync] account file left', name, request.error) : answer(false)
+    setTimeout(() => answer(true), DELETE_QUEUED_MS)
   })
 }
 
@@ -259,7 +315,7 @@ function observe(next: SyncStatus): void {
   noteReconnect(next)
   status = next
   confirmStreams(next)
-  // The online signal stays Zero's while Zero runs beside it; the stamps are PowerSync's.
+  report()
   const reached: SyncStamp[] = []
   if (next.statusForPriority(0)?.hasSynced) reached.push('reference')
   if (next.hasSynced) reached.push('guidebook', 'personal')
@@ -268,6 +324,18 @@ function observe(next: SyncStatus): void {
     stamped.push(stamp)
     markSynced(stamp)
   }
+}
+
+async function readLocks(): Promise<void> {
+  const opened = db
+  if (opened == null || userId == null || (localStoreLoaded() && status?.connected === true)) {
+    stopAskingLocks()
+    return
+  }
+  const waits = await lockWaits(fileName(userId))
+  if (db !== opened) return
+  blocked = waits.file && Date.now() - openedAt >= BLOCKED_AFTER_MS
+  withholdWhile(waits.sync)
 }
 
 /**
@@ -296,9 +364,27 @@ function releaseOnPageHide(): void {
   addEventListener('pageshow', (event) => event.persisted && ended && location.reload())
 }
 
+/** Tells the online flag. A status may be raised locally on a socket that has not noticed it died, so the same
+ *  connection is told again only with a newer checkpoint, which is proof. */
+function report(): void {
+  if (status == null || !localStoreLoaded()) return
+  const { connected } = status
+  const checkpoint = status.lastSyncedAt?.getTime() ?? 0
+  if (reported?.connected === connected && checkpoint <= reported.checkpoint) return
+  reported = { checkpoint, connected }
+  if (connected) withheld = false
+  else askLocks()
+  reportConnectionState({ name: connected ? 'connected' : 'connecting' })
+}
+
 /** Past the limit, so a coarsened clock (Firefox rounds to 100 ms) cannot read it just short. */
 function rereadAfter(ms: number): void {
   resumeTimers.push(setTimeout(() => (resumeClock += 1), ms + 100))
+}
+
+function stopAskingLocks(): void {
+  clearInterval(lockTimer)
+  lockTimer = undefined
 }
 
 /** Safari freezes a hidden page without the sync noticing, which then reports a dead stream as live (design D14). */
@@ -324,4 +410,16 @@ function watchVisibility(): void {
     rereadAfter(RESUME_SHOW_MS)
     rereadAfter(RESUME_STALL_MS)
   })
+}
+
+/** Takes the report back while another tab holds the sync, and gives it again once that ends. */
+function withholdWhile(syncHeldElsewhere: boolean): void {
+  if (!localStoreLoaded() || status?.connected !== false || syncHeldElsewhere === withheld) return
+  withheld = syncHeldElsewhere
+  if (withheld) {
+    withdrawConnectionState()
+  } else {
+    reported = undefined
+    report()
+  }
 }
