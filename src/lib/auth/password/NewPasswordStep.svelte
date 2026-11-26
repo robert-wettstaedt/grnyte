@@ -4,7 +4,7 @@
   import { submitCommand } from '$lib/forms/command'
   import AuthField from '$lib/forms/fields/AuthField.svelte'
   import FormError from '$lib/forms/fields/FormError.svelte'
-  import { passwordSchema } from '$lib/forms/schemas'
+  import { formError, passwordSchema } from '$lib/forms/schemas'
   import { createFormStore } from '$lib/forms/store.svelte'
   import * as z from '$lib/forms/zod'
   import { m } from '$lib/paraglide/messages'
@@ -21,7 +21,9 @@
     pending = true
     try {
       const outcome = await store.submit((values) => submitCommand(() => setNewPassword(values)))
-      if (outcome.kind === 'done') await ondone()
+      // Like `regions/new`: no `Form` here to put the offline state over the fields.
+      if (outcome.kind === 'offline') store.setIssue(null, formError('error_offline_title'))
+      else if (outcome.kind === 'done') await ondone()
     } finally {
       pending = false
     }

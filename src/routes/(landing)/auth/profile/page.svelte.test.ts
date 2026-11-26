@@ -1,5 +1,6 @@
 import '$lib/forms/screen.fixture'
 import { setLocale } from '$lib/paraglide/runtime'
+import { isOnline } from '$lib/state/online.svelte'
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import { expect, it, onTestFinished, vi } from 'vitest'
 import Page from './+page.svelte'
@@ -48,4 +49,14 @@ it('submits the scale pressed in the segmented control', async () => {
   await fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
   await vi.waitFor(() => expect(completeProfile).toHaveBeenCalledWith(expect.objectContaining({ gradingScale: 'FB' })))
+})
+
+it('says so when the submit could not reach the server offline', async () => {
+  vi.mocked(isOnline).mockReturnValue(false)
+  onTestFinished(() => void vi.mocked(isOnline).mockReturnValue(true))
+  render(Page)
+  await fireEvent.input(screen.getByLabelText('Username'), { target: { value: 'sam_rivera' } })
+  await fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+  await vi.waitFor(() => expect(screen.getByRole('alert').textContent).toContain('You’re offline'))
 })
