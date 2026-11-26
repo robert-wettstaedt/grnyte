@@ -2,7 +2,7 @@ import type { IconName } from '$lib/components/Icon/icons'
 import type { BlockDetail } from '$lib/entities/block/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 import { buildGradeDonutSvg } from '$lib/entities/grade/donut'
-import { BBOX_PLACEHOLDER, mapLayerKey, type MapLayer } from '$lib/entities/region/settings'
+import { fillBbox, mapLayerKey, type MapLayer } from '$lib/entities/region/settings'
 import Feature, { type FeatureLike } from 'ol/Feature.js'
 import Polyline from 'ol/format/Polyline'
 import { LineString, Polygon } from 'ol/geom'
@@ -11,7 +11,7 @@ import { fromExtent } from 'ol/geom/Polygon'
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer.js'
 import type BaseLayer from 'ol/layer/Base.js'
 import type OlMap from 'ol/Map.js'
-import { fromLonLat } from 'ol/proj.js'
+import { fromLonLat, transformExtent } from 'ol/proj.js'
 import { HALF_SIZE } from 'ol/proj/epsg3857.js'
 import { Vector as VectorSource } from 'ol/source.js'
 import ImageTile from 'ol/source/ImageTile.js'
@@ -48,7 +48,7 @@ export function bboxTileUrl(template: string, z: number, x: number, y: number): 
   const minX = -HALF_SIZE + x * size
   const maxY = HALF_SIZE - y * size
 
-  return template.replaceAll(BBOX_PLACEHOLDER, `${minX},${maxY - size},${minX + size},${maxY}`)
+  return fillBbox(template, `${minX},${maxY - size},${minX + size},${maxY}`)
 }
 
 export function buildBlockFeatures(
@@ -266,6 +266,7 @@ export function createRegionLayers(regionLayers: MapLayer[]): TileLayer[] {
     const tileGrid = regionLayer.maxZoom == null ? undefined : createXYZ({ maxZoom: regionLayer.maxZoom })
 
     return new TileLayer({
+      extent: regionLayer.bounds == null ? undefined : transformExtent(regionLayer.bounds, 'EPSG:4326', 'EPSG:3857'),
       minZoom: regionLayer.minZoom ?? undefined,
       opacity: regionLayer.opacity ?? undefined,
       properties: { layerKey: mapLayerKey(regionLayer), layerName: regionLayer.name },

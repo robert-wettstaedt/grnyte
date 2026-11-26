@@ -91,6 +91,18 @@ describe('mapLayersFingerprint', () => {
     expect(mapLayersFingerprint([layer('a', { maxZoom: null })])).toBe(mapLayersFingerprint([layer('a')]))
   })
 
+  it('tells a set coverage apart, without changing the fingerprint of a layer that has none', () => {
+    const covered = layer('a', { bounds: [10, 46, 13, 47] })
+
+    expect(mapLayersFingerprint([covered])).not.toBe(mapLayersFingerprint([layer('a')]))
+    expect(mapLayersFingerprint([covered])).not.toBe(mapLayersFingerprint([layer('a', { bounds: [10, 46, 13, 48] })]))
+    expect(mapLayersFingerprint([layer('a', { bounds: null })])).toBe(mapLayersFingerprint([layer('a')]))
+    // A cap and a coverage are both optional tails; one must never read as the other.
+    expect(mapLayersFingerprint([layer('a', { bounds: [10, 46, 13, 47], maxZoom: 15 })])).not.toBe(
+      mapLayersFingerprint([layer('a', { maxZoom: 15 })]),
+    )
+  })
+
   it('sorts params by code unit, not by collation', () => {
     // `_` sorts after `B` by code unit and before it under every collation, so this reddens if
     // the comparator is ever tidied back into `localeCompare`. Two collators disagreeing means a

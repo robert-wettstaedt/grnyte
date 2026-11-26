@@ -1,210 +1,44 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import { entityHref } from '$lib/entities/href'
   import { regionAdminScreen } from '$lib/entities/region/adminScreen.svelte'
-  import { regionMapLayersSchema } from '$lib/entities/region/dto'
-  import { BBOX_PLACEHOLDER, mapLayersFingerprint, toLayerForm } from '$lib/entities/region/settings'
-  import { updateRegionMapLayers } from '$lib/entities/region/writes'
-  import EditKeys from '$lib/forms/EditKeys.svelte'
-  import { fieldRows } from '$lib/forms/fields/fieldRows.svelte'
-  import FieldWrapper from '$lib/forms/fields/FieldWrapper.svelte'
-  import Form from '$lib/forms/Form.svelte'
-  import { seedFollowingRows } from '$lib/forms/seed.svelte'
-  import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { toaster } from '$lib/state/toast/toast'
-  import RegionAdminRequired from '../RegionAdminRequired.svelte'
-  import RegionScreen from '../RegionScreen.svelte'
+  import { back } from '$lib/state/navigation.svelte'
+  import LayerRow from './LayerRow.svelte'
+  import MapLayersGate from './MapLayersGate.svelte'
 
   const screen = regionAdminScreen()
-  const store = createFormStore(regionMapLayersSchema)
-  const fields = store.fields
-
-  // From the memberships the shell already has. No async load, so `Form` stays the route's direct
-  // child: a wrapper between them breaks its sticky header.
-  // Separate from `stored`: an unsynced membership and a region with no layers both give `[]`.
-  const stored = $derived(screen.membership?.settings.mapLayers ?? [])
-
-  // Only the row identities live here, the values live in the form. `fields.set` replaces the whole
-  // input, so a re-seed has to carry the id along with the rows.
-  const rows = fieldRows({
-    blank: { attributions: '', maxZoom: '', minZoom: '', name: '', opacity: '', url: '' },
-    read: () => fields.mapLayers.value() ?? [],
-    // `known` describes what was LOADED, not what is on screen: recomputing it proves nothing.
-    write: (mapLayers) => fields.set({ id: String(screen.regionId), known: fields.known.value() ?? '', mapLayers }),
-  })
-
-  // Keyed on `synced`, not the id: a membership can arrive without its region row, and seeding
-  // then submits an empty list, which the handler reads as "remove them all".
-  // `layersComplete` too: a half-read blob holds fewer layers than are stored. Following the rows
-  // matters after a reload, where the local replica answers before the server's newer layers sync.
-  seedFollowingRows(
-    () => (screen.membership?.synced === true && screen.membership.layersComplete ? screen.regionId : undefined),
-    () => mapLayersFingerprint(stored),
-    () => fields.value(),
-    () => {
-      fields.set({
-        id: String(screen.regionId),
-        known: mapLayersFingerprint(stored),
-        mapLayers: stored.map(toLayerForm),
-      })
-      rows.reset(stored.length)
-    },
-  )
-
-  const onSubmitted = () => {
-    toaster.create({ title: m.common_saved(), type: 'success' })
-  }
+  const layers = $derived(screen.membership?.settings.mapLayers ?? [])
+  const regionHref = $derived(entityHref('regions', screen.regionId))
 </script>
 
 <svelte:head>
   <title>{m.region_mapLayers()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-{#if !screen.isAdmin}
-  <RegionScreen backTo={entityHref('regions', screen.regionId)} title={m.region_mapLayers()}>
-    <RegionAdminRequired regionId={screen.regionId} />
-  </RegionScreen>
-{:else if screen.membership?.synced !== true}
-  <!-- No form until the region row is here. Rendering one meanwhile is what made this screen
-       destructive four rounds running: an empty list is a valid submission that means "remove them
-       all", so a form that renders before its data has arrived is a delete button with a Save label. -->
-  <RegionScreen backTo={entityHref('regions', screen.regionId)} title={m.region_mapLayers()} />
-{:else if !screen.membership.layersComplete}
-  <!-- Refused rather than rendered: the form can only submit the layers it could read, so saving it
-       would silently drop the ones it could not, and this screen is the only copy of them. -->
-  <RegionScreen backTo={entityHref('regions', screen.regionId)} title={m.region_mapLayers()}>
-    <ErrorState
-      type="generic"
-      title={m.region_mapLayersUnreadableTitle()}
-      description={m.region_mapLayersUnreadableBody()}
-    />
-  </RegionScreen>
-{:else}
-  <Form
-    {store}
-    submit={updateRegionMapLayers}
-    cancelTo={entityHref('regions', screen.regionId)}
-    {onSubmitted}
-    submitLabel={m.common_save()}
-    title={m.region_mapLayers()}
-  >
-    <EditKeys id={fields.id} known={fields.known} />
+<MapLayersGate backTo={regionHref}>
+  <PageHeader onback={() => back(regionHref)} title={m.region_mapLayers()} />
 
-    {#if rows.keys.length === 0}
+  <div class="container mx-auto flex max-w-2xl flex-col gap-4 px-4 py-8 pb-24 md:pb-8">
+    {#if layers.length === 0}
       <p class="text-surface-600-400 text-sm">{m.region_mapLayersEmpty()}</p>
+    {:else}
+      <ul class="flex flex-col gap-2">
+        {#each layers as layer, index (index)}
+          <li><LayerRow {layer} regionId={screen.regionId} /></li>
+        {/each}
+      </ul>
     {/if}
 
-    {#each rows.keys as key, index (key)}
-      {@const layer = fields.mapLayers[index]}
-
-      <div class="border-surface-200-800 space-y-5 rounded-xl border p-4">
-        <div class="flex items-start justify-between gap-3">
-          <h2 class="min-w-0 flex-1 truncate text-sm font-bold">
-            {layer.name.value() || m.region_mapLayerName()}
-          </h2>
-
-          <button
-            type="button"
-            class="btn-icon preset-filled-surface-200-800 flex-none"
-            aria-label={m.region_mapLayerRemove()}
-            onclick={() => rows.remove(index)}
-          >
-            <Icon name="trash" size={16} />
-          </button>
-        </div>
-
-        <FieldWrapper field={layer.name} id="layer-{key}-name" label={m.region_mapLayerName()} required>
-          {#snippet children(props)}
-            <input {...layer.name.as('text')} {...props} autocomplete="off" class="input" />
-          {/snippet}
-        </FieldWrapper>
-
-        <FieldWrapper
-          field={layer.url}
-          hint={m.region_mapLayerUrlHint({ placeholder: BBOX_PLACEHOLDER })}
-          id="layer-{key}-url"
-          label={m.region_mapLayerUrl()}
-          required
-        >
-          {#snippet children(props)}
-            <input
-              {...layer.url.as('text')}
-              {...props}
-              autocapitalize="none"
-              autocomplete="off"
-              autocorrect="off"
-              class="input"
-              inputmode="url"
-              spellcheck="false"
-            />
-          {/snippet}
-        </FieldWrapper>
-
-        <div class="grid gap-5 sm:grid-cols-2">
-          <FieldWrapper field={layer.opacity} id="layer-{key}-opacity" label={m.region_mapLayerOpacity()}>
-            {#snippet children(props)}
-              <input
-                {...layer.opacity.as('text')}
-                {...props}
-                autocomplete="off"
-                class="input"
-                inputmode="decimal"
-                placeholder="1"
-              />
-            {/snippet}
-          </FieldWrapper>
-
-          <FieldWrapper field={layer.minZoom} id="layer-{key}-minZoom" label={m.region_mapLayerMinZoom()}>
-            {#snippet children(props)}
-              <input
-                {...layer.minZoom.as('text')}
-                {...props}
-                autocomplete="off"
-                class="input"
-                inputmode="numeric"
-                placeholder="0"
-              />
-            {/snippet}
-          </FieldWrapper>
-        </div>
-
-        <FieldWrapper
-          field={layer.maxZoom}
-          hint={m.region_mapLayerMaxZoomHint()}
-          id="layer-{key}-maxZoom"
-          label={m.region_mapLayerMaxZoom()}
-        >
-          {#snippet children(props)}
-            <input
-              {...layer.maxZoom.as('text')}
-              {...props}
-              autocomplete="off"
-              class="input"
-              inputmode="numeric"
-              placeholder="28"
-            />
-          {/snippet}
-        </FieldWrapper>
-
-        <FieldWrapper
-          field={layer.attributions}
-          hint={m.region_mapLayerAttributionsHint()}
-          id="layer-{key}-attributions"
-          label={m.region_mapLayerAttributions()}
-        >
-          {#snippet children(props)}
-            <textarea {...layer.attributions.as('text')} {...props} class="textarea" rows="3"></textarea>
-          {/snippet}
-        </FieldWrapper>
-      </div>
-    {/each}
-
-    <button type="button" class="btn preset-filled-surface-200-800 w-full" onclick={rows.add}>
+    <a
+      class="btn preset-filled-surface-200-800 w-full"
+      href={resolve('/(app)/regions/[regionId]/map-layers/add', { regionId: String(screen.regionId) })}
+    >
       <Icon name="plus" size={16} />
       {m.region_mapLayerAdd()}
-    </button>
-  </Form>
-{/if}
+    </a>
+  </div>
+</MapLayersGate>
