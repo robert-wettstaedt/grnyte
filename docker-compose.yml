@@ -37,8 +37,8 @@ services:
       - ZERO_SCHEMA_PATH=${ZERO_SCHEMA_PATH:-src/lib/zero/zero-schema.ts}
       - ZERO_AUTH_SECRET=${ZERO_AUTH_SECRET}
       - ZERO_ADMIN_PASSWORD=${ZERO_ADMIN_PASSWORD}
-      - ZERO_GET_QUERIES_URL=${ZERO_GET_QUERIES_URL:-http://localhost:3000/api/zero/get-queries}
-      - ZERO_MUTATE_URL=${ZERO_MUTATE_URL:-http://localhost:3000/api/zero/mutate}
+      - ZERO_GET_QUERIES_URL=${ZERO_GET_QUERIES_URL:-http://localhost:3000/api/zero/get-queries,http://localhost:*/api/zero/get-queries}
+      - ZERO_MUTATE_URL=${ZERO_MUTATE_URL:-http://localhost:3000/api/zero/mutate,http://localhost:*/api/zero/mutate}
       # Writes go through the mutate endpoint only; zero-cache's own CRUD path stays shut.
       - ZERO_ENABLE_CRUD_MUTATIONS=false
       - ZERO_CVR_DB=${ZERO_CVR_DB:-}
