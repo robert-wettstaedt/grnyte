@@ -224,7 +224,7 @@ minZoom, name, opacity }` instead of re-listing `params`, `type`, `url`. Verify:
     on the `<form>` (an element inside `Form`'s children) to call `requestSubmit()`.
   - Apply note (P38): while `removing`, skip the shown-row checks (duplicate address, coverage) and
     render no fields for the dropped index, so removing a layer is never refused for the next one.
-- [ ] 12.12 Update `e2e/form-seeding.spec.ts`: the `beforeAll` wait on `mapLayers[0].name` and the
+- [x] 12.12 Update `e2e/form-seeding.spec.ts`: the `beforeAll` wait on `mapLayers[0].name` and the
       map-layers case move to `add` and a layer page, keeping the per-region re-seed check. Verify:
       `npm run test:e2e -- form-seeding` passes.
 
@@ -232,7 +232,7 @@ minZoom, name, opacity }` instead of re-listing `params`, `type`, `url`. Verify:
 
 - [x] 13.1 Red: through the save handler, a list holding a layer with `bounds` reads back identical and
       saves again with the new fingerprint. Verify: red before 10.1, then green.
-- [ ] 13.2 Mutation over `settings.ts`, `coverage.ts` and `layers.svelte.ts`; hand-back checks
+- [x] 13.2 Mutation over `settings.ts`, `coverage.ts` and `layers.svelte.ts`; hand-back checks
       (prettier, eslint, vitest server and browser, typecheck, `lint:unused`, `lint:duplication`,
       `lint:health`). Verify: survivors in touched lines killed or explained, baselines not grown.
   - Status: `coverage.ts` 81.5%, `settings.ts` 87%; the gaps found were closed with tests. The
@@ -240,12 +240,12 @@ minZoom, name, opacity }` instead of re-listing `params`, `type`, `url`. Verify:
     `null`, a value set again later, or a check the comparisons after it repeat. `layers.svelte.ts`
     not rerun (its new code is one `extent` line, covered by 10.4). All hand-back checks pass; the
     duplication baseline only lost entries the old grouping of a shared e2e teardown held.
-- [ ] 13.3 Drive the Zero build at 375x667 and 1280x800, light and dark, en and de, in the dev
+- [x] 13.3 Drive the Zero build at 375x667 and 1280x800, light and dark, en and de, in the dev
       database's test region holding the state relief layers: open and save each layer, then the
       list shows an image per covered layer and a placeholder for any the service gave none; on the
       explore map at zoom 15 near Munich the network panel shows no Tirol, Vorarlberg or Steiermark
       tile requests. Verify: screenshots, psql shows `bounds` on each saved layer.
-- [ ] 13.4 On the PowerSync build: the list, a layer page with its preview framed on the region's
+- [x] 13.4 On the PowerSync build: the list, a layer page with its preview framed on the region's
       blocks (a layer without coverage), the coverage read, a save, a remove, and the explore-map
       check of 13.3. Verify: same results as 13.3.
   - Status (13.3 and 13.4): driven at both sizes, both themes, en and de, on the Zero build;
