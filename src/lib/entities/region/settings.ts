@@ -3,6 +3,30 @@ import { formError, nameSchema, stringToIntOptional, stringToNumberOptional } fr
 import * as z from '$lib/forms/zod'
 import { DEFAULT_TAGS } from './tagVocabulary'
 
+/** `[west, south, east, north]` in degrees, the order MapLibre's raster `bounds` takes. */
+export type LonLatBounds = [number, number, number, number]
+
+/** Web Mercator's latitude limit; OpenLayers cannot project an extent past it. */
+export const MAX_MERCATOR_LAT = 85.0511
+
+/** One rule for the stored read, the form and a service's answer, so none can save what another drops. */
+export function isValidBounds(value: readonly number[]): value is LonLatBounds {
+  if (value.length !== 4 || !value.every(Number.isFinite)) {
+    return false
+  }
+
+  const [west, south, east, north] = value
+
+  return (
+    west < east &&
+    south < north &&
+    west >= -180 &&
+    east <= 180 &&
+    south >= -MAX_MERCATOR_LAT &&
+    north <= MAX_MERCATOR_LAT
+  )
+}
+
 /**
  * An overlay as stored: a WMS endpoint plus the parameters that select the layer, or a `template`
  * address whose `{bbox-epsg-3857}` the map fills per tile (MapLibre reads that form as is).
@@ -12,6 +36,10 @@ import { DEFAULT_TAGS } from './tagVocabulary'
  */
 const sharedShape = {
   attributions: z.nullish(z.array(z.string())),
+  // The map requests no tiles outside it. A bad value drops just this layer, like `maxZoom`.
+  bounds: z.nullish(
+    z.tuple([z.number(), z.number(), z.number(), z.number()]).check(z.refine((value) => isValidBounds(value))),
+  ),
   // Past it the map enlarges the last tiles: some services return a placeholder beyond their data.
   // Whole and in range, or OL's grid throws building the map; a bad value drops just this layer.
   maxZoom: z.nullish(z.int().check(z.gte(0), z.lte(28))),
@@ -66,10 +94,15 @@ export function emptyRegionSettings(): RegionSettings {
  * one of them.
  *
  * Deliberately not `fingerprint`: this is a grouping key, never stored and never posted, so it
- * carries none of that function's forever-compatibility duty.
+ * carries none of that function's forever-compatibility duty. Its hash names a layer's admin page.
  */
 export function mapLayerKey(layer: MapLayer): string {
   return JSON.stringify([layer.url, sortedParams(layer) ?? []])
+}
+
+/** A layer's page segment: short, and the same for as long as its address and parameters are. */
+export function mapLayerSegment(layer: MapLayer): string {
+  return fingerprint(mapLayerKey(layer))
 }
 
 /** A fingerprint of the layers a form loaded, so a save proves what it replaces. A count cannot:
@@ -84,8 +117,10 @@ export function mapLayersFingerprint(layers: MapLayer[]): string {
       layer.minZoom ?? null,
       layer.opacity ?? null,
       sortedParams(layer),
-      // Only when set, so every fingerprint from before this field existed stays the same.
+      // Only when set, so every fingerprint from before these fields existed stays the same. Keyed,
+      // so a lone cap never reads as a lone coverage.
       ...(layer.maxZoom == null ? [] : [layer.maxZoom]),
+      ...(layer.bounds == null ? [] : [{ bounds: layer.bounds }]),
     ]),
   )
 
@@ -215,6 +250,12 @@ const formatWmsUrl = (params: Record<string, string>, url: string): string => {
 
 export const BBOX_PLACEHOLDER = '{bbox-epsg-3857}'
 
+/** A template with its extent filled in. Characters a URL may not carry raw are percent-encoded:
+ *  browsers send `{"…"}` in a query as it is, and ArcGIS answers 400; `%XX` stays as it is. */
+export function fillBbox(template: string, box: string): string {
+  return template.replaceAll(BBOX_PLACEHOLDER, box).replace(/[\s"<>\\^`{|}]/g, (char) => encodeURIComponent(char))
+}
+
 function parseLayerUrl(input: string) {
   if (input.includes(BBOX_PLACEHOLDER)) {
     // Verbatim, never through `URL`, which would percent-encode the braces and any JSON.
@@ -263,12 +304,36 @@ const zoomField = z.pipe(
   ),
 )
 
+/** The coverage as typed or filled in: `west,south,east,north`, empty for none. */
+const boundsField = z.pipe(
+  z.optional(z.string()),
+  z.transform((value, payload): LonLatBounds | undefined => {
+    const text = (value ?? '').trim()
+
+    if (text === '') {
+      return undefined
+    }
+
+    const parts = text.split(',').map((part) => part.trim())
+    const numbers = parts.map(Number)
+
+    // `Number`, not the decimal regex: a stored edge near 0 reads back as `1e-7`.
+    if (parts.some((part) => part === '') || !isValidBounds(numbers)) {
+      payload.issues.push({ code: 'custom', input: value, message: formError('form_boundsInvalid') })
+      return z.NEVER
+    }
+
+    return numbers
+  }),
+)
+
 /** One layer as the settings form submits it. Edited as a single pasted URL because remote-form
  *  field paths cannot express a record's dynamic keys. */
 export const mapLayerSchema = z.pipe(
   z.object({
     // One credit per line, rather than a repeatable field inside a repeatable field.
     attributions: z.optional(z.string()),
+    bounds: boundsField,
     maxZoom: zoomField,
     minZoom: zoomField,
     name: nameSchema,
@@ -282,7 +347,7 @@ export const mapLayerSchema = z.pipe(
     ),
     url: layerUrl,
   }),
-  z.transform(({ attributions, maxZoom, minZoom, name, opacity, url }): MapLayer => {
+  z.transform(({ attributions, bounds, maxZoom, minZoom, name, opacity, url }): MapLayer => {
     const credits = (attributions ?? '')
       .split('\n')
       .map((line) => line.trim())
@@ -290,7 +355,8 @@ export const mapLayerSchema = z.pipe(
 
     return {
       attributions: credits.length === 0 ? null : credits,
-      // Absent rather than null, so a layer without a cap stays readable by older tabs' strict parse.
+      // Absent rather than null, so a layer without them stays readable by older tabs' strict parse.
+      ...(bounds == null ? {} : { bounds }),
       ...(maxZoom == null ? {} : { maxZoom }),
       minZoom: minZoom ?? null,
       name,
@@ -305,12 +371,22 @@ export const mapLayerSchema = z.pipe(
 export function toLayerForm(layer: MapLayer): z.input<typeof mapLayerSchema> {
   return {
     attributions: layer.attributions?.join('\n') ?? '',
+    bounds: layer.bounds?.join(',') ?? '',
     maxZoom: layer.maxZoom == null ? '' : String(layer.maxZoom),
     minZoom: layer.minZoom == null ? '' : String(layer.minZoom),
     name: layer.name,
     opacity: layer.opacity == null ? '' : String(layer.opacity),
     url: layer.type === 'template' ? layer.url : formatWmsUrl(layer.params ?? {}, layer.url),
   }
+}
+
+export function unionBounds(boxes: LonLatBounds[]): LonLatBounds {
+  return [
+    Math.min(...boxes.map((box) => box[0])),
+    Math.min(...boxes.map((box) => box[1])),
+    Math.max(...boxes.map((box) => box[2])),
+    Math.max(...boxes.map((box) => box[3])),
+  ]
 }
 
 /** A credit only one of the duplicates carries still has to show: over-crediting is the safe
@@ -327,6 +403,18 @@ function mergedBound(values: (null | number | undefined)[], pick: (...numbers: n
   const set = values.filter((value) => value != null)
 
   return set.length === values.length ? pick(...set) : null
+}
+
+/** The rectangle around every duplicate's coverage, or none when any has none: a missing coverage
+ *  means everywhere. Always sets the key, so the first duplicate's spread rectangle cannot survive. */
+function mergedBounds(group: MapLayer[]): { bounds: LonLatBounds | undefined } {
+  const all = group.flatMap((layer) => (layer.bounds == null ? [] : [layer.bounds]))
+
+  if (all.length !== group.length) {
+    return { bounds: undefined }
+  }
+
+  return { bounds: unionBounds(all) }
 }
 
 /** The lowest cap any region set: a cap hides only a service's placeholder, never data, so the
@@ -365,6 +453,7 @@ function mergeLayerGroup(group: MapLayer[]): MapLayer {
   return {
     ...first,
     attributions: mergedAttributions(group),
+    ...mergedBounds(group),
     ...mergedCap(group),
     minZoom: mergedBound(
       group.map((layer) => layer.minZoom),

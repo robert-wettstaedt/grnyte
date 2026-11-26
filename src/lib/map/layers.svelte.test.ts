@@ -28,6 +28,17 @@ describe('bboxTileUrl', () => {
     expect(bboxTileUrl('{bbox-epsg-3857}', 1, 1, 1)).toBe('0,-20037508.342789244,20037508.342789244,0')
   })
 
+  it('percent-encodes the braces a pasted JSON parameter carries, which ArcGIS refuses raw', () => {
+    // Browsers send `{` and `}` in a query as they are, and the server answers 400.
+    expect(bboxTileUrl('https://x.test/exportImage?bbox={bbox-epsg-3857}&rule={"f":"Hillshade"}', 0, 0, 0)).toBe(
+      'https://x.test/exportImage?bbox=-20037508.342789244,-20037508.342789244,20037508.342789244,20037508.342789244&rule=%7B%22f%22:%22Hillshade%22%7D',
+    )
+  })
+
+  it('leaves an address someone already encoded as it is', () => {
+    expect(bboxTileUrl('{bbox-epsg-3857}&rule=%7B%22f%22%7D', 0, 0, 0)).toMatch(/&rule=%7B%22f%22%7D$/)
+  })
+
   it('fills every placeholder, for services that want the extent twice', () => {
     expect(bboxTileUrl('a={bbox-epsg-3857}&b={bbox-epsg-3857}', 0, 0, 0)).toBe(
       'a=-20037508.342789244,-20037508.342789244,20037508.342789244,20037508.342789244&b=-20037508.342789244,-20037508.342789244,20037508.342789244,20037508.342789244',

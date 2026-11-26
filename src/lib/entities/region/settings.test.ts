@@ -5,6 +5,7 @@ import {
   layerUrl,
   mapLayerKey,
   mapLayerSchema,
+  mapLayerSegment,
   mergeMapLayers,
   readRegionSettings,
   regionSettingsSchema,
@@ -99,6 +100,32 @@ describe('mapLayerSchema', () => {
     expect(mapLayerSchema.safeParse({ ...toLayerForm(capped), maxZoom: '29' }).success).toBe(false)
   })
 
+  it('reads back a stored edge so close to 0 that it prints in exponent form', () => {
+    const covered: MapLayer = { ...TEMPLATE, bounds: [1e-7, 46, 13, 47] }
+
+    expect(toLayerForm(covered).bounds).toBe('1e-7,46,13,47')
+    expect(mapLayerSchema.parse(toLayerForm(covered))).toEqual(covered)
+  })
+
+  it('round-trips a coverage, and stores none when the field is empty', () => {
+    const covered: MapLayer = { ...TEMPLATE, bounds: [10.08, 46.62, 13.03, 47.78] }
+
+    expect(toLayerForm(covered).bounds).toBe('10.08,46.62,13.03,47.78')
+    expect(mapLayerSchema.parse(toLayerForm(covered))).toEqual(covered)
+    expect(mapLayerSchema.parse({ ...toLayerForm(covered), bounds: '  ' })).not.toHaveProperty('bounds')
+    expect(mapLayerSchema.parse({ ...toLayerForm(covered), bounds: ' 10.08, 46.62 ,13.03,47.78 ' })).toEqual(covered)
+  })
+
+  it('refuses on the coverage field what the stored read would drop', () => {
+    for (const bounds of ['10,86,13,87', '13,46,10,47', '10,46,181,47', '10,46,13', 'a,b,c,d']) {
+      const result = mapLayerSchema.safeParse({ ...toLayerForm(TEMPLATE), bounds })
+
+      expect(result.success, bounds).toBe(false)
+      expect(result.error?.issues.map((issue) => issue.path)).toEqual([['bounds']])
+      expect(result.error?.issues[0].message).toBe(formError('form_boundsInvalid'))
+    }
+  })
+
   it('rejects a zoom outside the range the map can render', () => {
     expect(mapLayerSchema.safeParse({ ...toLayerForm(BARE), minZoom: '29' }).success).toBe(false)
   })
@@ -169,6 +196,35 @@ describe('readRegionSettings', () => {
     expect(stored.layersComplete).toBe(true)
   })
 
+  it('reads a stored coverage and lets the editor write it back', () => {
+    const covered: MapLayer = { ...TEMPLATE, bounds: [10.08, 46.62, 13.03, 47.78] }
+    const stored = readRegionSettings({ mapLayers: [covered] })
+
+    expect(stored.settings.mapLayers).toEqual([covered])
+    expect(stored.layersComplete).toBe(true)
+  })
+
+  it('drops only the layer whose stored coverage the map could not use', () => {
+    const bad: unknown[] = [
+      [13, 46, 10, 47], // west not below east
+      [10, 46, 10, 47], // no width at all
+      [10, 47, 13, 47], // south not below north
+      [-181, 46, 13, 47],
+      [10, 46, 181, 47],
+      [10, -86, 13, 47], // beyond what Web Mercator projects
+      [10, 46, 13, 85.06],
+      [10, 46, 13],
+      '10,46,13,47',
+    ]
+    const layers = bad.map((bounds, index) => ({ ...TEMPLATE, bounds, name: `bad ${index}` }))
+    const stored = readRegionSettings({
+      mapLayers: [FULL, ...layers, { ...TEMPLATE, bounds: [-180, -85.0511, 180, 85.0511] }],
+    })
+
+    expect(stored.settings.mapLayers.map((layer) => layer.name)).toEqual([FULL.name, TEMPLATE.name])
+    expect(stored.layersComplete).toBe(false)
+  })
+
   it('reads a stored bbox template layer whole, beside a wms one, and lets the editor write both back', () => {
     const stored = readRegionSettings({ mapLayers: [FULL, TEMPLATE] })
 
@@ -210,6 +266,16 @@ const FULL_ELSEWHERE: MapLayer = {
 }
 
 const OTHER_LAYER: MapLayer = { ...BARE, name: 'Relief', params: { LAYERS: 'relief' } }
+
+describe('mapLayerSegment', () => {
+  it('names a layer by its address and parameters only, short enough for a URL', () => {
+    const segment = mapLayerSegment(FULL)
+
+    expect(segment).toMatch(/^[0-9a-z]{1,8}$/)
+    expect(mapLayerSegment({ ...FULL, name: 'Renamed', opacity: 0.2 })).toBe(segment)
+    expect(mapLayerSegment({ ...FULL, params: { LAYERS: 'other' } })).not.toBe(segment)
+  })
+})
 
 describe('mapLayerKey', () => {
   it('ignores the order parameters happen to be stored in', () => {
@@ -304,6 +370,20 @@ describe('mergeMapLayers', () => {
     ).toBe(15)
     expect(mergeMapLayers([TEMPLATE, { ...TEMPLATE, maxZoom: 15 }])[0].maxZoom).toBe(15)
     expect(mergeMapLayers([TEMPLATE, TEMPLATE])[0].maxZoom).toBeUndefined()
+  })
+
+  it('covers the union of the duplicates, since each region relies on its own ground', () => {
+    expect(
+      mergeMapLayers([
+        { ...TEMPLATE, bounds: [10, 46, 12, 47] },
+        { ...TEMPLATE, bounds: [11, 45, 13, 46.5] },
+      ])[0].bounds,
+    ).toEqual([10, 45, 13, 47])
+  })
+
+  it('covers everywhere when any duplicate has no coverage, even when the covered one comes first', () => {
+    // First, because the merge spreads the first duplicate: its rectangle must not survive.
+    expect(mergeMapLayers([{ ...TEMPLATE, bounds: [10, 46, 12, 47] }, TEMPLATE])[0].bounds).toBeUndefined()
   })
 
   it('leaves a layer only one region has untouched', () => {

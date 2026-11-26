@@ -90,9 +90,10 @@ test.beforeAll(async ({ browser }) => {
 
   // The second region syncs separately, so it needs a wait of its own.
   await visit(page, `/regions/${fixture.altRegionId}/map-layers`)
-  await expect(field(page, 'mapLayers[0].name')).toHaveValue('E2E Relief', { timeout: 30_000 })
+  await expect(page.getByRole('link', { name: /E2E Relief/ })).toBeVisible({ timeout: 30_000 })
 })
 
+// fallow-ignore-next-line code-duplication -- the same fixture teardown every serial e2e spec runs
 test.afterAll(async () => {
   try {
     await removeFixture(sql, REGION)
@@ -169,33 +170,40 @@ test('edit route drops the previous grade, description and first ascensionists',
   await expect(page.getByRole('button', { name: fixture.routeTag, pressed: true })).toHaveCount(0)
 })
 
-test('map layers reseeds its staleness key with the layers', async () => {
-  await visit(page, `/regions/${fixture.altRegionId}/map-layers`)
+test('adding a map layer reseeds the list and its staleness key with the region', async () => {
+  // The add page seeds the region's whole list and shows only the blank row after it.
+  await visit(page, `/regions/${fixture.altRegionId}/map-layers/add`)
   await markDocument(page)
   const before = await readForm(
     page,
-    new RegExp(`/regions/${fixture.altRegionId}/map-layers`),
-    'mapLayers[0].name',
-    'E2E Relief',
+    new RegExp(`/regions/${fixture.altRegionId}/map-layers/add`),
+    'id',
+    String(fixture.altRegionId),
   )
+  expect(before['mapLayers[1].name']).toBe('')
 
   await page.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page).toHaveURL(new RegExp(`/regions/${fixture.altRegionId}/map-layers$`))
+  await page.getByRole('button', { name: 'Back' }).first().click()
+  await expect(page).toHaveURL(new RegExp(`/regions/${fixture.altRegionId}$`))
   await hopToRegion(page, fixture.regionId, 'Map layers')
 
-  // This region has no layers, so the empty state is what says the form is loaded.
+  // This region has no layers, so the empty state is what says the list is loaded.
   await expect(page.getByText(/No map layers yet/)).toBeVisible()
+  await clickTo(page, `/regions/${fixture.regionId}/map-layers/add`)
 
   const values = await readForm(
     page,
-    new RegExp(`/regions/${fixture.regionId}/map-layers`),
+    new RegExp(`/regions/${fixture.regionId}/map-layers/add`),
     'id',
     String(fixture.regionId),
   )
-  expect(values['mapLayers[0].name']).toBeUndefined()
+  // The blank row is the first here: the other region's layer must not ride along before it.
+  expect(values['mapLayers[0].name']).toBe('')
+  expect(values['mapLayers[1].name']).toBeUndefined()
   // The guard the settings writer compares against, so carrying the other region's would wedge
   // every save of this row.
   expect(values.known).not.toBe(before.known)
-  await expect(page.getByText('E2E Relief')).toHaveCount(0)
 })
 
 test('region name reseeds between regions', async () => {

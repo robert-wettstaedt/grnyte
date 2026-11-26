@@ -22,7 +22,9 @@ export const updateRegion = (values: z.input<typeof regionActionSchema>) =>
   write(mutators.regions.update(values), { redirectTo: entityHref('regions', Number(values.id)) })
 
 export const updateRegionMapLayers = (values: z.input<typeof regionMapLayersSchema>) =>
-  write(mutators.regions.updateMapLayers(values), { redirectTo: entityHref('regions', Number(values.id)) })
+  write(mutators.regions.updateMapLayers(values), {
+    redirectTo: resolve('/(app)/regions/[regionId]/map-layers', { regionId: values.id }),
+  })
 
 export const addRegionTag = (regionFk: number, name: string) => write(mutators.regions.addTag({ name, regionFk }))
 

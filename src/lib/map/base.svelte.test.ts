@@ -191,6 +191,21 @@ describe('createRegionLayers', () => {
     expect(uncapped[0].getSource()?.getTileGrid()?.getMaxZoom()).toBeGreaterThan(20)
   })
 
+  it('limits a covered layer to its coverage, and leaves an uncovered one everywhere', () => {
+    // 66.51326044311186 N is the edge of the zoom 2 tiles, a quarter of the world's height up.
+    const [covered, uncovered] = createRegionLayers([
+      { ...LAYER, bounds: [0, 0, 90, 66.51326044311186] },
+      { ...LAYER, name: 'Other', params: { LAYERS: 'other' } },
+    ])
+    const extent = covered.getExtent() ?? []
+
+    expect(extent[0]).toBeCloseTo(0)
+    expect(extent[1]).toBeCloseTo(0)
+    expect(extent[2]).toBeCloseTo(20037508.342789244 / 2)
+    expect(extent[3]).toBeCloseTo(20037508.342789244 / 2)
+    expect(uncovered.getExtent()).toBeUndefined()
+  })
+
   it('never hands a region layer its attributions', () => {
     // Credits are admin-written and OL renders them as HTML. Restoring `attributions` here is a
     // cross-region XSS; the credits sheet parses them through `./attribution` instead.

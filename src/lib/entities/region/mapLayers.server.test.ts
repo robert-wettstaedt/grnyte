@@ -152,6 +152,27 @@ describe.skipIf(!reachable)('updateRegionMapLayers staleness guard', () => {
     ).toBe('saved')
   })
 
+  it('stores a coverage, reads it back whole, and saves again over it', async () => {
+    const covered: MapLayer = { ...TEMPLATE, bounds: [12.03, 46.93, 14.04, 48.06] }
+
+    expect(
+      await submit(admin, {
+        id: String(regionId),
+        known: mapLayersFingerprint([STORED]),
+        mapLayers: [toLayerForm(covered)],
+      }),
+    ).toBe('saved')
+    expect(await storedLayers(regionId)).toEqual([covered])
+
+    expect(
+      await submit(admin, {
+        id: String(regionId),
+        known: mapLayersFingerprint([covered]),
+        mapLayers: [toLayerForm(SUBMITTED)],
+      }),
+    ).toBe('saved')
+  })
+
   it('refuses a stale save over a stored template layer, and writes nothing', async () => {
     await sql`update public.regions set settings = ${sql.json(settingsWith([TEMPLATE]) as never)} where id = ${regionId}`
 

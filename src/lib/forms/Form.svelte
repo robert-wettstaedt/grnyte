@@ -56,6 +56,9 @@
     /** Run after a successful submit, before leaving: work the destination depends on (finalizing
      *  uploads, waiting for a row to sync). Never navigate: `redirectTo` is applied here. */
     onSubmitted?: () => Promise<void> | void
+    /** Run when a submit ends without saving (refused, invalid or offline), for a screen that
+     *  changed its values just before submitting and has to put them back. */
+    onUnsaved?: () => void
     /** With `waitFor`: the values to seed from its rows, once per set of row ids, before `fields` mount. */
     seed?: (rows: Waited<W>) => Partial<Input>
     /** Stay after a successful submit, for a screen that answers in place. */
@@ -92,6 +95,7 @@
     nextLabel = m.common_next(),
     onBeforeSubmit,
     onSubmitted,
+    onUnsaved,
     seed,
     stayOnSubmit = false,
     step = $bindable(0),
@@ -134,7 +138,12 @@
     submitting = true
     try {
       // The raw values, not the parsed ones: the mutator validates the same input again.
-      const outcome = await store.submit(submit)
+      const outcome = await store.submit(submit).catch((cause: unknown) => {
+        // A throw that is not a refusal saved nothing either.
+        onUnsaved?.()
+        throw cause
+      })
+      if (outcome.kind !== 'done') onUnsaved?.()
       if (outcome.kind === 'offline') {
         // The overlay keeps the form mounted under it, with everything typed.
         offline = true
