@@ -239,7 +239,7 @@ online, and when its change marker moves; a read without a marker does not updat
 **change marker**
 A number per region (`region_counters.events`) or account (`user_counters.notifications`) that a trigger
 moves when the events or notifications behind it changed. It counts nothing: it tells a client to fetch again.
-The PowerSync build syncs it and asks its server reads again when it moves (events: `listEvents`), held while
+The PowerSync build syncs it and asks its server reads again when it moves (events: `listEvents`; notifications: the inbox and the unread count), held while
 the app is hidden and asked once on return.
 
 ## Events

@@ -1,0 +1,9 @@
+schema: spec-driven
+created: 2026-11-26
+x-issue: 1181
+x-paths:
+  - src/lib/state/engine.powersync.ts
+  - src/routes/(app)/notifications/+page.svelte
+  - src/routes/(app)/notifications/page.svelte.test.ts
+  - .fallow-health-baseline.json
+  - CONTEXT.md

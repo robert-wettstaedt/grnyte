@@ -23,52 +23,47 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { onMount } from 'svelte'
+  import { syncCaughtUp } from '$lib/zero/source.svelte'
+  import { onDestroy } from 'svelte'
   import { SvelteSet } from 'svelte/reactivity'
 
   const global = getGlobalState()
 
   const notifications = notificationList(() => global.userRegions)
 
-  /**
-   * Which rows were unread when the reader got here.
-   *
-   * Accumulating rather than reading `readAt` straight off the row: mounting stamps the whole
-   * inbox read, so by the second frame every row claims to have been read and the reader is left
-   * watching the badge drop with nothing on screen having changed. Ids are only ever added, so a
-   * row that arrives while the page is open joins them too.
-   */
+  /** Rows ever seen unread on this visit: the visit's mark reads them all, and they must stay new. */
   const arrivedUnread = new SvelteSet<number>()
 
-  const views = $derived(notifications.data.map((notification) => ({ notification })))
-
-  // Same day dividers as the feed, decided the same way: a flat sequence with a flag on the first
-  // row of each day, rather than nested per-day arrays.
   const rows = $derived(
-    views.map((entry, index) => ({
-      ...entry,
-      day: calendarDay(entry.notification.createdAt),
-      startsDay:
-        index === 0 ||
-        calendarDay(views[index - 1].notification.createdAt) !== calendarDay(entry.notification.createdAt),
+    notifications.data.map((notification, index, all) => ({
+      day: calendarDay(notification.createdAt),
+      notification,
+      startsDay: index === 0 || calendarDay(all[index - 1].createdAt) !== calendarDay(notification.createdAt),
     })),
   )
 
   $effect(() => {
-    for (const { notification } of views) {
+    for (const notification of notifications.data) {
       if (notification.readAt == null) {
         arrivedUnread.add(notification.id)
       }
     }
   })
 
-  // Opening the inbox is the act of reading it, so the whole thing is stamped once, here, rather
-  // than per row. `onMount` and not an `$effect` on the list: re-stamping whenever the list
-  // changed would write again on every arrival while the reader is still on the page.
-  // Not shown to the reader, who has nothing to do about it, but recorded: a badge that will not
-  // clear is otherwise a report with nothing behind it.
-  onMount(() => {
+  let marked = false
+  const mark = () => {
+    marked = true
     void markNotificationsRead(global.user?.id).catch(reportIfOnline)
+  }
+
+  $effect(() => {
+    const { kind } = notifications.phase
+    // `arriving` is enough to read; `syncCaughtUp`, as Zero's reopened rows may be last session's.
+    if (!marked && (kind === 'answered' || kind === 'arriving') && syncCaughtUp() && global.user != null) mark()
+  })
+
+  onDestroy(() => {
+    if (!marked) mark()
   })
 </script>
 
