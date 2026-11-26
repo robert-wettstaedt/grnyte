@@ -16,6 +16,8 @@ const engine = vi.hoisted(() => ({
   listeners: new Map<string, (status: object) => void>(),
   /** Rows the collections have not taken in yet, across their tracking tables. */
   pending: 0,
+  /** Resolves once the database is open. */
+  ready: Promise.resolve(),
   status: { connected: false } as object,
   /** Whether the signed-in user's row is in the local database. */
   userRow: false,
@@ -47,7 +49,7 @@ vi.mock('@powersync/web', async (original) => ({
       engine.listeners.set(this.file, listener.statusChanged)
       return () => engine.listeners.delete(this.file)
     }
-    waitForReady = () => Promise.resolve()
+    waitForReady = () => engine.ready
     // The connection's temp tables: this tab's, plus one a closed tab left on the shared connection.
     writeLock = <T>(run: (tx: object) => Promise<T>) =>
       run({
@@ -69,6 +71,28 @@ const synced = (priorities: number[], all: boolean) => ({
 
 const session = (id: string) => ({ access_token: `stale-${id}`, user: { id } }) as Session
 const settings = { endpoint: 'https://sync.example' }
+/** The browser's lock manager, as one page sees it: `request` runs with the lock held by that page, `query` adds to it. */
+const locks = { held: [] as LockInfo[], pending: [] as LockInfo[] }
+const lockManager = (page: string) => {
+  const own: LockInfo[] = []
+  return {
+    query: async () => ({ held: [...locks.held, ...own], pending: locks.pending }),
+    request: async (name: string, run: () => Promise<unknown>) => {
+      own.push({ clientId: page, name })
+      return await run().finally(() => own.pop())
+    },
+  }
+}
+const SYNC_LOCK = 'streaming-sync-sync-grnyte-a.sqlite'
+const offline = () => ({ ...synced([], false), connected: false })
+/** Account a's shell started, with the online flag it feeds. */
+const startShell = async () => {
+  const db = await import('./db.svelte')
+  const { isOnline } = await import('$lib/state/online.svelte')
+  db.initPowerSync(session('a'), async () => 'token', settings)
+  await settle()
+  return { db, isOnline, syncConnection: db.syncConnection }
+}
 const settle = () => vi.advanceTimersByTimeAsync(0)
 /** A status change as account a's database announces it to its listener. */
 const announce = (status: object) => engine.listeners.get('grnyte-a.sqlite')?.(status)
@@ -85,15 +109,20 @@ describe('the PowerSync shell', () => {
       files: [],
       listeners: new Map(),
       pending: 0,
+      ready: Promise.resolve(),
       status: synced([], false),
       userRow: false,
     })
     localStorage.clear()
+    Object.assign(locks, { held: [], pending: [] })
+    Object.defineProperty(navigator, 'locks', { configurable: true, value: lockManager('page') })
+    vi.stubGlobal('fetch', () => new Promise(() => {}))
   })
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
+    delete (navigator as unknown as Record<string, unknown>).locks
   })
 
   it('opens one file per account', async () => {
@@ -253,6 +282,38 @@ describe('the PowerSync shell', () => {
     expect(deleted).toEqual(['grnyte-a.sqlite'])
   })
 
+  // Firefox: queued behind another tab's blocked delete, which the sync worker holds until this page goes.
+  it('does not wait on a delete that never answers, on sign-out or a switch', async () => {
+    vi.stubGlobal('indexedDB', {
+      databases: async () => [{ name: 'grnyte-a.sqlite' }],
+      deleteDatabase: () => ({}) as IDBOpenDBRequest,
+    })
+    const { clearPowerSync, dropAccount, initPowerSync } = await import('./db.svelte')
+    initPowerSync(session('a'), async () => 'token', settings)
+    const done: string[] = []
+
+    void clearPowerSync().then(() => done.push('clear'))
+    void dropAccount('a').then(() => done.push('switch'))
+    await vi.advanceTimersByTimeAsync(1_000)
+
+    expect(done.sort()).toEqual(['clear', 'switch'])
+  })
+
+  it('still reports a delete refused after the wait', async () => {
+    const request = {} as IDBOpenDBRequest
+    vi.stubGlobal('indexedDB', { databases: async () => [{ name: 'grnyte-a.sqlite' }], deleteDatabase: () => request })
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { clearPowerSync, initPowerSync } = await import('./db.svelte')
+    initPowerSync(session('a'), async () => 'token', settings)
+    const cleared = clearPowerSync()
+    await vi.advanceTimersByTimeAsync(1_000)
+    await cleared
+
+    request.onerror?.({} as Event)
+
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('left'), 'grnyte-a.sqlite', undefined)
+  })
+
   it('still deletes the open file where IndexedDB cannot list its databases (Firefox before 126)', async () => {
     const deleted = stubIndexedDb(undefined)
     const { clearPowerSync, initPowerSync } = await import('./db.svelte')
@@ -306,5 +367,309 @@ describe('the PowerSync shell', () => {
     fromA?.(synced([0, 1, 2], true))
 
     expect([lastSyncedAt('reference'), lastSyncedAt('guidebook')]).toEqual([null, null])
+  })
+  describe('what the app says about the connection', () => {
+    it('a launch that never connects is reconnecting, then offline after ten seconds', async () => {
+      engine.status = offline()
+      const { isOnline, syncConnection } = await startShell()
+      expect([syncConnection(), isOnline()]).toEqual(['connecting', true])
+
+      await vi.advanceTimersByTimeAsync(10_000)
+      expect(isOnline()).toBe(false)
+    })
+
+    it('losing it for ten seconds makes the app offline, and regaining it online', async () => {
+      const { isOnline, syncConnection } = await startShell()
+      expect(syncConnection()).toBe('connected')
+
+      announce(offline())
+      await vi.advanceTimersByTimeAsync(10_000)
+      expect([syncConnection(), isOnline()]).toEqual(['connecting', false])
+
+      announce(synced([], false))
+      expect([syncConnection(), isOnline()]).toEqual(['connected', true])
+    })
+
+    it('a drop shorter than ten seconds does not make it offline', async () => {
+      const { isOnline } = await startShell()
+
+      announce(offline())
+      await vi.advanceTimersByTimeAsync(9_000)
+      expect(isOnline()).toBe(true)
+      announce(synced([], false))
+      await vi.advanceTimersByTimeAsync(10_000)
+
+      expect(isOnline()).toBe(true)
+    })
+
+    it('a launch already connected is online after a false browser reading', async () => {
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+      const { isOnline } = await startShell()
+
+      expect(isOnline()).toBe(true)
+    })
+
+    it('before the store is loaded it is neither offline nor reconnecting', async () => {
+      engine.status = offline()
+      engine.ready = new Promise(() => {})
+      const { isOnline, syncConnection } = await startShell()
+      announce(offline())
+      await vi.advanceTimersByTimeAsync(20_000)
+
+      expect([syncConnection(), isOnline()]).toEqual(['connected', true])
+    })
+
+    it('after closing it is not reconnecting, whatever the last status was', async () => {
+      stubIndexedDb(['grnyte-a.sqlite'])
+      const { db, syncConnection } = await startShell()
+      announce(offline())
+      expect(syncConnection()).toBe('connecting')
+
+      await db.dropAccount('a')
+
+      expect(syncConnection()).toBe('connected')
+    })
+
+    it('a status on a connection that has not noticed keeps it offline, and a newer checkpoint brings it back', async () => {
+      const { isOnline } = await startShell()
+      announce({ ...synced([], false), lastSyncedAt: new Date(1_000) })
+      dispatchEvent(new Event('offline'))
+      expect(isOnline()).toBe(false)
+
+      announce({ ...synced([0], false), lastSyncedAt: new Date(1_000) })
+      expect(isOnline()).toBe(false)
+
+      announce({ ...synced([0], false), lastSyncedAt: new Date(2_000) })
+      expect(isOnline()).toBe(true)
+    })
+
+    it("a closed account's late status changes nothing", async () => {
+      const { db, isOnline, syncConnection } = await startShell()
+      const fromA = engine.listeners.get('grnyte-a.sqlite')
+      db.initPowerSync(session('b'), async () => 'token', settings)
+      await settle()
+
+      fromA?.(offline())
+      await vi.advanceTimersByTimeAsync(10_000)
+
+      expect([syncConnection(), isOnline()]).toEqual(['connected', true])
+    })
+  })
+  describe('while another tab may hold the sync', () => {
+    /** How the probe answers; the boot probe and every later one. */
+    let probe: () => Promise<Response>
+    let probes = 0
+    const answers = async () => new Response()
+    const heldElsewhere = () =>
+      Object.assign(locks, {
+        held: [{ clientId: 'other page', name: SYNC_LOCK }],
+        pending: [{ clientId: 'page', name: SYNC_LOCK }],
+      })
+    const pass = (ms: number) => vi.advanceTimersByTimeAsync(ms)
+
+    beforeEach(() => {
+      probe = answers
+      probes = 0
+      vi.stubGlobal('fetch', () => {
+        probes += 1
+        return probe()
+      })
+    })
+
+    it('a tab that comes to wait for it only after its first status stays online, reconnecting', async () => {
+      engine.status = offline()
+      const { isOnline, syncConnection } = await startShell()
+      await pass(500)
+      heldElsewhere()
+      await pass(30_000)
+
+      expect([syncConnection(), isOnline()]).toEqual(['connecting', true])
+    })
+
+    it('so does one that restarted its sync', async () => {
+      const { isOnline, syncConnection } = await startShell()
+      await pass(60_000)
+
+      announce(offline())
+      await pass(500)
+      heldElsewhere()
+      await pass(30_000)
+
+      expect([syncConnection(), isOnline()]).toEqual(['connecting', true])
+    })
+
+    it('one that was online and then waits goes offline when a probe fails', async () => {
+      const { isOnline } = await startShell()
+      probe = () => Promise.reject(new TypeError('Load failed'))
+      announce(offline())
+      heldElsewhere()
+      await pass(2_000)
+
+      expect(isOnline()).toBe(false)
+    })
+
+    it('one already offline comes back when a probe succeeds', async () => {
+      engine.status = offline()
+      const { isOnline } = await startShell()
+      await pass(10_000)
+      expect(isOnline()).toBe(false)
+
+      heldElsewhere()
+      await pass(2_000)
+
+      expect(isOnline()).toBe(true)
+    })
+
+    it('one that no longer waits and stays unconnected goes offline after ten seconds', async () => {
+      engine.status = offline()
+      heldElsewhere()
+      const { isOnline } = await startShell()
+      await pass(20_000)
+      expect(isOnline()).toBe(true)
+
+      Object.assign(locks, { held: [{ clientId: 'page', name: SYNC_LOCK }], pending: [] })
+      await pass(12_000)
+
+      expect(isOnline()).toBe(false)
+    })
+
+    it('one that holds it itself while another waits goes offline after ten seconds', async () => {
+      engine.status = offline()
+      Object.assign(locks, {
+        held: [{ clientId: 'page', name: SYNC_LOCK }],
+        pending: [{ clientId: 'other page', name: SYNC_LOCK }],
+      })
+      const { isOnline } = await startShell()
+      await pass(12_000)
+
+      expect(isOnline()).toBe(false)
+    })
+
+    it('a shared connection, whose worker holds it and no page waits, goes offline after ten seconds', async () => {
+      engine.status = offline()
+      Object.assign(locks, { held: [{ clientId: 'shared worker', name: SYNC_LOCK }], pending: [] })
+      const { isOnline } = await startShell()
+      await pass(12_000)
+
+      expect(isOnline()).toBe(false)
+    })
+
+    it('a tab that waits a minute sends one probe', async () => {
+      engine.status = offline()
+      heldElsewhere()
+      await startShell()
+      const atBoot = probes
+      await pass(60_000)
+
+      expect(probes - atBoot).toBe(1)
+    })
+
+    it('a tab that waits a second time, after it was connected, stays online again', async () => {
+      engine.status = offline()
+      heldElsewhere()
+      const { isOnline, syncConnection } = await startShell()
+      await pass(5_000)
+      announce(synced([], false))
+      expect(syncConnection()).toBe('connected')
+
+      announce(offline())
+      await pass(30_000)
+
+      expect([syncConnection(), isOnline()]).toEqual(['connecting', true])
+    })
+  })
+  describe('while the store does not open', () => {
+    const ACCESS = 'lock##IDB(grnyte-a.sqlite):/grnyte-a.sqlite##access'
+    /** The measured hang: this tab's worker took the one lock and waits for the other, which the first tab holds. */
+    const heldElsewhere = (name = ACCESS) =>
+      Object.assign(locks, {
+        held: [
+          { clientId: 'worker', name: 'db-lock-grnyte-a.sqlite' },
+          { clientId: 'other worker', name },
+        ],
+        pending: [{ clientId: 'worker', name }],
+      })
+    const start = async () => {
+      const db = await import('./db.svelte')
+      db.initPowerSync(session('a'), async () => 'token', settings)
+      await settle()
+      return db
+    }
+    const pass = (ms: number) => vi.advanceTimersByTimeAsync(ms)
+    let open: () => void
+    beforeEach(() => {
+      engine.ready = new Promise((resolve) => (open = resolve))
+    })
+
+    it.each([ACCESS, 'db-lock-grnyte-a.sqlite'])(
+      'a tab that waits for %s is blocked after three seconds, until the store loads',
+      async (name) => {
+        Object.assign(locks, {
+          held: [{ clientId: 'other worker', name }],
+          pending: [{ clientId: 'worker', name }],
+        })
+        const { storeBlocked } = await start()
+        await pass(2_900)
+        expect(storeBlocked()).toBe(false)
+        await pass(200)
+        expect(storeBlocked()).toBe(true)
+
+        open()
+        await settle()
+        expect(storeBlocked()).toBe(false)
+      },
+    )
+
+    it('a slow open that waits for no other tab is never blocked', async () => {
+      const { storeBlocked } = await start()
+      await pass(20_000)
+
+      expect(storeBlocked()).toBe(false)
+    })
+
+    it('waiting for a lock on another file is not blocked', async () => {
+      heldElsewhere('lock##IDB(grnyte-b.sqlite):/grnyte-b.sqlite##access')
+      const { storeBlocked } = await start()
+      await pass(20_000)
+
+      expect(storeBlocked()).toBe(false)
+    })
+
+    it('one worker that both holds and waits is not blocked', async () => {
+      Object.assign(locks, {
+        held: [{ clientId: 'worker', name: 'db-lock-grnyte-a.sqlite' }],
+        pending: [{ clientId: 'worker', name: 'db-lock-grnyte-a.sqlite' }],
+      })
+      const { storeBlocked } = await start()
+      await pass(20_000)
+
+      expect(storeBlocked()).toBe(false)
+    })
+
+    it('without the lock manager nothing is blocked, and nothing fails', async () => {
+      heldElsewhere()
+      Object.defineProperty(navigator, 'locks', { configurable: true, value: undefined })
+      const rejected = vi.fn()
+      process.on('unhandledRejection', rejected)
+      const { storeBlocked } = await start()
+      await pass(20_000)
+      process.off('unhandledRejection', rejected)
+
+      expect(storeBlocked()).toBe(false)
+      expect(rejected).not.toHaveBeenCalled()
+    })
+
+    it('after closing it is not blocked', async () => {
+      stubIndexedDb(['grnyte-a.sqlite'])
+      heldElsewhere()
+      const { dropAccount, storeBlocked } = await start()
+      await pass(5_000)
+      expect(storeBlocked()).toBe(true)
+
+      await dropAccount('a')
+      await pass(5_000)
+
+      expect(storeBlocked()).toBe(false)
+    })
   })
 })

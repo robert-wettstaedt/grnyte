@@ -593,3 +593,19 @@ describe('tightening the ping after a resume', () => {
     expect(tighten).not.toHaveBeenCalled()
   })
 })
+
+// PowerSync, unlike Zero, tells nothing again while its connection and checkpoint stay as they were.
+it.each([
+  { back: true, state: 'connected' as const },
+  { back: false, state: 'connecting' as const },
+])(
+  'after a missed online event, a resume probe that answers beside a $state connection: back online $back',
+  async ({ back, state }) => {
+    const online = await load({ probe: 'ok' })
+    online.reportConnectionState({ name: state })
+    dispatchEvent(new Event('offline'))
+    await foreground()
+
+    expect(online.isOnline()).toBe(back)
+  },
+)

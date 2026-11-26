@@ -5,6 +5,10 @@ import { loadHistory, saveHistory } from '../search/searchHistory'
 import { markSynced, trackSyncFor } from '../sync.svelte'
 import { wipeDeviceData } from './wipe'
 
+vi.mock('$env/static/public', async (original) => ({
+  ...(await original<object>()),
+  PUBLIC_SUPABASE_URL: 'http://auth.grnyte.test',
+}))
 vi.mock('@rocicorp/zero', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@rocicorp/zero')>()),
   dropAllDatabases: vi.fn(async () => ({ dropped: [], errors: [] })),
@@ -46,5 +50,25 @@ describe('wipeDeviceData', () => {
 
     await expect(wipeDeviceData()).resolves.toBeUndefined()
     expect(loadHistory()).toEqual([])
+  })
+})
+
+describe('tellOtherTabsSignedOut', () => {
+  it("reaches another tab's auth client as a sign-out", async () => {
+    const { PUBLIC_SUPABASE_URL } = await import('$env/static/public')
+    const { createClient } = await import('@supabase/supabase-js')
+    // Another tab: an auth client of its own, on the same storage key, listening as the (app) layout does.
+    const other = createClient(PUBLIC_SUPABASE_URL, 'publishable', {
+      auth: { autoRefreshToken: false, detectSessionInUrl: false },
+    })
+    const events: string[] = []
+    const { data } = other.auth.onAuthStateChange((event) => void events.push(event))
+    await vi.waitFor(() => expect(events).toContain('INITIAL_SESSION'))
+
+    const { tellOtherTabsSignedOut } = await import('./wipe')
+    tellOtherTabsSignedOut()
+
+    await vi.waitFor(() => expect(events).toContain('SIGNED_OUT'))
+    data.subscription.unsubscribe()
   })
 })

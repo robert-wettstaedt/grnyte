@@ -22,11 +22,12 @@ export const load = (async ({ depends, fetch }) => {
   })
 
   const {
-    data: { session },
+    data: { session: stored },
   } = await supabase.auth.getSession()
 
-  // Sets up the build's sync engine before any (app) page reads it.
-  start(session, supabase)
+  // Sets up the build's sync engine before any (app) page reads it. It may answer the session the screens are to keep,
+  // and it never answers while the tab leaves for another account.
+  const session = (await start(stored, supabase)) ?? stored
 
   return {
     authUserId: session?.user.id,

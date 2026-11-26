@@ -6,15 +6,15 @@
   import { m } from '$lib/paraglide/messages'
   import { back, canGoBack } from '$lib/state/navigation.svelte'
 
-  type ErrorType = 'generic' | 'notfound' | 'offline' | 'server'
+  type ErrorType = 'blocked' | 'generic' | 'notfound' | 'offline' | 'server'
 
   // Full-screen blocking error state: icon, heading, body and recovery buttons.
-  // `type` selects the icon, tonal colour and default copy; the offline state
-  // offers Reload, others offer Explore. Pass `title`/`description` to override.
+  // `type` selects the icon, tonal colour and default copy; the offline and
+  // blocked states offer Reload, others offer Explore. Pass `title`/`description` to override.
   interface Props {
     description?: string
     /** Replaces the Explore button, which only a signed-in reader can open. Ignored when `type` is
-     *  'offline', where the only useful action is Reload. */
+     *  'offline' or 'blocked', where the only useful action is Reload. */
     primaryAction?: { href: ResolvedPathname; label: string }
     title?: string
     type?: ErrorType
@@ -23,6 +23,12 @@
   const { description, primaryAction, title, type = 'generic' }: Props = $props()
 
   const variants: Record<ErrorType, { body: () => string; icon: IconName; tile: string; title: () => string }> = {
+    blocked: {
+      body: m.error_storeBlocked_body,
+      icon: 'info',
+      tile: 'bg-surface-200-800 text-surface-600-400',
+      title: m.error_storeBlocked_title,
+    },
     generic: {
       body: m.error_generic_body,
       icon: 'alert-triangle',
@@ -67,7 +73,7 @@
   </p>
 
   <div class="mt-7 flex w-full max-w-xs flex-col gap-2.5">
-    {#if type === 'offline'}
+    {#if type === 'offline' || type === 'blocked'}
       <button class="btn preset-filled-primary-500" onclick={() => location.reload()} type="button">
         {m.error_reload()}
       </button>

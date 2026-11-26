@@ -42,7 +42,7 @@ export function getZ(): Z<Schema> {
  */
 export function initZero(
   session: null | Session | undefined,
-  // Off in the PowerSync build: PowerSync holds the guidebook and alone writes the sync and store state.
+  // Off in the PowerSync build: PowerSync alone holds the guidebook and reports the sync, store and connection state.
   { preload = true }: { preload?: boolean } = {},
 ): Z<Schema> {
   const userID = session?.user.id
@@ -76,7 +76,7 @@ export function initZero(
   connectionUnsubscribe?.()
   let lastState: ConnectionName | undefined
   connectionUnsubscribe = z.connection.state.subscribe((state) => {
-    reportConnectionState(state)
+    if (preload) reportConnectionState(state)
     noteConnectionForResume(state.name)
     // Signed in only: the barrier is a member query, and a logged-out client's run throws inside
     // Zero's state listener, which aborts the connect.
@@ -90,7 +90,7 @@ export function initZero(
   // on its default is ten seconds of rendering stale rows while reporting `connected`. Nothing in
   // this app can see that state, so the only lever is making Zero look sooner, and only where a
   // just-answered probe makes a short pong deadline safe. See `shouldTightenPing`.
-  setPingTightenHandler(() => tightenPing(z))
+  if (preload) setPingTightenHandler(() => tightenPing(z))
 
   storeProbe?.destroy()
   storeProbe = undefined

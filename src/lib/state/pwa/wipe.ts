@@ -1,9 +1,19 @@
+import { PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { clearViewed } from '$lib/components/EntitySearch/recent.svelte'
 import { IMAGE_CACHE } from '$lib/images/derivatives'
 import { dropAllDatabases } from '@rocicorp/zero'
 import { clearLocal } from '../engine'
 import { clearHistory } from '../search/searchHistory'
 import { forgetAllSynced } from '../sync.svelte'
+
+/** A sign-out on the server tells no other tab; auth-js's own channel does. This tab's client hears it too, after
+ *  `wipeAndLeave` has set the leaving flag that the (app) layout's listener checks: call it with that exit. */
+export function tellOtherTabsSignedOut(): void {
+  if (typeof BroadcastChannel === 'undefined') return
+  const channel = new BroadcastChannel(`sb-${new URL(PUBLIC_SUPABASE_URL).hostname.split('.')[0]}-auth-token`)
+  channel.postMessage({ event: 'SIGNED_OUT', session: null })
+  channel.close()
+}
 
 /**
  * Removes what the previous account left on this device: its Zero replica, cached images, sync

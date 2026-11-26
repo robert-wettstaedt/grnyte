@@ -13,9 +13,7 @@ import { downloadRefused } from '$lib/state/engine'
 import { isOnline } from '$lib/state/online.svelte'
 import { quietly } from '$lib/state/pill.svelte'
 import { lastSyncedAt, localStoreLoaded, localStoreWarm } from '$lib/state/sync.svelte'
-import { isTerminal } from '$lib/zero/connection'
 import type { QueryResource } from '$lib/zero/resource.svelte'
-import { getZ } from '$lib/zero/z.svelte'
 import { getContext, setContext } from 'svelte'
 
 const GLOBAL_STATE_KEY = Symbol('global-state')
@@ -157,7 +155,7 @@ export function setGlobalState(): GlobalState | undefined {
         return false
       }
 
-      return !isOnline() || downloadRefused() || isTerminal(getZ().connectionState.name)
+      return !isOnline() || downloadRefused()
     },
     get lastSyncedAt() {
       return lastSyncedAt()

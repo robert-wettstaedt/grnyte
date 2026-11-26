@@ -3,7 +3,6 @@
   import { isOnline } from '$lib/state/online.svelte'
   import { isUpdateReady } from '$lib/state/pwa/updateReady.svelte'
   import { isTerminal, RECONNECT_HOLD_MS, type ConnectionName } from '$lib/zero/connection'
-  import { getZ } from '$lib/zero/z.svelte'
   import { resolveStatus, type ResumeState } from './statusBar'
 
   // Supabase rotates the token hourly and Zero can pass through `needs-auth` on the
@@ -13,10 +12,10 @@
 
 <script lang="ts">
   import { m } from '$lib/paraglide/messages'
-  import { resume as engineResume } from '$lib/state/engine'
+  import { connection as engineConnection, resume as engineResume } from '$lib/state/engine'
   // These props exist only so the story can show states that are near-impossible to
   // trigger live (`needs-auth`, `closed`, a deploy mid-session). Unset, the bar reads the
-  // real device, the real Zero connection and the real service worker.
+  // real device, the real sync connection and the real service worker.
   interface Props {
     connectionState?: { name: ConnectionName }
     /** Overrides the hold below. A story pinning a state has already waited for it, and
@@ -34,10 +33,10 @@
 
   // The shared signal rather than a local `navigator.onLine` pair: that flag reads true on a fresh
   // document load with the network already dead, so the bar would say "reconnecting" to somebody
-  // with no signal at all while the screen behind it said "not downloaded". `isOnline()` folds Zero's
-  // connection in alongside the browser flag and the reachability probe; `settled` reads Zero alone.
+  // with no signal at all while the screen behind it said "not downloaded". `isOnline()` folds the
+  // sync connection in alongside the browser flag and the reachability probe; `settled` reads the sync alone.
   const online = $derived(props.online ?? isOnline())
-  const raw = $derived(props.connectionState?.name ?? getZ().connectionState.name)
+  const raw = $derived(props.connectionState?.name ?? engineConnection())
 
   // Hold a non-connected state for its threshold before showing anything: every
   // change restarts the timer, so flapping never reaches the bar.

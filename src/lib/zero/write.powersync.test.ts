@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { authClient } from './authClient.test-helper'
+import { checkSession } from './checkSession'
 import { mutators } from './mutators'
 import { setWriteToken, write } from './write.powersync'
 
@@ -34,7 +36,7 @@ beforeEach(() => {
   sent = []
   answers = [reply(200, { data: null })]
   token.mockReset().mockResolvedValue({ token: 'token-a', userId: 'user-a' })
-  setWriteToken(token, 'user-a')
+  setWriteToken(token, 'user-a', async () => 'unreadable')
   vi.stubGlobal('fetch', (url: string, init: RequestInit) => {
     sent.push({ body: JSON.parse(String(init.body)), init, url })
     return (answers.length > 1 ? answers.shift()! : answers[0])()
@@ -220,5 +222,50 @@ describe('a refused token', () => {
 
     await expect(save()).rejects.toEqual({ body: { field: undefined, message: general } })
     expect(sent).toHaveLength(2)
+  })
+})
+
+describe('a refused token, over the stored session', () => {
+  const stored = { token: 'stale', userId: 'user-a' }
+  const gone = { code: 'session_not_found' }
+  const signedIn = (refresh: () => unknown) => {
+    const client = authClient(stored, refresh)
+    const read = async () => client.state.stored ?? undefined
+    setWriteToken(read, 'user-a', (refused) => checkSession(client.auth, { refused, userId: 'user-a' }))
+    return client.state
+  }
+  const tokens = () => sent.map(({ init }) => new Headers(init.headers).get('authorization'))
+
+  it('is renewed, and the write resent with the new one under the same id', async () => {
+    const state = signedIn(() => void (state.stored = { token: 'renewed', userId: 'user-a' }))
+    answers = [reply(401), reply(200, { data: { id: 7 } })]
+
+    expect(await write(mutators.favorites.set(favorite))).toMatchObject({ data: { id: 7 } })
+    expect(tokens()).toEqual(['Bearer stale', 'Bearer renewed'])
+    expect(sent[1].body.id).toBe(sent[0].body.id)
+  })
+
+  it('refused again is a failure, with one refresh in all', async () => {
+    const state = signedIn(() => void (state.stored = { token: 'renewed', userId: 'user-a' }))
+    answers = [reply(401)]
+
+    await expect(save()).rejects.toEqual(unreached)
+    expect([sent.length, state.refreshes]).toEqual([2, 1])
+  })
+
+  it('whose session is gone sends nothing more and is signed out', async () => {
+    const state = signedIn(() => gone)
+    answers = [reply(401), reply(200, { data: null })]
+
+    await expect(save()).rejects.toEqual(unreached)
+    expect([sent.length, state.stored]).toEqual([1, null])
+  })
+
+  it('stays signed in while the authentication service is down, and the write fails', async () => {
+    const state = signedIn(() => ({ status: 500 }))
+    answers = [reply(401)]
+
+    await expect(save()).rejects.toEqual(unreached)
+    expect(state.stored).toEqual(stored)
   })
 })

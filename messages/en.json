@@ -540,6 +540,8 @@
   "error_server_body": "This one’s on us, not you. Give it a moment and try again.",
   "error_server_title": "Something went wrong on our end",
   "error_serviceUnavailable": "Service temporarily unavailable",
+  "error_storeBlocked_body": "Switch to the other tab or close it. This tab then continues by itself.",
+  "error_storeBlocked_title": "Open in another tab",
   "error_storeCold_bodyFirstRun": "Connect once to download your guidebook. After that it stays available without a signal.",
   "error_storeCold_bodyRestore": "The copy on this device is gone. Connect once to download it again.",
   "error_storeCold_title": "Nothing downloaded yet",

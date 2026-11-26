@@ -194,6 +194,17 @@ export function shouldTightenPing(input: {
   return input.resumed && input.networkAnswered && input.connectionState === 'connected'
 }
 
+/** Takes the last report back: it was no evidence about the network. With no state known, the probe alone decides. */
+export function withdrawConnectionState(): void {
+  currentConnectionState = undefined
+  reported = undefined
+  if (timer != null) {
+    clearTimeout(timer)
+    timer = null
+  }
+  void probeReachability()
+}
+
 /** The half a replay runs too. `unconfirmed` is what stops a frozen state writing the flags true. */
 function applyConnectionState(name: ConnectionName): void {
   const verdict = connectionVerdict(name)
@@ -301,6 +312,11 @@ async function probeReachability(): Promise<void> {
     // client never reports at all. Any other state is a sync problem, which stays offline on purpose.
     if (currentConnectionState == null || provenByConnection()) {
       reachable = true
+    }
+    // A request answered beside a connection that says it is live outranks a stale offline event. PowerSync, unlike
+    // Zero, does not report the same connection again, so the missed `online` event would otherwise stand.
+    if (provenByConnection()) {
+      online = true
     }
 
     if (shouldTightenPing({ connectionState: currentConnectionState, networkAnswered: true, resumed })) {
