@@ -1,0 +1,14 @@
+schema: spec-driven
+created: 2026-11-26
+x-issue: 1180
+x-paths:
+  - vite.sync-engine.ts
+  - src/lib/entities/event/feed.svelte.ts
+  - src/lib/zero/source.svelte.ts
+  - src/lib/zero/source.powersync.svelte.ts
+  - src/lib/zero/source.powersync.svelte.test.ts
+  - src/lib/powersync/db.svelte.ts
+  - src/lib/powersync/db.svelte.test.ts
+  - src/lib/state/engine.powersync.ts
+  - src/lib/state/engine.powersync.svelte.test.ts
+  - CONTEXT.md
