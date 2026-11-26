@@ -19,6 +19,14 @@ const UNREADABLE = '__map_layers_unreadable_region__'
 /** `params` carries `LAYERS`, without which the pasted URL does not parse as a WMS request. */
 const STORED: MapLayer = { name: 'Contours', params: { LAYERS: 'contours' }, type: 'wms', url: 'https://ex.test/wms' }
 const SUBMITTED: MapLayer = { name: 'Aerial', params: { LAYERS: 'aerial' }, type: 'wms', url: 'https://ex.test/air' }
+const TEMPLATE: MapLayer = {
+  attributions: null,
+  minZoom: null,
+  name: 'Relief',
+  opacity: null,
+  type: 'template',
+  url: 'https://ex.test/export?bbox={bbox-epsg-3857}&renderingRule={"rasterFunction":"Hillshade"}',
+}
 
 let admin: ReturnType<typeof zeroClient>
 let outsider: ReturnType<typeof zeroClient>
@@ -122,6 +130,35 @@ describe.skipIf(!reachable)('updateRegionMapLayers staleness guard', () => {
       }),
     ).toBe('form_noPermission')
     expect(await storedLayers(regionId)).toEqual([STORED])
+  })
+
+  it('stores a bbox template layer as pasted, and lets the next save replace it', async () => {
+    expect(
+      await submit(admin, {
+        id: String(regionId),
+        known: mapLayersFingerprint([STORED]),
+        mapLayers: [toLayerForm(TEMPLATE)],
+      }),
+    ).toBe('saved')
+    expect(await storedLayers(regionId)).toEqual([TEMPLATE])
+
+    // Saving again proves the server reads the stored template whole, or it would refuse as unreadable.
+    expect(
+      await submit(admin, {
+        id: String(regionId),
+        known: mapLayersFingerprint([TEMPLATE]),
+        mapLayers: [toLayerForm(SUBMITTED)],
+      }),
+    ).toBe('saved')
+  })
+
+  it('refuses a stale save over a stored template layer, and writes nothing', async () => {
+    await sql`update public.regions set settings = ${sql.json(settingsWith([TEMPLATE]) as never)} where id = ${regionId}`
+
+    expect(await submit(admin, { id: String(regionId), known: mapLayersFingerprint([STORED]), mapLayers: [] })).toBe(
+      'region_mapLayersStale',
+    )
+    expect(await storedLayers(regionId)).toEqual([TEMPLATE])
   })
 
   it('refuses a blob it cannot read whole, rather than calling it stale', async () => {

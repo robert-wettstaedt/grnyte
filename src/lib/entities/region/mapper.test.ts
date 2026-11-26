@@ -128,7 +128,7 @@ describe('toRegionMembership', () => {
     // read as complete and was saved back short of it. Neither a count nor a fingerprint can see
     // this: they run on the parsed type. Detection has to happen AT the parse.
     const membership = toRegionMembership(
-      row({ name: 'Fontainebleau', settings: { mapLayers: [{ ...LAYER, maxZoom: 12 }] } }),
+      row({ name: 'Fontainebleau', settings: { mapLayers: [{ ...LAYER, tileSize: 512 }] } }),
     )
 
     expect(membership.layersComplete).toBe(false)

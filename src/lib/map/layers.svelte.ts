@@ -2,8 +2,7 @@ import type { IconName } from '$lib/components/Icon/icons'
 import type { BlockDetail } from '$lib/entities/block/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 import { buildGradeDonutSvg } from '$lib/entities/grade/donut'
-import type { UserRegion } from '$lib/entities/region/dto'
-import { mapLayerKey, mergeMapLayers } from '$lib/entities/region/settings'
+import { BBOX_PLACEHOLDER, mapLayerKey, type MapLayer } from '$lib/entities/region/settings'
 import Feature, { type FeatureLike } from 'ol/Feature.js'
 import Polyline from 'ol/format/Polyline'
 import { LineString, Polygon } from 'ol/geom'
@@ -13,11 +12,14 @@ import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer.js'
 import type BaseLayer from 'ol/layer/Base.js'
 import type OlMap from 'ol/Map.js'
 import { fromLonLat } from 'ol/proj.js'
+import { HALF_SIZE } from 'ol/proj/epsg3857.js'
 import { Vector as VectorSource } from 'ol/source.js'
+import ImageTile from 'ol/source/ImageTile.js'
 import TileWMS from 'ol/source/TileWMS.js'
 import { Fill, Stroke, Style, Text } from 'ol/style.js'
 import CircleStyle from 'ol/style/Circle'
 import Icon from 'ol/style/Icon'
+import { createXYZ } from 'ol/tilegrid.js'
 // APPROACH_COLOR is defined in `./tiles` and imported back, never the other way round. A constant
 // this module shares with a non-OpenLayers renderer must not live here: `ol` lists `proj.js` under
 // `sideEffects` in its package.json, so no bundler may drop it, and importing one string from this
@@ -40,6 +42,14 @@ export interface TierLook {
 
 export const AREA_TIER_LOOK: TierLook = { donut: 36, fill: 'rgba(248, 250, 252, 0.15)', stroke: '#1f2937' }
 export const SECTOR_TIER_LOOK: TierLook = { donut: 32, fill: 'rgba(255, 255, 255, 0.2)', stroke: '#313944' }
+
+export function bboxTileUrl(template: string, z: number, x: number, y: number): string {
+  const size = (2 * HALF_SIZE) / 2 ** z
+  const minX = -HALF_SIZE + x * size
+  const maxY = HALF_SIZE - y * size
+
+  return template.replaceAll(BBOX_PLACEHOLDER, `${minX},${maxY - size},${minX + size},${maxY}`)
+}
 
 export function buildBlockFeatures(
   geoBlocks: BlockDetail[],
@@ -250,29 +260,37 @@ export function createPathLayer(minZoom = BLOCK_ZOOM): VectorLayer {
   return layer
 }
 
+export function createRegionLayers(regionLayers: MapLayer[]): TileLayer[] {
+  return regionLayers.map((regionLayer) => {
+    // A grid that ends at `maxZoom` makes OL enlarge that zoom's tiles instead of requesting more.
+    const tileGrid = regionLayer.maxZoom == null ? undefined : createXYZ({ maxZoom: regionLayer.maxZoom })
+
+    return new TileLayer({
+      minZoom: regionLayer.minZoom ?? undefined,
+      opacity: regionLayer.opacity ?? undefined,
+      properties: { layerKey: mapLayerKey(regionLayer), layerName: regionLayer.name },
+      // No `attributions`: OL renders them as HTML and region admins write them (XSS).
+      source:
+        regionLayer.type === 'template'
+          ? new ImageTile({
+              loader: (z, x, y) => loadWithoutCors(bboxTileUrl(regionLayer.url, z, x, y)),
+              tileGrid,
+              transition: 0,
+            })
+          : new TileWMS({
+              params: regionLayer.params ?? {},
+              tileGrid,
+              transition: 0,
+              url: regionLayer.url,
+            }),
+    })
+  })
+}
+
 export function createTierLayer(minZoom: number | undefined, maxZoom: number): VectorLayer {
   const layer = new VectorLayer({ maxZoom, minZoom, source: new VectorSource() })
   layer.set('layerName', 'Markers')
   return layer
-}
-
-export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
-  return mergeMapLayers(userRegions.flatMap((region) => region.settings.mapLayers)).map(
-    (regionLayer) =>
-      new TileLayer({
-        minZoom: regionLayer.minZoom ?? undefined,
-        opacity: regionLayer.opacity ?? undefined,
-        properties: { layerKey: mapLayerKey(regionLayer), layerName: regionLayer.name },
-        // Deliberately NOT given `regionLayer.attributions`: OL renders them as HTML and a
-        // region admin writes them, so any caller asking a source what it is owed is an XSS.
-        // The credits sheet parses them through `./attribution` instead.
-        source: new TileWMS({
-          params: regionLayer.params ?? {},
-          transition: 0,
-          url: regionLayer.url,
-        }),
-      }),
-  )
 }
 
 /** The text inside a block's full-size marker, or undefined for the small dot of a block without routes. */
@@ -319,6 +337,17 @@ function layerIcon(key: string): IconName {
   if (key === OSM_LAYER_KEY) return 'map'
   if (key === MARKERS_LAYER_KEY) return 'map-pin'
   return 'layers'
+}
+
+/** `ImageTile`'s own loader always sets `crossOrigin`, so a service without CORS headers would draw
+ *  blank. `TileWMS` sends none either. */
+function loadWithoutCors(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.addEventListener('load', () => resolve(image))
+    image.addEventListener('error', () => reject(new Error(`tile failed: ${src}`)))
+    image.src = src
+  })
 }
 
 /** Parking marker: a filled blue square-parking badge (lucide geometry), built from an inline SVG. */

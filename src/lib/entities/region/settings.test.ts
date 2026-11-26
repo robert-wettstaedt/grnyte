@@ -1,11 +1,14 @@
+import { formError } from '$lib/forms/schemas'
 import { describe, expect, it } from 'vitest'
 import {
+  BBOX_PLACEHOLDER,
+  layerUrl,
   mapLayerKey,
   mapLayerSchema,
   mergeMapLayers,
+  readRegionSettings,
   regionSettingsSchema,
   toLayerForm,
-  wmsUrl,
   type MapLayer,
 } from './settings'
 import { DEFAULT_TAGS } from './tagVocabulary'
@@ -18,6 +21,18 @@ const FULL: MapLayer = {
   params: { FORMAT: 'image/png', LAYERS: 'topo' },
   type: 'wms',
   url: 'https://wms.example.com/service',
+}
+
+const TEMPLATE_URL =
+  'https://gis.example.com/arcgis/rest/services/Relief/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&f=image'
+
+const TEMPLATE: MapLayer = {
+  attributions: ['Relief: State Office'],
+  minZoom: 14,
+  name: 'Relief',
+  opacity: 0.7,
+  type: 'template',
+  url: TEMPLATE_URL,
 }
 
 const BARE: MapLayer = {
@@ -35,6 +50,13 @@ describe('mapLayerSchema', () => {
     // The round-trip is the point: it covers the null handling, the attribution lines and the
     // `type` literal, none of which the url helpers on their own can be wrong about.
     expect(mapLayerSchema.parse(toLayerForm(FULL))).toEqual(FULL)
+  })
+
+  it('seeds the form with a stored template address exactly as it was pasted', () => {
+    // ArcGIS image services take JSON in the query, which `URL` would percent-encode.
+    const url = `https://gis.example.com/ImageServer/exportImage?bbox=${BBOX_PLACEHOLDER}&renderingRule={"rasterFunction":"Hillshade"}`
+
+    expect(toLayerForm({ ...TEMPLATE, url }).url).toBe(url)
   })
 
   it('round-trips a layer with every optional field absent', () => {
@@ -57,6 +79,24 @@ describe('mapLayerSchema', () => {
     const result = mapLayerSchema.safeParse({ ...toLayerForm(BARE), url: 'not a url' })
     expect(result.success).toBe(false)
     expect(result.error?.issues.map((issue) => issue.path)).toEqual([['url']])
+    // The message names both accepted forms, so it carries the placeholder to show.
+    expect(result.error?.issues[0].message).toBe(formError('form_wmsUrlInvalid', { placeholder: BBOX_PLACEHOLDER }))
+  })
+
+  it('stores an address carrying the bbox placeholder as a template, exactly as pasted', () => {
+    expect(mapLayerSchema.parse({ ...toLayerForm(BARE), url: TEMPLATE_URL })).toEqual({
+      ...BARE,
+      params: undefined,
+      type: 'template',
+      url: TEMPLATE_URL,
+    })
+  })
+
+  it('round-trips a maximum zoom, past which the map enlarges the last tiles', () => {
+    const capped: MapLayer = { ...TEMPLATE, maxZoom: 15 }
+
+    expect(mapLayerSchema.parse(toLayerForm(capped))).toEqual(capped)
+    expect(mapLayerSchema.safeParse({ ...toLayerForm(capped), maxZoom: '29' }).success).toBe(false)
   })
 
   it('rejects a zoom outside the range the map can render', () => {
@@ -68,10 +108,11 @@ describe('mapLayerSchema', () => {
   })
 })
 
-describe('wmsUrl', () => {
+describe('layerUrl', () => {
   it('splits the query string off into params', () => {
-    expect(wmsUrl.parse('https://wms.example.com/service?LAYERS=topo&FORMAT=image/png')).toEqual({
+    expect(layerUrl.parse('https://wms.example.com/service?LAYERS=topo&FORMAT=image/png')).toEqual({
       params: { FORMAT: 'image/png', LAYERS: 'topo' },
+      type: 'wms',
       url: 'https://wms.example.com/service',
     })
   })
@@ -79,20 +120,60 @@ describe('wmsUrl', () => {
   it('uppercases parameter names, which the spec allows and OpenLayers requires', () => {
     // OpenLayers reads params.VERSION and params.LAYERS verbatim and merges the rest over its own
     // uppercase defaults, so a lowercase `format` would be sent as a second, ignored parameter.
-    expect(wmsUrl.parse('https://wms.example.com/service?layers=topo&version=1.1.1')).toEqual({
+    expect(layerUrl.parse('https://wms.example.com/service?layers=topo&version=1.1.1')).toEqual({
       params: { LAYERS: 'topo', VERSION: '1.1.1' },
+      type: 'wms',
       url: 'https://wms.example.com/service',
     })
   })
 
   it('rejects a url that names no layer', () => {
-    expect(wmsUrl.safeParse('https://wms.example.com/service?FORMAT=image/png').success).toBe(false)
+    expect(layerUrl.safeParse('https://wms.example.com/service?FORMAT=image/png').success).toBe(false)
+  })
+
+  it('trims a template pasted with surrounding whitespace, so the same service keys the same', () => {
+    expect(layerUrl.parse(` ${TEMPLATE_URL}\n`)).toEqual({ type: 'template', url: TEMPLATE_URL })
+  })
+
+  it('refuses the bbox placeholder over plain http', () => {
+    expect(layerUrl.safeParse(TEMPLATE_URL.replace('https:', 'http:')).success).toBe(false)
   })
 
   it('rejects anything that is not an absolute http(s) url', () => {
-    expect(wmsUrl.safeParse('wms.example.com/service?LAYERS=topo').success).toBe(false)
-    expect(wmsUrl.safeParse('ftp://wms.example.com/service?LAYERS=topo').success).toBe(false)
-    expect(wmsUrl.safeParse('').success).toBe(false)
+    expect(layerUrl.safeParse('wms.example.com/service?LAYERS=topo').success).toBe(false)
+    expect(layerUrl.safeParse('ftp://wms.example.com/service?LAYERS=topo').success).toBe(false)
+    expect(layerUrl.safeParse('').success).toBe(false)
+  })
+})
+
+describe('readRegionSettings', () => {
+  it('drops a stored maximum zoom the map cannot build a grid for, rather than throwing on the map', () => {
+    const stored = readRegionSettings({
+      mapLayers: [FULL, { ...TEMPLATE, maxZoom: 15.5 }, { ...TEMPLATE, maxZoom: 1e10 }],
+    })
+
+    expect(stored.settings.mapLayers).toEqual([FULL])
+    expect(stored.layersComplete).toBe(false)
+  })
+
+  it('keeps a stored maximum zoom from 0 to 28 and drops one just outside', () => {
+    const capped = [0, 28, -1, 29].map((maxZoom) => ({ ...TEMPLATE, maxZoom, name: String(maxZoom) }))
+
+    expect(readRegionSettings({ mapLayers: capped }).settings.mapLayers.map((layer) => layer.name)).toEqual(['0', '28'])
+  })
+
+  it('reads a stored maximum zoom and lets the editor write it back', () => {
+    const stored = readRegionSettings({ mapLayers: [{ ...TEMPLATE, maxZoom: 15 }] })
+
+    expect(stored.settings.mapLayers).toEqual([{ ...TEMPLATE, maxZoom: 15 }])
+    expect(stored.layersComplete).toBe(true)
+  })
+
+  it('reads a stored bbox template layer whole, beside a wms one, and lets the editor write both back', () => {
+    const stored = readRegionSettings({ mapLayers: [FULL, TEMPLATE] })
+
+    expect(stored.settings.mapLayers).toEqual([FULL, TEMPLATE])
+    expect(stored.layersComplete).toBe(true)
   })
 })
 
@@ -201,6 +282,28 @@ describe('mergeMapLayers', () => {
       'Relief',
       'Topographic / Topo map',
     ])
+  })
+
+  it('draws a template two regions both store once, still as a template', () => {
+    const merged = mergeMapLayers([TEMPLATE, { ...TEMPLATE, name: 'Schummerung' }])
+
+    expect(merged).toHaveLength(1)
+    expect(merged[0]).toMatchObject({ type: 'template', url: TEMPLATE_URL })
+  })
+
+  it('keeps two different template addresses apart', () => {
+    expect(mergeMapLayers([TEMPLATE, { ...TEMPLATE, url: `${TEMPLATE_URL}&layers=show:1` }])).toHaveLength(2)
+  })
+
+  it('takes the lowest zoom cap any region set, since a cap only hides a service placeholder', () => {
+    expect(
+      mergeMapLayers([
+        { ...TEMPLATE, maxZoom: 16 },
+        { ...TEMPLATE, maxZoom: 15 },
+      ])[0].maxZoom,
+    ).toBe(15)
+    expect(mergeMapLayers([TEMPLATE, { ...TEMPLATE, maxZoom: 15 }])[0].maxZoom).toBe(15)
+    expect(mergeMapLayers([TEMPLATE, TEMPLATE])[0].maxZoom).toBeUndefined()
   })
 
   it('leaves a layer only one region has untouched', () => {

@@ -3,7 +3,7 @@
  * screen's default state is destructive, so the guard has to be about content rather than gates.
  * A count was the first attempt: delete one layer, add another, and three is still three.
  */
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 import { mapLayersFingerprint, readRegionSettings } from './settings'
 import type { MapLayer } from './settings'
 
@@ -79,8 +79,16 @@ describe('mapLayersFingerprint', () => {
     expect(stored.settings.mapLayers).not.toBe(blob.mapLayers)
     expect(stored.settings.mapLayers[0]).not.toBe(blob.mapLayers[0])
     // The nested containers too, cloned today only because zod builds fresh ones.
-    expect(stored.settings.mapLayers[0].params).not.toBe(blob.mapLayers[0].params)
-    expect(stored.settings.mapLayers[0].attributions).not.toBe(blob.mapLayers[0].attributions)
+    const [first] = stored.settings.mapLayers
+    assert(first.type === 'wms')
+    expect(first.params).not.toBe(blob.mapLayers[0].params)
+    expect(first.attributions).not.toBe(blob.mapLayers[0].attributions)
+  })
+
+  it('tells a set maximum zoom apart, without changing the fingerprint of a layer that has none', () => {
+    // Unset leaves the bytes as before the field existed, so a tab loaded earlier still matches.
+    expect(mapLayersFingerprint([layer('a', { maxZoom: 15 })])).not.toBe(mapLayersFingerprint([layer('a')]))
+    expect(mapLayersFingerprint([layer('a', { maxZoom: null })])).toBe(mapLayersFingerprint([layer('a')]))
   })
 
   it('sorts params by code unit, not by collation', () => {

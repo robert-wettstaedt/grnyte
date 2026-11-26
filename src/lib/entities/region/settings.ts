@@ -4,27 +4,31 @@ import * as z from '$lib/forms/zod'
 import { DEFAULT_TAGS } from './tagVocabulary'
 
 /**
- * A WMS overlay as stored: a bare endpoint plus the parameters that select the layer.
+ * An overlay as stored: a WMS endpoint plus the parameters that select the layer, or a `template`
+ * address whose `{bbox-epsg-3857}` the map fills per tile (MapLibre reads that form as is).
  *
  * Two schemas over one shape: a loose parse decides what the map draws (an unknown key is dropped
  * and the layer still shows), a strict one decides only whether the editor may write it back.
  */
-const mapLayerShape = {
+const sharedShape = {
   attributions: z.nullish(z.array(z.string())),
+  // Past it the map enlarges the last tiles: some services return a placeholder beyond their data.
+  // Whole and in range, or OL's grid throws building the map; a bad value drops just this layer.
+  maxZoom: z.nullish(z.int().check(z.gte(0), z.lte(28))),
   minZoom: z.nullish(z.number()),
   name: z.string(),
   opacity: z.nullish(z.number()),
-  params: z.nullish(z.record(z.string(), z.string())),
-  type: z.literal('wms'),
   url: z.string(),
 }
+const wmsShape = { ...sharedShape, params: z.nullish(z.record(z.string(), z.string())), type: z.literal('wms') }
+const templateShape = { ...sharedShape, type: z.literal('template') }
 
 /** Reading, which is deliberately forgiving: an unknown key is dropped and the layer still draws. */
-const storedMapLayerSchema = z.object(mapLayerShape)
+const storedMapLayerSchema = z.discriminatedUnion('type', [z.object(wmsShape), z.object(templateShape)])
 
 /** The same shape, but rejecting a layer carrying anything else. Only ever used to answer whether
  *  a layer can be written BACK, never to decide what the map draws. */
-const exactMapLayerSchema = z.strictObject(mapLayerShape)
+const exactMapLayerSchema = z.discriminatedUnion('type', [z.strictObject(wmsShape), z.strictObject(templateShape)])
 
 /**
  * A region's `settings` jsonb blob. The column is untyped at the database, so this is parsed where
@@ -65,10 +69,7 @@ export function emptyRegionSettings(): RegionSettings {
  * carries none of that function's forever-compatibility duty.
  */
 export function mapLayerKey(layer: MapLayer): string {
-  // Plain comparison, not `localeCompare`, for the reason `fingerprint` gives.
-  const params = Object.entries(layer.params ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-
-  return JSON.stringify([layer.url, params])
+  return JSON.stringify([layer.url, sortedParams(layer) ?? []])
 }
 
 /** A fingerprint of the layers a form loaded, so a save proves what it replaces. A count cannot:
@@ -82,8 +83,9 @@ export function mapLayersFingerprint(layers: MapLayer[]): string {
       layer.attributions ?? null,
       layer.minZoom ?? null,
       layer.opacity ?? null,
-      // Plain comparison, not `localeCompare`, for the reason `fingerprint` gives.
-      layer.params == null ? null : Object.entries(layer.params).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+      sortedParams(layer),
+      // Only when set, so every fingerprint from before this field existed stays the same.
+      ...(layer.maxZoom == null ? [] : [layer.maxZoom]),
     ]),
   )
 
@@ -94,9 +96,9 @@ export function mapLayersFingerprint(layers: MapLayer[]): string {
  * Layers from every region the user belongs to, with an overlay stored in more than one region
  * collapsed into one. Drawing it twice means double the tile requests and a compounded opacity.
  *
- * Merged most-permissive, so nobody loses visibility they had in a region on its own. Order is
- * each group's FIRST occurrence: a member of two regions then sees the earlier region's stacking
- * unchanged.
+ * Merged most-permissive, so nobody loses visibility they had in a region on its own, except the
+ * zoom cap, which takes the strictest (see `mergedCap`). Order is each group's FIRST occurrence: a
+ * member of two regions then sees the earlier region's stacking unchanged.
  */
 export function mergeMapLayers(layers: MapLayer[]): MapLayer[] {
   const groups = new Map<string, MapLayer[]>()
@@ -164,6 +166,14 @@ export function unknownRegionSettings(): RegionSettings {
   return { mapLayers: [], tags: [] }
 }
 
+/** A WMS layer's params in key order, or null when it has none (templates never do). Plain
+ *  comparison, not `localeCompare`, for the reason `fingerprint` gives. */
+function sortedParams(layer: MapLayer): [string, string][] | null {
+  const params = layer.type === 'wms' ? layer.params : null
+
+  return params == null ? null : Object.entries(params).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+}
+
 /**
  * Split a pasted request URL into the bare endpoint and its parameters. Null unless it is an
  * absolute http(s) URL carrying `LAYERS`.
@@ -203,24 +213,54 @@ const formatWmsUrl = (params: Record<string, string>, url: string): string => {
   return parsed.toString()
 }
 
+export const BBOX_PLACEHOLDER = '{bbox-epsg-3857}'
+
+function parseLayerUrl(input: string) {
+  if (input.includes(BBOX_PLACEHOLDER)) {
+    // Verbatim, never through `URL`, which would percent-encode the braces and any JSON.
+    return input.startsWith('https://') ? { type: 'template' as const, url: input } : null
+  }
+
+  const wms = parseWmsUrl(input)
+
+  return wms == null ? null : { ...wms, type: 'wms' as const }
+}
+
 /** How a pasted URL and a stored endpoint convert into each other. Validating and splitting are
  *  one parse, so an unchecked string cannot reach the conversion. */
-export const wmsUrl = z.codec(
+export const layerUrl = z.codec(
   z.string({ error: formError('form_required') }),
-  z.object({ params: z.record(z.string(), z.string()), url: z.string() }),
+  z.discriminatedUnion('type', [
+    z.object({ params: z.record(z.string(), z.string()), type: z.literal('wms'), url: z.string() }),
+    z.object({ type: z.literal('template'), url: z.string() }),
+  ]),
   {
     decode: (value, payload) => {
-      const parsed = parseWmsUrl(value)
+      // Trimmed: a pasted newline would make the same service key as a second overlay.
+      const parsed = parseLayerUrl(value.trim())
 
       if (parsed == null) {
-        payload.issues.push({ code: 'custom', input: value, message: formError('form_wmsUrlInvalid') })
+        payload.issues.push({
+          code: 'custom',
+          input: value,
+          message: formError('form_wmsUrlInvalid', { placeholder: BBOX_PLACEHOLDER }),
+        })
         return z.NEVER
       }
 
       return parsed
     },
-    encode: ({ params, url }) => formatWmsUrl(params, url),
+    encode: (layer) => (layer.type === 'template' ? layer.url : formatWmsUrl(layer.params, layer.url)),
   },
+)
+
+const zoomField = z.pipe(
+  stringToIntOptional,
+  z.optional(
+    z
+      .int()
+      .check(z.gte(0, { error: formError('form_numInvalid') }), z.lte(28, { error: formError('form_numInvalid') })),
+  ),
 )
 
 /** One layer as the settings form submits it. Edited as a single pasted URL because remote-form
@@ -229,14 +269,8 @@ export const mapLayerSchema = z.pipe(
   z.object({
     // One credit per line, rather than a repeatable field inside a repeatable field.
     attributions: z.optional(z.string()),
-    minZoom: z.pipe(
-      stringToIntOptional,
-      z.optional(
-        z
-          .int()
-          .check(z.gte(0, { error: formError('form_numInvalid') }), z.lte(28, { error: formError('form_numInvalid') })),
-      ),
-    ),
+    maxZoom: zoomField,
+    minZoom: zoomField,
     name: nameSchema,
     opacity: z.pipe(
       stringToNumberOptional,
@@ -246,9 +280,9 @@ export const mapLayerSchema = z.pipe(
           .check(z.gte(0, { error: formError('form_numInvalid') }), z.lte(1, { error: formError('form_numInvalid') })),
       ),
     ),
-    url: wmsUrl,
+    url: layerUrl,
   }),
-  z.transform(({ attributions, minZoom, name, opacity, url }): MapLayer => {
+  z.transform(({ attributions, maxZoom, minZoom, name, opacity, url }): MapLayer => {
     const credits = (attributions ?? '')
       .split('\n')
       .map((line) => line.trim())
@@ -256,12 +290,12 @@ export const mapLayerSchema = z.pipe(
 
     return {
       attributions: credits.length === 0 ? null : credits,
+      // Absent rather than null, so a layer without a cap stays readable by older tabs' strict parse.
+      ...(maxZoom == null ? {} : { maxZoom }),
       minZoom: minZoom ?? null,
       name,
       opacity: opacity ?? null,
-      params: url.params,
-      type: 'wms',
-      url: url.url,
+      ...url,
     }
   }),
 )
@@ -271,10 +305,11 @@ export const mapLayerSchema = z.pipe(
 export function toLayerForm(layer: MapLayer): z.input<typeof mapLayerSchema> {
   return {
     attributions: layer.attributions?.join('\n') ?? '',
+    maxZoom: layer.maxZoom == null ? '' : String(layer.maxZoom),
     minZoom: layer.minZoom == null ? '' : String(layer.minZoom),
     name: layer.name,
     opacity: layer.opacity == null ? '' : String(layer.opacity),
-    url: formatWmsUrl(layer.params ?? {}, layer.url),
+    url: layer.type === 'template' ? layer.url : formatWmsUrl(layer.params ?? {}, layer.url),
   }
 }
 
@@ -292,6 +327,14 @@ function mergedBound(values: (null | number | undefined)[], pick: (...numbers: n
   const set = values.filter((value) => value != null)
 
   return set.length === values.length ? pick(...set) : null
+}
+
+/** The lowest cap any region set: a cap hides only a service's placeholder, never data, so the
+ *  strictest one costs sharpness at worst. Absent when none did, like an uncapped stored layer. */
+function mergedCap(group: MapLayer[]): { maxZoom?: number } {
+  const caps = group.flatMap((layer) => (layer.maxZoom == null ? [] : [layer.maxZoom]))
+
+  return caps.length === 0 ? {} : { maxZoom: Math.min(...caps) }
 }
 
 /** Compared trimmed and case-insensitively, because admins type these by hand and a stray capital
@@ -320,7 +363,9 @@ function mergeLayerGroup(group: MapLayer[]): MapLayer {
   }
 
   return {
+    ...first,
     attributions: mergedAttributions(group),
+    ...mergedCap(group),
     minZoom: mergedBound(
       group.map((layer) => layer.minZoom),
       Math.min,
@@ -330,8 +375,5 @@ function mergeLayerGroup(group: MapLayer[]): MapLayer {
       group.map((layer) => layer.opacity),
       Math.max,
     ),
-    params: first.params,
-    type: 'wms',
-    url: first.url,
   }
 }

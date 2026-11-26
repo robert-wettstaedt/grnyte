@@ -49,9 +49,8 @@ export function createBaseMap(node: HTMLElement, options: BaseMapOptions = {}): 
   let hasSize = $state(false)
 
   const map = new OlMap({
-    // No OL controls: zoom, geolocation, layers and attribution are Svelte buttons in the callers.
-    // `attribution: false` is the second lock against admin-written credits reaching OL's innerHTML
-    // (`createWmsLayers` no longer passes them). The callers render the credits themselves.
+    // No OL controls: the callers draw zoom, geolocation, layers and credits themselves.
+    // `attribution: false` also keeps admin-written credits out of OL's innerHTML.
     controls: defaultControls({ attribution: false, rotate: false, zoom: false }),
     interactions: interactive ? defaultInteractions() : [],
     layers: [
