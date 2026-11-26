@@ -473,5 +473,10 @@ function zeroOptions(session: null | Session | undefined, storageKey?: string) {
     // appear here. It also changes the IndexedDB key for logged-out clients, so they get one cold
     // replica on the way past.
     userID: session?.user.id,
+    // A worktree app on another localhost port answers the shared dev zero-cache (allowlisted as localhost:*).
+    // :3000 and other hosts send nothing: zero-perf and Tailscale allow only their own default URL.
+    ...(dev && location.hostname === 'localhost' && location.port !== '3000'
+      ? { mutateURL: `${location.origin}/api/zero/mutate`, queryURL: `${location.origin}/api/zero/get-queries` }
+      : {}),
   }
 }
