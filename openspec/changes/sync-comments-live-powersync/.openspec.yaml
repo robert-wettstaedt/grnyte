@@ -1,0 +1,23 @@
+schema: spec-driven
+created: 2026-11-26
+x-issue: 1182
+x-paths:
+  - src/lib/state/engine.powersync.ts
+  - src/lib/components/Reactions/toggle.svelte.ts
+  - src/lib/components/Reactions/toggle.svelte.test.ts
+  - src/lib/components/Reactions/Reactions.svelte
+  - src/lib/components/Reactions/CommentReactions.svelte
+  - src/lib/entities/reaction/mapper.ts
+  - src/lib/entities/reaction/mapper.test.ts
+  - src/lib/entities/report/resources.powersync.svelte.ts
+  - src/lib/powersync/twins.ts
+  - src/lib/powersync/parity.test.ts
+  - src/lib/powersync/collections.ts
+  - src/lib/powersync/collections.test.ts
+  - src/lib/entities/report/dto.ts
+  - src/lib/entities/report/ReportButton.svelte
+  - src/lib/entities/report/ReportRow.svelte
+  - src/lib/components/Reactions/Comments.svelte
+  - src/lib/components/Reactions/Comments.svelte.test.ts
+  - src/lib/components/Media/MediaViewer.svelte
+  - CONTEXT.md

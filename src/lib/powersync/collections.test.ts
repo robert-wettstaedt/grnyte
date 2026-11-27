@@ -15,10 +15,29 @@ vi.mock('@powersync/web', async (original) => ({
   },
 }))
 const opened = vi.hoisted(() => [] as { database: { options: { database: { dbFilename: string } } }; table: unknown }[])
+// What each table was asked to load and to let go of, as PowerSync's on-demand sync receives it.
+const asked = vi.hoisted(() => [] as { where?: unknown }[])
+const released = vi.hoisted(() => [] as unknown[])
 vi.mock('@tanstack/powersync-db-collection', () => ({
   powerSyncCollectionOptions: (options: (typeof opened)[number]) => {
     opened.push(options)
-    return { getKey: (row: { id: string }) => row.id, id: String(opened.length), sync: { sync: () => {} } }
+    return {
+      getKey: (row: { id: string }) => row.id,
+      id: String(opened.length),
+      sync: {
+        sync: ({ markReady }: { markReady: () => void }) => {
+          markReady()
+          return {
+            loadSubset: (subset: { where?: unknown }) => {
+              asked.push(subset)
+              return Promise.resolve()
+            },
+            unloadSubset: (subset: unknown) => void released.push(subset),
+          }
+        },
+      },
+      syncMode: 'on-demand' as const,
+    }
   },
 }))
 
@@ -29,6 +48,8 @@ describe('collections', () => {
   beforeEach(() => {
     vi.resetModules()
     opened.length = 0
+    asked.length = 0
+    released.length = 0
   })
 
   it('opens every synced table on the signed-in account file, once', async () => {
@@ -60,5 +81,37 @@ describe('collections', () => {
     expect(new Set(opened.map((options) => options.database.options.database.dbFilename))).toEqual(
       new Set(['grnyte-b.sqlite']),
     )
+  })
+
+  // The sync merges what its readers ask for with `or()`, and a reader with no filter compiles to NULL there:
+  // two of them, or one beside a filtered reader, would load nothing or only the filtered rows.
+  it('asks a table for its rows with a filter that holds, for every reader with none', async () => {
+    const { initPowerSync } = await import('./db.svelte')
+    const { collections } = await import('./collections')
+    const { createLiveQueryCollection } = await import('@tanstack/db')
+
+    initPowerSync(session('a'), async () => 'token', settings)
+    const table = collections().content_reports
+    const reads = [0, 1].map(() => createLiveQueryCollection({ query: (q) => q.from({ r: table }), startSync: true }))
+    await Promise.all(reads.map((read) => read.preload()))
+
+    expect(asked.length).toBe(2)
+    expect(asked.map((subset) => subset.where)).not.toContain(undefined)
+  })
+
+  it('lets go of the same subset it asked for', async () => {
+    const { initPowerSync } = await import('./db.svelte')
+    const { collections } = await import('./collections')
+    const { createLiveQueryCollection } = await import('@tanstack/db')
+
+    initPowerSync(session('a'), async () => 'token', settings)
+    const read = createLiveQueryCollection({
+      query: (q) => q.from({ r: collections().content_reports }),
+      startSync: true,
+    })
+    await read.preload()
+    await read.cleanup()
+
+    expect(released).toEqual(asked)
   })
 })

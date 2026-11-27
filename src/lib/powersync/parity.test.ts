@@ -444,4 +444,33 @@ describe('toZeroRow', () => {
     expect(block.topoImages).toEqual([{ height: 800, id: 9, path: 't/1', width: 600 }])
     expect(map.blocks(block)).toEqual({ context: ['Region 18', 'Sector'], id: 40, label: 'Block 3', type: 'blocks' })
   })
+
+  it("reads an open report with the kind and text id the report buttons match on, as Zero's row has them", () => {
+    const synced = {
+      author_fk: 4,
+      created_at: '2026-11-07T10:00:00.123456Z',
+      ground: 'spam',
+      id: '12',
+      nid: 12,
+      note: null,
+      object_id: '77',
+      object_name: null,
+      object_type: 'comment',
+      region_fk: 18,
+      reporter_fk: 3,
+    }
+
+    expect(toZeroRow('content_reports', synced)).toEqual({
+      authorFk: 4,
+      createdAt: 1794045600123,
+      ground: 'spam',
+      id: 12,
+      note: null,
+      objectId: '77',
+      objectName: null,
+      objectType: 'comment',
+      regionFk: 18,
+      reporterFk: 3,
+    })
+  })
 })

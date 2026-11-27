@@ -20,6 +20,7 @@
   import { canModerate } from '$lib/entities/moderation/permissions'
   import type { CommentListItem } from '$lib/entities/reaction/dto'
   import { deleteComment, restoreComment } from '$lib/entities/reaction/writes'
+  import { reportClaim } from '$lib/entities/report/dto'
   import { reportFormHref } from '$lib/entities/report/href'
   import { canReport } from '$lib/entities/report/permissions'
   import { myReportedIds } from '$lib/entities/report/resources.svelte'
@@ -234,14 +235,16 @@
             <Icon name="trash" size={14} />
           </button>
         {:else if !comment.mine && reportable(comment)}
-          {@const done = reported.data?.includes(String(comment.id)) === true}
+          {@const claim = reportClaim(reported.data?.includes(String(comment.id)) === true, reported.phase)}
+          <!-- Held in place, unsaid, until the reader's reports answer: "Report…" would claim none. -->
           <button
             type="button"
             class="text-surface-600-400 hover:text-surface-950-50 flex h-9 min-w-9 items-center justify-center px-2 text-xs"
-            aria-label={done ? m.reports_reported() : m.reports_entry()}
+            style:visibility={claim == null ? 'hidden' : undefined}
+            aria-label={claim === 'reported' ? m.reports_reported() : m.reports_entry()}
             onclick={() => push(reportFormHref('comment', comment.id))}
           >
-            <Icon name="flag" fill={done ? 'currentColor' : 'none'} size={14} />
+            <Icon name="flag" fill={claim === 'reported' ? 'currentColor' : 'none'} size={14} />
           </button>
         {:else if comment.mine}
           <button

@@ -23,7 +23,10 @@
   let picking = $state(false)
 
   /** One in flight at a time, per comment: one row per person per target. See `createReactionToggle`. */
-  const reaction = createReactionToggle(() => ({ commentId: comment.id, eventId }))
+  const reaction = createReactionToggle(
+    () => ({ commentId: comment.id, eventId }),
+    () => comment.reactions,
+  )
 
   /**
    * Send one, and close the quick row on the way: both paths go through here, chips included. A
@@ -40,7 +43,7 @@
      in a box of their own: they belong to the same line of controls as Reply and Delete, and a
      wrapper here would put them on a row by themselves. -->
 <div class="contents">
-  {#each comment.reactions as chip (chip.emoji)}
+  {#each reaction.chips as chip (chip.emoji)}
     <ReactionChip {chip} disabled={reaction.busy} ontoggle={() => pick(chip.emoji)} readonly={comment.mine} />
   {/each}
 

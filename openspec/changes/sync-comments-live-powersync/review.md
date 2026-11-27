@@ -1,0 +1,87 @@
+# Plan review
+
+Status: clean
+
+## Rounds
+
+### Round 1, snapshot `7fd9378974c248eca802e22d8e244c17d40bd27b`
+
+Reader, what this proposes: in the PowerSync build three gaps in comments close. An own emoji shows on the chip at once through an overlay in the shared `createReactionToggle`, held until the read agrees; in the Zero build it changes nothing. A move of the region's events marker also refetches open threads (`listComments`). The report buttons and form read the caller's open reports from the synced `content_reports` rows through a new PowerSync twin. No schema, stream, mutator or remote change.
+
+Reader, how the existing system works per this plan: in the PowerSync build `reaction` has no twin, so threads and event reads are server reads, refetched after an own write, on return, back online, and since 1180 on a move of `region_counters` (`listEvents` only). A comment that becomes or stops being live changes `events.comment_count`, which moves the marker; emoji and comment edits do not. Emoji flip at once only in the Zero build, through the mutator's client body. The report reads go to the app server although `content_reports` already syncs to the device.
+
+Grounding claim table: every claim about existing code holds, except "Zero's local flip lands in the same tick" (unverifiable, immaterial; removed in the D2 rewrite) and "1181 also edits `engine.powersync.ts`" (another branch).
+
+Ruling: 3 major fixed, 3 apply-note folded into tasks, 1 apply-note obsolete, 1 decision.
+
+### Round 2, snapshot `715510e3beb3294d6bec05407a97cf027f757d1a`
+
+Reader, what this proposes: in the PowerSync build an own emoji on a card or comment shows at once through `createReactionToggle(target, read)`, which keeps a `wanted` emoji and exposes `chips` derived through `withOwnEmoji`; an effect drops `wanted` once no toggle is out and the read agrees, a refusal drops it too; the same code is a no-op in the Zero build. A move of the region's events marker also refetches open threads. The report buttons and form read the caller's open reports from the synced rows through a twin. No schema, stream, mutator or remote change; a refused emoji still shows no toast.
+
+Reader, how the existing system works per this plan: in the PowerSync build threads and cards are server reads, refetched after an own write, on return, back online and on a `region_counters` move (`listEvents` only). A comment going live or not changes `events.comment_count`, which moves the marker; emoji and edits do not. Only the Zero mutator's client body flips an emoji at once; the PowerSync `write()` posts, then refreshes every read. The report reads go to the app server although the device holds the rows.
+
+Grounding: P1 to P7 confirmed; every claim in the diff holds.
+
+Ruling: 1 blocker fixed, 1 major fixed, 1 apply-note fixed.
+
+### Round 3, snapshot `4a362207c8a4503325d4356d87220fbec77342af`
+
+Reader, what this proposes: in the PowerSync build the reader's own emoji shows at once; `createReactionToggle(target, read)` keeps a `wanted` emoji computed from the chips on screen, then set from the server's true/false answer, shown through `withOwnEmoji` until the read agrees and dropped on a refusal; in the Zero build nothing changes. A move of the events marker also refetches open threads. The report buttons and form read own open reports from the synced rows through a twin. No schema, stream, mutator or remote change.
+
+Reader, how the existing system works per this plan: threads and cards are server reads in the PowerSync build, refetched after an own write, on return, back online and (`listEvents` only) on a `region_counters` move. A comment going live or not moves the marker through `events.comment_count`; emoji and edits do not. Only the Zero mutator's client body flips an emoji at once; the PowerSync `write()` posts, refreshes every read and returns the server's answer; the server toggles from the stored row. Report reads go to the app server although the device holds the rows.
+
+Grounding: P9 and P11 confirmed (both `write()` builds hand back the server's boolean); P10 reopened as P12.
+
+Ruling: 1 blocker fixed (raised by both), 1 apply-note fixed. Round cap (3) reached; the fixes after round 3 are two prose lines, not re-reviewed.
+
+### After round 3: user-approved subtraction
+
+The user approved (2026-11-27) removing the `reactions.toggle` client body in favour of D2's overlay in both builds (task group 0, D2, proposal), and running a 4th round over it together with P12 and P13.
+
+### Round 4, snapshot `96c83185fe047882cecad56a1a93565f4a6fcceb`
+
+Reader, what this proposes: in both builds the reader's own emoji shows at once through one mechanism, `createReactionToggle(target, read)` keeping a `wanted` emoji from the chips on screen, then set from the server's answer, rendered through `withOwnEmoji` until the read agrees and dropped on a refusal; task group 0 makes the `reactions.toggle` client body `waitForServer`, removing the stand-in row, and stops sending `userId`. In the PowerSync build a marker move also refetches open threads; the report reads come from synced `content_reports` through a twin. No schema, stream, remote or mutator-name change.
+
+Reader, how the existing system works per this plan: threads and cards are server reads in the PowerSync build, refetched after an own write, on return, back online and (`listEvents` only) on a `region_counters` move. A comment going live or not moves the marker through `events.comment_count`; emoji and edits do not. Only the Zero client body flips an emoji at once, by upserting a stand-in row; the PowerSync `write()` posts, refetches every read and returns the server's boolean; the server toggles from its stored row. Report reads go to the app server although the device holds the rows.
+
+Grounding: P12 and P13 confirmed; every claim on task group 0 holds (deploy skew safe: name and args unchanged, server ignores `userId`; nothing else reads the stand-in rows).
+
+Ruling: convergence stop. The one finding above apply-note (P14, major, on round 3's edit) is a record line, written as an apply note under task 4.1 with its severity kept; P15 fixed. Review clean.
+
+## Findings
+
+| #   | raised by                              | file:line                           | severity   | claim                                                                                                                                                                                         | status     | reason/evidence                                                                                                                                                           |
+| --- | -------------------------------------- | ----------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1  | reader                                 | specs/sync/server-reads/spec.md:44  | major      | The ADDED emoji requirement duplicates `sync/mutations` "Toggles apply instantly" and its "no message" contradicts "A refused toggle reverts and explains"                                    | fixed      | Requirement removed from server-reads; `specs/sync/mutations/spec.md` MODIFIES "Toggles apply instantly" with a PowerSync reacting scenario; the toast question is #P8    |
+| P2  | reader                                 | design.md:40, tasks.md:10           | apply-note | Dropping `wanted` on "a new read value" fires on any `views` rebuild; dropping `$state` from `chips(read)` in the template throws `state_unsafe_mutation`                                     | fixed      | D2 rewritten in `createSaveState`'s shape: `chips` is a `$derived` over a `read` getter, an `$effect` drops `wanted` once no toggle is out and the read agrees            |
+| P3  | reader                                 | design.md:38, tasks.md:9            | apply-note | `withOwnEmoji` does not say it moves the reader's name; no case pins it                                                                                                                       | fixed      | D2 and task 1.1 name the reader's name on add, replace and clear                                                                                                          |
+| P4  | reader, grounding                      | tasks.md:26                         | apply-note | `parity.test.ts` and `mapper.test.ts` run in the browser project; `twins.test.ts` (server) missing from 4.3                                                                                   | fixed      | 4.3 runs them under `--project browser` and `twins.test.ts` under `--project server`                                                                                      |
+| P5  | grounding                              | tasks.md:19                         | major      | Task 3.1's red check edits the test, not production                                                                                                                                           | fixed      | 3.1 breaks the `objectId` entry of the `content_reports` column map in `powersync/schema.ts`, runs, reverts                                                               |
+| P6  | grounding                              | design.md:36-40, tasks.md:10-11     | major      | `wanted` is "computed from the chips the bar shows" but `toggle` never receives them; held-emoji clear and second-tap cases untested                                                          | fixed      | `createReactionToggle(target, read)` exposes `chips`; `toggle(emoji)` computes `wanted` from `chips`; 1.2 adds the clear and second-tap cases; 1.3 only passes the getter |
+| P7  | grounding                              | design.md:40, :63                   | apply-note | "Zero's local flip lands in the same tick" is unverifiable from repo code                                                                                                                     | fixed      | Wording removed; the risk now cites `zero/write.ts` awaiting `.server` before `wanted` drops                                                                              |
+| P8  | reader                                 | proposal.md:13, :36                 | decision   | A refused emoji toggle shows no toast on `develop`, against `sync/mutations` "A refused toggle reverts and explains"                                                                          | fixed      | User (2026-11-27): keep the behaviour, amend the spec. The `sync/mutations` delta MODIFIES the requirement with an emoji exception and scenario                           |
+| P9  | reader                                 | design.md:63 (logic :40-42)         | blocker    | A read stale on the reader's own emoji (set on another device; no marker moves on an emoji) keeps `wanted` forever and inverts every later tap, since the server toggles from the stored row  | fixed      | Verified `reaction/edit.server.ts:231-236`. D2 sets `wanted.emoji` from `toggleReaction`'s answer on success; risk rewritten; task 1.2 adds the stale-read case           |
+| P10 | reader                                 | specs/sync/mutations/spec.md:5-7    | major      | The MODIFIED requirement claimed every toggle applies instantly in a PowerSync build; only favorites and reacting do (`ShareSheet.svelte:53` waits for the row)                               | fixed      | The requirement names favorites and reacting for a PowerSync build and says visibility and settings show once the row arrives                                             |
+| P11 | reader, grounding                      | specs/sync/server-reads/spec.md.tmp | apply-note | Stray copy of the delta inside the change                                                                                                                                                     | fixed      | Deleted                                                                                                                                                                   |
+| P12 | grounding, reader                      | specs/sync/mutations/spec.md:6-8    | blocker    | P10's fix said a setting waits for the row in a PowerSync build; `SettingSwitch.svelte:27-34` and `settings/+page.svelte:69-78` flip before the write in both builds                          | fixed      | The clause lists favorites, reacting and settings as instant in a PowerSync build and names only file visibility (`ShareSheet.svelte:54`) as waiting                      |
+| P13 | reader                                 | design.md:64                        | apply-note | "Two devices racing end on the later answer" is not what this device shows when the other device writes between this answer and the refetch                                                   | fixed      | Risk reworded: the bar keeps its own answer until the next tap or unmount; the next tap lands right                                                                       |
+| P14 | grounding (major), reader (apply-note) | design.md:36, tasks.md 0.1          | major      | AGENTS.md:29 "Toggles write optimistically" contradicts the reaction toggle's `waitForServer` client body after task group 0; no record task                                                  | apply-note | Convergence stop: implementation-level record fix on the previous round's edit; apply note under task 4.1 rewords AGENTS.md and CONTEXT.md                                |
+| P15 | reader                                 | specs/sync/mutations/spec.md:24-27  | apply-note | The reacting scenario names only the PowerSync build; after task group 0 the Zero build also relies on the overlay                                                                            | fixed      | Scenario renamed "Reacting", "in either build"                                                                                                                            |
+| P16 | reader (N1, N2), grounding (G2)        | design.md:36, :68                   | apply-note | "The read agrees in the tap's turn" is unverifiable (the client body awaits `tx.run`), and the risk title "[The Zero build changes]" contradicts the Goals                                    | apply-note | Under task 1.2                                                                                                                                                            |
+| P17 | grounding (G1)                         | design.md:36, :65, tasks.md 4.2     | apply-note | The stand-in row survives a reload only after Zero persists it (about 1 s idle, no flush on pagehide); task 4.2's Zero reload expectation would misread a `develop` behaviour as a regression | apply-note | Under task 4.2: compare against `develop` at the same timing                                                                                                              |
+
+## After round 4
+
+Edited after the clean round, on user decisions (2026-11-27): P8 resolved by amending `sync/mutations`; a reload loses the overlay (design risk, task 4.2 case), raised by the user. Status stale until a review round covers these lines.
+
+User (2026-11-27): task group 0 taken back out. The Zero stand-in row is a local write, the model offline writes bring to PowerSync, and dropping it would change production (no chip after a reload) for a body Zero's retirement removes anyway. D2, Goals, risks, proposal and task 4.2 restored; the S2 comment fix moved into task 1.2; P14's AGENTS.md apply note dropped (the convention holds again). Status stays stale.
+
+### Round 5, snapshot `01cac0064b2ef297f28cf85abc0a2472ea403e4a`
+
+Reader, what this proposes: in the PowerSync build three gaps in comments close. `createReactionToggle(target, read)` keeps a `wanted` emoji from the chips on screen, then set from the server's answer, shown through `withOwnEmoji` until the read agrees and dropped on a refusal with no toast; the Zero build keeps its stand-in row, so nothing changes on screen there. A move of the events marker also refetches open threads; the report buttons and form read own open reports from synced `content_reports` through a twin; `sync/mutations` gains the emoji no-toast exception. No schema, stream, mutator or remote change.
+
+Reader, how the existing system works per this plan: in the PowerSync build threads and cards are server reads, refetched after an own write, on return, back online and (`listEvents` only) on a `region_counters` move. A comment going live or not moves the marker through `events.comment_count`; emoji and edits do not. Only the Zero client body flips an emoji at once, through a stand-in row; the PowerSync `write()` posts, refetches every read and returns the server's boolean; the server toggles from its stored row. Report reads go to the app server although the device holds the rows.
+
+Grounding: every claim in the diff holds, except the stand-in row surviving a reload at once (only after Zero persists it, P17) and "the read agrees in the tap's turn" (unverifiable, P16). No stale reference to the removed task group 0.
+
+Ruling: clean. Only apply notes, written under tasks 1.2 and 4.2.
