@@ -8,6 +8,7 @@ import {
 } from '$lib/entities/moderation/dto'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
+import type { QueryPhase } from '$lib/zero/resource.svelte'
 
 export const reportSchema = z.object({
   ground: z.enum(moderationGround, { error: formError('form_required') }),
@@ -47,3 +48,7 @@ export interface ReportedObject {
   own: boolean
   reports: { createdAt: number; ground: ModerationGround; note: string | undefined; reporterName: string }[]
 }
+
+/** What a report control may claim: Reported from a held report at any time, not reported only once the read answered. */
+export const reportClaim = (held: boolean, phase: QueryPhase): 'reported' | 'unreported' | undefined =>
+  held ? 'reported' : phase.kind === 'answered' ? 'unreported' : undefined

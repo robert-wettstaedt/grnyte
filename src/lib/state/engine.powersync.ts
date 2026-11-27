@@ -95,7 +95,8 @@ export function start(
   setWriteToken(readSession, startedUserId, check)
   setReadUser(startedUserId, check)
   onStaleReturn(refreshReads)
-  onMarkerMove('region_counters', () => refreshReads(['listEvents']))
+  // A comment moves the events marker through `events.comment_count`; an emoji or an edit moves none.
+  onMarkerMove('region_counters', () => refreshReads(['listEvents', 'listComments']))
   onMarkerMove('user_counters', () => refreshReads(['countUnreadNotifications', 'listNotifications']))
   initPowerSync(session, syncToken, {
     // shortcut: dev falls back to the local service until PUBLIC_POWERSYNC_URL is in every .env.

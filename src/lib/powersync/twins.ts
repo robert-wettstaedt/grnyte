@@ -38,6 +38,10 @@ export type Twins = [
     typeof import('$lib/entities/region/resources.svelte')
   >,
   Fits<
+    typeof import('$lib/entities/report/resources.powersync.svelte'),
+    typeof import('$lib/entities/report/resources.svelte')
+  >,
+  Fits<
     typeof import('$lib/entities/rolePermission/resources.powersync.svelte'),
     typeof import('$lib/entities/rolePermission/resources.svelte')
   >,

@@ -16,6 +16,7 @@
   import { canDeleteFile, canEditFile } from '$lib/entities/file/permissions'
   import { deleteFile } from '$lib/entities/file/writes'
   import { offersRemovalChoice } from '$lib/entities/moderation/permissions'
+  import { reportClaim } from '$lib/entities/report/dto'
   import { canReport } from '$lib/entities/report/permissions'
   import { myOpenReport } from '$lib/entities/report/resources.svelte'
   import { imageSrc } from '$lib/images/derivatives'
@@ -87,6 +88,7 @@
     () => 'file',
     () => currentFile.id,
   )
+  const reportedClaim = $derived(reportClaim(reported.data != null, reported.phase))
   // Only route videos carry a source (ascent clips are your own footage, and their picker
   // never asks for one). An unset `ascentCreatedBy` is what says "not ascent media".
   const canEditSource = $derived(canEdit && currentFile.bunnyStreamFk != null && currentFile.ascentCreatedBy == null)
@@ -419,13 +421,15 @@
             <ShareSheet file={currentFile} {canEdit} {shareText} bind:open={shareOpen} />
 
             {#if reportable}
-              <MediaToolTip label={reported.data == null ? m.reports_entry() : m.reports_reported()}>
+              <!-- Held in place, unsaid, until the caller's reports answer: "Report…" would claim none. -->
+              <MediaToolTip label={reportedClaim === 'reported' ? m.reports_reported() : m.reports_entry()}>
                 <a
-                  aria-label={reported.data == null ? m.reports_entry() : m.reports_reported()}
+                  style:visibility={reportedClaim == null ? 'hidden' : undefined}
+                  aria-label={reportedClaim === 'reported' ? m.reports_reported() : m.reports_entry()}
                   class={MEDIA_TOOL}
                   href={resolve('/(app)/report/[kind=removable]/[id]', { id: currentFile.id, kind: 'file' })}
                 >
-                  <Icon name="flag" fill={reported.data == null ? 'none' : 'currentColor'} size={20} />
+                  <Icon name="flag" fill={reportedClaim === 'reported' ? 'currentColor' : 'none'} size={20} />
                 </a>
               </MediaToolTip>
             {/if}

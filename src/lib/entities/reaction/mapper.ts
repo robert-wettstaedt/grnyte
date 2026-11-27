@@ -74,3 +74,21 @@ export function toReaction(row: ReactionRow): ReactionListItem {
     userName: toAuthor(row.userFk, row.user?.username).name,
   }
 }
+
+export function withOwnEmoji(chips: readonly ReactionChip[], emoji: string | undefined, name: string): ReactionChip[] {
+  const next = chips.flatMap((chip) => {
+    if (chip.emoji === emoji && !chip.mine) {
+      return [{ ...chip, count: chip.count + 1, mine: true, names: [...chip.names, name] }]
+    }
+    if (chip.emoji !== emoji && chip.mine) {
+      if (chip.count === 1) return []
+      const at = chip.names.lastIndexOf(name)
+      return [{ ...chip, count: chip.count - 1, mine: false, names: chip.names.filter((_, i) => i !== at) }]
+    }
+    return [chip]
+  })
+  if (emoji != null && !next.some((chip) => chip.emoji === emoji)) {
+    next.push({ count: 1, emoji, mine: true, names: [name] })
+  }
+  return next
+}

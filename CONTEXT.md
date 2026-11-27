@@ -234,13 +234,16 @@ write (`applied_writes`, 30 days), so a write sent twice applies once and gets t
 **server read**
 A read the device holds no copy of, in the PowerSync build: `readQuery` runs the Zero query definition on
 the app server as the caller. It is fetched again after an own write, on return to the app, back
-online, and when its change marker moves; a read without a marker does not update live.
+online, and when its change marker moves; a read without a marker does not update live. An own open
+report is not one: it is synced (`content_reports`), so the report buttons read it off the device.
 
 **change marker**
 A number per region (`region_counters.events`) or account (`user_counters.notifications`) that a trigger
 moves when the events or notifications behind it changed. It counts nothing: it tells a client to fetch again.
-The PowerSync build syncs it and asks its server reads again when it moves (events: `listEvents`; notifications: the inbox and the unread count), held while
-the app is hidden and asked once on return.
+The PowerSync build syncs it and asks its server reads again when it moves (events: `listEvents` and the open
+threads, `listComments`; notifications: the inbox and the unread count), held while the app is hidden and asked once
+on return. A comment moves the events marker through `events.comment_count`; an emoji or a comment edit moves none,
+so others' show on the next fetch.
 
 ## Events
 

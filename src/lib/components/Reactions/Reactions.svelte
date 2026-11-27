@@ -27,7 +27,10 @@
   let quick = $state(false)
 
   /** One in flight at a time, for the whole bar. See `createReactionToggle`. */
-  const reaction = createReactionToggle(() => ({ eventId: bar.eventId }))
+  const reaction = createReactionToggle(
+    () => ({ eventId: bar.eventId }),
+    () => bar.chips,
+  )
 
   /** Chips go through here too, so a chip reached by keyboard (no pointer event, so nothing
    *  dismisses) doesn't leave the quick row standing over the card. */
@@ -44,7 +47,7 @@
      `flex-col` around it, because the thread belongs under the bar it was opened from. -->
 <div class="flex min-w-0 flex-1 flex-col">
   <div class="flex flex-wrap items-center justify-end gap-1">
-    {#each bar.chips as chip (chip.emoji)}
+    {#each reaction.chips as chip (chip.emoji)}
       <ReactionChip {chip} disabled={reaction.busy} ontoggle={() => pick(chip.emoji)} readonly={bar.readonly} />
     {/each}
 

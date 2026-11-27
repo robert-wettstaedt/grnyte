@@ -4,6 +4,7 @@
   import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
   import type { RemovableKind } from '$lib/entities/moderation/dto'
   import { m } from '$lib/paraglide/messages'
+  import { reportClaim } from './dto'
   import { reportFormHref } from './href'
   import { myOpenReport } from './resources.svelte'
 
@@ -19,11 +20,15 @@
     () => kind,
     () => String(id),
   )
+  const claim = $derived(reportClaim(reported.data != null, reported.phase))
 </script>
 
-<MenuRow
-  href={reportFormHref(kind, id)}
-  icon="flag"
-  label={reported.data == null ? m.reports_entry() : m.reports_reported()}
-  {onclick}
-/>
+<!-- Held in place, unsaid, until the caller's reports answer: "Report…" would claim none. -->
+<div style:visibility={claim == null ? 'hidden' : undefined}>
+  <MenuRow
+    href={reportFormHref(kind, id)}
+    icon="flag"
+    label={claim === 'reported' ? m.reports_reported() : m.reports_entry()}
+    {onclick}
+  />
+</div>

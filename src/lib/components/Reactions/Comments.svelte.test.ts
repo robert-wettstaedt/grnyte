@@ -18,11 +18,14 @@ vi.mock('$lib/state/global.svelte', () => ({
   getGlobalState: () => ({ userRegions: [{ permissions: viewer.permissions, regionFk: 1 }] }),
 }))
 const nav = vi.hoisted(() => ({ goto: vi.fn() }))
-const reported = vi.hoisted(() => ({ ids: [] as string[] }))
+const reported = vi.hoisted(() => ({ answered: true, ids: [] as string[] }))
 vi.mock('$lib/entities/report/resources.svelte', () => ({
   myReportedIds: () => ({
     get data() {
-      return reported.ids
+      return reported.answered ? reported.ids : []
+    },
+    get phase() {
+      return reported.answered ? { empty: reported.ids.length === 0, kind: 'answered' } : { kind: 'loading' }
     },
   }),
 }))
@@ -258,5 +261,17 @@ it('says Reported on a comment the reader already reported', () => {
   render(Comments, { thread: thread([theirs(4)]).value })
 
   expect(screen.getByRole('button', { name: 'Reported' })).toBeTruthy()
+  reported.ids = []
+})
+
+it("claims neither Report nor Reported before the reader's reports have answered", () => {
+  viewer.permissions = ['region.read']
+  reported.answered = false
+  reported.ids = ['4']
+  render(Comments, { thread: thread([theirs(4)]).value })
+
+  expect(screen.queryByRole('button', { name: 'Report…' })).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Reported' })).toBeNull()
+  reported.answered = true
   reported.ids = []
 })
