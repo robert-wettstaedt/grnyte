@@ -11,9 +11,7 @@ is refused.
 ### Requirement: Toggles apply instantly
 
 A toggle (saving a favorite, reacting, changing a file's visibility, a setting) SHALL show its new
-state in the same frame as the tap, before the server has answered. A PowerSync build SHALL do so
-for saving a favorite, reacting and a setting; there a file's visibility shows its new state once
-the server's row arrives.
+state in the same frame as the tap, before the server has answered, in either build.
 
 #### Scenario: Saving a favorite
 
@@ -200,3 +198,19 @@ that changes the client sending them.
 
 - **WHEN** a person saves a form in a tab loaded before the latest release
 - **THEN** the save succeeds
+
+### Requirement: A toggle on a synced row holds its tap until the row arrives
+
+A toggle on a row the device syncs (a favorite, a file's visibility, a setting) SHALL keep showing
+the tapped state until the device holds the changed row, also when the server answers first. Taps
+on one toggle SHALL reach the server in the order they were made, so it ends in the last tap's state.
+
+#### Scenario: Making a file public before its row syncs back
+
+- **WHEN** an editor turns on a file's public link and the server answers before the changed file reaches the device
+- **THEN** the switch shows public from the tap on, and never shows private again in between
+
+#### Scenario: Two quick taps on a setting
+
+- **WHEN** a person turns a notification setting off and on again before either change reaches the device
+- **THEN** the switch shows each tap at once and ends on, without showing off again in between
