@@ -27,24 +27,24 @@ A test comes before the code it needs and is seen red first. The guard is tested
 
 ## 5. Security review (D5)
 
-- [ ] 5.1 Pin `git rev-parse HEAD` after sections 1 to 4 are committed. Spawn one fresh reviewer (`model: opus`) with the three surfaces, the change-marker triggers and the questions of D5, and the instruction to report each finding with `file:line` and a failure case.
+- [x] 5.1 Pin `git rev-parse HEAD` after sections 1 to 4 are committed. Spawn one fresh reviewer (`model: opus`) with the three surfaces, the change-marker triggers and the questions of D5, and the instruction to report each finding with `file:line` and a failure case.
   - Apply note (P10): add to the questions how long a signed-out or "signed out elsewhere" session keeps syncing: the write route and `readQuery` check the session is live, the PowerSync service checks only signature, audience and expiry (Zero's `get-queries` has the same gap).
-- [ ] 5.2 Rule on every finding in `review.md`: fixed here or refuted with evidence; none is deferred, as every surface is live in production (D5). A finding whose fix changes `sync-config.yaml` or the schema goes to the user first, with the containment question (D5). Each fix: a test seen red first, then the fix, squashed into the commit it belongs to; a stream fix also extends `streams.server.test.ts`.
+- [x] 5.2 Rule on every finding in `review.md`: fixed here or refuted with evidence; none is deferred, as every surface is live in production (D5). A finding whose fix changes `sync-config.yaml` or the schema goes to the user first, with the containment question (D5). Each fix: a test seen red first, then the fix, squashed into the commit it belongs to; a stream fix also extends `streams.server.test.ts`.
   - Apply note (P14): an app-code fix reaches production only when `develop` reaches `main`; at ruling ask the user to hotfix `main` or contain it, as D-2 asks for a stream fix.
-- [ ] 5.3 A fix that changes the schema or a trigger: agree the migration number with the other branches before `generate:drizzle`, and test it on a throwaway Postgres through `ci/local.sh` (never the shared dev DB). A stream fix: ask the user to restart the dev PowerSync service from a checkout that has it before section 6.
+- [x] 5.3 A fix that changes the schema or a trigger: agree the migration number with the other branches before `generate:drizzle`, and test it on a throwaway Postgres through `ci/local.sh` (never the shared dev DB). A stream fix: ask the user to restart the dev PowerSync service from a checkout that has it before section 6. (None arose: the audit found no schema, trigger or stream defect.)
   - Apply note (P20, major, convergence): `ci/local.sh` is DB-only, and section 6 runs on the shared dev DB, which never gets this branch's migration. So a schema or trigger fix gets its end-to-end evidence on a throwaway app stack instead (own Postgres migrated with the fix, the app on its own port, and for a PowerSync check a PowerSync service pointed at that Postgres; memory `throwaway-app-stack`). If that stack cannot carry PowerSync, say so in `review.md` and ask the user before merging.
 
 ## 6. Evidence on both builds (D4)
 
 After section 5, so every security fix is in what the e2e runs and drives check.
 
-- [ ] 6.1 Build-output probe: `PUBLIC_ZERO_URL=<unique marker> npm run build` then grep `build/client` for the marker and for `__zero` (both must be found: control); `PUBLIC_SYNC_ENGINE=powersync PUBLIC_ZERO_URL=<marker> npm run build` then grep for both (both must be absent). Record the counts in `review.md`.
-- [ ] 6.2 Check the dev PowerSync service runs `develop`'s stream config: compare the mounted `sync-config.yaml` (`docker inspect grnyte-powersync-powersync-1`) with this checkout's. If it differs, ask the user to restart it from an up-to-date main checkout.
+- [x] 6.1 Build-output probe: `PUBLIC_ZERO_URL=<unique marker> npm run build` then grep `build/client` for the marker and for `__zero` (both must be found: control); `PUBLIC_SYNC_ENGINE=powersync PUBLIC_ZERO_URL=<marker> npm run build` then grep for both (both must be absent). Record the counts in `review.md`.
+- [x] 6.2 Check the dev PowerSync service runs `develop`'s stream config: compare the mounted `sync-config.yaml` (`docker inspect grnyte-powersync-powersync-1`) with this checkout's. If it differs, ask the user to restart it from an up-to-date main checkout.
   - Apply note (P21): after a stream fix (5.3), restart it from the checkout whose config is under test (this one), not the main checkout.
-- [ ] 6.3 e2e on the Zero build (own vite port, shared zero-cache), every spec except `prod-*`. Record pass/fail per spec.
-- [ ] 6.4 e2e on the PowerSync build: app on its own port with `PUBLIC_SYNC_ENGINE=powersync` and `PUBLIC_ZERO_URL` at a closed port, PowerSync on :58100. Same specs. Record pass/fail per spec; a flake is rerun once and reported.
-- [ ] 6.5 Runtime probe on the PowerSync build: over sign-in, feed, an ascent log, an inbox open, the network log shows no request or WebSocket to the zero-cache origin and `window.__zero` is undefined. Control: the Zero build shows the WebSocket and `window.__zero`.
-- [ ] 6.6 Drives on both builds at 375x667 and 1280x800 (design D4 list): guidebook read, ascent log, a form save, favorite and emoji toggles, feed pill from a second account's write, inbox and unread count, a thread receiving another member's comment, report button, sign-out wipe. Revert every write on the shared dev DB. Close the pages and say "browser is free".
+- [x] 6.3 e2e on the Zero build (own vite port, shared zero-cache), every spec except `prod-*`. Record pass/fail per spec.
+- [x] 6.4 e2e on the PowerSync build: app on its own port with `PUBLIC_SYNC_ENGINE=powersync` and `PUBLIC_ZERO_URL` at a closed port, PowerSync on :58100. Same specs. Record pass/fail per spec; a flake is rerun once and reported.
+- [x] 6.5 Runtime probe on the PowerSync build: over sign-in, feed, an ascent log, an inbox open, the network log shows no request or WebSocket to the zero-cache origin and `window.__zero` is undefined. Control: the Zero build shows the WebSocket and `window.__zero`.
+- [x] 6.6 Drives on both builds at 375x667 and 1280x800 (design D4 list): guidebook read, ascent log, a form save, favorite and emoji toggles, feed pill from a second account's write, inbox and unread count, a thread receiving another member's comment, report button, sign-out wipe. Revert every write on the shared dev DB. Close the pages and say "browser is free".
 
 ## 7. Records (D6)
 
@@ -54,10 +54,10 @@ After section 5, so every security fix is in what the e2e runs and drives check.
 
 ## 8. Verification sweep
 
-- [ ] 8.1 Over the touched paths: `npx prettier --write`, `npx eslint`, `npx vitest run --project server vite.sync-engine.test.ts` (or the project that runs it), `--project browser` for `src/lib/zero` and `src/lib/state`, then `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json` (or `npm run check` with no dev server running).
-- [ ] 8.2 `npm run lint:unused`, `npm run lint:duplication`, `npm run lint:health`. A finding gets fixed, never baselined.
-- [ ] 8.3 Both builds: `npm run build` and `PUBLIC_SYNC_ENGINE=powersync npm run build`.
-- [ ] 8.4 The app driven at 375x667 and 1280x800 on both builds (task 6.6).
+- [x] 8.1 Over the touched paths: `npx prettier --write`, `npx eslint`, `npx vitest run --project server vite.sync-engine.test.ts` (or the project that runs it), `--project browser` for `src/lib/zero` and `src/lib/state`, then `./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json` (or `npm run check` with no dev server running).
+- [x] 8.2 `npm run lint:unused`, `npm run lint:duplication`, `npm run lint:health`. A finding gets fixed, never baselined.
+- [x] 8.3 Both builds: `npm run build` and `PUBLIC_SYNC_ENGINE=powersync npm run build`.
+- [x] 8.4 The app driven at 375x667 and 1280x800 on both builds (task 6.6).
 
 ## 9. Before archive
 

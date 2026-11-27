@@ -1,6 +1,7 @@
 import { PINNED_SEARCH_PATH } from '$lib/db/db.server'
 import { pinnedTx } from '$lib/db/pinned.server'
 import { appliedWrites } from '$lib/db/schema'
+import { isAuthoredMessage } from '$lib/forms/issue'
 import { formError } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 import { drainAfterCommit } from '$lib/remote/authed.server'
@@ -59,6 +60,10 @@ export async function handleSyncMutate(request: Request, registry = serverMutato
     if (e instanceof InputValidationError) return refusal(400)
     if (!(e instanceof ApplicationError)) throw e
     const { field, status } = (e.details ?? {}) as RefusalDetails
+    if (!isAuthoredMessage(e.message)) {
+      console.error('[sync-mutate] unauthored refusal', e.message)
+      return refusal(status ?? 400)
+    }
     return refusal(status ?? 400, e.message, field)
   }
 }
