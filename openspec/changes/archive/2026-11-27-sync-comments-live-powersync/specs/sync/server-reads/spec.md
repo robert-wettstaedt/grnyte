@@ -32,7 +32,12 @@ A server read on screen SHALL be fetched again after the member's own write succ
 #### Scenario: Only the reads the marker covers
 
 - **WHEN** the events marker of a member's region moves while the feed, an open thread and the inbox are on screen in a PowerSync build
-- **THEN** the event reads and the thread are fetched again and the inbox is not
+- **THEN** the event reads and the thread are fetched again and the inbox and the unread count are not
+
+#### Scenario: Only the reads the account's marker covers
+
+- **WHEN** the member's notifications marker moves while the feed is open in a PowerSync build
+- **THEN** the unread count is fetched again and the event reads are not
 
 #### Scenario: A move while hidden
 
