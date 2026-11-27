@@ -61,13 +61,9 @@ After section 5, so every security fix is in what the e2e runs and drives check.
 
 ## 9. Before archive
 
-- [ ] 9.1 Issue-sync gate from the worktree root, with the `milestone-close` worktree's tsx and gate: `../milestone-close/node_modules/.bin/tsx ../milestone-close/scripts/issue-sync/cli/gate.ts powersync-build-without-zero`. Archive only on "ready"; the archive commit's subject ends "(closes #1183)".
-- [ ] 9.2 Milestone `roadmap.md`: the R1 row says merged, and the PWA cutover row lists the release prerequisites of the proposal as its preconditions.
+- [x] 9.1 Issue-sync gate from the worktree root, with the `milestone-close` worktree's tsx and gate: `../milestone-close/node_modules/.bin/tsx ../milestone-close/scripts/issue-sync/cli/gate.ts powersync-build-without-zero`. Archive only on "ready"; the archive commit's subject ends "(closes #1183)".
+- [x] 9.2 Milestone `roadmap.md`: the R1 row says merged, and the PWA cutover row lists the release prerequisites of the proposal as its preconditions.
 
-## Release prerequisites (the user, before any deployment builds PowerSync)
+## Release prerequisites
 
-- [ ] R.1 Production: `select tablename from pg_publication_tables where pubname = 'powersync'` lists `content_reports`, `region_counters` and `user_counters`; if not, the publication's owner adds them.
-- [ ] R.2 The stream config of `develop` deployed to the VPS through the VPS workflow (it runs on a push to `main` or by dispatch: dispatch it on `develop` if the config must ship before `develop` reaches `main`, and at once for a stream fix from task 5.2), and the service done reprocessing (its admin page shows the new config's checkpoint).
-  - Apply note (P15): a dispatch redeploys the ref's whole `deployment/` tree and restarts the production stack, zero-cache included. Check `git diff origin/main origin/develop -- deployment/` first and expect the restart.
-- [ ] R.3 `PUBLIC_POWERSYNC_URL` set on the deployment that builds PowerSync. A preview on production data takes production values for its one branch only, through `deployment/SECRETS.md` "Prod values for one branch's previews".
-- [ ] R.4 After that preview's check: `vercel env rm <KEY> preview <branch>` for each production value, and that branch's preview deployments deleted (their values are inlined at build).
+The user's, before any deployment builds PowerSync; they gate a deployment, not this merge, so they live as the PWA cutover row's preconditions in the milestone `roadmap.md` (task 9.2): production's `powersync` publication lists the three tables; `develop`'s stream config deployed through the VPS workflow (a dispatch redeploys the whole `deployment/` tree and restarts the stack, so check `git diff origin/main origin/develop -- deployment/` first); `PUBLIC_POWERSYNC_URL` set, a production-data preview taking production values for one branch only (`deployment/SECRETS.md`) and losing them and its deployments after its check.

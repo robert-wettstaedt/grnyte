@@ -22,8 +22,8 @@ In a build that runs PowerSync, the online flag and the status bar SHALL take th
 
 #### Scenario: The Zero client fails
 
-- **WHEN** the Zero client a PowerSync build still starts loses its connection or is refused, and PowerSync stays connected
-- **THEN** the status bar shows nothing and the app stays online
+- **WHEN** zero-cache is unreachable and PowerSync stays connected
+- **THEN** the status bar shows nothing and the app stays online, as the build starts no Zero client that could fail
 
 #### Scenario: Signal lost with a connection that has not noticed
 

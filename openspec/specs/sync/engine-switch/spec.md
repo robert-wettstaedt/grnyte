@@ -43,19 +43,33 @@ A screen SHALL get its data through the same functions, with the same arguments 
 - **WHEN** a member opens an area page in a Zero build and in a PowerSync build of the same commit, over the same data
 - **THEN** both pages show the same area, blocks, routes and grade chart
 
-### Requirement: The PowerSync build is a local preview until it runs without Zero
+### Requirement: The PowerSync build runs without Zero
 
-A build that runs PowerSync SHALL read the guidebook, profiles and search from PowerSync, SHALL send every write to the app server's write route, and SHALL read what the device does not hold from the app server. Until such a build starts no Zero client at all, no deployment SHALL build with `powersync`.
+A build that runs PowerSync SHALL read the guidebook, profiles and search from PowerSync, SHALL send every write to the app server's write route, and SHALL read what the device does not hold from the app server. It SHALL start no Zero client and SHALL open no connection to zero-cache, so it works with zero-cache down.
 
 #### Scenario: Logging an ascent in the PowerSync build
 
-- **WHEN** a member logs an ascent in a local PowerSync build
+- **WHEN** a member logs an ascent in a PowerSync build
 - **THEN** the write goes to the write route, and the ascent appears on the route page once PowerSync delivers the new row
 
-#### Scenario: A deployment
+#### Scenario: zero-cache is down
 
-- **WHEN** any deployment builds the app
+- **WHEN** a member uses a PowerSync build while zero-cache is unreachable
+- **THEN** the guidebook, the feed, the inbox, comments and writes work, and the page sends nothing to zero-cache
+
+### Requirement: Production builds Zero until the cutover
+
+Production SHALL build with Zero until the cutover, the release that switches production to PowerSync. A preview deployment MAY build with `powersync`, on production data only as one branch's preview that is removed after its check.
+
+#### Scenario: Production
+
+- **WHEN** production is deployed before the cutover
 - **THEN** it builds with Zero
+
+#### Scenario: A preview on production data
+
+- **WHEN** a preview builds with `powersync` against production data for a check on a real device
+- **THEN** only that branch's previews carry production values, and once the check is done the values are removed and that branch's preview deployments deleted
 
 ### Requirement: No build carries measurement tools
 
@@ -85,19 +99,19 @@ An app admin SHALL reach a sync health page from the settings in either build. I
 - **WHEN** a member who is not an app admin opens the sync health page's URL
 - **THEN** the page refuses access
 
-### Requirement: A PowerSync build takes on no new use of the Zero client
+### Requirement: A PowerSync build carries no Zero client
 
-A build that runs PowerSync SHALL fail when a module that is not on the recorded list of remaining users imports the Zero client. The list SHALL only shrink: an entry whose module no longer imports the Zero client SHALL fail the tests until it is deleted.
+A build that runs PowerSync SHALL fail when any module imports the Zero client, and SHALL name the module that did.
 
-#### Scenario: A new module reaches for the Zero client
+#### Scenario: A module reaches for the Zero client
 
-- **WHEN** a module that is not on the list imports the Zero client and the app is built with `powersync`
+- **WHEN** any module imports the Zero client and the app is built with `powersync`
 - **THEN** the build fails and names the module
 
-#### Scenario: A stale entry
+#### Scenario: The Zero build
 
-- **WHEN** a module on the list stops importing the Zero client
-- **THEN** the tests fail until its entry is deleted
+- **WHEN** the app is built with Zero
+- **THEN** the Zero client is imported as before and the build succeeds
 
 ### Requirement: Every pull request builds both engines
 

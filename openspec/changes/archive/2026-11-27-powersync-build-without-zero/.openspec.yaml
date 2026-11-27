@@ -9,6 +9,8 @@ x-paths:
   - vite.sync-engine.ts
   - vite.sync-engine.test.ts
   - e2e/support.ts
+  - src/lib/zero/server/syncMutate.server.ts
+  - src/lib/zero/server/syncMutate.server.test.ts
   - AGENTS.md
   - CONTEXT.md
   - openspec/changes/migrate-sync-to-powersync-milestone/roadmap.md
