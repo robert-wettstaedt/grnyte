@@ -16,8 +16,7 @@ export function adminClient(): SupabaseClient | undefined {
 /** The same default the config resolves `baseURL` from. */
 export const APP = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
 /** `E2E_ZERO_URL` for a stack beside the shared one. */
-export const ZERO = process.env.E2E_ZERO_URL ?? 'http://localhost:4848'
-// A PowerSync build reads the guidebook from PowerSync; writes, the feed and comments still go through zero-cache.
+const ZERO = process.env.E2E_ZERO_URL ?? 'http://localhost:4848'
 const POWERSYNC = process.env.PUBLIC_SYNC_ENGINE === 'powersync' ? 'http://localhost:58100/probes/liveness' : undefined
 
 /**
@@ -38,7 +37,7 @@ export async function assertLocalStack(dbReachable: boolean, password: string, e
 
   if (!dbReachable) missing.push('local Supabase Postgres (DATABASE_URL is unreachable)')
   if (!(await reachableUrl(APP))) missing.push(`the app on ${APP} (npm run dev)`)
-  if (!(await reachableUrl(ZERO))) missing.push(`zero-cache on ${ZERO} (npm run dev:zero)`)
+  if (POWERSYNC == null && !(await reachableUrl(ZERO))) missing.push(`zero-cache on ${ZERO} (npm run dev:zero)`)
   if (POWERSYNC != null && !(await reachableUrl(POWERSYNC))) {
     missing.push('PowerSync on :58100 (deployment/docker-compose.powersync.local.yml)')
   }

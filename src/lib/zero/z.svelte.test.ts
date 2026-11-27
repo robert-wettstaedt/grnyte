@@ -55,22 +55,19 @@ describe('initZero', () => {
     vi.unstubAllGlobals()
   })
 
-  it.each([
-    { online: false, options: undefined, whose: 'makes the app offline where Zero is the engine' },
-    { online: true, options: { preload: false }, whose: 'says nothing about the app where PowerSync is' },
-  ])('a client unconnected for ten seconds $whose', async ({ online, options }) => {
+  it('a client unconnected for ten seconds makes the app offline', async () => {
     vi.useFakeTimers()
     const { isOnline } = await import('$lib/state/online.svelte')
     const { initZero } = await import('./z.svelte')
 
-    initZero(session('a'), options)
+    initZero(session('a'))
     client.connection({ name: 'connecting' })
     await vi.advanceTimersByTimeAsync(10_000)
 
-    expect(isOnline()).toBe(online)
+    expect(isOnline()).toBe(false)
   })
 
-  it('preloads and tracks the sync state by default, as the Zero build always has', async () => {
+  it('preloads and tracks the sync state', async () => {
     const { initZero } = await import('./z.svelte')
 
     initZero(session('a'))
@@ -78,16 +75,5 @@ describe('initZero', () => {
     expect(stamps.tracked).toEqual(['a'])
     expect(client.materialized).toBeGreaterThan(0)
     await vi.waitFor(() => expect(client.preloaded).toBeGreaterThan(0))
-  })
-
-  it('with the preload off starts no preload, no store probe and tracks nothing: PowerSync owns that state', async () => {
-    const { initZero } = await import('./z.svelte')
-
-    initZero(session('a'), { preload: false })
-    await new Promise((resolve) => setTimeout(resolve, 50))
-
-    expect(stamps.tracked).toEqual([])
-    expect(client.materialized).toBe(0)
-    expect(client.preloaded).toBe(0)
   })
 })

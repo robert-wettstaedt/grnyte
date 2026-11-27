@@ -21,6 +21,26 @@ const isPowerSyncCode = (id: string) => id.includes('/src/lib/powersync/') || /\
 // resolver would hand a twin's test the Zero file.
 const outsideVitest = () => process.env.VITEST == null
 
+/** PowerSync builds fail when any module imports the Zero client. A `new Zero` from `@rocicorp/zero` gets past this;
+ *  only a `__zero` probe of the build or the page sees that. */
+export function zeroClientGuard(): Plugin {
+  return {
+    apply: outsideVitest,
+    enforce: 'pre',
+    name: 'grnyte:zero-client-guard',
+    async resolveId(source, importer, options) {
+      const refuse = () =>
+        this.error(
+          `The PowerSync build imports the Zero client: "${source}" from ${importer?.split('?')[0] ?? 'the entry'}`,
+        )
+      if (source === 'zero-svelte') refuse()
+      const resolved = await this.resolve(source, importer, { ...options, skipSelf: true })
+      if (resolved?.id.endsWith('/src/lib/zero/z.svelte.ts') === true) refuse()
+      return null
+    },
+  }
+}
+
 /** Zero builds fail as soon as anything resolves a PowerSync module, so production ships none of it. */
 export function zeroGuard(): Plugin {
   return {
@@ -33,27 +53,6 @@ export function zeroGuard(): Plugin {
       if (POWERSYNC_PACKAGE.test(source)) refuse()
       const resolved = await this.resolve(source, importer, { ...options, skipSelf: true })
       if (resolved != null && isPowerSyncCode(resolved.id)) refuse()
-      return null
-    },
-  }
-}
-
-/** What the PowerSync build still starts the Zero client for. Only shrinks: each package of R1 deletes its entries. */
-export const ZERO_CLIENT_IMPORTERS = ['src/lib/state/engine.powersync.ts'] as const
-
-/** PowerSync builds fail when a module outside {@link ZERO_CLIENT_IMPORTERS} imports the Zero client. */
-export function zeroClientGuard(): Plugin {
-  return {
-    apply: outsideVitest,
-    enforce: 'pre',
-    name: 'grnyte:zero-client-guard',
-    async resolveId(source, importer, options) {
-      const resolved = await this.resolve(source, importer, { ...options, skipSelf: true })
-      if (resolved == null || !resolved.id.endsWith('/src/lib/zero/z.svelte.ts')) return null
-      const module = importer?.split('?')[0] ?? 'the entry'
-      if (!ZERO_CLIENT_IMPORTERS.some((listed) => module.endsWith(`/${listed}`))) {
-        this.error(`The PowerSync build imports the Zero client from ${module}`)
-      }
       return null
     },
   }
