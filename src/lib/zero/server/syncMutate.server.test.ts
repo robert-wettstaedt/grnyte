@@ -291,6 +291,20 @@ describe.skipIf(!reachable)('a refusal', () => {
     expect(JSON.parse(body.message!)).toMatchObject({ message: 'error_server_title' })
     expect(JSON.stringify(body)).not.toContain('secret-crag')
   })
+
+  it('says nothing of a refusal whose message we did not write', async () => {
+    const registry = defineMutators(serverMutators, {
+      probe: {
+        refuses: defineServerMutator(async () => {
+          throw new ApplicationError('relation "secret_crag" does not exist')
+        }),
+      },
+    })
+    const { body } = await send('probe.refuses', undefined, { registry })
+
+    expect(JSON.parse(body.message!)).toMatchObject({ message: 'error_server_title' })
+    expect(JSON.stringify(body)).not.toContain('secret_crag')
+  })
 })
 
 describe.skipIf(!reachable)('deferred work', () => {
