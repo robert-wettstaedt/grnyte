@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template: README.md replaces __HOME__ and __REPO__ (the main checkout) before installing. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>rocks.grnyte.issue-sync</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__REPO__/node_modules/.bin/tsx</string>
+    <string>__REPO__/scripts/issue-sync/cli/sync.ts</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__REPO__</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__HOME__/.volta/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>60</integer>
+  <key>StandardOutPath</key>
+  <string>__HOME__/Library/Logs/grnyte-issue-sync.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/Library/Logs/grnyte-issue-sync.log</string>
+</dict>
+</plist>

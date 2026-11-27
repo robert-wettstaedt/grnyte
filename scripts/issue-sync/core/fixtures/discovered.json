@@ -1,0 +1,142 @@
+{
+  "openspecVersion": "1.17.0",
+  "change": "discovered",
+  "status": {
+    "changeName": "discovered",
+    "schemaName": "spec-driven",
+    "planningHome": {
+      "kind": "repo",
+      "root": "<root>",
+      "changesDir": "<root>/openspec/changes",
+      "defaultSchema": "spec-driven"
+    },
+    "changeRoot": "<root>/openspec/changes/discovered",
+    "artifactPaths": {
+      "proposal": {
+        "outputPath": "proposal.md",
+        "resolvedOutputPath": "<root>/openspec/changes/discovered/proposal.md",
+        "existingOutputPaths": ["<root>/openspec/changes/discovered/proposal.md"]
+      },
+      "specs": {
+        "outputPath": "specs/**/*.md",
+        "resolvedOutputPath": "<root>/openspec/changes/discovered/specs/**/*.md",
+        "existingOutputPaths": []
+      },
+      "design": {
+        "outputPath": "design.md",
+        "resolvedOutputPath": "<root>/openspec/changes/discovered/design.md",
+        "existingOutputPaths": []
+      },
+      "tasks": {
+        "outputPath": "tasks.md",
+        "resolvedOutputPath": "<root>/openspec/changes/discovered/tasks.md",
+        "existingOutputPaths": ["<root>/openspec/changes/discovered/tasks.md"]
+      }
+    },
+    "isPlanningComplete": false,
+    "isComplete": false,
+    "applyRequires": ["tasks"],
+    "nextSteps": ["Run openspec instructions specs --change \"discovered\" --json before writing that artifact."],
+    "actionContext": {
+      "mode": "repo-local",
+      "sourceOfTruth": "repo",
+      "planningArtifacts": ["proposal", "specs", "design", "tasks"],
+      "linkedContext": [],
+      "allowedEditRoots": ["<root>"],
+      "requiresAffectedAreaSelection": false,
+      "constraints": ["Repo-local change artifacts and implementation edits are scoped to this project."]
+    },
+    "artifacts": [
+      {
+        "id": "proposal",
+        "outputPath": "proposal.md",
+        "status": "done",
+        "requires": []
+      },
+      {
+        "id": "specs",
+        "outputPath": "specs/**/*.md",
+        "status": "ready",
+        "requires": ["proposal"]
+      },
+      {
+        "id": "design",
+        "outputPath": "design.md",
+        "status": "ready",
+        "requires": ["proposal"]
+      },
+      {
+        "id": "tasks",
+        "outputPath": "tasks.md",
+        "status": "done",
+        "requires": ["specs", "design"]
+      }
+    ],
+    "root": {
+      "path": "<root>",
+      "source": "nearest"
+    }
+  },
+  "apply": {
+    "changeName": "discovered",
+    "changeDir": "<root>/openspec/changes/discovered",
+    "schemaName": "spec-driven",
+    "contextFiles": {
+      "proposal": ["<root>/openspec/changes/discovered/proposal.md"],
+      "tasks": ["<root>/openspec/changes/discovered/tasks.md"]
+    },
+    "progress": {
+      "total": 5,
+      "complete": 1,
+      "remaining": 4
+    },
+    "tasks": [
+      {
+        "id": "1",
+        "description": "1.1 Do the first thing",
+        "done": true,
+        "sourcePath": "<root>/openspec/changes/discovered/tasks.md",
+        "line": 5
+      },
+      {
+        "id": "2",
+        "description": "[blocks-PR] Fix the flaky check",
+        "done": false,
+        "sourcePath": "<root>/openspec/changes/discovered/tasks.md",
+        "line": 9
+      },
+      {
+        "id": "3",
+        "description": "[later] #1170 Verify on a real phone",
+        "done": false,
+        "sourcePath": "<root>/openspec/changes/discovered/tasks.md",
+        "line": 10
+      },
+      {
+        "id": "4",
+        "description": "[you] Approve the copy",
+        "done": false,
+        "sourcePath": "<root>/openspec/changes/discovered/tasks.md",
+        "line": 11
+      },
+      {
+        "id": "5",
+        "description": "An unmarked finding",
+        "done": false,
+        "sourcePath": "<root>/openspec/changes/discovered/tasks.md",
+        "line": 12
+      }
+    ],
+    "taskTrackingConfigured": true,
+    "state": "ready",
+    "missingPrerequisites": ["specs", "design"],
+    "warnings": [
+      "This change has no delta specs and does not declare `skip_specs: true`, so `openspec validate discovered` fails on it. Write the delta specs before implementing (`openspec instructions specs --change discovered`), or add `skip_specs: true` to <root>/openspec/changes/discovered/.openspec.yaml if this change really changes no specified behavior."
+    ],
+    "instruction": "Read context files, work through pending tasks, mark complete as you go.\nPause if you hit blockers or need clarification.",
+    "root": {
+      "path": "<root>",
+      "source": "nearest"
+    }
+  }
+}

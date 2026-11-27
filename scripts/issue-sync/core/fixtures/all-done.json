@@ -1,0 +1,121 @@
+{
+  "openspecVersion": "1.17.0",
+  "change": "all-done",
+  "status": {
+    "changeName": "all-done",
+    "schemaName": "spec-driven",
+    "planningHome": {
+      "kind": "repo",
+      "root": "<root>",
+      "changesDir": "<root>/openspec/changes",
+      "defaultSchema": "spec-driven"
+    },
+    "changeRoot": "<root>/openspec/changes/all-done",
+    "artifactPaths": {
+      "proposal": {
+        "outputPath": "proposal.md",
+        "resolvedOutputPath": "<root>/openspec/changes/all-done/proposal.md",
+        "existingOutputPaths": ["<root>/openspec/changes/all-done/proposal.md"]
+      },
+      "specs": {
+        "outputPath": "specs/**/*.md",
+        "resolvedOutputPath": "<root>/openspec/changes/all-done/specs/**/*.md",
+        "existingOutputPaths": []
+      },
+      "design": {
+        "outputPath": "design.md",
+        "resolvedOutputPath": "<root>/openspec/changes/all-done/design.md",
+        "existingOutputPaths": []
+      },
+      "tasks": {
+        "outputPath": "tasks.md",
+        "resolvedOutputPath": "<root>/openspec/changes/all-done/tasks.md",
+        "existingOutputPaths": ["<root>/openspec/changes/all-done/tasks.md"]
+      }
+    },
+    "isPlanningComplete": false,
+    "isComplete": false,
+    "applyRequires": ["tasks"],
+    "nextSteps": ["Run openspec instructions specs --change \"all-done\" --json before writing that artifact."],
+    "actionContext": {
+      "mode": "repo-local",
+      "sourceOfTruth": "repo",
+      "planningArtifacts": ["proposal", "specs", "design", "tasks"],
+      "linkedContext": [],
+      "allowedEditRoots": ["<root>"],
+      "requiresAffectedAreaSelection": false,
+      "constraints": ["Repo-local change artifacts and implementation edits are scoped to this project."]
+    },
+    "artifacts": [
+      {
+        "id": "proposal",
+        "outputPath": "proposal.md",
+        "status": "done",
+        "requires": []
+      },
+      {
+        "id": "specs",
+        "outputPath": "specs/**/*.md",
+        "status": "ready",
+        "requires": ["proposal"]
+      },
+      {
+        "id": "design",
+        "outputPath": "design.md",
+        "status": "ready",
+        "requires": ["proposal"]
+      },
+      {
+        "id": "tasks",
+        "outputPath": "tasks.md",
+        "status": "done",
+        "requires": ["specs", "design"]
+      }
+    ],
+    "root": {
+      "path": "<root>",
+      "source": "nearest"
+    }
+  },
+  "apply": {
+    "changeName": "all-done",
+    "changeDir": "<root>/openspec/changes/all-done",
+    "schemaName": "spec-driven",
+    "contextFiles": {
+      "proposal": ["<root>/openspec/changes/all-done/proposal.md"],
+      "tasks": ["<root>/openspec/changes/all-done/tasks.md"]
+    },
+    "progress": {
+      "total": 2,
+      "complete": 2,
+      "remaining": 0
+    },
+    "tasks": [
+      {
+        "id": "1",
+        "description": "1.1 Do the first thing",
+        "done": true,
+        "sourcePath": "<root>/openspec/changes/all-done/tasks.md",
+        "line": 5
+      },
+      {
+        "id": "2",
+        "description": "2.1 Do the third thing",
+        "done": true,
+        "sourcePath": "<root>/openspec/changes/all-done/tasks.md",
+        "line": 9
+      }
+    ],
+    "taskTrackingConfigured": true,
+    "state": "all_done",
+    "missingPrerequisites": ["specs", "design"],
+    "warnings": [
+      "This change has no delta specs and does not declare `skip_specs: true`, so `openspec validate all-done` fails on it. Write the delta specs before implementing (`openspec instructions specs --change all-done`), or add `skip_specs: true` to <root>/openspec/changes/all-done/.openspec.yaml if this change really changes no specified behavior."
+    ],
+    "instruction": "All tracked tasks are complete.\nReview or verify the change as appropriate before archiving.",
+    "root": {
+      "path": "<root>",
+      "source": "nearest"
+    }
+  }
+}

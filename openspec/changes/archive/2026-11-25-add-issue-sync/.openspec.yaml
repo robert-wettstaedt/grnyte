@@ -1,0 +1,14 @@
+schema: spec-driven
+created: 2026-11-17
+x-issue: 1166
+x-paths:
+  - scripts/issue-sync/**
+  - openspec/changes/add-issue-sync/**
+  - AGENTS.md
+  - .agents/skills/start-issue/**
+  - .claude/skills/start-issue
+  - .agents/skills/review-loop/SKILL.md
+  - vite.config.ts
+  - .fallowrc.jsonc
+  - package.json
+  - package-lock.json

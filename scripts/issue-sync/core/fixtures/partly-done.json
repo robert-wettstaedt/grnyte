@@ -1,0 +1,128 @@
+{
+  "openspecVersion": "1.17.0",
+  "change": "partly-done",
+  "status": {
+    "changeName": "partly-done",
+    "schemaName": "spec-driven",
+    "planningHome": {
+      "kind": "repo",
+      "root": "<root>",
+      "changesDir": "<root>/openspec/changes",
+      "defaultSchema": "spec-driven"
+    },
+    "changeRoot": "<root>/openspec/changes/partly-done",
+    "artifactPaths": {
+      "proposal": {
+        "outputPath": "proposal.md",
+        "resolvedOutputPath": "<root>/openspec/changes/partly-done/proposal.md",
+        "existingOutputPaths": ["<root>/openspec/changes/partly-done/proposal.md"]
+      },
+      "specs": {
+        "outputPath": "specs/**/*.md",
+        "resolvedOutputPath": "<root>/openspec/changes/partly-done/specs/**/*.md",
+        "existingOutputPaths": []
+      },
+      "design": {
+        "outputPath": "design.md",
+        "resolvedOutputPath": "<root>/openspec/changes/partly-done/design.md",
+        "existingOutputPaths": []
+      },
+      "tasks": {
+        "outputPath": "tasks.md",
+        "resolvedOutputPath": "<root>/openspec/changes/partly-done/tasks.md",
+        "existingOutputPaths": ["<root>/openspec/changes/partly-done/tasks.md"]
+      }
+    },
+    "isPlanningComplete": false,
+    "isComplete": false,
+    "applyRequires": ["tasks"],
+    "nextSteps": ["Run openspec instructions specs --change \"partly-done\" --json before writing that artifact."],
+    "actionContext": {
+      "mode": "repo-local",
+      "sourceOfTruth": "repo",
+      "planningArtifacts": ["proposal", "specs", "design", "tasks"],
+      "linkedContext": [],
+      "allowedEditRoots": ["<root>"],
+      "requiresAffectedAreaSelection": false,
+      "constraints": ["Repo-local change artifacts and implementation edits are scoped to this project."]
+    },
+    "artifacts": [
+      {
+        "id": "proposal",
+        "outputPath": "proposal.md",
+        "status": "done",
+        "requires": []
+      },
+      {
+        "id": "specs",
+        "outputPath": "specs/**/*.md",
+        "status": "ready",
+        "requires": ["proposal"]
+      },
+      {
+        "id": "design",
+        "outputPath": "design.md",
+        "status": "ready",
+        "requires": ["proposal"]
+      },
+      {
+        "id": "tasks",
+        "outputPath": "tasks.md",
+        "status": "done",
+        "requires": ["specs", "design"]
+      }
+    ],
+    "root": {
+      "path": "<root>",
+      "source": "nearest"
+    }
+  },
+  "apply": {
+    "changeName": "partly-done",
+    "changeDir": "<root>/openspec/changes/partly-done",
+    "schemaName": "spec-driven",
+    "contextFiles": {
+      "proposal": ["<root>/openspec/changes/partly-done/proposal.md"],
+      "tasks": ["<root>/openspec/changes/partly-done/tasks.md"]
+    },
+    "progress": {
+      "total": 3,
+      "complete": 2,
+      "remaining": 1
+    },
+    "tasks": [
+      {
+        "id": "1",
+        "description": "1.1 Do the first thing",
+        "done": true,
+        "sourcePath": "<root>/openspec/changes/partly-done/tasks.md",
+        "line": 5
+      },
+      {
+        "id": "2",
+        "description": "1.2 Do the second thing",
+        "done": true,
+        "sourcePath": "<root>/openspec/changes/partly-done/tasks.md",
+        "line": 6
+      },
+      {
+        "id": "3",
+        "description": "2.1 Do the third thing",
+        "done": false,
+        "sourcePath": "<root>/openspec/changes/partly-done/tasks.md",
+        "line": 10
+      }
+    ],
+    "taskTrackingConfigured": true,
+    "state": "ready",
+    "missingPrerequisites": ["specs", "design"],
+    "warnings": [
+      "This change has no delta specs and does not declare `skip_specs: true`, so `openspec validate partly-done` fails on it. Write the delta specs before implementing (`openspec instructions specs --change partly-done`), or add `skip_specs: true` to <root>/openspec/changes/partly-done/.openspec.yaml if this change really changes no specified behavior."
+    ],
+    "instruction": "Read context files, work through pending tasks, mark complete as you go.\nPause if you hit blockers or need clarification.",
+    "root": {
+      "path": "<root>",
+      "source": "nearest"
+    }
+  }
+}

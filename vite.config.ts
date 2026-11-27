@@ -17,6 +17,7 @@ import { powerSyncJspi, syncEngine, twinResolver, zeroClientGuard, zeroGuard } f
  */
 const NODE_ENVIRONMENT_TESTS = [
   'deployment/powersync/health.test.mjs',
+  'scripts/issue-sync/**/*.test.ts',
   'src/lib/components/Markdown/lib/remark-safe-urls.coverage.test.ts',
   'src/lib/db/regionPolicies.test.ts',
   'src/lib/db/scripts/migrations/migrate-promote-originals.test.ts',

@@ -7,6 +7,8 @@
     "src/lib/email/test-send.ts",
     "src/**/*.stories.svelte",
     "deployment/announce.ts",
+    // Run with tsx from the issues:* npm scripts and the launchd agent.
+    "scripts/issue-sync/cli/*.ts",
     "memlab/*.cjs",
     "stryker/vitest.config.ts",
     // Read by vite-plugin-pwa's `pwaAssets` option, never imported.
@@ -30,7 +32,13 @@
     "dev-dependencies-in-production": "off",
   },
   "health": {
-    "ignore": ["src/lib/db/scripts/**", "e2e/**"],
+    "ignore": [
+      "src/lib/db/scripts/**",
+      "e2e/**",
+      // The issue sync's edges call git, the OpenSpec CLI and GitHub; untested by design, checked by its dry run.
+      "scripts/issue-sync/edges/**",
+      "scripts/issue-sync/cli/sync.ts",
+    ],
   },
   "duplicates": {
     "mode": "mild",

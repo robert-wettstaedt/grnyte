@@ -166,6 +166,14 @@ Several agents share this repo and one local dev stack.
 - **The browser is exclusive**: close your pages and say "browser is free". If you could not drive,
   report a finding as read, not driven.
 - **Subagent fan-out shares the usage window**: keep it narrow, delegate via `/efficient-frontier`.
+- **Start roadmap work with `/start-issue <n>`** from the main checkout: it links the change to its
+  issue (`x-issue`), whose comment then shows the change's open tasks (`scripts/issue-sync/README.md`).
+- **Record found work before acting on it**: in scope, under `## Discovered` in `tasks.md`, marked
+  `[blocks-PR]`, `[later] #n` or `[you]`; out of scope, `npm run issues:followup`, never `gh issue create`.
+- **Stay inside the change's `x-paths`**; widen them in `.openspec.yaml` first. `npm run issues:gate -- <change>`
+  decides when a pull request may open.
+- **Nothing personal or environment-specific in anything written** (specs, tasks, comments, commits,
+  issues): no names, hostnames, local paths, addresses or keys. Task text becomes public on its issue.
 
 ---
 

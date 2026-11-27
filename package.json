@@ -25,6 +25,8 @@
     "coverage": "vitest run --coverage",
     "check": "npm run generate:paraglide && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:prod": "npx tsx deployment/check-prod.ts",
+    "issues:gate": "tsx scripts/issue-sync/cli/gate.ts",
+    "issues:typecheck": "tsc --noEmit -p scripts/issue-sync",
     "secrets:pull": "node deployment/secrets.mjs pull",
     "secrets:pull:dev": "BWS_ACCESS_TOKEN=$(security find-generic-password -s bws-grnyte-dev -w) npm run secrets:pull",
     "secrets:pull:prod": "BWS_ACCESS_TOKEN=$(security find-generic-password -s bws-grnyte-prod -w) npm run secrets:pull",
@@ -45,7 +47,11 @@
     "generate:pwa": "pwa-assets-generator",
     "machine-translate": "inlang machine translate --project project.inlang",
     "storybook": "BROWSER=none storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "issues:sync": "tsx scripts/issue-sync/cli/sync.ts",
+    "issues:setup-project": "tsx scripts/issue-sync/cli/setup-project.ts",
+    "issues:followup": "tsx scripts/issue-sync/cli/followup.ts",
+    "issues:status": "tsx scripts/issue-sync/cli/status.ts"
   },
   "dependencies": {
     "@fontsource/roboto": "^5.3.0",
@@ -162,7 +168,8 @@
     "workbox-expiration": "^7.4.1",
     "workbox-precaching": "^7.4.1",
     "workbox-routing": "^7.4.1",
-    "workbox-strategies": "^7.4.1"
+    "workbox-strategies": "^7.4.1",
+    "yaml": "^2.9.0"
   },
   "overrides": {
     "sharp": "^0.35.5"

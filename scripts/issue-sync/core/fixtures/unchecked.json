@@ -1,0 +1,128 @@
+{
+  "openspecVersion": "1.17.0",
+  "change": "unchecked",
+  "status": {
+    "changeName": "unchecked",
+    "schemaName": "spec-driven",
+    "planningHome": {
+      "kind": "repo",
+      "root": "<root>",
+      "changesDir": "<root>/openspec/changes",
+      "defaultSchema": "spec-driven"
+    },
+    "changeRoot": "<root>/openspec/changes/unchecked",
+    "artifactPaths": {
+      "proposal": {
+        "outputPath": "proposal.md",
+        "resolvedOutputPath": "<root>/openspec/changes/unchecked/proposal.md",
+        "existingOutputPaths": ["<root>/openspec/changes/unchecked/proposal.md"]
+      },
+      "specs": {
+        "outputPath": "specs/**/*.md",
+        "resolvedOutputPath": "<root>/openspec/changes/unchecked/specs/**/*.md",
+        "existingOutputPaths": []
+      },
+      "design": {
+        "outputPath": "design.md",
+        "resolvedOutputPath": "<root>/openspec/changes/unchecked/design.md",
+        "existingOutputPaths": []
+      },
+      "tasks": {
+        "outputPath": "tasks.md",
+        "resolvedOutputPath": "<root>/openspec/changes/unchecked/tasks.md",
+        "existingOutputPaths": ["<root>/openspec/changes/unchecked/tasks.md"]
+      }
+    },
+    "isPlanningComplete": false,
+    "isComplete": false,
+    "applyRequires": ["tasks"],
+    "nextSteps": ["Run openspec instructions specs --change \"unchecked\" --json before writing that artifact."],
+    "actionContext": {
+      "mode": "repo-local",
+      "sourceOfTruth": "repo",
+      "planningArtifacts": ["proposal", "specs", "design", "tasks"],
+      "linkedContext": [],
+      "allowedEditRoots": ["<root>"],
+      "requiresAffectedAreaSelection": false,
+      "constraints": ["Repo-local change artifacts and implementation edits are scoped to this project."]
+    },
+    "artifacts": [
+      {
+        "id": "proposal",
+        "outputPath": "proposal.md",
+        "status": "done",
+        "requires": []
+      },
+      {
+        "id": "specs",
+        "outputPath": "specs/**/*.md",
+        "status": "ready",
+        "requires": ["proposal"]
+      },
+      {
+        "id": "design",
+        "outputPath": "design.md",
+        "status": "ready",
+        "requires": ["proposal"]
+      },
+      {
+        "id": "tasks",
+        "outputPath": "tasks.md",
+        "status": "done",
+        "requires": ["specs", "design"]
+      }
+    ],
+    "root": {
+      "path": "<root>",
+      "source": "nearest"
+    }
+  },
+  "apply": {
+    "changeName": "unchecked",
+    "changeDir": "<root>/openspec/changes/unchecked",
+    "schemaName": "spec-driven",
+    "contextFiles": {
+      "proposal": ["<root>/openspec/changes/unchecked/proposal.md"],
+      "tasks": ["<root>/openspec/changes/unchecked/tasks.md"]
+    },
+    "progress": {
+      "total": 3,
+      "complete": 0,
+      "remaining": 3
+    },
+    "tasks": [
+      {
+        "id": "1",
+        "description": "1.1 Do the first thing",
+        "done": false,
+        "sourcePath": "<root>/openspec/changes/unchecked/tasks.md",
+        "line": 5
+      },
+      {
+        "id": "2",
+        "description": "1.2 Do the second thing",
+        "done": false,
+        "sourcePath": "<root>/openspec/changes/unchecked/tasks.md",
+        "line": 6
+      },
+      {
+        "id": "3",
+        "description": "2.1 Do the third thing",
+        "done": false,
+        "sourcePath": "<root>/openspec/changes/unchecked/tasks.md",
+        "line": 10
+      }
+    ],
+    "taskTrackingConfigured": true,
+    "state": "ready",
+    "missingPrerequisites": ["specs", "design"],
+    "warnings": [
+      "This change has no delta specs and does not declare `skip_specs: true`, so `openspec validate unchecked` fails on it. Write the delta specs before implementing (`openspec instructions specs --change unchecked`), or add `skip_specs: true` to <root>/openspec/changes/unchecked/.openspec.yaml if this change really changes no specified behavior."
+    ],
+    "instruction": "Read context files, work through pending tasks, mark complete as you go.\nPause if you hit blockers or need clarification.",
+    "root": {
+      "path": "<root>",
+      "source": "nearest"
+    }
+  }
+}
