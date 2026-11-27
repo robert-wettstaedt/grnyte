@@ -76,3 +76,15 @@ Checked and sound, per the reviewer: every stream query bounded by `auth.user_id
 - 6.4 e2e, PowerSync build (`PUBLIC_ZERO_URL` at a closed port, PowerSync on :58100, zero-cache not required): the same 28 passed, `invite.spec.ts` the same mail-only failure.
 - 6.5 Runtime, PowerSync build: after sign-in, feed and route pages, `window.__zero` undefined, no request to the zero-cache origin, reads through `readQuery`; a signed-in tab holds only its PowerSync file in IndexedDB. Control, Zero build: `window.__zero` an object, connection `connected`, no `readQuery`.
 - 6.6 Drives, Chrome. PowerSync build at 375x667: map synced, feed, emoji added and kept after the refetch then removed, favorite on and off held across the sync, an attempt logged through the form and synced back, then deleted. At 1280x800: inbox, and a comment another member (second session) posted appeared in the open thread within a second, report button present, comment deleted; sign-out lands on `/` and drops the account's PowerSync file (`replicache-dbs-v0` appears then: the unchanged wipe's `dropAllDatabases` creates it). Zero build: feed at 375 and 1280, favorite on and off at 375. Not driven: the "N new" feed pill from a second account's write, and a report submitted. Every write was reverted; the inbox open marked two notifications read.
+
+## Code review loop
+
+Simplify pass (five reviewers): three restating comments deleted, nothing else. Round 0 (thermo, `973ee3ec`) and round 1 (code, drive, security, `fe6a5b0f`), all on opus; round 1 clean.
+
+| #   | raised by | file:line                                                        | severity | claim                                                               | status       | reason/evidence                                                            |
+| --- | --------- | ---------------------------------------------------------------- | -------- | ------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------- |
+| C1  | thermo    | src/lib/zero/server/syncMutate.server.ts:63                      | nit      | A scrubbed refusal left no log, unlike `/api/zero/mutate`.          | fixed        | Logs `[sync-mutate] unauthored refusal`, as the Zero route logs its scrub. |
+| C2  | code      | vite.sync-engine.ts:47-48                                        | nit      | The guard's error omitted the refused import, unlike `zeroGuard`.   | fixed        | The message names the specifier.                                           |
+| C3  | drive     | src/routes/(app)/(shell)/(explore)/Modal/Modal.desktop.svelte:38 | nit      | At 1280x800 offline, the explore side panel covers the offline bar. | out of scope | The file is untouched by this change; a follow-up.                         |
+
+The drive (PowerSync build, both viewports, both themes, en and de) covered the feed's "N new" pill from a second account and a submitted report, which section 6 had not driven.
