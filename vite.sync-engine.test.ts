@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { syncEngine, twinResolver, ZERO_CLIENT_IMPORTERS, zeroClientGuard, zeroGuard } from './vite.sync-engine'
+import { syncEngine, twinResolver, zeroClientGuard, zeroGuard } from './vite.sync-engine'
 
 /** Calls a plugin's `resolveId` the way Vite does, with `this.resolve` mapping a specifier to `resolved`. */
 async function resolve(
@@ -76,22 +76,26 @@ describe('zeroGuard', () => {
 describe('zeroClientGuard', () => {
   const client = '/app/src/lib/zero/z.svelte.ts'
 
-  it('refuses the Zero client to a module that is not listed, and names it', async () => {
+  it('refuses the Zero client to every module, the engine too, and names it', async () => {
     await expect(resolve(zeroClientGuard(), './z.svelte', '/app/src/lib/zero/new.ts', client)).rejects.toThrow(
       /src\/lib\/zero\/new\.ts/,
     )
+    await expect(
+      resolve(zeroClientGuard(), '$lib/zero/z.svelte', '/app/src/lib/state/engine.powersync.ts?v=1', client),
+    ).rejects.toThrow(/src\/lib\/state\/engine\.powersync\.ts/)
   })
 
-  it('lets a listed module through, with a query suffix too, and any other import', async () => {
-    const listed = `/app/${ZERO_CLIENT_IMPORTERS[0]}`
+  it('refuses zero-svelte, which is the client itself', async () => {
+    await expect(
+      resolve(zeroClientGuard(), 'zero-svelte', '/app/src/x.ts', '/app/node_modules/zero-svelte/dist/index.js'),
+    ).rejects.toThrow(/src\/x\.ts/)
+  })
 
-    expect(await resolve(zeroClientGuard(), '$lib/zero/z.svelte', listed, client)).toBeNull()
-    expect(await resolve(zeroClientGuard(), '$lib/zero/z.svelte', `${listed}?v=1`, client)).toBeNull()
+  it('lets the Zero package and any other import through', async () => {
+    const zero = '/app/node_modules/@rocicorp/zero/out/zero.js'
+
+    expect(await resolve(zeroClientGuard(), '@rocicorp/zero', '/app/src/lib/state/pwa/wipe.ts', zero)).toBeNull()
     expect(await resolve(zeroClientGuard(), './other', '/app/src/x.ts', '/app/src/lib/other.ts')).toBeNull()
-  })
-
-  it.each([...ZERO_CLIENT_IMPORTERS])('lists %s only while it imports the client', (file) => {
-    expect(readFileSync(file, 'utf8')).toMatch(/from ['"][^'"]*\/z\.svelte['"]/)
   })
 })
 

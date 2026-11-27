@@ -201,12 +201,11 @@ thing a resource queries.
 
 **zero-cache** / **Zero client**
 The engine being replaced, server and client half. Production reads and writes all go through it until
-the PWA switches to PowerSync. The PowerSync build sends no write and no read through the Zero client; it
-still starts one that nothing there reads; PowerSync reports the connection there, and
-`ZERO_CLIENT_IMPORTERS` (`vite.sync-engine.ts`) lists what is left.
+the PWA switches to PowerSync. The PowerSync build starts no Zero client; it still runs Zero's query
+definitions and server mutators on the app server until R3.
 
 **engine switch**
-`PUBLIC_SYNC_ENGINE`, read when the app is built: `zero` (unset, every deployment) or `powersync`. One
+`PUBLIC_SYNC_ENGINE`, read when the app is built: `zero` (unset; production until the cutover) or `powersync` (previews and local). One
 engine's reads per build; a Zero build contains none of PowerSync.
 
 **engine seam**

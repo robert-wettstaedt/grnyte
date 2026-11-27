@@ -1,0 +1,14 @@
+schema: spec-driven
+created: 2026-11-27
+x-issue: 1183
+x-paths:
+  - src/lib/state/engine.powersync.ts
+  - src/lib/state/engine.powersync.svelte.test.ts
+  - src/lib/zero/z.svelte.ts
+  - src/lib/zero/z.svelte.test.ts
+  - vite.sync-engine.ts
+  - vite.sync-engine.test.ts
+  - e2e/support.ts
+  - AGENTS.md
+  - CONTEXT.md
+  - openspec/changes/migrate-sync-to-powersync-milestone/roadmap.md

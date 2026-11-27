@@ -6,7 +6,6 @@ import { flushSync } from 'svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { stubIndexedDb } from './indexedDbStub.test-helper'
 
-// The edges: the SDK, the Zero client, the environment, Kit's query proxy and the exit, which jsdom cannot follow.
 const exit = vi.hoisted(() => ({ leaving: false, to: [] as (string | undefined)[] }))
 vi.mock('$lib/state/pwa/wipe', () => ({
   isLeaving: () => exit.leaving,
@@ -23,16 +22,6 @@ vi.mock('$lib/zero/read.remote', () => ({
   readQuery: () => {
     const proxy = { current: [], error: undefined as unknown, refresh: async () => void (proxy.error = remote.error) }
     return proxy
-  },
-}))
-vi.mock('zero-svelte', () => ({
-  Z: class {
-    connection = { connect: async () => {}, state: { subscribe: () => () => {} } }
-    get userID() {
-      return this.options.userID
-    }
-    constructor(readonly options: { userID: string }) {}
-    close = () => {}
   },
 }))
 vi.mock('@powersync/web', async (original) => ({

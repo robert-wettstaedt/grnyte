@@ -17,7 +17,6 @@ import { checkSession, type Checked } from '$lib/zero/checkSession'
 import type { ConnectionName } from '$lib/zero/connection'
 import { refreshReads, setReadUser } from '$lib/zero/source.powersync.svelte'
 import { setWriteToken } from '$lib/zero/write.powersync'
-import { initZero } from '$lib/zero/z.svelte'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 
 /** A stuck clear must not keep the next account on the old screen. */
@@ -66,7 +65,7 @@ export function sessionMoved(next: null | Session, shown: null | Session | undef
 }
 
 /** Answers the session the screens are to show when it is not the one given, and never answers while the tab leaves:
- *  no screen may see another account's session. Nothing in this build reads the Zero client it still starts. */
+ *  no screen may see another account's session. */
 export function start(
   session: null | Session | undefined,
   supabase: SupabaseClient,
@@ -102,7 +101,6 @@ export function start(
     // shortcut: dev falls back to the local service until PUBLIC_POWERSYNC_URL is in every .env.
     endpoint: env.PUBLIC_POWERSYNC_URL || (dev ? 'http://localhost:58100' : ''),
   })
-  initZero(session, { preload: false })
 }
 
 /** What is stored for this document's account; a document that started signed in and finds nothing leaves. */
