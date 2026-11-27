@@ -26,8 +26,9 @@ Zero sync (<https://zero.rocicorp.dev/llms.txt>), Supabase, Drizzle ORM.
   `<entity>/mutators.server.ts`, aggregated in `$lib/zero/mutators*.ts`. The server def wraps a
   handler from `<entity>/*.server.ts` in `asCaller` (RLS), or `asPrivileged` only where the body
   used `pinnedTx` or a merge repoints other people's rows after caller-run gates; `gates.test.ts`
-  holds both to a named gate. Toggles write optimistically; forms, creates and deletes await
-  `.server` (ids are serial). Remote functions remain for auth/account, upload steps,
+  holds both to a named gate. Toggles write optimistically (a toggle on a synced row shows its tap
+  through `createWanted`, `$lib/state/wanted.svelte`, so the PowerSync build keeps it); forms,
+  creates and deletes await `.server` (ids are serial). Remote functions remain for auth/account, upload steps,
   `sendTestPush`, `replyToFeedback` and remote reads; every new server-owned auth step also gets an
   `/api/app/v1/` endpoint through `appEndpoint`, over the same handler body. Components write
   through the entity's `writes.ts`, never `mutators` or `write` directly. In the PowerSync build `write()`

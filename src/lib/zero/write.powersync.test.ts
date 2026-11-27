@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { authClient } from './authClient.test-helper'
 import { checkSession } from './checkSession'
 import { mutators } from './mutators'
-import { setWriteToken, write } from './write.powersync'
+import { forgetUnanswered, setWriteToken, write } from './write.powersync'
 
 let online = true
 vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => online }))
@@ -267,5 +267,137 @@ describe('a refused token, over the stored session', () => {
 
     await expect(save()).rejects.toEqual(unreached)
     expect(state.stored).toEqual(stored)
+  })
+})
+
+describe('the same write made again after a failure', () => {
+  const unsave = () => write(mutators.favorites.set({ ...favorite, saved: false }))
+  /** Three sends with no answer, so the client reports a failure. */
+  const unanswered = async (made: () => Promise<unknown>) => {
+    answers = [unreachable]
+    const result = expect(made()).rejects.toEqual(unreached)
+    await vi.advanceTimersByTimeAsync(5000)
+    await result
+    answers = [reply(200, { data: null })]
+  }
+  const ids = () => sent.map(({ body }) => body.id)
+
+  it('goes out under the failed write id, so a committed write is not applied twice', async () => {
+    await unanswered(save)
+    await save()
+
+    expect(ids()).toHaveLength(4)
+    expect(new Set(ids()).size).toBe(1)
+  })
+
+  it('gets a new id when another write began while it was still being resent', async () => {
+    answers = [unreachable]
+    const saving = expect(save()).rejects.toEqual(unreached)
+    await vi.advanceTimersByTimeAsync(0)
+    answers = [reply(200, { data: null })]
+    await unsave()
+    answers = [unreachable]
+    await vi.advanceTimersByTimeAsync(5000)
+    await saving
+    answers = [reply(200, { data: null })]
+    await save()
+
+    const saves = sent.filter(({ body }) => (body.args as typeof favorite).saved)
+    expect(saves.at(-1)!.body.id).not.toBe(saves[0].body.id)
+  })
+
+  it('gets a new id once a resend of it was answered', async () => {
+    await unanswered(save)
+    await save()
+    await save()
+
+    expect(ids()[4]).not.toBe(ids()[0])
+  })
+
+  it('gets a new id once a resend of it was refused', async () => {
+    await unanswered(save)
+    answers = [reply(403, { message: general })]
+    await expect(save()).rejects.toBeTruthy()
+    answers = [reply(200, { data: null })]
+    await save()
+
+    expect(ids()[4]).not.toBe(ids()[0])
+  })
+
+  it('gets a new id with other arguments', async () => {
+    await unanswered(save)
+    await unsave()
+
+    expect(ids()[3]).not.toBe(ids()[0])
+  })
+
+  it('gets a new id when another write came in between', async () => {
+    await unanswered(save)
+    await unsave()
+    await save()
+
+    expect(ids()[4]).not.toBe(ids()[0])
+  })
+
+  it('never shares an id between two copies in flight at once', async () => {
+    await Promise.all([save(), save()])
+
+    expect(ids()[1]).not.toBe(ids()[0])
+  })
+
+  it('keeps its id through a refusal while offline', async () => {
+    await unanswered(save)
+    online = false
+    await expect(save()).rejects.toEqual(offline)
+    online = true
+    await save()
+
+    expect(ids()[3]).toBe(ids()[0])
+  })
+
+  it("does not keep the id of a write refused for another account's token", async () => {
+    await unanswered(save)
+    token.mockResolvedValueOnce({ token: 'token-b', userId: 'user-b' })
+    await expect(save()).rejects.toBeTruthy()
+    await save()
+
+    expect(ids()[3]).not.toBe(ids()[0])
+  })
+
+  it('gives the waiting id to one of two copies in flight at once, never to both', async () => {
+    await unanswered(save)
+    await Promise.all([save(), save()])
+
+    expect(ids()[3]).toBe(ids()[0])
+    expect(ids()[4]).not.toBe(ids()[3])
+  })
+
+  it('gets a new id a minute after the failure', async () => {
+    await unanswered(save)
+    await vi.advanceTimersByTimeAsync(60_000)
+    await save()
+
+    expect(ids()[3]).not.toBe(ids()[0])
+  })
+
+  it('gets a new id once the row may have changed elsewhere', async () => {
+    await unanswered(save)
+    forgetUnanswered()
+    await save()
+
+    expect(ids()[3]).not.toBe(ids()[0])
+  })
+
+  it('gets a new id when the row changed elsewhere while the failed write was still being resent', async () => {
+    answers = [unreachable]
+    const saving = expect(save()).rejects.toEqual(unreached)
+    await vi.advanceTimersByTimeAsync(0)
+    forgetUnanswered()
+    await vi.advanceTimersByTimeAsync(5000)
+    await saving
+    answers = [reply(200, { data: null })]
+    await save()
+
+    expect(ids()[3]).not.toBe(ids()[0])
   })
 })

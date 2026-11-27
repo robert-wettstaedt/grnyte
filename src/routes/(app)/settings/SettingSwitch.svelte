@@ -1,13 +1,11 @@
 <!--
   A settings row that is a boolean.
 
-  Optimistic and self-reverting, the same contract as `SettingSelect`'s callers: the command is
-  RLS-gated with no Zero optimism, so the switch moves immediately and moves back if the write is
-  refused. Owning the revert here rather than at each call site is the point, since four switches
-  hand-rolling the same try/catch is four chances to forget the catch.
+  Optimistic and self-reverting: the switch moves immediately, holds until the synced value agrees,
+  and moves back with a toast if the write is refused (`createWanted`).
 -->
 <script lang="ts">
-  import { notifyError } from '$lib/state/toast/toast'
+  import { createWanted } from '$lib/state/wanted.svelte'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
@@ -24,22 +22,10 @@
 
   const { checked, disabled = false, hint, label, onchange }: Props = $props()
 
-  // Writable derived: the switch moves under the finger rather than waiting for the round trip,
-  // and falls back to the synced value whenever that changes, which is how a change made on
-  // another device lands here without this component having to notice.
-  let value = $derived(checked)
-
-  const onCheckedChange = async (next: boolean) => {
-    const previous = value
-    value = next
-
-    try {
-      await onchange(next)
-    } catch (cause) {
-      value = previous
-      notifyError(cause)
-    }
-  }
+  const value = createWanted(
+    () => checked,
+    () => label,
+  )
 </script>
 
 <!-- The track and the thumb carry no classes of their own: Skeleton already styles every part of
@@ -47,9 +33,9 @@
      `translate-x-*` on top of it did not replace that transform, it stacked with it. Same shape
      as the app's other switches (see ShareSheet). -->
 <Switch
-  checked={value}
+  checked={value.value}
   {disabled}
-  onCheckedChange={(details) => onCheckedChange(details.checked)}
+  onCheckedChange={(details) => value.set(details.checked, () => onchange(details.checked))}
   class="flex items-center justify-between gap-4 p-4"
 >
   <!-- The type is the one thing spelled out: Skeleton's own label is `text-xs font-medium`, which
