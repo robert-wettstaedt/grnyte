@@ -6,18 +6,16 @@
   then it is still the thing we hand out.
 -->
 <script lang="ts">
-  import { browser } from '$app/environment'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
-  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { FileVisibility, MediaFile } from '$lib/entities/file/dto'
   import { setFileVisibility } from '$lib/entities/file/writes'
   import { m } from '$lib/paraglide/messages'
-  import { createCopyButton } from '$lib/state/clipboard.svelte'
+  import { createShare } from '$lib/state/clipboard.svelte'
   import { motion } from '$lib/state/motion.svelte'
-  import { notifyError } from '$lib/state/toast/toast'
+  import { createWanted } from '$lib/state/wanted.svelte'
   import { videoView } from '$lib/videos/view.svelte'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
   import { slide } from 'svelte/transition'
@@ -47,11 +45,12 @@
     shareText,
   }: Props = $props()
 
-  let saving = $state(false)
-
-  // Private unless EXPLICITLY 'public' (see MediaFile.visibility). Reads straight
-  // off the synced row so the switch reflects the persisted state.
-  const isPublic = $derived(file.visibility === 'public')
+  // Private unless EXPLICITLY 'public' (see MediaFile.visibility).
+  const visibility = createWanted(
+    () => file.visibility === 'public',
+    () => file.id,
+  )
+  const isPublic = $derived(visibility.value)
   const isVideo = $derived(file.bunnyStreamFk != null)
   /** A link shared now opens on the preparing state, or on a dead page, so say which. The two need
    *  separate wording, because a failed video is never going to be prepared. */
@@ -65,27 +64,19 @@
   const duration = $derived(motion(150))
 
   const shareUrl = $derived(page.url.origin + resolve('/f/[id]', { id: file.id }))
-  const shareData = $derived<ShareData>({ text: shareText, title: PUBLIC_APPLICATION_NAME, url: shareUrl })
-  // Web Share is mostly mobile; elsewhere we fall back to copying the link.
-  const canShare = $derived(browser && navigator.canShare?.(shareData) === true)
+  const sharing = createShare(
+    () => shareText,
+    () => shareUrl,
+  )
 
-  const clip = createCopyButton()
-
-  // Rejects when the user dismisses the share sheet; nothing to recover from.
-  const share = () => void navigator.share(shareData).catch(() => {})
-
-  const setVisibility = async (next: boolean) => {
-    if (saving) return
-    saving = true
-    try {
-      const visibility = next ? 'public' : 'private'
-      await persist(file.id, visibility)
-      onVisibilityChange?.(visibility)
-    } catch (cause) {
-      notifyError(cause)
-    } finally {
-      saving = false
-    }
+  // The file is taken at the tap: the write may wait for an earlier one, and the viewer may have moved on by then.
+  const setVisibility = (next: boolean) => {
+    const fileId = file.id
+    const value = next ? 'public' : 'private'
+    return visibility.set(next, async () => {
+      await persist(fileId, value)
+      onVisibilityChange?.(value)
+    })
   }
 </script>
 
@@ -115,7 +106,6 @@
     {#if canEdit}
       <Switch
         checked={isPublic}
-        disabled={saving}
         class="border-surface-200-800 flex w-full items-center justify-between gap-3 border-y py-3"
         onCheckedChange={(details) => setVisibility(details.checked)}
       >
@@ -145,17 +135,17 @@
     {/if}
 
     {#if isPublic}
-      <div class="space-y-2">
+      <div class="space-y-2" transition:slide={{ duration }}>
         <div class="border-surface-200-800 bg-surface-100-900 truncate rounded border px-3 py-2 text-sm">
           {shareUrl}
         </div>
         <div class="flex gap-2">
-          <button type="button" class="btn preset-filled flex-1 gap-2" onclick={() => clip.copy(shareUrl)}>
-            <Icon name={clip.copied ? 'check' : 'copy'} size={18} />
-            <span aria-live="polite">{clip.copied ? m.share_linkCopied() : m.share_copyLink()}</span>
+          <button type="button" class="btn preset-filled flex-1 gap-2" onclick={sharing.copy}>
+            <Icon name={sharing.copied ? 'check' : 'copy'} size={18} />
+            <span aria-live="polite">{sharing.copied ? m.share_linkCopied() : m.share_copyLink()}</span>
           </button>
-          {#if canShare}
-            <button type="button" class="btn preset-tonal" aria-label={m.share_share()} onclick={share}>
+          {#if sharing.canShare}
+            <button type="button" class="btn preset-tonal" aria-label={m.share_share()} onclick={sharing.share}>
               <Icon name="share" size={18} />
             </button>
           {/if}

@@ -21,6 +21,14 @@ const SEND_LIMIT_MS = 15_000
 let readSession: ReadSession = async () => undefined
 let startedUserId: string | undefined
 let checkStored: CheckStored = async () => 'unreadable'
+/** The last write that got no answer: made again as is, it keeps its id, so a write that did commit applies once. */
+let unanswered: undefined | { at: number; id: string; key: string }
+/** A retry follows its error within seconds; later, the row may have moved elsewhere and the stored answer be stale. */
+const UNANSWERED_KEEP_MS = 60_000
+/** Writes begun: one begun while another was out means the other is no longer the last word. */
+let begun = 0
+/** Moves on every forget: a write that ends unanswered after one must not keep its id either. */
+let forgotten = 0
 
 type Answer = {
   json?: { data?: unknown; field?: null | string; message?: string }
@@ -28,6 +36,12 @@ type Answer = {
   status: number
   /** What the request was sent with. */
   token: string
+}
+
+/** The row a kept id was for may have changed elsewhere: its stored answer could be stale. */
+export function forgetUnanswered(): void {
+  unanswered = undefined
+  forgotten++
 }
 
 /** Where the access token comes from (rejects when it cannot be read now), the account every write of this document
@@ -46,31 +60,41 @@ export async function write<T = void>(mutation: Mutation, opts?: WriteOptions<T>
 
   // The registry's own request object, as Zero's client reads it; its type names neither field.
   const { args, mutator } = mutation as unknown as { args: unknown; mutator: { mutatorName: string } }
-  const data = (await deliver(JSON.stringify({ args, id: randomId(), name: mutator.mutatorName }))) as T
+  const key = mutator.mutatorName + JSON.stringify(args)
+  const kept = unanswered?.key === key && Date.now() - unanswered.at < UNANSWERED_KEEP_MS
+  const id = kept ? unanswered!.id : randomId()
+  unanswered = undefined
+  const turn = ++begun
+  const forgets = forgotten
+  const answer = await deliver(JSON.stringify({ args, id, name: mutator.mutatorName }))
+  if (answer == null) {
+    if (turn === begun && forgets === forgotten) unanswered = { at: Date.now(), id, key }
+    // Online, only the app server failed: the offline flag would hide a form until the device's state changes.
+    throw isOnline() ? refusal() : offlineRejection
+  }
+  if (!answer.ok) throw refusal(answer.json?.message, answer.json?.field)
   refreshReads()
-  return answered(data, opts)
+  return answered(answer.json?.data as T, opts)
 }
 
-/** Sends until the server answers; a write that never arrives is refused. */
-async function arrive(body: string): Promise<Answer> {
+/** Sends until the server answers; `undefined` when it never did. */
+async function arrive(body: string): Promise<Answer | undefined> {
   for (const wait of [...RESEND_AFTER_MS, undefined]) {
     const answer = await send(body)
     if (answer != null && answer.status < 500) return answer
     if (wait != null) await new Promise((resolve) => setTimeout(resolve, wait))
   }
-  // Online, only the app server failed: the offline flag would hide a form until the device's state changes.
-  throw isOnline() ? refusal() : offlineRejection
 }
 
-async function deliver(body: string): Promise<unknown> {
+/** The final answer, after one renewal of a refused token; `undefined` when none arrived. */
+async function deliver(body: string): Promise<Answer | undefined> {
   let answer = await arrive(body)
   // Renewed for real: reading an ended session again answers the same token until it expires.
-  if (answer.status === 401) {
+  if (answer?.status === 401) {
     await checkStored(answer.token)
     answer = await arrive(body)
   }
-  if (answer.ok) return answer.json?.data
-  throw refusal(answer.json?.message, answer.json?.field)
+  return answer
 }
 
 /** `undefined` when no whole answer arrived. The token is read for every send: one may have been renewed, and

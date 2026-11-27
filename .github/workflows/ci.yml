@@ -109,6 +109,12 @@ jobs:
       - name: Run tests
         run: npm test
 
+      # Every test that writes through `zeroClient` lives here; this sends it through /api/sync/mutate.
+      - name: Run the writing tests through the write route
+        run: npx vitest run --project server src/lib/entities src/lib/remote
+        env:
+          MUTATE_ROUTE: sync
+
       - name: Run checks
         run: npm run check
 

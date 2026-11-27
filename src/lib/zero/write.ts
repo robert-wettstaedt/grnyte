@@ -7,6 +7,9 @@ export { offlineRejection, type WriteRejection }
 
 type Mutation = Parameters<ReturnType<typeof getZ>['mutate']>[0]
 
+/** Zero keeps no write id for a retry, so there is nothing to forget (see `write.powersync.ts`). */
+export function forgetUnanswered(): void {}
+
 /**
  * Runs a mutation and answers like a remote command: its `data` on success, a {@link WriteRejection}
  * with our message on a refusal, the offline message when Zero could not take it. Refused before

@@ -228,7 +228,8 @@ current position so a client can wait for a write the app server just committed.
 `/api/zero/mutate` would, for the caller a Bearer token names, and never reads a cookie.
 
 **write id**
-The id a client makes for one write and sends with every copy of it. The app server records it with the
+The id a client makes for one write and sends with every copy of it, and with the same write made again
+right after it was reported as failed. The app server records it with the
 write (`applied_writes`, 30 days), so a write sent twice applies once and gets the first answer.
 
 **server read**

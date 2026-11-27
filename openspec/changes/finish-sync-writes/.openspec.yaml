@@ -1,0 +1,20 @@
+schema: spec-driven
+created: 2026-11-26
+x-issue: 1179
+x-paths:
+  - src/lib/state/wanted.svelte.ts
+  - src/lib/state/wanted.svelte.test.ts
+  - src/lib/entities/favorite/save.powersync.svelte.ts
+  - src/lib/entities/favorite/save.powersync.svelte.test.ts
+  - src/lib/components/Media/ShareSheet.svelte
+  - src/routes/(app)/settings/SettingSwitch.svelte
+  - src/lib/zero/write.powersync.ts
+  - src/lib/zero/write.ts
+  - src/lib/zero/write.powersync.test.ts
+  - .github/workflows/ci.yml
+  - AGENTS.md
+  - CONTEXT.md
+  - src/lib/components/ShareButton/ShareButton.svelte
+  - src/lib/state/clipboard.svelte.ts
+  - src/lib/state/clipboard.svelte.test.ts
+  - .fallow-dupes-baseline.json

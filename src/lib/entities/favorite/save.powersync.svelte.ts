@@ -1,4 +1,4 @@
-import { notifyError } from '$lib/state/toast/toast'
+import { createWanted } from '$lib/state/wanted.svelte'
 import { isFavorited, saveCount } from './resources.powersync.svelte'
 import { saveFavorite } from './writes'
 
@@ -20,23 +20,17 @@ export function createSaveState(
 ): SaveState {
   const favorited = isFavorited(userId, entityType, entityId)
   const count = saveCount(entityType, entityId)
-  const key = () => `${entityType()}:${entityId()}`
-  let wanted = $state.raw<{ key: string; saved: boolean }>()
-  // Held while writes are out: a second tap can agree with the stale read before the first write syncs back.
-  let writing = $state(0)
-  const unsynced = $derived(
-    wanted?.key === key() && (writing > 0 || wanted.saved !== favorited.data) ? wanted.saved : undefined,
+  const saved = createWanted(
+    () => favorited.data,
+    () => `${entityType()}:${entityId()}`,
   )
-  // Dropped once the read agrees: kept, it would resurface when another device later flips the same save.
-  $effect(() => {
-    if (wanted != null && unsynced == null) wanted = undefined
-  })
 
   return {
     // 0 (no badge) until it is whole: your own row alone read as "1".
     get count() {
       if (count.phase.kind !== 'answered') return 0
       // Only the difference the read has not seen yet: it may already hold the write, or be a tap behind.
+      const unsynced = saved.unsynced
       return unsynced == null ? count.data : count.data + Number(unsynced) - Number(favorited.data)
     },
     /** Loading only, not unanswered: Zero clears `complete` on its own background-tab disconnect. */
@@ -44,24 +38,16 @@ export function createSaveState(
       return favorited.phase.kind === 'loading'
     },
     get saved() {
-      return unsynced ?? favorited.data
+      return saved.value
     },
     toggle: async () => {
       const id = userId()
       if (id == null) {
         return
       }
-      const next = { key: key(), saved: !(unsynced ?? favorited.data) }
-      wanted = next
-      writing++
-      try {
-        await saveFavorite({ entityId: entityId(), entityType: entityType(), saved: next.saved, userId: id })
-      } catch (cause) {
-        if (wanted === next) wanted = undefined
-        notifyError(cause)
-      } finally {
-        writing--
-      }
+      // Taken at the tap: the write may wait for an earlier one, and the page may show another entity by then.
+      const favorite = { entityId: entityId(), entityType: entityType(), saved: !saved.value, userId: id }
+      await saved.set(favorite.saved, () => saveFavorite(favorite))
     },
   }
 }
