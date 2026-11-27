@@ -92,10 +92,15 @@ A server read on screen SHALL be fetched again after the member's own write succ
 - **WHEN** a member has a block's page open with its log in a PowerSync build, and another member of the region renames that block
 - **THEN** the log and the "last edited" line show the rename within a few seconds, without a reload or a write of their own
 
+#### Scenario: Another member comments in an open thread
+
+- **WHEN** a member has an event's thread open in a PowerSync build, and another member of the region comments on that event, answers a comment in it, or deletes a comment in it
+- **THEN** the thread and the card's comment count show it within a few seconds, without a reload or a write of their own
+
 #### Scenario: Only the reads the marker covers
 
-- **WHEN** the events marker of a member's region moves while the feed and the inbox are open in a PowerSync build
-- **THEN** the event reads are fetched again and the inbox and the unread count are not
+- **WHEN** the events marker of a member's region moves while the feed, an open thread and the inbox are on screen in a PowerSync build
+- **THEN** the event reads and the thread are fetched again and the inbox and the unread count are not
 
 #### Scenario: Only the reads the account's marker covers
 
@@ -105,7 +110,7 @@ A server read on screen SHALL be fetched again after the member's own write succ
 #### Scenario: A move while hidden
 
 - **WHEN** the events marker moves while the member's app is hidden, and the member shows it again before the time away counts as stale
-- **THEN** nothing is fetched while hidden, and the event reads on screen are fetched once on return
+- **THEN** nothing is fetched while hidden, and the event reads and threads on screen are fetched once on return
 
 ### Requirement: The feed's "N new" pill and seen mark work in either build
 
