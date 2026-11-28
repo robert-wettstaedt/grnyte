@@ -24,20 +24,30 @@ x-paths:
   - src/lib/state/engine.ts
   - src/lib/state/engine.powersync.ts
   - src/lib/state/pwa/wipe.ts
-  - src/lib/entities/ascent/
-  - src/lib/components/WriteOutcomes/
+  - src/lib/entities/ascent/**
+  - src/lib/components/WriteOutcomes/**
   - src/routes/(app)/+layout.svelte
-  - src/routes/(app)/routes/[id]/ascents/add/+page.svelte
+  - src/routes/(app)/routes/*/ascents/add/+page.svelte
   - src/routes/(app)/settings/+page.svelte
   - src/routes/(app)/regions/new/+page.svelte
   - src/routes/(landing)/invite/accept/+page.svelte
   - src/routes/(landing)/auth/profile/+page.svelte
-  - src/routes/(app)/routes/[id]/ascents/+page.svelte
+  - src/routes/(app)/routes/*/ascents/+page.svelte
   - src/lib/db/schema.ts
-  - drizzle/
+  - drizzle/**
   - src/lib/zero/zero-schema.gen.ts
   - deployment/powersync/sync-config.yaml
   - messages/en.json
   - messages/de.json
   - CONTEXT.md
   - AGENTS.md
+  - src/lib/components/SignOutGuard/**
+  - src/lib/powersync/localTables.ts
+  - src/lib/powersync/resource.svelte.ts
+  - src/lib/powersync/resource.svelte.test.ts
+  - src/lib/powersync/collections.test.ts
+  - src/lib/powersync/db.svelte.test.ts
+  - src/lib/state/pwa/leave.svelte.ts
+  - src/lib/state/pwa/leave.svelte.test.ts
+  - src/lib/zero/write.ts
+  - src/routes/+layout.svelte

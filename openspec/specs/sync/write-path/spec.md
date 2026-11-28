@@ -109,7 +109,7 @@ The app server SHALL delete a recorded write id 30 days after it was recorded, a
 
 ### Requirement: A PowerSync build sends every write to the write route
 
-In a build that runs PowerSync, every write SHALL go to the write route with a write id made on the device, and none SHALL go through the Zero client. While the device is offline, a write SHALL be refused before it is sent. A send that fails on the network or on the server SHALL be repeated with the same write id before the client reports a failure: the offline message when the device is offline, the general failure message otherwise. A form SHALL keep what was typed.
+In a build that runs PowerSync, every write SHALL go to the write route with a write id made on the device, and none SHALL go through the Zero client. While the device is offline, a write SHALL be refused before it is sent unless `sync/offline-writes` keeps it. A send that fails on the network or on the server SHALL be repeated with the same write id before the client reports a failure: the offline message when the device is offline, the general failure message otherwise. A form SHALL keep what was typed.
 
 #### Scenario: Saving a favorite
 
@@ -130,6 +130,11 @@ In a build that runs PowerSync, every write SHALL go to the write route with a w
 
 - **WHEN** a member submits a form while the device is offline
 - **THEN** the form shows the offline message and no request is made
+
+#### Scenario: A queued write offline
+
+- **WHEN** a climber logs an ascent while the device is offline
+- **THEN** no request is made until the device is back online, and then one request goes to the write route with the write id the ascent was queued under
 
 ### Requirement: Saving again after a lost answer applies once
 
