@@ -1042,6 +1042,9 @@ export const ascents = table(
 
     temperature: integer('temperature'),
     type: text('type', { enum: ascentTypeEnum }).notNull(),
+    /** Made on the device that logged it, so a create queued offline and sent twice, however late, makes one row.
+     *  Synced as the PowerSync row id; the serial stays the id everything else uses. */
+    uuid: uuid('uuid').notNull().defaultRandom().unique(),
   },
   (table) => [
     index('ascents_created_by_idx').on(table.createdBy),

@@ -1,5 +1,5 @@
 import { createThrowawayUser, dropThrowawayUser, reachable, seedRegion, sql, type SeedUser } from '$lib/db/testDb'
-import { zeroClient } from '$lib/remote/testHarness'
+import { pushRefusal, zeroClient } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // The ascent mutators' wiring: what each answers, how a refusal arrives, and that a delete's
@@ -69,6 +69,59 @@ describe.skipIf(!reachable)('ascent mutators', () => {
 
     expect(result.error).toBeUndefined()
     expect(await stored(idOf(result)!)).toEqual({ notes: '__ascent_mutators_logged__', type: 'flash' })
+  })
+
+  it('makes one ascent and one event for a device id sent twice', async () => {
+    // Each push is a new write id: the second is a resend after `applied_writes` let the first go.
+    const args = { dateTime: '2026-10-01', routeId: String(routeId), type: 'flash', uuid: crypto.randomUUID() }
+    const first = await climberClient.push('ascents.create', args)
+    const second = await climberClient.push('ascents.create', args)
+
+    expect(second.error).toBeUndefined()
+    expect(idOf(second)).toBe(idOf(first))
+    const rows = await sql`select id from public.ascents where uuid = ${args.uuid}`
+    const events = await sql`select 1 from public.events where ascent_fk = ${idOf(first)!}`
+    expect([rows.length, events.length]).toEqual([1, 1])
+  })
+
+  it('answers a resent device id with its ascent after the route was deleted', async () => {
+    const args = { dateTime: '2026-10-01', routeId: String(routeId), type: 'flash', uuid: crypto.randomUUID() }
+    const first = await climberClient.push('ascents.create', args)
+    await sql`update public.routes set deleted_at = now() where id = ${routeId}`
+    try {
+      const again = await climberClient.push('ascents.create', args)
+
+      expect(again.error).toBeUndefined()
+      expect(idOf(again)).toBe(idOf(first))
+    } finally {
+      await sql`update public.routes set deleted_at = null where id = ${routeId}`
+    }
+  })
+
+  it('refuses a device id another member logged, naming nothing of their ascent', async () => {
+    const args = { dateTime: '2026-10-01', routeId: String(routeId), type: 'flash', uuid: crypto.randomUUID() }
+    await adminClient.push('ascents.create', args)
+
+    const result = await climberClient.push('ascents.create', { ...args, notes: '__ascent_mutators_foreign__' })
+
+    expect(result.data).toBeUndefined()
+    expect(pushRefusal(result)).toMatchObject({ message: 'error_server_title' })
+    const [row] = await sql`select 1 from public.ascents where notes = '__ascent_mutators_foreign__'`
+    expect(row).toBeUndefined()
+  })
+
+  it('refuses an ascent whose device id is not a uuid', async () => {
+    const result = await climberClient.push('ascents.create', {
+      dateTime: '2026-10-01',
+      notes: '__ascent_mutators_bad_uuid__',
+      routeId: String(routeId),
+      type: 'flash',
+      uuid: 'not-a-uuid',
+    })
+
+    expect(result.error).toBeDefined()
+    const [row] = await sql`select 1 from public.ascents where notes = '__ascent_mutators_bad_uuid__'`
+    expect(row).toBeUndefined()
   })
 
   it('refuses an ascent of a route that is not there, at form level', async () => {

@@ -119,6 +119,7 @@
   "ascents_form_humidityLabel": "Humidity",
   "ascents_form_insertNote": "Insert",
   "ascents_form_mediaHint": "Uploads run in the background. Save whenever you’re ready.",
+  "ascents_form_mediaOffline": "Photos and videos need a connection.",
   "ascents_form_notesHint": "Beta, session story, who you climbed with. @mention your partners.",
   "ascents_form_notesLabel": "Notes",
   "ascents_form_previousNotes": "Your previous notes",
@@ -130,6 +131,7 @@
   "ascents_form_typeRedpoint": "Redpoint",
   "ascents_form_typeRepeat": "Repeat",
   "ascents_notFound": "Ascent not found",
+  "ascents_notUploaded": "Not uploaded yet",
   "ascents_notYours": "Only the person who logged this ascent, or a region admin, can change it.",
   "ascents_seeAll": [
     {
@@ -148,6 +150,7 @@
   "ascents_statusTried": "Tried",
   "ascents_title": "Ascents",
   "ascents_viewAscent": "View ascent",
+  "ascents_waitingToUpload": "Waiting to upload. You can change it once it’s uploaded.",
   "ascents_yourLogbook": "Your logbook",
   "auth_accountDeleted": "This account was deleted. Signing in with it no longer works.",
   "auth_backToSignIn": "Back to sign in",
@@ -1546,6 +1549,7 @@
   "form_noPermissionTitle": "No permission",
   "form_numInvalid": "Enter a valid number",
   "form_required": "This field is required",
+  "form_savedOnDevice": "Saved on this device. It uploads once you’re back online.",
   "form_urlInvalid": "Enter a valid web address",
   "form_wmsUrlInvalid": "Enter a WMS request URL with its LAYERS parameter, or an https address containing {placeholder}",
   "install_body": "Full screen, one tap from your home screen, and no browser bar in the way.",
@@ -1990,6 +1994,9 @@
   "push_unsupported": "This browser can’t receive notifications.",
   "queryState_empty": "Nothing here yet.",
   "queryState_error": "Something went wrong while loading this.",
+  "queued_dismiss": "Dismiss",
+  "queued_open": "Open",
+  "queued_refusedTitle": "A change you made offline wasn’t saved",
   "reactions_add": "Add a reaction",
   "reactions_all": "All emoji",
   "reactions_pick": "Pick a reaction",
@@ -2448,6 +2455,18 @@
   "settings_signInMethodsRemovedSignedOut": "{provider} removed. Your other devices are signed out.",
   "settings_signInMethodsSet": "Set",
   "settings_signOut": "Sign out",
+  "settings_signOutAnyway": "Sign out anyway",
+  "settings_signOutQueued": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} change on this device hasn’t uploaded yet. Signing out deletes it.",
+        "countPlural=other": "{count} changes on this device haven’t uploaded yet. Signing out deletes them."
+      }
+    }
+  ],
+  "settings_signOutQueuedTitle": "Sign out before it uploads?",
   "settings_syncErrors": "Errors",
   "settings_syncFailed": "failed",
   "settings_syncHealth": "Sync health",

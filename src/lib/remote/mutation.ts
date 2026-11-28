@@ -7,6 +7,8 @@ import { exit } from '$lib/state/navigation.svelte'
 export interface MutationResult<T = void> {
   /** Payload handed back to the caller: e.g. an undo snapshot, or a command's result. */
   data?: T
+  /** Kept on the device to be sent once online; no answer yet. */
+  queued?: true
   /** Where the client navigates once the command succeeds. */
   redirectTo?: string
 }

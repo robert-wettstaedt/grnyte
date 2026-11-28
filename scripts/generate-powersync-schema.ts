@@ -31,6 +31,11 @@ function zeroKind(column: Column): 'bool' | 'json' | 'ms' | 'plain' {
   return column.dataType === 'boolean' ? 'bool' : 'plain'
 }
 
+/** Columns only the device writes: the server never sends them, so its copy of a row arrives with null. */
+const LOCAL_COLUMNS: Record<string, [name: string, type: 'integer', kind: 'bool'][]> = {
+  ascents: [['pending', 'integer', 'bool']],
+}
+
 const byName = (a: string, b: string) => a.localeCompare(b, 'en', { numeric: true })
 const tablesOut: string[] = []
 const shapesOut: string[] = []
@@ -45,6 +50,8 @@ for (const name of synced) {
     .filter(([, column]) => column.name !== 'id')
     .map(([, column]) => [column.name, sqliteType(column)] as const)
   if (integerId) fields.push(['nid', 'integer'])
+  const local = LOCAL_COLUMNS[name] ?? []
+  fields.push(...local.map(([field, type]) => [field, type] as const))
   fields.sort(([a], [b]) => byName(a, b))
   const indexes = fields
     .map(([field]) => field)
@@ -55,6 +62,7 @@ for (const name of synced) {
   )
   const shape = columns
     .map(([key, column]) => [key, column.name === 'id' && integerId ? 'nid' : column.name, zeroKind(column)] as const)
+    .concat(local.map(([field, , kind]) => [field, field, kind] as const))
     .sort(([a], [b]) => byName(a, b))
   shapesOut.push(`  ${name}: [${shape.map(([key, from, kind]) => `['${key}', '${from}', '${kind}']`).join(', ')}],`)
 }

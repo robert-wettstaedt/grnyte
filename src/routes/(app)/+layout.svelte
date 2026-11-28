@@ -9,13 +9,14 @@
   import StatusBar from '$lib/components/StatusBar/StatusBar.svelte'
   import PillHost from '$lib/components/StatusPill/PillHost.svelte'
   import Toaster from '$lib/components/Toaster/Toaster.svelte'
+  import WriteOutcomes from '$lib/components/WriteOutcomes/WriteOutcomes.svelte'
   import { UNREAD_CAP } from '$lib/entities/notification/resources.svelte'
   import { REGIONLESS_PATHS } from '$lib/entities/region/paths'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { reportClientError, reportIfOnline } from '$lib/logging/report'
   import { m } from '$lib/paraglide/messages.js'
   import { requestPersistentStorage } from '$lib/state/device.svelte'
-  import { recoverSignIn, sessionMoved, storeBlocked } from '$lib/state/engine'
+  import { dismissRefusal, recoverSignIn, refusals, sessionMoved, storeBlocked } from '$lib/state/engine'
   import { setGlobalState } from '$lib/state/global.svelte'
   import { motion } from '$lib/state/motion.svelte'
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
@@ -215,6 +216,7 @@
          chromeless editors, which hide navigation and not warnings. -->
     <div bind:clientHeight={statusBarHeight}>
       <StatusBar />
+      <WriteOutcomes ondismiss={dismissRefusal} refusals={refusals()} />
     </div>
 
     <!-- transform-gpu makes this row the containing block for the app's `fixed` chrome

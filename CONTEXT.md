@@ -223,8 +223,17 @@ local database has applied everything up to it; a **checkpoint request** asks th
 current position so a client can wait for a write the app server just committed.
 
 **write route**
-`/api/sync/mutate`: where the PowerSync build's `write()` posts. It runs the same server mutator
-`/api/zero/mutate` would, for the caller a Bearer token names, and never reads a cookie.
+`/api/sync/mutate`: where the PowerSync build's `write()` posts, and where its queue sends intents. It runs the
+same server mutator `/api/zero/mutate` would, for the caller a Bearer token names, and never reads a cookie.
+
+**intent**
+A mutator call waiting on the device to be sent: its name, its args and the write id it goes under. A
+**queued write** is the intent plus the optimistic row it shows; that row is **not uploaded** until the
+server's copy replaces it. Only mutators in `$lib/powersync/queueable.ts` queue (logging an ascent).
+
+**refusal**
+A queued write the server would not apply (the route went, the permission ended), kept on the device
+with its values until the person dismisses it, and offered for correcting while its subject is still there.
 
 **write id**
 The id a client makes for one write and sends with every copy of it, and with the same write made again

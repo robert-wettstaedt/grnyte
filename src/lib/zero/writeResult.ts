@@ -5,6 +5,8 @@ import type { MutationResult } from '$lib/remote/mutation'
 // What both engines' `write` answer and throw. No Zero client here: the PowerSync build imports it.
 
 export interface WriteOptions<T> {
+  /** Sent at once even when the mutator could be queued: the caller needs the answer (media to attach). */
+  direct?: boolean
   redirectTo?: ((data: T) => string) | string
 }
 

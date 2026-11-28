@@ -119,6 +119,7 @@
   "ascents_form_humidityLabel": "Luftfeuchtigkeit",
   "ascents_form_insertNote": "Einfügen",
   "ascents_form_mediaHint": "Uploads laufen im Hintergrund. Speichere, wann du willst.",
+  "ascents_form_mediaOffline": "Fotos und Videos brauchen eine Verbindung.",
   "ascents_form_notesHint": "Beta, Session-Story, mit wem du geklettert bist. Erwähne deine Partner mit @.",
   "ascents_form_notesLabel": "Notizen",
   "ascents_form_previousNotes": "Deine früheren Notizen",
@@ -130,6 +131,7 @@
   "ascents_form_typeRedpoint": "Durchstieg",
   "ascents_form_typeRepeat": "Wiederholung",
   "ascents_notFound": "Begehung nicht gefunden",
+  "ascents_notUploaded": "Noch nicht hochgeladen",
   "ascents_notYours": "Nur wer diese Begehung eingetragen hat, oder ein Admin der Region, kann sie ändern.",
   "ascents_seeAll": [
     {
@@ -148,6 +150,7 @@
   "ascents_statusTried": "Versucht",
   "ascents_title": "Begehungen",
   "ascents_viewAscent": "Begehung ansehen",
+  "ascents_waitingToUpload": "Wartet aufs Hochladen. Danach kannst du sie ändern.",
   "ascents_yourLogbook": "Dein Logbuch",
   "auth_accountDeleted": "Dieses Konto wurde gelöscht. Die Anmeldung damit funktioniert nicht mehr.",
   "auth_backToSignIn": "Zurück zur Anmeldung",
@@ -1546,6 +1549,7 @@
   "form_noPermissionTitle": "Keine Berechtigung",
   "form_numInvalid": "Gib eine gültige Zahl ein",
   "form_required": "Dieses Feld ist erforderlich",
+  "form_savedOnDevice": "Auf diesem Gerät gespeichert. Wird hochgeladen, sobald du wieder online bist.",
   "form_urlInvalid": "Gib eine gültige Web-Adresse ein",
   "form_wmsUrlInvalid": "Gib eine WMS-Anfrage-URL mit LAYERS-Parameter an oder eine https-Adresse mit {placeholder}",
   "install_body": "Vollbild und ein Fingertipp vom Home-Bildschirm entfernt.",
@@ -1999,6 +2003,9 @@
   "push_unsupported": "Dieser Browser kann keine Benachrichtigungen empfangen.",
   "queryState_empty": "Hier gibt es noch nichts.",
   "queryState_error": "Beim Laden ist etwas schiefgegangen.",
+  "queued_dismiss": "Ausblenden",
+  "queued_open": "Öffnen",
+  "queued_refusedTitle": "Eine Änderung, die du offline gemacht hast, wurde nicht gespeichert",
   "reactions_add": "Reaktion hinzufügen",
   "reactions_all": "Alle Emojis",
   "reactions_pick": "Reaktion auswählen",
@@ -2457,6 +2464,18 @@
   "settings_signInMethodsRemovedSignedOut": "{provider} entfernt. Deine anderen Geräte sind abgemeldet.",
   "settings_signInMethodsSet": "Festgelegt",
   "settings_signOut": "Abmelden",
+  "settings_signOutAnyway": "Trotzdem abmelden",
+  "settings_signOutQueued": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Änderung auf diesem Gerät ist noch nicht hochgeladen. Beim Abmelden wird sie gelöscht.",
+        "countPlural=other": "{count} Änderungen auf diesem Gerät sind noch nicht hochgeladen. Beim Abmelden werden sie gelöscht."
+      }
+    }
+  ],
+  "settings_signOutQueuedTitle": "Abmelden, bevor es hochgeladen ist?",
   "settings_syncErrors": "Fehler",
   "settings_syncFailed": "fehlgeschlagen",
   "settings_syncHealth": "Sync-Status",

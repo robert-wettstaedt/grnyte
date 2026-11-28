@@ -13,7 +13,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { replaceUrl } from '$lib/state/navigation.svelte'
-  import { tellOtherTabsSignedOut, wipeAndLeave } from '$lib/state/pwa/wipe'
+  import { leaveAfterSignOut } from '$lib/state/pwa/leave.svelte'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import { completeProfile } from './profile.remote'
   import { profileSchema } from './schemas'
@@ -51,12 +51,7 @@
   }
 
   // The way out for somebody signed in to an account they did not mean to finish.
-  const leave = signOut.enhance(async ({ submit }) => {
-    if (await submit()) {
-      tellOtherTabsSignedOut()
-      await wipeAndLeave(resolve('/auth/signin'))
-    }
-  })
+  const leave = signOut.enhance(leaveAfterSignOut(resolve('/auth/signin')))
 </script>
 
 <svelte:head>

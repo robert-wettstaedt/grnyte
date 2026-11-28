@@ -4,7 +4,7 @@ import { formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import * as z from '$lib/forms/zod'
 
 /** Full ascent shape for the edit form. */
-export interface AscentDetail extends Omit<RouteAscent, 'authorName'> {
+export interface AscentDetail extends Omit<RouteAscent, 'authorName' | 'pending' | 'uuid'> {
   routeFk: number
 }
 
@@ -20,12 +20,17 @@ export interface RouteAscent {
   files: MediaFile[]
   gradeFk: number | undefined
   humidity: number | undefined
+  /** Negative while `pending`: the device made it, and nothing may link to it. */
   id: number
   notes: string
+  /** Logged on this device and not uploaded yet. */
+  pending: boolean
   rating: number | undefined
   regionFk: number
   temperature: number | undefined
   type: AscentType
+  /** Made on the device that logged it; stays the same when the server's copy replaces a pending row. */
+  uuid: string
 }
 
 /** Minimal ascent shape used to derive a user's ascent status per route. */
@@ -68,6 +73,8 @@ export const ascentActionSchema = z.object({
   type: z.enum(['flash', 'redpoint', 'repeat', 'attempt'] satisfies AscentType[], {
     error: formError('form_required'),
   }),
+  /** Made on the device; a queued create sent again answers the ascent it already made. */
+  uuid: z.optional(z.uuid()),
 })
 
 /** Field shape the shared add/edit-ascent form binds to, `id` is set only when editing. */

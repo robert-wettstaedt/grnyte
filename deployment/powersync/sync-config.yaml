@@ -69,7 +69,8 @@ streams:
       my_regions: SELECT region_fk FROM region_members WHERE auth_user_fk = auth.user_id() AND is_active
         AND auth.parameters() ->> '$.app_metadata.contested_signup' IS NULL
     queries:
-      - SELECT *, id AS nid FROM ascents WHERE region_fk IN my_regions AND deleted_at IS NULL
+      # Keyed by the device-made uuid, so an ascent queued offline is replaced in place by the server's copy.
+      - SELECT *, uuid AS id, id AS nid FROM ascents WHERE region_fk IN my_regions AND deleted_at IS NULL
       - SELECT *, id AS nid FROM region_members WHERE region_fk IN my_regions AND is_active
       - SELECT *, id AS nid FROM favorites WHERE region_fk IN my_regions
       - SELECT *, id AS nid FROM region_counters WHERE region_fk IN my_regions

@@ -10,8 +10,10 @@
   import { entityHref } from '$lib/entities/href'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import Form from '$lib/forms/Form.svelte'
+  import { randomId } from '$lib/forms/randomId'
   import { createFormStore } from '$lib/forms/store.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { dismissRefusal, refusals } from '$lib/state/engine'
   import { getGlobalState } from '$lib/state/global.svelte'
 
   const global = getGlobalState()
@@ -24,12 +26,17 @@
 
   // `remove()` and not just dropping the array:
   // it is the only thing that aborts the transfer, deletes the staged object and revokes the preview.
-  const seed = () => {
+  // Opened from the refusal notice: the values that were refused, to correct and save again.
+  const restoreId = page.url.searchParams.get('restore')
+  const restored = () => refusals().find((refusal) => refusal.id === restoreId)
+
+  const seed = (): Partial<AscentFormInput> => {
     for (const upload of uploads) {
       upload.remove()
     }
     uploads = []
-    return {}
+    const refused = restored()
+    return refused == null ? {} : JSON.parse(refused.args)
   }
 
   const routeHref = $derived(entityHref('routes', Number(page.params.id)))
@@ -46,8 +53,12 @@
 
   // Record-first media: the ascent is created on submit; pending uploads then finalize against it
   // in the background while the form returns to the route, which already exists.
+  // One per form: saving again after a lost answer, or the queue sending late, makes one ascent.
+  const uuid = randomId()
+
   const submit = async (values: AscentFormInput) => {
-    const created = await createAscent(values)
+    const created = await createAscent({ ...values, uuid }, { direct: uploads.length > 0 })
+    if (restoreId != null) void dismissRefusal(restoreId)
     const id = created.data?.id
     if (id != null) void finalizeMediaUploads(uploads, { id, type: 'ascent' })
     return created

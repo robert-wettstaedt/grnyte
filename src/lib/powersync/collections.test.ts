@@ -10,6 +10,8 @@ vi.mock('@powersync/web', async (original) => ({
     constructor(readonly options: { database: { dbFilename: string } }) {}
     connect = () => Promise.resolve()
     disconnectAndClear = () => Promise.resolve()
+    getAll = async () => []
+    onChange = () => () => {}
     registerListener = () => () => {}
     waitForReady = () => Promise.resolve()
   },
@@ -42,7 +44,7 @@ vi.mock('@tanstack/powersync-db-collection', () => ({
 }))
 
 const session = (id: string) => ({ access_token: `token-${id}`, user: { id } }) as Session
-const settings = { endpoint: 'https://sync.example' }
+const settings = { endpoint: 'https://sync.example', upload: async () => {} }
 
 describe('collections', () => {
   beforeEach(() => {

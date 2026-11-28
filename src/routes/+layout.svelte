@@ -1,5 +1,6 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME, PUBLIC_ORIGIN } from '$env/static/public'
+  import SignOutGuard from '$lib/components/SignOutGuard/SignOutGuard.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getLocale, locales } from '$lib/paraglide/runtime'
   import '../app.css'
@@ -98,3 +99,6 @@
 </svelte:head>
 
 {@render children()}
+
+<!-- Root, not (app): the landing pages sign out too. -->
+<SignOutGuard />
