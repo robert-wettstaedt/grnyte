@@ -1,8 +1,9 @@
+import { routeAscentList } from '$lib/entities/ascent/resources.powersync.svelte'
 import { blockTree } from '$lib/entities/block/resources.powersync.svelte'
 import { collections } from '$lib/powersync/collections'
 import { psResource } from '$lib/powersync/resource.svelte'
 import { pillSurface, quietly } from '$lib/state/pill.svelte'
-import { BasicIndex, createCollection, type SyncConfig } from '@tanstack/db'
+import { BasicIndex, createCollection, eq, type SyncConfig } from '@tanstack/db'
 import { flushSync } from 'svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -239,5 +240,145 @@ describe('a PowerSync resource over faked TanStack collections', () => {
       ],
       topos: [{ file: { id: 'f-1', path: 'topo.jpg' }, id: 3, routes: [{ id: 7, routeFk: 99 }] }],
     })
+  })
+})
+
+function onDemandTables() {
+  const loads: (() => void)[] = []
+  const source: Record<string, Row[]> = {}
+  const tables = new Map<
+    string,
+    { change: (row: Row) => void; collection: ReturnType<typeof fakeTable>['collection'] }
+  >()
+  const table = (name: string) => {
+    const existing = tables.get(name)
+    if (existing) return existing
+    let sync!: Parameters<SyncConfig<Row, string>['sync']>[0]
+    const collection = createCollection<Row, string>({
+      autoIndex: 'eager',
+      defaultIndexType: BasicIndex,
+      getKey: (row) => row.id,
+      id: `${name}-${crypto.randomUUID()}`,
+      startSync: false,
+      sync: {
+        sync: (params) => {
+          sync = params
+          params.markReady()
+          return {
+            loadSubset: () =>
+              new Promise<void>((resolve) =>
+                loads.push(() => {
+                  const fresh = (source[name] ?? []).filter((row) => !collection.has(row.id))
+                  if (fresh.length > 0) {
+                    sync.begin()
+                    for (const value of fresh) sync.write({ type: 'insert', value })
+                    sync.commit()
+                  }
+                  resolve()
+                }),
+              ),
+            unloadSubset: () => {},
+          }
+        },
+      },
+      syncMode: 'on-demand',
+    })
+    const made = {
+      change: (row: Row) => {
+        source[name] = (source[name] ?? []).map((each) => (each.id === row.id ? row : each))
+        sync.begin()
+        sync.write({ type: 'update', value: row })
+        sync.commit()
+      },
+      collection,
+    }
+    tables.set(name, made)
+    return made
+  }
+  return {
+    change: (name: string, row: Row) => table(name).change(row),
+    collections: new Proxy({}, { get: (_, name: string) => table(name).collection }) as ReturnType<typeof collections>,
+    load: () => loads.splice(0).forEach((settle) => settle()),
+    seed: (rows: Record<string, Row[]>) => Object.assign(source, rows),
+  }
+}
+
+describe('a PowerSync resource whose related rows hang on a key that changes', () => {
+  let cleanup = () => {}
+  afterEach(() => cleanup())
+
+  // A queued ascent shows with a negative `nid` until the server's copy replaces it. A page mounting while that row's
+  // files still load must answer: TanStack DB 0.15.1 aborted the demand and the route's count never showed.
+  it('answers after a row it relates by `nid` is replaced by the server copy mid-load', async () => {
+    Object.assign(env, { confirmed: true, everSynced: true, online: true })
+    const tables = onDemandTables()
+    fake = tables as unknown as ReturnType<typeof fakeTables>
+    const queued = { created_by: 3, id: 'a-u', nid: -5, route_fk: 1 }
+    tables.seed({
+      ascents: [{ created_by: 3, id: 'a-1', nid: 1, route_fk: 1 }, queued],
+      users: [{ id: 'u-3', nid: 3 }],
+    })
+    const tick = async () => {
+      await new Promise((resolve) => setTimeout(resolve))
+      flushSync()
+    }
+    // The form's own read of the route's ascents has them on the device already.
+    const form = $effect.root(() => void routeAscentList(() => 1))
+    for (let round = 0; round < 3; round++) {
+      await tick()
+      tables.load()
+    }
+    let resource!: ReturnType<typeof routeAscentList>
+    cleanup = $effect.root(() => {
+      resource = routeAscentList(() => 1)
+    })
+    form()
+    // The route page asks for the rows' files at once; they are still loading when the server's copy lands.
+    await tick()
+    tables.change('ascents', { ...queued, nid: 7 })
+    for (let round = 0; round < 5; round++) {
+      await tick()
+      tables.load()
+    }
+    await tick()
+    expect(resource.phase).toEqual({ empty: false, kind: 'answered' })
+    expect(resource.data.map((ascent) => ascent.id).sort()).toEqual([1, 7])
+  })
+
+  it('builds a query whose load keeps failing three times, then lets it fail, and so each query it reads', async () => {
+    const load = vi.fn(() => Promise.reject(new Error('down')))
+    const route = $state({ id: 1 })
+    const broken = createCollection<Row, string>({
+      getKey: (row) => row.id,
+      id: `broken-${crypto.randomUUID()}`,
+      startSync: false,
+      sync: {
+        sync: ({ markReady }) => {
+          markReady()
+          return { loadSubset: load }
+        },
+      },
+      syncMode: 'on-demand',
+    })
+    cleanup = $effect.root(
+      () =>
+        void psResource(
+          (q) => q.from({ b: broken }).where(({ b }) => eq(b.route_fk, route.id)),
+          [() => route.id],
+          (rows) => rows,
+        ),
+    )
+    const settle = async () => {
+      for (let round = 0; round < 5; round++) {
+        await new Promise((resolve) => setTimeout(resolve))
+        flushSync()
+      }
+    }
+    await settle()
+    expect(load).toHaveBeenCalledTimes(3)
+
+    route.id = 2
+    await settle()
+    expect(load).toHaveBeenCalledTimes(6)
   })
 })
