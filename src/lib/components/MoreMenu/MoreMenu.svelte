@@ -2,6 +2,7 @@
   import { ACTION_TOOL, ACTION_TOOL_LABEL } from '$lib/components/ActionBar/ActionBar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import { besideSheet } from '$lib/components/Modal/placement'
   import { m } from '$lib/paraglide/messages'
   import type { Snippet } from 'svelte'
 
@@ -28,8 +29,8 @@
   backdrop
   bind:open
   {panel}
-  panelClass={panel ? 'fixed inset-0 left-[31.25rem] z-60 flex items-start py-2 lg:left-[35.25rem]' : undefined}
-  contentClass={panel ? 'max-h-[calc(100dvh-6rem)] w-80' : 'w-80'}
+  panelClass={panel ? besideSheet : undefined}
+  contentClass={panel ? 'max-h-[calc(100%-5rem)] w-80' : 'w-80'}
   subtitle={manage ? m.areas_manage() : undefined}
   {title}
 >

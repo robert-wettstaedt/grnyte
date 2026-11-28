@@ -158,6 +158,13 @@
   // close) can fall back to an in-app route instead of leaving the origin. Lives at the
   // (app) root so the count stays accurate across every page, not only the map area.
   trackHistoryDepth()
+
+  // Read by `FRAME_BOX`: body-portaled panels start below the status bar, like the frame's own chrome.
+  let statusBarHeight = $state(0)
+  $effect(() => {
+    document.documentElement.style.setProperty('--app-frame-top', `${statusBarHeight}px`)
+    return () => document.documentElement.style.removeProperty('--app-frame-top')
+  })
 </script>
 
 <svelte:head>
@@ -206,11 +213,14 @@
     <!-- Pushes content down rather than overlaying it: nothing occluded, no z-index
          against the sheet/modal stack. Every (app) route gets it, including the
          chromeless editors, which hide navigation and not warnings. -->
-    <StatusBar />
+    <div bind:clientHeight={statusBarHeight}>
+      <StatusBar />
+    </div>
 
     <!-- transform-gpu makes this row the containing block for the app's `fixed` chrome
          (nav rail, tab bar, map overlays), so they sit below the bar instead of under
-         it. Dialogs portal to <body> and stay viewport-fixed, which is what they want.
+         it. Dialogs portal to <body> and stay viewport-fixed; panels lined up with this
+         chrome start at `--app-frame-top` (`$lib/components/Modal/placement`).
          `data-app-frame` is how that chrome measures against this row, not the viewport. -->
     <div class="flex min-h-0 flex-1 transform-gpu" data-app-frame>
       <!-- Walls off client render/effect crashes so one broken page doesn't blank the

@@ -12,6 +12,7 @@
   import Row from '$lib/components/EntityRow/Row.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import { besideSheet } from '$lib/components/Modal/placement'
   import { toAuthor } from '$lib/entities/displayName'
   import type { EventObjectType } from '$lib/entities/event/dto'
   import { eventLines } from '$lib/entities/event/line'
@@ -100,17 +101,9 @@
         }),
   )
 
-  // Desktop placement. Beside the explore panel the offsets are `MoreMenu`'s, which are that
-  // panel's own right edge (`left-27` plus `max-w-sm` / `lg:max-w-md`) plus a gap: the two read
-  // as a pair, and Modal's backdrop is z-40, under the panel's z-50, so the record stays lit
-  // beside its own history. Standalone, the right-hand aside the topo viewer and the topo
-  // editor's sheets use; a trigger-anchored popover (what MoreMenu falls back to there) caps
-  // itself at the gap between the trigger and the viewport, and this trigger is page-bottom.
-  const panelClass = $derived(
-    beside
-      ? 'fixed inset-0 left-[31.25rem] z-60 flex items-start py-2 lg:left-[35.25rem]'
-      : 'fixed inset-y-0 right-0 z-60',
-  )
+  // Beside the explore panel, paired with `MoreMenu` (backdrop z-40 under the panel's z-50 keeps the
+  // record lit). Standalone, a right-hand aside: a popover would cap at this page-bottom trigger.
+  const panelClass = $derived(beside ? besideSheet : 'fixed inset-y-0 right-0 z-60')
   const contentClass = $derived(beside ? 'h-full w-80' : 'h-full w-96 rounded-none border-y-0 border-r-0 lg:w-105')
 
   // A sheet holding one entity's log has to close when the page stops being about that entity.
