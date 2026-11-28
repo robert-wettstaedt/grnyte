@@ -144,7 +144,8 @@
             {#if ascent.pending}
               <span class="badge preset-tonal-warning flex-none gap-1 text-[11px] font-semibold">
                 <Icon name="cloud-off" size={12} />
-                {m.ascents_notUploaded()}
+                <!-- Icon only on a phone, so the name beside it keeps its room. -->
+                <span class="sr-only sm:not-sr-only">{m.ascents_notUploaded()}</span>
               </span>
             {/if}
             <span class="flex-1"></span>

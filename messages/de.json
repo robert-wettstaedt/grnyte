@@ -2005,7 +2005,7 @@
   "queryState_error": "Beim Laden ist etwas schiefgegangen.",
   "queued_dismiss": "Ausblenden",
   "queued_open": "Öffnen",
-  "queued_refusedTitle": "Eine Änderung, die du offline gemacht hast, wurde nicht gespeichert",
+  "queued_refusedTitle": "Eine Änderung von diesem Gerät wurde nicht gespeichert",
   "reactions_add": "Reaktion hinzufügen",
   "reactions_all": "Alle Emojis",
   "reactions_pick": "Reaktion auswählen",
@@ -2475,7 +2475,7 @@
       }
     }
   ],
-  "settings_signOutQueuedTitle": "Abmelden, bevor es hochgeladen ist?",
+  "settings_signOutQueuedTitle": "Vor dem Hochladen abmelden?",
   "settings_syncErrors": "Fehler",
   "settings_syncFailed": "fehlgeschlagen",
   "settings_syncHealth": "Sync-Status",

@@ -169,6 +169,23 @@ describe('waiting for an answer', () => {
     expect(await waiting).toMatchObject({ data: JSON.stringify({ id: 7 }), status: 'applied' })
   })
 
+  it('sees an answer kept while its first read was on the way', async () => {
+    const id = await log('a')
+    const first = db.getOptional.bind(db)
+    let reads = 0
+    const racing = Object.create(db, {
+      getOptional: {
+        value: async (...args: Parameters<typeof first>) => {
+          const found = await first(...args)
+          if (reads++ === 0) await upload()
+          return found
+        },
+      },
+    })
+
+    expect(await answerOf(racing, id, 1000)).toMatchObject({ status: 'applied' })
+  })
+
   it('gives up after its time with nothing', async () => {
     const id = await log('a')
 
@@ -189,6 +206,20 @@ describe('after a write is applied', () => {
     await createUploader({ applied, send })(db)
 
     expect(applied).toHaveBeenCalledTimes(1)
+  })
+
+  it('forgets an applied answer nobody read within a minute', async () => {
+    const old = await log('a')
+    await upload()
+    await db.execute('update write_outcomes set created_at = ? where id = ?', [
+      new Date(Date.now() - 61_000).toISOString(),
+      old,
+    ])
+    const fresh = await log('b')
+
+    await upload()
+
+    expect(await outcomes(old, fresh)).toMatchObject([null, { status: 'applied' }])
   })
 })
 
@@ -216,6 +247,16 @@ describe('the ascent entry', () => {
       uuid: args.uuid,
     })
     expect(row.nid).toBeLessThan(0)
+  })
+
+  it('saves again under the same device id after a refusal, while the refused row is still shown', async () => {
+    const entry = ascentQueue as QueueEntry<typeof args>
+    await enqueue(db, 'ascents.create', entry, args, AUTH)
+
+    await enqueue(db, 'ascents.create', entry, { ...args, notes: 'fixed' }, AUTH)
+
+    const rows = await db.getAll('select notes from ascents where id = ?', [args.uuid])
+    expect(rows).toEqual([{ notes: 'fixed' }])
   })
 
   it('reopens the form while its route is on the device, and not once it is gone', async () => {
