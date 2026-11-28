@@ -1996,7 +1996,7 @@
   "queryState_error": "Something went wrong while loading this.",
   "queued_dismiss": "Dismiss",
   "queued_open": "Open",
-  "queued_refusedTitle": "A change you made offline wasn’t saved",
+  "queued_refusedTitle": "A change from this device wasn’t saved",
   "reactions_add": "Add a reaction",
   "reactions_all": "All emoji",
   "reactions_pick": "Pick a reaction",
@@ -2466,7 +2466,7 @@
       }
     }
   ],
-  "settings_signOutQueuedTitle": "Sign out before it uploads?",
+  "settings_signOutQueuedTitle": "Sign out before uploading?",
   "settings_syncErrors": "Errors",
   "settings_syncFailed": "failed",
   "settings_syncHealth": "Sync health",

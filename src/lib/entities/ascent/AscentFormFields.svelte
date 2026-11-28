@@ -58,16 +58,20 @@
 
   // Seeded once from the ascent on mount, deliberately: reading live data on every
   // change would clobber the user's edits (same rule as RouteFormFields).
+  // The add form's seed (a reopened refusal) is in the store already: fields mount after it.
   // svelte-ignore state_referenced_locally
-  let type = $state(ascent?.type)
+  const seeded = ascent == null ? form.fields.value() : {}
+  const seededNumber = (value?: string) => (value == null || value === '' ? undefined : Number(value))
   // svelte-ignore state_referenced_locally
-  let gradeFk = $state(ascent?.gradeFk)
+  let type = $state(ascent?.type ?? seeded.type)
   // svelte-ignore state_referenced_locally
-  let rating = $state(ascent?.rating ?? 0)
+  let gradeFk = $state(ascent?.gradeFk ?? seededNumber(seeded.gradeFk))
   // svelte-ignore state_referenced_locally
-  let temperature = $state(ascent?.temperature)
+  let rating = $state(ascent?.rating ?? seededNumber(seeded.rating) ?? 0)
   // svelte-ignore state_referenced_locally
-  let humidity = $state(ascent?.humidity)
+  let temperature = $state(ascent?.temperature ?? seededNumber(seeded.temperature))
+  // svelte-ignore state_referenced_locally
+  let humidity = $state(ascent?.humidity ?? seededNumber(seeded.humidity))
 
   // Seeded once: an ascent that already carries conditions opens on them.
   // svelte-ignore state_referenced_locally
@@ -82,7 +86,9 @@
   const yesterday = localIsoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))
   // The stored value is a plain pg date (synced as UTC-midnight millis), so UTC getters.
   // svelte-ignore state_referenced_locally
-  let date = $state(ascent?.dateTime == null ? today : new Date(ascent.dateTime).toISOString().slice(0, 10))
+  let date = $state(
+    ascent?.dateTime == null ? seeded.dateTime || today : new Date(ascent.dateTime).toISOString().slice(0, 10),
+  )
 
   // The store sends what it holds, so everything not typed writes into it.
   $effect(() => {

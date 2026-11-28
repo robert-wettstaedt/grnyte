@@ -19,7 +19,7 @@ import {
 import type { Session } from '@supabase/supabase-js'
 import { deviceSchema } from './localTables'
 import { lockWaits } from './lock'
-import { queuedKey, queuedWrites, type Refusal } from './queue'
+import { queuedKey, queuedWrites, settle, type Refusal } from './queue'
 import { queueable } from './queueable'
 import { isStale, RESUME_SHOW_MS, RESUME_STALL_MS, resumeState } from './resume'
 import { appSchema } from './schema'
@@ -324,7 +324,7 @@ const DELETE_QUEUED_MS = 300
 
 /** Forgets a refusal once the person has seen it. */
 export async function dismissRefusal(id: string): Promise<void> {
-  await db?.execute('delete from write_outcomes where id = ?', [id])
+  if (db != null) await settle(db, id)
 }
 
 /** Mirrors the open account's count of queued writes where a page without its database can read it. */
@@ -483,7 +483,7 @@ function watchRefusals(opened: PowerSyncDatabase): void {
     )
     const reopen = (row: Refusal) => queueable[row.name]?.reopen(JSON.parse(row.args) as never, opened)
     const withHrefs = await Promise.all(rows.map(async (row) => ({ ...row, href: await reopen(row) })))
-    if (db === opened) refused = withHrefs
+    if (db === opened && (withHrefs.length > 0 || refused.length > 0)) refused = withHrefs
   }
   rereadRefusals = () => void read().catch((error: unknown) => console.error('[powersync] refusals unread', error))
   rereadRefusals()

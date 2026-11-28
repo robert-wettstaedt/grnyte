@@ -17,7 +17,12 @@ const HOLD = new Set([401, 429])
 /** Without a cap one failing write holds every later one and, with no checkpoint while any is queued, every read. */
 const MAX_FAILURES = 3
 
-export type Outcome = { data?: null | string; field?: null | string; message?: null | string; status: string }
+export type Outcome = {
+  data?: null | string
+  field?: null | string
+  message?: null | string
+  status: 'applied' | 'refused'
+}
 
 /** A queued write the server refused after its form had finished, until dismissed. */
 export interface Refusal {
@@ -41,19 +46,25 @@ export type Sender = (
 export async function answerOf(db: AbstractPowerSyncDatabase, id: string, ms: number): Promise<Outcome | undefined> {
   const read = () =>
     db.getOptional<Outcome>('select status, data, message, field from write_outcomes where id = ?', [id])
-  const signal = AbortSignal.timeout(ms)
+  const stop = new AbortController()
+  const timer = setTimeout(() => stop.abort(), ms)
+  let changed = () => {}
+  stop.signal.addEventListener('abort', () => changed())
+  // Listening before the first read, so an answer kept while it runs is not missed.
+  db.onChange({ onChange: () => changed() }, { signal: stop.signal, tables: ['write_outcomes'] })
   try {
-    for (let found = await read(); ; found = await read()) {
+    while (!stop.signal.aborted) {
+      const next = new Promise<void>((resolve) => (changed = resolve))
+      const found = await read()
       if (found != null) return found
-      // The next change to the table, then read again.
-      await db
-        .onChange({ signal, tables: ['write_outcomes'] })
-        [Symbol.asyncIterator]()
-        .next()
-      if (signal.aborted) return undefined
+      await next
     }
+    return undefined
   } catch {
     return undefined
+  } finally {
+    clearTimeout(timer)
+    stop.abort()
   }
 }
 
@@ -100,6 +111,10 @@ function held(answer: Awaited<ReturnType<Sender>>, failed: number): answer is un
 
 /** Stores the final answer to an intent, for the form waiting on it or the refusal notice. */
 async function keep(db: AbstractPowerSyncDatabase, kept: Outcome & { args: string; id: string; name: string }) {
+  // An applied answer no form read within a minute never will be: a form waits seconds, not minutes.
+  await db.execute(`delete from write_outcomes where status = 'applied' and created_at < ?`, [
+    new Date(Date.now() - 60_000).toISOString(),
+  ])
   await db.execute(
     `insert or replace into write_outcomes (id, name, args, status, data, message, field, created_at)
      values (?, ?, ?, ?, ?, ?, ?, ?)`,

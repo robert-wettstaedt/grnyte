@@ -8,6 +8,8 @@ export const ascentQueue: QueueEntry<AscentFormInput> = {
     const value = z.parse(ascentActionSchema, args)
     const user = await tx.get<{ nid: number }>('select nid from users where auth_user_fk = ?', [account])
     const route = await tx.get<{ region_fk: number }>('select region_fk from routes where nid = ?', [value.routeId])
+    // Saving again after a refusal on the form reuses its id; the refused row stays until the next checkpoint.
+    await tx.execute('delete from ascents where id = ? and pending = 1', [value.uuid!])
     await tx.execute(
       `insert into ascents (id, uuid, nid, pending, created_at, created_by, date_time, grade_fk, humidity, notes,
          rating, region_fk, route_fk, temperature, type)
@@ -16,7 +18,7 @@ export const ascentQueue: QueueEntry<AscentFormInput> = {
         value.uuid!,
         value.uuid!,
         // Never a serial, so nothing can mistake it for one; nothing links a row that has not uploaded.
-        -Math.ceil(Math.random() * 2 ** 31),
+        -(1 + Math.floor(Math.random() * 2 ** 31)),
         new Date().toISOString(),
         user.nid,
         value.dateTime,

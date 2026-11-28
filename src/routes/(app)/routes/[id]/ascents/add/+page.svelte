@@ -27,7 +27,7 @@
   // `remove()` and not just dropping the array:
   // it is the only thing that aborts the transfer, deletes the staged object and revokes the preview.
   // Opened from the refusal notice: the values that were refused, to correct and save again.
-  const restoreId = page.url.searchParams.get('restore')
+  const restoreId = $derived(page.url.searchParams.get('restore'))
   const restored = () => refusals().find((refusal) => refusal.id === restoreId)
 
   const seed = (): Partial<AscentFormInput> => {
@@ -35,6 +35,7 @@
       upload.remove()
     }
     uploads = []
+    uuid = randomId()
     const refused = restored()
     return refused == null ? {} : JSON.parse(refused.args)
   }
@@ -54,7 +55,7 @@
   // Record-first media: the ascent is created on submit; pending uploads then finalize against it
   // in the background while the form returns to the route, which already exists.
   // One per form: saving again after a lost answer, or the queue sending late, makes one ascent.
-  const uuid = randomId()
+  let uuid = randomId()
 
   const submit = async (values: AscentFormInput) => {
     const created = await createAscent({ ...values, uuid }, { direct: uploads.length > 0 })
@@ -69,20 +70,23 @@
   <title>{m.routes_logAscent()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<Form
-  cancelTo={routeHref}
-  {denied}
-  {seed}
-  {store}
-  {submit}
-  submitLabel={m.common_save()}
-  title={m.routes_logAscent()}
-  waitFor={[
-    { notFound: m.routes_notFound(), resource: route, whole: false },
-    { notFound: m.blocks_notFound(), resource: block, whole: false },
-  ]}
->
-  {#snippet fields([route, block])}
-    <AscentFormFields {block} form={store} {route} bind:uploads />
-  {/snippet}
-</Form>
+<!-- Open from the notice on this same route changes no row, so nothing else would seed it. -->
+{#key restoreId}
+  <Form
+    cancelTo={routeHref}
+    {denied}
+    {seed}
+    {store}
+    {submit}
+    submitLabel={m.common_save()}
+    title={m.routes_logAscent()}
+    waitFor={[
+      { notFound: m.routes_notFound(), resource: route, whole: false },
+      { notFound: m.blocks_notFound(), resource: block, whole: false },
+    ]}
+  >
+    {#snippet fields([route, block])}
+      <AscentFormFields {block} form={store} {route} bind:uploads />
+    {/snippet}
+  </Form>
+{/key}
