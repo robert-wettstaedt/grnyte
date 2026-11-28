@@ -16,6 +16,10 @@ type SaveContext = Pick<Context, 'afterCommit' | 'db' | 'user' | 'userRegions'>
 /** Log an ascent of a route. Answers `{ id }` instead of redirecting so the form can
  *  finalize its background media uploads against the new ascent before navigating. */
 export async function createAscentRow(value: AscentFormValue, { afterCommit, db, user, userRegions }: SaveContext) {
+  // Before the gates: a create resent from a device queue answers its ascent even if the route went since.
+  const made = value.uuid == null ? undefined : await madeBefore(db, value.uuid, user.id)
+  if (made != null) return made
+
   const route = await db.query.routes.findFirst({
     where: and(eq(routes.id, value.routeId), isNull(routes.deletedAt)),
   })
@@ -41,8 +45,13 @@ export async function createAscentRow(value: AscentFormValue, { afterCommit, db,
       routeFk: route.id,
       temperature: value.temperature,
       type: value.type,
+      uuid: value.uuid,
     })
+    .onConflictDoNothing({ target: ascents.uuid })
     .returning()
+
+  // A copy of the same create committed in between.
+  if (ascent == null) return (await madeBefore(db, value.uuid!, user.id)) ?? invalid(formError('error_server_title'))
 
   await recalcUserGradeAndRating(db, route.id)
 
@@ -157,4 +166,15 @@ export async function updateAscentRow(
   )
 
   return { data: { id: ascent.id, routeFk: ascent.routeFk } }
+}
+
+/** The caller's ascent made under `uuid`; another member's id is refused without naming it. */
+async function madeBefore(db: SaveContext['db'], uuid: string, userId: number) {
+  const [made] = await db
+    .select({ createdBy: ascents.createdBy, id: ascents.id })
+    .from(ascents)
+    .where(eq(ascents.uuid, uuid))
+  if (made == null) return undefined
+  if (made.createdBy !== userId) invalid(formError('error_server_title'))
+  return { data: { id: made.id } }
 }

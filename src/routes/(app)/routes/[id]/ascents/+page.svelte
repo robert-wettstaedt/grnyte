@@ -159,7 +159,7 @@
         {#snippet ascentSection(list: RouteAscent[], heading: string, headingClass: string, frameAll: boolean)}
           <section class="flex flex-col gap-2">
             <h2 class={['text-xs font-bold tracking-wider uppercase', headingClass]}>{heading}</h2>
-            {#each list as ascent (ascent.id)}
+            {#each list as ascent (ascent.uuid)}
               <div animate:flip={{ duration: flipDuration }} transition:fade={{ duration: fadeDuration }}>
                 <AscentRow
                   {ascent}

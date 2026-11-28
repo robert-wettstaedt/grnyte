@@ -1,6 +1,6 @@
 import { browser } from '$app/environment'
 import type { ResumeState } from '$lib/components/StatusBar/statusBar'
-import { reportConnectionState, withdrawConnectionState } from '$lib/state/online.svelte'
+import { isOnline, reportConnectionState, withdrawConnectionState } from '$lib/state/online.svelte'
 import {
   localStoreLoaded,
   markStoreLoaded,
@@ -17,19 +17,26 @@ import {
   type SyncStatus,
 } from '@powersync/web'
 import type { Session } from '@supabase/supabase-js'
+import { deviceSchema } from './localTables'
 import { lockWaits } from './lock'
+import { queuedKey, queuedWrites, type Refusal } from './queue'
+import { queueable } from './queueable'
 import { isStale, RESUME_SHOW_MS, RESUME_STALL_MS, resumeState } from './resume'
 import { appSchema } from './schema'
 
 /** Every account file starts with this, so a sign-out can find the ones it did not open. */
 const FILE_PREFIX = 'grnyte-'
+/** How long a sign-out waits for queued writes to go before it asks. */
+const DRAIN_MS = 5000
 
 /** Where the service is. The start-up reads it from the environment, which only exists inside SvelteKit's runtime. */
 export interface PowerSyncSettings {
   endpoint: string
+  /** Sends the queued writes; PowerSync applies no checkpoint while any is left. */
+  upload: PowerSyncBackendConnector['uploadData']
 }
 
-let settings: PowerSyncSettings = { endpoint: '' }
+let settings: PowerSyncSettings = { endpoint: '', upload: async () => {} }
 let db: PowerSyncDatabase | undefined
 let userId: string | undefined
 let cleared = Promise.resolve()
@@ -76,6 +83,9 @@ const markerListeners = new Map<string, () => void>()
 // eslint-disable-next-line svelte/prefer-svelte-reactivity -- nothing reads it reactively
 const movedWhileHidden = new Set<string>()
 let stopMarkers = () => {}
+let refused = $state.raw<Refusal[]>([])
+let stopRefusals = () => {}
+let rereadRefusals = () => {}
 type MarkerTable = keyof typeof appSchema.props
 /** A busy region moves its marker often; every move asks the server. */
 const MARKER_THROTTLE_MS = 1000
@@ -136,7 +146,7 @@ export function initPowerSync(
   // the new page never finished a sync (design D5, client store).
   const opened = new PowerSyncDatabase({
     database: { dbFilename: fileName(session.user.id) },
-    schema: appSchema,
+    schema: deviceSchema,
   })
   db = opened
   stamped = []
@@ -156,19 +166,21 @@ export function initPowerSync(
       if (row != null) markStoreWarm()
       markStoreLoaded()
       report()
+      // A mirror written before a crash, or before the file was evicted, may say anything.
+      await noteQueued()
     })
     .catch((error: unknown) => console.error('[powersync] local read failed', error))
   observe(opened.currentStatus)
   stopWatching = opened.registerListener({ statusChanged: (next) => current() && observe(next) })
   watchMarkers(opened)
+  watchRefusals(opened)
 
   const connector: PowerSyncBackendConnector = {
     fetchCredentials: async () => {
       const token = await accessToken()
       return token == null ? null : { endpoint: settings.endpoint, token }
     },
-    // Nothing writes to the local database; writes go through the server mutators.
-    uploadData: async () => {},
+    uploadData: (database) => settings.upload(database).finally(() => void noteQueued()),
   }
   void cleared
     .then(() => (current() ? opened.connect(connector, CONNECT) : undefined))
@@ -240,6 +252,10 @@ async function closeCurrent(): Promise<void> {
   stopWatching = () => {}
   stopMarkers()
   stopMarkers = () => {}
+  stopRefusals()
+  stopRefusals = () => {}
+  rereadRefusals = () => {}
+  refused = []
   movedWhileHidden.clear()
   const closing = db
   db = undefined
@@ -306,9 +322,41 @@ function askLocks(): void {
 /** Unanswered by then, a delete is queued behind another tab's blocked one, which fires no event of its own. */
 const DELETE_QUEUED_MS = 300
 
+/** Forgets a refusal once the person has seen it. */
+export async function dismissRefusal(id: string): Promise<void> {
+  await db?.execute('delete from write_outcomes where id = ?', [id])
+}
+
+/** Mirrors the open account's count of queued writes where a page without its database can read it. */
+export async function noteQueued(): Promise<void> {
+  const opened = db
+  const account = userId
+  if (opened == null || account == null) return
+  const count = await queuedWrites(opened)
+  if (db === opened) localStorage.setItem(queuedKey(account), String(count))
+}
+
+/** Gives queued writes a few seconds to go while online, then mirrors what is left: a sign-out is about to ask. */
+export async function refreshQueued(): Promise<void> {
+  const opened = db
+  if (opened == null) return
+  const until = Date.now() + DRAIN_MS
+  while (isOnline() && Date.now() < until && (await queuedWrites(opened)) > 0) {
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  await noteQueued()
+}
+
+/** Reactive. The open account's refused writes, oldest first. */
+export function refusals(): readonly Refusal[] {
+  return refused
+}
+
 /** False only if refused within the wait. Blocked or queued is true: it completes once the last connection closes,
  *  for PowerSync's shared sync worker when the page goes. A later refusal is logged. */
 function deleteUnrefused(name: string): Promise<boolean> {
+  // Its queue goes with it. Every account file's deletion passes here.
+  localStorage.removeItem(queuedKey(name.slice(FILE_PREFIX.length, -'.sqlite'.length)))
   return new Promise((resolve) => {
     let answered = false
     const answer = (deleted: boolean) => {
@@ -334,6 +382,8 @@ function noteReconnect(next: SyncStatus): void {
 function observe(next: SyncStatus): void {
   if (next === status) return
   noteReconnect(next)
+  // A checkpoint may have taken a refused write's subject off the device, and with it the offer to reopen.
+  if (next.lastSyncedAt?.getTime() !== status?.lastSyncedAt?.getTime()) rereadRefusals()
   status = next
   confirmStreams(next)
   report()
@@ -424,6 +474,20 @@ function watchMarkers(opened: PowerSyncDatabase): void {
     ),
   )
   stopMarkers = () => stops.forEach((stop) => stop())
+}
+
+function watchRefusals(opened: PowerSyncDatabase): void {
+  const read = async () => {
+    const rows = await opened.getAll<Refusal>(
+      `select id, name, args, message from write_outcomes where status = 'refused' order by created_at`,
+    )
+    const reopen = (row: Refusal) => queueable[row.name]?.reopen(JSON.parse(row.args) as never, opened)
+    const withHrefs = await Promise.all(rows.map(async (row) => ({ ...row, href: await reopen(row) })))
+    if (db === opened) refused = withHrefs
+  }
+  rereadRefusals = () => void read().catch((error: unknown) => console.error('[powersync] refusals unread', error))
+  rereadRefusals()
+  stopRefusals = opened.onChange({ onChange: read }, { tables: ['write_outcomes'] })
 }
 
 /** Safari freezes a hidden page without the sync noticing, which then reports a dead stream as live (design D14). */

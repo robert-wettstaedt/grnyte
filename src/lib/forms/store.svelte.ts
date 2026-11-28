@@ -1,7 +1,6 @@
 import { isOnline } from '$lib/state/online.svelte'
 import { leaveIfSessionEnded } from '$lib/state/toast/sessionEnded'
-import type { WriteRejection } from '$lib/zero/write'
-import { refusal } from '$lib/zero/writeResult'
+import { refusal, type WriteRejection } from '$lib/zero/writeResult'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { RemoteFormIssue } from '@sveltejs/kit'
 import { untrack } from 'svelte'

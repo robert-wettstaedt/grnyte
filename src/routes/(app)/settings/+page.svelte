@@ -20,6 +20,7 @@
   import { getLocale, setLocale, type Locale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
+  import { mayDiscard } from '$lib/state/pwa/leave.svelte'
   import { disablePush } from '$lib/state/pwa/push.svelte'
   import { notifyError } from '$lib/state/toast/toast'
   import { legalLinks } from '../../(landing)/legal/links'
@@ -109,6 +110,7 @@
     // supabase is always present under (app); the guard only narrows the route-union type.
     const { supabase } = page.data
     if (supabase == null) return
+    if (!(await mayDiscard())) return
 
     // Release this device FIRST. A push endpoint belongs to the browser, not the account, so a
     // subscription left behind keeps delivering the signed-out person's digests, and the next

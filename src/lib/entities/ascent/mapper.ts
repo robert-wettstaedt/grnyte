@@ -54,10 +54,13 @@ export function toRouteAscent(row: RouteAscentRow): RouteAscent {
     humidity: row.humidity ?? undefined,
     id: row.id,
     notes: row.notes ?? '',
+    // Only the PowerSync device writes it; Zero's row type has no such column.
+    pending: (row as { pending?: boolean | null }).pending === true,
     rating: row.rating ?? undefined,
     regionFk: row.regionFk,
     temperature: row.temperature ?? undefined,
     type: row.type,
+    uuid: row.uuid ?? '',
   }
 }
 

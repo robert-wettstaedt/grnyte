@@ -233,6 +233,14 @@ describe.skipIf(!reachable)('synced reads never cross the region boundary', () =
     expect(owners).toEqual([users.insider.authId])
   })
 
+  it('syncs an ascent under its device id, keeping its serial as nid', async () => {
+    const [ascent] = await sql<{ id: number; uuid: string }[]>`
+      select id, uuid from public.ascents where region_fk = ${regionA}`
+    const held = (await holdings(users.insider.authId)).filter((row) => row.table === 'ascents')
+
+    expect(held.map((row) => [row.data.id, Number(row.data.nid)])).toEqual([[ascent.uuid, ascent.id]])
+  })
+
   it("holds the marker of the member's region and of no other", async () => {
     const regions = (await holdings(users.insider.authId))
       .filter((row) => row.table === 'region_counters')

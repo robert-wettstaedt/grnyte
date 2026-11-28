@@ -1,4 +1,5 @@
 import type { ResumeState } from '$lib/components/StatusBar/statusBar'
+import type { Refusal } from '$lib/powersync/queue'
 import {
   authRetryDelay,
   isDefinitiveRefusal,
@@ -20,6 +21,9 @@ export async function clearLocal(): Promise<void> {}
 export function connection(): ConnectionName {
   return getZ().connectionState.name
 }
+
+/** Forgets a refused queued write. Zero queues nothing, so there is none. */
+export async function dismissRefusal(_id: string): Promise<void> {}
 
 /** Whether the sync server refused the download, so an empty local store is not still arriving. */
 export function downloadRefused(): boolean {
@@ -56,6 +60,16 @@ export function recoverSignIn(supabase: SupabaseClient, session: null | Session 
   })
 
   return stopAuthRecovery
+}
+
+/** Lets queued writes go, then counts those left on the device. Zero queues nothing. */
+export async function refreshQueued(): Promise<number> {
+  return 0
+}
+
+/** Reactive. Queued writes the server refused; Zero queues nothing. */
+export function refusals(): readonly Refusal[] {
+  return []
 }
 
 /** The catch-up after a return to the foreground: Zero reconnects by itself and has none to show. */

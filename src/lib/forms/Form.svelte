@@ -20,6 +20,7 @@
   import type { MutationResult } from '$lib/remote/mutation'
   import { back, exit } from '$lib/state/navigation.svelte'
   import { isOnline } from '$lib/state/online.svelte'
+  import { toaster } from '$lib/state/toast/toast'
   import { untrack, type ComponentProps } from 'svelte'
   import FormError from './fields/FormError.svelte'
   import FormSteps from './FormSteps.svelte'
@@ -129,6 +130,11 @@
   let offline = $state(false)
   let submitting = $state(false)
 
+  // Kept on the device, not yet on the server: the form still finishes, and says so.
+  const sayIfQueued = (result: MutationResult<unknown> | undefined | void) => {
+    if (result?.queued) toaster.create({ title: m.form_savedOnDevice(), type: 'info' })
+  }
+
   async function onsubmit(event: SubmitEvent) {
     event.preventDefault()
     const element = event.currentTarget as HTMLFormElement
@@ -150,6 +156,7 @@
       } else if (outcome.kind !== 'done') {
         element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
       } else {
+        sayIfQueued(outcome.result)
         await onSubmitted?.()
         // `exit`, never a push: a finished form must not be reachable by going back.
         if (!stayOnSubmit) await exit(outcome.result?.redirectTo ?? cancelTo)

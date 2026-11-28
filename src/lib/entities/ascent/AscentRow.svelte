@@ -141,6 +141,12 @@
               </a>
             {/if}
             <AscentType status={ascent.type} />
+            {#if ascent.pending}
+              <span class="badge preset-tonal-warning flex-none gap-1 text-[11px] font-semibold">
+                <Icon name="cloud-off" size={12} />
+                {m.ascents_notUploaded()}
+              </span>
+            {/if}
             <span class="flex-1"></span>
             <!-- In logbook mode the session's day header already dates the row. -->
             {#if route == null && ascent.dateTime != null}
@@ -198,7 +204,13 @@
         </div>
       {/if}
 
-      {#if hasConditions || canEdit || reportable}
+      {#if ascent.pending}
+        <!-- Its id is the device's until the server copy arrives: nothing can address it yet. -->
+        <div class="flex items-center gap-2">
+          <ConditionsPill humidity={ascent.humidity} temperature={ascent.temperature} />
+          <span class="text-surface-600-400 flex-1 text-right text-xs">{m.ascents_waitingToUpload()}</span>
+        </div>
+      {:else if hasConditions || canEdit || reportable}
         <div class="flex items-center gap-2">
           <ConditionsPill humidity={ascent.humidity} temperature={ascent.temperature} />
           <span class="flex-1"></span>

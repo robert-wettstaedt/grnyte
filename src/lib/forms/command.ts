@@ -1,5 +1,5 @@
 import { isOnline } from '$lib/state/online.svelte'
-import { offlineRejection, type WriteRejection } from '$lib/zero/write'
+import { offlineRejection, type WriteRejection } from '$lib/zero/writeResult'
 import { isAuthoredMessage } from './issue'
 import { formError } from './schemas'
 

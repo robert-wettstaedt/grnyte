@@ -4,25 +4,35 @@ import { env } from '$env/dynamic/public'
 import type { ResumeState } from '$lib/components/StatusBar/statusBar'
 import {
   clearPowerSync,
+  dismissRefusal,
   dropAccount,
   initPowerSync,
   onMarkerMove,
   onStaleReturn,
   powerSyncStatus,
+  refusals,
   resumeStatus,
+  refreshQueued as sendQueued,
   storeBlocked,
   syncConnection,
 } from '$lib/powersync/db.svelte'
+import { createUploader, queuedOnDevice } from '$lib/powersync/queue'
 import { checkSession, type Checked } from '$lib/zero/checkSession'
 import type { ConnectionName } from '$lib/zero/connection'
 import { refreshReads, setReadUser } from '$lib/zero/source.powersync.svelte'
-import { setWriteToken } from '$lib/zero/write.powersync'
+import { deliver, setWriteToken } from '$lib/zero/write.powersync'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 
 /** A stuck clear must not keep the next account on the old screen. */
 const LEAVE_CAP_MS = 3000
 
-export { storeBlocked }
+export { dismissRefusal, refusals, storeBlocked }
+
+/** Lets queued writes go for a moment, then counts those left on the device, every account's: a sign-out deletes them all. */
+export async function refreshQueued(): Promise<number> {
+  await sendQueued()
+  return queuedOnDevice(localStorage)
+}
 
 /** The account this document runs as; signing out does not change it. */
 let startedUserId: string | undefined
@@ -100,6 +110,7 @@ export function start(
   initPowerSync(session, syncToken, {
     // shortcut: dev falls back to the local service until PUBLIC_POWERSYNC_URL is in every .env.
     endpoint: env.PUBLIC_POWERSYNC_URL || (dev ? 'http://localhost:58100' : ''),
+    upload: createUploader({ applied: () => refreshReads(), send: deliver }),
   })
 }
 

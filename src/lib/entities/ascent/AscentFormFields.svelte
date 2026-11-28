@@ -26,6 +26,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { isOnline } from '$lib/state/online.svelte'
   import { summaryOf } from '$lib/zero/resource.svelte'
   import AscentType from './AscentType.svelte'
   import AscentTypeInput from './AscentTypeInput.svelte'
@@ -302,9 +303,12 @@
 <div class="space-y-2.5">
   <span class="text-surface-700-300 text-sm font-semibold">{m.routes_form_mediaLabel()}</span>
   {#if ascent == null}
-    <MediaDropZone accept={['image', 'video']} bind:uploads />
+    <!-- Media cannot wait in the device queue yet: offline, the ascent is queued without it. -->
+    <MediaDropZone accept={['image', 'video']} disabled={!isOnline()} bind:uploads />
   {:else}
     <MediaGrid canEdit compact items={ascent.files} shareText={route.name} target={{ id: ascent.id, type: 'ascent' }} />
   {/if}
-  <p class="text-surface-600-400 text-sm">{m.ascents_form_mediaHint()}</p>
+  <p class="text-surface-600-400 text-sm">
+    {ascent == null && !isOnline() ? m.ascents_form_mediaOffline() : m.ascents_form_mediaHint()}
+  </p>
 </div>

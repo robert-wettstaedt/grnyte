@@ -94,3 +94,18 @@ describe('toUserAscentDetail', () => {
     expect(locationCrumb(detail)).toEqual([m.common_unnamed(), 'Le Toit'])
   })
 })
+
+describe('an ascent that has not uploaded', () => {
+  it('is marked while the device holds it, and carries its device id', () => {
+    const queued = { ...row({ name: 'x' }), pending: true, uuid: 'u-1' } as unknown as UserAscentDetailRow
+
+    expect(toUserAscentDetail(queued)).toMatchObject({ pending: true, uuid: 'u-1' })
+  })
+
+  it('is not marked once the server copy arrived, or from Zero, which never has the column', () => {
+    const synced = { ...row({ name: 'x' }), pending: null, uuid: 'u-2' } as unknown as UserAscentDetailRow
+
+    expect(toUserAscentDetail(synced).pending).toBe(false)
+    expect(toUserAscentDetail(row({ name: 'x' })).pending).toBe(false)
+  })
+})

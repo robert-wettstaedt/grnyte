@@ -2,12 +2,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { authClient } from './authClient.test-helper'
 import { checkSession } from './checkSession'
 import { mutators } from './mutators'
-import { forgetUnanswered, setWriteToken, write } from './write.powersync'
+import { deliver, forgetUnanswered, setWriteToken, write } from './write.powersync'
 
 let online = true
 vi.mock('$lib/state/online.svelte', () => ({ isOnline: () => online }))
 // Kit's client runtime, which a unit test has no page for.
 vi.mock('./read.remote', () => ({ readQuery: vi.fn() }))
+const db = { file: 'account' }
+const queue = vi.hoisted(() => ({ answerOf: vi.fn(), enqueue: vi.fn(), settle: vi.fn() }))
+vi.mock('$lib/powersync/queue', () => queue)
+vi.mock('$lib/powersync/db.svelte', () => ({ getPowerSync: () => db, noteQueued: async () => {} }))
+vi.mock('$lib/powersync/queueable', () => ({ queueable: { 'ascents.create': { name: 'ascent entry' } } }))
+const { queueable } = await import('$lib/powersync/queueable')
 
 type Sent = { body: { args: unknown; id: string; name: string }; init: RequestInit; url: string }
 let sent: Sent[] = []
@@ -84,7 +90,7 @@ describe('a write', () => {
     vi.stubGlobal('crypto', { getRandomValues })
     await save()
 
-    expect(sent[0].body.id).toMatch(/^[0-9a-f]{32}$/)
+    expect(sent[0].body.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
   })
 
   it("sends nothing with another account's token", async () => {
@@ -180,6 +186,22 @@ describe('a send that fails', () => {
     const result = expect(save()).rejects.toEqual(offline)
     await vi.advanceTimersByTimeAsync(5000)
     await result
+  })
+
+  it('on the server three times is reported with its status to the queue, and as a general failure to a write', async () => {
+    answers = [reply(500)]
+    const delivered = deliver(JSON.stringify({ args: favorite, id: 'w1', name: 'favorites.set' }))
+    await vi.advanceTimersByTimeAsync(5000)
+    expect((await delivered)?.status).toBe(500)
+
+    const written = expect(save()).rejects.toEqual(unreached)
+    await vi.advanceTimersByTimeAsync(5000)
+    await written
+    // Still unanswered, so the same write made again keeps its id.
+    const again = save().catch(() => {})
+    await vi.advanceTimersByTimeAsync(5000)
+    await again
+    expect(sent[3].body.id).toBe(sent[6].body.id)
   })
 
   it('three times is a general failure while the device is online', async () => {
@@ -399,5 +421,52 @@ describe('the same write made again after a failure', () => {
     await save()
 
     expect(ids()[3]).not.toBe(ids()[0])
+  })
+})
+
+describe('a write that joins the queue', () => {
+  const ascent = { dateTime: '2026-10-01', routeId: '5', type: 'flash' as const, uuid: crypto.randomUUID() }
+  const log = (opts?: { direct?: boolean }) => write(mutators.ascents.create(ascent), opts)
+
+  beforeEach(() => {
+    queue.enqueue.mockReset().mockResolvedValue('w1')
+    queue.answerOf.mockReset().mockResolvedValue(undefined)
+    queue.settle.mockReset()
+  })
+
+  it('is queued without a request while offline', async () => {
+    online = false
+
+    expect(await log()).toEqual({ queued: true })
+    expect(queue.enqueue).toHaveBeenCalledWith(db, 'ascents.create', queueable['ascents.create'], ascent, 'user-a')
+    expect(queue.answerOf).not.toHaveBeenCalled()
+    expect(sent).toHaveLength(0)
+  })
+
+  it('answers the server data once its answer arrives online', async () => {
+    queue.answerOf.mockResolvedValue({ data: JSON.stringify({ id: 7 }), status: 'applied' })
+
+    expect(await log()).toEqual({ data: { id: 7 }, redirectTo: undefined })
+    expect(queue.answerOf).toHaveBeenCalledWith(db, 'w1', 10_000)
+    expect(queue.settle).toHaveBeenCalledWith(db, 'w1')
+  })
+
+  it('throws a refusal that arrives in time, in our words', async () => {
+    const message = JSON.stringify({ message: 'routes_notFound' })
+    queue.answerOf.mockResolvedValue({ field: null, message, status: 'refused' })
+
+    await expect(log()).rejects.toEqual({ body: { field: null, message } })
+    expect(queue.settle).toHaveBeenCalledWith(db, 'w1')
+  })
+
+  it('is queued when no answer arrives in time', async () => {
+    expect(await log()).toEqual({ queued: true })
+  })
+
+  it('is refused offline when it must go direct', async () => {
+    online = false
+
+    await expect(log({ direct: true })).rejects.toEqual(offline)
+    expect(queue.enqueue).not.toHaveBeenCalled()
   })
 })

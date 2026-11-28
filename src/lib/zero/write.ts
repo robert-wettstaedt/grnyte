@@ -1,9 +1,7 @@
 import type { MutationResult } from '$lib/remote/mutation'
 import { isOnline } from '$lib/state/online.svelte'
-import { answered, offlineRejection, refusal, type WriteOptions, type WriteRejection } from './writeResult'
+import { answered, offlineRejection, refusal, type WriteOptions } from './writeResult'
 import { getZ } from './z.svelte'
-
-export { offlineRejection, type WriteRejection }
 
 type Mutation = Parameters<ReturnType<typeof getZ>['mutate']>[0]
 

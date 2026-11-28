@@ -44,10 +44,12 @@
     humidity: undefined,
     id: 1,
     notes: '',
+    pending: false,
     rating: 3,
     regionFk: 1,
     temperature: undefined,
     type: 'redpoint',
+    uuid: '7d1f6b2e-0c9a-4a52-9b3e-1f2a3b4c5d6e',
   }
 
   const base = { ascent, routeName: 'Arch Nemesis' } satisfies ComponentProps<typeof AscentRow>
@@ -83,6 +85,9 @@
 <Story name="Attempt" args={{ ascent: { ...ascent, rating: undefined, type: 'attempt' } }} />
 
 <Story name="Repeat" args={{ ascent: { ...ascent, type: 'repeat' } }} />
+
+<!-- Logged on this device and not uploaded: marked, and expanded it offers no edit, delete or report. -->
+<Story name="Not uploaded yet" args={{ ascent: { ...ascent, id: -42, pending: true }, expanded: true }} />
 
 <!-- Nothing logged but the tick: the "-" grade pill and empty stars are deliberate, they nudge
      the climber to add an opinion. -->

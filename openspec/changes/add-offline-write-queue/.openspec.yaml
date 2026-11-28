@@ -1,0 +1,43 @@
+schema: spec-driven
+created: 2026-11-28
+x-issue: 1148
+x-paths:
+  - src/lib/powersync/queue.ts
+  - src/lib/powersync/queue.server.test.ts
+  - src/lib/powersync/queue.local.server.test.ts
+  - src/lib/powersync/streams.server.test.ts
+  - src/lib/forms/Form.svelte.test.ts
+  - src/lib/powersync/db.svelte.ts
+  - src/lib/powersync/schema.ts
+  - src/lib/powersync/queueable.ts
+  - src/lib/powersync/collections.ts
+  - src/lib/powersync/schema.server.test.ts
+  - scripts/generate-powersync-schema.ts
+  - src/lib/zero/write.powersync.ts
+  - src/lib/zero/write.powersync.test.ts
+  - src/lib/zero/writeResult.ts
+  - src/lib/remote/mutation.ts
+  - src/lib/forms/randomId.ts
+  - src/lib/forms/store.svelte.ts
+  - src/lib/forms/command.ts
+  - src/lib/forms/Form.svelte
+  - src/lib/state/engine.ts
+  - src/lib/state/engine.powersync.ts
+  - src/lib/state/pwa/wipe.ts
+  - src/lib/entities/ascent/
+  - src/lib/components/WriteOutcomes/
+  - src/routes/(app)/+layout.svelte
+  - src/routes/(app)/routes/[id]/ascents/add/+page.svelte
+  - src/routes/(app)/settings/+page.svelte
+  - src/routes/(app)/regions/new/+page.svelte
+  - src/routes/(landing)/invite/accept/+page.svelte
+  - src/routes/(landing)/auth/profile/+page.svelte
+  - src/routes/(app)/routes/[id]/ascents/+page.svelte
+  - src/lib/db/schema.ts
+  - drizzle/
+  - src/lib/zero/zero-schema.gen.ts
+  - deployment/powersync/sync-config.yaml
+  - messages/en.json
+  - messages/de.json
+  - CONTEXT.md
+  - AGENTS.md

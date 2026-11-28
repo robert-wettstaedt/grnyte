@@ -1,5 +1,10 @@
 import { stubIndexedDb } from '$lib/state/indexedDbStub.test-helper'
-import { SyncStreamConnectionMethod, type PowerSyncBackendConnector, type SyncOptions } from '@powersync/web'
+import {
+  SyncStreamConnectionMethod,
+  type AbstractPowerSyncDatabase,
+  type PowerSyncBackendConnector,
+  type SyncOptions,
+} from '@powersync/web'
 import type { Session } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -12,13 +17,17 @@ const engine = vi.hoisted(() => ({
   connectFiles: [] as string[],
   connectOptions: [] as (SyncOptions | undefined)[],
   connectors: [] as PowerSyncBackendConnector[],
+  executed: [] as unknown[][],
   files: [] as string[],
   /** Each database's status listeners, by file, until disposed. */
   listeners: new Map<string, (status: object) => void>(),
   /** Rows the collections have not taken in yet, across their tracking tables. */
   pending: 0,
+  /** Refused writes in `write_outcomes`, and the statements the shell ran. */
+  queued: 0,
   /** Resolves once the database is open. */
   ready: Promise.resolve(),
+  refused: [] as { args: string; id: string; message: string; name: string }[],
   status: { connected: false } as object,
   /** Whether the signed-in user's row is in the local database. */
   userRow: false,
@@ -49,6 +58,9 @@ vi.mock('@powersync/web', async (original) => ({
       changed(this.file, 'region_counters')
       return engine.clearFails ? Promise.reject(new Error('storage')) : Promise.resolve()
     }
+    execute = async (sql: string, parameters: unknown[] = []) => void engine.executed.push([sql, ...parameters])
+    get = async () => ({ n: engine.queued })
+    getAll = async (sql: string) => (sql.includes('write_outcomes') ? [...engine.refused] : [])
     getOptional = async () => (engine.userRow ? { 1: 1 } : null)
     onChange = (handler: { onChange: () => void }, options: { tables: string[]; throttleMs?: number }) => {
       const entry = { file: this.file, live: true, onChange: handler.onChange, ...options }
@@ -86,7 +98,7 @@ const synced = (priorities: number[], all: boolean) => ({
 })
 
 const session = (id: string) => ({ access_token: `stale-${id}`, user: { id } }) as Session
-const settings = { endpoint: 'https://sync.example' }
+const settings = { endpoint: 'https://sync.example', upload: async () => {} }
 /** The browser's lock manager, as one page sees it: `request` runs with the lock held by that page, `query` adds to it. */
 const locks = { held: [] as LockInfo[], pending: [] as LockInfo[] }
 const lockManager = (page: string) => {
@@ -123,10 +135,13 @@ describe('the PowerSync shell', () => {
       connectFiles: [],
       connectOptions: [],
       connectors: [],
+      executed: [],
       files: [],
       listeners: new Map(),
       pending: 0,
+      queued: 0,
       ready: Promise.resolve(),
+      refused: [],
       status: synced([], false),
       userRow: false,
     })
@@ -162,6 +177,52 @@ describe('the PowerSync shell', () => {
 
     expect(await connector.fetchCredentials()).toEqual({ endpoint: 'https://sync.example', token: 'first' })
     expect(await connector.fetchCredentials()).toEqual({ endpoint: 'https://sync.example', token: 'refreshed' })
+  })
+
+  it('holds the refused writes of the open account, follows their table, and forgets a dismissed one', async () => {
+    const { dismissRefusal, initPowerSync, refusals } = await import('./db.svelte')
+    const refusal = { args: '{}', id: 'w1', message: '{"message":"routes_notFound"}', name: 'ascents.create' }
+    engine.refused = [refusal]
+
+    initPowerSync(session('a'), async () => 'token', settings)
+    await settle()
+    expect(refusals()).toEqual([{ ...refusal, href: undefined }])
+
+    engine.refused = []
+    changed('grnyte-a.sqlite', 'write_outcomes')
+    await settle()
+    expect(refusals()).toEqual([])
+
+    await dismissRefusal('w1')
+    expect(engine.executed).toEqual([['delete from write_outcomes where id = ?', 'w1']])
+  })
+
+  it('offers to reopen a refused form only while its subject is still on the device, after each checkpoint', async () => {
+    const { initPowerSync, refusals } = await import('./db.svelte')
+    engine.refused = [{ args: '{"routeId":"5"}', id: 'w1', message: '{}', name: 'ascents.create' }]
+    engine.userRow = true
+    initPowerSync(session('a'), async () => 'token', settings)
+    await settle()
+    expect(refusals()[0].href).toBe('/routes/5/ascents/add')
+
+    // The checkpoint that removed the route.
+    engine.userRow = false
+    announce({ ...synced([0], true), lastSyncedAt: new Date() })
+    await settle()
+
+    expect(refusals()[0].href).toBeUndefined()
+  })
+
+  it('uploads queued writes through the uploader it was given', async () => {
+    const { initPowerSync } = await import('./db.svelte')
+    const upload = vi.fn(async () => {})
+
+    initPowerSync(session('a'), async () => 'token', { ...settings, upload })
+    await settle()
+    const database = {} as AbstractPowerSyncDatabase
+    await engine.connectors[0].uploadData(database)
+
+    expect(upload).toHaveBeenCalledWith(database)
   })
 
   it('ends the database worker as the page leaves, so the next page can open the file', async () => {
@@ -276,7 +337,8 @@ describe('the PowerSync shell', () => {
       onMarkerMove('region_counters', () => {})
       initPowerSync(session('a'), async () => 'token', settings)
 
-      expect(engine.changes.map(({ tables, throttleMs }) => ({ tables, throttleMs }))).toEqual([
+      const markers = engine.changes.filter(({ tables }) => !tables.includes('write_outcomes'))
+      expect(markers.map(({ tables, throttleMs }) => ({ tables, throttleMs }))).toEqual([
         { tables: ['region_counters'], throttleMs: 1000 },
       ])
     })
@@ -388,6 +450,19 @@ describe('the PowerSync shell', () => {
     await dropAccount('a')
 
     expect(deleted).toEqual(['grnyte-a.sqlite'])
+  })
+
+  it('mirrors its count of queued writes once open, and drops the count with the file', async () => {
+    stubIndexedDb(['grnyte-a.sqlite'])
+    engine.queued = 2
+    const { dropAccount, initPowerSync } = await import('./db.svelte')
+    initPowerSync(session('a'), async () => 'token', settings)
+    await settle()
+    expect(localStorage.getItem('grnyte-queued-a')).toBe('2')
+
+    await dropAccount('a')
+
+    expect(localStorage.getItem('grnyte-queued-a')).toBeNull()
   })
 
   it('deletes it on a switch that came through no session', async () => {

@@ -33,6 +33,10 @@ Zero sync (<https://zero.rocicorp.dev/llms.txt>), Supabase, Drizzle ORM.
   `/api/app/v1/` endpoint through `appEndpoint`, over the same handler body. Components write
   through the entity's `writes.ts`, never `mutators` or `write` directly. In the PowerSync build `write()`
   posts to `/api/sync/mutate`, outside Zero's push processor (no `tx.retryOn`); a write id makes a resend apply once.
+  A mutator listed in `$lib/powersync/queueable.ts` is queued on the device instead (offline too) and sent by
+  `uploadData`: its entry writes the optimistic row, and it must deduplicate on a key in its args (`ascents.uuid`),
+  since an intent can arrive after its write id expired. Its name and args stay accepted for as long as a device may
+  hold an intent, not just one release.
 - A mutation on an existing row gates through `requireRow` / `requireRowForm`
   (`$lib/remote/require.server`), so the permission check sees stored data, never request input.
   Never hand-roll `findFirst` + 404 + `can*`. Exception: writers of `regions.settings`, which need a lock.
