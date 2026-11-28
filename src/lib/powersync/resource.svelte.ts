@@ -62,9 +62,23 @@ export function psResource<TContext extends Context, TOut>(
   // Derived, so a gate reading typed text rebuilds the query only when its answer flips.
   const on = $derived(opts?.enabled?.() !== false)
   const enabled = () => on
-  const live = useLiveQuery((q) => (enabled() ? query(q) : undefined), [...deps, enabled]) as Live<
+  // shortcut: @tanstack/db 0.15.1 fails for good a live query whose join keys change while its first load settles (a
+  // queued row's nid swap), so a failed query is built again, twice per query at most; drop once upstream fixes it.
+  let builds = $state(0)
+  const built = () => builds
+  const live = useLiveQuery((q) => (enabled() ? query(q) : undefined), [...deps, enabled, built]) as Live<
     InferResultType<TContext>
-  >
+  > & { isError: boolean }
+  const queryKey = $derived(JSON.stringify([on, ...deps.map((dep) => dep())]))
+  let rebuilt = { count: 0, queryKey: '' }
+  $effect(() => {
+    if (!live.isError) return
+    if (rebuilt.queryKey !== queryKey) rebuilt = { count: 0, queryKey }
+    if (rebuilt.count < 2) {
+      rebuilt.count++
+      builds++
+    }
+  })
   return resourceOf(live, deps, select, () => stream, opts)
 }
 
