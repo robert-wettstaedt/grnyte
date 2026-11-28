@@ -3,6 +3,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import { besideSheet, FRAME_BOX } from '$lib/components/Modal/placement'
   import { groupFirstAscensionists } from '$lib/entities/firstAscensionist/mapper'
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
   import { allRegionTags } from '$lib/entities/region/tagVocabulary'
@@ -51,13 +52,9 @@
   // Desktop panel geometry. `search`: under the search bar, sharing its x + width.
   // `sheet`: a slim column docked right of the routes sheet, sharing its y + height.
   // Offsets mirror the search bar (top-2 + h-12) and the area sheet (left-27, w-sm/md, py-12).
-  const panelClass = $derived(
-    placement === 'sheet'
-      ? 'fixed inset-0 left-[31.25rem] z-60 flex items-start py-2 lg:left-[35.25rem]'
-      : 'fixed inset-0 left-27 z-60 flex items-start pt-16',
-  )
+  const panelClass = $derived(placement === 'sheet' ? besideSheet : `${FRAME_BOX} left-27 z-60 flex items-start pt-16`)
   const contentClass = $derived(
-    placement === 'sheet' ? 'h-[calc(100dvh-6rem)] w-80' : 'max-h-[calc(100dvh-4.5rem)] w-sm lg:w-md',
+    placement === 'sheet' ? 'h-[calc(100%-5rem)] w-80' : 'max-h-[calc(100%-0.5rem)] w-sm lg:w-md',
   )
 
   const global = getGlobalState()
